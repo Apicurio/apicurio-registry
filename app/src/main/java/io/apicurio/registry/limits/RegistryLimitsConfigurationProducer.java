@@ -12,7 +12,7 @@ public class RegistryLimitsConfigurationProducer {
     @Inject
     Logger logger;
 
-    //All limits to -1 , which means by default all limits are disabled
+    // All limits to -1 , which means by default all limits are disabled
 
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-total-schemas")
@@ -33,7 +33,7 @@ public class RegistryLimitsConfigurationProducer {
     @Info(category = "limits", description = "Max versions per artifacts", availableSince = "2.1.0.Final")
     Long defaultMaxVersionsPerArtifact;
 
-    //TODO content size
+    // TODO content size
     @Inject
     @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-artifact-properties")
     @Info(category = "limits", description = "Max artifact properties", availableSince = "2.1.0.Final")
@@ -69,7 +69,6 @@ public class RegistryLimitsConfigurationProducer {
     @ConfigProperty(defaultValue = "-1", name = "apicurio.limits.config.max-requests-per-second")
     @Info(category = "limits", description = "Max artifact requests per second", availableSince = "2.2.3.Final")
     Long defaultMaxRequestsPerSecond;
-
 
     private boolean isConfigured = true;
     private RegistryLimitsConfiguration defaultLimitsConfiguration;

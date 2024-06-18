@@ -33,22 +33,24 @@ public class OLMUpgradeTests extends TestBase {
         operatorManager.uninstallOperators();
     }
 
-    public void runUpgradeTest(ExtensionContext testContext, boolean clusterWide) throws InterruptedException {
-        // Install operator from default catalog (do not use catalog source image, it will be used for upgrade)
-        ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(
-                null,
-                clusterWide
-        );
+    public void runUpgradeTest(ExtensionContext testContext, boolean clusterWide)
+            throws InterruptedException {
+        // Install operator from default catalog (do not use catalog source image, it will be used for
+        // upgrade)
+        ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(null,
+                clusterWide);
         operatorManager.installOperator(registryOLMOperator);
 
         // Save current (pre-upgrade) ClusterServiceVersion of operator
-        DefaultArtifactVersion oldVersion = new DefaultArtifactVersion(registryOLMOperator.getClusterServiceVersion());
+        DefaultArtifactVersion oldVersion = new DefaultArtifactVersion(
+                registryOLMOperator.getClusterServiceVersion());
 
         // DEPLOY REGISTRY
         // Deploy PostgreSQL database for registry
         DatabaseUtils.deployDefaultPostgresqlDatabase(testContext);
         // Deploy registry with PostgreSQL storage
-        ApicurioRegistry apicurioRegistry = ApicurioRegistryUtils.deployDefaultApicurioRegistrySql(testContext, false);
+        ApicurioRegistry apicurioRegistry = ApicurioRegistryUtils
+                .deployDefaultApicurioRegistrySql(testContext, false);
 
         // Run basic API tests
         APITests.run(apicurioRegistry);
@@ -63,25 +65,24 @@ public class OLMUpgradeTests extends TestBase {
         // Create artifact one by one
         for (int i = 0; i < artifactsCount; i++) {
             // Create one single artifact in registry
-            apiClient.createArtifact("testsuite-upgrade", "upgrade-" + i, ArtifactType.AVRO, ArtifactContent.DEFAULT_AVRO);
+            apiClient.createArtifact("testsuite-upgrade", "upgrade-" + i, ArtifactType.AVRO,
+                    ArtifactContent.DEFAULT_AVRO);
         }
 
         // CHECK CREATION OF ARTIFACTS
         // Get list of artifacts
         ArtifactList artifactList = apiClient.listArtifacts();
         // Check number of present artifacts
-        Assertions.assertEquals(artifactList.getCount(), artifactsCount, MessageFormat.format(
-                "Registry {0} does not contain {1} artifacts, but {2}.",
-                apicurioRegistry.getMetadata().getName(),
-                artifactsCount,
-                artifactList.getCount()
-        ));
+        Assertions.assertEquals(artifactList.getCount(), artifactsCount,
+                MessageFormat.format("Registry {0} does not contain {1} artifacts, but {2}.",
+                        apicurioRegistry.getMetadata().getName(), artifactsCount, artifactList.getCount()));
 
         // Run upgrade of operator from catalog source image
         registryOLMOperator.upgrade();
 
         // Save current (post-upgrade) ClusterServiceVersion of operator
-        DefaultArtifactVersion newVersion = new DefaultArtifactVersion(registryOLMOperator.getClusterServiceVersion());
+        DefaultArtifactVersion newVersion = new DefaultArtifactVersion(
+                registryOLMOperator.getClusterServiceVersion());
 
         // Check if operator is updated
         if (oldVersion.compareTo(newVersion) < 0) {
@@ -100,12 +101,9 @@ public class OLMUpgradeTests extends TestBase {
         // Get list of artifacts
         artifactList = apiClient.listArtifacts();
         // Check number of present artifacts
-        Assertions.assertEquals(artifactList.getCount(), artifactsCount, MessageFormat.format(
-                "Registry {0} does not contain {1} artifacts, but {2}.",
-                apicurioRegistry.getMetadata().getName(),
-                artifactsCount,
-                artifactList.getCount()
-        ));
+        Assertions.assertEquals(artifactList.getCount(), artifactsCount,
+                MessageFormat.format("Registry {0} does not contain {1} artifacts, but {2}.",
+                        apicurioRegistry.getMetadata().getName(), artifactsCount, artifactList.getCount()));
     }
 
     @Test

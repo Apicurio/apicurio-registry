@@ -1,12 +1,12 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Info;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.Context;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 import java.util.Objects;
 
 @RequestScoped

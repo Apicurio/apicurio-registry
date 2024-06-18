@@ -52,34 +52,47 @@ public class MigrationTestsDataInitializer {
             String artifactId = idx + "-" + UUID.randomUUID().toString();
 
             CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
-                    new String(jsonSchema.getSchemaStream().readAllBytes(), StandardCharsets.UTF_8), ContentTypes.APPLICATION_JSON);
+                    new String(jsonSchema.getSchemaStream().readAllBytes(), StandardCharsets.UTF_8),
+                    ContentTypes.APPLICATION_JSON);
             var response = source.groups().byGroupId("default").artifacts().post(createArtifact);
             TestUtils.retry(() -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()));
             migrateGlobalIds.add(response.getVersion().getGlobalId());
         }
 
         for (int idx = 0; idx < 15; idx++) {
-            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
+            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
+                    List.of("a" + idx));
             String artifactId = "avro-" + idx;
-            List<ArtifactReference> references = idx > 0 ? getSingletonRefList("migrateTest", "avro-" + (idx - 1), "1", "myRef" + idx) : Collections.emptyList();
+            List<ArtifactReference> references = idx > 0
+                ? getSingletonRefList("migrateTest", "avro-" + (idx - 1), "1", "myRef" + idx)
+                : Collections.emptyList();
 
             CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
-                    new String(avroSchema.generateSchemaStream().readAllBytes(), StandardCharsets.UTF_8), ContentTypes.APPLICATION_JSON);
+                    new String(avroSchema.generateSchemaStream().readAllBytes(), StandardCharsets.UTF_8),
+                    ContentTypes.APPLICATION_JSON);
             createArtifact.getFirstVersion().getContent().setReferences(references);
             var response = source.groups().byGroupId("migrateTest").artifacts().post(createArtifact);
 
-            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()).get());
-            assertTrue(matchesReferences(references, source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()).references().get()));
+            TestUtils.retry(
+                    () -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()).get());
+            assertTrue(matchesReferences(references, source.ids().globalIds()
+                    .byGlobalId(response.getVersion().getGlobalId()).references().get()));
             migrateReferencesMap.put(response.getVersion().getGlobalId(), references);
             migrateGlobalIds.add(response.getVersion().getGlobalId());
 
             avroSchema = new AvroGenericRecordSchemaFactory(List.of("u" + idx));
-            List<ArtifactReference> updatedReferences = idx > 0 ? getSingletonRefList("migrateTest", "avro-" + (idx - 1), "2", "myRef" + idx) : Collections.emptyList();
-            CreateVersion createVersion = TestUtils.clientCreateVersion(new String(avroSchema.generateSchemaStream().readAllBytes(), StandardCharsets.UTF_8), ContentTypes.APPLICATION_JSON);
+            List<ArtifactReference> updatedReferences = idx > 0
+                ? getSingletonRefList("migrateTest", "avro-" + (idx - 1), "2", "myRef" + idx)
+                : Collections.emptyList();
+            CreateVersion createVersion = TestUtils.clientCreateVersion(
+                    new String(avroSchema.generateSchemaStream().readAllBytes(), StandardCharsets.UTF_8),
+                    ContentTypes.APPLICATION_JSON);
             createVersion.getContent().setReferences(updatedReferences);
-            var vmd = source.groups().byGroupId("migrateTest").artifacts().byArtifactId(artifactId).versions().post(createVersion);
+            var vmd = source.groups().byGroupId("migrateTest").artifacts().byArtifactId(artifactId).versions()
+                    .post(createVersion);
             TestUtils.retry(() -> source.ids().globalIds().byGlobalId(vmd.getGlobalId()));
-            assertTrue(matchesReferences(updatedReferences, source.ids().globalIds().byGlobalId(vmd.getGlobalId()).references().get()));
+            assertTrue(matchesReferences(updatedReferences,
+                    source.ids().globalIds().byGlobalId(vmd.getGlobalId()).references().get()));
             migrateReferencesMap.put(vmd.getGlobalId(), updatedReferences);
             migrateGlobalIds.add(vmd.getGlobalId());
         }
@@ -95,46 +108,61 @@ public class MigrationTestsDataInitializer {
 
         var downloadHref = source.admin().export().get().getHref();
         OkHttpClient client = new OkHttpClient();
-        DataMigrationIT.migrateDataToImport = client.newCall(new Request.Builder().url(registryBaseUrl + downloadHref).build()).execute().body().byteStream();
+        DataMigrationIT.migrateDataToImport = client
+                .newCall(new Request.Builder().url(registryBaseUrl + downloadHref).build()).execute().body()
+                .byteStream();
     }
 
-    public static void initializeDoNotPreserveIdsImport(RegistryClient source, String registryBaseUrl) throws Exception {
+    public static void initializeDoNotPreserveIdsImport(RegistryClient source, String registryBaseUrl)
+            throws Exception {
         // Fill the source registry with data
         JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
         for (int idx = 0; idx < 50; idx++) {
             String artifactId = idx + "-" + UUID.randomUUID().toString();
             String content = IoUtil.toString(jsonSchema.getSchemaStream());
 
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
-            var response = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(createArtifact);
-            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()).get());
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+                    content, ContentTypes.APPLICATION_JSON);
+            var response = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
+                    .post(createArtifact);
+            TestUtils.retry(
+                    () -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()).get());
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
         }
 
         for (int idx = 0; idx < 15; idx++) {
-            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
+            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
+                    List.of("a" + idx));
             String artifactId = "avro-" + idx + "-" + UUID.randomUUID().toString();
             String content = IoUtil.toString(avroSchema.generateSchemaStream());
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
-            var response = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(createArtifact);
-            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()).get());
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                    content, ContentTypes.APPLICATION_JSON);
+            var response = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
+                    .post(createArtifact);
+            TestUtils.retry(
+                    () -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()).get());
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
 
             avroSchema = new AvroGenericRecordSchemaFactory(List.of("u" + idx));
             String content2 = IoUtil.toString(avroSchema.generateSchemaStream());
-            CreateVersion createVersion = TestUtils.clientCreateVersion(content2, ContentTypes.APPLICATION_JSON);
-            var vmd = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().byArtifactId(artifactId).versions().post(createVersion);
+            CreateVersion createVersion = TestUtils.clientCreateVersion(content2,
+                    ContentTypes.APPLICATION_JSON);
+            var vmd = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
+                    .byArtifactId(artifactId).versions().post(createVersion);
             TestUtils.retry(() -> source.ids().globalIds().byGlobalId(vmd.getGlobalId()).get());
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content2);
         }
 
         var downloadHref = source.admin().export().get().getHref();
         OkHttpClient client = new OkHttpClient();
-        DoNotPreserveIdsImportIT.doNotPreserveIdsImportDataToImport = client.newCall(new Request.Builder().url(registryBaseUrl + downloadHref).build()).execute().body().byteStream();
+        DoNotPreserveIdsImportIT.doNotPreserveIdsImportDataToImport = client
+                .newCall(new Request.Builder().url(registryBaseUrl + downloadHref).build()).execute().body()
+                .byteStream();
         DoNotPreserveIdsImportIT.jsonSchema = jsonSchema;
     }
 
-    protected static List<ArtifactReference> getSingletonRefList(String groupId, String artifactId, String version, String name) {
+    protected static List<ArtifactReference> getSingletonRefList(String groupId, String artifactId,
+            String version, String name) {
         ArtifactReference artifactReference = new ArtifactReference();
         artifactReference.setGroupId(groupId);
         artifactReference.setArtifactId(artifactId);
@@ -143,14 +171,14 @@ public class MigrationTestsDataInitializer {
         return Collections.singletonList(artifactReference);
     }
 
-    public static boolean matchesReferences(List<ArtifactReference> srcReferences, List<ArtifactReference> destReferences) {
-        return destReferences.size() == srcReferences.size() && destReferences.stream().allMatch(
-                srcRef -> srcReferences.stream().anyMatch(destRef ->
-                        Objects.equals(srcRef.getGroupId(), destRef.getGroupId()) &&
-                                Objects.equals(srcRef.getArtifactId(), destRef.getArtifactId()) &&
-                                Objects.equals(srcRef.getVersion(), destRef.getVersion()) &&
-                                Objects.equals(srcRef.getName(), destRef.getName()))
-        );
+    public static boolean matchesReferences(List<ArtifactReference> srcReferences,
+            List<ArtifactReference> destReferences) {
+        return destReferences.size() == srcReferences.size() && destReferences.stream()
+                .allMatch(srcRef -> srcReferences.stream()
+                        .anyMatch(destRef -> Objects.equals(srcRef.getGroupId(), destRef.getGroupId())
+                                && Objects.equals(srcRef.getArtifactId(), destRef.getArtifactId())
+                                && Objects.equals(srcRef.getVersion(), destRef.getVersion())
+                                && Objects.equals(srcRef.getName(), destRef.getName())));
     }
 
     public InputStream generateExportedZip(Map<String, String> artifacts) {

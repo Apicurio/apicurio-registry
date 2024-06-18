@@ -39,7 +39,9 @@ public abstract class AbstractDirectoryParser<Schema> {
 
     public abstract ParsedDirectoryWrapper<Schema> parse(File rootSchema);
 
-    public abstract List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema schema, Map<String, TypedContent> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException;
+    public abstract List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact,
+            Schema schema, Map<String, TypedContent> fileContents)
+            throws FileNotFoundException, ExecutionException, InterruptedException;
 
     protected ContentHandle readSchemaContent(File schemaFile) {
         try {
@@ -62,10 +64,11 @@ public abstract class AbstractDirectoryParser<Schema> {
         return nestedSchema;
     }
 
-    protected ArtifactReference registerNestedSchema(String referenceName, List<ArtifactReference> nestedArtifactReferences, 
-            RegisterArtifact nestedSchema, String artifactContent) throws FileNotFoundException, ExecutionException, InterruptedException
-    {
-        CreateArtifactResponse car = registerArtifact(nestedSchema, IoUtil.toStream(artifactContent), nestedArtifactReferences);
+    protected ArtifactReference registerNestedSchema(String referenceName,
+            List<ArtifactReference> nestedArtifactReferences, RegisterArtifact nestedSchema,
+            String artifactContent) throws FileNotFoundException, ExecutionException, InterruptedException {
+        CreateArtifactResponse car = registerArtifact(nestedSchema, IoUtil.toStream(artifactContent),
+                nestedArtifactReferences);
         ArtifactReference referencedArtifact = new ArtifactReference();
         referencedArtifact.setName(referenceName);
         referencedArtifact.setArtifactId(car.getArtifact().getArtifactId());
@@ -74,13 +77,15 @@ public abstract class AbstractDirectoryParser<Schema> {
         return referencedArtifact;
     }
 
-    private CreateArtifactResponse registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) throws ExecutionException, InterruptedException {
+    private CreateArtifactResponse registerArtifact(RegisterArtifact artifact, InputStream artifactContent,
+            List<ArtifactReference> references) throws ExecutionException, InterruptedException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
         String type = artifact.getArtifactType();
         Boolean canonicalize = artifact.getCanonicalize();
-        String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON : artifact.getContentType();
+        String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON
+            : artifact.getContentType();
         String data = null;
         try {
             if (artifact.getMinify() != null && artifact.getMinify()) {
@@ -115,17 +120,15 @@ public abstract class AbstractDirectoryParser<Schema> {
         }).collect(Collectors.toList()));
         createVersion.setContent(content);
 
-        var amd = client
-                .groups()
-                .byGroupId(groupId)
-                .artifacts()
-                .post(createArtifact, config -> {
-                    config.queryParameters.ifExists = IfArtifactExists.forValue(artifact.getIfExists().value());
-                    config.queryParameters.canonical = canonicalize;
-                });
+        var amd = client.groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
+            config.queryParameters.ifExists = IfArtifactExists.forValue(artifact.getIfExists().value());
+            config.queryParameters.canonical = canonicalize;
+        });
 
-                // client.createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
-        log.info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getVersion().getGlobalId()));
+        // client.createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null,
+        // ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
+        log.info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId,
+                artifactId, amd.getVersion().getGlobalId()));
 
         return amd;
     }

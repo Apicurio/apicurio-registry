@@ -4,81 +4,98 @@
 package io.apicurio.tests.protobuf;
 
 public interface ProtobufTestMessageOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:io.apicurio.tests.protobuf.ProtobufTestMessage)
-    com.google.protobuf.MessageOrBuilder {
+        // @@protoc_insertion_point(interface_extends:io.apicurio.tests.protobuf.ProtobufTestMessage)
+        com.google.protobuf.MessageOrBuilder {
 
-  /**
-   * <code>.io.apicurio.tests.protobuf.Header header = 1;</code>
-   * @return Whether the header field is set.
-   */
-  boolean hasHeader();
-  /**
-   * <code>.io.apicurio.tests.protobuf.Header header = 1;</code>
-   * @return The header.
-   */
-  Header getHeader();
-  /**
-   * <code>.io.apicurio.tests.protobuf.Header header = 1;</code>
-   */
-  HeaderOrBuilder getHeaderOrBuilder();
+    /**
+     * <code>.io.apicurio.tests.protobuf.Header header = 1;</code>
+     * 
+     * @return Whether the header field is set.
+     */
+    boolean hasHeader();
 
-  /**
-   * <code>double d1 = 2;</code>
-   * @return The d1.
-   */
-  double getD1();
+    /**
+     * <code>.io.apicurio.tests.protobuf.Header header = 1;</code>
+     * 
+     * @return The header.
+     */
+    Header getHeader();
 
-  /**
-   * <code>string s1 = 4;</code>
-   * @return The s1.
-   */
-  String getS1();
-  /**
-   * <code>string s1 = 4;</code>
-   * @return The bytes for s1.
-   */
-  com.google.protobuf.ByteString
-      getS1Bytes();
+    /**
+     * <code>.io.apicurio.tests.protobuf.Header header = 1;</code>
+     */
+    HeaderOrBuilder getHeaderOrBuilder();
 
-  /**
-   * <code>int32 i1 = 7;</code>
-   * @return The i1.
-   */
-  int getI1();
+    /**
+     * <code>double d1 = 2;</code>
+     * 
+     * @return The d1.
+     */
+    double getD1();
 
-  /**
-   * <code>int64 bi1 = 12;</code>
-   * @return The bi1.
-   */
-  long getBi1();
+    /**
+     * <code>string s1 = 4;</code>
+     * 
+     * @return The s1.
+     */
+    String getS1();
 
-  /**
-   * <code>.google.protobuf.Timestamp state_time = 22;</code>
-   * @return Whether the stateTime field is set.
-   */
-  boolean hasStateTime();
-  /**
-   * <code>.google.protobuf.Timestamp state_time = 22;</code>
-   * @return The stateTime.
-   */
-  com.google.protobuf.Timestamp getStateTime();
-  /**
-   * <code>.google.protobuf.Timestamp state_time = 22;</code>
-   */
-  com.google.protobuf.TimestampOrBuilder getStateTimeOrBuilder();
+    /**
+     * <code>string s1 = 4;</code>
+     * 
+     * @return The bytes for s1.
+     */
+    com.google.protobuf.ByteString getS1Bytes();
 
-  /**
-   * <code>.io.apicurio.tests.protobuf.Point point = 30;</code>
-   * @return Whether the point field is set.
-   */
-  boolean hasPoint();
-  /**
-   * <code>.io.apicurio.tests.protobuf.Point point = 30;</code>
-   * @return The point.
-   */
-  Point getPoint();
-  /**
-   * <code>.io.apicurio.tests.protobuf.Point point = 30;</code>
-   */
-  io.apicurio.tests.protobuf.PointOrBuilder getPointOrBuilder();
+    /**
+     * <code>int32 i1 = 7;</code>
+     * 
+     * @return The i1.
+     */
+    int getI1();
+
+    /**
+     * <code>int64 bi1 = 12;</code>
+     * 
+     * @return The bi1.
+     */
+    long getBi1();
+
+    /**
+     * <code>.google.protobuf.Timestamp state_time = 22;</code>
+     * 
+     * @return Whether the stateTime field is set.
+     */
+    boolean hasStateTime();
+
+    /**
+     * <code>.google.protobuf.Timestamp state_time = 22;</code>
+     * 
+     * @return The stateTime.
+     */
+    com.google.protobuf.Timestamp getStateTime();
+
+    /**
+     * <code>.google.protobuf.Timestamp state_time = 22;</code>
+     */
+    com.google.protobuf.TimestampOrBuilder getStateTimeOrBuilder();
+
+    /**
+     * <code>.io.apicurio.tests.protobuf.Point point = 30;</code>
+     * 
+     * @return Whether the point field is set.
+     */
+    boolean hasPoint();
+
+    /**
+     * <code>.io.apicurio.tests.protobuf.Point point = 30;</code>
+     * 
+     * @return The point.
+     */
+    Point getPoint();
+
+    /**
+     * <code>.io.apicurio.tests.protobuf.Point point = 30;</code>
+     */
+    io.apicurio.tests.protobuf.PointOrBuilder getPointOrBuilder();
 }

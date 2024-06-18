@@ -16,7 +16,6 @@ import java.util.Map;
 
 /**
  * Avro converter.
- *
  */
 public class AvroConverter<T> extends SerdeBasedConverter<org.apache.avro.Schema, T> {
     private AvroData avroData;
@@ -43,7 +42,7 @@ public class AvroConverter<T> extends SerdeBasedConverter<org.apache.avro.Schema
         return AvroKafkaDeserializer.class;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         // set defaults
@@ -59,7 +58,7 @@ public class AvroConverter<T> extends SerdeBasedConverter<org.apache.avro.Schema
     @SuppressWarnings("unchecked")
     @Override
     protected T applySchema(Schema schema, Object value) {
-        //noinspection unchecked
+        // noinspection unchecked
         return (T) avroData.fromConnectData(schema, value);
     }
 

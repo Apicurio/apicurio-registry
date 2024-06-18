@@ -68,7 +68,8 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.VALIDITY);
         createRule.setConfig(ValidityLevel.FULL.name());
-        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(createRule);
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(createRule);
 
         var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
             createArtifactVersion(artifactId, INVALID_SCHEMA, ContentTypes.APPLICATION_JSON);
@@ -84,7 +85,8 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.VALIDITY);
         createRule.setConfig(ValidityLevel.FULL.name());
-        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).rules().post(createRule);
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(createRule);
 
         var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
             createArtifactVersion(artifactId, INVALID_SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);

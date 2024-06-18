@@ -2,9 +2,8 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class StorageBehaviorProperties {

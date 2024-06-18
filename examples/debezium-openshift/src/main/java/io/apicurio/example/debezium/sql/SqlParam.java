@@ -34,16 +34,15 @@ public class SqlParam {
 
     private final SqlParamType type;
 
-
     public SqlParam(int position, Object value, SqlParamType type) {
         this.position = position;
         this.value = value;
         this.type = type;
     }
 
-
     public void bindTo(PreparedStatement statement) {
-        int position = this.position + 1; // Convert from sensible position (starts at 0) to JDBC position index (starts at 1)
+        int position = this.position + 1; // Convert from sensible position (starts at 0) to JDBC position
+                                          // index (starts at 1)
         try {
             switch (type) {
                 case BYTES:

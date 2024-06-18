@@ -19,15 +19,15 @@ public class ProtobufDereferencer implements ContentDereferencer {
 
     @Override
     public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.getContent().content());
-        final Map<String, String> schemaDefs = Collections.unmodifiableMap(resolvedReferences.entrySet()
-                .stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> e.getValue().getContent().content()
-                )));
+        final ProtoFileElement protoFileElement = ProtobufFile
+                .toProtoFileElement(content.getContent().content());
+        final Map<String, String> schemaDefs = Collections
+                .unmodifiableMap(resolvedReferences.entrySet().stream().collect(
+                        Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getContent().content())));
 
-        DescriptorProtos.FileDescriptorProto fileDescriptorProto = FileDescriptorUtils.toFileDescriptorProto(content.getContent().content(), FileDescriptorUtils.firstMessage(protoFileElement).getName(), Optional.ofNullable(protoFileElement.getPackageName()), schemaDefs);
+        DescriptorProtos.FileDescriptorProto fileDescriptorProto = FileDescriptorUtils.toFileDescriptorProto(
+                content.getContent().content(), FileDescriptorUtils.firstMessage(protoFileElement).getName(),
+                Optional.ofNullable(protoFileElement.getPackageName()), schemaDefs);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         try {
@@ -36,12 +36,14 @@ public class ProtobufDereferencer implements ContentDereferencer {
             throw new RuntimeException(e);
         }
 
-        //Dereference returns the whole file descriptor bytes representing the main protobuf schema with the required dependencies.
-        return TypedContent.create(ContentHandle.create(outputStream.toByteArray()), ContentTypes.APPLICATION_PROTOBUF);
+        // Dereference returns the whole file descriptor bytes representing the main protobuf schema with the
+        // required dependencies.
+        return TypedContent.create(ContentHandle.create(outputStream.toByteArray()),
+                ContentTypes.APPLICATION_PROTOBUF);
     }
 
     /**
-     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(TypedContent, Map) 
+     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(TypedContent, Map)
      */
     @Override
     public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {

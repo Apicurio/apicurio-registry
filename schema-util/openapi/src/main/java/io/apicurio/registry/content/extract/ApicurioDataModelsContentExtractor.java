@@ -1,14 +1,13 @@
 package io.apicurio.registry.content.extract;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.TraverserDirection;
 import io.apicurio.datamodels.models.Document;
 import io.apicurio.datamodels.models.Info;
 import io.apicurio.datamodels.models.visitors.CombinedVisitorAdapter;
 import io.apicurio.registry.content.ContentHandle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Performs meta-data extraction for OpenAPI content.

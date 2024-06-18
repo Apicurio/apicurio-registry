@@ -16,9 +16,8 @@ public class SchemaReference implements Comparable<SchemaReference> {
     private Integer version;
 
     @JsonCreator
-    public SchemaReference(@JsonProperty("name") String name,
-                           @JsonProperty("subject") String subject,
-                           @JsonProperty("version") Integer version) {
+    public SchemaReference(@JsonProperty("name") String name, @JsonProperty("subject") String subject,
+            @JsonProperty("version") Integer version) {
         this.name = name;
         this.subject = subject;
         this.version = version;
@@ -63,8 +62,7 @@ public class SchemaReference implements Comparable<SchemaReference> {
             return false;
         }
         SchemaReference that = (SchemaReference) o;
-        return Objects.equals(name, that.name)
-                && Objects.equals(subject, that.subject)
+        return Objects.equals(name, that.name) && Objects.equals(subject, that.subject)
                 && Objects.equals(version, that.version);
     }
 
@@ -85,15 +83,6 @@ public class SchemaReference implements Comparable<SchemaReference> {
 
     @Override
     public String toString() {
-        return "{"
-                + "name='"
-                + name
-                + '\''
-                + ", subject='"
-                + subject
-                + '\''
-                + ", version="
-                + version
-                + '}';
+        return "{" + "name='" + name + '\'' + ", subject='" + subject + '\'' + ", version=" + version + '}';
     }
 }

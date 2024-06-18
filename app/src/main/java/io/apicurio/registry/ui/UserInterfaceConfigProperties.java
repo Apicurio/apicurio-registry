@@ -1,9 +1,8 @@
 package io.apicurio.registry.ui;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
 import io.apicurio.common.apps.config.Info;
 import jakarta.inject.Singleton;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Singleton
 public class UserInterfaceConfigProperties {
@@ -17,8 +16,7 @@ public class UserInterfaceConfigProperties {
     @ConfigProperty(name = "apicurio.ui.docsUrl", defaultValue = "/docs/")
     @Info(category = "ui", description = "URL of the Documentation component", availableSince = "3.0.0")
     public String docsUrl;
-    
-    
+
     @ConfigProperty(name = "quarkus.oidc.auth-server-url")
     public String authOidcUrl;
     @ConfigProperty(name = "apicurio.ui.auth.oidc.redirect-uri", defaultValue = "/")
@@ -28,7 +26,6 @@ public class UserInterfaceConfigProperties {
     @Info(category = "ui", description = "The OIDC clientId", availableSince = "3.0.0")
     public String authOidcClientId;
 
-    
     @ConfigProperty(name = "apicurio.ui.features.read-only.enabled", defaultValue = "false")
     @Info(category = "ui", description = "Enabled to set the UI to read-only mode", availableSince = "3.0.0")
     public String featureReadOnly;

@@ -38,39 +38,42 @@ public class MessagePublisher {
     private static final ApicurioHttpClient httpClient;
 
     static {
-        httpClient = new JdkHttpClientProvider().create("http://localhost:12345", Collections.EMPTY_MAP, null, new RestClientErrorHandler() {
-            @Override
-            @SuppressWarnings("serial")
-            public ApicurioRestClientException parseInputSerializingError(JsonProcessingException ex) {
-                return new ApicurioRestClientException(ex.getMessage()) {
-                };
-            }
+        httpClient = new JdkHttpClientProvider().create("http://localhost:12345", Collections.EMPTY_MAP, null,
+                new RestClientErrorHandler() {
+                    @Override
+                    @SuppressWarnings("serial")
+                    public ApicurioRestClientException parseInputSerializingError(
+                            JsonProcessingException ex) {
+                        return new ApicurioRestClientException(ex.getMessage()) {
+                        };
+                    }
 
-            @Override
-            @SuppressWarnings("serial")
-            public ApicurioRestClientException parseError(Exception ex) {
-                return new ApicurioRestClientException(ex.getMessage()) {
-                };
-            }
+                    @Override
+                    @SuppressWarnings("serial")
+                    public ApicurioRestClientException parseError(Exception ex) {
+                        return new ApicurioRestClientException(ex.getMessage()) {
+                        };
+                    }
 
-            @Override
-            @SuppressWarnings("serial")
-            public ApicurioRestClientException handleErrorResponse(InputStream body, int statusCode) {
-                return new ApicurioRestClientException("Error with code: " + statusCode) {
-                };
-            }
-        });
+                    @Override
+                    @SuppressWarnings("serial")
+                    public ApicurioRestClientException handleErrorResponse(InputStream body, int statusCode) {
+                        return new ApicurioRestClientException("Error with code: " + statusCode) {
+                        };
+                    }
+                });
     }
 
     /**
      * @param message
      */
-    @SuppressWarnings({"rawtypes"})
+    @SuppressWarnings({ "rawtypes" })
     public void publishMessage(MessageBean message) {
         JSONObject messageObj = new JSONObject(message);
         String data = messageObj.toString();
-        Request request = new RequestBuilder().operation(Operation.POST).data(data).responseType(new TypeReference<Void>() {
-        }).build();
+        Request request = new RequestBuilder().operation(Operation.POST).data(data)
+                .responseType(new TypeReference<Void>() {
+                }).build();
         httpClient.sendRequest(request);
 
         System.out.println("Produced message: " + message);

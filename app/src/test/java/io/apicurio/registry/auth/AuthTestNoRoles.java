@@ -1,6 +1,5 @@
 package io.apicurio.registry.auth;
 
-
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
@@ -42,14 +41,16 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var exception = Assertions.assertThrows(Exception.class, () -> {
@@ -60,7 +61,8 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -76,19 +78,9 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
             createVersion.setContent(versionContent);
             versionContent.setContent("{}");
             versionContent.setContentType(ContentTypes.APPLICATION_JSON);
-            client
-                    .groups()
-                    .byGroupId(groupId)
-                    .artifacts()
-                    .post(createArtifact);
-            TestUtils.retry(() ->
-                    client
-                        .groups()
-                        .byGroupId(groupId)
-                        .artifacts()
-                        .byArtifactId(artifactId)
-                        .get()
-                        );
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
+            TestUtils.retry(
+                    () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
             assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
             CreateRule createRule = new CreateRule();

@@ -10,7 +10,7 @@ public class ParametersConflictException extends ConflictException {
 
     public ParametersConflictException(String parameter1, String parameter2) {
         super("Conflict: '" + parameter1 + "' and '" + parameter2 + "' are mutually exclusive.");
-        this.parameters = new String[]{parameter1, parameter2};
+        this.parameters = new String[] { parameter1, parameter2 };
     }
 
     public ParametersConflictException(String... parameters) {

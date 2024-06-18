@@ -1,13 +1,13 @@
 package io.apicurio.registry.serde.config;
 
-import static io.apicurio.registry.serde.SerdeConfig.*;
-
-import java.util.Map;
-
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
+
+import java.util.Map;
+
+import static io.apicurio.registry.serde.SerdeConfig.*;
 
 public class BaseKafkaSerDeConfig extends AbstractConfig {
 

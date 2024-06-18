@@ -1,15 +1,14 @@
 package io.apicurio.registry.serde.headers;
 
-import java.nio.ByteBuffer;
-import java.util.Map;
-
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.serde.config.IdOption;
+import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.serde.config.IdOption;
-import io.apicurio.registry.utils.IoUtil;
+import java.nio.ByteBuffer;
+import java.util.Map;
 
 public class DefaultHeadersHandler implements HeadersHandler {
 
@@ -46,13 +45,15 @@ public class DefaultHeadersHandler implements HeadersHandler {
     }
 
     /**
-     * @see io.apicurio.registry.serde.headers.HeadersHandler#writeHeaders(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.SchemaLookupResult)
+     * @see io.apicurio.registry.serde.headers.HeadersHandler#writeHeaders(org.apache.kafka.common.header.Headers,
+     *      io.apicurio.registry.serde.SchemaLookupResult)
      */
     @Override
     public void writeHeaders(Headers headers, ArtifactReference reference) {
         if (idOption == IdOption.contentId) {
             if (reference.getContentId() == null) {
-                throw new SerializationException("Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
+                throw new SerializationException(
+                        "Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
             }
             ByteBuffer buff = ByteBuffer.allocate(8);
             buff.putLong(reference.getContentId());
@@ -81,14 +82,9 @@ public class DefaultHeadersHandler implements HeadersHandler {
      */
     @Override
     public ArtifactReference readHeaders(Headers headers) {
-        return ArtifactReference.builder()
-                .globalId(getGlobalId(headers))
-                .contentId(getContentId(headers))
-                .contentHash(getContentHash(headers))
-                .groupId(getGroupId(headers))
-                .artifactId(getArtifactId(headers))
-                .version(getVersion(headers))
-                .build();
+        return ArtifactReference.builder().globalId(getGlobalId(headers)).contentId(getContentId(headers))
+                .contentHash(getContentHash(headers)).groupId(getGroupId(headers))
+                .artifactId(getArtifactId(headers)).version(getVersion(headers)).build();
     }
 
     private String getGroupId(Headers headers) {

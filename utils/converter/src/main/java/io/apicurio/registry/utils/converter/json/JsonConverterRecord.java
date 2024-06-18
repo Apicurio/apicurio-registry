@@ -6,6 +6,7 @@ public class JsonConverterRecord<T> extends KafkaSerdeRecord<T> {
 
     /**
      * Constructor.
+     * 
      * @param metadata
      * @param payload
      */

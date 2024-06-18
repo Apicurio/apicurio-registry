@@ -30,7 +30,6 @@ import static java.util.stream.Collectors.toMap;
 
 public class WrapUtil {
 
-
     public static SchemaWrapper wrap(Schema schema) {
         if (schema == null)
             return null;
@@ -66,7 +65,8 @@ public class WrapUtil {
         } else if (schema instanceof NumberSchema) {
             return new NumberSchemaWrapper((NumberSchema) schema);
         } else {
-            throw new IllegalStateException("No wrapper for an underlying schema type '" + schema.getClass() + "': " + schema);
+            throw new IllegalStateException(
+                    "No wrapper for an underlying schema type '" + schema.getClass() + "': " + schema);
         }
     }
 
@@ -79,11 +79,8 @@ public class WrapUtil {
     public static <K> Map<K, SchemaWrapper> wrap(Map<K, Schema> map) {
         requireNonNull(map);
         return map.entrySet().stream()
-            //.map(entry -> new SimpleEntry<>(entry.getKey(), wrap(entry.getValue())))
-            .collect(toMap(
-                Entry::getKey,
-                e -> wrap(e.getValue())
-            ));
+                // .map(entry -> new SimpleEntry<>(entry.getKey(), wrap(entry.getValue())))
+                .collect(toMap(Entry::getKey, e -> wrap(e.getValue())));
     }
 
     public static Collection<SchemaWrapper> wrap(Collection<Schema> subschemas) {

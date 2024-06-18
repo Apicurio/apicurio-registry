@@ -16,12 +16,13 @@ import java.util.Map;
  * A canonicalizer that handles GraphQL (SDL) formatted content.
  */
 public class GraphQLContentCanonicalizer implements ContentCanonicalizer {
-    
+
     private static final SchemaParser sparser = new SchemaParser();
     private static final SchemaGenerator schemaGenerator = new SchemaGenerator();
     private static final RuntimeWiring wiring = RuntimeWiring.newRuntimeWiring().build();
-    private static final SchemaPrinter printer = new SchemaPrinter(Options.defaultOptions().includeDirectives(false));
-    
+    private static final SchemaPrinter printer = new SchemaPrinter(
+            Options.defaultOptions().includeDirectives(false));
+
     /**
      * @see ContentCanonicalizer#canonicalize(TypedContent, Map)
      */

@@ -22,7 +22,7 @@ import java.util.Set;
  * @see <a href="https://github.com/nilslice/protolock">Protolock</a>
  */
 public class ProtobufCompatibilityCheckerLibrary {
- // TODO https://github.com/square/wire/issues/797 RFE: capture EnumElement reserved info
+    // TODO https://github.com/square/wire/issues/797 RFE: capture EnumElement reserved info
 
     private final ProtobufFile fileBefore;
     private final ProtobufFile fileAfter;
@@ -53,7 +53,8 @@ public class ProtobufCompatibilityCheckerLibrary {
     }
 
     /**
-     * Determine if any message's previously reserved fields or IDs are now being used as part of the same message.
+     * Determine if any message's previously reserved fields or IDs are now being used as part of the same
+     * message.
      * <p>
      * Note: TODO can't currently validate enum reserved fields, as the parser doesn't capture those.
      *
@@ -72,7 +73,9 @@ public class ProtobufCompatibilityCheckerLibrary {
                 Set<Object> intersection = new HashSet<>(entry.getValue());
                 intersection.retainAll(old);
                 if (!intersection.isEmpty()) {
-                    issues.add(ProtobufDifference.from(String.format("Conflict of reserved %d fields, message %s", intersection.size(), entry.getKey())));
+                    issues.add(ProtobufDifference
+                            .from(String.format("Conflict of reserved %d fields, message %s",
+                                    intersection.size(), entry.getKey())));
                 }
             }
         }
@@ -103,10 +106,13 @@ public class ProtobufCompatibilityCheckerLibrary {
 
                 int diff = entry.getValue().size() - intersection.size();
                 if (diff != 0) {
-                    issues.add(ProtobufDifference.from(String.format("%d reserved fields were removed, message %s", diff, entry.getKey())));
+                    issues.add(ProtobufDifference.from(String
+                            .format("%d reserved fields were removed, message %s", diff, entry.getKey())));
                 }
             } else {
-                issues.add(ProtobufDifference.from(String.format("%d reserved fields were removed, message %s", entry.getValue().size(), entry.getKey())));
+                issues.add(
+                        ProtobufDifference.from(String.format("%d reserved fields were removed, message %s",
+                                entry.getValue().size(), entry.getKey())));
             }
         }
 
@@ -141,21 +147,24 @@ public class ProtobufCompatibilityCheckerLibrary {
 
             // count once for each non-reserved field name
             Set<Object> reserved = afterReservedFields.getOrDefault(entry.getKey(), Collections.emptySet());
-            Set<Object> nonreserved = afterNonreservedFields.getOrDefault(entry.getKey(), Collections.emptySet());
+            Set<Object> nonreserved = afterNonreservedFields.getOrDefault(entry.getKey(),
+                    Collections.emptySet());
             Set<String> nonReservedRemovedFieldNames = new HashSet<>(removedFieldNames);
             nonReservedRemovedFieldNames.removeAll(reserved);
             issuesCount += nonReservedRemovedFieldNames.size();
 
             // count again for each non-reserved field id
             for (FieldElement fieldElement : entry.getValue().values()) {
-                if (removedFieldNames.contains(fieldElement.getName()) &&
-                    !(reserved.contains(fieldElement.getTag()) || nonreserved.contains(fieldElement.getTag()))) {
+                if (removedFieldNames.contains(fieldElement.getName())
+                        && !(reserved.contains(fieldElement.getTag())
+                                || nonreserved.contains(fieldElement.getTag()))) {
                     issuesCount++;
                 }
             }
 
             if (issuesCount > 0) {
-                issues.add(ProtobufDifference.from(String.format("%d fields removed without reservation, message %s", issuesCount, entry.getKey())));
+                issues.add(ProtobufDifference.from(String.format(
+                        "%d fields removed without reservation, message %s", issuesCount, entry.getKey())));
             }
         }
 
@@ -181,7 +190,9 @@ public class ProtobufCompatibilityCheckerLibrary {
                 for (Map.Entry<String, FieldElement> beforeKV : entry.getValue().entrySet()) {
                     FieldElement afterFE = afterMap.get(beforeKV.getKey());
                     if (afterFE != null && beforeKV.getValue().getTag() != afterFE.getTag()) {
-                        issues.add(ProtobufDifference.from(String.format("Conflict, field id changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getTag(), afterFE.getTag())));
+                        issues.add(ProtobufDifference.from(String.format(
+                                "Conflict, field id changed, message %s , before: %s , after %s",
+                                entry.getKey(), beforeKV.getValue().getTag(), afterFE.getTag())));
                     }
                 }
             }
@@ -197,7 +208,9 @@ public class ProtobufCompatibilityCheckerLibrary {
                 for (Map.Entry<String, EnumConstantElement> beforeKV : entry.getValue().entrySet()) {
                     EnumConstantElement afterECE = afterMap.get(beforeKV.getKey());
                     if (afterECE != null && beforeKV.getValue().getTag() != afterECE.getTag()) {
-                        issues.add(ProtobufDifference.from(String.format("Conflict, field id changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getTag(), afterECE.getTag())));
+                        issues.add(ProtobufDifference.from(String.format(
+                                "Conflict, field id changed, message %s , before: %s , after %s",
+                                entry.getKey(), beforeKV.getValue().getTag(), afterECE.getTag())));
                     }
                 }
             }
@@ -231,11 +244,16 @@ public class ProtobufCompatibilityCheckerLibrary {
                         String afterType = normalizeType(fileAfter, afterFE.getType());
 
                         if (afterFE != null && !beforeType.equals(afterType)) {
-                            issues.add(ProtobufDifference.from(String.format("Field type changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getType(), afterFE.getType())));
+                            issues.add(ProtobufDifference.from(String.format(
+                                    "Field type changed, message %s , before: %s , after %s", entry.getKey(),
+                                    beforeKV.getValue().getType(), afterFE.getType())));
                         }
 
-                        if (afterFE != null && !Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())) {
-                            issues.add(ProtobufDifference.from(String.format("Field label changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue().getLabel(), afterFE.getLabel())));
+                        if (afterFE != null
+                                && !Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())) {
+                            issues.add(ProtobufDifference.from(String.format(
+                                    "Field label changed, message %s , before: %s , after %s", entry.getKey(),
+                                    beforeKV.getValue().getLabel(), afterFE.getLabel())));
                         }
                     }
                 }
@@ -247,10 +265,10 @@ public class ProtobufCompatibilityCheckerLibrary {
 
     private String normalizeType(ProtobufFile file, String type) {
         if (type != null && type.startsWith(".")) {
-            //it's fully qualified
+            // it's fully qualified
             String nodot = type.substring(1);
             if (file.getPackageName() != null && nodot.startsWith(file.getPackageName())) {
-                //it's fully qualified but it's a message in the same .proto file
+                // it's fully qualified but it's a message in the same .proto file
                 return nodot.substring(file.getPackageName().length() + 1);
             }
             return nodot;
@@ -281,7 +299,9 @@ public class ProtobufCompatibilityCheckerLibrary {
                     String nameAfter = afterMap.get(beforeKV.getKey());
 
                     if (!beforeKV.getValue().equals(nameAfter)) {
-                        issues.add(ProtobufDifference.from(String.format("Field name changed, message %s , before: %s , after %s", entry.getKey(), beforeKV.getValue(), nameAfter)));
+                        issues.add(ProtobufDifference
+                                .from(String.format("Field name changed, message %s , before: %s , after %s",
+                                        entry.getKey(), beforeKV.getValue(), nameAfter)));
                     }
                 }
             }
@@ -311,7 +331,8 @@ public class ProtobufCompatibilityCheckerLibrary {
             }
 
             if (diff.size() > 0) {
-                issues.add(ProtobufDifference.from(String.format("%d rpc services removed, message %s", diff.size(), entry.getKey())));
+                issues.add(ProtobufDifference.from(
+                        String.format("%d rpc services removed, message %s", diff.size(), entry.getKey())));
             }
 
         }
@@ -338,7 +359,9 @@ public class ProtobufCompatibilityCheckerLibrary {
                 for (Map.Entry<String, String> beforeKV : entry.getValue().entrySet()) {
                     String afterSig = afterMap.get(beforeKV.getKey());
                     if (!beforeKV.getValue().equals(afterSig)) {
-                        issues.add(ProtobufDifference.from(String.format("rpc service signature changed, message %s , before %s , after %s", entry.getKey(), beforeKV.getValue(), afterSig)));
+                        issues.add(ProtobufDifference.from(String.format(
+                                "rpc service signature changed, message %s , before %s , after %s",
+                                entry.getKey(), beforeKV.getValue(), afterSig)));
 
                     }
                 }
@@ -366,8 +389,11 @@ public class ProtobufCompatibilityCheckerLibrary {
             if (beforeMap != null) {
                 for (Map.Entry<String, FieldElement> afterKV : entry.getValue().entrySet()) {
                     FieldElement afterSig = beforeMap.get(afterKV.getKey());
-                    if (afterSig == null && afterKV.getValue().getLabel() != null && afterKV.getValue().getLabel().equals(Field.Label.REQUIRED)) {
-                        issues.add(ProtobufDifference.from(String.format("required field added in new version, message %s, after %s", entry.getKey(), afterKV.getValue())));
+                    if (afterSig == null && afterKV.getValue().getLabel() != null
+                            && afterKV.getValue().getLabel().equals(Field.Label.REQUIRED)) {
+                        issues.add(ProtobufDifference.from(
+                                String.format("required field added in new version, message %s, after %s",
+                                        entry.getKey(), afterKV.getValue())));
                     }
                 }
             }

@@ -110,7 +110,8 @@ public class ImportExportTest extends AbstractResourceTestBase {
             String artifactId = "TestArtifact-" + idx;
             int numExtraVersions = idx - 1;
             for (int jdx = 0; jdx < numExtraVersions; jdx++) {
-                createArtifactVersion(groupId, artifactId, "{\"title\": \"Version " + jdx + "\"}", ContentTypes.APPLICATION_JSON);
+                createArtifactVersion(groupId, artifactId, "{\"title\": \"Version " + jdx + "\"}",
+                        ContentTypes.APPLICATION_JSON);
             }
         }
 
@@ -122,8 +123,10 @@ public class ImportExportTest extends AbstractResourceTestBase {
                 metaData.setName("Version #" + jdx);
                 metaData.setDescription("This is version number: " + jdx);
                 metaData.setLabels(new Labels());
-                metaData.getLabels().setAdditionalData(Map.of("artifact-number", "" + idx, "version-number", "" + jdx));
-                clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(""+(jdx+1)).put(metaData);
+                metaData.getLabels()
+                        .setAdditionalData(Map.of("artifact-number", "" + idx, "version-number", "" + jdx));
+                clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                        .byVersionExpression("" + (jdx + 1)).put(metaData);
             }
         }
 
@@ -134,12 +137,14 @@ public class ImportExportTest extends AbstractResourceTestBase {
         createBranch.setBranchId("odds");
         createBranch.setDescription("Odd numbered versions");
         createBranch.setVersions(List.of("1", "3", "5"));
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches().post(createBranch);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches()
+                .post(createBranch);
         createBranch = new CreateBranch();
         createBranch.setBranchId("evens");
         createBranch.setDescription("Even numbered versions");
         createBranch.setVersions(List.of("2", "4"));
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches().post(createBranch);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches()
+                .post(createBranch);
 
         // Configure some global rules
         CreateRule createRule = new CreateRule();
@@ -153,11 +158,13 @@ public class ImportExportTest extends AbstractResourceTestBase {
         createRule = new CreateRule();
         createRule.setRuleType(RuleType.VALIDITY);
         createRule.setConfig(ValidityLevel.SYNTAX_ONLY.name());
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules().post(createRule);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules()
+                .post(createRule);
         createRule = new CreateRule();
         createRule.setRuleType(RuleType.INTEGRITY);
         createRule.setConfig(IntegrityLevel.FULL.name());
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules().post(createRule);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules()
+                .post(createRule);
 
         // Add some comments
         // TODO add comments
@@ -202,14 +209,17 @@ public class ImportExportTest extends AbstractResourceTestBase {
         });
         Assertions.assertEquals(2, groups.getCount());
         Assertions.assertEquals("PrimaryTestGroup", groups.getGroups().get(0).getGroupId());
-        Assertions.assertEquals("The group for the export/import test.", groups.getGroups().get(0).getDescription());
+        Assertions.assertEquals("The group for the export/import test.",
+                groups.getGroups().get(0).getDescription());
         Assertions.assertEquals("SecondaryTestGroup", groups.getGroups().get(1).getGroupId());
-        Assertions.assertEquals("Another test group that is empty.", groups.getGroups().get(1).getDescription());
+        Assertions.assertEquals("Another test group that is empty.",
+                groups.getGroups().get(1).getDescription());
 
         // TODO: check group labels (not returned by group search)
 
         // Assert empty artifact
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("EmptyArtifact").get();
+        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("EmptyArtifact")
+                .get();
         Assertions.assertEquals(groupId, amd.getGroupId());
         Assertions.assertEquals("EmptyArtifact", amd.getArtifactId());
         Assertions.assertEquals("Empty artifact", amd.getName());
@@ -237,13 +247,15 @@ public class ImportExportTest extends AbstractResourceTestBase {
             int expectedNumberOfVersions = idx;
 
             // Check the artifact has the correct # of versions
-            VersionSearchResults versions = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();
+            VersionSearchResults versions = clientV3.groups().byGroupId(groupId).artifacts()
+                    .byArtifactId(artifactId).versions().get();
             Assertions.assertEquals(expectedNumberOfVersions, versions.getCount());
 
             // Check each version
             for (int jdx = 0; jdx < idx; jdx++) {
                 String version = "" + (jdx + 1);
-                VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
+                VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts()
+                        .byArtifactId(artifactId).versions().byVersionExpression(version).get();
                 Assertions.assertEquals(groupId, vmd.getGroupId());
                 Assertions.assertEquals(artifactId, vmd.getArtifactId());
                 Assertions.assertEquals(version, vmd.getVersion());
@@ -253,22 +265,27 @@ public class ImportExportTest extends AbstractResourceTestBase {
         }
 
         // Assert branches
-        BranchSearchResults branches = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches().get();
+        BranchSearchResults branches = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactIdWithBranches).branches().get();
         Assertions.assertEquals(3, branches.getCount());
         Assertions.assertEquals("evens", branches.getBranches().get(0).getBranchId());
         Assertions.assertEquals("latest", branches.getBranches().get(1).getBranchId());
         Assertions.assertEquals("odds", branches.getBranches().get(2).getBranchId());
 
-        BranchMetaData branch = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches().byBranchId("evens").get();
+        BranchMetaData branch = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactIdWithBranches).branches().byBranchId("evens").get();
         Assertions.assertEquals("evens", branch.getBranchId());
         Assertions.assertEquals("Even numbered versions", branch.getDescription());
         Assertions.assertEquals(false, branch.getSystemDefined());
-        branch = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches().byBranchId("latest").get();
+        branch = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches)
+                .branches().byBranchId("latest").get();
         Assertions.assertEquals(true, branch.getSystemDefined());
 
-        VersionSearchResults versions = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches().byBranchId("evens").versions().get();
+        VersionSearchResults versions = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactIdWithBranches).branches().byBranchId("evens").versions().get();
         Assertions.assertEquals(2, versions.getCount());
-        versions = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches).branches().byBranchId("odds").versions().get();
+        versions = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithBranches)
+                .branches().byBranchId("odds").versions().get();
         Assertions.assertEquals(3, versions.getCount());
 
         // Assert global rules
@@ -278,11 +295,14 @@ public class ImportExportTest extends AbstractResourceTestBase {
         Assertions.assertEquals(ValidityLevel.FULL.name(), rule.getConfig());
 
         // Assert artifact rules
-        rules = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules().get();
+        rules = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules()
+                .get();
         Assertions.assertEquals(2, rules.size());
-        rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules().byRuleType(RuleType.VALIDITY.name()).get();
+        rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules()
+                .byRuleType(RuleType.VALIDITY.name()).get();
         Assertions.assertEquals(ValidityLevel.SYNTAX_ONLY.name(), rule.getConfig());
-        rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules().byRuleType(RuleType.INTEGRITY.name()).get();
+        rule = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules()
+                .byRuleType(RuleType.INTEGRITY.name()).get();
         Assertions.assertEquals(IntegrityLevel.FULL.name(), rule.getConfig());
 
         // Assert artifact comments

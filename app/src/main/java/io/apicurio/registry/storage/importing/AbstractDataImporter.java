@@ -53,10 +53,10 @@ public abstract class AbstractDataImporter implements DataImporter {
                 // Ignore the manifest for now.
                 break;
             default:
-                throw new RegistryStorageException("Unhandled entity type during import: " + entity.getEntityType());
+                throw new RegistryStorageException(
+                        "Unhandled entity type during import: " + entity.getEntityType());
         }
     }
-
 
     protected abstract void importArtifactRule(ArtifactRuleEntity entity);
 

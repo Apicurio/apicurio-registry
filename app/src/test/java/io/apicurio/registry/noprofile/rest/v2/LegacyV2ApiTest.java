@@ -25,33 +25,22 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         String artifactId = "testLegacyLabels";
-        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
 
         // Update the artifact meta-data
         List<String> labels = List.of("one", "two", "three");
         EditableMetaData metaData = new EditableMetaData();
         metaData.setName(artifactId);
         metaData.setLabels(labels);
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", artifactId)
-                .body(metaData)
-                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
-            .then()
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(metaData).put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta").then()
                 .statusCode(204);
-        
+
         // Get the (updated) artifact meta-data
-        given()
-            .when()
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", artifactId)
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
-            .then()
-                .statusCode(200)
-                .body("id", equalTo(artifactId))
-                .body("version", anything())
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta").then().statusCode(200)
+                .body("id", equalTo(artifactId)).body("version", anything())
                 .body("labels", equalToObject(labels));
     }
 
@@ -60,33 +49,22 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         String artifactId = "testLegacyProperties";
-        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
 
         // Update the artifact meta-data
         Map<String, String> properties = Map.of("one", "one-value", "two", "two-value");
         EditableMetaData metaData = new EditableMetaData();
         metaData.setName(artifactId);
         metaData.setProperties(properties);
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", artifactId)
-                .body(metaData)
-                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
-            .then()
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(metaData).put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta").then()
                 .statusCode(204);
-        
+
         // Get the (updated) artifact meta-data
-        given()
-            .when()
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", artifactId)
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
-            .then()
-                .statusCode(200)
-                .body("id", equalTo(artifactId))
-                .body("version", anything())
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta").then().statusCode(200)
+                .body("id", equalTo(artifactId)).body("version", anything())
                 .body("properties", equalToObject(properties));
     }
 
@@ -95,38 +73,27 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         String artifactId = "testLegacyPropertiesWithLabels";
-        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
 
         List<String> labels = List.of("label-one", "label-two");
-        Map<String, String> properties = Map.of("property-one", "property-one-value", "property-two", "property-two-value");
+        Map<String, String> properties = Map.of("property-one", "property-one-value", "property-two",
+                "property-two-value");
 
         // Update the artifact meta-data
         EditableMetaData metaData = new EditableMetaData();
         metaData.setName(artifactId);
         metaData.setLabels(labels);
         metaData.setProperties(properties);
-        given()
-            .when()
-                .contentType(CT_JSON)
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", artifactId)
-                .body(metaData)
-                .put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
-            .then()
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(metaData).put("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta").then()
                 .statusCode(204);
-        
+
         // Get the (updated) artifact meta-data
-        given()
-            .when()
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", artifactId)
-                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta")
-            .then()
-                .statusCode(200)
-                .body("id", equalTo(artifactId))
-                .body("version", anything())
-                .body("labels", equalToObject(labels))
-                .body("properties", equalToObject(properties));
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta").then().statusCode(200)
+                .body("id", equalTo(artifactId)).body("version", anything())
+                .body("labels", equalToObject(labels)).body("properties", equalToObject(properties));
     }
 
 }

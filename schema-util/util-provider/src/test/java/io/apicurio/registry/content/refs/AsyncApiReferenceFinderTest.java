@@ -10,7 +10,8 @@ import java.util.Set;
 public class AsyncApiReferenceFinderTest extends ArtifactUtilProviderTestBase {
 
     /**
-     * Test method for {@link io.apicurio.registry.content.refs.AsyncApiReferenceFinder#findExternalReferences(TypedContent)}
+     * Test method for
+     * {@link io.apicurio.registry.content.refs.AsyncApiReferenceFinder#findExternalReferences(TypedContent)}
      */
     @Test
     public void testFindExternalReferences() {
@@ -19,9 +20,10 @@ public class AsyncApiReferenceFinderTest extends ArtifactUtilProviderTestBase {
         Set<ExternalReference> foundReferences = finder.findExternalReferences(content);
         Assertions.assertNotNull(foundReferences);
         Assertions.assertEquals(2, foundReferences.size());
-        Assertions.assertEquals(Set.of(
-                new JsonPointerExternalReference("./TradeKey.avsc"), 
-                new JsonPointerExternalReference("./common-types.json#/components/schemas/User")), foundReferences);
+        Assertions.assertEquals(
+                Set.of(new JsonPointerExternalReference("./TradeKey.avsc"),
+                        new JsonPointerExternalReference("./common-types.json#/components/schemas/User")),
+                foundReferences);
     }
 
 }

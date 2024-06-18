@@ -52,7 +52,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter =new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -70,13 +71,16 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     protected void assertArtifactNotFound(Exception exception) {
         Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, exception.getClass());
-        Assertions.assertEquals("ArtifactNotFoundException", ((io.apicurio.registry.rest.client.models.Error)exception).getName());
-        Assertions.assertEquals(404, ((io.apicurio.registry.rest.client.models.Error)exception).getErrorCode());
+        Assertions.assertEquals("ArtifactNotFoundException",
+                ((io.apicurio.registry.rest.client.models.Error) exception).getName());
+        Assertions.assertEquals(404,
+                ((io.apicurio.registry.rest.client.models.Error) exception).getErrorCode());
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var exception = Assertions.assertThrows(Exception.class, () -> {
@@ -87,7 +91,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testReadOnly() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -110,14 +115,17 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             config.queryParameters.dryRun = true;
         });
 
-        var devAdapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var devAdapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient devClient = new RegistryClient(devAdapter);
 
         createArtifact.setArtifactId(artifactId);
-        VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
+        VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact)
+                .getVersion();
 
-        TestUtils.retry(() -> devClient.groups().byGroupId(groupId).artifacts().byArtifactId(meta.getArtifactId()).get());
+        TestUtils.retry(() -> devClient.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(meta.getArtifactId()).get());
 
         assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
@@ -131,7 +139,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testDevRole() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -140,9 +149,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
-            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
+            TestUtils.retry(
+                    () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
+            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
             CreateRule createRule = new CreateRule();
             createRule.setRuleType(RuleType.VALIDITY);
@@ -167,7 +178,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -176,9 +188,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
-            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
+            TestUtils.retry(
+                    () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
+            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
             CreateRule createRule = new CreateRule();
             createRule.setRuleType(RuleType.VALIDITY);
@@ -200,7 +214,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRoleBasicAuth() throws Exception {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(JWKSMockServer.BASIC_USER, JWKSMockServer.BASIC_PASSWORD));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(JWKSMockServer.BASIC_USER, JWKSMockServer.BASIC_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -209,9 +224,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
-            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
+            TestUtils.retry(
+                    () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
+            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
             CreateRule createRule = new CreateRule();
             createRule.setRuleType(RuleType.VALIDITY);
@@ -226,7 +243,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRoleBasicAuthWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(JWKSMockServer.WRONG_CREDS_CLIENT_ID, UUID.randomUUID().toString()));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(JWKSMockServer.WRONG_CREDS_CLIENT_ID, UUID.randomUUID().toString()));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -244,11 +262,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
-        var devAdapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var devAdapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientDev = new RegistryClient(devAdapter);
 
-        var adminAdapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adminAdapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adminAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientAdmin = new RegistryClient(adminAdapter);
 
@@ -268,7 +288,6 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         // But the admin user CAN make the change.
         clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(updatedMetaData);
 
-
         // Now the Dev user will create an artifact
         String artifactId2 = TestUtils.generateArtifactId();
         createArtifact.setArtifactId(artifactId2);
@@ -278,43 +297,47 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.COMPATIBILITY);
         createRule.setConfig(CompatibilityLevel.BACKWARD.name());
-        clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).rules().post(createRule);
+        clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).rules()
+                .post(createRule);
     }
 
     @Test
     public void testGetArtifactOwner() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
-        //Preparation
+        // Preparation
         final String groupId = "testGetArtifactOwner";
         final String artifactId = generateArtifactId();
         final String version = "1";
 
-        //Execution
+        // Execution
         createArtifact.setArtifactId(artifactId);
-        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
+        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact)
+                .getVersion();
 
-        //Assertions
+        // Assertions
         assertNotNull(created);
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getArtifactId());
         assertEquals(version, created.getVersion());
         assertEquals("developer-client", created.getOwner());
 
-        //Get the artifact owner via the REST API and verify it
+        // Get the artifact owner via the REST API and verify it
         ArtifactMetaData amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals("developer-client", amd.getOwner());
     }
 
     @Test
     public void testUpdateArtifactOwner() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
-        //Preparation
+        // Preparation
         final String groupId = "testUpdateArtifactOwner";
         final String artifactId = generateArtifactId();
 
@@ -322,44 +345,47 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         final String name = "testUpdateArtifactOwnerName";
         final String description = "testUpdateArtifactOwnerDescription";
 
-        //Execution
+        // Execution
         createArtifact.setArtifactId(artifactId);
         createArtifact.getFirstVersion().setVersion(version);
         createArtifact.getFirstVersion().setName(name);
         createArtifact.getFirstVersion().setDescription(description);
-        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
+        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact)
+                .getVersion();
 
-        //Assertions
+        // Assertions
         assertNotNull(created);
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getArtifactId());
         assertEquals(version, created.getVersion());
         assertEquals("developer-client", created.getOwner());
 
-        //Get the artifact owner via the REST API and verify it
+        // Get the artifact owner via the REST API and verify it
         ArtifactMetaData amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals("developer-client", amd.getOwner());
 
-        //Update the owner
+        // Update the owner
         EditableArtifactMetaData eamd = new EditableArtifactMetaData();
         eamd.setOwner("developer-2-client");
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd);
 
-        //Check that the update worked
+        // Check that the update worked
         amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals("developer-2-client", amd.getOwner());
     }
 
     @Test
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
-        var adapter_dev1 = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter_dev1 = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter_dev1.setBaseUrl(registryV3ApiUrl);
         RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
-        var adapter_dev2 = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_2_CLIENT_ID, "test1"));
+        var adapter_dev2 = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_2_CLIENT_ID, "test1"));
         adapter_dev2.setBaseUrl(registryV3ApiUrl);
         RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
 
-        //Preparation
+        // Preparation
         final String groupId = "testUpdateArtifactOwnerOnlyByOwner";
         final String artifactId = generateArtifactId();
 
@@ -367,25 +393,27 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         final String name = "testUpdateArtifactOwnerOnlyByOwnerName";
         final String description = "testUpdateArtifactOwnerOnlyByOwnerDescription";
 
-        //Execution
+        // Execution
         createArtifact.setArtifactId(artifactId);
         createArtifact.getFirstVersion().setVersion(version);
         createArtifact.getFirstVersion().setName(name);
         createArtifact.getFirstVersion().setDescription(description);
-        final VersionMetaData created = client_dev1.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
+        final VersionMetaData created = client_dev1.groups().byGroupId(groupId).artifacts()
+                .post(createArtifact).getVersion();
 
-        //Assertions
+        // Assertions
         assertNotNull(created);
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getArtifactId());
         assertEquals(version, created.getVersion());
         assertEquals("developer-client", created.getOwner());
 
-        //Get the artifact owner via the REST API and verify it
-        ArtifactMetaData amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        // Get the artifact owner via the REST API and verify it
+        ArtifactMetaData amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .get();
         assertEquals("developer-client", amd.getOwner());
 
-        //Try to update the owner by dev2 (should fail)
+        // Try to update the owner by dev2 (should fail)
         var exception1 = assertThrows(Exception.class, () -> {
             EditableArtifactMetaData eamd = new EditableArtifactMetaData();
             eamd.setOwner("developer-2-client");
@@ -393,10 +421,9 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         });
         assertForbidden(exception1);
 
-        //Should still be the original owner
+        // Should still be the original owner
         amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals("developer-client", amd.getOwner());
     }
 
 }
-

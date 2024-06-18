@@ -12,13 +12,11 @@ public class ArtifactAlreadyExistsException extends AlreadyExistsException {
     @Getter
     private String artifactId;
 
-
     public ArtifactAlreadyExistsException(String groupId, String artifactId) {
         super(message(groupId, artifactId));
         this.artifactId = artifactId;
         this.groupId = groupId;
     }
-
 
     private static String message(String groupId, String artifactId) {
         return "An artifact with ID '" + artifactId + "' in group '" + groupId + "' already exists.";

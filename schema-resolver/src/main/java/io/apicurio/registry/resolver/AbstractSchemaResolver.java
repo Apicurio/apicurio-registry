@@ -57,7 +57,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         if (client == null) {
             String baseUrl = config.getRegistryUrl();
             if (baseUrl == null) {
-                throw new IllegalArgumentException("Missing registry base url, set " + SchemaResolverConfig.REGISTRY_URL);
+                throw new IllegalArgumentException(
+                        "Missing registry base url, set " + SchemaResolverConfig.REGISTRY_URL);
             }
 
             String authServerURL = config.getAuthServiceUrl();
@@ -65,22 +66,20 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
             try {
                 if (authServerURL != null || tokenEndpoint != null) {
-                    client = configureClientWithBearerAuthentication(config, baseUrl, authServerURL, tokenEndpoint);
-                }
-                else {
+                    client = configureClientWithBearerAuthentication(config, baseUrl, authServerURL,
+                            tokenEndpoint);
+                } else {
                     String username = config.getAuthUsername();
 
                     if (username != null) {
                         client = configureClientWithBasicAuth(config, baseUrl, username);
-                    }
-                    else {
+                    } else {
                         var adapter = new VertXRequestAdapter(this.vertx);
                         adapter.setBaseUrl(baseUrl);
                         client = new RegistryClient(adapter);
                     }
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
         }
@@ -95,7 +94,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         schemaCache.configureFaultTolerantRefresh(config.getFaultTolerantRefresh());
 
         schemaCache.configureGlobalIdKeyExtractor(SchemaLookupResult::getGlobalId);
-        schemaCache.configureContentKeyExtractor(schema -> Optional.ofNullable(schema.getParsedSchema().getRawSchema()).map(IoUtil::toString).orElse(null));
+        schemaCache.configureContentKeyExtractor(schema -> Optional
+                .ofNullable(schema.getParsedSchema().getRawSchema()).map(IoUtil::toString).orElse(null));
         schemaCache.configureContentIdKeyExtractor(SchemaLookupResult::getContentId);
         schemaCache.configureContentHashKeyExtractor(SchemaLookupResult::getContentHash);
         schemaCache.configureArtifactCoordinatesKeyExtractor(SchemaLookupResult::toArtifactCoordinates);
@@ -129,7 +129,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * @param artifactResolverStrategy the artifactResolverStrategy to set
      */
     @Override
-    public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy) {
+    public void setArtifactResolverStrategy(
+            ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy) {
         this.artifactResolverStrategy = artifactResolverStrategy;
     }
 
@@ -142,21 +143,25 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     /**
-     * Resolve an artifact reference for the given record, and optional parsed schema.  This will use
-     * the artifact resolver strategy and then override the values from that strategy with any explicitly configured
-     * values (groupId, artifactId, version).
+     * Resolve an artifact reference for the given record, and optional parsed schema. This will use the
+     * artifact resolver strategy and then override the values from that strategy with any explicitly
+     * configured values (groupId, artifactId, version).
      *
      * @param data
      * @param parsedSchema
      * @param isReference
      * @return artifact reference
      */
-    protected ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema, boolean isReference, String referenceArtifactId) {
+    protected ArtifactReference resolveArtifactReference(Record<T> data, ParsedSchema<S> parsedSchema,
+            boolean isReference, String referenceArtifactId) {
         ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(data, parsedSchema);
         artifactReference = ArtifactReference.builder()
-                .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
-                .artifactId(resolveArtifactId(artifactReference.getArtifactId(), isReference, referenceArtifactId))
-                .version(this.explicitArtifactVersion == null ? artifactReference.getVersion() : this.explicitArtifactVersion)
+                .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId()
+                    : this.explicitArtifactGroupId)
+                .artifactId(resolveArtifactId(artifactReference.getArtifactId(), isReference,
+                        referenceArtifactId))
+                .version(this.explicitArtifactVersion == null ? artifactReference.getVersion()
+                    : this.explicitArtifactVersion)
                 .build();
 
         return artifactReference;
@@ -165,8 +170,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String resolveArtifactId(String artifactId, boolean isReference, String referenceArtifactId) {
         if (isReference) {
             return referenceArtifactId;
-        }
-        else {
+        } else {
             return this.explicitArtifactId == null ? artifactId : this.explicitArtifactId;
         }
     }
@@ -175,8 +179,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return schemaCache.getByGlobalId(globalId, globalIdKey -> {
             if (deserializerDereference) {
                 return resolveSchemaDereferenced(globalIdKey);
-            }
-            else {
+            } else {
                 return resolveSchemaWithReferences(globalIdKey);
             }
         });
@@ -190,20 +193,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             config.queryParameters.references = HandleReferencesType.DEREFERENCE;
         });
 
-
         byte[] schema = IoUtil.toBytes(rawSchema);
         S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
 
-        ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
-                .setParsedSchema(parsed)
-                .setRawSchema(schema);
+        ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
 
         SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
-        return result
-                .globalId(globalId)
-                .parsedSchema(ps)
-                .build();
+        return result.globalId(globalId).parsedSchema(ps).build();
     }
 
     private SchemaLookupResult<S> resolveSchemaWithReferences(long globalId) {
@@ -212,63 +209,69 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             config.headers.add("CANONICAL", "false");
         });
 
-        //Get the artifact references
-        final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client.ids().globalIds().byGlobalId(globalId).references().get();
-        //If there are any references for the schema being parsed, resolve them before parsing the schema
+        // Get the artifact references
+        final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client
+                .ids().globalIds().byGlobalId(globalId).references().get();
+        // If there are any references for the schema being parsed, resolve them before parsing the schema
         final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 
         byte[] schema = IoUtil.toBytes(rawSchema);
         S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
-        ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>()
-                .setParsedSchema(parsed)
-                .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
-                .setRawSchema(schema);
+        ParsedSchemaImpl<S> ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed)
+                .setSchemaReferences(new ArrayList<>(resolvedReferences.values())).setRawSchema(schema);
 
         SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
-        return result
-                .globalId(globalId)
-                .parsedSchema(ps)
-                .build();
+        return result.globalId(globalId).parsedSchema(ps).build();
     }
 
-    protected Map<String, ParsedSchema<S>> resolveReferences(List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences) {
+    protected Map<String, ParsedSchema<S>> resolveReferences(
+            List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences) {
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
         artifactReferences.forEach(reference -> {
-            final InputStream referenceContent = client.groups().byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()).artifacts()
-                    .byArtifactId(reference.getArtifactId()).versions().byVersionExpression(reference.getVersion()).content().get();
+            final InputStream referenceContent = client.groups()
+                    .byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId())
+                    .artifacts().byArtifactId(reference.getArtifactId()).versions()
+                    .byVersionExpression(reference.getVersion()).content().get();
             final List<io.apicurio.registry.rest.client.models.ArtifactReference> referenceReferences = client
-                    .groups()
-                    .byGroupId(reference.getGroupId() == null
-                            ? "default"
-                            : reference.getGroupId()) // TODO verify the old logic: .pathParams(List.of(groupId == null ? "null" : groupId, artifactId, version)) GroupRequestsProvider.java
-                    .artifacts()
-                    .byArtifactId(reference.getArtifactId())
-                    .versions()
-                    .byVersionExpression(reference.getVersion())
-                    .references()
-                    .get();
+                    .groups().byGroupId(reference.getGroupId() == null ? "default" : reference.getGroupId()) // TODO
+                                                                                                             // verify
+                                                                                                             // the
+                                                                                                             // old
+                                                                                                             // logic:
+                                                                                                             // .pathParams(List.of(groupId
+                                                                                                             // ==
+                                                                                                             // null
+                                                                                                             // ?
+                                                                                                             // "null"
+                                                                                                             // :
+                                                                                                             // groupId,
+                                                                                                             // artifactId,
+                                                                                                             // version))
+                                                                                                             // GroupRequestsProvider.java
+                    .artifacts().byArtifactId(reference.getArtifactId()).versions()
+                    .byVersionExpression(reference.getVersion()).references().get();
 
             if (!referenceReferences.isEmpty()) {
                 final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
                 resolvedReferences.putAll(nestedReferences);
-                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, resolveReferences(referenceReferences)));
-            }
-            else {
-                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
+                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(),
+                        referenceContent, resolveReferences(referenceReferences)));
+            } else {
+                resolvedReferences.put(reference.getName(),
+                        parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
             }
         });
         return resolvedReferences;
     }
 
-    private ParsedSchema<S> parseSchemaFromStream(String name, InputStream rawSchema, Map<String, ParsedSchema<S>> resolvedReferences) {
+    private ParsedSchema<S> parseSchemaFromStream(String name, InputStream rawSchema,
+            Map<String, ParsedSchema<S>> resolvedReferences) {
         byte[] schema = IoUtil.toBytes(rawSchema);
         S parsed = schemaParser.parseSchema(schema, resolvedReferences);
-        return new ParsedSchemaImpl<S>()
-                .setParsedSchema(parsed)
-                .setSchemaReferences(new ArrayList<>(resolvedReferences.values()))
-                .setReferenceName(name)
+        return new ParsedSchemaImpl<S>().setParsedSchema(parsed)
+                .setSchemaReferences(new ArrayList<>(resolvedReferences.values())).setReferenceName(name)
                 .setRawSchema(schema);
     }
 
@@ -290,12 +293,12 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
     }
 
-    private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl, String tokenEndpoint) {
+    private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config,
+            String registryUrl, String authServerUrl, String tokenEndpoint) {
         RequestAdapter auth;
         if (authServerUrl != null) {
             auth = configureAuthWithRealm(config, authServerUrl);
-        }
-        else {
+        } else {
             auth = configureAuthWithUrl(config, tokenEndpoint);
         }
         auth.setBaseUrl(registryUrl);
@@ -306,10 +309,12 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         final String realm = config.getAuthRealm();
 
         if (realm == null) {
-            throw new IllegalArgumentException("Missing registry auth realm, set " + SchemaResolverConfig.AUTH_REALM);
+            throw new IllegalArgumentException(
+                    "Missing registry auth realm, set " + SchemaResolverConfig.AUTH_REALM);
         }
 
-        final String tokenEndpoint = authServerUrl + String.format(SchemaResolverConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
+        final String tokenEndpoint = authServerUrl
+                + String.format(SchemaResolverConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
 
         return configureAuthWithUrl(config, tokenEndpoint);
     }
@@ -318,26 +323,31 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         final String clientId = config.getAuthClientId();
 
         if (clientId == null) {
-            throw new IllegalArgumentException("Missing registry auth clientId, set " + SchemaResolverConfig.AUTH_CLIENT_ID);
+            throw new IllegalArgumentException(
+                    "Missing registry auth clientId, set " + SchemaResolverConfig.AUTH_CLIENT_ID);
         }
         final String clientSecret = config.getAuthClientSecret();
 
         if (clientSecret == null) {
-            throw new IllegalArgumentException("Missing registry auth secret, set " + SchemaResolverConfig.AUTH_CLIENT_SECRET);
+            throw new IllegalArgumentException(
+                    "Missing registry auth secret, set " + SchemaResolverConfig.AUTH_CLIENT_SECRET);
         }
 
         final String clientScope = config.getAuthClientScope();
 
-        RequestAdapter adapter = new VertXRequestAdapter(buildOIDCWebClient(this.vertx, tokenEndpoint, clientId, clientSecret, clientScope));
+        RequestAdapter adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(this.vertx, tokenEndpoint, clientId, clientSecret, clientScope));
         return adapter;
     }
 
-    private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {
+    private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config,
+            String registryUrl, String username) {
 
         final String password = config.getAuthPassword();
 
         if (password == null) {
-            throw new IllegalArgumentException("Missing registry auth password, set " + SchemaResolverConfig.AUTH_PASSWORD);
+            throw new IllegalArgumentException(
+                    "Missing registry auth password, set " + SchemaResolverConfig.AUTH_PASSWORD);
         }
 
         var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(this.vertx, username, password));
@@ -346,7 +356,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return new RegistryClient(adapter);
     }
 
-    protected void loadFromMetaData(VersionMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
+    protected void loadFromMetaData(VersionMetaData artifactMetadata,
+            SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
         resultBuilder.globalId(artifactMetadata.getGlobalId());
         resultBuilder.contentId(artifactMetadata.getContentId());
         resultBuilder.groupId(artifactMetadata.getGroupId());
@@ -354,7 +365,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         resultBuilder.version(String.valueOf(artifactMetadata.getVersion()));
     }
 
-    protected void loadFromSearchedVersion(SearchedVersion version, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
+    protected void loadFromSearchedVersion(SearchedVersion version,
+            SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
         resultBuilder.globalId(version.getGlobalId());
         resultBuilder.contentId(version.getContentId());
         resultBuilder.groupId(version.getGroupId());

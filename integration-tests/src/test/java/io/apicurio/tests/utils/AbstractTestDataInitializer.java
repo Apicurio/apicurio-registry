@@ -34,7 +34,7 @@ public abstract class AbstractTestDataInitializer implements QuarkusTestResource
 
     @Override
     public void stop() {
-        //Once the data is set, stop the old registry before running the tests.
+        // Once the data is set, stop the old registry before running the tests.
         if (registryContainer != null && registryContainer.isRunning()) {
             registryContainer.stop();
         }
@@ -43,14 +43,13 @@ public abstract class AbstractTestDataInitializer implements QuarkusTestResource
     public String startRegistryApplication(String imageName) {
         int hostPort = 8081;
         int containerExposedPort = 8081;
-        Consumer<CreateContainerCmd> cmd = e -> e.withPortBindings(new PortBinding(Ports.Binding.bindPort(hostPort), new ExposedPort(containerExposedPort)));
+        Consumer<CreateContainerCmd> cmd = e -> e.withPortBindings(
+                new PortBinding(Ports.Binding.bindPort(hostPort), new ExposedPort(containerExposedPort)));
 
         registryContainer = new GenericContainer<>(imageName)
-                .withEnv(Map.of(
-                        "QUARKUS_HTTP_PORT", "8081",
-                        "REGISTRY_APIS_V2_DATE_FORMAT","yyyy-MM-dd'T'HH:mm:ss'Z'"))
-                .withExposedPorts(containerExposedPort)
-                .withCreateContainerCmdModifier(cmd);
+                .withEnv(Map.of("QUARKUS_HTTP_PORT", "8081", "REGISTRY_APIS_V2_DATE_FORMAT",
+                        "yyyy-MM-dd'T'HH:mm:ss'Z'"))
+                .withExposedPorts(containerExposedPort).withCreateContainerCmdModifier(cmd);
 
         registryContainer.start();
         registryContainer.waitingFor(Wait.forLogMessage(".*Installed features:*", 1));

@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class SchemasResourceImpl extends AbstractResource implements SchemasResource {
 
@@ -63,12 +63,13 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         boolean deleted = fdeleted != null && fdeleted;
         if (cconfig.legacyIdModeEnabled.get()) {
             ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData((long) id);
-            return Collections.singletonList(converter.convert(metaData.getArtifactId(), metaData.getVersionOrder()));
+            return Collections
+                    .singletonList(converter.convert(metaData.getArtifactId(), metaData.getVersionOrder()));
         }
-        return storage.getArtifactVersionsByContentId(id)
-                .stream()
+        return storage.getArtifactVersionsByContentId(id).stream()
                 .filter(versionMetaData -> deleted || versionMetaData.getState() != VersionState.DISABLED)
-                .map(versionMetaData -> converter.convert(versionMetaData.getArtifactId(), versionMetaData.getVersionOrder()))
+                .map(versionMetaData -> converter.convert(versionMetaData.getArtifactId(),
+                        versionMetaData.getVersionOrder()))
                 .collect(Collectors.toList());
     }
 }

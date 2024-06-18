@@ -18,14 +18,17 @@ public class AsyncApiContentDereferencerTest extends ArtifactUtilProviderTestBas
     public void testRewriteReferences() {
         TypedContent content = resourceToTypedContentHandle("asyncapi-to-rewrite.json");
         AsyncApiDereferencer dereferencer = new AsyncApiDereferencer();
-        TypedContent modifiedContent = dereferencer.rewriteReferences(content, Map.of(
-                "./TradeKey.avsc", "https://www.example.org/schemas/TradeKey.avsc",
-                "./common-types.json#/components/schemas/User", "https://www.example.org/schemas/common-types.json#/components/schemas/User"));
-        
+        TypedContent modifiedContent = dereferencer.rewriteReferences(content,
+                Map.of("./TradeKey.avsc", "https://www.example.org/schemas/TradeKey.avsc",
+                        "./common-types.json#/components/schemas/User",
+                        "https://www.example.org/schemas/common-types.json#/components/schemas/User"));
+
         ReferenceFinder finder = new AsyncApiReferenceFinder();
         Set<ExternalReference> externalReferences = finder.findExternalReferences(modifiedContent);
-        Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference("https://www.example.org/schemas/common-types.json#/components/schemas/User")));
-        Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference("https://www.example.org/schemas/TradeKey.avsc")));
+        Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference(
+                "https://www.example.org/schemas/common-types.json#/components/schemas/User")));
+        Assertions.assertTrue(externalReferences
+                .contains(new JsonPointerExternalReference("https://www.example.org/schemas/TradeKey.avsc")));
     }
 
 }

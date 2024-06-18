@@ -16,7 +16,7 @@ import java.util.Map;
  * A content validator implementation for the Avro content type.
  */
 public class AvroContentValidator implements ContentValidator {
-    
+
     private static final String DUMMY_AVRO_RECORD = """
             {
                  "type": "record",
@@ -38,7 +38,8 @@ public class AvroContentValidator implements ContentValidator {
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
-    public void validate(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, TypedContent content,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 Schema.Parser parser = new Schema.Parser();
@@ -47,16 +48,18 @@ public class AvroContentValidator implements ContentValidator {
                 }
                 parser.parse(content.getContent().content());
             } catch (Exception e) {
-                throw new RuleViolationException("Syntax violation for Avro artifact.", RuleType.VALIDITY, level.name(), e);
+                throw new RuleViolationException("Syntax violation for Avro artifact.", RuleType.VALIDITY,
+                        level.name(), e);
             }
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List)
      */
     @Override
-    public void validateReferences(TypedContent content, List<ArtifactReference> references) throws RuleViolationException {
+    public void validateReferences(TypedContent content, List<ArtifactReference> references)
+            throws RuleViolationException {
         try {
             Schema.Parser parser = new Schema.Parser();
             references.forEach(ref -> {
@@ -64,7 +67,7 @@ public class AvroContentValidator implements ContentValidator {
                 if (refName != null && refName.contains(".")) {
                     int idx = refName.lastIndexOf('.');
                     String ns = refName.substring(0, idx);
-                    String name = refName.substring(idx+1);
+                    String name = refName.substring(idx + 1);
                     parser.parse(DUMMY_AVRO_RECORD.replace("NAMESPACE", ns).replace("NAME", name));
                 }
             });
@@ -74,8 +77,9 @@ public class AvroContentValidator implements ContentValidator {
             // is because of a missing defined type or some OTHER parse exception.
             if (e.getMessage().contains("is not a defined name")) {
                 RuleViolation violation = new RuleViolation("Missing reference detected.", e.getMessage());
-                throw new RuleViolationException("Missing reference detected in Avro artifact.", RuleType.INTEGRITY, 
-                        IntegrityLevel.ALL_REFS_MAPPED.name(), Collections.singleton(violation));
+                throw new RuleViolationException("Missing reference detected in Avro artifact.",
+                        RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(),
+                        Collections.singleton(violation));
             }
         }
     }

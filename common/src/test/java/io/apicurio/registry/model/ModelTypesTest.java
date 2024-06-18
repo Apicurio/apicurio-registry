@@ -1,13 +1,11 @@
 package io.apicurio.registry.model;
 
-
 import jakarta.validation.ValidationException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ModelTypesTest {
-
 
     @Test
     void testGroupId() {
@@ -26,7 +24,6 @@ public class ModelTypesTest {
         new GroupId("x".repeat(512));
     }
 
-
     @Test
     void testArtifactId() {
         assertThrows(ValidationException.class, () -> new ArtifactId(null));
@@ -37,7 +34,6 @@ public class ModelTypesTest {
         new ArtifactId("._@# $%");
         new ArtifactId("x".repeat(512));
     }
-
 
     @Test
     void testVersionId() {
@@ -51,7 +47,6 @@ public class ModelTypesTest {
         new VersionId("._-+");
         new VersionId("x".repeat(256));
     }
-
 
     @Test
     void testBranchId() {
@@ -67,7 +62,6 @@ public class ModelTypesTest {
         new BranchId("._-+");
         new BranchId("x".repeat(256));
     }
-
 
     @Test
     void testGAandGAV() {

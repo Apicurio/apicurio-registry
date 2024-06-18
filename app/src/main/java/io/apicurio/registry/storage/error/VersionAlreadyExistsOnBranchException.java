@@ -12,8 +12,8 @@ public class VersionAlreadyExistsOnBranchException extends AlreadyExistsExceptio
     private String version;
     private String branchId;
 
-
-    public VersionAlreadyExistsOnBranchException(String groupId, String artifactId, String version, String branchId) {
+    public VersionAlreadyExistsOnBranchException(String groupId, String artifactId, String version,
+            String branchId) {
         super(message(groupId, artifactId, version, branchId));
         this.groupId = groupId;
         this.artifactId = artifactId;
@@ -21,9 +21,8 @@ public class VersionAlreadyExistsOnBranchException extends AlreadyExistsExceptio
         this.branchId = branchId;
     }
 
-
     private static String message(String groupId, String artifactId, String version, String branchId) {
-        return "Version '" + version + "' (for artifact ID '" + artifactId + "' " +
-                "in group '" + groupId + "') already exists in branch '" + branchId + "'.";
+        return "Version '" + version + "' (for artifact ID '" + artifactId + "' " + "in group '" + groupId
+                + "') already exists in branch '" + branchId + "'.";
     }
 }

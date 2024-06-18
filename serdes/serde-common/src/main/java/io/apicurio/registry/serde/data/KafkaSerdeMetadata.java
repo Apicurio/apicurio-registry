@@ -1,9 +1,8 @@
 package io.apicurio.registry.serde.data;
 
-import org.apache.kafka.common.header.Headers;
-
 import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import org.apache.kafka.common.header.Headers;
 
 /**
  * Kafka specific implementation for the Record Metadata abstraction used by the SchemaResolver
@@ -34,6 +33,7 @@ public class KafkaSerdeMetadata implements Metadata {
     public String getTopic() {
         return topic;
     }
+
     /**
      * @return the isKey
      */

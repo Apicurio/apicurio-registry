@@ -6,7 +6,8 @@ import org.apache.avro.io.DatumWriter;
 
 public interface AvroDatumProvider<T> {
 
-    default void configure(AvroKafkaSerdeConfig config) {}
+    default void configure(AvroKafkaSerdeConfig config) {
+    }
 
     DatumWriter<T> createDatumWriter(T data, Schema schema);
 

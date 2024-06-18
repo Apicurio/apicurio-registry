@@ -11,7 +11,6 @@ import java.util.Set;
 /**
  * ConfigSource that turns env vars into plain properties.
  * <p>
- *
  */
 public class RegistryConfigSource implements ConfigSource {
     private Map<String, String> properties;

@@ -52,17 +52,19 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
 
         // Test create new version (valid content)
         CreateVersion testCV = TestUtils.clientCreateVersion(v2Content, contentType);
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(testCV, config -> {
-            config.queryParameters.dryRun = true;
-        }));
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(testCV, config -> {
+                    config.queryParameters.dryRun = true;
+                }));
 
         // Test create new version (invalid content)
         retryAssertClientError("RuleViolationException", 409, (rc) -> {
             String invalidContent = "{\"This is not a valid content.";
             CreateVersion tcv = TestUtils.clientCreateVersion(invalidContent, contentType);
-            rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(tcv, config -> {
-                config.queryParameters.dryRun = true;
-            });
+            rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(tcv,
+                    config -> {
+                        config.queryParameters.dryRun = true;
+                    });
         }, errorCodeExtractor);
 
         // Update artifact (valid v2 content)
@@ -70,12 +72,13 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
 
         // Find artifact by content
         InputStream contentIS = new ByteArrayInputStream(v1Content.getBytes(StandardCharsets.UTF_8));
-        VersionSearchResults results = registryClient.search().versions().post(contentIS, contentType, config -> {
-            config.queryParameters.groupId = groupId;
-            config.queryParameters.artifactId = artifactId;
-            config.queryParameters.orderby = VersionSortBy.GlobalId;
-            config.queryParameters.order = SortOrder.Desc;
-        });
+        VersionSearchResults results = registryClient.search().versions().post(contentIS, contentType,
+                config -> {
+                    config.queryParameters.groupId = groupId;
+                    config.queryParameters.artifactId = artifactId;
+                    config.queryParameters.orderby = VersionSortBy.GlobalId;
+                    config.queryParameters.order = SortOrder.Desc;
+                });
         assertNotNull(results);
         assertTrue(results.getCount() > 0);
         assertNotNull(results.getVersions().get(0).getGlobalId());
@@ -83,19 +86,26 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
         assertNotNull(results.getVersions().get(0).getVersion());
 
         // Update artifact (invalid content)
-        CreateVersion createVersion = TestUtils.clientCreateVersion("{\"This is not a valid content.", contentType);
-        TestUtils.assertClientError("RuleViolationException", 409, () ->
-                registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion), errorCodeExtractor);
+        CreateVersion createVersion = TestUtils.clientCreateVersion("{\"This is not a valid content.",
+                contentType);
+        TestUtils
+                .assertClientError(
+                        "RuleViolationException", 409, () -> registryClient.groups().byGroupId(groupId)
+                                .artifacts().byArtifactId(artifactId).versions().post(createVersion),
+                        errorCodeExtractor);
 
         // Override Validation rule for the artifact
         createRule.setConfig("NONE");
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
+                .post(createRule);
 
         // Make sure we have rule
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRuleType(createRule.getRuleType().name()).get());
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
+                .byRuleType(createRule.getRuleType().name()).get());
 
         // Update artifact (invalid content) - should work now
-        VersionMetaData amd2 = createArtifactVersion(groupId, artifactId,"{\"This is not a valid content.", ContentTypes.APPLICATION_JSON, null);
+        VersionMetaData amd2 = createArtifactVersion(groupId, artifactId, "{\"This is not a valid content.",
+                ContentTypes.APPLICATION_JSON, null);
         // Make sure artifact is fully registered
         retryOp((rc) -> rc.ids().globalIds().byGlobalId(amd2.getGlobalId()).get());
     }
@@ -103,39 +113,46 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
     @Test
     @Tag(ACCEPTANCE)
     void testAvro() throws Exception {
-        doTest("avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO, ContentTypes.APPLICATION_JSON);
+        doTest("avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO,
+                ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     @Tag(ACCEPTANCE)
     void testProtobuf() throws Exception {
-        doTest("protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF, ContentTypes.APPLICATION_PROTOBUF);
+        doTest("protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF,
+                ContentTypes.APPLICATION_PROTOBUF);
     }
 
     @Test
     @Tag(ACCEPTANCE)
     void testJsonSchema() throws Exception {
-        doTest("jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON, ContentTypes.APPLICATION_JSON);
+        doTest("jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON,
+                ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     void testKafkaConnect() throws Exception {
-        doTest("kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT, ContentTypes.APPLICATION_JSON);
+        doTest("kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT,
+                ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     void testOpenApi30() throws Exception {
-        doTest("openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI, ContentTypes.APPLICATION_JSON);
+        doTest("openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI,
+                ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     void testAsyncApi() throws Exception {
-        doTest("asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json", ArtifactType.ASYNCAPI, ContentTypes.APPLICATION_JSON);
+        doTest("asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json",
+                ArtifactType.ASYNCAPI, ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     void testGraphQL() throws Exception {
-        doTest("graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL, ContentTypes.APPLICATION_GRAPHQL);
+        doTest("graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL,
+                ContentTypes.APPLICATION_GRAPHQL);
     }
 
     @AfterEach

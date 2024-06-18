@@ -4,7 +4,6 @@ import io.apicurio.registry.types.RegistryException;
 
 /**
  * Similar to "UnprocessableEntityException" but bound to the artifact type utils tools
- *
  */
 public class UnprocessableSchemaException extends RegistryException {
 

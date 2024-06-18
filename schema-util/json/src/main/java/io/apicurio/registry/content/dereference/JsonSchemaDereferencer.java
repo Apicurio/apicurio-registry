@@ -35,11 +35,13 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
 
     @Override
     public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        throw new DereferencingNotSupportedException("Content dereferencing is not supported for JSON Schema");
+        throw new DereferencingNotSupportedException(
+                "Content dereferencing is not supported for JSON Schema");
     }
 
     /**
-     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.TypedContent, java.util.Map)
+     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.TypedContent,
+     *      java.util.Map)
      */
     @Override
     public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {

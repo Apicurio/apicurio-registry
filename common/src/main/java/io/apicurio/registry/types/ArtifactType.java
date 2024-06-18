@@ -3,7 +3,8 @@ package io.apicurio.registry.types;
 
 public class ArtifactType {
 
-    private ArtifactType() {}
+    private ArtifactType() {
+    }
 
     // TODO: Turn into enum, which can contain both a string value and a numeric identifier.
     // See io.apicurio.registry.storage.impl.kafkasql.serde.ArtifactTypeOrdUtil

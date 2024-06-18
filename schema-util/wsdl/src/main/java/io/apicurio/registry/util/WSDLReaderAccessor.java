@@ -19,7 +19,7 @@ public class WSDLReaderAccessor {
             return wsdlReader;
         }
     };
-    
+
     public static final WSDLReader getWSDLReader() {
         return threadLocalWsdlReader.get();
     }

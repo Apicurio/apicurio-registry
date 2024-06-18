@@ -27,10 +27,12 @@ public class EmptyArtifactTest extends AbstractResourceTestBase {
 
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .get();
         Assertions.assertNotNull(amd);
 
-        VersionSearchResults versions = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();
+        VersionSearchResults versions = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).versions().get();
         Assertions.assertNotNull(versions);
         Assertions.assertEquals(0, versions.getCount());
         Assertions.assertEquals(0, versions.getVersions().size());
@@ -48,13 +50,16 @@ public class EmptyArtifactTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         CreateVersion createVersion = TestUtils.clientCreateVersion("{}", ContentTypes.APPLICATION_JSON);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
 
-        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").get();
+        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("1").get();
         Assertions.assertNotNull(vmd);
         Assertions.assertEquals("1", vmd.getVersion());
 
-        vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+        vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("branch=latest").get();
         Assertions.assertNotNull(vmd);
         Assertions.assertEquals("1", vmd.getVersion());
     }
@@ -72,13 +77,16 @@ public class EmptyArtifactTest extends AbstractResourceTestBase {
 
         CreateVersion createVersion = TestUtils.clientCreateVersion("{}", ContentTypes.APPLICATION_JSON);
         createVersion.setVersion("1.0");
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
 
-        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1.0").get();
+        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("1.0").get();
         Assertions.assertNotNull(vmd);
         Assertions.assertEquals("1.0", vmd.getVersion());
 
-        vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+        vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("branch=latest").get();
         Assertions.assertNotNull(vmd);
         Assertions.assertEquals("1.0", vmd.getVersion());
     }

@@ -20,14 +20,9 @@ import java.util.UUID;
  */
 public class ExportLoader {
 
-    private static final String CONTENT = "{\r\n" +
-            "    \"openapi\": \"3.0.2\",\r\n" +
-            "    \"info\": {\r\n" +
-            "        \"title\": \"Empty API\",\r\n" +
-            "        \"version\": \"1.0.0\",\r\n" +
-            "        \"description\": \"An example API design using OpenAPI.\"\r\n" +
-            "    }\r\n" +
-            "}";
+    private static final String CONTENT = "{\r\n" + "    \"openapi\": \"3.0.2\",\r\n" + "    \"info\": {\r\n"
+            + "        \"title\": \"Empty API\",\r\n" + "        \"version\": \"1.0.0\",\r\n"
+            + "        \"description\": \"An example API design using OpenAPI.\"\r\n" + "    }\r\n" + "}";
 
     public static void main(String[] args) throws Exception {
         var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
@@ -37,9 +32,12 @@ public class ExportLoader {
             System.out.println("Iteration: " + idx);
             String data = CONTENT.replace("1.0.0", "1.0." + idx);
             String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, data, ContentTypes.APPLICATION_JSON);
-            client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().post(createArtifact);
-            client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().byArtifactId(artifactId).delete();
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                    data, ContentTypes.APPLICATION_JSON);
+            client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                    .post(createArtifact);
+            client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                    .byArtifactId(artifactId).delete();
         }
 
         String testContent = CONTENT.replace("Empty API", "Test Artifact");
@@ -53,7 +51,8 @@ public class ExportLoader {
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.VALIDITY);
         createRule.setConfig("SYNTAX_ONLY");
-        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules().post(createRule);
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules()
+                .post(createRule);
 
         createRule = new CreateRule();
         createRule.setRuleType(RuleType.COMPATIBILITY);
@@ -66,7 +65,8 @@ public class ExportLoader {
         String data = testContent.replace("1.0.0", version);
         CreateVersion createVersion = TestUtils.clientCreateVersion(data, ContentTypes.APPLICATION_JSON);
         createVersion.setVersion(version);
-        client.groups().byGroupId("ImportTest").artifacts().byArtifactId(artifactId).versions().post(createVersion);
+        client.groups().byGroupId("ImportTest").artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
     }
 
 }

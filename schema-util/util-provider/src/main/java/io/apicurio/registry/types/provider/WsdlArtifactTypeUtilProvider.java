@@ -26,8 +26,10 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
             String contentType = content.getContentType();
-            if (contentType.toLowerCase().contains("xml") && ContentTypeUtil.isParsableXml(content.getContent())) {
-                Document xmlDocument = DocumentBuilderAccessor.getDocumentBuilder().parse(content.getContent().stream());
+            if (contentType.toLowerCase().contains("xml")
+                    && ContentTypeUtil.isParsableXml(content.getContent())) {
+                Document xmlDocument = DocumentBuilderAccessor.getDocumentBuilder()
+                        .parse(content.getContent().stream());
                 Element root = xmlDocument.getDocumentElement();
                 String ns = root.getNamespaceURI();
                 if (ns != null && (ns.equals("http://schemas.xmlsoap.org/wsdl/")
@@ -53,7 +55,7 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
      */
     @Override
     protected CompatibilityChecker createCompatibilityChecker() {
-       return NoopCompatibilityChecker.INSTANCE;
+        return NoopCompatibilityChecker.INSTANCE;
     }
 
     /**
@@ -84,7 +86,7 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     public ContentDereferencer getContentDereferencer() {
         return null;
     }
-    
+
     /**
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
      */

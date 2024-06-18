@@ -28,9 +28,6 @@ import jakarta.inject.Inject;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jboss.logging.Logger;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -43,6 +40,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.zip.ZipOutputStream;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 
 @QuarkusMain(name = "ConfluentExport")
 public class Export implements QuarkusApplication {
@@ -126,7 +127,6 @@ public class Export implements QuarkusApplication {
                 }
             }
 
-
             String globalCompatibility = client.getCompatibility(null);
 
             GlobalRuleEntity ruleEntity = new GlobalRuleEntity();
@@ -158,7 +158,7 @@ public class Export implements QuarkusApplication {
     public SSLSocketFactory getInsecureSSLSocketFactory() {
         try {
             SSLContext sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, new TrustManager[]{new FakeTrustManager()}, new SecureRandom());
+            sslContext.init(null, new TrustManager[] { new FakeTrustManager() }, new SecureRandom());
             return sslContext.getSocketFactory();
         } catch (Exception ex) {
             log.error("Could not create Insecure SSL Socket Factory", ex);
@@ -184,8 +184,10 @@ public class Export implements QuarkusApplication {
         context.getWriter().writeEntity(artifactEntity);
     }
 
-    public void exportSubjectVersionWithRefs(ExportContext context, String subject, Integer version) throws RestClientException, IOException {
-        if (context.getExportedSubjectVersions().stream().anyMatch(subjectVersionPair -> subjectVersionPair.is(subject, version))) {
+    public void exportSubjectVersionWithRefs(ExportContext context, String subject, Integer version)
+            throws RestClientException, IOException {
+        if (context.getExportedSubjectVersions().stream()
+                .anyMatch(subjectVersionPair -> subjectVersionPair.is(subject, version))) {
             return;
         }
         context.getExportedSubjectVersions().add(new SubjectVersionPair(subject, version));
@@ -248,6 +250,7 @@ public class Export implements QuarkusApplication {
 
     /**
      * Serializes the given collection of references to a string
+     * 
      * @param references
      */
     private String serializeReferences(List<ArtifactReference> references) {

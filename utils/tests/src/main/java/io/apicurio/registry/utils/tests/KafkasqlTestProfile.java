@@ -16,10 +16,8 @@ public class KafkasqlTestProfile implements QuarkusTestProfile {
     @Override
     public List<TestResourceEntry> testResources() {
         if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            return List.of(
-                    new TestResourceEntry(KafkaTestContainerManager.class));
-        }
-        else {
+            return List.of(new TestResourceEntry(KafkaTestContainerManager.class));
+        } else {
             return Collections.emptyList();
         }
     }

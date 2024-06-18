@@ -38,12 +38,8 @@ public class KeycloakUtils {
     private static void deployKeycloakPostgres(String namespace) throws URISyntaxException {
         URL dtb = KeycloakUtils.class.getClassLoader().getResource("postgres.yaml");
 
-        Exec.executeAndCheck(
-                "oc",
-                "apply",
-                "-n", namespace,
-                "-f", Paths.get(dtb.toURI()).toFile().toString()
-        );
+        Exec.executeAndCheck("oc", "apply", "-n", namespace, "-f",
+                Paths.get(dtb.toURI()).toFile().toString());
         ResourceUtils.waitStatefulSetReady(namespace, "postgresql-db");
 
     }
@@ -52,33 +48,24 @@ public class KeycloakUtils {
         LOGGER.info("Deploying Keycloak...");
         ResourceManager manager = ResourceManager.getInstance();
         // Deploy Keycloak server
-        Exec.executeAndCheck(
-                "oc",
-                "apply",
-                "-n", namespace,
-                "-f", getKeycloakFilePath("keycloak.yaml")
-        );
+        Exec.executeAndCheck("oc", "apply", "-n", namespace, "-f", getKeycloakFilePath("keycloak.yaml"));
 
         // Wait for Keycloak server to be ready
         ResourceUtils.waitStatefulSetReady(namespace, "keycloak");
 
         // Create Keycloak HTTP Service and wait for its readiness
-        manager.createSharedResource( true, ServiceResourceType.getDefaultKeycloakHttp(namespace));
+        manager.createSharedResource(true, ServiceResourceType.getDefaultKeycloakHttp(namespace));
 
         // Create Keycloak Route and wait for its readiness
-        manager.createSharedResource( true, RouteResourceType.getDefaultKeycloak(namespace));
+        manager.createSharedResource(true, RouteResourceType.getDefaultKeycloak(namespace));
 
         // Log Keycloak URL
         LOGGER.info("Keycloak URL: {}", getDefaultKeycloakURL(namespace));
 
         // TODO: Wait for Keycloak Realm readiness, but API model not available
         // Create Keycloak Realm
-        Exec.executeAndCheck(
-                "oc",
-                "apply",
-                "-n", namespace,
-                "-f", getKeycloakFilePath("keycloak-realm.yaml")
-        );
+        Exec.executeAndCheck("oc", "apply", "-n", namespace, "-f",
+                getKeycloakFilePath("keycloak-realm.yaml"));
 
         LOGGER.info("Keycloak should be deployed.");
     }
@@ -86,24 +73,15 @@ public class KeycloakUtils {
     public static void removeKeycloakRealm(String namespace) {
         LOGGER.info("Removing keycloak realm");
 
-        Exec.executeAndCheck(
-                "oc",
-                "delete",
-                "-n", namespace,
-                "-f", getKeycloakFilePath("keycloak-realm.yaml")
-        );
+        Exec.executeAndCheck("oc", "delete", "-n", namespace, "-f",
+                getKeycloakFilePath("keycloak-realm.yaml"));
     }
 
     public static void removeKeycloak(String namespace) throws InterruptedException {
         removeKeycloakRealm(namespace);
         Thread.sleep(Duration.ofMinutes(2).toMillis());
         LOGGER.info("Removing Keycloak...");
-        Exec.executeAndCheck(
-                "oc",
-                "delete",
-                "-n", namespace,
-                "-f", getKeycloakFilePath("keycloak.yaml")
-        );
+        Exec.executeAndCheck("oc", "delete", "-n", namespace, "-f", getKeycloakFilePath("keycloak.yaml"));
 
         LOGGER.info("Keycloak should be removed.");
     }
@@ -138,15 +116,17 @@ public class KeycloakUtils {
 
     public static String getAccessToken(ApicurioRegistry apicurioRegistry, String username, String password) {
         // Get Keycloak URL of Apicurio Registry
-        String keycloakUrl = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getUrl();
+        String keycloakUrl = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak()
+                .getUrl();
         // Get Keycloak Realm of Apicurio Registry
-        String keycloakRealm = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getRealm();
+        String keycloakRealm = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak()
+                .getRealm();
         // Construct token API URI of Keycloak Realm
-        URI keycloakRealmUrl = HttpClientUtils.buildURI(
-                "%s/realms/%s/protocol/openid-connect/token", keycloakUrl, keycloakRealm
-        );
+        URI keycloakRealmUrl = HttpClientUtils.buildURI("%s/realms/%s/protocol/openid-connect/token",
+                keycloakUrl, keycloakRealm);
         // Get Keycloak API client ID of Apicurio Registry
-        String clientId = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak().getApiClientId();
+        String clientId = apicurioRegistry.getSpec().getConfiguration().getSecurity().getKeycloak()
+                .getApiClientId();
 
         // Prepare request data
         Map<Object, Object> data = new HashMap<>();
@@ -158,11 +138,8 @@ public class KeycloakUtils {
         LOGGER.info("Requesting access token from {}...", keycloakRealmUrl);
 
         // Create request
-        HttpRequest request = HttpClientUtils.newBuilder()
-                .uri(keycloakRealmUrl)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(ofFormData(data))
-                .build();
+        HttpRequest request = HttpClientUtils.newBuilder().uri(keycloakRealmUrl)
+                .header("Content-Type", "application/x-www-form-urlencoded").POST(ofFormData(data)).build();
 
         // Process request
         HttpResponse<String> response = HttpClientUtils.processRequest(request);

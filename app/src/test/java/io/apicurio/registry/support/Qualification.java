@@ -2,7 +2,6 @@ package io.apicurio.registry.support;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-
 public class Qualification {
 
     @JsonProperty("subject_name")

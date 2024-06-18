@@ -16,14 +16,12 @@ public class BranchNotFoundException extends NotFoundException {
         this.branchId = branchId;
     }
 
-
     public BranchNotFoundException(String groupId, String artifactId, String branchId, Exception cause) {
         super(message(groupId, artifactId, branchId), cause);
         this.groupId = groupId;
         this.artifactId = artifactId;
         this.branchId = branchId;
     }
-
 
     private static String message(String groupId, String artifactId, String branchId) {
         return "No branch '" + branchId + "' was found in " + groupId + "/" + artifactId + ".";

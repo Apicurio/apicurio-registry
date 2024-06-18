@@ -2,6 +2,7 @@ package io.apicurio.registry.utils.converter.json;
 
 public interface FormatStrategy {
     byte[] fromConnectData(long globalId, byte[] payload);
+
     IdPayload toConnectData(byte[] bytes);
 
     class IdPayload {

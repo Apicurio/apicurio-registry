@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractResourceImpl {
-    
+
     @Inject
     Logger log;
 
@@ -45,11 +45,11 @@ public abstract class AbstractResourceImpl {
     String apiBaseHref;
 
     /**
-     * Handle the content references based on the value of "HandleReferencesType" - this can either mean
-     * we need to fully dereference the content, or we need to rewrite the references, or we do nothing.
+     * Handle the content references based on the value of "HandleReferencesType" - this can either mean we
+     * need to fully dereference the content, or we need to rewrite the references, or we do nothing.
      */
     protected TypedContent handleContentReferences(HandleReferencesType referencesType, String artifactType,
-                                                    TypedContent content, List<ArtifactReferenceDto> references) {
+            TypedContent content, List<ArtifactReferenceDto> references) {
         // Dereference or rewrite references
         if (!references.isEmpty()) {
             if (referencesType == HandleReferencesType.DEREFERENCE) {
@@ -68,9 +68,10 @@ public abstract class AbstractResourceImpl {
     }
 
     /**
-     * Convert the list of references into a list of REST API URLs that point to the content.  This means
-     * that we generate a REST API URL from the GAV (groupId, artifactId, version) information found in
-     * each reference.
+     * Convert the list of references into a list of REST API URLs that point to the content. This means that
+     * we generate a REST API URL from the GAV (groupId, artifactId, version) information found in each
+     * reference.
+     * 
      * @param references
      */
     protected Map<String, String> resolveReferenceUrls(List<ArtifactReferenceDto> references) {
@@ -89,8 +90,9 @@ public abstract class AbstractResourceImpl {
     }
 
     /**
-     * Convert a single artifact reference to a REST API URL.  This means that we generate a REST API URL 
-     * from the GAV (groupId, artifactId, version) information found in the reference.
+     * Convert a single artifact reference to a REST API URL. This means that we generate a REST API URL from
+     * the GAV (groupId, artifactId, version) information found in the reference.
+     * 
      * @param reference
      */
     protected String resolveReferenceUrl(ArtifactReferenceDto reference) {
@@ -108,7 +110,7 @@ public abstract class AbstractResourceImpl {
             this.log.error("Error trying to determine the baseHref of the REST API.", e);
             return null;
         }
-        
+
         if (baseHref == null) {
             this.log.warn("Failed to determine baseHref for the REST API.");
             return null;

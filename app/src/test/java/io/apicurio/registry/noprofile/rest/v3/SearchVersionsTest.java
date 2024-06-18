@@ -22,12 +22,14 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         // Create 5 artifacts in group 1
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "testSearchVersionsByGroupId_Group1_Artifact_" + idx;
-            createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+            createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
         }
         // Create 3 artifacts in group 2
         for (int idx = 0; idx < 3; idx++) {
             String artifactId = "testSearchVersionsByGroupId_Group2_Artifact_" + idx;
-            this.createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+            this.createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
         }
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {
@@ -56,13 +58,15 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         // Create 5 artifacts in group 1 (two versions each)
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "testSearchVersionsByArtifactId_Group1_Artifact_" + idx;
-            createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+            createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
             createArtifactVersion(group1, artifactId, artifactContent, ContentTypes.APPLICATION_JSON);
         }
         // Create 3 artifacts in group 2
         for (int idx = 0; idx < 3; idx++) {
             String artifactId = "testSearchVersionsByArtifactId_Group2_Artifact_" + idx;
-            createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+            createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
         }
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {
@@ -80,8 +84,10 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
     public void testSearchVersionsByContent() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String group = TestUtils.generateGroupId();
-        String searchByCommonContent = artifactContent.replaceAll("Empty API", "testSearchVersionsByContent-empty-api");
-        String searchByUniqueContent = artifactContent.replaceAll("Empty API", "testSearchVersionsByContent-empty-api-2");
+        String searchByCommonContent = artifactContent.replaceAll("Empty API",
+                "testSearchVersionsByContent-empty-api");
+        String searchByUniqueContent = artifactContent.replaceAll("Empty API",
+                "testSearchVersionsByContent-empty-api-2");
         String searchByUnknownContent = artifactContent.replaceAll("\\{", "   {\n");
 
         // Create 5 artifacts with two versions each in the test group
@@ -91,18 +97,22 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
             String uniqueContent = artifactContent.replaceAll("Empty API", name);
             String commonContent = searchByCommonContent;
             // First version is common content (same for every artifact)
-            createArtifact(group, artifactId, ArtifactType.OPENAPI, commonContent, ContentTypes.APPLICATION_JSON);
+            createArtifact(group, artifactId, ArtifactType.OPENAPI, commonContent,
+                    ContentTypes.APPLICATION_JSON);
             // Second version is unique to each artifact
             createArtifactVersion(group, artifactId, uniqueContent, ContentTypes.APPLICATION_JSON);
         }
 
-        VersionSearchResults results = clientV3.search().versions().post(asInputStream(searchByCommonContent), ContentTypes.APPLICATION_JSON);
+        VersionSearchResults results = clientV3.search().versions().post(asInputStream(searchByCommonContent),
+                ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(5, results.getCount());
 
-        results = clientV3.search().versions().post(asInputStream(searchByUniqueContent), ContentTypes.APPLICATION_JSON);
+        results = clientV3.search().versions().post(asInputStream(searchByUniqueContent),
+                ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(1, results.getCount());
 
-        results = clientV3.search().versions().post(asInputStream(searchByUnknownContent), ContentTypes.APPLICATION_JSON);
+        results = clientV3.search().versions().post(asInputStream(searchByUnknownContent),
+                ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(0, results.getCount());
     }
 
@@ -110,8 +120,10 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
     public void testSearchVersionsByCanonicalContent() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String group = TestUtils.generateGroupId();
-        String searchByCommonContent = artifactContent.replaceAll("Empty API", "testSearchVersionsByCanonicalContent-empty-api");
-        String searchByUniqueContent = artifactContent.replaceAll("Empty API", "testSearchVersionsByCanonicalContent-empty-api-2");
+        String searchByCommonContent = artifactContent.replaceAll("Empty API",
+                "testSearchVersionsByCanonicalContent-empty-api");
+        String searchByUniqueContent = artifactContent.replaceAll("Empty API",
+                "testSearchVersionsByCanonicalContent-empty-api-2");
         String searchByCanonicalContent = searchByUniqueContent.replaceAll("\\{", "   {\n");
 
         // Create 5 artifacts with two versions each in the test group
@@ -121,24 +133,29 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
             String uniqueContent = artifactContent.replaceAll("Empty API", name);
             String commonContent = searchByCommonContent;
             // First version is common content (same for every artifact)
-            createArtifact(group, artifactId, ArtifactType.OPENAPI, commonContent, ContentTypes.APPLICATION_JSON);
+            createArtifact(group, artifactId, ArtifactType.OPENAPI, commonContent,
+                    ContentTypes.APPLICATION_JSON);
             // Second version is unique to each artifact
             createArtifactVersion(group, artifactId, uniqueContent, ContentTypes.APPLICATION_JSON);
         }
 
-        VersionSearchResults results = clientV3.search().versions().post(asInputStream(searchByCommonContent), ContentTypes.APPLICATION_JSON);
+        VersionSearchResults results = clientV3.search().versions().post(asInputStream(searchByCommonContent),
+                ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(5, results.getCount());
 
-        results = clientV3.search().versions().post(asInputStream(searchByUniqueContent), ContentTypes.APPLICATION_JSON);
+        results = clientV3.search().versions().post(asInputStream(searchByUniqueContent),
+                ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(1, results.getCount());
 
-        results = clientV3.search().versions().post(asInputStream(searchByCanonicalContent), ContentTypes.APPLICATION_JSON);
+        results = clientV3.search().versions().post(asInputStream(searchByCanonicalContent),
+                ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(0, results.getCount());
 
-        results = clientV3.search().versions().post(asInputStream(searchByCanonicalContent), ContentTypes.APPLICATION_JSON, (config) -> {
-            config.queryParameters.canonical = true;
-            config.queryParameters.artifactType = ArtifactType.OPENAPI;
-        });
+        results = clientV3.search().versions().post(asInputStream(searchByCanonicalContent),
+                ContentTypes.APPLICATION_JSON, (config) -> {
+                    config.queryParameters.canonical = true;
+                    config.queryParameters.artifactType = ArtifactType.OPENAPI;
+                });
         Assertions.assertEquals(1, results.getCount());
     }
 
@@ -146,7 +163,8 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
     public void testSearchVersionsByContentInGA() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String group = TestUtils.generateGroupId();
-        String searchByCommonContent = artifactContent.replaceAll("Empty API", "testSearchVersionsByContentInGA-empty-api");
+        String searchByCommonContent = artifactContent.replaceAll("Empty API",
+                "testSearchVersionsByContentInGA-empty-api");
         String searchByArtifactId = "";
 
         // Create 5 artifacts with two versions each in the test group
@@ -156,7 +174,8 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
             String uniqueContent = artifactContent.replaceAll("Empty API", name);
             String commonContent = searchByCommonContent;
             // First version is common content (same for every artifact)
-            createArtifact(group, artifactId, ArtifactType.OPENAPI, commonContent, ContentTypes.APPLICATION_JSON);
+            createArtifact(group, artifactId, ArtifactType.OPENAPI, commonContent,
+                    ContentTypes.APPLICATION_JSON);
             // Second version is unique to each artifact
             createArtifactVersion(group, artifactId, uniqueContent, ContentTypes.APPLICATION_JSON);
 
@@ -164,15 +183,17 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
             searchByArtifactId = artifactId;
         }
 
-        VersionSearchResults results = clientV3.search().versions().post(asInputStream(searchByCommonContent), ContentTypes.APPLICATION_JSON);
+        VersionSearchResults results = clientV3.search().versions().post(asInputStream(searchByCommonContent),
+                ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(5, results.getCount());
 
         // Same search, but also filter by groupId and artifactId - should be just 1
         final String aid = searchByArtifactId;
-        results = clientV3.search().versions().post(asInputStream(searchByCommonContent), ContentTypes.APPLICATION_JSON, config -> {
-            config.queryParameters.groupId = group;
-            config.queryParameters.artifactId = aid;
-        });
+        results = clientV3.search().versions().post(asInputStream(searchByCommonContent),
+                ContentTypes.APPLICATION_JSON, config -> {
+                    config.queryParameters.groupId = group;
+                    config.queryParameters.artifactId = aid;
+                });
         Assertions.assertEquals(1, results.getCount());
     }
 

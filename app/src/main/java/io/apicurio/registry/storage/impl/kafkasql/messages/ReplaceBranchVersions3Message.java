@@ -35,7 +35,8 @@ public class ReplaceBranchVersions3Message extends AbstractMessage {
     @Override
     public Object dispatchTo(RegistryStorage storage) {
         GA ga = new GA(groupId, artifactId);
-        storage.replaceBranchVersions(ga, new BranchId(branchId), versions.stream().map(VersionId::new).toList());
+        storage.replaceBranchVersions(ga, new BranchId(branchId),
+                versions.stream().map(VersionId::new).toList());
         return null;
     }
 

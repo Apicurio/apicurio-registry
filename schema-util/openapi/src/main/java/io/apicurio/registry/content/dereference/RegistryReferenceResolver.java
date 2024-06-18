@@ -14,11 +14,12 @@ import java.io.IOException;
 import java.util.Map;
 
 public class RegistryReferenceResolver extends LocalReferenceResolver {
-    
+
     private final Map<String, TypedContent> resolvedReferences;
 
     /**
      * Constructor.
+     * 
      * @param resolvedReferences
      */
     public RegistryReferenceResolver(Map<String, TypedContent> resolvedReferences) {
@@ -26,7 +27,8 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
     }
 
     /**
-     * @see io.apicurio.datamodels.refs.IReferenceResolver#resolveRef(java.lang.String, io.apicurio.datamodels.models.Node)
+     * @see io.apicurio.datamodels.refs.IReferenceResolver#resolveRef(java.lang.String,
+     *      io.apicurio.datamodels.models.Node)
      */
     @Override
     public Node resolveRef(String reference, Node from) {
@@ -37,7 +39,8 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
                 Document resolvedRefDoc = Library.readDocument((ObjectNode) node);
                 JsonPointerExternalReference ref = new JsonPointerExternalReference(reference);
                 return super.resolveRef(ref.getComponent(), resolvedRefDoc);
-                // TODO if we find a Node, make sure to modify it by updating all of its $ref values to point to appropriate locations
+                // TODO if we find a Node, make sure to modify it by updating all of its $ref values to point
+                // to appropriate locations
             }
 
             // TODO handle recursive $ref values (refs from refs)

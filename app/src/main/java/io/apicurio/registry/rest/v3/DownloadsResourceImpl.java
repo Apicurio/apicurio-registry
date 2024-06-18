@@ -22,7 +22,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 
 @ApplicationScoped
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 @Path("/apis/registry/v3/downloads")
 public class DownloadsResourceImpl {
@@ -34,7 +34,7 @@ public class DownloadsResourceImpl {
     @Inject
     DataExporter exporter;
 
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     @GET
     @Path("{downloadId}")
     @Produces("*/*")
@@ -50,15 +50,15 @@ public class DownloadsResourceImpl {
     }
 
     /**
-     * A duplicate version of the above that will allow a filename to be added
-     * for download purposes.  So e.g. /apis/registry/v3/downloads/ABCD-1234 can
-     * be aliased as /apis/registry/v3/downloads/ABCD-1234/export.zip and work
-     * the same way.  But when saving from a browser, the filename should be
-     * useful.
+     * A duplicate version of the above that will allow a filename to be added for download purposes. So e.g.
+     * /apis/registry/v3/downloads/ABCD-1234 can be aliased as
+     * /apis/registry/v3/downloads/ABCD-1234/export.zip and work the same way. But when saving from a browser,
+     * the filename should be useful.
+     * 
      * @param downloadId
      * @return
      */
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     @GET
     @Path("{downloadId}/{fileName}")
     @Produces("*/*")

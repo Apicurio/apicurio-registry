@@ -10,7 +10,7 @@ public class ParsedSchemaImpl<T> implements ParsedSchema<T> {
     private String referenceName;
 
     public ParsedSchemaImpl() {
-        //empty
+        // empty
     }
 
     /**

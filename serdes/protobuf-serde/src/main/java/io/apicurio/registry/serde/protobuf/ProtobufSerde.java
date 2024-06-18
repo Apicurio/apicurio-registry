@@ -1,7 +1,6 @@
 package io.apicurio.registry.serde.protobuf;
 
 import com.google.protobuf.Message;
-
 import io.apicurio.registry.serde.AbstractSerde;
 
 /****
@@ -13,4 +12,3 @@ public class ProtobufSerde<T extends Message> extends AbstractSerde<T> {
         super(new ProtobufKafkaSerializer<T>(), new ProtobufKafkaDeserializer());
     }
 }
-

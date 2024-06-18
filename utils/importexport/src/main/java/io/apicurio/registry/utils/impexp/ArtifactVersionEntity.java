@@ -18,7 +18,7 @@ import static lombok.AccessLevel.PRIVATE;
 @AllArgsConstructor(access = PRIVATE)
 @ToString
 @RegisterForReflection
-@JsonIgnoreProperties({"isLatest"})
+@JsonIgnoreProperties({ "isLatest" })
 public class ArtifactVersionEntity extends Entity {
 
     public long globalId;
@@ -26,7 +26,7 @@ public class ArtifactVersionEntity extends Entity {
     public String artifactId;
     public String version;
 
-    @JsonAlias({"versionId"})
+    @JsonAlias({ "versionId" })
     public int versionOrder;
 
     public VersionState state;

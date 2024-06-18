@@ -1,18 +1,17 @@
 package io.apicurio.registry.maven;
 
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
-
 /**
  * Download artifacts.
- *
  */
 @Mojo(name = "download")
 public class DownloadRegistryMojo extends AbstractRegistryMojo {
@@ -34,20 +33,28 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
             int errorCount = 0;
             for (DownloadArtifact artifact : artifacts) {
                 if (artifact.getGroupId() == null) {
-                    getLog().error(String.format("GroupId is required when downloading an artifact.  Missing from artifacts[%d].", idx));
+                    getLog().error(String.format(
+                            "GroupId is required when downloading an artifact.  Missing from artifacts[%d].",
+                            idx));
                     errorCount++;
                 }
                 if (artifact.getArtifactId() == null) {
-                    getLog().error(String.format("ArtifactId is required when downloading an artifact.  Missing from artifacts[%s].", idx));
+                    getLog().error(String.format(
+                            "ArtifactId is required when downloading an artifact.  Missing from artifacts[%s].",
+                            idx));
                     errorCount++;
                 }
                 if (artifact.getFile() == null) {
-                    getLog().error(String.format("File is required when downloading an artifact.  Missing from artifacts[%s].", idx));
+                    getLog().error(String.format(
+                            "File is required when downloading an artifact.  Missing from artifacts[%s].",
+                            idx));
                     errorCount++;
                 } else {
                     if (artifact.getFile().exists()) {
                         if (artifact.getOverwrite() == null || artifact.getOverwrite() == false) {
-                            getLog().error(String.format("File being written already exists.  Use <overwrite>true</overwrite> to replace the destination file: %s", artifact.getFile().getPath()));
+                            getLog().error(String.format(
+                                    "File being written already exists.  Use <overwrite>true</overwrite> to replace the destination file: %s",
+                                    artifact.getFile().getPath()));
                             errorCount++;
                         }
                     }
@@ -57,7 +64,8 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
             }
 
             if (errorCount > 0) {
-                throw new MojoExecutionException("Invalid configuration of the Download Artifact(s) mojo. See the output log for details.");
+                throw new MojoExecutionException(
+                        "Invalid configuration of the Download Artifact(s) mojo. See the output log for details.");
             }
         }
     }
@@ -88,9 +96,11 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
         }
         boolean replaceExisting = artifact.getOverwrite() != null && artifact.getOverwrite();
 
-        getLog().info(String.format("Downloading artifact [%s] / [%s] (version %s).", groupId, artifactId, version));
+        getLog().info(String.format("Downloading artifact [%s] / [%s] (version %s).", groupId, artifactId,
+                version));
 
-        try (InputStream content = getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).content().get()) {
+        try (InputStream content = getClient().groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).versions().byVersionExpression(version).content().get()) {
 
             if (!artifact.getFile().getParentFile().exists()) {
                 artifact.getFile().getParentFile().mkdirs();
@@ -103,13 +113,16 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
             }
         } catch (Exception e) {
             errorCount++;
-            getLog().error(String.format("Exception while downloading artifact [%s] / [%s]", groupId, artifactId), e);
+            getLog().error(
+                    String.format("Exception while downloading artifact [%s] / [%s]", groupId, artifactId),
+                    e);
         }
 
-        getLog().info(String.format("Downloaded artifact [%s] / [%s] to %s.", groupId, artifactId, artifact.getFile()));
+        getLog().info(String.format("Downloaded artifact [%s] / [%s] to %s.", groupId, artifactId,
+                artifact.getFile()));
 
         if (artifact.getArtifactReferences() != null && !artifact.getArtifactReferences().isEmpty()) {
-            for (DownloadArtifact reference: artifact.getArtifactReferences()) {
+            for (DownloadArtifact reference : artifact.getArtifactReferences()) {
                 errorCount += downloadArtifact(reference);
             }
         }

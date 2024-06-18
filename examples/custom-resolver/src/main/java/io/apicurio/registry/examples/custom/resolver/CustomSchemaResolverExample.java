@@ -16,11 +16,9 @@
 
 package io.apicurio.registry.examples.custom.resolver;
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Properties;
-
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -35,26 +33,24 @@ import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import io.apicurio.registry.serde.SerdeConfig;
-import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Properties;
 
 /**
- * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe
- * scenario with Avro as the serialization type.  The following aspects are demonstrated:
- *
+ * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe scenario with
+ * Avro as the serialization type. The following aspects are demonstrated:
  * <ol>
- *   <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
- *   <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
- *   <li>Register the Avro schema in the registry using a custom Global Id Strategy</li>
- *   <li>Data sent as a simple GenericRecord, no java beans needed</li>
+ * <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
+ * <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
+ * <li>Register the Avro schema in the registry using a custom Global Id Strategy</li>
+ * <li>Data sent as a simple GenericRecord, no java beans needed</li>
  * </ol>
- *
  * Pre-requisites:
- *
  * <ul>
- *   <li>Kafka must be running on localhost:9092 or the value must be changed accordingly.</li>
- *   <li>Apicurio Registry must be running on localhost:8080 or the value must be changed accordingly.</li>
+ * <li>Kafka must be running on localhost:9092 or the value must be changed accordingly.</li>
+ * <li>Apicurio Registry must be running on localhost:8080 or the value must be changed accordingly.</li>
  * </ul>
  *
  * @author eric.wittmann@gmail.com
@@ -62,8 +58,7 @@ import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
  */
 public class CustomSchemaResolverExample {
 
-
-    public static final void main(String [] args) throws Exception {
+    public static final void main(String[] args) throws Exception {
         System.out.println("Starting example " + CustomSchemaResolverExample.class.getSimpleName());
         String topicName = Config.TOPIC_NAME;
         String subjectName = Config.SUBJECT_NAME;
@@ -84,7 +79,8 @@ public class CustomSchemaResolverExample {
                 record.put("Time", now.getTime());
 
                 // Send/produce the message on the Kafka Producer
-                ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, subjectName, record);
+                ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, subjectName,
+                        record);
                 producer.send(producedRecord);
 
                 Thread.sleep(100);
@@ -114,10 +110,12 @@ public class CustomSchemaResolverExample {
                 if (records.count() == 0) {
                     // Do nothing - no messages waiting.
                     System.out.println("No messages waiting...");
-                } else records.forEach(record -> {
-                    GenericRecord value = record.value();
-                    System.out.println("Consumed a message: " + value.get("Message") + " @ " + new Date((long) value.get("Time")));
-                });
+                } else
+                    records.forEach(record -> {
+                        GenericRecord value = record.value();
+                        System.out.println("Consumed a message: " + value.get("Message") + " @ "
+                                + new Date((long) value.get("Time")));
+                    });
             }
         } finally {
             consumer.close();
@@ -145,7 +143,7 @@ public class CustomSchemaResolverExample {
         // Use our custom resolver here.
         props.putIfAbsent(SerdeConfig.SCHEMA_RESOLVER, CustomSchemaResolver.class.getName());
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka producer
@@ -167,15 +165,16 @@ public class CustomSchemaResolverExample {
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         // Use the Apicurio Registry provided Kafka Deserializer for Avro
-        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
+        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                AvroKafkaDeserializer.class.getName());
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, Config.REGISTRY_URL);
         // No other configuration needed for the deserializer, because the globalId of the schema
-        // the deserializer should use is sent as part of the payload.  So the deserializer simply
+        // the deserializer should use is sent as part of the payload. So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka Consumer
@@ -194,13 +193,16 @@ public class CustomSchemaResolverExample {
             props.putIfAbsent(SerdeConfig.AUTH_CLIENT_ID, authClient);
             props.putIfAbsent(SerdeConfig.AUTH_TOKEN_ENDPOINT, tokenEndpoint);
             props.putIfAbsent(SaslConfigs.SASL_MECHANISM, "OAUTHBEARER");
-            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
+            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
+                    "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
             props.putIfAbsent("security.protocol", "SASL_SSL");
 
-            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                    "  oauth.client.id=\"%s\" "+
-                    "  oauth.client.secret=\"%s\" "+
-                    "  oauth.token.endpoint.uri=\"%s\" ;", authClient, authSecret, tokenEndpoint));
+            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG,
+                    String.format(
+                            "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
+                                    + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
+                                    + "  oauth.token.endpoint.uri=\"%s\" ;",
+                            authClient, authSecret, tokenEndpoint));
         }
     }
 }

@@ -20,11 +20,11 @@ import java.util.TreeSet;
 
 /**
  * An Avro implementation of a content Canonicalizer that handles avro references.
- *
  */
 public class AvroContentCanonicalizer implements ContentCanonicalizer {
 
-    private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    private final ObjectMapper mapper = new ObjectMapper()
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
 
     private final Comparator<JsonNode> fieldComparator = (n1, n2) -> {
         String name1 = n1.get("name").textValue();
@@ -63,7 +63,8 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
                 schemaRefs.add(schemaRef);
             }
             final Schema schema = parser.parse(content.getContent().content());
-            return TypedContent.create(ContentHandle.create(schema.toString(schemaRefs, false)), ContentTypes.APPLICATION_JSON);
+            return TypedContent.create(ContentHandle.create(schema.toString(schemaRefs, false)),
+                    ContentTypes.APPLICATION_JSON);
         }
     }
 }

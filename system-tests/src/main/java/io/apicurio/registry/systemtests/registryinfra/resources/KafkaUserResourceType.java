@@ -37,24 +37,18 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
 
     @Override
     public void create(KafkaUser resource) {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .create(resource);
+        getOperation().inNamespace(resource.getMetadata().getNamespace()).create(resource);
     }
 
     @Override
     public void createOrReplace(KafkaUser resource) {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .createOrReplace(resource);
+        getOperation().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
     }
 
     @Override
     public void delete(KafkaUser resource) throws Exception {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .withName(resource.getMetadata().getName())
-                .delete();
+        getOperation().inNamespace(resource.getMetadata().getNamespace())
+                .withName(resource.getMetadata().getName()).delete();
     }
 
     @Override
@@ -65,14 +59,9 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
             return false;
         }
 
-        return kafkaUser
-                .getStatus()
-                .getConditions()
-                .stream()
+        return kafkaUser.getStatus().getConditions().stream()
                 .filter(condition -> condition.getType().equals("Ready"))
-                .map(condition -> condition.getStatus().equals("True"))
-                .findFirst()
-                .orElse(false);
+                .map(condition -> condition.getStatus().equals("True")).findFirst().orElse(false);
     }
 
     @Override
@@ -93,7 +82,8 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
 
     /** Get default instances **/
 
-    public static KafkaUser getDefaultByKind(String name, String namespace, String clusterName, KafkaKind kafkaKind) {
+    public static KafkaUser getDefaultByKind(String name, String namespace, String clusterName,
+            KafkaKind kafkaKind) {
         KafkaUserAuthentication kafkaUserAuthentication = null;
 
         if (KafkaKind.TLS.equals(kafkaKind)) {
@@ -102,16 +92,9 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
             kafkaUserAuthentication = new KafkaUserScramSha512ClientAuthentication();
         }
 
-        return new KafkaUserBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                    .withLabels(Collections.singletonMap("strimzi.io/cluster", clusterName))
-                .endMetadata()
-                .withNewSpec()
-                    .withAuthentication(kafkaUserAuthentication)
-                .endSpec()
-                .build();
+        return new KafkaUserBuilder().withNewMetadata().withName(name).withNamespace(namespace)
+                .withLabels(Collections.singletonMap("strimzi.io/cluster", clusterName)).endMetadata()
+                .withNewSpec().withAuthentication(kafkaUserAuthentication).endSpec().build();
     }
 
     public static KafkaUser getDefaultTLS(String name, String namespace, String clusterName) {
@@ -123,20 +106,11 @@ public class KafkaUserResourceType implements ResourceType<KafkaUser> {
     }
 
     public static KafkaUser getDefaultTLS() {
-        return getDefaultByKind(
-                Constants.KAFKA_USER,
-                Environment.NAMESPACE,
-                Constants.KAFKA,
-                KafkaKind.TLS
-        );
+        return getDefaultByKind(Constants.KAFKA_USER, Environment.NAMESPACE, Constants.KAFKA, KafkaKind.TLS);
     }
 
     public static KafkaUser getDefaultSCRAM() {
-        return getDefaultByKind(
-                Constants.KAFKA_USER,
-                Environment.NAMESPACE,
-                Constants.KAFKA,
-                KafkaKind.SCRAM
-        );
+        return getDefaultByKind(Constants.KAFKA_USER, Environment.NAMESPACE, Constants.KAFKA,
+                KafkaKind.SCRAM);
     }
 }

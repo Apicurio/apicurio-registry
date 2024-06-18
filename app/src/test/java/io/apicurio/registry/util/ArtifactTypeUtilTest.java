@@ -14,14 +14,15 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
-    
+
     static ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory;
     static {
         artifactTypeUtilProviderFactory = new DefaultArtifactTypeUtilProviderImpl();
     }
-    
+
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}
      */
     @Test
     void testDiscoverType_JSON() {
@@ -31,7 +32,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Avro() {
@@ -41,7 +43,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Avro_Simple() {
@@ -54,7 +57,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Proto() {
@@ -68,7 +72,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_OpenApi() {
@@ -86,7 +91,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_AsyncApi() {
@@ -96,7 +102,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_GraphQL() {
@@ -106,7 +113,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_DefaultNotFound() {
@@ -117,7 +125,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Xml() {
@@ -127,7 +136,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Xsd() {
@@ -137,7 +147,8 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Wsdl() {

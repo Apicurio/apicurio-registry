@@ -3,23 +3,14 @@ package io.apicurio.registry.events.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-
 import io.quarkus.runtime.annotations.RegisterForReflection;
-
 
 /**
  * Root Type for ArtifactId
  * <p>
- *
- *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "groupId",
-    "artifactId",
-    "version",
-    "type"
-})
+@JsonPropertyOrder({ "groupId", "artifactId", "version", "type" })
 @RegisterForReflection
 public class ArtifactId {
 
@@ -27,9 +18,7 @@ public class ArtifactId {
     private String groupId;
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("artifactId")
     private String artifactId;
@@ -51,9 +40,7 @@ public class ArtifactId {
     }
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("artifactId")
     public String getArtifactId() {
@@ -61,9 +48,7 @@ public class ArtifactId {
     }
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("artifactId")
     public void setArtifactId(String artifactId) {

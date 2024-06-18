@@ -4,6 +4,7 @@ public class JsonPointerExternalReference extends ExternalReference {
 
     /**
      * Constructor.
+     * 
      * @param jsonPointer
      */
     public JsonPointerExternalReference(String jsonPointer) {

@@ -31,19 +31,15 @@ import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClie
 
 /**
  * Tests local role mappings (managed in the database via the role-mapping API).
- *
  */
 @QuarkusTest
 @TestProfile(AuthTestProfileWithLocalRoles.class)
 @Tag(ApicurioTestTags.SLOW)
 public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
-    private static final String TEST_CONTENT = "{\r\n" +
-            "    \"type\" : \"record\",\r\n" +
-            "    \"name\" : \"userInfo\",\r\n" +
-            "    \"namespace\" : \"my.example\",\r\n" +
-            "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
-            "} ";
+    private static final String TEST_CONTENT = "{\r\n" + "    \"type\" : \"record\",\r\n"
+            + "    \"name\" : \"userInfo\",\r\n" + "    \"namespace\" : \"my.example\",\r\n"
+            + "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" + "} ";
 
     @ConfigProperty(name = "quarkus.oidc.token-path")
     @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
@@ -51,7 +47,8 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -62,16 +59,19 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     static {
         createRule.setConfig(ValidityLevel.FULL.name());
         createRule.setRuleType(RuleType.VALIDITY);
-        createArtifact = TestUtils.clientCreateArtifact(AuthTestLocalRoles.class.getSimpleName(), ArtifactType.AVRO, TEST_CONTENT, ContentTypes.APPLICATION_JSON);
+        createArtifact = TestUtils.clientCreateArtifact(AuthTestLocalRoles.class.getSimpleName(),
+                ArtifactType.AVRO, TEST_CONTENT, ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     public void testLocalRoles() throws Exception {
-        var adapterAdmin = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapterAdmin = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapterAdmin.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientAdmin = new RegistryClient(adapterAdmin);
 
-        var adapterAuth = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
+        var adapterAuth = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
         adapterAuth.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapterAuth);
 
@@ -82,12 +82,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         assertForbidden(exception1);
 
         var exception2 = Assertions.assertThrows(Exception.class, () -> {
-            client
-                .groups()
-                .byGroupId(UUID.randomUUID().toString())
-                .artifacts()
-                .post(createArtifact)
-                ;
+            client.groups().byGroupId(UUID.randomUUID().toString()).artifacts().post(createArtifact);
         });
         assertForbidden(exception2);
 
@@ -107,11 +102,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
 
         var exception4 = Assertions.assertThrows(Exception.class, () -> {
-            client
-                    .groups()
-                    .byGroupId(UUID.randomUUID().toString())
-                    .artifacts()
-                    .post(createArtifact);
+            client.groups().byGroupId(UUID.randomUUID().toString()).artifacts().post(createArtifact);
         });
         assertForbidden(exception4);
         var exception5 = Assertions.assertThrows(Exception.class, () -> {
@@ -123,22 +114,13 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         var devMapping = new UpdateRole();
         devMapping.setRole(RoleType.DEVELOPER);
 
-        clientAdmin
-                .admin()
-                .roleMappings()
-                .byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID)
-                .put(devMapping)
-                ;
+        clientAdmin.admin().roleMappings().byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID).put(devMapping);
 
         // Now the user can read and write but not admin
         client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
-        client
-                .groups()
-                .byGroupId(UUID.randomUUID().toString())
-                .artifacts()
-                .post(createArtifact, config -> {
-                    config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
-                });
+        client.groups().byGroupId(UUID.randomUUID().toString()).artifacts().post(createArtifact, config -> {
+            config.headers.add("X-Registry-ArtifactId", getClass().getSimpleName());
+        });
         var exception6 = Assertions.assertThrows(Exception.class, () -> {
             client.admin().rules().post(createRule);
         });
@@ -148,29 +130,15 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         var adminMapping = new UpdateRole();
         adminMapping.setRole(RoleType.ADMIN);
 
-        clientAdmin
-                .admin()
-                .roleMappings()
-                .byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID)
-                .put(adminMapping)
-                ;
+        clientAdmin.admin().roleMappings().byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID).put(adminMapping);
 
         // Now the user can do everything
         client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
-        client
-                .groups()
-                .byGroupId(UUID.randomUUID().toString())
-                .artifacts()
-                .post(createArtifact);
+        client.groups().byGroupId(UUID.randomUUID().toString()).artifacts().post(createArtifact);
         client.admin().rules().post(createRule);
-        
+
         // Now delete the role mapping
-        clientAdmin
-                .admin()
-                .roleMappings()
-                .byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID)
-                .delete()
-                ;
-        
+        clientAdmin.admin().roleMappings().byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID).delete();
+
     }
 }

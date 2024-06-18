@@ -1,15 +1,14 @@
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
+import io.apicurio.registry.serde.config.IdOption;
+import org.apache.kafka.common.errors.SerializationException;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
-
-import org.apache.kafka.common.errors.SerializationException;
-
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
-import io.apicurio.registry.serde.config.IdOption;
 
 public class DefaultIdHandler implements IdHandler {
     static final int idSize = 8; // we use 8 / long
@@ -27,7 +26,8 @@ public class DefaultIdHandler implements IdHandler {
         long id;
         if (idOption == IdOption.contentId) {
             if (reference.getContentId() == null) {
-                throw new SerializationException("Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
+                throw new SerializationException(
+                        "Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
             }
             id = reference.getContentId();
         } else {
@@ -41,7 +41,8 @@ public class DefaultIdHandler implements IdHandler {
         long id;
         if (idOption == IdOption.contentId) {
             if (reference.getContentId() == null) {
-                throw new SerializationException("Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
+                throw new SerializationException(
+                        "Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
             }
             id = reference.getContentId();
         } else {

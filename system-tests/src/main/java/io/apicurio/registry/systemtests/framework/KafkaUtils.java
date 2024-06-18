@@ -43,7 +43,8 @@ public class KafkaUtils {
         return true;
     }
 
-    public static void createSecuredUser(ExtensionContext testContext, String username, Kafka kafka, KafkaKind kind) throws InterruptedException {
+    public static void createSecuredUser(ExtensionContext testContext, String username, Kafka kafka,
+            KafkaKind kind) throws InterruptedException {
         String namespace = kafka.getMetadata().getNamespace();
         String kafkaName = kafka.getMetadata().getName();
         String kafkaCaSecretName = kafkaName + "-cluster-ca-cert";
@@ -55,13 +56,12 @@ public class KafkaUtils {
             LOGGER.error("Secret with name {} is not present in namespace {}.", kafkaCaSecretName, namespace);
         }
 
-        ResourceManager.getInstance().createResource(
-                true,
-                KafkaUserResourceType.getDefaultByKind(username, namespace, kafkaName, kind)
-        );
+        ResourceManager.getInstance().createResource(true,
+                KafkaUserResourceType.getDefaultByKind(username, namespace, kafkaName, kind));
     }
 
-    public static Kafka deployDefaultKafkaByKind(ExtensionContext testContext, KafkaKind kind) throws InterruptedException {
+    public static Kafka deployDefaultKafkaByKind(ExtensionContext testContext, KafkaKind kind)
+            throws InterruptedException {
         Kafka kafka = KafkaResourceType.getDefaultByKind(kind);
 
         ResourceManager.getInstance().createResource(true, kafka);

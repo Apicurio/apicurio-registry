@@ -5,7 +5,6 @@ import io.apicurio.registry.utils.impexp.Entity;
 import java.io.Closeable;
 import java.io.IOException;
 
-
 public interface EntityInputStream extends Closeable {
 
     /**

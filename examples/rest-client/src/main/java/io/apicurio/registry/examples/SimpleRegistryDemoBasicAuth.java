@@ -12,9 +12,7 @@ import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthW
 /**
  * Simple demo app that shows how to use the client.
  * <p>
- * 1) Register a new schema in the Registry.
- * 2) Fetch the newly created schema.
- * 3) Delete the schema.
+ * 1) Register a new schema in the Registry. 2) Fetch the newly created schema. 3) Delete the schema.
  *
  * @author Carles Arnal <carnalca@redhat.com>
  */
@@ -34,7 +32,7 @@ public class SimpleRegistryDemoBasicAuth {
 
         RegistryDemoUtil.createSchemaInServiceRegistry(client, artifactId, Constants.SCHEMA);
 
-        //Wait for the artifact to be available.
+        // Wait for the artifact to be available.
         Thread.sleep(1000);
 
         RegistryDemoUtil.getSchemaFromRegistry(client, artifactId);

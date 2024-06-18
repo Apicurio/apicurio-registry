@@ -38,7 +38,9 @@ public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
         TypedContent content = resourceToTypedContentHandle("wsdl-invalid-semantics.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();
         Assertions.assertThrows(RuleViolationException.class, () -> {
-            //WSDLException faultCode=INVALID_WSDL: Encountered illegal extension element '{http://schemas.xmlsoap.org/wsdl/}element' in the context of a 'javax.wsdl.Types'. Extension elements must be in a namespace other than WSDL's
+            // WSDLException faultCode=INVALID_WSDL: Encountered illegal extension element
+            // '{http://schemas.xmlsoap.org/wsdl/}element' in the context of a 'javax.wsdl.Types'. Extension
+            // elements must be in a namespace other than WSDL's
             validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
     }

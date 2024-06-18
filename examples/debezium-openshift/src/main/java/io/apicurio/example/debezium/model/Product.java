@@ -25,11 +25,7 @@ public class Product {
         if (value == null) {
             return null;
         }
-        return Product.builder()
-                .id(value.getId())
-                .name(value.getName())
-                .description(value.getDescription())
-                .weight(value.getWeight())
-                .build();
+        return Product.builder().id(value.getId()).name(value.getName()).description(value.getDescription())
+                .weight(value.getWeight()).build();
     }
 }

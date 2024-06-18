@@ -27,7 +27,8 @@ public class Citizen {
     public Citizen() {
     }
 
-    public Citizen(String firstName, String lastName, int age, City city, CitizenIdentifier identifier, List<Qualification> qualifications) {
+    public Citizen(String firstName, String lastName, int age, City city, CitizenIdentifier identifier,
+            List<Qualification> qualifications) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.age = age;

@@ -9,8 +9,7 @@ import java.net.URL;
 public class HealthUtils {
 
     public enum Type {
-        READY,
-        LIVE
+        READY, LIVE
     }
 
     public static void assertHealthCheck(int port, Type type, HealthResponse.Status status) throws Exception {

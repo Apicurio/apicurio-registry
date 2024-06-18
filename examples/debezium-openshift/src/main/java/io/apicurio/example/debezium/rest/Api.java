@@ -18,7 +18,6 @@ public class Api {
     @Inject
     ExampleRunner runner;
 
-
     @POST
     @Path("/command")
     public String command(String command) {

@@ -1,11 +1,11 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class ArtifactReferenceDtoMapper implements RowMapper<ArtifactReferenceDto> {
 

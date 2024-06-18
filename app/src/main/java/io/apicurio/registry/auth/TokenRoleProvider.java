@@ -1,9 +1,8 @@
 package io.apicurio.registry.auth;
 
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
-import io.quarkus.security.identity.SecurityIdentity;
 
 @ApplicationScoped
 public class TokenRoleProvider implements RoleProvider {

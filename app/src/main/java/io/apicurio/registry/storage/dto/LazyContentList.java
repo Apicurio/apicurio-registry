@@ -39,7 +39,7 @@ public class LazyContentList implements List<TypedContent> {
 
     @Override
     public TypedContent get(int index) {
-        //Not the best solution, works for now...
+        // Not the best solution, works for now...
         return toTypedContent(storage.getContentById(contentIds.get(index)));
     }
 
@@ -146,7 +146,7 @@ public class LazyContentList implements List<TypedContent> {
 
     @Override
     public Spliterator<TypedContent> spliterator() {
-        //prevent streaming on this list
+        // prevent streaming on this list
         throw new UnsupportedOperationException();
     }
 

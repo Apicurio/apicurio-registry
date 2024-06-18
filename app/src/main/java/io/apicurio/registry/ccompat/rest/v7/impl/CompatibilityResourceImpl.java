@@ -22,24 +22,27 @@ import jakarta.interceptor.Interceptors;
 import java.util.Collections;
 import java.util.List;
 
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class CompatibilityResourceImpl extends AbstractResource implements CompatibilityResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, SchemaContent request, Boolean verbose, String groupId) throws Exception {
+    public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, SchemaContent request,
+            Boolean verbose, String groupId) throws Exception {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         try {
             final List<String> versions = storage.getArtifactVersions(groupId, subject);
             for (String version : versions) {
-                final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(groupId, subject, version);
+                final ArtifactVersionMetaDataDto artifactVersionMetaData = storage
+                        .getArtifactVersionMetaData(groupId, subject, version);
                 // Assume the content type of the SchemaContent is the same as the previous version.
                 String contentType = ContentTypes.APPLICATION_JSON;
                 if (artifactVersionMetaData.getArtifactType().equals(ArtifactType.PROTOBUF)) {
                     contentType = ContentTypes.APPLICATION_PROTOBUF;
                 }
-                TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()), contentType);
+                TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()),
+                        contentType);
                 rulesService.applyRules(groupId, subject, version, artifactVersionMetaData.getArtifactType(),
                         typedContent, Collections.emptyList(), Collections.emptyMap());
             }
@@ -57,20 +60,23 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String versionString, SchemaContent request, Boolean verbose, String groupId) throws Exception {
+    public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String versionString,
+            SchemaContent request, Boolean verbose, String groupId) throws Exception {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
 
         return parseVersionString(subject, versionString, groupId, v -> {
             try {
-                final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(groupId, subject, v);
+                final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(groupId,
+                        subject, v);
                 // Assume the content type of the SchemaContent is correct based on the artifact type.
                 String contentType = ContentTypes.APPLICATION_JSON;
                 if (artifact.getArtifactType().equals(ArtifactType.PROTOBUF)) {
                     contentType = ContentTypes.APPLICATION_PROTOBUF;
                 }
-                TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()), contentType);
-                rulesService.applyRules(groupId, subject, v, artifact.getArtifactType(),
-                        typedContent, Collections.emptyList(), Collections.emptyMap());
+                TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()),
+                        contentType);
+                rulesService.applyRules(groupId, subject, v, artifact.getArtifactType(), typedContent,
+                        Collections.emptyList(), Collections.emptyMap());
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {
                 if (fverbose) {

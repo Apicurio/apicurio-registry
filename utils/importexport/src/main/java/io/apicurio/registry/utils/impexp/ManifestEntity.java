@@ -1,8 +1,8 @@
 package io.apicurio.registry.utils.impexp;
 
-import java.util.Date;
-
 import io.quarkus.runtime.annotations.RegisterForReflection;
+
+import java.util.Date;
 
 @RegisterForReflection
 public class ManifestEntity extends Entity {

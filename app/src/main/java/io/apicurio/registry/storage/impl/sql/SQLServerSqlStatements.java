@@ -1,8 +1,8 @@
 package io.apicurio.registry.storage.impl.sql;
 
 /**
- * MS SQL Server implementation of the SQL statements interface.  Provides sql statements that
- * are specific to MS SQL Server, where applicable.
+ * MS SQL Server implementation of the SQL statements interface. Provides sql statements that are specific to
+ * MS SQL Server, where applicable.
  */
 public class SQLServerSqlStatements extends CommonSqlStatements {
 
@@ -49,11 +49,9 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return String.join(" ",
-                "MERGE INTO content AS target",
+        return String.join(" ", "MERGE INTO content AS target",
                 "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, contentType, content, refs)",
-                "ON (target.contentHash = source.contentHash)",
-                "WHEN NOT MATCHED THEN",
+                "ON (target.contentHash = source.contentHash)", "WHEN NOT MATCHED THEN",
                 "INSERT (contentId, canonicalHash, contentHash, contentType, content, refs)",
                 "VALUES (source.contentId, source.canonicalHash, source.contentHash, source.contentType, source.content, source.refs);");
     }
@@ -63,16 +61,10 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return String.join(" ",
-                "MERGE INTO sequences AS target",
-                "USING (VALUES  (?)) AS source (seqName)",
-                "ON (target.seqName = source.seqName)",
-                "WHEN MATCHED THEN",
-                "UPDATE SET seqValue = target.seqValue + 1",
-                "WHEN NOT MATCHED THEN",
-                "INSERT (seqName, seqValue)",
-                "VALUES (source.seqName, 1)",
-                "OUTPUT INSERTED.seqValue;");
+        return String.join(" ", "MERGE INTO sequences AS target", "USING (VALUES  (?)) AS source (seqName)",
+                "ON (target.seqName = source.seqName)", "WHEN MATCHED THEN",
+                "UPDATE SET seqValue = target.seqValue + 1", "WHEN NOT MATCHED THEN",
+                "INSERT (seqName, seqValue)", "VALUES (source.seqName, 1)", "OUTPUT INSERTED.seqValue;");
     }
 
     /**
@@ -80,15 +72,10 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return String.join(" ",
-                "MERGE INTO sequences AS target",
-                "USING (VALUES (?, ?)) AS source (seqName, seqValue)",
-                "ON (target.seqName = source.seqName)",
-                "WHEN MATCHED THEN",
-                "UPDATE SET seqValue = ?",
-                "WHEN NOT MATCHED THEN",
-                "INSERT (seqName, seqValue)",
-                "VALUES (source.seqName, source.seqValue)",
+        return String.join(" ", "MERGE INTO sequences AS target",
+                "USING (VALUES (?, ?)) AS source (seqName, seqValue)", "ON (target.seqName = source.seqName)",
+                "WHEN MATCHED THEN", "UPDATE SET seqValue = ?", "WHEN NOT MATCHED THEN",
+                "INSERT (seqName, seqValue)", "VALUES (source.seqName, source.seqValue)",
                 "OUTPUT INSERTED.seqValue;");
     }
 
@@ -97,12 +84,10 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContentReference() {
-        return String.join(" ",
-                "MERGE INTO content_references AS target",
+        return String.join(" ", "MERGE INTO content_references AS target",
                 "USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, groupId, artifactId, version, name)",
                 "ON (target.contentId = source.contentId AND target.name = source.name)",
-                "WHEN NOT MATCHED THEN",
-                "INSERT (contentId, groupId, artifactId, version, name)",
+                "WHEN NOT MATCHED THEN", "INSERT (contentId, groupId, artifactId, version, name)",
                 "VALUES (source.contentId, source.groupId, source.artifactId, source.version, source.name);");
     }
 
@@ -119,24 +104,23 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String selectGroups() {
-        //TODO pagination?
-        return "SELECT TOP (?) * FROM groups "
-                + "ORDER BY groupId ASC";
+        // TODO pagination?
+        return "SELECT TOP (?) * FROM groups " + "ORDER BY groupId ASC";
     }
 
     @Override
     public String selectBranchTip() {
-        return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab " +
-                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? " +
-                "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+        return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab "
+                + "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? "
+                + "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
     }
 
     @Override
     public String selectBranchTipNotDisabled() {
-        return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab " +
-                "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version " +
-                "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' " +
-                "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+        return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab "
+                + "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version "
+                + "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' "
+                + "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
     }
 
     @Override

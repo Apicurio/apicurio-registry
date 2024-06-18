@@ -1,6 +1,5 @@
 package io.apicurio.tests.migration;
 
-
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -46,7 +45,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
 
     @Override
     public void cleanArtifacts() throws Exception {
-        //Don't clean up
+        // Don't clean up
     }
 
     @Test
@@ -55,38 +54,48 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
         adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);
 
-        // Fill the destination registry with data (Avro content is inserted first to ensure that the content IDs are different)
+        // Fill the destination registry with data (Avro content is inserted first to ensure that the content
+        // IDs are different)
         for (int idx = 0; idx < 15; idx++) {
-            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(List.of("a" + idx));
-            String artifactId = "avro-" + idx + "-" + UUID.randomUUID().toString(); // Artifact ids need to be different we do not support identical artifact ids
+            AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
+                    List.of("a" + idx));
+            String artifactId = "avro-" + idx + "-" + UUID.randomUUID().toString(); // Artifact ids need to be
+                                                                                    // different we do not
+                                                                                    // support identical
+                                                                                    // artifact ids
             String content = IoUtil.toString(avroSchema.generateSchemaStream());
 
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
-            var response = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(createArtifact);
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                    content, ContentTypes.APPLICATION_JSON);
+            var response = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
+                    .post(createArtifact);
             retry(() -> dest.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()));
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
         }
 
         for (int idx = 0; idx < 50; idx++) {
-            String artifactId = idx + "-" + UUID.randomUUID().toString(); // Artifact ids need to be different we do not support identical artifact ids
+            String artifactId = idx + "-" + UUID.randomUUID().toString(); // Artifact ids need to be different
+                                                                          // we do not support identical
+                                                                          // artifact ids
             String content = IoUtil.toString(jsonSchema.getSchemaStream());
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
-            var response = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts().post(createArtifact, config -> {
-                config.headers.add("X-Registry-ArtifactId", artifactId);
-            });
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+                    content, ContentTypes.APPLICATION_JSON);
+            var response = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
+                    .post(createArtifact, config -> {
+                        config.headers.add("X-Registry-ArtifactId", artifactId);
+                    });
             retry(() -> dest.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()));
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
         }
 
         // Import the data
-        var importReq = dest.admin().importEscaped().toPostRequestInformation(doNotPreserveIdsImportDataToImport, config -> {
-            config.headers.add("X-Registry-Preserve-GlobalId", "false");
-            config.headers.add("X-Registry-Preserve-ContentId", "false");
-        });
+        var importReq = dest.admin().importEscaped()
+                .toPostRequestInformation(doNotPreserveIdsImportDataToImport, config -> {
+                    config.headers.add("X-Registry-Preserve-GlobalId", "false");
+                    config.headers.add("X-Registry-Preserve-ContentId", "false");
+                });
         importReq.headers.replace("Content-Type", Set.of("application/zip"));
         adapter.sendPrimitive(importReq, new HashMap<>(), Void.class);
-
-
 
         // Check that the import was successful
         retry(() -> {
@@ -94,7 +103,8 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
                 String groupId = entry.getKey().split(":")[0];
                 String artifactId = entry.getKey().split(":")[1];
                 String content = entry.getValue();
-                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get();
+                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                        .versions().byVersionExpression("branch=latest").content().get();
                 assertNotNull(registryContent);
                 assertEquals(content, IoUtil.toString(registryContent));
             }
@@ -106,13 +116,14 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
         @Override
         public Map<String, String> start() {
 
-            String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry-mem:2.4.14.Final");
+            String registryBaseUrl = startRegistryApplication(
+                    "quay.io/apicurio/apicurio-registry-mem:2.4.14.Final");
             var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
             adapter.setBaseUrl(registryBaseUrl);
             RegistryClient source = new RegistryClient(adapter);
 
             try {
-                //Warm up until the source registry is ready.
+                // Warm up until the source registry is ready.
                 TestUtils.retry(() -> {
                     source.groups().byGroupId("default").artifacts().get();
                 });

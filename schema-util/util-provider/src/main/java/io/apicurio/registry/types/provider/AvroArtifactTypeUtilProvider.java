@@ -27,7 +27,8 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     private static final Pattern QUOTED_BRACKETS = Pattern.compile(": *\"\\{}\"");
 
     /**
-     * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro where some libraries detects quoted brackets as valid and others as invalid
+     * Given a content removes any quoted brackets. This is useful for some validation corner cases in avro
+     * where some libraries detects quoted brackets as valid and others as invalid
      */
     private static String removeQuotedBrackets(String content) {
         return QUOTED_BRACKETS.matcher(content).replaceAll(":{}");
@@ -37,7 +38,8 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
             String contentType = content.getContentType();
-            if (contentType.toLowerCase().contains("json") && ContentTypeUtil.isParsableJson(content.getContent())) {
+            if (contentType.toLowerCase().contains("json")
+                    && ContentTypeUtil.isParsableJson(content.getContent())) {
                 // Avro without quote
                 final Schema.Parser parser = new Schema.Parser();
                 final List<Schema> schemaRefs = new ArrayList<>();
@@ -52,7 +54,7 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
                 return true;
             }
         } catch (Exception e) {
-            //ignored
+            // ignored
         }
         return false;
     }
@@ -86,7 +88,7 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     public ContentDereferencer getContentDereferencer() {
         return new AvroDereferencer();
     }
-    
+
     @Override
     public ReferenceFinder getReferenceFinder() {
         return new JsonSchemaReferenceFinder();

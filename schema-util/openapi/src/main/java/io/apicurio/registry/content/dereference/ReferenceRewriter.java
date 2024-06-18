@@ -13,7 +13,7 @@ import java.util.Map;
  * Rewrites all references in a data model using a map of replacements provided.
  */
 public class ReferenceRewriter extends AllNodeVisitor {
-    
+
     private final Map<String, String> referenceUrls;
 
     /**
@@ -35,21 +35,21 @@ public class ReferenceRewriter extends AllNodeVisitor {
             }
         }
     }
-    
+
     /**
      * @see io.apicurio.datamodels.models.visitors.AllNodeVisitor#visitMessage(io.apicurio.datamodels.models.asyncapi.AsyncApiMessage)
      */
     @Override
     public void visitMessage(AsyncApiMessage node) {
         super.visitMessage(node);
-        
+
         // Note: for now we have special handling of the payload because it's not yet fully modeled in the
         // apicurio-data-models library.
         JsonNode payload = node.getPayload();
         if (payload != null && payload.hasNonNull("$ref")) {
             String $ref = payload.get("$ref").asText();
             if (referenceUrls.containsKey($ref)) {
-                ((ObjectNode) payload).put("$ref", referenceUrls.get($ref)); 
+                ((ObjectNode) payload).put("$ref", referenceUrls.get($ref));
             }
         }
     }

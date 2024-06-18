@@ -26,8 +26,8 @@ import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClie
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 
 /**
- * This class is deprecated, it's recommended to migrate to the new implementation at {@link io.apicurio.registry.resolver.AbstractSchemaResolver}
- * Base implementation of {@link SchemaResolver}
+ * This class is deprecated, it's recommended to migrate to the new implementation at
+ * {@link io.apicurio.registry.resolver.AbstractSchemaResolver} Base implementation of {@link SchemaResolver}
  */
 @Deprecated
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {
@@ -45,9 +45,10 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected Vertx vertx;
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public void configure(Map<String, ?> configs, io.apicurio.registry.resolver.SchemaParser<S, T> schemaMapper) {
+    public void configure(Map<String, ?> configs,
+            io.apicurio.registry.resolver.SchemaParser<S, T> schemaMapper) {
         this.schemaParser = schemaMapper;
 
         if (this.vertx == null) {
@@ -55,7 +56,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
 
         Object isKeyFromConfig = configs.get(SerdeConfig.IS_KEY);
-        //is key have to come always, we set it
+        // is key have to come always, we set it
         configure(configs, (Boolean) isKeyFromConfig, new SchemaParser() {
 
             /**
@@ -71,7 +72,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
              */
             @Override
             public Object parseSchema(byte[] rawSchema) {
-                //Empty map passed as references. References are not supported when using this class.
+                // Empty map passed as references. References are not supported when using this class.
                 return schemaMapper.parseSchema(rawSchema, Collections.emptyMap());
             }
 
@@ -79,7 +80,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.serde.SchemaParser)
+     * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean,
+     *      io.apicurio.registry.serde.SchemaParser)
      */
     @Override
     public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<S> schemaParser) {
@@ -93,7 +95,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         if (client == null) {
             String baseUrl = config.getRegistryUrl();
             if (baseUrl == null) {
-                throw new IllegalArgumentException("Missing registry base url, set " + SerdeConfig.REGISTRY_URL);
+                throw new IllegalArgumentException(
+                        "Missing registry base url, set " + SerdeConfig.REGISTRY_URL);
             }
 
             String authServerURL = config.getAuthServiceUrl();
@@ -101,7 +104,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
             try {
                 if (authServerURL != null || tokenEndpoint != null) {
-                    client = configureClientWithBearerAuthentication(config, baseUrl, authServerURL, tokenEndpoint);
+                    client = configureClientWithBearerAuthentication(config, baseUrl, authServerURL,
+                            tokenEndpoint);
                 } else {
                     String username = config.getAuthUsername();
 
@@ -126,7 +130,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         schemaCache.configureRetryCount(config.getRetryCount());
 
         schemaCache.configureGlobalIdKeyExtractor(SchemaLookupResult::getGlobalId);
-        schemaCache.configureContentKeyExtractor(schema -> Optional.ofNullable(schema.getRawSchema()).map(IoUtil::toString).orElse(null));
+        schemaCache.configureContentKeyExtractor(
+                schema -> Optional.ofNullable(schema.getRawSchema()).map(IoUtil::toString).orElse(null));
         schemaCache.configureContentIdKeyExtractor(SchemaLookupResult::getContentId);
         schemaCache.configureContentHashKeyExtractor(SchemaLookupResult::getContentHash);
         schemaCache.configureArtifactCoordinatesKeyExtractor(SchemaLookupResult::toArtifactCoordinates);
@@ -159,7 +164,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      * @param artifactResolverStrategy the artifactResolverStrategy to set
      */
     @Override
-    public void setArtifactResolverStrategy(ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy) {
+    public void setArtifactResolverStrategy(
+            ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy) {
         this.artifactResolverStrategy = artifactResolverStrategy;
     }
 
@@ -179,9 +185,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     /**
-     * Resolve an artifact reference given the topic name, message headers, data, and optional parsed schema.  This will use
-     * the artifact resolver strategy and then override the values from that strategy with any explicitly configured
-     * values (groupId, artifactId, version).
+     * Resolve an artifact reference given the topic name, message headers, data, and optional parsed schema.
+     * This will use the artifact resolver strategy and then override the values from that strategy with any
+     * explicitly configured values (groupId, artifactId, version).
      *
      * @param topic
      * @param headers
@@ -194,23 +200,27 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         KafkaSerdeRecord<T> record = new KafkaSerdeRecord<T>(metadata, data);
 
         io.apicurio.registry.resolver.ParsedSchema<S> ps = new ParsedSchemaImpl<S>()
-                .setParsedSchema(parsedSchema.getParsedSchema())
-                .setRawSchema(parsedSchema.getRawSchema());
+                .setParsedSchema(parsedSchema.getParsedSchema()).setRawSchema(parsedSchema.getRawSchema());
 
-        io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference = artifactResolverStrategy.artifactReference(record, ps);
+        io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference = artifactResolverStrategy
+                .artifactReference(record, ps);
 
         return ArtifactReference.builder()
-                .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId() : this.explicitArtifactGroupId)
-                .artifactId(this.explicitArtifactId == null ? artifactReference.getArtifactId() : this.explicitArtifactId)
-                .version(this.explicitArtifactVersion == null ? artifactReference.getVersion() : this.explicitArtifactVersion)
+                .groupId(this.explicitArtifactGroupId == null ? artifactReference.getGroupId()
+                    : this.explicitArtifactGroupId)
+                .artifactId(this.explicitArtifactId == null ? artifactReference.getArtifactId()
+                    : this.explicitArtifactId)
+                .version(this.explicitArtifactVersion == null ? artifactReference.getVersion()
+                    : this.explicitArtifactVersion)
                 .build();
     }
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
         return schemaCache.getByGlobalId(globalId, globalIdKey -> {
-            //TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and version)
-            //TODO or at least add some method to the api to return the version metadata by globalId
-//            ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
+            // TODO getContentByGlobalId have to return some minumum metadata (groupId, artifactId and
+            // version)
+            // TODO or at least add some method to the api to return the version metadata by globalId
+            // ArtifactMetaData artifactMetadata = client.getArtifactMetaData("TODO", artifactId);
             InputStream rawSchema = client.ids().globalIds().byGlobalId(globalIdKey).get();
 
             byte[] schema = IoUtil.toBytes(rawSchema);
@@ -219,14 +229,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
             return result
-                    //FIXME it's impossible to retrieve this info with only the globalId
-//                  .groupId(null)
-//                  .artifactId(null)
-//                  .version(0)
-                    .globalId(globalIdKey)
-                    .rawSchema(schema)
-                    .schema(parsed)
-                    .build();
+                    // FIXME it's impossible to retrieve this info with only the globalId
+                    // .groupId(null)
+                    // .artifactId(null)
+                    // .version(0)
+                    .globalId(globalIdKey).rawSchema(schema).schema(parsed).build();
         });
     }
 
@@ -245,7 +252,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
     }
 
-    private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config, String registryUrl, String authServerUrl, String tokenEndpoint) {
+    private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config,
+            String registryUrl, String authServerUrl, String tokenEndpoint) {
         RequestAdapter auth;
         if (authServerUrl != null) {
             auth = configureAuthWithRealm(config, authServerUrl);
@@ -263,7 +271,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalArgumentException("Missing registry auth realm, set " + SerdeConfig.AUTH_REALM);
         }
 
-        final String tokenEndpoint = authServerUrl + String.format(SerdeConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
+        final String tokenEndpoint = authServerUrl
+                + String.format(SerdeConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
 
         return configureAuthWithUrl(config, tokenEndpoint);
     }
@@ -272,24 +281,29 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         final String clientId = config.getAuthClientId();
 
         if (clientId == null) {
-            throw new IllegalArgumentException("Missing registry auth clientId, set " + SerdeConfig.AUTH_CLIENT_ID);
+            throw new IllegalArgumentException(
+                    "Missing registry auth clientId, set " + SerdeConfig.AUTH_CLIENT_ID);
         }
         final String clientSecret = config.getAuthClientSecret();
 
         if (clientSecret == null) {
-            throw new IllegalArgumentException("Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
+            throw new IllegalArgumentException(
+                    "Missing registry auth secret, set " + SerdeConfig.AUTH_CLIENT_SECRET);
         }
 
-        RequestAdapter adapter = new VertXRequestAdapter(buildOIDCWebClient(this.vertx, tokenEndpoint, clientId, clientSecret));
+        RequestAdapter adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(this.vertx, tokenEndpoint, clientId, clientSecret));
         return adapter;
     }
 
-    private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config, String registryUrl, String username) {
+    private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config,
+            String registryUrl, String username) {
 
         final String password = config.getAuthPassword();
 
         if (password == null) {
-            throw new IllegalArgumentException("Missing registry auth password, set " + SerdeConfig.AUTH_PASSWORD);
+            throw new IllegalArgumentException(
+                    "Missing registry auth password, set " + SerdeConfig.AUTH_PASSWORD);
         }
 
         var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(this.vertx, username, password));
@@ -298,7 +312,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return new RegistryClient(adapter);
     }
 
-    protected void loadFromArtifactMetaData(VersionMetaData artifactMetadata, SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
+    protected void loadFromArtifactMetaData(VersionMetaData artifactMetadata,
+            SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
         resultBuilder.globalId(artifactMetadata.getGlobalId());
         resultBuilder.contentId(artifactMetadata.getContentId());
         resultBuilder.groupId(artifactMetadata.getGroupId());

@@ -24,7 +24,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.slf4j.simple.SimpleLogger;
 import picocli.CommandLine.Command;
 
 import java.io.BufferedReader;
@@ -46,20 +45,20 @@ public class ImportCommand implements Runnable {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    @Option(names = {"-b", "--bootstrap-sever"}, description = "Kafka bootstrap server URL.",
-            required = true, defaultValue = "localhost:9092")
+    @Option(names = { "-b",
+            "--bootstrap-sever" }, description = "Kafka bootstrap server URL.", required = true, defaultValue = "localhost:9092")
     private String kafkaBootstrapServer;
 
-    @Option(names = {"-f", "--file"}, description = "Path to a kafkasql-journal topic dump file. " +
-            "Messages must use a JSON envelope and have base64-encoded keys and values.", required = true)
+    @Option(names = { "-f", "--file" }, description = "Path to a kafkasql-journal topic dump file. "
+            + "Messages must use a JSON envelope and have base64-encoded keys and values.", required = true)
     private String dumpFilePath;
 
-    @Option(names = {"-d", "--debug"}, description = "Print debug log messages.", defaultValue = "false")
+    @Option(names = { "-d", "--debug" }, description = "Print debug log messages.", defaultValue = "false")
     private boolean debug;
 
     public void run() {
 
-        if(debug) {
+        if (debug) {
             System.setProperty(org.slf4j.simple.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "DEBUG");
         } else {
             System.setProperty(org.slf4j.simple.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "WARN");
@@ -76,32 +75,29 @@ public class ImportCommand implements Runnable {
                         envelope.setHeaders(List.of());
                     }
                     if (envelope.getHeaders().size() % 2 != 0) {
-                        throw new RuntimeException("Invalid length of the headers field: " + envelope.getHeaders().size());
+                        throw new RuntimeException(
+                                "Invalid length of the headers field: " + envelope.getHeaders().size());
                     }
 
-                    var key = envelope.getKey() != null ? Base64.getDecoder().decode(envelope.getKey()) : null;
-                    var value = envelope.getPayload() != null ? Base64.getDecoder().decode(envelope.getPayload()) : null;
+                    var key = envelope.getKey() != null ? Base64.getDecoder().decode(envelope.getKey())
+                        : null;
+                    var value = envelope.getPayload() != null
+                        ? Base64.getDecoder().decode(envelope.getPayload()) : null;
 
-                    var record = new ProducerRecord<>(
-                            envelope.getTopic(),
-                            envelope.getPartition(),
-                            envelope.getTs(),
-                            key,
-                            value,
-                            Streams.zip(
-                                            Streams.zip(
-                                                    IntStream.range(0, Integer.MAX_VALUE).boxed(),
-                                                    envelope.getHeaders().stream(),
-                                                    Tuple::new
-                                            ).filter(t -> t.getA() % 2 == 0).map(Tuple::getB), // Even indexes: 0,2,4,...
-                                            Streams.zip(
-                                                    IntStream.range(0, Integer.MAX_VALUE).boxed(),
-                                                    envelope.getHeaders().stream(),
-                                                    Tuple::new
-                                            ).filter(t -> t.getA() % 2 == 1).map(Tuple::getB), // Odd indexes: 1,3,5,...
+                    var record = new ProducerRecord<>(envelope.getTopic(), envelope.getPartition(),
+                            envelope.getTs(), key, value, Streams
+                                    .zip(Streams
+                                            .zip(IntStream.range(0, Integer.MAX_VALUE).boxed(),
+                                                    envelope.getHeaders().stream(), Tuple::new)
+                                            .filter(t -> t.getA() % 2 == 0).map(Tuple::getB), // Even indexes:
+                                                                                              // 0,2,4,...
+                                            Streams.zip(IntStream.range(0, Integer.MAX_VALUE).boxed(),
+                                                    envelope.getHeaders().stream(), Tuple::new)
+                                                    .filter(t -> t.getA() % 2 == 1).map(Tuple::getB), // Odd
+                                                                                                      // indexes:
+                                                                                                      // 1,3,5,...
                                             (k, v) -> new RecordHeader(k, v.getBytes(StandardCharsets.UTF_8)))
-                                    .collect(Collectors.toList())
-                    );
+                                    .collect(Collectors.toList()));
                     producer.send(record);
                 }
             }
@@ -114,7 +110,6 @@ public class ImportCommand implements Runnable {
             ex.printStackTrace(System.err);
         }
     }
-
 
     private Producer<byte[], byte[]> createKafkaProducer() {
 

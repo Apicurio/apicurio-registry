@@ -1,11 +1,9 @@
 package io.apicurio.registry.auth;
 
-
-
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.noprofile.maven.RegistryMojoTestBase;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
@@ -45,7 +43,8 @@ public class MojoAuthTest extends RegistryMojoTestBase {
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }

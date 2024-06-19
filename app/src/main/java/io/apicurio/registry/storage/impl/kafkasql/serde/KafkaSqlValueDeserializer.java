@@ -34,7 +34,8 @@ public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> 
     }
 
     /**
-     * @see org.apache.kafka.common.serialization.Deserializer#deserialize(java.lang.String, org.apache.kafka.common.header.Headers, byte[])
+     * @see org.apache.kafka.common.serialization.Deserializer#deserialize(java.lang.String,
+     *      org.apache.kafka.common.header.Headers, byte[])
      */
     @Override
     public KafkaSqlMessage deserialize(String topic, Headers headers, byte[] data) {
@@ -63,17 +64,12 @@ public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> 
     }
 
     /**
-     * Extracts the UUID from the message.  The UUID should be found in a message header.
+     * Extracts the UUID from the message. The UUID should be found in a message header.
      */
     private static String extractMessageType(Headers headers) {
-        return Optional.ofNullable(headers.headers("mt"))
-                .map(Iterable::iterator)
-                .map(it -> {
-                    return it.hasNext() ? it.next() : null;
-                })
-                .map(Header::value)
-                .map(String::new)
-                .orElse(null);
+        return Optional.ofNullable(headers.headers("mt")).map(Iterable::iterator).map(it -> {
+            return it.hasNext() ? it.next() : null;
+        }).map(Header::value).map(String::new).orElse(null);
     }
 
 }

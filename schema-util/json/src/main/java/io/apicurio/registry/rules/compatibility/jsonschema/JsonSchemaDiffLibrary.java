@@ -26,13 +26,14 @@ public class JsonSchemaDiffLibrary {
     /**
      * Find and analyze differences between two JSON schemas.
      *
-     * @param original           Original/Previous/First/Left JSON schema representation
-     * @param updated            Updated/Next/Second/Right JSON schema representation
+     * @param original Original/Previous/First/Left JSON schema representation
+     * @param updated Updated/Next/Second/Right JSON schema representation
      * @param resolvedReferences
      * @return an object to access the found differences: Original -&gt; Updated
      * @throws IllegalArgumentException if the input is not a valid representation of a JsonSchema
      */
-    public static DiffContext findDifferences(String original, String updated, Map<String, TypedContent> resolvedReferences) {
+    public static DiffContext findDifferences(String original, String updated,
+            Map<String, TypedContent> resolvedReferences) {
         try {
             JsonNode originalNode = MAPPER.readTree(original);
             JsonNode updatedNode = MAPPER.readTree(updated);
@@ -44,9 +45,7 @@ public class JsonSchemaDiffLibrary {
 
             loadReferences(originalNode, resolvedReferences, originalSchemaBuilder);
 
-            Schema originalSchema = originalSchemaBuilder
-                    .schemaJson(originalJson)
-                    .build().load().build();
+            Schema originalSchema = originalSchemaBuilder.schemaJson(originalJson).build().load().build();
 
             SchemaLoader.SchemaLoaderBuilder updatedSchemaBuilder = SchemaLoader.builder();
 
@@ -61,12 +60,14 @@ public class JsonSchemaDiffLibrary {
         }
     }
 
-    private static void loadReferences(JsonNode jsonNode, Map<String, TypedContent> resolvedReferences, SchemaLoader.SchemaLoaderBuilder schemaLoaderBuilder) {
+    private static void loadReferences(JsonNode jsonNode, Map<String, TypedContent> resolvedReferences,
+            SchemaLoader.SchemaLoaderBuilder schemaLoaderBuilder) {
         SpecificationVersion spec = SpecificationVersion.DRAFT_7;
         if (jsonNode.has(SCHEMA_KEYWORD)) {
             String schema = jsonNode.get(SCHEMA_KEYWORD).asText();
             if (schema != null) {
-                spec = SpecificationVersion.lookupByMetaSchemaUrl(schema).orElse(SpecificationVersion.DRAFT_7);
+                spec = SpecificationVersion.lookupByMetaSchemaUrl(schema)
+                        .orElse(SpecificationVersion.DRAFT_7);
             }
         }
 
@@ -80,7 +81,8 @@ public class JsonSchemaDiffLibrary {
 
         for (Map.Entry<String, TypedContent> stringStringEntry : resolvedReferences.entrySet()) {
             URI child = ReferenceResolver.resolve(idUri, stringStringEntry.getKey());
-            schemaLoaderBuilder.registerSchemaByURI(child, new JSONObject(stringStringEntry.getValue().getContent().content()));
+            schemaLoaderBuilder.registerSchemaByURI(child,
+                    new JSONObject(stringStringEntry.getValue().getContent().content()));
         }
     }
 
@@ -90,11 +92,13 @@ public class JsonSchemaDiffLibrary {
         return rootContext;
     }
 
-    public static boolean isCompatible(String original, String updated, Map<String, TypedContent> resolvedReferences) {
+    public static boolean isCompatible(String original, String updated,
+            Map<String, TypedContent> resolvedReferences) {
         return findDifferences(original, updated, resolvedReferences).foundAllDifferencesAreCompatible();
     }
 
-    public static Set<Difference> getIncompatibleDifferences(String original, String updated, Map<String, TypedContent> resolvedReferences) {
+    public static Set<Difference> getIncompatibleDifferences(String original, String updated,
+            Map<String, TypedContent> resolvedReferences) {
         return findDifferences(original, updated, resolvedReferences).getIncompatibleDifferences();
     }
 }

@@ -87,7 +87,6 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         READY_TO_WRITE, // Latest data has been published, and we are ready to write to the inactive storage
     }
 
-
     @Override
     public void initialize() {
         log.info("Using GitOps storage");
@@ -107,7 +106,8 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Scheduled(concurrentExecution = SKIP, every = "{apicurio.gitops.refresh.every}")
     void refresh() {
         if (registryStorageType.equals("gitops")) {
-            log.debug("Running GitOps refresh. Active database is {} and state is {}.", active == green ? "green" : "blue", state);
+            log.debug("Running GitOps refresh. Active database is {} and state is {}.",
+                    active == green ? "green" : "blue", state);
             switch (state) {
                 case READY_TO_SWITCH: {
                     try {
@@ -126,7 +126,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
                         throw new RuntimeException(e);
                     }
                 }
-                break;
+                    break;
                 case READY_TO_WRITE: {
                     try {
                         var updatedCommit = gitManager.poll();
@@ -153,12 +153,12 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
                         throw new RuntimeException(e);
                     }
                 }
-                break;
+                    break;
             }
-            log.debug("GitOps refresh finished. Active database is {} and state is {}.", active == green ? "green" : "blue", state);
+            log.debug("GitOps refresh finished. Active database is {} and state is {}.",
+                    active == green ? "green" : "blue", state);
         }
     }
-
 
     public <T> T proxy(Function<RegistryStorage, T> operation) {
         try {
@@ -169,13 +169,13 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
                     switchLock.readLock().unlock();
                 }
             } else {
-                throw new RegistryStorageException("Could not acquire read lock to get the active storage within 5 seconds");
+                throw new RegistryStorageException(
+                        "Could not acquire read lock to get the active storage within 5 seconds");
             }
         } catch (InterruptedException ex) {
             throw new RegistryStorageException("Could not acquire read lock to get the active storage", ex);
         }
     }
-
 
     public void proxyAction(Consumer<RegistryStorage> action) {
         try {
@@ -186,13 +186,13 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
                     switchLock.readLock().unlock();
                 }
             } else {
-                throw new RegistryStorageException("Could not acquire read lock to get the active storage within 5 seconds");
+                throw new RegistryStorageException(
+                        "Could not acquire read lock to get the active storage within 5 seconds");
             }
         } catch (InterruptedException ex) {
             throw new RegistryStorageException("Could not acquire read lock to get the active storage", ex);
         }
     }
-
 
     @Override
     public String storageName() {
@@ -204,29 +204,24 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         return true;
     }
 
-
     @Override
     public boolean isAlive() {
         return true;
     }
 
-
     @PreDestroy
     void onDestroy() {
     }
-
 
     @Override
     public ContentWrapperDto getContentById(long contentId) {
         return proxy(storage -> storage.getContentById(contentId));
     }
 
-
     @Override
     public ContentWrapperDto getContentByHash(String contentHash) {
         return proxy(storage -> storage.getContentByHash(contentHash));
     }
-
 
     @Override
     public List<ArtifactVersionMetaDataDto> getArtifactVersionsByContentId(long contentId) {
@@ -243,14 +238,15 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         return proxy(storage -> storage.getArtifactIds(limit));
     }
 
-
     @Override
-    public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, int offset, int limit) {
+    public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) {
         return proxy(storage -> storage.searchArtifacts(filters, orderBy, orderDirection, offset, limit));
     }
 
     @Override
-    public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+    public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
         return proxy(storage -> storage.searchVersions(filters, orderBy, orderDirection, offset, limit));
     }
 
@@ -259,24 +255,22 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         return proxy(storage -> storage.getArtifactMetaData(groupId, artifactId));
     }
 
-
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId, boolean canonical, TypedContent content, List<ArtifactReferenceDto> artifactReferences) {
-        return proxy(storage -> storage.getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, content, artifactReferences));
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId,
+            boolean canonical, TypedContent content, List<ArtifactReferenceDto> artifactReferences) {
+        return proxy(storage -> storage.getArtifactVersionMetaDataByContent(groupId, artifactId, canonical,
+                content, artifactReferences));
     }
-
 
     @Override
     public List<RuleType> getArtifactRules(String groupId, String artifactId) {
         return proxy(storage -> storage.getArtifactRules(groupId, artifactId));
     }
 
-
     @Override
     public RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule) {
         return proxy(storage -> storage.getArtifactRule(groupId, artifactId, rule));
     }
-
 
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId) {
@@ -288,107 +282,94 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         return proxy(storage -> storage.getArtifactVersions(groupId, artifactId, behavior));
     }
 
-
     @Override
     public StoredArtifactVersionDto getArtifactVersionContent(long globalId) {
         return proxy(storage -> storage.getArtifactVersionContent(globalId));
     }
 
-
     @Override
-    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId, String version) {
+    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId,
+            String version) {
         return proxy(storage -> storage.getArtifactVersionContent(groupId, artifactId, version));
     }
 
-
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, String version) {
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
+            String version) {
         return proxy(storage -> storage.getArtifactVersionMetaData(groupId, artifactId, version));
     }
-    
+
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
             throws VersionNotFoundException, RegistryStorageException {
         return proxy(storage -> storage.getArtifactVersionMetaData(globalId));
     }
 
-
     @Override
     public List<RuleType> getGlobalRules() {
         return proxy(RegistryStorage::getGlobalRules);
     }
-
 
     @Override
     public RuleConfigurationDto getGlobalRule(RuleType rule) {
         return proxy(storage -> storage.getGlobalRule(rule));
     }
 
-
     @Override
     public List<String> getGroupIds(Integer limit) {
         return proxy(storage -> storage.getGroupIds(limit));
     }
-
 
     @Override
     public GroupMetaDataDto getGroupMetaData(String groupId) {
         return proxy(storage -> storage.getGroupMetaData(groupId));
     }
 
-
     @Override
     public void exportData(Function<Entity, Void> handler) {
         proxyAction(storage -> storage.exportData(handler));
     }
 
-
     @Override
     public long countArtifacts() {
         return proxy(RegistryStorage::countArtifacts);
     }
-    
-    
+
     @Override
     public long countActiveArtifactVersions(String groupId, String artifactId) {
         return proxy(storage -> storage.countActiveArtifactVersions(groupId, artifactId));
     }
-
 
     @Override
     public long countArtifactVersions(String groupId, String artifactId) {
         return proxy(storage -> storage.countArtifactVersions(groupId, artifactId));
     }
 
-
     @Override
     public long countTotalArtifactVersions() {
         return proxy(RegistryStorage::countTotalArtifactVersions);
     }
 
-
     @Override
     public List<RoleMappingDto> getRoleMappings() {
         return proxy(RegistryStorage::getRoleMappings);
     }
-    
+
     @Override
-    public RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit) throws RegistryStorageException {
+    public RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit)
+            throws RegistryStorageException {
         return proxy(storage -> storage.searchRoleMappings(offset, limit));
     }
-
 
     @Override
     public RoleMappingDto getRoleMapping(String principalId) {
         return proxy(storage -> storage.getRoleMapping(principalId));
     }
 
-
     @Override
     public String getRoleForPrincipal(String principalId) {
         return proxy(storage -> storage.getRoleForPrincipal(principalId));
     }
-
 
     @Override
     public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
@@ -400,102 +381,90 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
         return proxy(storage -> storage.getStaleConfigProperties(since));
     }
 
-
     @Override
     public boolean isContentExists(String contentHash) {
         return proxy(storage -> storage.isContentExists(contentHash));
     }
-
 
     @Override
     public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) {
         return false;
     }
 
-
     @Override
     public boolean isGlobalRuleExists(RuleType rule) {
         return proxy(storage -> storage.isGlobalRuleExists(rule));
     }
-
 
     @Override
     public boolean isRoleMappingExists(String principalId) {
         return proxy(storage -> storage.isRoleMappingExists(principalId));
     }
 
-
     @Override
     public Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references) {
         return proxy(storage -> storage.resolveReferences(references));
     }
-
 
     @Override
     public Optional<Long> contentIdFromHash(String contentHash) {
         return proxy(storage -> storage.contentIdFromHash(contentHash));
     }
 
-
     @Override
     public boolean isArtifactExists(String groupId, String artifactId) {
         return proxy(storage -> storage.isArtifactExists(groupId, artifactId));
     }
-
 
     @Override
     public boolean isGroupExists(String groupId) {
         return proxy(storage -> storage.isGroupExists(groupId));
     }
 
-
     @Override
-    public List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
-        return proxy(storage -> storage.getContentIdsReferencingArtifactVersion(groupId, artifactId, version));
+    public List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId,
+            String version) {
+        return proxy(
+                storage -> storage.getContentIdsReferencingArtifactVersion(groupId, artifactId, version));
     }
 
-
     @Override
-    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
+    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId,
+            String version) {
         return proxy(storage -> storage.getGlobalIdsReferencingArtifactVersion(groupId, artifactId, version));
     }
 
-
     @Override
-    public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId, String version) {
+    public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId,
+            String version) {
         return proxy(storage -> storage.getInboundArtifactReferences(groupId, artifactId, version));
     }
-
 
     @Override
     public boolean isArtifactVersionExists(String groupId, String artifactId, String version) {
         return proxy(storage -> storage.isArtifactVersionExists(groupId, artifactId, version));
     }
 
-
     @Override
-    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
+    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, Integer offset, Integer limit) {
         return proxy(storage -> storage.searchGroups(filters, orderBy, orderDirection, offset, limit));
     }
-
 
     @Override
     public List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version) {
         return proxy(storage -> storage.getArtifactVersionComments(groupId, artifactId, version));
     }
 
-
     @Override
     public DynamicConfigPropertyDto getConfigProperty(String propertyName) {
         return proxy(storage -> storage.getConfigProperty(propertyName));
     }
 
-
     @Override
     public List<DynamicConfigPropertyDto> getConfigProperties() {
         return proxy(DynamicConfigStorage::getConfigProperties);
     }
-
 
     @Override
     public BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId) {

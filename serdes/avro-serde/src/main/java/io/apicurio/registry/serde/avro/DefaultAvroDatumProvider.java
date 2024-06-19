@@ -1,8 +1,5 @@
 package io.apicurio.registry.serde.avro;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -12,6 +9,9 @@ import org.apache.avro.specific.SpecificData;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
     private Boolean useSpecificAvroReader;
@@ -45,15 +45,12 @@ public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
                     return readerClass.getConstructor().newInstance().getSchema();
                 } catch (Exception e) {
                     throw new IllegalStateException(String.format("Error getting schema [%s]: %s",
-                                                                  schema.getFullName(),
-                                                                  readerClass.getName()),
-                                                    e);
+                            schema.getFullName(), readerClass.getName()), e);
                 }
             } else {
-                throw new IllegalArgumentException("Could not find class "
-                                                   + schema.getFullName()
-                                                   + " specified in writer's schema whilst finding reader's "
-                                                   + "schema for a SpecificRecord.");
+                throw new IllegalArgumentException("Could not find class " + schema.getFullName()
+                        + " specified in writer's schema whilst finding reader's "
+                        + "schema for a SpecificRecord.");
             }
         });
     }

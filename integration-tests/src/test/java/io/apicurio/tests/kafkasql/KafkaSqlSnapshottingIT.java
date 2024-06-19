@@ -21,10 +21,12 @@ public class KafkaSqlSnapshottingIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testRecoverFromSnapshot() throws InterruptedException {
-        //We expect 1000 artifacts to be present in the snapshots group, created before the snapshot.
-        Assertions.assertEquals(1000, registryClient.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().get().getCount());
+        // We expect 1000 artifacts to be present in the snapshots group, created before the snapshot.
+        Assertions.assertEquals(1000, registryClient.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID)
+                .artifacts().get().getCount());
 
-        //And another 1000 in the default group, created after the snapshot.
-        Assertions.assertEquals(1000, registryClient.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().get().getCount());
+        // And another 1000 in the default group, created after the snapshot.
+        Assertions.assertEquals(1000, registryClient.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID)
+                .artifacts().get().getCount());
     }
 }

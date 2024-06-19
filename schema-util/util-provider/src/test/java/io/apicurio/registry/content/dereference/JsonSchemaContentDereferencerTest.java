@@ -18,14 +18,16 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
     public void testRewriteReferences() {
         TypedContent content = resourceToTypedContentHandle("json-schema-to-rewrite.json");
         JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
-        TypedContent modifiedContent = dereferencer.rewriteReferences(content, Map.of(
-                "./address.json", "https://www.example.org/schemas/address.json",
-                "./ssn.json", "https://www.example.org/schemas/ssn.json"));
-        
+        TypedContent modifiedContent = dereferencer.rewriteReferences(content,
+                Map.of("./address.json", "https://www.example.org/schemas/address.json", "./ssn.json",
+                        "https://www.example.org/schemas/ssn.json"));
+
         ReferenceFinder finder = new JsonSchemaReferenceFinder();
         Set<ExternalReference> externalReferences = finder.findExternalReferences(modifiedContent);
-        Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference("https://www.example.org/schemas/address.json")));
-        Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference("https://www.example.org/schemas/ssn.json")));
+        Assertions.assertTrue(externalReferences
+                .contains(new JsonPointerExternalReference("https://www.example.org/schemas/address.json")));
+        Assertions.assertTrue(externalReferences
+                .contains(new JsonPointerExternalReference("https://www.example.org/schemas/ssn.json")));
     }
 
 }

@@ -16,7 +16,7 @@ import static lombok.AccessLevel.PRIVATE;
 @AllArgsConstructor(access = PRIVATE)
 @ToString
 @RegisterForReflection
-@JsonIgnoreProperties({"isLatest"})
+@JsonIgnoreProperties({ "isLatest" })
 public class ArtifactEntity extends Entity {
 
     public String groupId;

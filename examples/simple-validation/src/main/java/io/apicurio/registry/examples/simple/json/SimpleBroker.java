@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -37,7 +36,7 @@ public class SimpleBroker {
 
     private static final int port = 12345;
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private List<String> messages = Collections.synchronizedList(new LinkedList());
     private int getCursor = 0;
 

@@ -7,7 +7,7 @@ public class ExtractedMetaData {
     private String name;
     private String description;
     private Map<String, String> labels;
-    
+
     /**
      * Constructor.
      */

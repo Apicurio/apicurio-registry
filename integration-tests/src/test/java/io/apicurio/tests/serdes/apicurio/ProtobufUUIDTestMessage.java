@@ -3,9 +3,9 @@ package io.apicurio.tests.serdes.apicurio;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
-import io.apicurio.tests.common.serdes.proto.TestCmmn;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.tests.common.serdes.proto.TestCmmn;
 
 import java.io.InputStream;
 import java.util.Date;
@@ -30,7 +30,8 @@ public class ProtobufUUIDTestMessage {
     }
 
     public ProtoFileElement generateSchema() {
-        return FileDescriptorUtils.fileDescriptorToProtoFile(TestCmmn.UUID.newBuilder().build().getDescriptorForType().getFile().toProto());
+        return FileDescriptorUtils.fileDescriptorToProtoFile(
+                TestCmmn.UUID.newBuilder().build().getDescriptorForType().getFile().toProto());
     }
 
     public InputStream generateSchemaStream() {

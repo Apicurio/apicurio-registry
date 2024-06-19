@@ -1,10 +1,10 @@
 package io.apicurio.tests.common.serdes.json;
 
 public class InvalidMessage extends Msg {
-    
+
     private String foo;
     private String bar;
-    
+
     /**
      * Constructor.
      */

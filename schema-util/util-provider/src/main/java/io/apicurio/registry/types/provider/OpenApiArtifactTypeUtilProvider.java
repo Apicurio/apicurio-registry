@@ -26,7 +26,8 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
         try {
             String contentType = content.getContentType();
             JsonNode tree = null;
-            // If the content is YAML, then convert it to JSON first (the data-models library only accepts JSON).
+            // If the content is YAML, then convert it to JSON first (the data-models library only accepts
+            // JSON).
             if (contentType.toLowerCase().contains("yml") || contentType.toLowerCase().contains("yaml")) {
                 tree = ContentTypeUtil.parseYaml(content.getContent());
             } else {
@@ -70,7 +71,7 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     public ContentDereferencer getContentDereferencer() {
         return new AsyncApiDereferencer();
     }
-    
+
     @Override
     public ReferenceFinder getReferenceFinder() {
         return new OpenApiReferenceFinder();

@@ -15,7 +15,8 @@ public class RegistryWaitUtils {
         R run(T t) throws Exception;
     }
 
-    public static void retry(RegistryClient registryClient, ConsumerExc<RegistryClient> registryOp) throws Exception {
+    public static void retry(RegistryClient registryClient, ConsumerExc<RegistryClient> registryOp)
+            throws Exception {
         TestUtils.retry(() -> registryOp.run(registryClient));
     }
 

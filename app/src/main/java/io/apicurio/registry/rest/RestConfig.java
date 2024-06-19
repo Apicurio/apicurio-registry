@@ -23,9 +23,13 @@ public class RestConfig {
     @Info(category = "rest", description = "Enables artifact version deletion", availableSince = "2.4.2-SNAPSHOT")
     Supplier<Boolean> artifactVersionDeletionEnabled;
 
-    public int getDownloadMaxSize() { return this.downloadMaxSize; }
+    public int getDownloadMaxSize() {
+        return this.downloadMaxSize;
+    }
 
-    public boolean getDownloadSkipSSLValidation() { return this.downloadSkipSSLValidation; }
+    public boolean getDownloadSkipSSLValidation() {
+        return this.downloadSkipSSLValidation;
+    }
 
     public boolean isArtifactVersionDeletionEnabled() {
         return artifactVersionDeletionEnabled.get();

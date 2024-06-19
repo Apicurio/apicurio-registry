@@ -16,7 +16,7 @@ import lombok.ToString;
 @Builder
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class DeleteArtifactRule3Message extends AbstractMessage {
 

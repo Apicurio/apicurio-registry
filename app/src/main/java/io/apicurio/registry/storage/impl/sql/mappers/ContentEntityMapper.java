@@ -30,7 +30,7 @@ public class ContentEntityMapper implements RowMapper<ContentEntity> {
         try {
             entity.serializedReferences = rs.getString("refs");
         } catch (Exception e) {
-            //The old database does not have te references column, just ignore;
+            // The old database does not have te references column, just ignore;
         }
         return entity;
     }

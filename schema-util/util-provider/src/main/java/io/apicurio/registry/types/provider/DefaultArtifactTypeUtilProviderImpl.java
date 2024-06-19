@@ -11,33 +11,22 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
     protected Map<String, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
 
     protected List<ArtifactTypeUtilProvider> providers = new ArrayList<ArtifactTypeUtilProvider>(
-                List.of(
-                        new ProtobufArtifactTypeUtilProvider(),
-                        new OpenApiArtifactTypeUtilProvider(),
-                        new AsyncApiArtifactTypeUtilProvider(),
-                        new JsonArtifactTypeUtilProvider(),
-                        new AvroArtifactTypeUtilProvider(),
-                        new GraphQLArtifactTypeUtilProvider(),
-                        new KConnectArtifactTypeUtilProvider(),
-                        new WsdlArtifactTypeUtilProvider(),
-                        new XsdArtifactTypeUtilProvider(),
-                        new XmlArtifactTypeUtilProvider())
-            );
+            List.of(new ProtobufArtifactTypeUtilProvider(), new OpenApiArtifactTypeUtilProvider(),
+                    new AsyncApiArtifactTypeUtilProvider(), new JsonArtifactTypeUtilProvider(),
+                    new AvroArtifactTypeUtilProvider(), new GraphQLArtifactTypeUtilProvider(),
+                    new KConnectArtifactTypeUtilProvider(), new WsdlArtifactTypeUtilProvider(),
+                    new XsdArtifactTypeUtilProvider(), new XmlArtifactTypeUtilProvider()));
 
     @Override
     public ArtifactTypeUtilProvider getArtifactTypeProvider(String type) {
-        return map.computeIfAbsent(type, t ->
-            providers.stream()
-                     .filter(a -> a.getArtifactType().equals(t))
-                     .findFirst()
-                     .orElseThrow(() -> new IllegalStateException("No such artifact type provider: " + t)));
+        return map.computeIfAbsent(type,
+                t -> providers.stream().filter(a -> a.getArtifactType().equals(t)).findFirst().orElseThrow(
+                        () -> new IllegalStateException("No such artifact type provider: " + t)));
     }
 
     @Override
     public List<String> getAllArtifactTypes() {
-        return providers.stream()
-            .map(a -> a.getArtifactType())
-            .collect(Collectors.toList());
+        return providers.stream().map(a -> a.getArtifactType()).collect(Collectors.toList());
     }
 
     @Override

@@ -149,7 +149,7 @@ public class RegisterArtifact {
     /**
      * @param contentType the contentType to set
      */
-    public void setContentType(String contentType){
+    public void setContentType(String contentType) {
         this.contentType = contentType;
     }
 
@@ -178,7 +178,7 @@ public class RegisterArtifact {
     public Boolean getAutoRefs() {
         return autoRefs;
     }
-    
+
     public void setAutoRefs(Boolean autoRefs) {
         this.autoRefs = autoRefs;
     }

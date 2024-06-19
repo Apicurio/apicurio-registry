@@ -10,5 +10,5 @@ public final class ArtifactMediaTypes {
     public static final MediaType PROTO = new MediaType("application", "x-protobuf");
     public static final MediaType GRAPHQL = new MediaType("application", "graphql");
     public static final MediaType BINARY = new MediaType("application", "octet-stream");
-    
+
 }

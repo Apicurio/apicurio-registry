@@ -1,12 +1,11 @@
 package io.apicurio.example;
 
-import javax.enterprise.context.ApplicationScoped;
-
+import io.apicurio.example.schema.avro.Event;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.example.schema.avro.Event;
+import javax.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class Consumer {

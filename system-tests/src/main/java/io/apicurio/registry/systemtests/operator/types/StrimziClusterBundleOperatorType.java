@@ -35,8 +35,7 @@ public class StrimziClusterBundleOperatorType extends BundleOperator implements 
                 // Get path to clone of repo
                 Path clonePath = Environment.getTmpPath("strimzi-bundle-repo-" + timestamp);
                 // Clone repo from repo URL to clone repo path
-                Git.cloneRepository()
-                        .setURI(repoUrl) // Repo URL
+                Git.cloneRepository().setURI(repoUrl) // Repo URL
                         .setDirectory(clonePath.toFile()) // Repo clone path
                         .call(); // Run cloning
 

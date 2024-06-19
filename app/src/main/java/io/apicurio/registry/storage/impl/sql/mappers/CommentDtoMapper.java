@@ -1,10 +1,10 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class CommentDtoMapper implements RowMapper<CommentDto> {
 
@@ -21,12 +21,8 @@ public class CommentDtoMapper implements RowMapper<CommentDto> {
      */
     @Override
     public CommentDto map(ResultSet rs) throws SQLException {
-        return CommentDto.builder()
-                .commentId(rs.getString("commentId"))
-                .owner(rs.getString("owner"))
-                .createdOn(rs.getTimestamp("createdOn").getTime())
-                .value(rs.getString("cvalue"))
-                .build();
+        return CommentDto.builder().commentId(rs.getString("commentId")).owner(rs.getString("owner"))
+                .createdOn(rs.getTimestamp("createdOn").getTime()).value(rs.getString("cvalue")).build();
     }
 
 }

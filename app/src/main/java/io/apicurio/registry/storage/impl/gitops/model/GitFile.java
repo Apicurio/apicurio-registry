@@ -40,11 +40,8 @@ public class GitFile {
 
         var data = ContentHandle.create(stream);
 
-        return GitFile.builder()
-                .path(FilenameUtils.normalize(path))
-                .data(data)
-                .any(Any.from(state, path, data))
-                .build();
+        return GitFile.builder().path(FilenameUtils.normalize(path)).data(data)
+                .any(Any.from(state, path, data)).build();
     }
 
     public boolean isType(Type type) {

@@ -1,11 +1,10 @@
 package io.apicurio.registry.serde.avro;
 
+import io.apicurio.registry.serde.SerdeHeaders;
+import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
-
-import io.apicurio.registry.serde.SerdeHeaders;
-import io.apicurio.registry.utils.IoUtil;
 
 public class AvroSerdeHeaders {
 

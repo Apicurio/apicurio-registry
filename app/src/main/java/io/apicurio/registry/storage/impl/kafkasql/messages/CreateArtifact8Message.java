@@ -44,11 +44,10 @@ public class CreateArtifact8Message extends AbstractMessage {
     public Object dispatchTo(RegistryStorage storage) {
         ContentHandle handle = content != null ? ContentHandle.create(content) : null;
         ContentWrapperDto versionContent = content != null ? ContentWrapperDto.builder()
-                .contentType(contentType)
-                .content(handle)
-                .references(references)
-                .build() : null;
-        return storage.createArtifact(groupId, artifactId, artifactType, artifactMetaDataDto, version, versionContent, versionMetaData, versionBranches);
+                .contentType(contentType).content(handle).references(references).build()
+            : null;
+        return storage.createArtifact(groupId, artifactId, artifactType, artifactMetaDataDto, version,
+                versionContent, versionMetaData, versionBranches);
     }
 
 }

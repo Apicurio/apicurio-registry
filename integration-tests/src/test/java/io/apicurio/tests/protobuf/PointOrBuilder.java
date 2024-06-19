@@ -4,45 +4,54 @@
 package io.apicurio.tests.protobuf;
 
 public interface PointOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:io.apicurio.tests.protobuf.Point)
-    com.google.protobuf.MessageOrBuilder {
+        // @@protoc_insertion_point(interface_extends:io.apicurio.tests.protobuf.Point)
+        com.google.protobuf.MessageOrBuilder {
 
-  /**
-   * <code>double longitude = 1;</code>
-   * @return Whether the longitude field is set.
-   */
-  boolean hasLongitude();
-  /**
-   * <code>double longitude = 1;</code>
-   * @return The longitude.
-   */
-  double getLongitude();
+    /**
+     * <code>double longitude = 1;</code>
+     * 
+     * @return Whether the longitude field is set.
+     */
+    boolean hasLongitude();
 
-  /**
-   * <code>double latitude = 2;</code>
-   * @return Whether the latitude field is set.
-   */
-  boolean hasLatitude();
-  /**
-   * <code>double latitude = 2;</code>
-   * @return The latitude.
-   */
-  double getLatitude();
+    /**
+     * <code>double longitude = 1;</code>
+     * 
+     * @return The longitude.
+     */
+    double getLongitude();
 
-  /**
-   * <code>double altitude = 3;</code>
-   * @return Whether the altitude field is set.
-   */
-  boolean hasAltitude();
-  /**
-   * <code>double altitude = 3;</code>
-   * @return The altitude.
-   */
-  double getAltitude();
+    /**
+     * <code>double latitude = 2;</code>
+     * 
+     * @return Whether the latitude field is set.
+     */
+    boolean hasLatitude();
 
-  public Point.LongitudeOneofCase getLongitudeOneofCase();
+    /**
+     * <code>double latitude = 2;</code>
+     * 
+     * @return The latitude.
+     */
+    double getLatitude();
 
-  public Point.LatitudeOneofCase getLatitudeOneofCase();
+    /**
+     * <code>double altitude = 3;</code>
+     * 
+     * @return Whether the altitude field is set.
+     */
+    boolean hasAltitude();
 
-  public Point.AltitudeOneofCase getAltitudeOneofCase();
+    /**
+     * <code>double altitude = 3;</code>
+     * 
+     * @return The altitude.
+     */
+    double getAltitude();
+
+    public Point.LongitudeOneofCase getLongitudeOneofCase();
+
+    public Point.LatitudeOneofCase getLatitudeOneofCase();
+
+    public Point.AltitudeOneofCase getAltitudeOneofCase();
 }

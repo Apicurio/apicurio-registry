@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.Set;
 
 @ApplicationScoped
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class SearchResourceImpl implements SearchResource {
 
@@ -58,11 +58,10 @@ public class SearchResourceImpl implements SearchResource {
     RegistryStorageContentUtils contentUtils;
 
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit, SortOrder order,
-            ArtifactSortBy orderby, List<String> labels, String description, String groupId, Long globalId, Long contentId,
-            String artifactId)
-    {
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit,
+            SortOrder order, ArtifactSortBy orderby, List<String> labels, String description, String groupId,
+            Long globalId, Long contentId, String artifactId) {
         if (orderby == null) {
             orderby = ArtifactSortBy.name;
         }
@@ -74,7 +73,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = (order == null || order == SortOrder.asc) ? OrderDirection.asc : OrderDirection.desc;
+        final OrderDirection oDir = (order == null || order == SortOrder.asc) ? OrderDirection.asc
+            : OrderDirection.desc;
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (!StringUtil.isEmpty(name)) {
@@ -88,27 +88,27 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.stream()
-                .map(prop -> {
-                   int delimiterIndex = prop.indexOf(":");
-                   String labelKey;
-                   String labelValue;
-                   if (delimiterIndex == 0) {
-                       throw new BadRequestException("label search filter wrong formatted, missing left side of ':' delimiter");
-                   }
-                   if (delimiterIndex == (prop.length() - 1)) {
-                       throw new BadRequestException("label search filter wrong formatted, missing right side of ':' delimiter");
-                   }
-                   if (delimiterIndex < 0) {
-                       labelKey = prop;
-                       labelValue = null;
-                   } else{
-                       labelKey = prop.substring(0, delimiterIndex);
-                       labelValue = prop.substring(delimiterIndex + 1);
-                   }
-                   return SearchFilter.ofLabel(labelKey, labelValue);
-                })
-                .forEach(filters::add);
+            labels.stream().map(prop -> {
+                int delimiterIndex = prop.indexOf(":");
+                String labelKey;
+                String labelValue;
+                if (delimiterIndex == 0) {
+                    throw new BadRequestException(
+                            "label search filter wrong formatted, missing left side of ':' delimiter");
+                }
+                if (delimiterIndex == (prop.length() - 1)) {
+                    throw new BadRequestException(
+                            "label search filter wrong formatted, missing right side of ':' delimiter");
+                }
+                if (delimiterIndex < 0) {
+                    labelKey = prop;
+                    labelValue = null;
+                } else {
+                    labelKey = prop.substring(0, delimiterIndex);
+                    labelValue = prop.substring(delimiterIndex + 1);
+                }
+                return SearchFilter.ofLabel(labelKey, labelValue);
+            }).forEach(filters::add);
         }
         if (globalId != null && globalId > 0) {
             filters.add(SearchFilter.ofGlobalId(globalId));
@@ -117,14 +117,16 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofContentId(contentId));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(), limit.intValue());
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
+                limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType, String groupId,
-            BigInteger offset, BigInteger limit, SortOrder order, ArtifactSortBy orderby, InputStream data) {
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType,
+            String groupId, BigInteger offset, BigInteger limit, SortOrder order, ArtifactSortBy orderby,
+            InputStream data) {
 
         if (orderby == null) {
             orderby = ArtifactSortBy.name;
@@ -136,7 +138,8 @@ public class SearchResourceImpl implements SearchResource {
             limit = BigInteger.valueOf(20);
         }
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc
+            : OrderDirection.desc;
 
         if (canonical == null) {
             canonical = Boolean.FALSE;
@@ -150,7 +153,8 @@ public class SearchResourceImpl implements SearchResource {
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (canonical && artifactType != null) {
-            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent, artifactType, null, null);
+            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent, artifactType, null,
+                    null);
             filters.add(SearchFilter.ofCanonicalHash(canonicalHash));
         } else if (!canonical) {
             String contentHash = content.getSha256Hash();
@@ -162,13 +166,14 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(), limit.intValue());
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
+                limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
     @Override
-    public GroupSearchResults searchGroups(BigInteger offset, BigInteger limit, SortOrder order, GroupSortBy orderby,
-                                           List<String> labels, String description, String groupId) {
+    public GroupSearchResults searchGroups(BigInteger offset, BigInteger limit, SortOrder order,
+            GroupSortBy orderby, List<String> labels, String description, String groupId) {
         if (orderby == null) {
             orderby = GroupSortBy.groupId;
         }
@@ -180,7 +185,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc
+            : OrderDirection.desc;
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (!StringUtil.isEmpty(groupId)) {
@@ -191,37 +197,38 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.stream()
-                    .map(prop -> {
-                        int delimiterIndex = prop.indexOf(":");
-                        String labelKey;
-                        String labelValue;
-                        if (delimiterIndex == 0) {
-                            throw new BadRequestException("label search filter wrong formatted, missing left side of ':' delimiter");
-                        }
-                        if (delimiterIndex == (prop.length() - 1)) {
-                            throw new BadRequestException("label search filter wrong formatted, missing right side of ':' delimiter");
-                        }
-                        if (delimiterIndex < 0) {
-                            labelKey = prop;
-                            labelValue = null;
-                        } else{
-                            labelKey = prop.substring(0, delimiterIndex);
-                            labelValue = prop.substring(delimiterIndex + 1);
-                        }
-                        return SearchFilter.ofLabel(labelKey, labelValue);
-                    })
-                    .forEach(filters::add);
+            labels.stream().map(prop -> {
+                int delimiterIndex = prop.indexOf(":");
+                String labelKey;
+                String labelValue;
+                if (delimiterIndex == 0) {
+                    throw new BadRequestException(
+                            "label search filter wrong formatted, missing left side of ':' delimiter");
+                }
+                if (delimiterIndex == (prop.length() - 1)) {
+                    throw new BadRequestException(
+                            "label search filter wrong formatted, missing right side of ':' delimiter");
+                }
+                if (delimiterIndex < 0) {
+                    labelKey = prop;
+                    labelValue = null;
+                } else {
+                    labelKey = prop.substring(0, delimiterIndex);
+                    labelValue = prop.substring(delimiterIndex + 1);
+                }
+                return SearchFilter.ofLabel(labelKey, labelValue);
+            }).forEach(filters::add);
         }
 
-        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, offset.intValue(), limit.intValue());
+        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, offset.intValue(),
+                limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
     @Override
-    public VersionSearchResults searchVersions(String version, BigInteger offset, BigInteger limit, SortOrder order,
-            VersionSortBy orderby, List<String> labels, String description, String groupId, Long globalId, Long contentId,
-            String artifactId, String name) {
+    public VersionSearchResults searchVersions(String version, BigInteger offset, BigInteger limit,
+            SortOrder order, VersionSortBy orderby, List<String> labels, String description, String groupId,
+            Long globalId, Long contentId, String artifactId, String name) {
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
         }
@@ -233,7 +240,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = (order == null || order == SortOrder.asc) ? OrderDirection.asc : OrderDirection.desc;
+        final OrderDirection oDir = (order == null || order == SortOrder.asc) ? OrderDirection.asc
+            : OrderDirection.desc;
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (!StringUtil.isEmpty(groupId)) {
@@ -253,27 +261,27 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofDescription(description));
         }
         if (labels != null && !labels.isEmpty()) {
-            labels.stream()
-                    .map(prop -> {
-                        int delimiterIndex = prop.indexOf(":");
-                        String labelKey;
-                        String labelValue;
-                        if (delimiterIndex == 0) {
-                            throw new BadRequestException("label search filter wrong formatted, missing left side of ':' delimiter");
-                        }
-                        if (delimiterIndex == (prop.length() - 1)) {
-                            throw new BadRequestException("label search filter wrong formatted, missing right side of ':' delimiter");
-                        }
-                        if (delimiterIndex < 0) {
-                            labelKey = prop;
-                            labelValue = null;
-                        } else{
-                            labelKey = prop.substring(0, delimiterIndex);
-                            labelValue = prop.substring(delimiterIndex + 1);
-                        }
-                        return SearchFilter.ofLabel(labelKey, labelValue);
-                    })
-                    .forEach(filters::add);
+            labels.stream().map(prop -> {
+                int delimiterIndex = prop.indexOf(":");
+                String labelKey;
+                String labelValue;
+                if (delimiterIndex == 0) {
+                    throw new BadRequestException(
+                            "label search filter wrong formatted, missing left side of ':' delimiter");
+                }
+                if (delimiterIndex == (prop.length() - 1)) {
+                    throw new BadRequestException(
+                            "label search filter wrong formatted, missing right side of ':' delimiter");
+                }
+                if (delimiterIndex < 0) {
+                    labelKey = prop;
+                    labelValue = null;
+                } else {
+                    labelKey = prop.substring(0, delimiterIndex);
+                    labelValue = prop.substring(delimiterIndex + 1);
+                }
+                return SearchFilter.ofLabel(labelKey, labelValue);
+            }).forEach(filters::add);
         }
         if (globalId != null && globalId > 0) {
             filters.add(SearchFilter.ofGlobalId(globalId));
@@ -282,13 +290,15 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofContentId(contentId));
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(), limit.intValue());
+        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
+                limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
     @Override
-    public VersionSearchResults searchVersionsByContent(Boolean canonical, String artifactType, BigInteger offset,
-            BigInteger limit, SortOrder order, VersionSortBy orderby, String groupId, String artifactId, InputStream data) {
+    public VersionSearchResults searchVersionsByContent(Boolean canonical, String artifactType,
+            BigInteger offset, BigInteger limit, SortOrder order, VersionSortBy orderby, String groupId,
+            String artifactId, InputStream data) {
 
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
@@ -301,7 +311,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = (order == null || order == SortOrder.asc) ? OrderDirection.asc : OrderDirection.desc;
+        final OrderDirection oDir = (order == null || order == SortOrder.asc) ? OrderDirection.asc
+            : OrderDirection.desc;
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (!StringUtil.isEmpty(groupId)) {
@@ -322,7 +333,8 @@ public class SearchResourceImpl implements SearchResource {
         TypedContent typedContent = TypedContent.create(content, ct);
 
         if (canonical && artifactType != null) {
-            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent, artifactType, null, null);
+            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent, artifactType, null,
+                    null);
             filters.add(SearchFilter.ofCanonicalHash(canonicalHash));
         } else if (!canonical) {
             String contentHash = content.getSha256Hash();
@@ -331,13 +343,13 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(), limit.intValue());
+        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
+                limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
     /**
-     * Make sure this is ONLY used when request instance is active.
-     * e.g. in actual http request
+     * Make sure this is ONLY used when request instance is active. e.g. in actual http request
      */
     private String getContentType() {
         return request.getContentType();

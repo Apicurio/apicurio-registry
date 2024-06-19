@@ -1,10 +1,5 @@
 package io.apicurio.registry.ui.servlets;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -18,12 +13,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Note: simple filtering of response content - found on Stack Overflow here:
- *
- *   https://stackoverflow.com/a/14741213
- *
+ * https://stackoverflow.com/a/14741213
  */
 @ApplicationScoped
 public class SpecUrlFilter implements Filter {
@@ -36,10 +33,12 @@ public class SpecUrlFilter implements Filter {
     }
 
     /**
-     * @see jakarta.servlet.Filter#doFilter(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse, jakarta.servlet.FilterChain)
+     * @see jakarta.servlet.Filter#doFilter(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse,
+     *      jakarta.servlet.FilterChain)
      */
     @Override
-    public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) throws IOException, ServletException {
+    public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain)
+            throws IOException, ServletException {
         CharResponseWrapper wrappedResponse = new CharResponseWrapper((HttpServletResponse) resp);
         chain.doFilter(req, wrappedResponse);
 
@@ -71,6 +70,7 @@ public class SpecUrlFilter implements Filter {
 
         /**
          * Constructor.
+         * 
          * @param baos
          */
         ByteArrayServletStream(ByteArrayOutputStream baos) {
@@ -164,6 +164,7 @@ public class SpecUrlFilter implements Filter {
 
     /**
      * Generates a URL that the caller can use to access the API.
+     * 
      * @param request
      */
     private String generateSpecUrl(HttpServletRequest request) {

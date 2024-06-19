@@ -46,7 +46,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testProto() throws Exception {
         try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(restClient);
-                Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+            Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(restClient)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
@@ -65,13 +65,12 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
             waitForSchema(globalId -> {
                 try {
                     if (restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0) {
-                        VersionMetaData artifactMetadata = restClient.groups().byGroupId(groupId).artifacts().byArtifactId(topic).versions()
-                                .byVersionExpression("branch=latest").get();
+                        VersionMetaData artifactMetadata = restClient.groups().byGroupId(groupId).artifacts()
+                                .byArtifactId(topic).versions().byVersionExpression("branch=latest").get();
                         assertEquals(globalId, artifactMetadata.getGlobalId());
                         return true;
                     }
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
                 return false;
@@ -86,7 +85,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testProtobufSchemaWithReferences() {
         try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(restClient);
-                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+            Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
@@ -106,7 +105,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testProtobufSchemaWithReferencesDereferenced() {
         try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(restClient);
-                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+            Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);

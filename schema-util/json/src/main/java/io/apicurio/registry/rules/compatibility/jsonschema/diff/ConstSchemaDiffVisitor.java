@@ -10,7 +10,6 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.
 
 public class ConstSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
-
     private final DiffContext ctx;
     private final ConstSchema original;
 
@@ -26,10 +25,8 @@ public class ConstSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitConstValue(Object value) {
-        diffObject(ctx.sub("const"), original.getPermittedValue(), value,
-            UNDEFINED_UNUSED,
-            UNDEFINED_UNUSED,
-            CONST_TYPE_VALUE_CHANGED);
+        diffObject(ctx.sub("const"), original.getPermittedValue(), value, UNDEFINED_UNUSED, UNDEFINED_UNUSED,
+                CONST_TYPE_VALUE_CHANGED);
         super.visitConstValue(value);
     }
 }

@@ -39,21 +39,19 @@ import java.util.Date;
 import java.util.Properties;
 
 /**
- * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe
- * scenario with Avro as the serialization type.  The following aspects are demonstrated:
- *
+ * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe scenario with
+ * Avro as the serialization type. The following aspects are demonstrated:
  * <ol>
- *   <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
- *   <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
- *   <li>Auto-register the Avro schema in the registry (registered by the producer)</li>
- *   <li>Data sent as a simple GenericRecord, no java beans needed</li>
+ * <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
+ * <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
+ * <li>Auto-register the Avro schema in the registry (registered by the producer)</li>
+ * <li>Data sent as a simple GenericRecord, no java beans needed</li>
  * </ol>
  * <p>
  * Pre-requisites:
- *
  * <ul>
- *   <li>Kafka must be running on localhost:9092</li>
- *   <li>Apicurio Registry must be running on localhost:8080</li>
+ * <li>Kafka must be running on localhost:9092</li>
+ * <li>Apicurio Registry must be running on localhost:8080</li>
  * </ul>
  *
  * @author eric.wittmann@gmail.com
@@ -121,15 +119,16 @@ public class SimpleAvroExample {
                 } else
                     records.forEach(record -> {
                         GenericRecord value = record.value();
-                        System.out.println("Consumed a message: " + value.get("Message") + " @ " + new Date(
-                                (long) value.get("Time")));
+                        System.out.println("Consumed a message: " + value.get("Message") + " @ "
+                                + new Date((long) value.get("Time")));
                     });
             }
         }
 
         System.out.println("Done (success).");
 
-        //Required due to a bug in the version of registry libraries used. Once the new version is released, we'll be able to remove this.
+        // Required due to a bug in the version of registry libraries used. Once the new version is released,
+        // we'll be able to remove this.
         System.exit(0);
     }
 
@@ -152,7 +151,7 @@ public class SimpleAvroExample {
         // Register the artifact if not found in the registry.
         props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT, Boolean.TRUE);
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurity(props);
 
         // Create the Kafka producer
@@ -180,10 +179,10 @@ public class SimpleAvroExample {
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, registryURL);
         // No other configuration needed for the deserializer, because the globalId of the schema
-        // the deserializer should use is sent as part of the payload.  So the deserializer simply
+        // the deserializer should use is sent as part of the payload. So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurity(props);
 
         // Create the Kafka Consumer
@@ -202,9 +201,11 @@ public class SimpleAvroExample {
         props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
                 "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
         props.putIfAbsent("security.protocol", "SASL_SSL");
-        props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format(
-                "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
-                        + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
-                        + "  oauth.token.endpoint.uri=\"%s\" ;", authClient, authSecret, tokenEndpoint));
+        props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG,
+                String.format(
+                        "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
+                                + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
+                                + "  oauth.token.endpoint.uri=\"%s\" ;",
+                        authClient, authSecret, tokenEndpoint));
     }
 }

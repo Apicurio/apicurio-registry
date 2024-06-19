@@ -31,7 +31,8 @@ public abstract class OLMTests extends Tests {
     public void testBeforeEach(ExtensionContext testContext) throws InterruptedException {
         LOGGER.info("BeforeEach: " + testContext.getDisplayName());
 
-        ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(clusterWide);
+        ApicurioRegistryOLMOperatorType registryOLMOperator = new ApicurioRegistryOLMOperatorType(
+                clusterWide);
 
         operatorManager.installOperator(registryOLMOperator);
     }
@@ -54,11 +55,8 @@ public abstract class OLMTests extends Tests {
         DatabaseUtils.deployPostgresqlDatabase(testContext, secondSqlName, secondSqlNamespace);
         // Get second Apicurio Registry with second PostgreSQL database
         ApicurioRegistry secondSqlRegistry = ApicurioRegistryResourceType.getDefaultSql(
-                Constants.REGISTRY + suffix,
-                Constants.TESTSUITE_NAMESPACE + suffix,
-                secondSqlName,
-                secondSqlNamespace
-        );
+                Constants.REGISTRY + suffix, Constants.TESTSUITE_NAMESPACE + suffix, secondSqlName,
+                secondSqlNamespace);
 
         // Deploy second Apicurio Registry with second PostgreSQL database
         if (clusterWide) {

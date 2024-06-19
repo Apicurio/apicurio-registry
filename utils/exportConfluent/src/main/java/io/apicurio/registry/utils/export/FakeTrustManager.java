@@ -1,7 +1,8 @@
 package io.apicurio.registry.utils.export;
 
-import javax.net.ssl.X509TrustManager;
 import java.security.cert.X509Certificate;
+
+import javax.net.ssl.X509TrustManager;
 
 public class FakeTrustManager implements X509TrustManager {
 

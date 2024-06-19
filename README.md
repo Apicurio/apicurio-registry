@@ -10,7 +10,7 @@ An API/Schema registry - stores and retrieves APIs and Schemas.
 
 This project supports several build configuration options that affect the produced executables.
 
-By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled, and *in-memory* persistence implementation. 
+By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled, and *in-memory* persistence implementation.
 
 Apicurio Registry supports 4 persistence implementations:
  - In-Memory
@@ -34,7 +34,7 @@ For this property, there are three possible values:
 Additionally, there are 2 main configuration profiles:
  - *dev* - suitable for development, and
  - *prod* - for production environment.
- 
+
 ### Getting started (APIs)
 
  ```
@@ -42,7 +42,7 @@ Additionally, there are 2 main configuration profiles:
  cd app/
  ../mvnw quarkus:dev
  ```
- 
+
 This should result in Quarkus and the in-memory registry starting up, with the REST APIs available on localhost port 8080:
 
 * [API documentation](http://localhost:8080/apis)
@@ -78,7 +78,7 @@ The following parameters are available for executable files:
 ### SQL
  - By default, the application expects an H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
  - For configuring the database kind and the datasource values, the following configuration options are available:
-  
+
 | Option                    | Command argument                | Env. variable                  |
 |---------------------------|---------------------------------|--------------------------------|
 | Registry SQL storage kind | `-Dapicurio.storage.sql.kind`   | `APICURIO_STORAGE_SQL_KIND`    |
@@ -87,8 +87,8 @@ The following parameters are available for executable files:
 | DS Password               | `-Dapicurio.datasource.password` | `APICURIO_DATASOURCE_PASSWORD` |
 
 To see additional options, visit:
- - [Data Source config](https://quarkus.io/guides/datasource) 
- - [Data Source options](https://quarkus.io/guides/datasource-guide#configuration-reference) 
+ - [Data Source config](https://quarkus.io/guides/datasource)
+ - [Data Source options](https://quarkus.io/guides/datasource-guide#configuration-reference)
 
 ### KafkaSQL
 `./mvnw clean install -Pprod -DskipTests` builds the application artifact.
@@ -119,7 +119,7 @@ java \
 This will start up the registry with the persistence managed by the external kafka cluster.
 
 ## Docker containers
-Every time a commit is pushed to `main` an updated docker image is built and pushed to Docker 
+Every time a commit is pushed to `main` an updated docker image is built and pushed to Docker
 Hub.  The image can be found in:
 
 * [apicurio-registry](https://hub.docker.com/r/apicurio/apicurio-registry)
@@ -128,8 +128,8 @@ Run the above docker image like this:
 
     docker run -it -p 8080:8080 apicurio/apicurio-registry:latest-snapshot
 
-The same configuration options are available for the docker containers, but only in the form of environment 
-variables (The command line parameters are for the `java` executable and at the moment it's not possible to 
+The same configuration options are available for the docker containers, but only in the form of environment
+variables (The command line parameters are for the `java` executable and at the moment it's not possible to
 pass them into the container).  Each docker image will support the environment variable configuration options
 documented above for their respective storage type.
 
@@ -161,7 +161,7 @@ Run Apicurio Registry with Postgres:
 
  - Compile using `mvn clean install -DskipTests -Pprod -Ddocker`
 
- - Then create a docker-compose file `test.yml`: 
+ - Then create a docker-compose file `test.yml`:
 ```yaml
 version: '3.1'
 
@@ -187,7 +187,7 @@ services:
 ## Security
 
 You can enable authentication for both the application REST APIs and the user interface using a server based
-on OpenID Connect (OIDC). The same server realm and users are federated across the user interface and the 
+on OpenID Connect (OIDC). The same server realm and users are federated across the user interface and the
 REST APIs using Open ID Connect so that you only require one set of credentials.
 
 In order no enable this integration, you will need to set the following environment variables.
@@ -221,7 +221,7 @@ For more information see the documentation on [how to configure security in Regi
 ## Eclipse IDE
 
 Some notes about using the Eclipse IDE with the Apicurio Registry codebase.  Before
-importing the registry into your workspace, we recommend some configuration of the 
+importing the registry into your workspace, we recommend some configuration of the
 Eclipse IDE.
 
 ### Lombok Integration
@@ -239,7 +239,7 @@ We use the **maven-dependency-plugin** in a few places to unpack a maven module 
 reactor into another module.  For example, the `app` module unpacks the contents of
 the `ui` module to include/embed the user interface into the running application.
 Eclipse does not like this.  To fix this, configure the Eclipse Maven "Lifecycle Mappings"
-to ignore the usage of **maven-dependency-plugin**.  
+to ignore the usage of **maven-dependency-plugin**.
 
 * Open up **Window->Preferences**
 * Choose **Maven->Lifecycle Mappings**
@@ -264,7 +264,7 @@ to ignore the usage of **maven-dependency-plugin**.
     </pluginExecution>
 ```
 
-* Now go back into **Maven->Lifecycle Mappings** -> **Maven->Lifecycle Mappings** and click 
+* Now go back into **Maven->Lifecycle Mappings** -> **Maven->Lifecycle Mappings** and click
 the **Reload workspace lifecycle mappings metadata** button.
 * If you've already imported the Apicurio projects, select all of them and choose **Maven->Update Project**.
 
@@ -273,5 +273,5 @@ the **Reload workspace lifecycle mappings metadata** button.
 We use some Google Protobuf files and a maven plugin to generate some Java classes that
 get stored in various modules' `target` directories.  These are then recognized by m2e
 but are sometimes deleted during the Eclipse "clean" phase.  To prevent Eclipse from
-over-cleaning these files, find the **os-maven-plugin-1.6.2.jar** JAR in your 
+over-cleaning these files, find the **os-maven-plugin-1.6.2.jar** JAR in your
 `.m2/repository` directory and copy it into `$ECLIPSE_HOME/dropins`.

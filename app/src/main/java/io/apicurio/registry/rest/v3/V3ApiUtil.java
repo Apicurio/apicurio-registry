@@ -47,6 +47,7 @@ public final class V3ApiUtil {
 
     /**
      * Creates a jax-rs meta-data entity from the id, type, and artifactStore meta-data.
+     * 
      * @param dto
      */
     public static ArtifactMetaData dtoToArtifactMetaData(ArtifactMetaDataDto dto) {
@@ -66,6 +67,7 @@ public final class V3ApiUtil {
 
     /**
      * Creates a jax-rs version meta-data entity from the id, type, and artifactStore meta-data.
+     * 
      * @param dto
      */
     public static VersionMetaData dtoToVersionMetaData(ArtifactVersionMetaDataDto dto) {
@@ -92,7 +94,8 @@ public final class V3ApiUtil {
      * @param editableArtifactMetaData
      * @return the updated ArtifactMetaDataDto object
      */
-    public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto dto, EditableArtifactMetaDataDto editableArtifactMetaData) {
+    public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto dto,
+            EditableArtifactMetaDataDto editableArtifactMetaData) {
         if (editableArtifactMetaData.getName() != null) {
             dto.setName(editableArtifactMetaData.getName());
         }
@@ -109,7 +112,8 @@ public final class V3ApiUtil {
         return (id1, id2) -> compare(sortOrder, id1, id2);
     }
 
-    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
+    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1,
+            ArtifactMetaDataDto metaDataDto2) {
         String name1 = metaDataDto1.getName();
         if (name1 == null) {
             name1 = metaDataDto1.getArtifactId();
@@ -118,7 +122,8 @@ public final class V3ApiUtil {
         if (name2 == null) {
             name2 = metaDataDto2.getArtifactId();
         }
-        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1) : name1.compareToIgnoreCase(name2);
+        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1)
+            : name1.compareToIgnoreCase(name2);
     }
 
     public static ArtifactSearchResults dtoToSearchResults(ArtifactSearchResultsDto dto) {
@@ -229,12 +234,8 @@ public final class V3ApiUtil {
     }
 
     public static Comment commentDtoToComment(CommentDto dto) {
-        return Comment.builder()
-                .commentId(dto.getCommentId())
-                .owner(dto.getOwner())
-                .createdOn(new Date(dto.getCreatedOn()))
-                .value(dto.getValue())
-                .build();
+        return Comment.builder().commentId(dto.getCommentId()).owner(dto.getOwner())
+                .createdOn(new Date(dto.getCreatedOn())).value(dto.getValue()).build();
     }
 
     public static RoleMapping dtoToRoleMapping(RoleMappingDto dto) {
@@ -254,7 +255,8 @@ public final class V3ApiUtil {
         return results;
     }
 
-    public static ConfigurationProperty dtoToConfigurationProperty(DynamicConfigPropertyDef def, DynamicConfigPropertyDto dto) {
+    public static ConfigurationProperty dtoToConfigurationProperty(DynamicConfigPropertyDef def,
+            DynamicConfigPropertyDto dto) {
         ConfigurationProperty rval = new ConfigurationProperty();
         rval.setName(def.getName());
         rval.setValue(dto.getValue());
@@ -265,16 +267,9 @@ public final class V3ApiUtil {
     }
 
     public static BranchMetaData dtoToBranchMetaData(BranchMetaDataDto branch) {
-        return BranchMetaData.builder()
-                .groupId(branch.getGroupId())
-                .artifactId(branch.getArtifactId())
-                .branchId(branch.getBranchId())
-                .description(branch.getDescription())
-                .owner(branch.getOwner())
-                .systemDefined(branch.isSystemDefined())
-                .createdOn(new Date(branch.getCreatedOn()))
-                .modifiedBy(branch.getModifiedBy())
-                .modifiedOn(new Date(branch.getModifiedOn()))
-                .build();
+        return BranchMetaData.builder().groupId(branch.getGroupId()).artifactId(branch.getArtifactId())
+                .branchId(branch.getBranchId()).description(branch.getDescription()).owner(branch.getOwner())
+                .systemDefined(branch.isSystemDefined()).createdOn(new Date(branch.getCreatedOn()))
+                .modifiedBy(branch.getModifiedBy()).modifiedOn(new Date(branch.getModifiedOn())).build();
     }
 }

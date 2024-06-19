@@ -29,14 +29,15 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource {
 
     @Inject
     CommonResourceOperations common;
 
-    private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String artifactId, String version, Response.ResponseBuilder builder) {
+    private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String artifactId, String version,
+            Response.ResponseBuilder builder) {
         HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
     }
 
@@ -69,9 +70,11 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);
 
         TypedContent contentToReturn = TypedContent.create(artifact.getContent(), artifact.getContentType());
-        handleContentReferences(dereference, metaData.getArtifactType(), contentToReturn, artifact.getReferences());
+        handleContentReferences(dereference, metaData.getArtifactType(), contentToReturn,
+                artifact.getReferences());
 
-        Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(), contentToReturn.getContentType());
+        Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(),
+                contentToReturn.getContentType());
         checkIfDeprecated(metaData::getState, metaData.getArtifactId(), metaData.getVersion(), builder);
         return builder.build();
     }
@@ -101,26 +104,25 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Override
     public List<ArtifactReference> referencesByContentId(long contentId) {
         ContentWrapperDto artifact = storage.getContentById(contentId);
-        return artifact.getReferences().stream()
-                .map(V2ApiUtil::referenceDtoToReference)
+        return artifact.getReferences().stream().map(V2ApiUtil::referenceDtoToReference)
                 .collect(Collectors.toList());
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.IdsResource#referencesByGlobalId(long, io.apicurio.registry.types.ReferenceType)
+     * @see io.apicurio.registry.rest.v2.IdsResource#referencesByGlobalId(long,
+     *      io.apicurio.registry.types.ReferenceType)
      */
     @Override
     public List<ArtifactReference> referencesByGlobalId(long globalId, ReferenceType refType) {
         if (refType == ReferenceType.OUTBOUND || refType == null) {
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);
-            return artifact.getReferences().stream()
-                    .map(V2ApiUtil::referenceDtoToReference)
+            return artifact.getReferences().stream().map(V2ApiUtil::referenceDtoToReference)
                     .collect(Collectors.toList());
         } else {
             ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(globalId);
-            return storage.getInboundArtifactReferences(amd.getGroupId(), amd.getArtifactId(), amd.getVersion()).stream()
-                    .map(V2ApiUtil::referenceDtoToReference)
-                    .collect(Collectors.toList());
+            return storage
+                    .getInboundArtifactReferences(amd.getGroupId(), amd.getArtifactId(), amd.getVersion())
+                    .stream().map(V2ApiUtil::referenceDtoToReference).collect(Collectors.toList());
         }
     }
 }

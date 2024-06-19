@@ -75,24 +75,18 @@ public class KafkaSqlFactory {
     Integer responseTimeout;
 
     @Inject
-    @RegistryProperties(
-            value = { "apicurio.kafka.common", "apicurio.kafkasql.producer" },
-            empties = { "ssl.endpoint.identification.algorithm=" }
-    )
+    @RegistryProperties(value = { "apicurio.kafka.common", "apicurio.kafkasql.producer" }, empties = {
+            "ssl.endpoint.identification.algorithm=" })
     Properties producerProperties;
 
     @Inject
-    @RegistryProperties(
-            value = { "apicurio.kafka.common", "apicurio.kafkasql.consumer" },
-            empties = { "ssl.endpoint.identification.algorithm=" }
-    )
+    @RegistryProperties(value = { "apicurio.kafka.common", "apicurio.kafkasql.consumer" }, empties = {
+            "ssl.endpoint.identification.algorithm=" })
     Properties consumerProperties;
 
     @Inject
-    @RegistryProperties(
-            value = { "apicurio.kafka.common", "apicurio.kafkasql.admin" },
-            empties = { "ssl.endpoint.identification.algorithm=" }
-    )
+    @RegistryProperties(value = { "apicurio.kafka.common", "apicurio.kafkasql.admin" }, empties = {
+            "ssl.endpoint.identification.algorithm=" })
     Properties adminProperties;
 
     @ConfigProperty(name = "apicurio.kafkasql.security.sasl.enabled", defaultValue = "false")
@@ -319,22 +313,24 @@ public class KafkaSqlFactory {
     private void tryToConfigureSecurity(Properties props) {
         protocol.ifPresent(s -> props.putIfAbsent("security.protocol", s));
 
-        //Try to configure sasl for authentication
+        // Try to configure sasl for authentication
         if (saslEnabled) {
-            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                    "  oauth.client.id=\"%s\" " +
-                    "  oauth.client.secret=\"%s\" " +
-                    "  oauth.token.endpoint.uri=\"%s\" ;", clientId, clientSecret, tokenEndpoint));
+            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG,
+                    String.format(
+                            "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
+                                    + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
+                                    + "  oauth.token.endpoint.uri=\"%s\" ;",
+                            clientId, clientSecret, tokenEndpoint));
             props.putIfAbsent(SaslConfigs.SASL_MECHANISM, saslMechanism);
             props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, loginCallbackHandler);
         }
-        //Try to configure the trustStore, if specified
+        // Try to configure the trustStore, if specified
         if (trustStoreLocation.isPresent() && trustStorePassword.isPresent() && trustStoreType.isPresent()) {
             props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, trustStoreType.get());
             props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStoreLocation.get());
             props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword.get());
         }
-        //Finally, try to configure the keystore, if specified
+        // Finally, try to configure the keystore, if specified
         if (keyStoreLocation.isPresent() && keyStorePassword.isPresent() && keyStoreType.isPresent()) {
             props.putIfAbsent(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, keyStoreType.get());
             props.putIfAbsent(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStoreLocation.get());

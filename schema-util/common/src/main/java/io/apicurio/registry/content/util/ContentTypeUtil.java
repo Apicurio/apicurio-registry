@@ -9,13 +9,14 @@ import io.apicurio.registry.types.ContentTypes;
 import org.xml.sax.InputSource;
 import org.xml.sax.helpers.DefaultHandler;
 
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 import java.io.IOException;
 import java.io.StringReader;
 
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
 public final class ContentTypeUtil {
-    
+
     public static final String CT_APPLICATION_JSON = "application/json";
     public static final String CT_APPLICATION_CREATE_EXTENDED = "application/create.extended+json";
     public static final String CT_APPLICATION_GET_EXTENDED = "application/get.extended+json";

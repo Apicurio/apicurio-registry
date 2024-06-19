@@ -18,11 +18,7 @@ public class ApicurioRegistryUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
 
     private static String getTruststoreSecretName(ApicurioRegistry registry) {
-        Security security = registry
-                .getSpec()
-                .getConfiguration()
-                .getKafkasql()
-                .getSecurity();
+        Security security = registry.getSpec().getConfiguration().getKafkasql().getSecurity();
 
         if (security.getTls() != null) {
             return security.getTls().getTruststoreSecretName();
@@ -34,11 +30,7 @@ public class ApicurioRegistryUtils {
     }
 
     private static String getKeystoreSecretName(ApicurioRegistry registry) {
-        Security security = registry
-                .getSpec()
-                .getConfiguration()
-                .getKafkasql()
-                .getSecurity();
+        Security security = registry.getSpec().getConfiguration().getKafkasql().getSecurity();
 
         if (security.getTls() != null) {
             return security.getTls().getKeystoreSecretName();
@@ -47,15 +39,11 @@ public class ApicurioRegistryUtils {
         return null;
     }
 
-    public static ApicurioRegistry deployDefaultApicurioRegistrySql(
-            ExtensionContext testContext,
-            boolean useKeycloak
-    ) throws InterruptedException {
+    public static ApicurioRegistry deployDefaultApicurioRegistrySql(ExtensionContext testContext,
+            boolean useKeycloak) throws InterruptedException {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistrySql = ApicurioRegistryResourceType.getDefaultSql(
-                Constants.REGISTRY,
-                Environment.NAMESPACE
-        );
+        ApicurioRegistry apicurioRegistrySql = ApicurioRegistryResourceType.getDefaultSql(Constants.REGISTRY,
+                Environment.NAMESPACE);
 
         if (useKeycloak) {
             ApicurioRegistryResourceType.updateWithDefaultKeycloak(apicurioRegistrySql);
@@ -67,15 +55,11 @@ public class ApicurioRegistryUtils {
         return apicurioRegistrySql;
     }
 
-    public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlNoAuth(
-            ExtensionContext testContext,
-            boolean useKeycloak
-    ) throws InterruptedException {
+    public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlNoAuth(ExtensionContext testContext,
+            boolean useKeycloak) throws InterruptedException {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType.getDefaultKafkasql(
-                Constants.REGISTRY,
-                Environment.NAMESPACE
-        );
+        ApicurioRegistry apicurioRegistryKafkasqlNoAuth = ApicurioRegistryResourceType
+                .getDefaultKafkasql(Constants.REGISTRY, Environment.NAMESPACE);
 
         if (useKeycloak) {
             ApicurioRegistryResourceType.updateWithDefaultKeycloak(apicurioRegistryKafkasqlNoAuth);
@@ -87,34 +71,22 @@ public class ApicurioRegistryUtils {
         return apicurioRegistryKafkasqlNoAuth;
     }
 
-    public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlTLS(
-            ExtensionContext testContext,
-            Kafka kafka,
-            boolean useKeycloak
-    ) throws InterruptedException {
+    public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlTLS(ExtensionContext testContext,
+            Kafka kafka, boolean useKeycloak) throws InterruptedException {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType.getDefaultKafkasql(
-                Constants.REGISTRY,
-                Environment.NAMESPACE
-        );
+        ApicurioRegistry apicurioRegistryKafkasqlTLS = ApicurioRegistryResourceType
+                .getDefaultKafkasql(Constants.REGISTRY, Environment.NAMESPACE);
 
         // Update Apicurio Registry to have TLS configuration
         ApicurioRegistryResourceType.updateWithDefaultTLS(apicurioRegistryKafkasqlTLS);
 
-        CertificateUtils.createTruststore(
-                testContext,
-                kafka.getMetadata().getNamespace(),
+        CertificateUtils.createTruststore(testContext, kafka.getMetadata().getNamespace(),
                 kafka.getMetadata().getName() + "-cluster-ca-cert",
-                getTruststoreSecretName(apicurioRegistryKafkasqlTLS)
-        );
+                getTruststoreSecretName(apicurioRegistryKafkasqlTLS));
 
-        CertificateUtils.createKeystore(
-                testContext,
-                kafka.getMetadata().getNamespace(),
-                Constants.KAFKA_USER,
+        CertificateUtils.createKeystore(testContext, kafka.getMetadata().getNamespace(), Constants.KAFKA_USER,
                 getKeystoreSecretName(apicurioRegistryKafkasqlTLS),
-                kafka.getMetadata().getName() + "-kafka-bootstrap"
-        );
+                kafka.getMetadata().getName() + "-kafka-bootstrap");
 
         if (useKeycloak) {
             ApicurioRegistryResourceType.updateWithDefaultKeycloak(apicurioRegistryKafkasqlTLS);
@@ -126,26 +98,18 @@ public class ApicurioRegistryUtils {
         return apicurioRegistryKafkasqlTLS;
     }
 
-    public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlSCRAM(
-            ExtensionContext testContext,
-            Kafka kafka,
-            boolean useKeycloak
-    ) throws InterruptedException {
+    public static ApicurioRegistry deployDefaultApicurioRegistryKafkasqlSCRAM(ExtensionContext testContext,
+            Kafka kafka, boolean useKeycloak) throws InterruptedException {
         // Get Apicurio Registry
-        ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType.getDefaultKafkasql(
-                Constants.REGISTRY,
-                Environment.NAMESPACE
-        );
+        ApicurioRegistry apicurioRegistryKafkasqlSCRAM = ApicurioRegistryResourceType
+                .getDefaultKafkasql(Constants.REGISTRY, Environment.NAMESPACE);
 
         // Update to have SCRAM configuration
         ApicurioRegistryResourceType.updateWithDefaultSCRAM(apicurioRegistryKafkasqlSCRAM);
 
-        CertificateUtils.createTruststore(
-                testContext,
-                kafka.getMetadata().getNamespace(),
+        CertificateUtils.createTruststore(testContext, kafka.getMetadata().getNamespace(),
                 kafka.getMetadata().getName() + "-cluster-ca-cert",
-                getTruststoreSecretName(apicurioRegistryKafkasqlSCRAM)
-        );
+                getTruststoreSecretName(apicurioRegistryKafkasqlSCRAM));
 
         if (useKeycloak) {
             ApicurioRegistryResourceType.updateWithDefaultKeycloak(apicurioRegistryKafkasqlSCRAM);
@@ -214,10 +178,8 @@ public class ApicurioRegistryUtils {
         String registryRouteNamespace = registryRoute.getMetadata().getNamespace();
         String registryRouteName = registryRoute.getMetadata().getName();
 
-        return (
-                Kubernetes.isRouteReady(registryRouteNamespace, registryRouteName)
-                && !defaultRegistryHostname.equals(Kubernetes.getRouteHost(registryRouteNamespace, registryRouteName))
-        );
+        return (Kubernetes.isRouteReady(registryRouteNamespace, registryRouteName) && !defaultRegistryHostname
+                .equals(Kubernetes.getRouteHost(registryRouteNamespace, registryRouteName)));
     }
 
     public static boolean waitApicurioRegistryReady(ApicurioRegistry apicurioRegistry) {

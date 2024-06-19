@@ -34,7 +34,8 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
             try {
                 // Attempt to parse binary FileDescriptorProto
                 byte[] bytes = Base64.getDecoder().decode(content.getContent().content());
-                FileDescriptorUtils.fileDescriptorToProtoFile(DescriptorProtos.FileDescriptorProto.parseFrom(bytes));
+                FileDescriptorUtils
+                        .fileDescriptorToProtoFile(DescriptorProtos.FileDescriptorProto.parseFrom(bytes));
                 return true;
             } catch (Exception pe) {
                 // Doesn't seem to be protobuf
@@ -72,7 +73,7 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     public ContentDereferencer getContentDereferencer() {
         return new ProtobufDereferencer();
     }
-    
+
     @Override
     public ReferenceFinder getReferenceFinder() {
         return new ProtobufReferenceFinder();

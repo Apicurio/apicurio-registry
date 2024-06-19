@@ -16,10 +16,10 @@ import lombok.ToString;
 @Builder
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class DeleteGlobalRule1Message extends AbstractMessage {
-    
+
     private RuleType rule;
 
     /**

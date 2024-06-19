@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @InterceptorBinding
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target({ ElementType.TYPE, ElementType.METHOD })
 public @interface Authorized {
 
     @Nonbinding

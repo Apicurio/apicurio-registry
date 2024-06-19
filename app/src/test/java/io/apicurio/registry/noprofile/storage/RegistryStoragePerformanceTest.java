@@ -31,16 +31,11 @@ public class RegistryStoragePerformanceTest {
     private static final String GROUP_ID = RegistryStoragePerformanceTest.class.getSimpleName();
 
     private static final int NUM_ARTIFACTS = 50000;
-//    private static final int NUM_VERSIONS = 5;
+    // private static final int NUM_VERSIONS = 5;
 
-    private static final String OPENAPI_CONTENT_TEMPLATE = "{" +
-            "    \"openapi\": \"3.0.2\"," +
-            "    \"info\": {" +
-            "        \"title\": \"TITLE\"," +
-            "        \"version\": \"VERSION\"," +
-            "        \"description\": \"DESCRIPTION\"" +
-            "    }" +
-            "}";
+    private static final String OPENAPI_CONTENT_TEMPLATE = "{" + "    \"openapi\": \"3.0.2\","
+            + "    \"info\": {" + "        \"title\": \"TITLE\"," + "        \"version\": \"VERSION\","
+            + "        \"description\": \"DESCRIPTION\"" + "    }" + "}";
 
     @Inject
     @Current
@@ -70,20 +65,14 @@ public class RegistryStoragePerformanceTest {
             Map<String, String> labels = new HashMap<>();
             labels.put("key", "value");
             labels.put("key-" + idx, "value-" + idx);
-            ContentHandle content = ContentHandle.create(
-                    OPENAPI_CONTENT_TEMPLATE
-                        .replaceAll("TITLE", title)
-                        .replaceAll("DESCRIPTION", description)
-                        .replaceAll("VERSION", String.valueOf(idx)));
-            ContentWrapperDto versionContent = ContentWrapperDto.builder()
-                    .content(content)
-                    .contentType(ContentTypes.APPLICATION_JSON)
-                    .build();
-            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, null, labels);
-            EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder()
-                    .name(title)
-                    .description(description)
-                    .build();
+            ContentHandle content = ContentHandle.create(OPENAPI_CONTENT_TEMPLATE.replaceAll("TITLE", title)
+                    .replaceAll("DESCRIPTION", description).replaceAll("VERSION", String.valueOf(idx)));
+            ContentWrapperDto versionContent = ContentWrapperDto.builder().content(content)
+                    .contentType(ContentTypes.APPLICATION_JSON).build();
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(title, description, null,
+                    labels);
+            EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder().name(title)
+                    .description(description).build();
             storage.createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, metaData, null, versionContent,
                     versionMetaData, List.of());
 
@@ -95,7 +84,8 @@ public class RegistryStoragePerformanceTest {
         long endCreate = System.currentTimeMillis();
 
         long startGetArtifact = System.currentTimeMillis();
-        StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(GROUP_ID, artifactIdPrefix + "77", "1");
+        StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(GROUP_ID,
+                artifactIdPrefix + "77", "1");
         long endGetArtifact = System.currentTimeMillis();
         Assertions.assertNotNull(storedArtifact);
 
@@ -106,7 +96,8 @@ public class RegistryStoragePerformanceTest {
 
         long startAllSearch = System.currentTimeMillis();
         Set<SearchFilter> filters = Collections.emptySet();
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 20);
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc,
+                0, 20);
         long endAllSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(NUM_ARTIFACTS, results.getCount());
@@ -127,7 +118,7 @@ public class RegistryStoragePerformanceTest {
 
         long startLabelSearch = System.currentTimeMillis();
 
-        filters = Collections.singleton(SearchFilter.ofLabel("key-" + (NUM_ARTIFACTS-1)));
+        filters = Collections.singleton(SearchFilter.ofLabel("key-" + (NUM_ARTIFACTS - 1)));
         results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
         long endLabelSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
@@ -143,10 +134,12 @@ public class RegistryStoragePerformanceTest {
         System.out.println("========================================================================");
         System.out.println("= Storage Performance Results                                          =");
         System.out.println("=----------------------------------------------------------------------=");
-        System.out.println("| Time to create " + NUM_ARTIFACTS + " artifacts: " + (endCreate - startCreate) + "ms");
+        System.out.println(
+                "| Time to create " + NUM_ARTIFACTS + " artifacts: " + (endCreate - startCreate) + "ms");
         System.out.println("| ");
         System.out.println("| Get Artifact Content:   " + (endGetArtifact - startGetArtifact) + "ms");
-        System.out.println("| Get Artifact Meta-Data: " + (endGetArtifactMetaData - startGetArtifactMetaData) + "ms");
+        System.out.println(
+                "| Get Artifact Meta-Data: " + (endGetArtifactMetaData - startGetArtifactMetaData) + "ms");
         System.out.println("| ");
         System.out.println("| All Artifact Search:    " + (endAllSearch - startAllSearch) + "ms");
         System.out.println("| Single Name Search:     " + (endNameSearch - startNameSearch) + "ms");

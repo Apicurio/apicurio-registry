@@ -7,6 +7,7 @@ import java.time.Duration;
 public interface ResourceType<T extends HasMetadata> {
 
     Duration getTimeout();
+
     String getKind();
 
     T get(String namespace, String name);

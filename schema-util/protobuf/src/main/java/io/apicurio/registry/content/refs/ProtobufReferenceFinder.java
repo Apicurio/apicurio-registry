@@ -15,16 +15,17 @@ import java.util.stream.Collectors;
  * A Google Protocol Buffer implementation of a reference finder.
  */
 public class ProtobufReferenceFinder implements ReferenceFinder {
-    
+
     private static final Logger log = LoggerFactory.getLogger(ProtobufReferenceFinder.class);
 
     /**
-     * @see io.apicurio.registry.content.refs.ReferenceFinder#findExternalReferences(TypedContent) 
+     * @see io.apicurio.registry.content.refs.ReferenceFinder#findExternalReferences(TypedContent)
      */
     @Override
     public Set<ExternalReference> findExternalReferences(TypedContent content) {
         try {
-            ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.getContent().content());
+            ProtoFileElement protoFileElement = ProtobufFile
+                    .toProtoFileElement(content.getContent().content());
             Set<String> allImports = new HashSet<>();
             allImports.addAll(protoFileElement.getImports());
             allImports.addAll(protoFileElement.getPublicImports());

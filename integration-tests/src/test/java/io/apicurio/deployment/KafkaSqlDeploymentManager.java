@@ -40,11 +40,9 @@ public class KafkaSqlDeploymentManager {
     static void deployKafkaApp(String registryImage) throws Exception {
         if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
             prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_SECURED_RESOURCES, true, registryImage);
-        }
-        else if (Constants.TEST_PROFILE.equals(Constants.KAFKA_SQL_SNAPSHOTTING)) {
+        } else if (Constants.TEST_PROFILE.equals(Constants.KAFKA_SQL_SNAPSHOTTING)) {
             prepareKafkaSqlSnapshottingTests(registryImage);
-        }
-        else {
+        } else {
             prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage);
         }
     }
@@ -52,20 +50,21 @@ public class KafkaSqlDeploymentManager {
     private static void prepareKafkaSqlSnapshottingTests(String registryImage) throws Exception {
         LOGGER.info("Preparing data for KafkaSQL snapshot tests...");
 
-        //First we deploy the Registry application with all the required data.
+        // First we deploy the Registry application with all the required data.
         prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage);
         prepareSnapshotData(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
 
-        //Once all the data has been introduced, the existing deployment is deleted so all the replicas are re-created and restored from the snapshot.
+        // Once all the data has been introduced, the existing deployment is deleted so all the replicas are
+        // re-created and restored from the snapshot.
         deleteRegistryDeployment();
 
-        //Now we re-recreate the deployment so all the replicas are restored from the snapshot.
+        // Now we re-recreate the deployment so all the replicas are restored from the snapshot.
         LOGGER.info("Finished preparing data for the KafkaSQL snapshot tests.");
         prepareTestsInfra(null, APPLICATION_KAFKA_RESOURCES, false, registryImage);
     }
 
     private static void prepareSnapshotData(String registryBaseUrl) {
-        //Create a bunch of artifacts and rules, so they're added to the snapshot.
+        // Create a bunch of artifacts and rules, so they're added to the snapshot.
         String simpleAvro = resourceToString("artifactTypes/avro/multi-field_v1.json");
 
         var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
@@ -75,14 +74,15 @@ public class KafkaSqlDeploymentManager {
         LOGGER.info("Creating 1000 artifacts that will be packed into a snapshot..");
         for (int idx = 0; idx < 1000; idx++) {
             String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, simpleAvro,
-                    ContentTypes.APPLICATION_JSON);
-            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts()
-                    .post(createArtifact, config -> config.headers.add("X-Registry-ArtifactId", artifactId));
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                    simpleAvro, ContentTypes.APPLICATION_JSON);
+            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().post(createArtifact,
+                    config -> config.headers.add("X-Registry-ArtifactId", artifactId));
             CreateRule createRule = new CreateRule();
             createRule.setRuleType(RuleType.VALIDITY);
             createRule.setConfig("SYNTAX_ONLY");
-            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(createRule);
+            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts()
+                    .byArtifactId(artifactId).rules().post(createRule);
         }
 
         LOGGER.info("Creating kafkasql snapshot..");
@@ -91,34 +91,34 @@ public class KafkaSqlDeploymentManager {
         LOGGER.info("Adding new artifacts on top of the snapshot..");
         for (int idx = 0; idx < 1000; idx++) {
             String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, simpleAvro,
-                    ContentTypes.APPLICATION_JSON);
-            client.groups().byGroupId("default").artifacts()
-                    .post(createArtifact, config -> config.headers.add("X-Registry-ArtifactId", artifactId));
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                    simpleAvro, ContentTypes.APPLICATION_JSON);
+            client.groups().byGroupId("default").artifacts().post(createArtifact,
+                    config -> config.headers.add("X-Registry-ArtifactId", artifactId));
             CreateRule createRule = new CreateRule();
             createRule.setRuleType(RuleType.VALIDITY);
             createRule.setConfig("SYNTAX_ONLY");
-            client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(createRule);
+            client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules()
+                    .post(createRule);
         }
     }
 
     private static void deleteRegistryDeployment() {
-        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE)
-                .withName(APPLICATION_DEPLOYMENT);
+        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments()
+                .inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
-        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
+        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT)
+                .delete();
 
-        //Wait for the deployment to be deleted
+        // Wait for the deployment to be deleted
         CompletableFuture<List<Deployment>> deployment = deploymentResource
                 .informOnCondition(Collection::isEmpty);
 
         try {
             deployment.get(60, TimeUnit.SECONDS);
-        }
-        catch (ExecutionException | InterruptedException | TimeoutException e) {
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
             LOGGER.warn("Error waiting for deployment deletion", e);
-        }
-        finally {
+        } finally {
             deployment.cancel(true);
         }
     }

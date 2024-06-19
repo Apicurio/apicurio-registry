@@ -55,7 +55,8 @@ public abstract class Tests extends TestBase {
     /* TESTS - KafkaSQL */
 
     @Test
-    public void testRegistryKafkasqlNoAuthNoKeycloak(ExtensionContext testContext) throws InterruptedException {
+    public void testRegistryKafkasqlNoAuthNoKeycloak(ExtensionContext testContext)
+            throws InterruptedException {
         runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.NO_AUTH, false, true);
     }
 
@@ -75,7 +76,8 @@ public abstract class Tests extends TestBase {
     }
 
     @Test
-    public void testRegistryKafkasqlSCRAMNoKeycloak(ExtensionContext testContext) throws InterruptedException {
+    public void testRegistryKafkasqlSCRAMNoKeycloak(ExtensionContext testContext)
+            throws InterruptedException {
         runTest(testContext, PersistenceKind.KAFKA_SQL, KafkaKind.SCRAM, false, true);
     }
 

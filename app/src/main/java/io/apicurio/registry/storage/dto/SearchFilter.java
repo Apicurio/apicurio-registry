@@ -1,8 +1,7 @@
 package io.apicurio.registry.storage.dto;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import io.apicurio.registry.types.VersionState;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class SearchFilter {
 
@@ -18,6 +17,7 @@ public class SearchFilter {
 
     /**
      * Constructor.
+     * 
      * @param type
      * @param value object
      */
@@ -27,11 +27,11 @@ public class SearchFilter {
     }
 
     public static SearchFilter ofLabel(String labelKey, String labelValue) {
-        return new SearchFilter(SearchFilterType.labels, Pair.<String, String>of(labelKey, labelValue));
+        return new SearchFilter(SearchFilterType.labels, Pair.<String, String> of(labelKey, labelValue));
     }
 
     public static SearchFilter ofLabel(String labelKey) {
-        return new SearchFilter(SearchFilterType.labels, Pair.<String, String>of(labelKey, null));
+        return new SearchFilter(SearchFilterType.labels, Pair.<String, String> of(labelKey, null));
     }
 
     public static SearchFilter ofGlobalId(Long value) {
@@ -111,7 +111,6 @@ public class SearchFilter {
         throw new IllegalStateException("value is not of type number");
     }
 
-
     /**
      * @param value the value to set
      */
@@ -154,7 +153,7 @@ public class SearchFilter {
     public void setNot(boolean not) {
         this.not = not;
     }
-    
+
     public SearchFilter negated() {
         SearchFilter filter = new SearchFilter(type, value);
         filter.setNot(true);

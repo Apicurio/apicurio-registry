@@ -67,7 +67,7 @@ public class TestArtifact {
     /**
      * @param contentType the contentType to set
      */
-    public void setContentType(String contentType){
+    public void setContentType(String contentType) {
         this.contentType = contentType;
     }
 

@@ -8,12 +8,13 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 
 /**
  * @author Jakub Senko <em>m@jsenko.net</em>
@@ -26,23 +27,18 @@ public class ExampleKafkaConsumer {
     @Inject
     KafkaFactory kafkaFactory;
 
-
     void onStart(@Observes StartupEvent event) {
 
         Runnable runner = () -> {
             try (KafkaConsumer<Object, Object> consumer = kafkaFactory.createKafkaConsumer()) {
 
-                var topics = List.of(
-                        "example.inventory.addresses",
-                        "example.inventory.customers",
-                        "example.inventory.orders",
-                        "example.inventory.products",
-                        "example.inventory.products_on_hand"
-                );
+                var topics = List.of("example.inventory.addresses", "example.inventory.customers",
+                        "example.inventory.orders", "example.inventory.products",
+                        "example.inventory.products_on_hand");
                 var existingTopic = consumer.listTopics().keySet();
                 if (!existingTopic.containsAll(topics)) {
-                    throw new IllegalStateException("Some topics are not available. " +
-                            "Expected: " + topics + ", actual: " + existingTopic);
+                    throw new IllegalStateException("Some topics are not available. " + "Expected: " + topics
+                            + ", actual: " + existingTopic);
                 }
 
                 consumer.subscribe(topics);
@@ -66,7 +62,8 @@ public class ExampleKafkaConsumer {
                                 log.info("Raw key: {}", record.key());
                                 log.info("Raw key schema: {}", ((SpecificRecord) record.key()).getSchema());
                                 log.info("Raw value: {}", record.value());
-                                log.info("Raw value schema: {}", ((SpecificRecord) record.value()).getSchema());
+                                log.info("Raw value schema: {}",
+                                        ((SpecificRecord) record.value()).getSchema());
 
                                 switch (record.topic()) {
                                     case "example.inventory.addresses": {
@@ -107,15 +104,19 @@ public class ExampleKafkaConsumer {
                                     }
                                     case "example.inventory.products_on_hand": {
                                         var key = (example.inventory.products_on_hand.Key) record.key();
-                                        var value = (example.inventory.products_on_hand.Envelope) record.value();
-                                        log.info("Operation {} on ProductOnHand", Operation.from(value.getOp()));
+                                        var value = (example.inventory.products_on_hand.Envelope) record
+                                                .value();
+                                        log.info("Operation {} on ProductOnHand",
+                                                Operation.from(value.getOp()));
                                         log.info("Product ID: {}", key.getProductId());
                                         log.info("Before: {}", ProductOnHand.from(value.getBefore()));
                                         log.info("After: {}", ProductOnHand.from(value.getAfter()));
                                         break;
                                     }
                                     default:
-                                        throw new IllegalStateException("Received a message from unexpected topic: " + record.topic());
+                                        throw new IllegalStateException(
+                                                "Received a message from unexpected topic: "
+                                                        + record.topic());
                                 }
                             });
                         }

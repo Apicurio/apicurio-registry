@@ -1,9 +1,9 @@
 package io.apicurio.registry.rest;
 
+import io.quarkus.test.junit.QuarkusTestProfile;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import io.quarkus.test.junit.QuarkusTestProfile;
 
 public class MultipleRequestFiltersTestProfile implements QuarkusTestProfile {
 

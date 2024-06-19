@@ -17,9 +17,8 @@ public class IoUtil {
     }
 
     /**
-     * Close auto-closeable,
-     * unchecked IOException is thrown for any IO exception,
-     * IllegalStateException for all others.
+     * Close auto-closeable, unchecked IOException is thrown for any IO exception, IllegalStateException for
+     * all others.
      *
      * @param closeable the closeable
      */
@@ -48,8 +47,7 @@ public class IoUtil {
     }
 
     /**
-     * Get byte array from stream.
-     * Stream is closed at the end.
+     * Get byte array from stream. Stream is closed at the end.
      *
      * @param stream the stream
      * @return stream as a byte array
@@ -83,8 +81,7 @@ public class IoUtil {
     }
 
     /**
-     * Get string from stream.
-     * Stream is closed at the end.
+     * Get string from stream. Stream is closed at the end.
      *
      * @param stream the stream
      * @return stream as a string
@@ -128,8 +125,8 @@ public class IoUtil {
     public static InputStream toStream(String content) {
         return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
     }
-    
-    public static InputStream toStream(byte [] content) {
+
+    public static InputStream toStream(byte[] content) {
         return new ByteArrayInputStream(content);
     }
 

@@ -7,14 +7,13 @@ public class CustomArtifactResolverStrategy implements ArtifactResolverStrategy<
 
     @Override
     public ArtifactReference artifactReference(String topic, boolean isKey, Object schema) {
-        return ArtifactReference.builder()
-            .artifactId("my-artifact-" + topic + (isKey ? "-key" : "-value"))
-            .build();
+        return ArtifactReference.builder().artifactId("my-artifact-" + topic + (isKey ? "-key" : "-value"))
+                .build();
     }
 
     @Override
     public boolean loadSchema() {
         return false;
     }
-    
+
 }

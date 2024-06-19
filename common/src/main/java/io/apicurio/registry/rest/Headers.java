@@ -1,8 +1,8 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.types.ArtifactState;
-
 import jakarta.ws.rs.core.Response;
+
 import java.util.function.Supplier;
 
 public interface Headers {
@@ -21,13 +21,8 @@ public interface Headers {
     String PRESERVE_GLOBAL_ID = "X-Registry-Preserve-GlobalId";
     String PRESERVE_CONTENT_ID = "X-Registry-Preserve-ContentId";
 
-    default void checkIfDeprecated(
-        Supplier<ArtifactState> stateSupplier,
-        String groupId,
-        String artifactId,
-        Number version,
-        Response.ResponseBuilder builder
-    ) {
+    default void checkIfDeprecated(Supplier<ArtifactState> stateSupplier, String groupId, String artifactId,
+            Number version, Response.ResponseBuilder builder) {
         if (stateSupplier.get() == ArtifactState.DEPRECATED) {
             builder.header(Headers.DEPRECATED, true);
             builder.header(Headers.GROUP_ID, groupId);

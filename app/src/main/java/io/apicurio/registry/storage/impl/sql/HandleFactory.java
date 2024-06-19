@@ -8,9 +8,9 @@ public interface HandleFactory {
     /**
      * Execute an operation using a database handle.
      * <p>
-     * Handles are cached and reused if calls to this method are nested.
-     * Make sure that all nested uses of a handle are either within a transaction context,
-     * or without one. Starting a transaction with a nested handle will cause an exception.
+     * Handles are cached and reused if calls to this method are nested. Make sure that all nested uses of a
+     * handle are either within a transaction context, or without one. Starting a transaction with a nested
+     * handle will cause an exception.
      */
     <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) throws X;
 

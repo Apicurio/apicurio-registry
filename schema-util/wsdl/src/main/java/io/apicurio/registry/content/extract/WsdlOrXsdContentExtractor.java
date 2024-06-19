@@ -1,13 +1,12 @@
 package io.apicurio.registry.content.extract;
 
-import java.io.InputStream;
-
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.util.DocumentBuilderAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.util.DocumentBuilderAccessor;
+import java.io.InputStream;
 
 /**
  * Performs meta-data extraction for WSDL or XSD content.

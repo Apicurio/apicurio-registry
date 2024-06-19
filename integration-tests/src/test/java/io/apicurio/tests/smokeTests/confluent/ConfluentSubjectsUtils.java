@@ -11,23 +11,26 @@ import java.net.URL;
 
 import static io.apicurio.tests.utils.BaseHttpUtils.putRequest;
 
-
 public class ConfluentSubjectsUtils {
 
     public static Response getAllSchemas(int returnCode) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, "", getCCompatURL("/ccompat/v7/subjects"), returnCode);
+        return BaseHttpUtils.postRequest(RestConstants.JSON, "", getCCompatURL("/ccompat/v7/subjects"),
+                returnCode);
     }
 
     public static Response getLatestVersionSchema(String nameOfSchema) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, "", getCCompatURL("/ccompat/v7/subjects/" + nameOfSchema + "/versions/latest"), 200);
+        return BaseHttpUtils.postRequest(RestConstants.JSON, "",
+                getCCompatURL("/ccompat/v7/subjects/" + nameOfSchema + "/versions/latest"), 200);
     }
 
     public static Response createSchema(String schemeDefinition, String schemaName, int returnCode) {
-        return BaseHttpUtils.postRequest(RestConstants.JSON, schemeDefinition, getCCompatURL("/ccompat/v7/subjects/" + schemaName + "/versions"), returnCode);
+        return BaseHttpUtils.postRequest(RestConstants.JSON, schemeDefinition,
+                getCCompatURL("/ccompat/v7/subjects/" + schemaName + "/versions"), returnCode);
     }
 
     public static Response updateSchemaMetadata(String schemaName, String metadata, int returnCode) {
-        return putRequest(RestConstants.JSON, metadata, getCCompatURL("/ccompat/v7/subjects/" + schemaName + "/meta"), returnCode);
+        return putRequest(RestConstants.JSON, metadata,
+                getCCompatURL("/ccompat/v7/subjects/" + schemaName + "/meta"), returnCode);
     }
 
     private static URL getCCompatURL(String ccompatPath) {

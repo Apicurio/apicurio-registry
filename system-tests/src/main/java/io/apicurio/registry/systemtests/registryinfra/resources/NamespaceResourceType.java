@@ -67,10 +67,6 @@ public class NamespaceResourceType implements ResourceType<Namespace> {
     /** Get default instances **/
 
     public static Namespace getDefault(String name) {
-        return new NamespaceBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                .endMetadata()
-                .build();
+        return new NamespaceBuilder().withNewMetadata().withName(name).endMetadata().build();
     }
 }

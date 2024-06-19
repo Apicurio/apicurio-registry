@@ -33,26 +33,29 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
-    public void validate(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, TypedContent content,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         Document document = null;
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
                 document = Library.readDocument((ObjectNode) node);
             } catch (Exception e) {
-                throw new RuleViolationException("Syntax violation for " + getDataModelType() + " artifact.", RuleType.VALIDITY, level.name(), e);
+                throw new RuleViolationException("Syntax violation for " + getDataModelType() + " artifact.",
+                        RuleType.VALIDITY, level.name(), e);
             }
         }
 
         if (level == ValidityLevel.FULL) {
             List<ValidationProblem> problems = Library.validate(document, null);
             if (!problems.isEmpty()) {
-                Set<RuleViolation> causes = problems.stream().map(problem -> new RuleViolation(problem.message, problem.nodePath.toString())).collect(Collectors.toSet());
+                Set<RuleViolation> causes = problems.stream()
+                        .map(problem -> new RuleViolation(problem.message, problem.nodePath.toString()))
+                        .collect(Collectors.toSet());
                 throw new RuleViolationException(
-                        "The " + getDataModelType() + " artifact is not semantically valid. " + problems.size() + " problems found.",
-                        RuleType.VALIDITY,
-                        level.name(),
-                        causes);
+                        "The " + getDataModelType() + " artifact is not semantically valid. "
+                                + problems.size() + " problems found.",
+                        RuleType.VALIDITY, level.name(), causes);
             }
         }
     }
@@ -61,14 +64,17 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
      * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List)
      */
     @Override
-    public void validateReferences(TypedContent content, List<ArtifactReference> references) throws RuleViolationException {
+    public void validateReferences(TypedContent content, List<ArtifactReference> references)
+            throws RuleViolationException {
         Set<String> mappedRefs = references.stream().map(ref -> ref.getName()).collect(Collectors.toSet());
         Set<String> all$refs = getAll$refs(content);
-        Set<RuleViolation> violations = all$refs.stream().filter(ref -> !mappedRefs.contains(ref)).map(missingRef -> {
-            return new RuleViolation("Unmapped reference detected.", missingRef);
-        }).collect(Collectors.toSet());
+        Set<RuleViolation> violations = all$refs.stream().filter(ref -> !mappedRefs.contains(ref))
+                .map(missingRef -> {
+                    return new RuleViolation("Unmapped reference detected.", missingRef);
+                }).collect(Collectors.toSet());
         if (!violations.isEmpty()) {
-            throw new RuleViolationException("Unmapped reference(s) detected.", RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(), violations);
+            throw new RuleViolationException("Unmapped reference(s) detected.", RuleType.INTEGRITY,
+                    IntegrityLevel.ALL_REFS_MAPPED.name(), violations);
         }
     }
 
@@ -85,12 +91,12 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
     }
 
     /**
-     * Returns the type of data model being validated.  Subclasses must implement.
+     * Returns the type of data model being validated. Subclasses must implement.
      */
     protected abstract String getDataModelType();
 
     private static class RefFinder extends AllNodeVisitor {
-        
+
         Set<String> references = new HashSet<>();
 
         /**
@@ -105,7 +111,7 @@ public abstract class ApicurioDataModelContentValidator implements ContentValida
                 }
             }
         }
-        
+
     }
 
 }

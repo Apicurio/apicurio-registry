@@ -16,7 +16,6 @@ import java.time.Duration;
 
 /**
  * Fail readiness check if the duration of processing a artifactStore operation is too high.
- *
  */
 @ApplicationScoped
 @Liveness
@@ -27,25 +26,23 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
     Logger log;
 
     /**
-     * Maximum number of timeouts as captured by this interceptor,
-     * before the readiness check fails.
+     * Maximum number of timeouts as captured by this interceptor, before the readiness check fails.
      */
     @ConfigProperty(name = "apicurio.metrics.PersistenceTimeoutReadinessCheck.errorThreshold", defaultValue = "5")
     @Info(category = "health", description = "Error threshold of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
     /**
-     * The counter is reset after some time without errors.
-     * i.e. to fail the check after 2 errors in a minute, set the threshold to 1 and this configuration option
-     * to 60.
-     * TODO report the absolute count as a metric?
+     * The counter is reset after some time without errors. i.e. to fail the check after 2 errors in a minute,
+     * set the threshold to 1 and this configuration option to 60. TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "apicurio.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDuration.seconds", defaultValue = "60")
     @Info(category = "health", description = "Counter reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
     /**
-     * If set to a positive value, reset the readiness status after this time window passes without any further errors.
+     * If set to a positive value, reset the readiness status after this time window passes without any
+     * further errors.
      */
     @ConfigProperty(name = "apicurio.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDuration.seconds", defaultValue = "300")
     @Info(category = "health", description = "Status reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
@@ -69,11 +66,8 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
     @Override
     public synchronized HealthCheckResponse call() {
         callSuper();
-        return HealthCheckResponse.builder()
-                .name("PersistenceTimeoutReadinessCheck")
-                .withData("errorCount", errorCounter)
-                .status(up)
-                .build();
+        return HealthCheckResponse.builder().name("PersistenceTimeoutReadinessCheck")
+                .withData("errorCount", errorCounter).status(up).build();
     }
 
     public Duration getTimeoutSec() {

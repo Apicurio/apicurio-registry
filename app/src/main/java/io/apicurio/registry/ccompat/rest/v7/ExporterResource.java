@@ -2,7 +2,6 @@ package io.apicurio.registry.ccompat.rest.v7;
 
 import io.apicurio.registry.ccompat.dto.ExporterDto;
 import io.apicurio.registry.ccompat.dto.ExporterStatus;
-
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -11,6 +10,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+
 import java.util.List;
 import java.util.Map;
 
@@ -22,14 +22,15 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.OCTET_STREAM;
 /**
  * Note:
  * <p/>
- * This <a href="https://docs.confluent.io/platform/7.2.1/schema-registry/develop/api.html#exporters">API specification</a> is owned by Confluent.
+ * This <a href="https://docs.confluent.io/platform/7.2.1/schema-registry/develop/api.html#exporters">API
+ * specification</a> is owned by Confluent.
  * <p>
- * The exporters resource allows you to query the information or manipulate the lifecycle of schema exporters..
- *
+ * The exporters resource allows you to query the information or manipulate the lifecycle of schema
+ * exporters..
  */
 @Path("/apis/ccompat/v7/exporters")
-@Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
-@Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
+@Consumes({ JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST })
+@Produces({ JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST })
 public interface ExporterResource {
 
     @GET
@@ -64,7 +65,8 @@ public interface ExporterResource {
 
     @PUT
     @Path("/{exporter}/config")
-    String updateExporterConfig(@PathParam("exporter") String exporterName, Map<String, String> config) throws Exception;
+    String updateExporterConfig(@PathParam("exporter") String exporterName, Map<String, String> config)
+            throws Exception;
 
     @GET
     @Path("/{exporter}/status")

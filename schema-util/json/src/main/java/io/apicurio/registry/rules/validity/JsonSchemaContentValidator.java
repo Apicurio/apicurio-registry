@@ -1,6 +1,5 @@
 package io.apicurio.registry.rules.validity;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -28,15 +27,17 @@ public class JsonSchemaContentValidator implements ContentValidator {
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map) 
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
-    public void validate(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, TypedContent content,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY) {
             try {
                 objectMapper.readTree(content.getContent().bytes());
             } catch (Exception e) {
-                throw new RuleViolationException("Syntax violation for JSON Schema artifact.", RuleType.VALIDITY, level.name(), e);
+                throw new RuleViolationException("Syntax violation for JSON Schema artifact.",
+                        RuleType.VALIDITY, level.name(), e);
             }
         } else if (level == ValidityLevel.FULL) {
             try {
@@ -48,21 +49,22 @@ public class JsonSchemaContentValidator implements ContentValidator {
                     description = description.substring(description.indexOf(":") + 1).trim();
                 }
                 RuleViolation violation = new RuleViolation(description, context);
-                throw new RuleViolationException("Syntax or semantic violation for JSON Schema artifact.", RuleType.VALIDITY, level.name(),
-                        Collections.singleton(violation));
+                throw new RuleViolationException("Syntax or semantic violation for JSON Schema artifact.",
+                        RuleType.VALIDITY, level.name(), Collections.singleton(violation));
             } catch (Exception e) {
                 RuleViolation violation = new RuleViolation("JSON schema not valid: " + e.getMessage(), "");
-                throw new RuleViolationException("Syntax or semantic violation for JSON Schema artifact.", RuleType.VALIDITY, level.name(),
-                        Collections.singleton(violation));
+                throw new RuleViolationException("Syntax or semantic violation for JSON Schema artifact.",
+                        RuleType.VALIDITY, level.name(), Collections.singleton(violation));
             }
         }
     }
-    
+
     /**
      * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List)
      */
     @Override
-    public void validateReferences(TypedContent content, List<ArtifactReference> references) throws RuleViolationException {
+    public void validateReferences(TypedContent content, List<ArtifactReference> references)
+            throws RuleViolationException {
         // TODO Implement this for JSON Schema!
     }
 }

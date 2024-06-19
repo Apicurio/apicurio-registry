@@ -1,12 +1,12 @@
 package io.apicurio.registry.storage.impl.sql.jdb;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.impl.sql.mappers.IntegerMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.LongMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 public class QueryImpl extends SqlImpl<Query> implements Query {
 
@@ -14,6 +14,7 @@ public class QueryImpl extends SqlImpl<Query> implements Query {
 
     /**
      * Constructor.
+     * 
      * @param connection
      * @param sql
      */

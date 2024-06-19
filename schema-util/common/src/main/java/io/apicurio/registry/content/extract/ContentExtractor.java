@@ -9,8 +9,7 @@ import static io.apicurio.registry.utils.StringUtil.isEmpty;
  */
 public interface ContentExtractor {
     /**
-     * Extract metadata from content.
-     * Return null if no content is extracted.
+     * Extract metadata from content. Return null if no content is extracted.
      *
      * @param content the content
      * @return extracted metadata or null if none

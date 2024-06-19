@@ -36,15 +36,14 @@ public class PersistentVolumeClaimResourceType implements ResourceType<Persisten
 
     @Override
     public void delete(PersistentVolumeClaim resource) {
-        Kubernetes.deletePersistentVolumeClaim(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+        Kubernetes.deletePersistentVolumeClaim(resource.getMetadata().getNamespace(),
+                resource.getMetadata().getName());
     }
 
     @Override
     public boolean isReady(PersistentVolumeClaim resource) {
-        PersistentVolumeClaim persistentVolumeClaim = get(
-                resource.getMetadata().getNamespace(),
-                resource.getMetadata().getName()
-        );
+        PersistentVolumeClaim persistentVolumeClaim = get(resource.getMetadata().getNamespace(),
+                resource.getMetadata().getName());
 
         if (persistentVolumeClaim == null) {
             return false;
@@ -72,21 +71,13 @@ public class PersistentVolumeClaimResourceType implements ResourceType<Persisten
     /** Get default instances **/
 
     public static PersistentVolumeClaim getDefaultPostgresql(String name, String namespace, String quantity) {
-        return new PersistentVolumeClaimBuilder()
-                .withNewMetadata()
-                .withLabels(new HashMap<>() {{
-                    put("app", name);
-                }})
-                .withName(name)
-                .withNamespace(namespace)
-                .endMetadata()
-                .withNewSpec()
-                .withAccessModes("ReadWriteOnce")
-                .withNewResources()
-                .addToRequests("storage", new Quantity(quantity))
-                .endResources()
-                .endSpec()
-                .build();
+        return new PersistentVolumeClaimBuilder().withNewMetadata().withLabels(new HashMap<>() {
+            {
+                put("app", name);
+            }
+        }).withName(name).withNamespace(namespace).endMetadata().withNewSpec()
+                .withAccessModes("ReadWriteOnce").withNewResources()
+                .addToRequests("storage", new Quantity(quantity)).endResources().endSpec().build();
     }
 
     public static PersistentVolumeClaim getDefaultPostgresql(String name, String namespace) {

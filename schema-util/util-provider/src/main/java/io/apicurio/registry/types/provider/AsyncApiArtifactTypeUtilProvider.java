@@ -26,7 +26,8 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
         try {
             String contentType = content.getContentType();
             JsonNode tree = null;
-            // If the content is YAML, then convert it to JSON first (the data-models library only accepts JSON).
+            // If the content is YAML, then convert it to JSON first (the data-models library only accepts
+            // JSON).
             if (contentType.toLowerCase().contains("yml") || contentType.toLowerCase().contains("yaml")) {
                 tree = ContentTypeUtil.parseYaml(content.getContent());
             } else {

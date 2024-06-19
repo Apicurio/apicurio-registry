@@ -48,27 +48,26 @@ import java.util.Date;
 import java.util.Properties;
 
 /**
- * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe
- * scenario with Avro as the serialization type and the Schema pre-registered via a Maven plugin.
- * The following aspects are demonstrated:
- *
+ * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe scenario with
+ * Avro as the serialization type and the Schema pre-registered via a Maven plugin. The following aspects are
+ * demonstrated:
  * <ol>
- *   <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
- *   <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
- *   <li>Pre-register the Avro schema in the registry via the Maven plugin</li>
- *   <li>Data sent as a simple GenericRecord, no java beans needed</li>
+ * <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
+ * <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
+ * <li>Pre-register the Avro schema in the registry via the Maven plugin</li>
+ * <li>Data sent as a simple GenericRecord, no java beans needed</li>
  * </ol>
  * <p>
  * Pre-requisites:
- *
  * <ul>
- *   <li>Kafka must be running on localhost:9092</li>
- *   <li>Apicurio Registry must be running on localhost:8080</li>
- *   <li>Schema is registered by executing "mvn io.apicurio:apicurio-registry-maven-plugin:register@register-artifact"</li>
+ * <li>Kafka must be running on localhost:9092</li>
+ * <li>Apicurio Registry must be running on localhost:8080</li>
+ * <li>Schema is registered by executing "mvn
+ * io.apicurio:apicurio-registry-maven-plugin:register@register-artifact"</li>
  * </ul>
  * <p>
- * Note that this application will fail if the above maven command is not run first, since
- * the schema will not be present in the registry.
+ * Note that this application will fail if the above maven command is not run first, since the schema will not
+ * be present in the registry.
  *
  * @author eric.wittmann@gmail.com
  */
@@ -78,7 +77,6 @@ public class SimpleAvroMavenExample {
     private static final String SERVERS = "localhost:9092";
     private static final String TOPIC_NAME = SimpleAvroMavenExample.class.getSimpleName();
     private static final String SUBJECT_NAME = "Greeting";
-
 
     public static final void main(String[] args) throws Exception {
         System.out.println("Starting example " + SimpleAvroMavenExample.class.getSimpleName());
@@ -93,7 +91,8 @@ public class SimpleAvroMavenExample {
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
 
         String schemaData = null;
-        try (InputStream latestArtifact = client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").content().get()) {
+        try (InputStream latestArtifact = client.groups().byGroupId("default").artifacts()
+                .byArtifactId(artifactId).versions().byVersionExpression("1").content().get()) {
             schemaData = toString(latestArtifact);
         } catch (ApiException e) {
             System.err.println("Schema not registered in registry.  Before running this example, please do:");
@@ -117,7 +116,8 @@ public class SimpleAvroMavenExample {
                 record.put("Time", now.getTime());
 
                 // Send/produce the message on the Kafka Producer
-                ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, subjectName, record);
+                ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, subjectName,
+                        record);
                 producer.send(producedRecord);
 
                 Thread.sleep(100);
@@ -147,10 +147,12 @@ public class SimpleAvroMavenExample {
                 if (records.count() == 0) {
                     // Do nothing - no messages waiting.
                     System.out.println("No messages waiting...");
-                } else records.forEach(record -> {
-                    GenericRecord value = record.value();
-                    System.out.println("Consumed a message: " + value.get("Message") + " @ " + new Date((long) value.get("Time")));
-                });
+                } else
+                    records.forEach(record -> {
+                        GenericRecord value = record.value();
+                        System.out.println("Consumed a message: " + value.get("Message") + " @ "
+                                + new Date((long) value.get("Time")));
+                    });
             }
         } finally {
             consumer.close();
@@ -179,7 +181,7 @@ public class SimpleAvroMavenExample {
         props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT, Boolean.TRUE);
         props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS, IfExists.RETURN.name());
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka producer
@@ -201,15 +203,16 @@ public class SimpleAvroMavenExample {
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         // Use the Apicurio Registry provided Kafka Deserializer for Avro
-        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
+        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                AvroKafkaDeserializer.class.getName());
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
         // No other configuration needed for the deserializer, because the globalId of the schema
-        // the deserializer should use is sent as part of the payload.  So the deserializer simply
+        // the deserializer should use is sent as part of the payload. So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka Consumer
@@ -243,13 +246,16 @@ public class SimpleAvroMavenExample {
             props.putIfAbsent(SerdeConfig.AUTH_CLIENT_ID, authClient);
             props.putIfAbsent(SerdeConfig.AUTH_TOKEN_ENDPOINT, tokenEndpoint);
             props.putIfAbsent(SaslConfigs.SASL_MECHANISM, "OAUTHBEARER");
-            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
+            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
+                    "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
             props.putIfAbsent("security.protocol", "SASL_SSL");
 
-            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                    "  oauth.client.id=\"%s\" " +
-                    "  oauth.client.secret=\"%s\" " +
-                    "  oauth.token.endpoint.uri=\"%s\" ;", authClient, authSecret, tokenEndpoint));
+            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG,
+                    String.format(
+                            "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
+                                    + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
+                                    + "  oauth.token.endpoint.uri=\"%s\" ;",
+                            authClient, authSecret, tokenEndpoint));
         }
     }
 

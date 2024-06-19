@@ -24,8 +24,7 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback, 
 
     public PortForwardManager() {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            kubernetesClient = new KubernetesClientBuilder()
-                    .build();
+            kubernetesClient = new KubernetesClientBuilder().build();
         }
     }
 
@@ -49,19 +48,18 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback, 
         }
     }
 
-
     private void startKeycloakPortForward() {
         try {
             if (keycloakPortForward != null) {
                 keycloakPortForward.close();
             }
-            //Create the keycloak port forward so the tests can reach it to get tokens
-            keycloakPortForward = kubernetesClient.services()
-                    .inNamespace(TEST_NAMESPACE)
-                    .withName(KEYCLOAK_SERVICE)
-                    .portForward(8090, 8090);
+            // Create the keycloak port forward so the tests can reach it to get tokens
+            keycloakPortForward = kubernetesClient.services().inNamespace(TEST_NAMESPACE)
+                    .withName(KEYCLOAK_SERVICE).portForward(8090, 8090);
         } catch (IllegalStateException | IOException ex) {
-            logger.warn("Error found forwarding keycloak port, the port forwarding might be running already, continuing...", ex);
+            logger.warn(
+                    "Error found forwarding keycloak port, the port forwarding might be running already, continuing...",
+                    ex);
         }
     }
 

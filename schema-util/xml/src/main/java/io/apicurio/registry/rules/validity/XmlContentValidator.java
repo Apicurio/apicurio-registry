@@ -19,24 +19,27 @@ public class XmlContentValidator implements ContentValidator {
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map) 
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
-    public void validate(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, TypedContent content,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = content.getContent().stream()) {
                 DocumentBuilderAccessor.getDocumentBuilder().parse(stream);
             } catch (Exception e) {
-                throw new RuleViolationException("Syntax violation for XML artifact.", RuleType.VALIDITY, level.name(), e);
+                throw new RuleViolationException("Syntax violation for XML artifact.", RuleType.VALIDITY,
+                        level.name(), e);
             }
         }
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List) 
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List)
      */
     @Override
-    public void validateReferences(TypedContent content, List<ArtifactReference> references) throws RuleViolationException {
+    public void validateReferences(TypedContent content, List<ArtifactReference> references)
+            throws RuleViolationException {
         // Note: not yet implemented!
     }
 

@@ -9,7 +9,6 @@ public class GroupAlreadyExistsException extends AlreadyExistsException {
     @Getter
     private final String groupId;
 
-
     public GroupAlreadyExistsException(String groupId) {
         super("Group '" + groupId + "' already exists.");
         this.groupId = groupId;

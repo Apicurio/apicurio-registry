@@ -16,12 +16,12 @@ import lombok.ToString;
 @Builder
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class SetConfigProperty1Message extends AbstractMessage {
-    
+
     private DynamicConfigPropertyDto propertyDto;
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(io.apicurio.registry.storage.RegistryStorage)
      */

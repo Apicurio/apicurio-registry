@@ -22,16 +22,11 @@ public class SearchedBranchMapper implements RowMapper<SearchedBranchDto> {
      */
     @Override
     public SearchedBranchDto map(ResultSet rs) throws SQLException {
-        return SearchedBranchDto.builder()
-                .groupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")))
-                .artifactId(rs.getString("artifactId"))
-                .branchId(rs.getString("branchId"))
-                .description(rs.getString("description"))
-                .systemDefined(rs.getBoolean("systemDefined"))
-                .owner(rs.getString("owner"))
-                .createdOn(rs.getTimestamp("createdOn").getTime())
-                .modifiedBy(rs.getString("modifiedBy"))
-                .modifiedOn(rs.getTimestamp("modifiedOn").getTime())
+        return SearchedBranchDto.builder().groupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")))
+                .artifactId(rs.getString("artifactId")).branchId(rs.getString("branchId"))
+                .description(rs.getString("description")).systemDefined(rs.getBoolean("systemDefined"))
+                .owner(rs.getString("owner")).createdOn(rs.getTimestamp("createdOn").getTime())
+                .modifiedBy(rs.getString("modifiedBy")).modifiedOn(rs.getTimestamp("modifiedOn").getTime())
                 .build();
     }
 }

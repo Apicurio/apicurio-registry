@@ -15,10 +15,10 @@ import lombok.ToString;
 @Builder
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class DeleteArtifact2Message extends AbstractMessage {
-    
+
     private String groupId;
     private String artifactId;
 

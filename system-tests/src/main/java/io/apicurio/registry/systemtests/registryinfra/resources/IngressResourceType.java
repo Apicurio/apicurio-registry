@@ -30,10 +30,7 @@ public class IngressResourceType implements ResourceType<Ingress> {
 
     @Override
     public Ingress get(String namespace, String name) {
-        return getOperation()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return getOperation().inNamespace(namespace).withName(name).get();
     }
 
     public static MixedOperation<Ingress, KubernetesResourceList<Ingress>, Resource<Ingress>> getOperation() {
@@ -42,24 +39,18 @@ public class IngressResourceType implements ResourceType<Ingress> {
 
     @Override
     public void create(Ingress resource) {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .create(resource);
+        getOperation().inNamespace(resource.getMetadata().getNamespace()).create(resource);
     }
 
     @Override
     public void createOrReplace(Ingress resource) {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .createOrReplace(resource);
+        getOperation().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
     }
 
     @Override
     public void delete(Ingress resource) throws Exception {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .withName(resource.getMetadata().getName())
-                .delete();
+        getOperation().inNamespace(resource.getMetadata().getNamespace())
+                .withName(resource.getMetadata().getName()).delete();
     }
 
     @Override
@@ -85,35 +76,42 @@ public class IngressResourceType implements ResourceType<Ingress> {
 
     /** Get default instances **/
 
-    public static Ingress getDefaultSelenium(String name, String namespace)  {
-        return new IngressBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                    .withLabels(Collections.singletonMap("app", name))
-                .endMetadata()
-                .withNewSpec()
-                .withRules(new IngressRule() {{
-                    setHost(name + ".127.0.0.1.nip.io");
-                    setHttp(new HTTPIngressRuleValue() {{
-                        setPaths(new ArrayList<>() {{
-                            add(new HTTPIngressPath() {{
-                                setPath("/");
-                                setPathType("Prefix");
-                                setBackend(new IngressBackend() {{
-                                    setService(new IngressServiceBackend() {{
-                                        setName(name);
-                                        setPort(new ServiceBackendPort() {{
-                                            setNumber(4444);
-                                        }});
-                                    }});
-                                }});
-                            }});
-                        }});
-                    }});
-                }})
-                .endSpec()
-                .build();
+    public static Ingress getDefaultSelenium(String name, String namespace) {
+        return new IngressBuilder().withNewMetadata().withName(name).withNamespace(namespace)
+                .withLabels(Collections.singletonMap("app", name)).endMetadata().withNewSpec()
+                .withRules(new IngressRule() {
+                    {
+                        setHost(name + ".127.0.0.1.nip.io");
+                        setHttp(new HTTPIngressRuleValue() {
+                            {
+                                setPaths(new ArrayList<>() {
+                                    {
+                                        add(new HTTPIngressPath() {
+                                            {
+                                                setPath("/");
+                                                setPathType("Prefix");
+                                                setBackend(new IngressBackend() {
+                                                    {
+                                                        setService(new IngressServiceBackend() {
+                                                            {
+                                                                setName(name);
+                                                                setPort(new ServiceBackendPort() {
+                                                                    {
+                                                                        setNumber(4444);
+                                                                    }
+                                                                });
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }).endSpec().build();
     }
 
     public static Ingress getDefaultSelenium() {

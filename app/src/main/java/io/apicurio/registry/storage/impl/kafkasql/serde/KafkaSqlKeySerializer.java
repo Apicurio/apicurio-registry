@@ -1,21 +1,19 @@
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
 import org.apache.commons.io.output.UnsynchronizedByteArrayOutputStream;
 import org.apache.kafka.common.serialization.Serializer;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 
 /**
  * Responsible for serializing the message key to bytes.
  */
 public class KafkaSqlKeySerializer implements Serializer<KafkaSqlMessageKey> {
-    
+
     private static final ObjectMapper mapper = new ObjectMapper();
     static {
         mapper.setSerializationInclusion(Include.NON_NULL);

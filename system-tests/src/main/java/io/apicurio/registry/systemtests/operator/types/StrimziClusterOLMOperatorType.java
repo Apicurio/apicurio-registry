@@ -20,19 +20,12 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
     }
 
     public StrimziClusterOLMOperatorType(boolean isClusterWide) {
-        super(
-                null,
-                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE,
-                isClusterWide
-        );
+        super(null, isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE,
+                isClusterWide);
     }
 
     public StrimziClusterOLMOperatorType(String source, String operatorNamespace, boolean isClusterWide) {
-        super(
-                source,
-                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
-                isClusterWide
-        );
+        super(source, isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace, isClusterWide);
     }
 
     @Override
@@ -52,7 +45,8 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
 
     @Override
     public Deployment getDeployment() {
-        return Kubernetes.getDeploymentByPrefix(getSubscription().getMetadata().getNamespace(), getDeploymentName());
+        return Kubernetes.getDeploymentByPrefix(getSubscription().getMetadata().getNamespace(),
+                getDeploymentName());
     }
 
     @Override
@@ -64,9 +58,11 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
         String kafkaPackage = Environment.KAFKA_PACKAGE;
 
         if (getClusterWide()) {
-            LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(), getNamespace());
+            LOGGER.info("Installing cluster wide OLM operator {} in namespace {}...", getKind(),
+                    getNamespace());
         } else {
-            LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(), getNamespace());
+            LOGGER.info("Installing namespaced OLM operator {} in namespace {}...", getKind(),
+                    getNamespace());
             if (!Kubernetes.namespaceHasAnyOperatorGroup(getNamespace())) {
                 setOperatorGroup(OperatorUtils.createOperatorGroup(getNamespace()));
             }
@@ -79,17 +75,10 @@ public class StrimziClusterOLMOperatorType extends OLMOperator implements Operat
 
         LOGGER.info("OLM operator CSV: {}", getClusterServiceVersion());
 
-        setSubscription(SubscriptionResourceType.getDefault(
-                "kafka-subscription",
-                getNamespace(),
-                kafkaPackage,
-                catalogName,
-                catalogNamespace,
-                getClusterServiceVersion(),
-                channelName
-        ));
+        setSubscription(SubscriptionResourceType.getDefault("kafka-subscription", getNamespace(),
+                kafkaPackage, catalogName, catalogNamespace, getClusterServiceVersion(), channelName));
 
-        ResourceManager.getInstance().createSharedResource( true, getSubscription());
+        ResourceManager.getInstance().createSharedResource(true, getSubscription());
 
         /* Waiting for operator deployment readiness is implemented in OperatorManager. */
     }

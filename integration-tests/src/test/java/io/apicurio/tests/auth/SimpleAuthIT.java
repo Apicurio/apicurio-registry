@@ -46,7 +46,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Override
     public void cleanArtifacts() throws Exception {
-        //Don't clean
+        // Don't clean
     }
 
     @Override
@@ -63,7 +63,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var auth = buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55");
+        var auth = buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID,
+                "test55");
         RegistryClient client = createClient(auth);
         var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId("foo").artifacts().get();
@@ -73,7 +74,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testReadOnly() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -92,13 +94,16 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         });
         assertForbidden(exception3);
 
-        var devAdapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var devAdapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient devClient = new RegistryClient(devAdapter);
 
-        VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
+        VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact)
+                .getVersion();
 
-        TestUtils.retry(() -> devClient.groups().byGroupId(groupId).artifacts().byArtifactId(meta.getArtifactId()).get());
+        TestUtils.retry(() -> devClient.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(meta.getArtifactId()).get());
 
         assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
@@ -112,7 +117,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testDevRole() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -121,9 +127,12 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
-            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
+            TestUtils.retry(
+                    () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            Assertions.assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
+            Assertions.assertTrue(
+                    client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                            .byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
             CreateRule createRule = new CreateRule();
             createRule.setRuleType(RuleType.VALIDITY);
@@ -148,7 +157,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testAdminRole() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -157,9 +167,12 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
-            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
+            TestUtils.retry(
+                    () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            Assertions.assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
+            Assertions.assertTrue(
+                    client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                            .byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
             CreateRule createRule = new CreateRule();
             createRule.setRuleType(RuleType.VALIDITY);
@@ -181,7 +194,9 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     protected void assertArtifactNotFound(Exception exception) {
         Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, exception.getClass());
-        Assertions.assertEquals("ArtifactNotFoundException", ((io.apicurio.registry.rest.client.models.Error) exception).getName());
-        Assertions.assertEquals(404, ((io.apicurio.registry.rest.client.models.Error) exception).getErrorCode());
+        Assertions.assertEquals("ArtifactNotFoundException",
+                ((io.apicurio.registry.rest.client.models.Error) exception).getName());
+        Assertions.assertEquals(404,
+                ((io.apicurio.registry.rest.client.models.Error) exception).getErrorCode());
     }
 }

@@ -91,7 +91,6 @@ public abstract class JsonSchemaWrapperVisitor {
         }
     }
 
-
     public void visitItemSchemas(List<SchemaWrapper> itemSchemas) {
     }
 
@@ -194,7 +193,6 @@ public abstract class JsonSchemaWrapperVisitor {
 
     }
 
-
     public void visitObjectSchema(ObjectSchemaWrapper objectSchema) {
         visitSchema(objectSchema);
         visitRequiredProperties(objectSchema.getRequiredProperties());
@@ -236,7 +234,6 @@ public abstract class JsonSchemaWrapperVisitor {
             visitPropertyDependencies(entry.getKey(), entry.getValue());
         }
     }
-
 
     public void visitRequiredProperties(List<String> requiredProperties) {
         for (String requiredPropName : requiredProperties) {
@@ -323,8 +320,8 @@ public abstract class JsonSchemaWrapperVisitor {
         } else if (CombinedSchema.ONE_CRITERION == criterion) {
             visitOneOfCombinedSchema(combinedSchema);
         } else {
-            throw new IllegalStateException("Could not determine if the combined schema is " +
-                "'allOf', 'anyOf', or 'oneOf': " + combinedSchema);
+            throw new IllegalStateException("Could not determine if the combined schema is "
+                    + "'allOf', 'anyOf', or 'oneOf': " + combinedSchema);
         }
     }
 
@@ -348,7 +345,6 @@ public abstract class JsonSchemaWrapperVisitor {
     public void visitAllOfCombinedSchema(CombinedSchemaWrapper schema) {
 
     }
-
 
     public void visitConditionalSchema(ConditionalSchemaWrapper conditionalSchema) {
         visitSchema(conditionalSchema);

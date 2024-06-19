@@ -22,6 +22,7 @@ public class EntityReader {
 
     /**
      * Constructor.
+     * 
      * @param zip
      */
     public EntityReader(ZipInputStream zip) {
@@ -123,7 +124,7 @@ public class EntityReader {
     }
 
     private <T> T readEntry(ZipEntry entry, Class<T> theClass) throws IOException {
-        byte [] bytes = IoUtil.toBytes(zip, false);
+        byte[] bytes = IoUtil.toBytes(zip, false);
         T entity = mapper.readerFor(theClass).readValue(bytes);
         return entity;
     }

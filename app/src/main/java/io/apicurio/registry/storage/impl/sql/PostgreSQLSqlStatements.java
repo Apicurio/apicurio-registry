@@ -1,8 +1,8 @@
 package io.apicurio.registry.storage.impl.sql;
 
 /**
- * PostgreSQL implementation of the sql statements interface.  Provides sql statements that
- * are specific to PostgreSQL, where applicable.
+ * PostgreSQL implementation of the sql statements interface. Provides sql statements that are specific to
+ * PostgreSQL, where applicable.
  */
 public class PostgreSQLSqlStatements extends CommonSqlStatements {
 

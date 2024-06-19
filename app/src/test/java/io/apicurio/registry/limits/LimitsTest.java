@@ -47,7 +47,8 @@ public class LimitsTest extends AbstractResourceTestBase {
     @Test
     public void testLimits() throws Exception {
 
-        InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);
         String content = IoUtil.toString(jsonSchema);
 
@@ -56,51 +57,36 @@ public class LimitsTest extends AbstractResourceTestBase {
         createArtifact(artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
         createArtifactVersion(artifactId, content, ContentTypes.APPLICATION_JSON);
 
-        //valid metadata
+        // valid metadata
         EditableVersionMetaData meta = new EditableVersionMetaData();
         meta.setName(StringUtils.repeat('a', 512));
         meta.setDescription(StringUtils.repeat('a', 1024));
         String fourBytesText = StringUtils.repeat('a', 4);
         var labels = new Labels();
-        labels.setAdditionalData(Map.of(
-                StringUtils.repeat('a', 4), fourBytesText,
-                StringUtils.repeat('b', 4), fourBytesText));
+        labels.setAdditionalData(
+                Map.of(StringUtils.repeat('a', 4), fourBytesText, StringUtils.repeat('b', 4), fourBytesText));
         meta.setLabels(labels);
-        clientV3
-            .groups()
-            // TODO: verify groupId = null cannot be used
-            .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
-            .artifacts()
-            .byArtifactId(artifactId)
-            .versions()
-            .byVersionExpression("1")
-            .put(meta)
-            ;
+        clientV3.groups()
+                // TODO: verify groupId = null cannot be used
+                .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).versions().byVersionExpression("1").put(meta);
 
-        //invalid metadata
+        // invalid metadata
         EditableVersionMetaData invalidmeta = new EditableVersionMetaData();
         invalidmeta.setName(StringUtils.repeat('a', 513));
         invalidmeta.setDescription(StringUtils.repeat('a', 1025));
         String fiveBytesText = StringUtils.repeat('a', 5);
         var labels2 = new Labels();
-        labels2.setAdditionalData(Map.of(
-                StringUtils.repeat('a', 5), fiveBytesText,
-                StringUtils.repeat('b', 5), fiveBytesText));
+        labels2.setAdditionalData(
+                Map.of(StringUtils.repeat('a', 5), fiveBytesText, StringUtils.repeat('b', 5), fiveBytesText));
         invalidmeta.setLabels(labels2);
         var exception1 = Assertions.assertThrows(ApiException.class, () -> {
-            clientV3
-                .groups()
-                .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
-                .artifacts()
-                .byArtifactId(artifactId)
-                .versions()
-                .byVersionExpression("1")
-                .put(invalidmeta)
-                ;
+            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                    .byArtifactId(artifactId).versions().byVersionExpression("1").put(invalidmeta);
         });
         Assertions.assertEquals(409, exception1.getResponseStatusCode());
 
-        //schema number 3 , exceeds the max number of schemas
+        // schema number 3 , exceeds the max number of schemas
         var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
             CreateArtifact createArtifact = new CreateArtifact();
             createArtifact.setArtifactId(artifactId);
@@ -112,11 +98,8 @@ public class LimitsTest extends AbstractResourceTestBase {
             versionContent.setContent("{}");
             versionContent.setContentType(ContentTypes.APPLICATION_JSON);
 
-            clientV3
-                .groups()
-                .byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
-                .artifacts()
-                .post(createArtifact);
+            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                    .post(createArtifact);
         });
         Assertions.assertEquals(409, exception2.getErrorCode());
     }

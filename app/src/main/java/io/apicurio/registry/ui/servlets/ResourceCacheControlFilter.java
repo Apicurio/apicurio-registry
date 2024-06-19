@@ -1,8 +1,5 @@
 package io.apicurio.registry.ui.servlets;
 
-import java.io.IOException;
-import java.util.Date;
-
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -12,9 +9,11 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.io.IOException;
+import java.util.Date;
+
 /**
  * {@link Filter} to add cache control headers for resources such as CSS and images.
- *
  */
 public class ResourceCacheControlFilter implements Filter {
 
@@ -29,7 +28,7 @@ public class ResourceCacheControlFilter implements Filter {
     private static long expiredSinceYesterday(Date now) {
         return now.getTime() - 86400000L;
     }
-    
+
     /**
      * C'tor
      */
@@ -44,10 +43,12 @@ public class ResourceCacheControlFilter implements Filter {
     }
 
     /**
-     * @see jakarta.servlet.Filter#doFilter(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse, jakarta.servlet.FilterChain)
+     * @see jakarta.servlet.Filter#doFilter(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse,
+     *      jakarta.servlet.FilterChain)
      */
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
         String requestURI = ((HttpServletRequest) request).getRequestURI();
         Date now = new Date();
         HttpServletResponse httpResponse = (HttpServletResponse) response;
@@ -63,7 +64,7 @@ public class ResourceCacheControlFilter implements Filter {
         } else if (requestURI.contains("/apis/")) {
             disableCaching = true;
         }
-        
+
         if (disableCaching) {
             disableHttpCaching(httpResponse);
         } else {

@@ -12,9 +12,7 @@ import java.io.InputStream;
 import java.util.List;
 
 /**
- * Test artifact against current artifact rules,
- * if an update is possible / valid.
- *
+ * Test artifact against current artifact rules, if an update is possible / valid.
  */
 @Mojo(name = "test-update")
 public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
@@ -36,18 +34,25 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
             int errorCount = 0;
             for (TestArtifact artifact : artifacts) {
                 if (artifact.getGroupId() == null) {
-                    getLog().error(String.format("GroupId is required when testing an artifact.  Missing from artifacts[%d].", idx));
+                    getLog().error(String.format(
+                            "GroupId is required when testing an artifact.  Missing from artifacts[%d].",
+                            idx));
                     errorCount++;
                 }
                 if (artifact.getArtifactId() == null) {
-                    getLog().error(String.format("ArtifactId is required when testing an artifact.  Missing from artifacts[%s].", idx));
+                    getLog().error(String.format(
+                            "ArtifactId is required when testing an artifact.  Missing from artifacts[%s].",
+                            idx));
                     errorCount++;
                 }
                 if (artifact.getFile() == null) {
-                    getLog().error(String.format("File is required when testing an artifact.  Missing from artifacts[%s].", idx));
+                    getLog().error(String.format(
+                            "File is required when testing an artifact.  Missing from artifacts[%s].", idx));
                     errorCount++;
                 } else if (!artifact.getFile().isFile()) {
-                    getLog().error(String.format("Artifact file to test is configured but file does not exist or is not a file: %s", artifact.getFile().getPath()));
+                    getLog().error(String.format(
+                            "Artifact file to test is configured but file does not exist or is not a file: %s",
+                            artifact.getFile().getPath()));
                     errorCount++;
                 }
 
@@ -55,7 +60,8 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
             }
 
             if (errorCount > 0) {
-                throw new MojoExecutionException("Invalid configuration of the Test Update Artifact(s) mojo. See the output log for details.");
+                throw new MojoExecutionException(
+                        "Invalid configuration of the Test Update Artifact(s) mojo. See the output log for details.");
             }
         }
     }
@@ -76,13 +82,18 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
                     cv.setContent(new VersionContent());
                     cv.getContent().setContentType(contentType);
                     cv.getContent().setContent(content);
-                    getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(cv, config -> {
-                        config.queryParameters.dryRun = true;
-                    });
-                    getLog().info(String.format("[%s] / [%s] :: Artifact successfully tested (updating is allowed for the given content).", groupId, artifactId));
+                    getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                            .post(cv, config -> {
+                                config.queryParameters.dryRun = true;
+                            });
+                    getLog().info(String.format(
+                            "[%s] / [%s] :: Artifact successfully tested (updating is allowed for the given content).",
+                            groupId, artifactId));
                 } catch (Exception e) {
                     errorCount++;
-                    getLog().error(String.format("[%s] / [%s] :: Artifact test FAILED (updating is not allowed for the given content).", groupId, artifactId), e);
+                    getLog().error(String.format(
+                            "[%s] / [%s] :: Artifact test FAILED (updating is not allowed for the given content).",
+                            groupId, artifactId), e);
                 }
             }
         }

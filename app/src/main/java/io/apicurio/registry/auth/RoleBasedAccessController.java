@@ -24,7 +24,8 @@ public class RoleBasedAccessController extends AbstractAccessController {
         Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
         AuthorizedLevel level = annotation.level();
 
-        // If the method has a "dryRun" query param set to True then downgrade the required level from Write to Read
+        // If the method has a "dryRun" query param set to True then downgrade the required level from Write
+        // to Read
         if (annotation.dryRunParam() != -1 && level == AuthorizedLevel.Write) {
             Boolean dryRun = (Boolean) context.getParameters()[annotation.dryRunParam()];
             if (dryRun != null && dryRun.equals(Boolean.TRUE)) {

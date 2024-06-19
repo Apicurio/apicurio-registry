@@ -10,7 +10,8 @@ import java.util.Set;
 public class ProtobufReferenceFinderTest extends ArtifactUtilProviderTestBase {
 
     /**
-     * Test method for {@link io.apicurio.registry.content.refs.AsyncApiReferenceFinder#findExternalReferences(io.apicurio.registry.content.ContentHandle)}.
+     * Test method for
+     * {@link io.apicurio.registry.content.refs.AsyncApiReferenceFinder#findExternalReferences(io.apicurio.registry.content.ContentHandle)}.
      */
     @Test
     public void testFindExternalReferences() {
@@ -19,9 +20,8 @@ public class ProtobufReferenceFinderTest extends ArtifactUtilProviderTestBase {
         Set<ExternalReference> foundReferences = finder.findExternalReferences(content);
         Assertions.assertNotNull(foundReferences);
         Assertions.assertEquals(3, foundReferences.size());
-        Assertions.assertEquals(Set.of(
-                new ExternalReference("google/protobuf/timestamp.proto"), 
-                new ExternalReference("sample/table_info.proto"), 
+        Assertions.assertEquals(Set.of(new ExternalReference("google/protobuf/timestamp.proto"),
+                new ExternalReference("sample/table_info.proto"),
                 new ExternalReference("sample/table_notification_type.proto")), foundReferences);
     }
 

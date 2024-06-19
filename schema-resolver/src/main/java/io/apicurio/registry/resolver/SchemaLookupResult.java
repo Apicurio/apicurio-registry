@@ -15,7 +15,7 @@ public class SchemaLookupResult<T> {
     private String version;
 
     private SchemaLookupResult() {
-        //empty initialize manually
+        // empty initialize manually
     }
 
     /**
@@ -68,22 +68,14 @@ public class SchemaLookupResult<T> {
     }
 
     public ArtifactReference toArtifactReference() {
-        return ArtifactReference.builder()
-                .globalId(this.getGlobalId())
-                .contentId(this.getContentId())
-                .contentHash(this.getContentHash())
-                .groupId(this.getGroupId())
-                .artifactId(this.getArtifactId())
-                .version(this.getVersion())
-                .build();
+        return ArtifactReference.builder().globalId(this.getGlobalId()).contentId(this.getContentId())
+                .contentHash(this.getContentHash()).groupId(this.getGroupId())
+                .artifactId(this.getArtifactId()).version(this.getVersion()).build();
     }
 
     public ArtifactCoordinates toArtifactCoordinates() {
-        return ArtifactCoordinates.builder()
-                .groupId(this.getGroupId())
-                .artifactId(this.getArtifactId())
-                .version(this.getVersion())
-                .build();
+        return ArtifactCoordinates.builder().groupId(this.getGroupId()).artifactId(this.getArtifactId())
+                .version(this.getVersion()).build();
     }
 
     public static <T> SchemaLookupResultBuilder<T> builder() {

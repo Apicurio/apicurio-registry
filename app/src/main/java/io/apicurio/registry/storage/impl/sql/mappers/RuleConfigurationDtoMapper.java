@@ -1,10 +1,10 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class RuleConfigurationDtoMapper implements RowMapper<RuleConfigurationDto> {
 

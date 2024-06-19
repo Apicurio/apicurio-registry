@@ -5,7 +5,6 @@ import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.utils.IoUtil;
-
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -20,7 +19,6 @@ import java.util.Objects;
 /**
  * Very simplistic converter that delegates most of the work to the configured serializer and deserializer.
  * Subclasses should override applySchema(Schema, Object) and provideSchema(T) or toSchemaAndValue(T).
- *
  */
 @SuppressWarnings("rawtypes")
 public class SerdeBasedConverter<S, T> implements Converter, Closeable {
@@ -46,7 +44,7 @@ public class SerdeBasedConverter<S, T> implements Converter, Closeable {
         return Deserializer.class;
     }
 
-    //set converter's schema resolver, to share the cache between serializer and deserializer
+    // set converter's schema resolver, to share the cache between serializer and deserializer
     @SuppressWarnings("unchecked")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
@@ -90,7 +88,7 @@ public class SerdeBasedConverter<S, T> implements Converter, Closeable {
 
     @SuppressWarnings("unchecked")
     protected T applySchema(Schema schema, Object value) {
-        //noinspection unchecked
+        // noinspection unchecked
         return (T) value;
     }
 

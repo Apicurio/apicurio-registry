@@ -21,10 +21,9 @@ import java.util.Set;
 import static java.util.Collections.emptyList;
 
 /**
- * Rule executor for the "Compatibility" rule.  The Compatibility Rule is responsible
- * for ensuring that the updated content does not violate the configured compatibility
- * level.  Levels include e.g. Backward compatibility.
- *
+ * Rule executor for the "Compatibility" rule. The Compatibility Rule is responsible for ensuring that the
+ * updated content does not violate the configured compatibility level. Levels include e.g. Backward
+ * compatibility.
  */
 @ApplicationScoped
 @Logged
@@ -42,24 +41,25 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(context.getArtifactType());
         CompatibilityChecker checker = provider.getCompatibilityChecker();
         List<TypedContent> existingArtifacts = context.getCurrentContent() != null
-                ? context.getCurrentContent() : emptyList();
-        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(
-                level,
-                existingArtifacts,
-                context.getUpdatedContent(),
-                context.getResolvedReferences());
+            ? context.getCurrentContent() : emptyList();
+        CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(level,
+                existingArtifacts, context.getUpdatedContent(), context.getResolvedReferences());
         if (!compatibilityExecutionResult.isCompatible()) {
-            throw new RuleViolationException(String.format("Incompatible artifact: %s [%s], num of incompatible diffs: {%s}, list of diff types: %s",
+            throw new RuleViolationException(String.format(
+                    "Incompatible artifact: %s [%s], num of incompatible diffs: {%s}, list of diff types: %s",
                     context.getArtifactId(), context.getArtifactType(),
-                    compatibilityExecutionResult.getIncompatibleDifferences().size(), outputReadableCompatabilityDiffs(compatibilityExecutionResult.getIncompatibleDifferences())),
+                    compatibilityExecutionResult.getIncompatibleDifferences().size(),
+                    outputReadableCompatabilityDiffs(
+                            compatibilityExecutionResult.getIncompatibleDifferences())),
                     RuleType.COMPATIBILITY, context.getConfiguration(),
                     transformCompatibilityDiffs(compatibilityExecutionResult.getIncompatibleDifferences()));
         }
     }
 
     /**
-     * Convert the set of compatibility differences into a collection of rule violation causes
-     * for return to the user.
+     * Convert the set of compatibility differences into a collection of rule violation causes for return to
+     * the user.
+     * 
      * @param differences
      */
     private Set<RuleViolation> transformCompatibilityDiffs(Set<CompatibilityDifference> differences) {
@@ -78,7 +78,8 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
         if (!differences.isEmpty()) {
             List<String> res = new ArrayList<String>();
             for (CompatibilityDifference diff : differences) {
-                res.add(diff.asRuleViolation().getDescription() + " at " + diff.asRuleViolation().getContext());
+                res.add(diff.asRuleViolation().getDescription() + " at "
+                        + diff.asRuleViolation().getContext());
             }
             return res;
         } else {

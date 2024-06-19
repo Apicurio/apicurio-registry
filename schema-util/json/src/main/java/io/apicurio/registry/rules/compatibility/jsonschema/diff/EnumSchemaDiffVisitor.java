@@ -14,7 +14,6 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.
 
 public class EnumSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
-
     private final DiffContext ctx;
     private final EnumSchema original;
 
@@ -30,13 +29,8 @@ public class EnumSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitEnumValues(Set<Object> values) {
-        diffSetChanged(ctx.sub("enum"),
-            original.getPossibleValues(),
-            values,
-            UNDEFINED_UNUSED,
-            UNDEFINED_UNUSED,
-            ENUM_TYPE_VALUES_CHANGED,
-            ENUM_TYPE_VALUES_MEMBER_ADDED,
-            ENUM_TYPE_VALUES_MEMBER_REMOVED);
+        diffSetChanged(ctx.sub("enum"), original.getPossibleValues(), values, UNDEFINED_UNUSED,
+                UNDEFINED_UNUSED, ENUM_TYPE_VALUES_CHANGED, ENUM_TYPE_VALUES_MEMBER_ADDED,
+                ENUM_TYPE_VALUES_MEMBER_REMOVED);
     }
 }

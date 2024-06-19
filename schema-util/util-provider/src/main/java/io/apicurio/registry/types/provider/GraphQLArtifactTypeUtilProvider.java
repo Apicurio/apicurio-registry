@@ -25,7 +25,8 @@ public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
         try {
             String contentType = content.getContentType();
             if (contentType.toLowerCase().contains("graph")) {
-                TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(content.getContent().content());
+                TypeDefinitionRegistry typeRegistry = new SchemaParser()
+                        .parse(content.getContent().content());
                 if (typeRegistry != null) {
                     return true;
                 }
@@ -65,7 +66,7 @@ public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     public ContentDereferencer getContentDereferencer() {
         return null;
     }
-    
+
     /**
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
      */

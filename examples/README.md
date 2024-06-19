@@ -1,8 +1,8 @@
 # Apicurio Registry Example Applications
 This repository contains a set of example applications (mostly Kafka applications) that use the
-Apicurio Registry as part of their workflow.  The registry is typically used to store schemas 
+Apicurio Registry as part of their workflow.  The registry is typically used to store schemas
 used by Kafka serializer and deserializer classes.  These serdes classes will fetch the schema
-from the registry for use during producing or consuming operations (to serializer, deserializer, 
+from the registry for use during producing or consuming operations (to serializer, deserializer,
 or validate the Kafka message payload).
 
 Each example in this repository attempts to demonstrate some specific use-case or configuration.
@@ -23,13 +23,13 @@ Simply run ``docker-compose  -f examples/tools/kafka-compose/kafka-compose.yaml 
 A list of examples is included below, with descriptions and explanations of each covered use-case.
 
 ## Simple Avro Example
-This example application demonstrates the basics of using the registry in a very simple Kafka 
-publish/subscribe application using Apache Avro as the schema technology used to serialize 
-and deserialize message payloads.  
+This example application demonstrates the basics of using the registry in a very simple Kafka
+publish/subscribe application using Apache Avro as the schema technology used to serialize
+and deserialize message payloads.
 
 ## Simple JSON Schema Example
-This example application demonstrates the basics of using the registry in a very simple Kafka 
-publish/subscribe application using JSON Schema to validate message payloads when both producing 
+This example application demonstrates the basics of using the registry in a very simple Kafka
+publish/subscribe application using JSON Schema to validate message payloads when both producing
 and consuming them.  JSON Schema is not a serialization technology, but rather is only used for
 validation. Therefore, it can be enabled or disabled in the serializer and deserializer.
 
@@ -42,7 +42,7 @@ is essentially the same as the Simple Avro Example, but using a Confluent serial
 Apicurio Registry deserializer.
 
 ## Avro Bean Example
-This example demonstrates how to use Avro as the schema and serialization technology while 
+This example demonstrates how to use Avro as the schema and serialization technology while
 using a Java Bean as the Kafka message payload.  This is essentially the same as the Simple
 Avro Example, but using a java bean instead of a `GenericRecord` as the message payload.
 
@@ -55,15 +55,15 @@ the same as the Simple Avro Example, except instead of using one of the default 
 Registry Global ID strategies, it uses a custom one.
 
 ## Simple Avro Maven Example
-This example application demonstrates how to use the Apicurio Registry maven plugin to 
+This example application demonstrates how to use the Apicurio Registry maven plugin to
 pre-register an Avro schema so that it does not need to be embedded within the producer
 application.  Note that this example will fail unless the maven plugin is executed before
 the Java application. See the javadoc in the example for details.
 
 ## Rest Client example
-This example application demonstrates how to use the Apicurio Registry rest client to create, 
-delete, or fetch schemas. This example contains two basic java application, one showing how to 
-improve the logs by logging all the request and response headers and a basic example on how to 
+This example application demonstrates how to use the Apicurio Registry rest client to create,
+delete, or fetch schemas. This example contains two basic java application, one showing how to
+improve the logs by logging all the request and response headers and a basic example on how to
 use the client.
 
 ## Mix Avro Schemas Example

@@ -9,7 +9,7 @@ Apicurio Registry testsuite has various types of tests: unit tests and integrati
 Quick tests that verify specific functionalities or components of the application. Each maven module can have it's own set of unit tests.
 For the Apicurio Registry app they can be found in `app/src/test`
 
-Because Apicurio Registry is a Quarkus application we use `@QuarkusTest` for the unit tests, that allow us to run multiple different configurations of 
+Because Apicurio Registry is a Quarkus application we use `@QuarkusTest` for the unit tests, that allow us to run multiple different configurations of
 the application, easily provide mocks or external dependencies... QuarkusTest allows us to easily verify feature flags or config properties that change completely the behavior of the application. In order to do that we use `@QuarkusTestProfile` quite often.
 
 Unit tests are executed as part of the project build. You can build the project and run the tests by executing this command:

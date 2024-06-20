@@ -2,13 +2,18 @@ import axios, { AxiosRequestConfig } from "axios";
 import { ContentTypes } from "@models/contentTypes.model.ts";
 import { AuthService } from "@apicurio/common-ui-components";
 import { Buffer } from "buffer";
-
-import { AnonymousAuthenticationProvider, AuthenticationProvider, Headers, RequestInformation } from "@microsoft/kiota-abstractions";
+import { AuthenticationProvider, Headers, RequestInformation } from "@microsoft/kiota-abstractions";
 import { ConfigService } from "@services/useConfigService";
-import { ApicurioRegistryClient, createApicurioRegistryClient } from "@apicurio/apicurio-registry-client/src-generated/registry-client/apicurioRegistryClient";
-import { FetchRequestAdapter } from "@microsoft/kiota-http-fetchlibrary";
+import { RegistryClientFactory } from "@sdk/lib/sdk";
+import { ApicurioRegistryClient } from "@sdk/lib/generated-client/apicurioRegistryClient.ts";
 
-// START - Kiota Machinery
+
+/**
+ * An authentication provider for Kiota - used in the generated SDK client to provide
+ * auth information when making REST calls to the Registry backend.
+ *
+ * TODO: possibly move this to https://github.com/Apicurio/apicurio-common-ui-components
+ */
 export class TokenAuthenticationProvider implements AuthenticationProvider {
     private readonly key: string;
     private readonly accessTokenProvider: () => Promise<string>;
@@ -37,25 +42,30 @@ export class TokenAuthenticationProvider implements AuthenticationProvider {
     };
 }
 
-export function createAuthProvider(auth: AuthService): AuthenticationProvider {
+export function createAuthProvider(auth: AuthService): AuthenticationProvider | undefined {
     if (auth.isOidcAuthEnabled()) {
-        return new TokenAuthenticationProvider("Bearer", async () => auth.getToken().then(v => v!));
+        return new TokenAuthenticationProvider("Bearer", () => auth.getToken().then(v => v!));
     } else if (auth.isBasicAuthEnabled()) {
         const creds = auth.getUsernameAndPassword();
         const base64Credentials = Buffer.from(`${creds?.username}:${creds?.password}`, "ascii").toString("base64");
         return new TokenAuthenticationProvider("Basic", async () => base64Credentials);
-    } else {
-        return new AnonymousAuthenticationProvider();
     }
+    return undefined;
 }
 
-export function createRegistryClient(config: ConfigService, auth: AuthService): ApicurioRegistryClient {
+function createRegistryClient(config: ConfigService, auth: AuthService): ApicurioRegistryClient {
     const authProvider = createAuthProvider(auth);
-    const adapter = new FetchRequestAdapter(authProvider);
-    adapter.baseUrl = config.artifactsUrl();
-    return createApicurioRegistryClient(adapter);
+    return RegistryClientFactory.createRegistryClient(config.artifactsUrl(), authProvider);
 }
-// END - Kiota Machinery
+
+let client: ApicurioRegistryClient;
+
+export const getRegistryClient = (config: ConfigService, auth: AuthService): ApicurioRegistryClient => {
+    if (client === undefined) {
+        client = createRegistryClient(config, auth);
+    }
+    return client;
+};
 
 
 const AXIOS = axios.create();

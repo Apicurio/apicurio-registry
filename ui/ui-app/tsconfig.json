@@ -25,7 +25,8 @@
       "@app/*": [ "./src/app/*" ],
       "@models/*": [ "./src/models/*" ],
       "@utils/*": [ "./src/utils/*" ],
-      "@services/*": [ "./src/services/*" ]
+      "@services/*": [ "./src/services/*" ],
+      "@sdk/*": [ "../../typescript-sdk/*" ]
     }
   },
   "include": [

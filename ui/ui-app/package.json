@@ -32,7 +32,14 @@
   },
   "dependencies": {
     "@apicurio/common-ui-components": "2.0.1",
+    "@apicurio/apicurio-registry-sdk": "file:../../typescript-sdk",
     "@apicurio/data-models": "1.1.27",
+    "@microsoft/kiota-abstractions": "1.0.0-preview.56",
+    "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.55",
+    "@microsoft/kiota-serialization-form": "1.0.0-preview.45",
+    "@microsoft/kiota-serialization-json": "1.0.0-preview.56",
+    "@microsoft/kiota-serialization-multipart": "1.0.0-preview.34",
+    "@microsoft/kiota-serialization-text": "1.0.0-preview.53",
     "@patternfly/patternfly": "5.3.1",
     "@patternfly/react-code-editor": "5.3.3",
     "@patternfly/react-core": "5.3.3",
@@ -47,13 +54,6 @@
     "react-dom": "18.3.1",
     "react-router-dom": "6.23.1",
     "use-resize-observer": "9.1.0",
-    "yaml": "2.4.5",
-    "@apicurio/apicurio-registry-client": "file:../typescript-sdk",
-    "@microsoft/kiota-abstractions": "^1.0.0-preview.56",
-    "@microsoft/kiota-http-fetchlibrary": "^1.0.0-preview.55",
-    "@microsoft/kiota-serialization-form": "^1.0.0-preview.45",
-    "@microsoft/kiota-serialization-json": "^1.0.0-preview.56",
-    "@microsoft/kiota-serialization-multipart": "^1.0.0-preview.34",
-    "@microsoft/kiota-serialization-text": "^1.0.0-preview.53"
+    "yaml": "2.4.5"
   }
 }

@@ -1,12 +1,5 @@
 package io.apicurio.registry.serde;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
-
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.Deserializer;
-
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -17,8 +10,15 @@ import io.apicurio.registry.serde.config.BaseKafkaDeserializerConfig;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Deserializer;
 
-public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe<T, U> implements Deserializer<U> {
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+
+public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe<T, U>
+        implements Deserializer<U> {
 
     protected FallbackArtifactProvider fallbackArtifactProvider;
 
@@ -39,7 +39,8 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#configure(io.apicurio.registry.serde.config.BaseKafkaSerDeConfig, boolean)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#configure(io.apicurio.registry.serde.config.BaseKafkaSerDeConfig,
+     *      boolean)
      */
     @Override
     protected void configure(BaseKafkaSerDeConfig config, boolean isKey) {
@@ -48,12 +49,13 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         BaseKafkaDeserializerConfig deserializerConfig = new BaseKafkaDeserializerConfig(config.originals());
 
         Object fallbackProvider = deserializerConfig.getFallbackArtifactProvider();
-        Utils.instantiate(FallbackArtifactProvider.class, fallbackProvider, this::setFallbackArtifactProvider);
+        Utils.instantiate(FallbackArtifactProvider.class, fallbackProvider,
+                this::setFallbackArtifactProvider);
         fallbackArtifactProvider.configure(config.originals(), isKey);
 
         if (fallbackArtifactProvider instanceof DefaultFallbackArtifactProvider) {
             if (!((DefaultFallbackArtifactProvider) fallbackArtifactProvider).isConfigured()) {
-                //it's not configured, just remove it so it's not executed
+                // it's not configured, just remove it so it's not executed
                 fallbackArtifactProvider = null;
             }
         }
@@ -69,7 +71,8 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
 
     protected abstract U readData(ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);
 
-    protected abstract U readData(Headers headers, ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);
+    protected abstract U readData(Headers headers, ParsedSchema<T> schema, ByteBuffer buffer, int start,
+            int length);
 
     @Override
     public U deserialize(String topic, byte[] data) {
@@ -103,10 +106,11 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         }
         if (data[0] == MAGIC_BYTE) {
             return deserialize(topic, data);
-        } else if (headers == null){
+        } else if (headers == null) {
             throw new IllegalStateException("Headers cannot be null");
         } else {
-            //try to read data even if artifactReference has no value, maybe there is a fallbackArtifactProvider configured
+            // try to read data even if artifactReference has no value, maybe there is a
+            // fallbackArtifactProvider configured
             return readData(topic, headers, data, artifactReference);
         }
     }
@@ -121,7 +125,8 @@ public abstract class AbstractKafkaDeserializer<T, U> extends AbstractKafkaSerDe
         return readData(headers, schema.getParsedSchema(), buffer, start, length);
     }
 
-    private SchemaLookupResult<T> resolve(String topic, Headers headers, byte[] data, ArtifactReference artifactReference) {
+    private SchemaLookupResult<T> resolve(String topic, Headers headers, byte[] data,
+            ArtifactReference artifactReference) {
         try {
             return getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
         } catch (RuntimeException e) {

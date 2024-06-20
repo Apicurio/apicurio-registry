@@ -9,7 +9,6 @@ public class ConfigPropertyNotFoundException extends NotFoundException {
     @Getter
     private final String propertyName;
 
-
     public ConfigPropertyNotFoundException(String propertyName) {
         super("No configuration property named '" + propertyName + "' was found.");
         this.propertyName = propertyName;

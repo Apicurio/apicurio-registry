@@ -1,18 +1,16 @@
 package io.apicurio.registry.metrics.health.readiness;
 
-import java.time.Instant;
-
+import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
-
-import jakarta.annotation.Priority;
 import org.slf4j.Logger;
+
+import java.time.Instant;
 
 /**
  * Fail readiness check if the duration of processing a artifactStore operation is too high.
- *
  */
 @Interceptor
 @Priority(Interceptor.Priority.APPLICATION)

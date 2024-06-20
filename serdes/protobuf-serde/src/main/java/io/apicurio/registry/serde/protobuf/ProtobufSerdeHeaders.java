@@ -1,12 +1,11 @@
 package io.apicurio.registry.serde.protobuf;
 
-import java.util.Map;
-
+import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
+import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 
-import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
-import io.apicurio.registry.utils.IoUtil;
+import java.util.Map;
 
 public class ProtobufSerdeHeaders extends MessageTypeSerdeHeaders {
 
@@ -14,6 +13,7 @@ public class ProtobufSerdeHeaders extends MessageTypeSerdeHeaders {
 
     /**
      * Constructor.
+     * 
      * @param configs
      * @param isKey
      */

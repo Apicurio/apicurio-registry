@@ -4,7 +4,7 @@ public class Msg {
 
     private String message;
     private long time;
-    
+
     /**
      * Constructor.
      */

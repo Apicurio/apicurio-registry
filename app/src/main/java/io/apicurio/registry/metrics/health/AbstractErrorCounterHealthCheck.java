@@ -6,7 +6,6 @@ import java.util.Optional;
 
 /**
  * Abstract class containing common logic for health checks based on an error counter.
- *
  */
 public abstract class AbstractErrorCounterHealthCheck {
 
@@ -18,19 +17,22 @@ public abstract class AbstractErrorCounterHealthCheck {
     private Duration counterResetWindowDuration;
     private Integer configErrorThreshold;
 
-    protected void init(Integer configErrorThreshold, Integer configCounterResetWindowDurationSec, Integer configStatusResetWindowDurationSec) {
+    protected void init(Integer configErrorThreshold, Integer configCounterResetWindowDurationSec,
+            Integer configStatusResetWindowDurationSec) {
         if (configErrorThreshold == null || configErrorThreshold < 0) {
-            throw new IllegalArgumentException("Illegal configuration value of " +
-                    "'registry.metrics.[...].errorThreshold': '" + configErrorThreshold + "'");
+            throw new IllegalArgumentException("Illegal configuration value of "
+                    + "'registry.metrics.[...].errorThreshold': '" + configErrorThreshold + "'");
         }
         this.configErrorThreshold = configErrorThreshold;
         if (configCounterResetWindowDurationSec == null || configCounterResetWindowDurationSec < 1) {
-            throw new IllegalArgumentException("Illegal configuration value of " +
-                    "'registry.metrics.[...].counterResetWindowDurationSec': '" + configCounterResetWindowDurationSec + "'");
+            throw new IllegalArgumentException("Illegal configuration value of "
+                    + "'registry.metrics.[...].counterResetWindowDurationSec': '"
+                    + configCounterResetWindowDurationSec + "'");
         }
         if (configStatusResetWindowDurationSec == null) {
-            throw new IllegalArgumentException("Illegal configuration value of " +
-                    "'registry.metrics.[...].statusResetWindowDurationSec': '" + configCounterResetWindowDurationSec + "'");
+            throw new IllegalArgumentException("Illegal configuration value of "
+                    + "'registry.metrics.[...].statusResetWindowDurationSec': '"
+                    + configCounterResetWindowDurationSec + "'");
         }
         counterResetWindowDuration = Duration.ofSeconds(configCounterResetWindowDurationSec);
         nextCounterReset = Instant.now().plus(counterResetWindowDuration);
@@ -43,7 +45,8 @@ public abstract class AbstractErrorCounterHealthCheck {
         nextCounterReset = Instant.now().plus(counterResetWindowDuration);
         if (++errorCounter > configErrorThreshold) {
             up = false;
-            statusResetWindowDuration.ifPresent(duration -> nextStatusReset = Optional.of(Instant.now().plus(duration)));
+            statusResetWindowDuration
+                    .ifPresent(duration -> nextStatusReset = Optional.of(Instant.now().plus(duration)));
         }
     }
 
@@ -52,7 +55,8 @@ public abstract class AbstractErrorCounterHealthCheck {
             nextStatusReset = Optional.empty();
             up = true; // Next 'if' will reset the error count
         }
-        if (up && nextCounterReset != null && Instant.now().isAfter(nextCounterReset)) { // Do not reset the count if not up
+        if (up && nextCounterReset != null && Instant.now().isAfter(nextCounterReset)) { // Do not reset the
+                                                                                         // count if not up
             nextCounterReset = null;
             errorCounter = 0;
         }

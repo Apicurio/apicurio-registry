@@ -2,7 +2,6 @@ package io.apicurio.registry.ccompat.dto;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -14,7 +13,6 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
  * Immutable.
- *
  */
 @JsonAutoDetect(isGetterVisibility = NONE)
 @NoArgsConstructor // required for Jackson
@@ -27,7 +25,8 @@ public class CompatibilityCheckResponse {
 
     public static final CompatibilityCheckResponse IS_COMPATIBLE = new CompatibilityCheckResponse(true, null);
 
-    public static final CompatibilityCheckResponse IS_NOT_COMPATIBLE = new CompatibilityCheckResponse(false, null);
+    public static final CompatibilityCheckResponse IS_NOT_COMPATIBLE = new CompatibilityCheckResponse(false,
+            null);
 
     public static CompatibilityCheckResponse create(boolean isCompatible) {
         return isCompatible ? IS_COMPATIBLE : IS_NOT_COMPATIBLE;

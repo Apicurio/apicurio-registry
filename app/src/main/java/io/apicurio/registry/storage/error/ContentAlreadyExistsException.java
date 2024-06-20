@@ -9,7 +9,6 @@ public class ContentAlreadyExistsException extends AlreadyExistsException {
     @Getter
     private final Long contentId;
 
-
     public ContentAlreadyExistsException(long contentId) {
         super("Content with ID " + contentId + " already exists.");
         this.contentId = contentId;

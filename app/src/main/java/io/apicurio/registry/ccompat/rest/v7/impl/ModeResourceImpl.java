@@ -6,10 +6,9 @@ import io.apicurio.registry.ccompat.rest.error.Errors;
 import io.apicurio.registry.ccompat.rest.v7.ModeResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-
 import jakarta.interceptor.Interceptors;
 
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class ModeResourceImpl extends AbstractResource implements ModeResource {
 

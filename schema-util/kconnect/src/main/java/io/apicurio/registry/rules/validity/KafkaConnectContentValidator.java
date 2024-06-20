@@ -39,13 +39,15 @@ public class KafkaConnectContentValidator implements ContentValidator {
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
-    public void validate(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, TypedContent content,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 JsonNode jsonNode = mapper.readTree(content.getContent().content());
                 jsonConverter.asConnectSchema(jsonNode);
             } catch (Exception e) {
-                throw new RuleViolationException("Syntax violation for Kafka Connect Schema artifact.", RuleType.VALIDITY, level.name(), e);
+                throw new RuleViolationException("Syntax violation for Kafka Connect Schema artifact.",
+                        RuleType.VALIDITY, level.name(), e);
             }
         }
     }
@@ -54,7 +56,8 @@ public class KafkaConnectContentValidator implements ContentValidator {
      * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List)
      */
     @Override
-    public void validateReferences(TypedContent content, List<ArtifactReference> references) throws RuleViolationException {
+    public void validateReferences(TypedContent content, List<ArtifactReference> references)
+            throws RuleViolationException {
         // Note: not yet implemented!
     }
 

@@ -1,11 +1,10 @@
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
-import jakarta.inject.Inject;
-
-import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 
 @QuarkusTest
 public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {

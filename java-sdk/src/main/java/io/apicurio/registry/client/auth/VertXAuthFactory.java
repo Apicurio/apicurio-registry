@@ -20,22 +20,22 @@ public class VertXAuthFactory {
         return buildOIDCWebClient(defaultVertx, tokenUrl, clientId, clientSecret, null);
     }
 
-    public static WebClient buildOIDCWebClient(Vertx vertx, String tokenUrl, String clientId, String clientSecret) {
+    public static WebClient buildOIDCWebClient(Vertx vertx, String tokenUrl, String clientId,
+            String clientSecret) {
         return buildOIDCWebClient(tokenUrl, clientId, clientSecret, null);
     }
 
-    public static WebClient buildOIDCWebClient(String tokenUrl, String clientId, String clientSecret, String scope) {
+    public static WebClient buildOIDCWebClient(String tokenUrl, String clientId, String clientSecret,
+            String scope) {
         return buildOIDCWebClient(defaultVertx, tokenUrl, clientId, clientSecret, scope);
     }
 
-    public static WebClient buildOIDCWebClient(Vertx vertx, String tokenUrl, String clientId, String clientSecret, String scope) {
+    public static WebClient buildOIDCWebClient(Vertx vertx, String tokenUrl, String clientId,
+            String clientSecret, String scope) {
         WebClient webClient = WebClient.create(vertx);
 
-        OAuth2Auth oAuth2Options = OAuth2Auth.create(vertx, new OAuth2Options()
-                .setFlow(OAuth2FlowType.CLIENT)
-                .setClientId(clientId)
-                .setClientSecret(clientSecret)
-                .setTokenPath(tokenUrl));
+        OAuth2Auth oAuth2Options = OAuth2Auth.create(vertx, new OAuth2Options().setFlow(OAuth2FlowType.CLIENT)
+                .setClientId(clientId).setClientSecret(clientSecret).setTokenPath(tokenUrl));
 
         Oauth2Credentials oauth2Credentials = new Oauth2Credentials();
 
@@ -50,10 +50,10 @@ public class VertXAuthFactory {
     }
 
     public static WebClient buildSimpleAuthWebClient(Vertx vertx, String username, String password) {
-        String usernameAndPassword = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
-        return WebClientSession
-                .create(WebClient.create(vertx))
-                .addHeader("Authorization", "Basic " + usernameAndPassword);
+        String usernameAndPassword = Base64.getEncoder()
+                .encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+        return WebClientSession.create(WebClient.create(vertx)).addHeader("Authorization",
+                "Basic " + usernameAndPassword);
     }
 
 }

@@ -11,9 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Contains all of the information needed by a rule executor, including the rule-specific
- * configuration, current and updated content, and any other meta-data needed.
- *
+ * Contains all of the information needed by a rule executor, including the rule-specific configuration,
+ * current and updated content, and any other meta-data needed.
  */
 @Getter
 @Setter

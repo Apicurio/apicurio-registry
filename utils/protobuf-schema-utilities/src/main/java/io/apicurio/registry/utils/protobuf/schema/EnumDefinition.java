@@ -40,7 +40,8 @@ public class EnumDefinition {
         // --- public ---
 
         public Builder addValue(String name, int num) {
-            DescriptorProtos.EnumValueDescriptorProto.Builder enumValBuilder = DescriptorProtos.EnumValueDescriptorProto.newBuilder();
+            DescriptorProtos.EnumValueDescriptorProto.Builder enumValBuilder = DescriptorProtos.EnumValueDescriptorProto
+                    .newBuilder();
             enumValBuilder.setName(name).setNumber(num);
             mEnumTypeBuilder.addValue(enumValBuilder.build());
             return this;
@@ -56,8 +57,8 @@ public class EnumDefinition {
             mEnumTypeBuilder = DescriptorProtos.EnumDescriptorProto.newBuilder();
             mEnumTypeBuilder.setName(enumName);
             if (allowAlias != null) {
-                DescriptorProtos.EnumOptions.Builder optionsBuilder =
-                        DescriptorProtos.EnumOptions.newBuilder();
+                DescriptorProtos.EnumOptions.Builder optionsBuilder = DescriptorProtos.EnumOptions
+                        .newBuilder();
                 optionsBuilder.setAllowAlias(allowAlias);
                 mEnumTypeBuilder.mergeOptions(optionsBuilder.build());
             }

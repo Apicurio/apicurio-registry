@@ -58,7 +58,8 @@ public class MessageValidator {
      */
     public void validate(MessageBean message) throws IOException, ValidationException {
         JSONObject jsonSchema;
-        try (InputStream schemaIS = client.groups().byGroupId(group).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").content().get()) {
+        try (InputStream schemaIS = client.groups().byGroupId(group).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("1").content().get()) {
             jsonSchema = new JSONObject(new JSONTokener(schemaIS));
         }
 

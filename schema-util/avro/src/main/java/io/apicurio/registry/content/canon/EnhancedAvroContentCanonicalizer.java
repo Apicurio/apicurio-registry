@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * An Avro implementation of a content Canonicalizer that handles avro references.
- * A custom version that can be used to check subject compatibilities. It does not reorder fields.
+ * An Avro implementation of a content Canonicalizer that handles avro references. A custom version that can
+ * be used to check subject compatibilities. It does not reorder fields.
  */
 public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
 
@@ -33,7 +33,7 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
     /**
      * Normalize a schema.
      *
-     * @param schema            a schema.
+     * @param schema a schema.
      * @param alreadyNormalized a Map indicating if the fields in the schema were already normalized.
      * @return the same schema functionally, in normalized form.
      */
@@ -53,16 +53,19 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
         final Schema result;
         switch (schema.getType()) {
             case RECORD:
-                result = Schema.createRecord(schema.getName(), EMPTY_DOC, schema.getNamespace(), false, normalizeFields(schema.getFields(), alreadyNormalized));
+                result = Schema.createRecord(schema.getName(), EMPTY_DOC, schema.getNamespace(), false,
+                        normalizeFields(schema.getFields(), alreadyNormalized));
                 break;
             case ENUM:
-                result = Schema.createEnum(schema.getName(), EMPTY_DOC, schema.getNamespace(), schema.getEnumSymbols());
+                result = Schema.createEnum(schema.getName(), EMPTY_DOC, schema.getNamespace(),
+                        schema.getEnumSymbols());
                 break;
             case ARRAY:
                 result = Schema.createArray(normalizeSchema(schema.getElementType(), alreadyNormalized));
                 break;
             case FIXED:
-                result = Schema.createFixed(schema.getName(), EMPTY_DOC, schema.getNamespace(), schema.getFixedSize());
+                result = Schema.createFixed(schema.getName(), EMPTY_DOC, schema.getNamespace(),
+                        schema.getFixedSize());
                 break;
             case UNION:
                 result = Schema.createUnion(normalizeSchemasList(schema.getTypes(), alreadyNormalized));
@@ -77,7 +80,8 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
         return result;
     }
 
-    private static List<Schema> normalizeSchemasList(List<Schema> schemas, Map<String, Boolean> alreadyNormalized) {
+    private static List<Schema> normalizeSchemasList(List<Schema> schemas,
+            Map<String, Boolean> alreadyNormalized) {
         final List<Schema> result = new ArrayList<>(schemas.size());
         for (Schema schema : schemas) {
             result.add(normalizeSchema(schema, alreadyNormalized));
@@ -86,12 +90,15 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
     }
 
     private static Schema.Field normalizeField(Schema.Field field, Map<String, Boolean> alreadyNormalized) {
-        final Schema.Field result = new Schema.Field(field.name(), normalizeSchema(field.schema(), alreadyNormalized), EMPTY_DOC, field.defaultVal(), field.order());
+        final Schema.Field result = new Schema.Field(field.name(),
+                normalizeSchema(field.schema(), alreadyNormalized), EMPTY_DOC, field.defaultVal(),
+                field.order());
         field.getObjectProps().forEach(result::addProp);
         return result;
     }
 
-    private static List<Schema.Field> normalizeFields(List<Schema.Field> fields, Map<String, Boolean> alreadyNormalized) {
+    private static List<Schema.Field> normalizeFields(List<Schema.Field> fields,
+            Map<String, Boolean> alreadyNormalized) {
         List<Schema.Field> result = new ArrayList<>(fields.size());
         for (Schema.Field field : fields) {
             result.add(normalizeField(field, alreadyNormalized));

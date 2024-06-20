@@ -1,12 +1,12 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class ArtifactVersionEntityMapper implements RowMapper<ArtifactVersionEntity> {
 
@@ -33,10 +33,11 @@ public class ArtifactVersionEntityMapper implements RowMapper<ArtifactVersionEnt
         entity.description = rs.getString("description");
         entity.owner = rs.getString("owner");
         entity.createdOn = rs.getTimestamp("createdOn").getTime();
+        entity.modifiedBy = rs.getString("modifiedBy");
+        entity.modifiedOn = rs.getTimestamp("modifiedOn").getTime();
         entity.state = VersionState.valueOf(rs.getString("state"));
         entity.labels = SqlUtil.deserializeLabels(rs.getString("labels"));
         entity.contentId = rs.getLong("contentId");
-        entity.artifactType = rs.getString("type");
         return entity;
     }
 

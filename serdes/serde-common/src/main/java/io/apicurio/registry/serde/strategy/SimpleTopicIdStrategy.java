@@ -9,15 +9,13 @@ import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 public class SimpleTopicIdStrategy<T> implements ArtifactReferenceResolverStrategy<T, Object> {
 
     /**
-     * @see io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy#artifactReference(io.apicurio.registry.resolver.data.Record, io.apicurio.registry.resolver.ParsedSchema)
+     * @see io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy#artifactReference(io.apicurio.registry.resolver.data.Record,
+     *      io.apicurio.registry.resolver.ParsedSchema)
      */
     @Override
     public ArtifactReference artifactReference(Record<Object> data, ParsedSchema<T> parsedSchema) {
         KafkaSerdeRecord<Object> kdata = (KafkaSerdeRecord<Object>) data;
-        return ArtifactReference.builder()
-                .groupId(null)
-                .artifactId(kdata.metadata().getTopic())
-                .build();
+        return ArtifactReference.builder().groupId(null).artifactId(kdata.metadata().getTopic()).build();
     }
 
     /**

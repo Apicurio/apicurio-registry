@@ -50,24 +50,26 @@ public class AdminClientTest extends AbstractResourceTestBase {
 
     @Test
     public void getGlobalRuleConfig() throws Exception {
-        //Preparation
+        // Preparation
         createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
 
         {
-            //Execution
-            final Rule globalRuleConfig = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.getValue()).get();
-            //Assertions
+            // Execution
+            final Rule globalRuleConfig = clientV3.admin().rules()
+                    .byRuleType(RuleType.COMPATIBILITY.getValue()).get();
+            // Assertions
             assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
         }
     }
 
     @Test
     public void updateGlobalRuleConfig() throws Exception {
-        //Preparation
+        // Preparation
         createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
 
         {
-            final Rule globalRuleConfig = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.getValue()).get();
+            final Rule globalRuleConfig = clientV3.admin().rules()
+                    .byRuleType(RuleType.COMPATIBILITY.getValue()).get();
             assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
         }
 
@@ -75,30 +77,32 @@ public class AdminClientTest extends AbstractResourceTestBase {
         toUpdate.setRuleType(RuleType.COMPATIBILITY);
         toUpdate.setConfig("FORWARD");
 
-        //Execution
-        final Rule updated = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.getValue()).put(toUpdate);
+        // Execution
+        final Rule updated = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.getValue())
+                .put(toUpdate);
 
-        //Assertions
+        // Assertions
         assertEquals(updated.getConfig(), "FORWARD");
     }
 
     @Test
     public void deleteGlobalRule() throws Exception {
-        //Preparation
+        // Preparation
         createGlobalRule(RuleType.COMPATIBILITY, "BACKWARD");
 
         {
-            final Rule globalRuleConfig = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.getValue()).get();
+            final Rule globalRuleConfig = clientV3.admin().rules()
+                    .byRuleType(RuleType.COMPATIBILITY.getValue()).get();
             assertEquals(globalRuleConfig.getConfig(), "BACKWARD");
         }
 
-        //Execution
+        // Execution
         clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.getValue()).delete();
 
         {
             final List<RuleType> ruleTypes = clientV3.admin().rules().get();
 
-            //Assertions
+            // Assertions
             assertEquals(0, ruleTypes.size());
         }
     }
@@ -203,7 +207,8 @@ public class AdminClientTest extends AbstractResourceTestBase {
         clientV3.admin().roleMappings().byPrincipalId("TestUser").delete();
     }
 
-    protected CreateRule createGlobalRule(RuleType ruleType, String ruleConfig) throws ExecutionException, InterruptedException, TimeoutException {
+    protected CreateRule createGlobalRule(RuleType ruleType, String ruleConfig)
+            throws ExecutionException, InterruptedException, TimeoutException {
         final CreateRule createRule = new CreateRule();
         createRule.setConfig(ruleConfig);
         createRule.setRuleType(ruleType);

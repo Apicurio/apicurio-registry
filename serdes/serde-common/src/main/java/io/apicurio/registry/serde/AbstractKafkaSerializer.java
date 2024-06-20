@@ -5,19 +5,20 @@ import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
+import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
+import io.apicurio.registry.serde.data.KafkaSerdeRecord;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 
-import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
-import io.apicurio.registry.serde.data.KafkaSerdeRecord;
-import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.Map;
 
-public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T, U> implements Serializer<U> {
+public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T, U>
+        implements Serializer<U> {
 
     public AbstractKafkaSerializer() {
         super();
@@ -31,7 +32,9 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         super(schemaResolver);
     }
 
-    public AbstractKafkaSerializer(RegistryClient client, ArtifactReferenceResolverStrategy<T, U> artifactResolverStrategy, SchemaResolver<T, U> schemaResolver) {
+    public AbstractKafkaSerializer(RegistryClient client,
+            ArtifactReferenceResolverStrategy<T, U> artifactResolverStrategy,
+            SchemaResolver<T, U> schemaResolver) {
         super(client, schemaResolver);
         getSchemaResolver().setArtifactResolverStrategy(artifactResolverStrategy);
     }
@@ -41,9 +44,11 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
         super.configure(new BaseKafkaSerDeConfig(configs), isKey);
     }
 
-    protected abstract void serializeData(ParsedSchema<T> schema, U data, OutputStream out) throws IOException;
+    protected abstract void serializeData(ParsedSchema<T> schema, U data, OutputStream out)
+            throws IOException;
 
-    protected abstract void serializeData(Headers headers, ParsedSchema<T> schema, U data, OutputStream out) throws IOException;
+    protected abstract void serializeData(Headers headers, ParsedSchema<T> schema, U data, OutputStream out)
+            throws IOException;
 
     @Override
     public byte[] serialize(String topic, U data) {
@@ -60,7 +65,8 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractKafkaSerDe<T
 
             KafkaSerdeMetadata resolverMetadata = new KafkaSerdeMetadata(topic, isKey(), headers);
 
-            SchemaLookupResult<T> schema = getSchemaResolver().resolveSchema(new KafkaSerdeRecord<>(resolverMetadata, data));
+            SchemaLookupResult<T> schema = getSchemaResolver()
+                    .resolveSchema(new KafkaSerdeRecord<>(resolverMetadata, data));
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             if (headersHandler != null && headers != null) {

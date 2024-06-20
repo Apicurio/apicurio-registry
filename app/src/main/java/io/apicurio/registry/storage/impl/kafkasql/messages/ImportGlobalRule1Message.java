@@ -16,10 +16,10 @@ import lombok.ToString;
 @Builder
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class ImportGlobalRule1Message extends AbstractMessage {
-    
+
     private GlobalRuleEntity entity;
 
     /**

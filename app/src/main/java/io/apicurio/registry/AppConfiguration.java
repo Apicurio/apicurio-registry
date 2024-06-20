@@ -1,16 +1,14 @@
 package io.apicurio.registry;
 
-import java.util.Properties;
-
+import io.apicurio.registry.utils.PropertiesUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.enterprise.inject.spi.InjectionPoint;
 
-import io.apicurio.registry.utils.PropertiesUtil;
+import java.util.Properties;
 
 /**
  * Generic configuration.
- *
  */
 @ApplicationScoped
 public class AppConfiguration {

@@ -13,89 +13,69 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 /**
  * Note:
  * <p/>
- * This <a href="https://docs.confluent.io/platform/7.2.1/schema-registry/develop/api.html">API specification</a> is owned by Confluent.
- *
+ * This <a href="https://docs.confluent.io/platform/7.2.1/schema-registry/develop/api.html">API
+ * specification</a> is owned by Confluent.
  */
 @Path("/apis/ccompat/v7/subjects")
-@Consumes({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
-@Produces({JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST})
+@Consumes({ JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST })
+@Produces({ JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST })
 public interface SubjectsResource {
 
     // ----- Path: /subjects -----
 
     /**
      * Get a list of registered subjects.
-     * @param subjectPrefix (string) Add ?subjectPrefix= (as an empty string) at the end of this request to list subjects in the default context. If this flag is not included, GET /subjects returns all subjects across all contexts.
-     * @param deleted (boolean) Add ?deleted=true at the end of this request to list both current and soft-deleted subjects. The default is false. If this flag is not included, only current subjects are listed (not those that have been soft-deleted). Hard and soft delete are explained below in the description of the delete API.
-     *
-     * Response JSON Array of Objects:
-     *
-     *
-     *     name (string) – Subject
-     *
-     * Status Codes:
-     *
-     *     500 Internal Server Error –
-     *         Error code 50001 – Error in the backend datastore
+     * 
+     * @param subjectPrefix (string) Add ?subjectPrefix= (as an empty string) at the end of this request to
+     *            list subjects in the default context. If this flag is not included, GET /subjects returns
+     *            all subjects across all contexts.
+     * @param deleted (boolean) Add ?deleted=true at the end of this request to list both current and
+     *            soft-deleted subjects. The default is false. If this flag is not included, only current
+     *            subjects are listed (not those that have been soft-deleted). Hard and soft delete are
+     *            explained below in the description of the delete API. Response JSON Array of Objects: name
+     *            (string) – Subject Status Codes: 500 Internal Server Error – Error code 50001 – Error in the
+     *            backend datastore
      */
     @GET
-    List<String> listSubjects(@QueryParam("subjectPrefix") String subjectPrefix, @QueryParam("deleted") Boolean deleted, @HeaderParam(Headers.GROUP_ID) String groupId);
+    List<String> listSubjects(@QueryParam("subjectPrefix") String subjectPrefix,
+            @QueryParam("deleted") Boolean deleted, @HeaderParam(Headers.GROUP_ID) String groupId);
 
     // ----- Path: /subjects/{subject} -----
 
     /**
-     * Check if a schema has already been registered under the specified subject.
-     * If so, this returns the schema string along with its globally unique identifier,
-     * its version under this subject and the subject name.
-     * Parameters:
+     * Check if a schema has already been registered under the specified subject. If so, this returns the
+     * schema string along with its globally unique identifier, its version under this subject and the subject
+     * name. Parameters:
      *
-     *  @param subject (string) – Subject under which the schema will be registered.
-     *  @param normalize (boolean) - Add ?normalize=true at the end of this request to normalize the schema. The default is false.
-     *
-     * Response JSON Object:
-     *
-     *
-     *     subject (string) – Name of the subject that this schema is registered under
-     *     globalId (int) – Globally unique identifier of the schema
-     *     version (int) – Version of the returned schema
-     *     schema (string) – The schema string
-     *
-     * Status Codes:
-     *
-     *     404 Not Found –
-     *         Error code 40401 – Subject not found
-     *         Error code 40403 – Schema not found
-     *     500 Internal Server Error – Internal server error
+     * @param subject (string) – Subject under which the schema will be registered.
+     * @param normalize (boolean) - Add ?normalize=true at the end of this request to normalize the schema.
+     *            The default is false. Response JSON Object: subject (string) – Name of the subject that this
+     *            schema is registered under globalId (int) – Globally unique identifier of the schema version
+     *            (int) – Version of the returned schema schema (string) – The schema string Status Codes: 404
+     *            Not Found – Error code 40401 – Subject not found Error code 40403 – Schema not found 500
+     *            Internal Server Error – Internal server error
      */
     @POST
     @Path("/{subject}")
-    Schema findSchemaByContent(
-            @PathParam("subject") String subject,
-            @NotNull SchemaInfo request, @QueryParam("normalize") Boolean normalize, @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted) throws Exception;
+    Schema findSchemaByContent(@PathParam("subject") String subject, @NotNull SchemaInfo request,
+            @QueryParam("normalize") Boolean normalize, @HeaderParam(Headers.GROUP_ID) String groupId,
+            @QueryParam("deleted") Boolean deleted) throws Exception;
 
     /**
-     * Deletes the specified subject and its associated compatibility level if registered.
-     * It is recommended to use this API only when a topic needs to be recycled or in development environment.
+     * Deletes the specified subject and its associated compatibility level if registered. It is recommended
+     * to use this API only when a topic needs to be recycled or in development environment. Parameters:
      *
-     * Parameters:
-     *
-     *   @param subject (string) – the name of the subject
-     *   @param permanent (boolean) –  Add ?permanent=true at the end of this request to specify a hard delete of the subject, which removes all associated metadata including the schema ID.
-     *                                The default is false. If the flag is not included, a soft delete is performed.
-     *
-     * Response JSON Array of Objects:
-     *
-     *     version (int) – version of the schema deleted under this subject
-     *
-     * Status Codes:
-     *
-     *     404 Not Found –
-     *         Error code 40401 – Subject not found
-     *     500 Internal Server Error –
-     *         Error code 50001 – Error in the backend datastore
+     * @param subject (string) – the name of the subject
+     * @param permanent (boolean) – Add ?permanent=true at the end of this request to specify a hard delete of
+     *            the subject, which removes all associated metadata including the schema ID. The default is
+     *            false. If the flag is not included, a soft delete is performed. Response JSON Array of
+     *            Objects: version (int) – version of the schema deleted under this subject Status Codes: 404
+     *            Not Found – Error code 40401 – Subject not found 500 Internal Server Error – Error code
+     *            50001 – Error in the backend datastore
      */
     @DELETE
     @Path("/{subject}")
-    List<Integer> deleteSubject(
-            @PathParam("subject") String subject, @QueryParam("permanent") Boolean permanent, @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+    List<Integer> deleteSubject(@PathParam("subject") String subject,
+            @QueryParam("permanent") Boolean permanent, @HeaderParam(Headers.GROUP_ID) String groupId)
+            throws Exception;
 }

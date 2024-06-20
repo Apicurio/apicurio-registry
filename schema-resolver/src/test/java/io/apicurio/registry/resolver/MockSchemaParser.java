@@ -1,9 +1,9 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.data.Record;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-
-import io.apicurio.registry.resolver.data.Record;
 
 public class MockSchemaParser implements SchemaParser<String, String> {
     private ParsedSchema<String> dataSchema;

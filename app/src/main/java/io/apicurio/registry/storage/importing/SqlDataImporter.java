@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
 public class SqlDataImporter extends AbstractDataImporter {
 
     protected RegistryStorageContentUtils utils;
@@ -41,17 +40,16 @@ public class SqlDataImporter extends AbstractDataImporter {
 
     // To keep track of which versions have been imported
     private final Set<GAV> gavDone = new HashSet<>();
-    private final Map<GAV, List<ArtifactBranchEntity>> artifactBranchesWaitingForVersion = new HashMap<>();
+    private final Map<GAV, List<BranchEntity>> artifactBranchesWaitingForVersion = new HashMap<>();
 
     public SqlDataImporter(Logger logger, RegistryStorageContentUtils utils, RegistryStorage storage,
-                           boolean preserveGlobalId, boolean preserveContentId) {
+            boolean preserveGlobalId, boolean preserveContentId) {
         super(logger);
         this.utils = utils;
         this.storage = storage;
         this.preserveGlobalId = preserveGlobalId;
         this.preserveContentId = preserveContentId;
     }
-
 
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
@@ -63,6 +61,16 @@ public class SqlDataImporter extends AbstractDataImporter {
         }
     }
 
+    @Override
+    protected void importArtifact(ArtifactEntity entity) {
+        try {
+            storage.importArtifact(entity);
+            log.debug("Artifact imported successfully: {}", entity);
+        } catch (Exception ex) {
+            log.warn("Failed to import artifact {} / {}: {}", entity.groupId, entity.artifactId,
+                    ex.getMessage());
+        }
+    }
 
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
@@ -81,7 +89,6 @@ public class SqlDataImporter extends AbstractDataImporter {
                 entity.globalId = storage.nextGlobalId();
             }
 
-
             storage.importArtifactVersion(entity);
             log.debug("Artifact version imported successfully: {}", entity);
             globalIdMapping.put(oldGlobalId, entity.globalId);
@@ -90,8 +97,7 @@ public class SqlDataImporter extends AbstractDataImporter {
 
             // Import comments that were waiting for this version
             var commentsToImport = waitingForVersion.stream()
-                    .filter(comment -> comment.globalId == oldGlobalId)
-                    .collect(Collectors.toList());
+                    .filter(comment -> comment.globalId == oldGlobalId).collect(Collectors.toList());
             for (CommentEntity commentEntity : commentsToImport) {
                 importComment(commentEntity);
             }
@@ -104,7 +110,8 @@ public class SqlDataImporter extends AbstractDataImporter {
 
         } catch (VersionAlreadyExistsException ex) {
             if (ex.getGlobalId() != null) {
-                log.warn("Duplicate globalId {} detected, skipping import of artifact version: {}", ex.getGlobalId(), entity);
+                log.warn("Duplicate globalId {} detected, skipping import of artifact version: {}",
+                        ex.getGlobalId(), entity);
             } else {
                 log.warn("Failed to import artifact version {}: {}", entity, ex.getMessage());
             }
@@ -113,26 +120,25 @@ public class SqlDataImporter extends AbstractDataImporter {
         }
     }
 
-
     @Override
     public void importContent(ContentEntity entity) {
         try {
-            List<ArtifactReferenceDto> references = SqlUtil.deserializeReferences(entity.serializedReferences);
+            List<ArtifactReferenceDto> references = SqlUtil
+                    .deserializeReferences(entity.serializedReferences);
 
             if (entity.contentType == null) {
                 throw new RuntimeException("ContentEntity is missing required field: contentType");
             }
 
-            TypedContent typedContent = TypedContent.create(ContentHandle.create(entity.contentBytes), entity.contentType);
+            TypedContent typedContent = TypedContent.create(ContentHandle.create(entity.contentBytes),
+                    entity.contentType);
 
             // We do not need canonicalHash if we have artifactType
             if (entity.canonicalHash == null && entity.artifactType != null) {
-                TypedContent canonicalContent = utils.canonicalizeContent(
-                        entity.artifactType, typedContent,
+                TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
                         storage.resolveReferences(references));
                 entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
             }
-
 
             var oldContentId = entity.contentId;
             if (!preserveContentId) {
@@ -160,7 +166,6 @@ public class SqlDataImporter extends AbstractDataImporter {
         }
     }
 
-
     @Override
     public void importGlobalRule(GlobalRuleEntity entity) {
         try {
@@ -170,7 +175,6 @@ public class SqlDataImporter extends AbstractDataImporter {
             log.warn("Failed to import global rule {}: {}", entity, ex.getMessage());
         }
     }
-
 
     @Override
     public void importGroup(GroupEntity entity) {
@@ -182,12 +186,11 @@ public class SqlDataImporter extends AbstractDataImporter {
         }
     }
 
-
     @Override
     public void importComment(CommentEntity entity) {
         try {
             if (!globalIdMapping.containsKey(entity.globalId)) {
-                // The version hasn't been imported yet.  Need to wait for it.
+                // The version hasn't been imported yet. Need to wait for it.
                 waitingForVersion.add(entity);
                 return;
             }
@@ -200,21 +203,13 @@ public class SqlDataImporter extends AbstractDataImporter {
         }
     }
 
-
     @Override
-    protected void importArtifactBranch(ArtifactBranchEntity entity) {
+    protected void importBranch(BranchEntity entity) {
         try {
-            var gav = entity.toGAV();
-            if (!gavDone.contains(gav)) {
-                // The version hasn't been imported yet.  Need to wait for it.
-                artifactBranchesWaitingForVersion.computeIfAbsent(gav, _ignored -> new ArrayList<>())
-                        .add(entity);
-            } else {
-                storage.importArtifactBranch(entity);
-                log.debug("Artifact branch imported successfully: {}", entity);
-            }
+            storage.importBranch(entity);
+            log.debug("Branch imported successfully: {}", entity);
         } catch (Exception ex) {
-            log.warn("Failed to import artifact branch {}: {}", entity, ex.getMessage());
+            log.warn("Failed to import branch {}: {}", entity, ex.getMessage());
         }
     }
 

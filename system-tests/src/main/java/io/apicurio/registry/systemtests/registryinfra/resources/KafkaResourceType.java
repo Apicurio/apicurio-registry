@@ -39,10 +39,7 @@ public class KafkaResourceType implements ResourceType<Kafka> {
 
     @Override
     public Kafka get(String namespace, String name) {
-        return getOperation()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return getOperation().inNamespace(namespace).withName(name).get();
     }
 
     public static MixedOperation<Kafka, KubernetesResourceList<Kafka>, Resource<Kafka>> getOperation() {
@@ -51,24 +48,18 @@ public class KafkaResourceType implements ResourceType<Kafka> {
 
     @Override
     public void create(Kafka resource) {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .create(resource);
+        getOperation().inNamespace(resource.getMetadata().getNamespace()).create(resource);
     }
 
     @Override
     public void createOrReplace(Kafka resource) {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .createOrReplace(resource);
+        getOperation().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
     }
 
     @Override
     public void delete(Kafka resource) throws Exception {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .withName(resource.getMetadata().getName())
-                .delete();
+        getOperation().inNamespace(resource.getMetadata().getNamespace())
+                .withName(resource.getMetadata().getName()).delete();
     }
 
     @Override
@@ -79,14 +70,9 @@ public class KafkaResourceType implements ResourceType<Kafka> {
             return false;
         }
 
-        return kafka
-                .getStatus()
-                .getConditions()
-                .stream()
+        return kafka.getStatus().getConditions().stream()
                 .filter(condition -> condition.getType().equals("Ready"))
-                .map(condition -> condition.getStatus().equals("True"))
-                .findFirst()
-                .orElse(false);
+                .map(condition -> condition.getStatus().equals("True")).findFirst().orElse(false);
     }
 
     @Override
@@ -108,131 +94,68 @@ public class KafkaResourceType implements ResourceType<Kafka> {
     /** Get default instances **/
 
     public static GenericKafkaListener getPlainListener() {
-        return new GenericKafkaListenerBuilder()
-                .withName("plain")
-                .withPort(9092)
-                .withType(KafkaListenerType.INTERNAL)
-                .withTls(false)
-                .build();
+        return new GenericKafkaListenerBuilder().withName("plain").withPort(9092)
+                .withType(KafkaListenerType.INTERNAL).withTls(false).build();
     }
 
     public static GenericKafkaListener getTlsListener() {
-        return new GenericKafkaListenerBuilder()
-                .withName("tls")
-                .withPort(9093)
-                .withType(KafkaListenerType.INTERNAL)
-                .withTls(true)
-                .withAuth(new KafkaListenerAuthenticationTls())
-                .build();
+        return new GenericKafkaListenerBuilder().withName("tls").withPort(9093)
+                .withType(KafkaListenerType.INTERNAL).withTls(true)
+                .withAuth(new KafkaListenerAuthenticationTls()).build();
     }
 
     public static GenericKafkaListener getScramListener() {
-        return new GenericKafkaListenerBuilder()
-                .withName("tls")
-                .withPort(9093)
-                .withType(KafkaListenerType.INTERNAL)
-                .withTls(true)
-                .withAuth(new KafkaListenerAuthenticationScramSha512())
-                .build();
+        return new GenericKafkaListenerBuilder().withName("tls").withPort(9093)
+                .withType(KafkaListenerType.INTERNAL).withTls(true)
+                .withAuth(new KafkaListenerAuthenticationScramSha512()).build();
     }
 
     public static Map<String, Object> getDefaultConfig() {
-        return new HashMap<>() {{
-            put("offsets.topic.replication.factor", 3);
-            put("transaction.state.log.replication.factor", 3);
-            put("transaction.state.log.min.isr", 2);
-        }};
+        return new HashMap<>() {
+            {
+                put("offsets.topic.replication.factor", 3);
+                put("transaction.state.log.replication.factor", 3);
+                put("transaction.state.log.min.isr", 2);
+            }
+        };
     }
 
     public static PersistentClaimStorage getDefaultStorage() {
-        return new PersistentClaimStorageBuilder()
-                .withSize("100Gi")
-                .withDeleteClaim(true)
-                .build();
+        return new PersistentClaimStorageBuilder().withSize("100Gi").withDeleteClaim(true).build();
     }
 
     public static EntityOperatorSpec getDefaultEntityOperator() {
-        return new EntityOperatorSpecBuilder()
-                .withNewTopicOperator()
-                .endTopicOperator()
-                .withNewUserOperator()
-                .endUserOperator()
-                .build();
+        return new EntityOperatorSpecBuilder().withNewTopicOperator().endTopicOperator().withNewUserOperator()
+                .endUserOperator().build();
     }
 
     public static Kafka getDefaultNoAuth() {
-        return new KafkaBuilder()
-                .withNewMetadata()
-                    .withName(Constants.KAFKA)
-                    .withNamespace(Environment.NAMESPACE)
-                .endMetadata()
-                .withNewSpec()
-                    .withNewKafka()
-                        .withVersion(KAFKA_VERSION)
-                        .withReplicas(KAFKA_REPLICAS)
-                        .withListeners(getPlainListener())
-                        .withConfig(getDefaultConfig())
-                        .withStorage(getDefaultStorage())
-                    .endKafka()
-                    .withNewZookeeper()
-                        .withReplicas(ZOOKEEPER_REPLICAS)
-                        .withStorage(getDefaultStorage())
-                    .endZookeeper()
-                    .withEntityOperator(getDefaultEntityOperator())
-                .endSpec()
-                .build();
+        return new KafkaBuilder().withNewMetadata().withName(Constants.KAFKA)
+                .withNamespace(Environment.NAMESPACE).endMetadata().withNewSpec().withNewKafka()
+                .withVersion(KAFKA_VERSION).withReplicas(KAFKA_REPLICAS).withListeners(getPlainListener())
+                .withConfig(getDefaultConfig()).withStorage(getDefaultStorage()).endKafka().withNewZookeeper()
+                .withReplicas(ZOOKEEPER_REPLICAS).withStorage(getDefaultStorage()).endZookeeper()
+                .withEntityOperator(getDefaultEntityOperator()).endSpec().build();
     }
 
     public static Kafka getDefaultTLS() {
-        return new KafkaBuilder()
-                .withNewMetadata()
-                    .withName(Constants.KAFKA)
-                    .withNamespace(Environment.NAMESPACE)
-                .endMetadata()
-                .withNewSpec()
-                    .withNewKafka()
-                        .withVersion(KAFKA_VERSION)
-                        .withReplicas(KAFKA_REPLICAS)
-                        .withListeners(
-                                getPlainListener(),
-                                getTlsListener()
-                        )
-                        .withConfig(getDefaultConfig())
-                        .withStorage(getDefaultStorage())
-                    .endKafka()
-                    .withNewZookeeper()
-                        .withReplicas(ZOOKEEPER_REPLICAS)
-                        .withStorage(getDefaultStorage())
-                    .endZookeeper()
-                    .withEntityOperator(getDefaultEntityOperator())
-                .endSpec()
-                .build();
+        return new KafkaBuilder().withNewMetadata().withName(Constants.KAFKA)
+                .withNamespace(Environment.NAMESPACE).endMetadata().withNewSpec().withNewKafka()
+                .withVersion(KAFKA_VERSION).withReplicas(KAFKA_REPLICAS)
+                .withListeners(getPlainListener(), getTlsListener()).withConfig(getDefaultConfig())
+                .withStorage(getDefaultStorage()).endKafka().withNewZookeeper()
+                .withReplicas(ZOOKEEPER_REPLICAS).withStorage(getDefaultStorage()).endZookeeper()
+                .withEntityOperator(getDefaultEntityOperator()).endSpec().build();
     }
 
     public static Kafka getDefaultSCRAM() {
-        return new KafkaBuilder()
-                .withNewMetadata()
-                    .withName(Constants.KAFKA)
-                    .withNamespace(Environment.NAMESPACE)
-                .endMetadata()
-                .withNewSpec()
-                    .withNewKafka()
-                        .withVersion(KAFKA_VERSION)
-                        .withReplicas(KAFKA_REPLICAS)
-                        .withListeners(
-                                getPlainListener(),
-                                getScramListener()
-                        )
-                        .withConfig(getDefaultConfig())
-                        .withStorage(getDefaultStorage())
-                    .endKafka()
-                    .withNewZookeeper()
-                        .withReplicas(ZOOKEEPER_REPLICAS)
-                        .withStorage(getDefaultStorage())
-                    .endZookeeper()
-                    .withEntityOperator(getDefaultEntityOperator())
-                .endSpec()
-                .build();
+        return new KafkaBuilder().withNewMetadata().withName(Constants.KAFKA)
+                .withNamespace(Environment.NAMESPACE).endMetadata().withNewSpec().withNewKafka()
+                .withVersion(KAFKA_VERSION).withReplicas(KAFKA_REPLICAS)
+                .withListeners(getPlainListener(), getScramListener()).withConfig(getDefaultConfig())
+                .withStorage(getDefaultStorage()).endKafka().withNewZookeeper()
+                .withReplicas(ZOOKEEPER_REPLICAS).withStorage(getDefaultStorage()).endZookeeper()
+                .withEntityOperator(getDefaultEntityOperator()).endSpec().build();
     }
 
     public static Kafka getDefaultByKind(KafkaKind kind) {

@@ -15,12 +15,12 @@ import java.util.Map;
 
 /**
  * A common XML content canonicalizer.
- *
  */
 public class XmlContentCanonicalizer implements ContentCanonicalizer {
 
     private static ThreadLocal<Canonicalizer> xmlCanonicalizer = new ThreadLocal<Canonicalizer>() {
-        @Override protected Canonicalizer initialValue() {
+        @Override
+        protected Canonicalizer initialValue() {
             try {
                 return Canonicalizer.getInstance(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS);
             } catch (InvalidCanonicalizerException e) {
@@ -34,10 +34,10 @@ public class XmlContentCanonicalizer implements ContentCanonicalizer {
     }
 
     /**
-     * @see ContentCanonicalizer#canonicalize(TypedContent, Map) 
+     * @see ContentCanonicalizer#canonicalize(TypedContent, Map)
      */
-    @Override public TypedContent canonicalize(TypedContent content,
-            Map<String, TypedContent> resolvedReferences) {
+    @Override
+    public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
             Canonicalizer canon = xmlCanonicalizer.get();
             var out = new ByteArrayOutputStream(content.getContent().getSizeBytes());

@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 
-
 @QuarkusTest
 public class ConfluentSerdeTest extends AbstractResourceTestBase {
 
@@ -23,13 +22,14 @@ public class ConfluentSerdeTest extends AbstractResourceTestBase {
     public void testProtobufSchemaWithReferences() {
         Properties properties = new Properties();
         String serverUrl = "http://localhost:%s/apis/ccompat/v7";
-        properties.setProperty(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, String.format(serverUrl, testPort));
+        properties.setProperty(KafkaProtobufSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG,
+                String.format(serverUrl, testPort));
         properties.setProperty(KafkaProtobufSerializerConfig.AUTO_REGISTER_SCHEMAS, "true");
 
         KafkaProtobufSerializer kafkaProtobufSerializer = new KafkaProtobufSerializer();
         kafkaProtobufSerializer.configure(properties, false);
 
-        byte[] data = kafkaProtobufSerializer.serialize("test",  TableNotification.newBuilder().build());
+        byte[] data = kafkaProtobufSerializer.serialize("test", TableNotification.newBuilder().build());
 
         KafkaProtobufDeserializer protobufKafkaDeserializer = new KafkaProtobufDeserializer();
         protobufKafkaDeserializer.configure(properties, false);

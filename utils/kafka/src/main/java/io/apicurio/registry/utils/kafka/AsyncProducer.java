@@ -18,9 +18,9 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * An async wrapper for kafka producer that is resilient in the event of failures - it recreates the underlying
- * kafka producer when unrecoverable error occurs.
- * This producer is not suitable for transactional use. It is suitable for normal or idempotent use.
+ * An async wrapper for kafka producer that is resilient in the event of failures - it recreates the
+ * underlying kafka producer when unrecoverable error occurs. This producer is not suitable for transactional
+ * use. It is suitable for normal or idempotent use.
  */
 public class AsyncProducer<K, V> implements ProducerActions<K, V> {
     private static final Logger log = LoggerFactory.getLogger(AsyncProducer.class);
@@ -74,7 +74,8 @@ public class AsyncProducer<K, V> implements ProducerActions<K, V> {
 
     private synchronized void closeProducer(KafkaProducer<?, ?> producer, boolean fromCallback) {
         try {
-            if (producer == null) producer = this.producer;
+            if (producer == null)
+                producer = this.producer;
             if (producer != null && producer == this.producer) {
                 try {
                     log.info("Closing resilient producer.");
@@ -90,7 +91,8 @@ public class AsyncProducer<K, V> implements ProducerActions<K, V> {
                 }
             }
         } finally {
-            if (!fromCallback) closed = true;
+            if (!fromCallback)
+                closed = true;
         }
     }
 
@@ -117,10 +119,8 @@ public class AsyncProducer<K, V> implements ProducerActions<K, V> {
         }
 
         private boolean isFatalException(Exception e) {
-            return e instanceof UnsupportedVersionException ||
-                   e instanceof AuthorizationException ||
-                   e instanceof ProducerFencedException ||
-                   e instanceof OutOfOrderSequenceException;
+            return e instanceof UnsupportedVersionException || e instanceof AuthorizationException
+                    || e instanceof ProducerFencedException || e instanceof OutOfOrderSequenceException;
         }
     }
 }

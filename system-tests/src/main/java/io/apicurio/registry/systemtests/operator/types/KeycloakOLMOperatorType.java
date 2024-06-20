@@ -67,15 +67,8 @@ public class KeycloakOLMOperatorType extends OLMOperator implements OperatorType
 
         LOGGER.info("OLM operator CSV: {}", getClusterServiceVersion());
 
-        setSubscription(SubscriptionResourceType.getDefault(
-                "sso-subscription",
-                getNamespace(),
-                ssoPackage,
-                catalogName,
-                catalogNamespace,
-                getClusterServiceVersion(),
-                channelName
-        ));
+        setSubscription(SubscriptionResourceType.getDefault("sso-subscription", getNamespace(), ssoPackage,
+                catalogName, catalogNamespace, getClusterServiceVersion(), channelName));
 
         ResourceManager.getInstance().createSharedResource(true, getSubscription());
 

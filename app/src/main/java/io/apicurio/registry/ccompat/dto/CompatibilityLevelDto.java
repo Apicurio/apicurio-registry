@@ -16,7 +16,6 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
 /**
  * Immutable.
- *
  */
 @JsonAutoDetect(isGetterVisibility = NONE)
 @NoArgsConstructor // required for Jackson
@@ -34,13 +33,9 @@ public class CompatibilityLevelDto {
     private Level compatibility;
 
     public enum Level {
-        BACKWARD("BACKWARD"),
-        BACKWARD_TRANSITIVE("BACKWARD_TRANSITIVE"),
-        FORWARD("FORWARD"),
-        FORWARD_TRANSITIVE("FORWARD_TRANSITIVE"),
-        FULL("FULL"),
-        FULL_TRANSITIVE("FULL_TRANSITIVE"),
-        NONE("NONE");
+        BACKWARD("BACKWARD"), BACKWARD_TRANSITIVE("BACKWARD_TRANSITIVE"), FORWARD(
+                "FORWARD"), FORWARD_TRANSITIVE(
+                        "FORWARD_TRANSITIVE"), FULL("FULL"), FULL_TRANSITIVE("FULL_TRANSITIVE"), NONE("NONE");
 
         public static Level create(Optional<CompatibilityLevel> source) {
             return source.map(c -> {

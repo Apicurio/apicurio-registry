@@ -38,40 +38,54 @@ public class MockRequestAdapter implements RequestAdapter {
 
     @Nullable
     @Override
-    public <ModelType extends Parsable> ModelType send(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull ParsableFactory<ModelType> factory) {
+    public <ModelType extends Parsable> ModelType send(@Nonnull RequestInformation requestInfo,
+            @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings,
+            @Nonnull ParsableFactory<ModelType> factory) {
         throw new UnsupportedOperationException("Unimplemented");
     }
 
     @Nullable
     @Override
-    public <ModelType extends Parsable> List<ModelType> sendCollection(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull ParsableFactory<ModelType> factory) {
+    public <ModelType extends Parsable> List<ModelType> sendCollection(
+            @Nonnull RequestInformation requestInfo,
+            @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings,
+            @Nonnull ParsableFactory<ModelType> factory) {
         assertEquals("{+baseurl}/ids/contentHashes/{contentHash}/references", requestInfo.urlTemplate);
         return List.of();
     }
 
     @Nullable
     @Override
-    public <ModelType> ModelType sendPrimitive(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull Class<ModelType> targetClass) {
+    public <ModelType> ModelType sendPrimitive(@Nonnull RequestInformation requestInfo,
+            @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings,
+            @Nonnull Class<ModelType> targetClass) {
         assertEquals("{+baseurl}/ids/contentHashes/{contentHash}", requestInfo.urlTemplate);
         this.timesGetContentByHashCalled++;
-        return (ModelType)new ByteArrayInputStream(this.schemaContent.getBytes(StandardCharsets.UTF_8));
+        return (ModelType) new ByteArrayInputStream(this.schemaContent.getBytes(StandardCharsets.UTF_8));
     }
 
     @Nullable
     @Override
-    public <ModelType> List<ModelType> sendPrimitiveCollection(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull Class<ModelType> targetClass) {
+    public <ModelType> List<ModelType> sendPrimitiveCollection(@Nonnull RequestInformation requestInfo,
+            @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings,
+            @Nonnull Class<ModelType> targetClass) {
         throw new UnsupportedOperationException("Unimplemented");
     }
 
     @Nullable
     @Override
-    public <ModelType extends Enum<ModelType>> ModelType sendEnum(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull ValuedEnumParser<ModelType> enumParser) {
+    public <ModelType extends Enum<ModelType>> ModelType sendEnum(@Nonnull RequestInformation requestInfo,
+            @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings,
+            @Nonnull ValuedEnumParser<ModelType> enumParser) {
         throw new UnsupportedOperationException("Unimplemented");
     }
 
     @Nullable
     @Override
-    public <ModelType extends Enum<ModelType>> List<ModelType> sendEnumCollection(@Nonnull RequestInformation requestInfo, @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings, @Nonnull ValuedEnumParser<ModelType> enumParser) {
+    public <ModelType extends Enum<ModelType>> List<ModelType> sendEnumCollection(
+            @Nonnull RequestInformation requestInfo,
+            @Nullable HashMap<String, ParsableFactory<? extends Parsable>> errorMappings,
+            @Nonnull ValuedEnumParser<ModelType> enumParser) {
         throw new UnsupportedOperationException("Unimplemented");
     }
 

@@ -24,13 +24,15 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testSchema() throws Exception {
         String groupId = "JsonSerdeTest_testSchema";
-        String jsonSchema = new String(getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json").readAllBytes(), StandardCharsets.UTF_8);
+        String jsonSchema = new String(
+                getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json").readAllBytes(),
+                StandardCharsets.UTF_8);
         Assertions.assertNotNull(jsonSchema);
 
         String artifactId = generateArtifactId();
 
-        long globalId = createArtifact(groupId, artifactId + "-value", ArtifactType.JSON, jsonSchema, ContentTypes.APPLICATION_JSON)
-                .getVersion().getGlobalId();
+        long globalId = createArtifact(groupId, artifactId + "-value", ArtifactType.JSON, jsonSchema,
+                ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
 
         // make sure we have schema registered
         retry(() -> clientV3.ids().globalIds().byGlobalId(globalId).get());
@@ -38,7 +40,8 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientV3, true);
-             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientV3, true)) {
+            JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientV3,
+                    true)) {
 
             Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             serializer.configure(configs, false);

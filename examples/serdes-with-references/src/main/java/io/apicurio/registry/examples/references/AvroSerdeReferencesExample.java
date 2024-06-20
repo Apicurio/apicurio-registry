@@ -31,7 +31,7 @@ public class AvroSerdeReferencesExample {
     private static final String TOPIC_NAME = AvroSerdeReferencesExample.class.getSimpleName();
     private static final String SUBJECT_NAME = "Trade";
 
-    public static void main(String [] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         System.out.println("Starting example " + AvroSerdeReferencesExample.class.getSimpleName());
         String topicName = TOPIC_NAME;
         String subjectName = SUBJECT_NAME;
@@ -52,7 +52,8 @@ public class AvroSerdeReferencesExample {
                 tradeRaw.setSymbol("testSymbol");
 
                 // Send/produce the message on the Kafka Producer
-                ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, subjectName, tradeRaw);
+                ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, subjectName,
+                        tradeRaw);
                 producer.send(producedRecord);
 
                 Thread.sleep(100);
@@ -82,10 +83,12 @@ public class AvroSerdeReferencesExample {
                 if (records.count() == 0) {
                     // Do nothing - no messages waiting.
                     System.out.println("No messages waiting...");
-                } else records.forEach(record -> {
-                    TradeRaw tradeRaw = record.value();
-                    System.out.println("Consumed a message: " + tradeRaw.getPayload() + " @ " + tradeRaw.getTradeKey().getKey());
-                });
+                } else
+                    records.forEach(record -> {
+                        TradeRaw tradeRaw = record.value();
+                        System.out.println("Consumed a message: " + tradeRaw.getPayload() + " @ "
+                                + tradeRaw.getTradeKey().getKey());
+                    });
             }
         } finally {
             consumer.close();
@@ -115,8 +118,7 @@ public class AvroSerdeReferencesExample {
         props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS, IfExists.RETURN.name());
         props.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
 
-
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka producer
@@ -138,17 +140,18 @@ public class AvroSerdeReferencesExample {
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         // Use the Apicurio Registry provided Kafka Deserializer for Avro
-        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
+        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                AvroKafkaDeserializer.class.getName());
         props.putIfAbsent(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
         props.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
         // No other configuration needed for the deserializer, because the globalId of the schema
-        // the deserializer should use is sent as part of the payload.  So the deserializer simply
+        // the deserializer should use is sent as part of the payload. So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka Consumer
@@ -167,13 +170,16 @@ public class AvroSerdeReferencesExample {
             props.putIfAbsent(SerdeConfig.AUTH_CLIENT_ID, authClient);
             props.putIfAbsent(SerdeConfig.AUTH_TOKEN_ENDPOINT, tokenEndpoint);
             props.putIfAbsent(SaslConfigs.SASL_MECHANISM, "OAUTHBEARER");
-            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
+            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
+                    "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
             props.putIfAbsent("security.protocol", "SASL_SSL");
 
-            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                    "  oauth.client.id=\"%s\" "+
-                    "  oauth.client.secret=\"%s\" "+
-                    "  oauth.token.endpoint.uri=\"%s\" ;", authClient, authSecret, tokenEndpoint));
+            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG,
+                    String.format(
+                            "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
+                                    + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
+                                    + "  oauth.token.endpoint.uri=\"%s\" ;",
+                            authClient, authSecret, tokenEndpoint));
         }
     }
 }

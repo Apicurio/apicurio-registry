@@ -5,10 +5,11 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.SchemaFactoryAccessor;
 
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
 import java.io.InputStream;
 import java.util.Map;
+
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
 
 public class XsdContentValidator extends XmlContentValidator {
 
@@ -17,11 +18,13 @@ public class XsdContentValidator extends XmlContentValidator {
      */
     public XsdContentValidator() {
     }
+
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map) 
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
-    public void validate(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, TypedContent content,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         super.validate(level, content, resolvedReferences);
 
         if (level == ValidityLevel.FULL) {
@@ -30,7 +33,8 @@ public class XsdContentValidator extends XmlContentValidator {
                 Source source = new StreamSource(semanticStream);
                 SchemaFactoryAccessor.getSchemaFactory().newSchema(source);
             } catch (Exception e) {
-                throw new RuleViolationException("Syntax violation for XSD Schema artifact.", RuleType.VALIDITY, level.name(), e);
+                throw new RuleViolationException("Syntax violation for XSD Schema artifact.",
+                        RuleType.VALIDITY, level.name(), e);
             }
         }
     }

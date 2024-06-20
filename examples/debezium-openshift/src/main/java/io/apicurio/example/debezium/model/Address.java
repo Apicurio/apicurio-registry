@@ -31,14 +31,8 @@ public class Address {
         if (value == null) {
             return null;
         }
-        return Address.builder()
-                .id(value.getId())
-                .customerId(value.getCustomerId())
-                .street(value.getStreet())
-                .city(value.getCity())
-                .state(value.getState())
-                .zip(value.getZip())
-                .type(value.getType())
+        return Address.builder().id(value.getId()).customerId(value.getCustomerId()).street(value.getStreet())
+                .city(value.getCity()).state(value.getState()).zip(value.getZip()).type(value.getType())
                 .build();
     }
 }

@@ -41,12 +41,13 @@ public class AvroSchemaUtils {
     }
 
     public static Schema parse(String schema, List<ParsedSchema<Schema>> references) {
-        //First try to parse without references, useful when the content is dereferenced
+        // First try to parse without references, useful when the content is dereferenced
         try {
             final Schema.Parser parser = new Schema.Parser();
             return parser.parse(schema);
         } catch (SchemaParseException e) {
-            //If we fail to parse the content from the main schema, then parse first the references and then the main schema
+            // If we fail to parse the content from the main schema, then parse first the references and then
+            // the main schema
             final Schema.Parser parser = new Schema.Parser();
             handleReferences(parser, references);
             return parser.parse(schema);
@@ -68,7 +69,7 @@ public class AvroSchemaUtils {
         return primitiveSchemas.containsValue(schema);
     }
 
-    static Schema getReflectSchema(ReflectData reflectData,Object object) {
+    static Schema getReflectSchema(ReflectData reflectData, Object object) {
         Class<?> clazz = (object instanceof Class) ? (Class<?>) object : object.getClass();
         Schema schema = reflectData.getSchema(clazz);
         if (schema == null) {
@@ -101,8 +102,8 @@ public class AvroSchemaUtils {
         } else if (useReflection) {
             Schema schema = ReflectData.get().getSchema(object.getClass());
             if (schema == null) {
-                throw new SerializationException("Schema is null for object of class " + object.getClass()
-                        .getCanonicalName());
+                throw new SerializationException(
+                        "Schema is null for object of class " + object.getClass().getCanonicalName());
             } else {
                 return schema;
             }

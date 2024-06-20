@@ -42,13 +42,15 @@ public class TransformOpenApiForClientGen {
         }
 
         // Read the source openapi document.
-        OpenApi30Document document = (OpenApi30Document) Library.readDocumentFromJSONString(inputDocumentString);
+        OpenApi30Document document = (OpenApi30Document) Library
+                .readDocumentFromJSONString(inputDocumentString);
 
         attachHeaderSchema(document.getPaths().getItem("/groups/{groupId}/artifacts/{artifactId}").getPut(),
                 "/groups/{groupId}/artifacts/{artifactId} PUT");
         attachHeaderSchema(document.getPaths().getItem("/groups/{groupId}/artifacts").getPost(),
                 "/groups/{groupId}/artifacts POST");
-        attachHeaderSchema(document.getPaths().getItem("/groups/{groupId}/artifacts/{artifactId}/versions").getPost(),
+        attachHeaderSchema(
+                document.getPaths().getItem("/groups/{groupId}/artifacts/{artifactId}/versions").getPost(),
                 "/groups/{groupId}/artifacts/{artifactId}/versions POST");
 
         // Remove duplicated tags
@@ -64,7 +66,7 @@ public class TransformOpenApiForClientGen {
 
         document.getPaths().getItem("/search/artifacts").getGet().getTags().remove("Artifacts");
         document.getPaths().getItem("/search/artifacts").getPost().getTags().remove("Artifacts");
-        
+
         document.getTags().stream().filter(t -> !"Global rules".equals(t.getName()))
                 .collect(Collectors.toList()).forEach(tag -> document.removeTag(tag));
 
@@ -84,7 +86,8 @@ public class TransformOpenApiForClientGen {
         out.println("Adding explicit Content-Type header to " + info);
         var param = operation.createParameter();
         param.setName("Content-Type");
-        param.setDescription("This header is explicit so clients using the OpenAPI Generator are able select the content type. Ignore otherwise.");
+        param.setDescription(
+                "This header is explicit so clients using the OpenAPI Generator are able select the content type. Ignore otherwise.");
         var schema = (OpenApi30Schema) param.createSchema();
         schema.setType("string");
         param.setSchema(schema);

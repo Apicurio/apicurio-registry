@@ -6,8 +6,10 @@ public class InvalidVersionStateException extends RegistryStorageException {
 
     private static final long serialVersionUID = 1L;
 
-    public InvalidVersionStateException(String groupId, String artifactId, String version, VersionState state) {
-        super(String.format("Artifact %s [%s] in group (%s) is not active: %s", artifactId, version, groupId, state));
+    public InvalidVersionStateException(String groupId, String artifactId, String version,
+            VersionState state) {
+        super(String.format("Artifact %s [%s] in group (%s) is not active: %s", artifactId, version, groupId,
+                state));
     }
 
     public InvalidVersionStateException(VersionState previousState, VersionState newState) {

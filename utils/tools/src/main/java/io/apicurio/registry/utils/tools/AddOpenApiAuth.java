@@ -1,17 +1,16 @@
 package io.apicurio.registry.utils.tools;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.openapi.v30.OpenApi30Document;
 import io.apicurio.datamodels.models.openapi.v30.OpenApi30SecurityRequirement;
 import io.apicurio.datamodels.models.openapi.v30.OpenApi30SecurityScheme;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 public class AddOpenApiAuth {
 
@@ -39,16 +38,19 @@ public class AddOpenApiAuth {
         System.out.println("Adding security scheme and requirement.");
 
         // Read the source openapi document.
-        OpenApi30Document document = (OpenApi30Document) Library.readDocumentFromJSONString(inputDocumentString);
+        OpenApi30Document document = (OpenApi30Document) Library
+                .readDocumentFromJSONString(inputDocumentString);
 
         // Create a security scheme for basic auth
-        OpenApi30SecurityScheme securityScheme = (OpenApi30SecurityScheme) document.getComponents().createSecurityScheme();
+        OpenApi30SecurityScheme securityScheme = (OpenApi30SecurityScheme) document.getComponents()
+                .createSecurityScheme();
         securityScheme.setType("http");
         securityScheme.setScheme("basic");
         document.getComponents().addSecurityScheme("basicAuth", securityScheme);
 
         // And now *use* the basic auth security scheme.
-        OpenApi30SecurityRequirement securityRequirement = (OpenApi30SecurityRequirement) document.createSecurityRequirement();
+        OpenApi30SecurityRequirement securityRequirement = (OpenApi30SecurityRequirement) document
+                .createSecurityRequirement();
         securityRequirement.addItem("basicAuth", Collections.emptyList());
         document.addSecurity(securityRequirement);
 

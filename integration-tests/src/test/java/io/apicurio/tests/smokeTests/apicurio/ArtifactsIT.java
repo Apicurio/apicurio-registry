@@ -83,15 +83,16 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         assertEquals(artifactId, amd.getArtifactId());
         assertEquals(name, amd.getName());
 
-        // Get the list of versions for the artifact:  should be 0 versions
-        var results = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();
+        // Get the list of versions for the artifact: should be 0 versions
+        var results = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().get();
         assertNotNull(results);
         assertEquals(0, results.getCount());
         assertNotNull(results.getVersions());
         assertEquals(0, results.getVersions().size());
     }
 
-        @Test
+    @Test
     @Tag(ACCEPTANCE)
     void createAndUpdateArtifact() throws Exception {
         CreateRule createRule = new CreateRule();
@@ -110,41 +111,50 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         var artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        CreateArtifactResponse caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData, ContentTypes.APPLICATION_JSON, IfArtifactExists.FAIL, null);
+        CreateArtifactResponse caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO,
+                artifactData, ContentTypes.APPLICATION_JSON, IfArtifactExists.FAIL, null);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact().toString());
 
-        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get();
+        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("branch=latest").content().get();
         JsonNode response = mapper.readTree(latest);
 
-        LOGGER.info("Artifact with name:{} and content:{} was created", response.get("name").asText(), response);
+        LOGGER.info("Artifact with name:{} and content:{} was created", response.get("name").asText(),
+                response);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         String invalidArtifactId = "createAndUpdateArtifactId2";
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-        assertClientError("RuleViolationException", 409, () ->
-                registryClient.groups().byGroupId("ccc").artifacts().post(
-                        TestUtils.clientCreateArtifact(invalidArtifactId, ArtifactType.AVRO, invalidArtifactDefinition, ContentTypes.APPLICATION_JSON)
-                ), errorCodeExtractor);
+        assertClientError("RuleViolationException", 409,
+                () -> registryClient.groups().byGroupId("ccc").artifacts()
+                        .post(TestUtils.clientCreateArtifact(invalidArtifactId, ArtifactType.AVRO,
+                                invalidArtifactDefinition, ContentTypes.APPLICATION_JSON)),
+                errorCodeExtractor);
 
         artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"long\"}]}";
-        CreateVersion createVersion = TestUtils.clientCreateVersion(artifactData, ContentTypes.APPLICATION_JSON);
-        VersionMetaData metaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
+        CreateVersion createVersion = TestUtils.clientCreateVersion(artifactData,
+                ContentTypes.APPLICATION_JSON);
+        VersionMetaData metaData = registryClient.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).versions().post(createVersion);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData.toString());
         // Make sure artifact is fully registered
         retryOp((rc) -> rc.ids().globalIds().byGlobalId(metaData.getGlobalId()).get());
 
-        latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get();
+        latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("branch=latest").content().get();
         response = mapper.readTree(latest);
 
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, response);
 
         List<String> apicurioVersions = listArtifactVersions(registryClient, groupId, artifactId);
 
-        LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, apicurioVersions.toString());
+        LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId,
+                apicurioVersions.toString());
         assertThat(apicurioVersions, hasItems("1", "2"));
 
-        InputStream version1 = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").content().get();
+        InputStream version1 = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("1").content().get();
         response = mapper.readTree(version1);
 
         LOGGER.info("Artifact with ID {} and version {}: {}", artifactId, 1, response);
@@ -157,18 +167,18 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         LOGGER.info("Creating some artifacts...");
         String groupId = TestUtils.generateGroupId();
 
-        List<VersionMetaData> artifacts = IntStream.range(0, 10)
-                .mapToObj(i -> {
-                    String artifactId = TestUtils.generateSubject();
-                    try {
-                        String content = new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("foo")).generateSchema().toString();
-                        String ct = ContentTypes.APPLICATION_JSON;
-                        return createArtifact(groupId, artifactId, ArtifactType.AVRO, content, ct, null, null).getVersion();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .collect(Collectors.toList());
+        List<VersionMetaData> artifacts = IntStream.range(0, 10).mapToObj(i -> {
+            String artifactId = TestUtils.generateSubject();
+            try {
+                String content = new AvroGenericRecordSchemaFactory(groupId, artifactId, List.of("foo"))
+                        .generateSchema().toString();
+                String ct = ContentTypes.APPLICATION_JSON;
+                return createArtifact(groupId, artifactId, ArtifactType.AVRO, content, ct, null, null)
+                        .getVersion();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toList());
 
         LOGGER.info("Created  {} artifacts", artifacts.size());
 
@@ -176,8 +186,10 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         registryClient.groups().byGroupId(groupId).delete();
 
         for (VersionMetaData artifact : artifacts) {
-            retryAssertClientError("ArtifactNotFoundException", 404, (rc) ->
-                    rc.groups().byGroupId(artifact.getGroupId()).artifacts().byArtifactId(artifact.getArtifactId()).get(), errorCodeExtractor);
+            retryAssertClientError("ArtifactNotFoundException", 404,
+                    (rc) -> rc.groups().byGroupId(artifact.getGroupId()).artifacts()
+                            .byArtifactId(artifact.getArtifactId()).get(),
+                    errorCodeExtractor);
         }
     }
 
@@ -188,11 +200,13 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         String artifactData = "{\"type\":\"INVALID\",\"config\":\"invalid\"}";
         String artifactId = TestUtils.generateArtifactId();
 
-        var caResponse = createArtifact(groupId, artifactId, ArtifactType.JSON, artifactData, ContentTypes.APPLICATION_JSON, null, null);
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.JSON, artifactData,
+                ContentTypes.APPLICATION_JSON, null, null);
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact());
 
-        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get();
+        InputStream latest = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("branch=latest").content().get();
         JsonNode response = mapper.readTree(latest);
 
         LOGGER.info("Got info about artifact with ID {}: {}", artifactId, response);
@@ -205,16 +219,19 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         String groupId = TestUtils.generateGroupId();
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         String artifactId = TestUtils.generateArtifactId();
-        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData, ContentTypes.APPLICATION_JSON, null, null);
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData,
+                ContentTypes.APPLICATION_JSON, null, null);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact());
 
         artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
-        var metaData = createArtifactVersion(groupId, artifactId, artifactData, ContentTypes.APPLICATION_JSON, null);
+        var metaData = createArtifactVersion(groupId, artifactId, artifactData, ContentTypes.APPLICATION_JSON,
+                null);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
         List<String> artifactVersions = listArtifactVersions(registryClient, groupId, artifactId);
 
-        LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId, artifactVersions.toString());
+        LOGGER.info("Available versions of artifact with ID {} are: {}", artifactId,
+                artifactVersions.toString());
         assertThat(artifactVersions, hasItems("1", "2"));
     }
 
@@ -224,12 +241,15 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
-        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData, ContentTypes.APPLICATION_JSON, null, null);
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData,
+                ContentTypes.APPLICATION_JSON, null, null);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact().toString());
 
         String invalidArtifactData = "{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        assertClientError("ArtifactAlreadyExistsException", 409, () ->
-                createArtifact(groupId, artifactId, ArtifactType.AVRO, invalidArtifactData, ContentTypes.APPLICATION_JSON, null, null), true, errorCodeExtractor);
+        assertClientError(
+                "ArtifactAlreadyExistsException", 409, () -> createArtifact(groupId, artifactId,
+                        ArtifactType.AVRO, invalidArtifactData, ContentTypes.APPLICATION_JSON, null, null),
+                true, errorCodeExtractor);
     }
 
     @Test
@@ -239,17 +259,20 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData, ContentTypes.APPLICATION_JSON, null, (ca) -> {
-            ca.getFirstVersion().setVersion("1.1");
-        });
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData,
+                ContentTypes.APPLICATION_JSON, null, (ca) -> {
+                    ca.getFirstVersion().setVersion("1.1");
+                });
 
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact().toString());
 
         String sameArtifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        assertClientError("VersionAlreadyExistsException", 409, () ->
-                createArtifact(groupId, artifactId, ArtifactType.AVRO, sameArtifactData, ContentTypes.APPLICATION_JSON, IfArtifactExists.CREATE_VERSION, (ca) -> {
-                    ca.getFirstVersion().setVersion("1.1");
-                }), true, errorCodeExtractor);
+        assertClientError("VersionAlreadyExistsException", 409,
+                () -> createArtifact(groupId, artifactId, ArtifactType.AVRO, sameArtifactData,
+                        ContentTypes.APPLICATION_JSON, IfArtifactExists.CREATE_VERSION, (ca) -> {
+                            ca.getFirstVersion().setVersion("1.1");
+                        }),
+                true, errorCodeExtractor);
     }
 
     @Test
@@ -261,50 +284,65 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         String artifactDataV3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        VersionMetaData v1MD = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData, ContentTypes.APPLICATION_JSON, null, null).getVersion();
+        VersionMetaData v1MD = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData,
+                ContentTypes.APPLICATION_JSON, null, null).getVersion();
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
 
         // Update the artifact (v2)
-        VersionMetaData v2MD = createArtifactVersion(groupId, artifactId, artifactDataV2, ContentTypes.APPLICATION_JSON, null);
+        VersionMetaData v2MD = createArtifactVersion(groupId, artifactId, artifactDataV2,
+                ContentTypes.APPLICATION_JSON, null);
 
         // Update the artifact (v3)
-        VersionMetaData v3MD = createArtifactVersion(groupId, artifactId, artifactDataV3, ContentTypes.APPLICATION_JSON, null);
+        VersionMetaData v3MD = createArtifactVersion(groupId, artifactId, artifactDataV3,
+                ContentTypes.APPLICATION_JSON, null);
 
         // Disable v3
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).put(toEditableVersionMetaData(VersionState.DISABLED));
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(String.valueOf(v3MD.getVersion()))
+                .put(toEditableVersionMetaData(VersionState.DISABLED));
 
         // Verify artifact
         retryOp((rc) -> {
-            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                    .versions().byVersionExpression("branch=latest").get();
             assertEquals("2", actualMD.getVersion());
 
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).get();
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                    .versions().byVersionExpression(String.valueOf(v1MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(String.valueOf(v2MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(String.valueOf(v3MD.getVersion())).get();
             assertEquals(VersionState.DISABLED, actualVMD.getState());
         });
 
         // Re-enable v3
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).put(toEditableVersionMetaData(VersionState.ENABLED));
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(String.valueOf(v3MD.getVersion()))
+                .put(toEditableVersionMetaData(VersionState.ENABLED));
 
         retryOp((rc) -> {
             // Verify artifact (now v3)
-            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+            VersionMetaData actualMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                    .versions().byVersionExpression("branch=latest").get();
             assertEquals("3", actualMD.getVersion()); // version 2 is active (3 is disabled)
 
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).get();
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                    .versions().byVersionExpression(String.valueOf(v1MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(String.valueOf(v2MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(String.valueOf(v3MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
         });
     }
@@ -318,35 +356,45 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         String artifactDataV3 = "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         // Create the artifact
-        VersionMetaData v1MD = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData, ContentTypes.APPLICATION_JSON, null, null).getVersion();
+        VersionMetaData v1MD = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData,
+                ContentTypes.APPLICATION_JSON, null, null).getVersion();
         LOGGER.info("Created artifact {} with metadata {}", artifactId, v1MD.toString());
 
         // Update the artifact (v2)
-        VersionMetaData v2MD = createArtifactVersion(groupId, artifactId, artifactDataV2, ContentTypes.APPLICATION_JSON, null);
+        VersionMetaData v2MD = createArtifactVersion(groupId, artifactId, artifactDataV2,
+                ContentTypes.APPLICATION_JSON, null);
 
         // Update the artifact (v3)
-        VersionMetaData v3MD = createArtifactVersion(groupId, artifactId, artifactDataV3, ContentTypes.APPLICATION_JSON, null);
+        VersionMetaData v3MD = createArtifactVersion(groupId, artifactId, artifactDataV3,
+                ContentTypes.APPLICATION_JSON, null);
 
         // Deprecate v2
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).put(toEditableVersionMetaData(VersionState.DEPRECATED));
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(String.valueOf(v2MD.getVersion()))
+                .put(toEditableVersionMetaData(VersionState.DEPRECATED));
 
         retryOp((rc) -> {
             // Verify v1
-            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v1MD.getVersion())).get();
+            VersionMetaData actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                    .versions().byVersionExpression(String.valueOf(v1MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
             // Verify v2
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v2MD.getVersion())).get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(String.valueOf(v2MD.getVersion())).get();
             assertEquals(VersionState.DEPRECATED, actualVMD.getState());
             // Verify v3
-            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(String.valueOf(v3MD.getVersion())).get();
+            actualVMD = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(String.valueOf(v3MD.getVersion())).get();
             assertEquals(VersionState.ENABLED, actualVMD.getState());
         });
     }
 
     @Test
     void deleteNonexistingSchema() throws Exception {
-        assertClientError("ArtifactNotFoundException", 404, () ->
-                registryClient.groups().byGroupId("nonn-existent-group").artifacts().byArtifactId("non-existing").get(), errorCodeExtractor);
+        assertClientError(
+                "ArtifactNotFoundException", 404, () -> registryClient.groups()
+                        .byGroupId("nonn-existent-group").artifacts().byArtifactId("non-existing").get(),
+                errorCodeExtractor);
     }
 
     @Test
@@ -355,7 +403,8 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         String artifactId = "._:-'`?0=)(/&$!<>,;,:";
 
         String content = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON, null, null);
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON, null,
+                null);
 
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
@@ -375,13 +424,13 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         });
 
         CreateVersion testCV = TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(testCV, config -> {
-            config.queryParameters.dryRun = true;
-        });
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(testCV, config -> {
+                    config.queryParameters.dryRun = true;
+                });
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(
-                TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON)
-        );
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON));
 
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
@@ -397,7 +446,8 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         ArtifactContent artifactContent = new ArtifactContent();
         artifactContent.setContent(content);
 
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON, null, null);
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON, null,
+                null);
 
         retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
@@ -419,13 +469,13 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         });
 
         CreateVersion testCV = TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON);
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(testCV, config -> {
-            config.queryParameters.dryRun = true;
-        });
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(testCV, config -> {
+                    config.queryParameters.dryRun = true;
+                });
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(
-                TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON)
-        );
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON));
 
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
@@ -441,7 +491,8 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "test-" + idx;
             Thread.sleep(idx == 0 ? 0 : 1500 / idx);
-            this.createArtifact(group, artifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON, null, null);
+            this.createArtifact(group, artifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON,
+                    null, null);
         }
 
         ArtifactSearchResults results = registryClient.search().artifacts().get(config -> {
@@ -472,4 +523,3 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         }
     }
 }
-

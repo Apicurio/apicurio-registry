@@ -11,21 +11,23 @@ import java.util.Map;
 
 /**
  * A Protobuf implementation of a content Canonicalizer.
- *
  */
 public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
 
     /**
-     * @see io.apicurio.registry.content.canon.ContentCanonicalizer#canonicalize(TypedContent, Map) 
+     * @see io.apicurio.registry.content.canon.ContentCanonicalizer#canonicalize(TypedContent, Map)
      */
     @Override
     public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
-            ProtoFileElement fileElem = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, content.getContent().content());
+            ProtoFileElement fileElem = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                    content.getContent().content());
 
-            //TODO maybe use FileDescriptorUtils to convert to a FileDescriptor and then convert back to ProtoFileElement
+            // TODO maybe use FileDescriptorUtils to convert to a FileDescriptor and then convert back to
+            // ProtoFileElement
 
-            return TypedContent.create(ContentHandle.create(fileElem.toSchema()), ContentTypes.APPLICATION_PROTOBUF);
+            return TypedContent.create(ContentHandle.create(fileElem.toSchema()),
+                    ContentTypes.APPLICATION_PROTOBUF);
         } catch (Throwable e) {
             return content;
         }

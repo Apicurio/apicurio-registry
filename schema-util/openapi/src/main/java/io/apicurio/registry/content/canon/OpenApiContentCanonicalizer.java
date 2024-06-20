@@ -11,13 +11,13 @@ import io.apicurio.registry.types.ContentTypes;
 import java.util.Map;
 
 /**
- * An OpenAPI content canonicalizer.  This will remove any extra formatting such as whitespace
- * and also sort all fields/properties for all objects (because ordering of properties does not
- * matter).
+ * An OpenAPI content canonicalizer. This will remove any extra formatting such as whitespace and also sort
+ * all fields/properties for all objects (because ordering of properties does not matter).
  */
 public class OpenApiContentCanonicalizer implements ContentCanonicalizer {
 
-    private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    private final ObjectMapper mapper = new ObjectMapper()
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
 
     /**
      * @see ContentCanonicalizer#canonicalize(TypedContent, Map)

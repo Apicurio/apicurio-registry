@@ -16,7 +16,6 @@ import static io.apicurio.tests.serdes.apicurio.SerdesTester.*;
 import static io.apicurio.tests.serdes.apicurio.Tester.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
 public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
 
     protected int batchCount = 1;
@@ -68,7 +67,8 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
         return this;
     }
 
-    public <U extends Deserializer<?>> SimpleSerdesTesterBuilder<P, C> withDeserializer(Class<U> deserializer) {
+    public <U extends Deserializer<?>> SimpleSerdesTesterBuilder<P, C> withDeserializer(
+            Class<U> deserializer) {
         this.deserializer = deserializer;
         return this;
     }
@@ -114,7 +114,6 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
         return new SimpleSerdesTester();
     }
 
-
     private class SimpleSerdesTester extends SerdesTester<String, P, C> implements Tester {
 
         /**
@@ -122,7 +121,8 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
          */
         @Override
         public void test() throws Exception {
-            Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class, serializer, topic, artifactResolverStrategy);
+            Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class,
+                    serializer, topic, artifactResolverStrategy);
 
             boolean autoCloseByProduceOrConsume = batchCount == 1;
             setAutoClose(autoCloseByProduceOrConsume);
@@ -141,7 +141,8 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
                 assertTrue(afterProduceValidator.validate(), "After produce validation failed");
             }
 
-            Consumer<String, C> consumer = this.createConsumer(consumerProperties, StringDeserializer.class, deserializer, topic);
+            Consumer<String, C> consumer = this.createConsumer(consumerProperties, StringDeserializer.class,
+                    deserializer, topic);
 
             int messageCount = batchCount * batchSize;
             try {
@@ -155,6 +156,5 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
         }
 
     }
-
 
 }

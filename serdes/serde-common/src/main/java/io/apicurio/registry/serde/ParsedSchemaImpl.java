@@ -1,7 +1,8 @@
 package io.apicurio.registry.serde;
 
 /**
- * This class is deprecated and eventually will be replaced by {@link io.apicurio.registry.resolver.ParsedSchemaImpl}
+ * This class is deprecated and eventually will be replaced by
+ * {@link io.apicurio.registry.resolver.ParsedSchemaImpl}
  */
 @Deprecated
 public class ParsedSchemaImpl<T> implements ParsedSchema<T> {
@@ -10,7 +11,7 @@ public class ParsedSchemaImpl<T> implements ParsedSchema<T> {
     private byte[] rawSchema;
 
     public ParsedSchemaImpl() {
-        //empty
+        // empty
     }
 
     /**

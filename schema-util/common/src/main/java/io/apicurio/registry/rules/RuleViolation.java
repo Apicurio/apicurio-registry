@@ -15,6 +15,7 @@ public class RuleViolation {
 
     /**
      * Constructor.
+     * 
      * @param description
      * @param context
      */

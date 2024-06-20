@@ -21,9 +21,6 @@ public class ProductOnHand {
         if (value == null) {
             return null;
         }
-        return ProductOnHand.builder()
-                .productId(value.getProductId())
-                .quantity(value.getQuantity())
-                .build();
+        return ProductOnHand.builder().productId(value.getProductId()).quantity(value.getQuantity()).build();
     }
 }

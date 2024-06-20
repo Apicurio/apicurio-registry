@@ -1,16 +1,15 @@
 package io.apicurio.registry.storage;
 
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Consumer;
-
-import org.slf4j.Logger;
-
 import io.apicurio.registry.storage.error.InvalidVersionStateException;
 import io.apicurio.registry.types.VersionState;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
 
 @ApplicationScoped
 public class VersionStateExt {
@@ -24,7 +23,8 @@ public class VersionStateExt {
         transitions.put(VersionState.DEPRECATED, EnumSet.of(VersionState.ENABLED, VersionState.DISABLED));
     }
 
-    public static final EnumSet<VersionState> ACTIVE_STATES = EnumSet.of(VersionState.ENABLED, VersionState.DEPRECATED, VersionState.DISABLED);
+    public static final EnumSet<VersionState> ACTIVE_STATES = EnumSet.of(VersionState.ENABLED,
+            VersionState.DEPRECATED, VersionState.DISABLED);
 
     @Inject
     Logger log;
@@ -34,7 +34,8 @@ public class VersionStateExt {
         return states.contains(after);
     }
 
-    public void validateState(EnumSet<VersionState> states, VersionState state, String groupId, String artifactId, String version) {
+    public void validateState(EnumSet<VersionState> states, VersionState state, String groupId,
+            String artifactId, String version) {
         if (states != null && !states.contains(state)) {
             throw new InvalidVersionStateException(groupId, artifactId, version, state);
         }
@@ -47,7 +48,8 @@ public class VersionStateExt {
         }
     }
 
-    public void applyState(Consumer<VersionState> consumer, VersionState previousState, VersionState newState) {
+    public void applyState(Consumer<VersionState> consumer, VersionState previousState,
+            VersionState newState) {
         if (previousState != newState) {
             if (previousState != null) {
                 if (canTransition(previousState, newState)) {

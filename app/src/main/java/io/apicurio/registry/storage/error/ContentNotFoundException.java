@@ -12,18 +12,15 @@ public class ContentNotFoundException extends NotFoundException {
     @Getter
     private String contentHash;
 
-
     public ContentNotFoundException(long contentId) {
         super(message(contentId, null));
         this.contentId = contentId;
     }
 
-
     public ContentNotFoundException(String contentHash) {
         super(message(null, contentHash));
         this.contentHash = contentHash;
     }
-
 
     private static String message(Long contentId, String contentHash) {
         if (contentId != null) {

@@ -18,7 +18,8 @@ public class APITests {
         run(apicurioRegistry, null, null, false);
     }
 
-    public static void run(ApicurioRegistry apicurioRegistry, String username, String password, boolean useToken) {
+    public static void run(ApicurioRegistry apicurioRegistry, String username, String password,
+            boolean useToken) {
         LOGGER.info("Running API tests...");
 
         // Wait for readiness of Apicurio Registry hostname
@@ -51,7 +52,8 @@ public class APITests {
 
         // Create artifact
         LOGGER.info("Creating artifact...");
-        Assertions.assertTrue(client.createArtifact(artifactGroupId, artifactId, ArtifactType.AVRO, artifactContent));
+        Assertions.assertTrue(
+                client.createArtifact(artifactGroupId, artifactId, ArtifactType.AVRO, artifactContent));
 
         // List artifacts
         LOGGER.info("Listing artifacts...");

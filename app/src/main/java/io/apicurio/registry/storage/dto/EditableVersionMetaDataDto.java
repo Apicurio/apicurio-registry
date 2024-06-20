@@ -1,7 +1,5 @@
 package io.apicurio.registry.storage.dto;
 
-import java.util.Map;
-
 import io.apicurio.registry.types.VersionState;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
@@ -12,6 +10,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.Map;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -21,15 +21,12 @@ import lombok.ToString;
 @ToString
 @RegisterForReflection
 public class EditableVersionMetaDataDto {
-    
-    public static EditableVersionMetaDataDto fromEditableArtifactMetaDataDto(EditableArtifactMetaDataDto amd) {
-        return EditableVersionMetaDataDto.builder()
-                .name(amd.getName())
-                .description(amd.getDescription())
-                .labels(amd.getLabels())
-                .build();
-    }
 
+    public static EditableVersionMetaDataDto fromEditableArtifactMetaDataDto(
+            EditableArtifactMetaDataDto amd) {
+        return EditableVersionMetaDataDto.builder().name(amd.getName()).description(amd.getDescription())
+                .labels(amd.getLabels()).build();
+    }
 
     private String name;
     private String description;

@@ -1,19 +1,18 @@
 package io.apicurio.registry.serde.headers;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.utils.IoUtil;
+import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.kafka.common.header.internals.RecordHeader;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.serde.SerdeConfig;
-import io.apicurio.registry.utils.IoUtil;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class DefaultHeadersHandlerTest {
 
@@ -21,11 +20,13 @@ public class DefaultHeadersHandlerTest {
     void testReadKeyHeadersHandlesPresentContentHash() {
         String contentHashHeaderName = "some key header name";
         String contentHashValue = "context hash value";
-        Map<String, Object> configs = Collections.singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
-        RecordHeaders headers = new RecordHeaders(new RecordHeader[]{new RecordHeader(contentHashHeaderName, IoUtil.toBytes(contentHashValue))});
+        Map<String, Object> configs = Collections
+                .singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        RecordHeaders headers = new RecordHeaders(new RecordHeader[] {
+                new RecordHeader(contentHashHeaderName, IoUtil.toBytes(contentHashValue)) });
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, true);
-        
+
         ArtifactReference artifact = handler.readHeaders(headers);
 
         assertEquals(contentHashValue, artifact.getContentHash());
@@ -34,11 +35,12 @@ public class DefaultHeadersHandlerTest {
     @Test
     void testReadKeyHeadersHandlesMissingContentHash() {
         String contentHashHeaderName = "another key header name";
-        Map<String, Object> configs = Collections.singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
-        RecordHeaders headers = new RecordHeaders(new RecordHeader[]{});
+        Map<String, Object> configs = Collections
+                .singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        RecordHeaders headers = new RecordHeaders(new RecordHeader[] {});
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, true);
-        
+
         ArtifactReference artifact = handler.readHeaders(headers);
 
         assertEquals(null, artifact.getContentHash());
@@ -48,11 +50,13 @@ public class DefaultHeadersHandlerTest {
     void testReadValueHeadersHandlesPresentContentHash() {
         String contentHashHeaderName = "value header name";
         String contentHashValue = "some value";
-        Map<String, Object> configs = Collections.singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
-        RecordHeaders headers = new RecordHeaders(new RecordHeader[]{new RecordHeader(contentHashHeaderName, IoUtil.toBytes(contentHashValue))});
+        Map<String, Object> configs = Collections
+                .singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        RecordHeaders headers = new RecordHeaders(new RecordHeader[] {
+                new RecordHeader(contentHashHeaderName, IoUtil.toBytes(contentHashValue)) });
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, false);
-        
+
         ArtifactReference artifact = handler.readHeaders(headers);
 
         assertEquals(contentHashValue, artifact.getContentHash());
@@ -61,11 +65,12 @@ public class DefaultHeadersHandlerTest {
     @Test
     void testReadValueHeadersHandlesMissingContentHash() {
         String contentHashHeaderName = "another value header name";
-        Map<String, Object> configs = Collections.singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
-        RecordHeaders headers = new RecordHeaders(new RecordHeader[]{});
+        Map<String, Object> configs = Collections
+                .singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        RecordHeaders headers = new RecordHeaders(new RecordHeader[] {});
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, false);
-        
+
         ArtifactReference artifact = handler.readHeaders(headers);
 
         assertEquals(null, artifact.getContentHash());
@@ -75,7 +80,8 @@ public class DefaultHeadersHandlerTest {
     void testWriteKeyHeadersHandlesPresentContentHash() {
         String contentHashHeaderName = "write key header name";
         String contentHashValue = "some write key value";
-        Map<String, Object> configs = Collections.singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        Map<String, Object> configs = Collections
+                .singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, true);
@@ -89,7 +95,8 @@ public class DefaultHeadersHandlerTest {
     @Test
     void testWriteKeyHeadersHandlesMissingContentHash() {
         String contentHashHeaderName = "another header name";
-        Map<String, Object> configs = Collections.singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        Map<String, Object> configs = Collections
+                .singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, true);
@@ -104,7 +111,8 @@ public class DefaultHeadersHandlerTest {
     void testWriteValueHeadersHandlesPresentContentHash() {
         String contentHashHeaderName = "write value header name";
         String contentHashValue = "some write value";
-        Map<String, Object> configs = Collections.singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        Map<String, Object> configs = Collections
+                .singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, false);
@@ -118,7 +126,8 @@ public class DefaultHeadersHandlerTest {
     @Test
     void testWriteValueHeadersHandlesMissingContentHash() {
         String contentHashHeaderName = "another write key header name";
-        Map<String, Object> configs = Collections.singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        Map<String, Object> configs = Collections
+                .singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, false);
@@ -142,10 +151,8 @@ public class DefaultHeadersHandlerTest {
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, false);
-        ArtifactReference artifact = ArtifactReference.builder()
-            .contentHash(contentHashValue)
-            .artifactId(artifactIdValue)
-            .build();
+        ArtifactReference artifact = ArtifactReference.builder().contentHash(contentHashValue)
+                .artifactId(artifactIdValue).build();
 
         handler.writeHeaders(headers, artifact);
 

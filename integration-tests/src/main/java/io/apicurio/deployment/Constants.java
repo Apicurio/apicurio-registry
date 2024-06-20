@@ -29,8 +29,5 @@ public class Constants {
      */
     static final String SQL = "sqlit";
 
-
-    public static final String TEST_PROFILE =
-            Optional.ofNullable(System.getProperty("groups"))
-                    .orElse("");
+    public static final String TEST_PROFILE = Optional.ofNullable(System.getProperty("groups")).orElse("");
 }

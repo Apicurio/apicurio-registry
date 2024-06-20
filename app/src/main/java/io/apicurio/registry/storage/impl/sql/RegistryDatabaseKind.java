@@ -2,9 +2,8 @@ package io.apicurio.registry.storage.impl.sql;
 
 public enum RegistryDatabaseKind {
 
-    postgresql("org.postgresql.Driver"),
-    h2("org.h2.Driver"),
-    mssql("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+    postgresql("org.postgresql.Driver"), h2("org.h2.Driver"), mssql(
+            "com.microsoft.sqlserver.jdbc.SQLServerDriver");
 
     final String driverClassName;
 

@@ -65,10 +65,8 @@ public class RegistryDatasourceProducer {
         props.put(AgroalPropertiesReader.CREDENTIAL, password);
         props.put(AgroalPropertiesReader.PROVIDER_CLASS_NAME, databaseKind.getDriverClassName());
 
-        AgroalDataSource datasource = AgroalDataSource.from(new AgroalPropertiesReader()
-                .readProperties(props)
-                .get());
-
+        AgroalDataSource datasource = AgroalDataSource
+                .from(new AgroalPropertiesReader().readProperties(props).get());
 
         log.info("Using {} SQL storage.", databaseType);
 

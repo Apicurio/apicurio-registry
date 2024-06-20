@@ -12,12 +12,10 @@ public class RoleMappingNotFoundException extends NotFoundException {
     @Getter
     private String role;
 
-
     public RoleMappingNotFoundException(String principalId) {
         super("No role mapping for principal '" + principalId + "' was found.");
         this.principalId = principalId;
     }
-
 
     public RoleMappingNotFoundException(String principalId, String role) {
         super("No mapping for principal '" + principalId + "' and role '" + role + "' was found.");

@@ -8,8 +8,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class HealthResponse {
     public static enum Status {
-        UP,
-        DOWN
+        UP, DOWN
     }
 
     @JsonProperty("status")

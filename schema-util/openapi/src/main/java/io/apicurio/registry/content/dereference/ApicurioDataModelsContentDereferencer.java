@@ -24,14 +24,16 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
             IReferenceResolver resolver = new RegistryReferenceResolver(resolvedReferences);
             Document dereferencedDoc = Library.dereferenceDocument(document, resolver, false);
             String dereferencedContentStr = Library.writeDocumentToJSONString(dereferencedDoc);
-            return TypedContent.create(ContentHandle.create(dereferencedContentStr), ContentTypes.APPLICATION_JSON);
+            return TypedContent.create(ContentHandle.create(dereferencedContentStr),
+                    ContentTypes.APPLICATION_JSON);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-    
+
     /**
-     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.TypedContent, java.util.Map)
+     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.TypedContent,
+     *      java.util.Map)
      */
     @Override
     public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {
@@ -40,7 +42,8 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
             Document doc = Library.readDocument((ObjectNode) node);
             ReferenceRewriter visitor = new ReferenceRewriter(resolvedReferenceUrls);
             Library.visitTree(doc, visitor, TraverserDirection.down);
-            return TypedContent.create(ContentHandle.create(Library.writeDocumentToJSONString(doc)), ContentTypes.APPLICATION_JSON);
+            return TypedContent.create(ContentHandle.create(Library.writeDocumentToJSONString(doc)),
+                    ContentTypes.APPLICATION_JSON);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

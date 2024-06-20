@@ -15,7 +15,6 @@ import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
@@ -44,7 +43,6 @@ import static org.hamcrest.Matchers.equalTo;
 
 /**
  * Abstract base class for all tests that test via the jax-rs layer.
- *
  */
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase {
@@ -59,7 +57,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected String registryV3ApiUrl;
     protected RegistryClient clientV3;
     protected RestService confluentClient;
-
 
     @BeforeAll
     protected void beforeAll() throws Exception {
@@ -79,7 +76,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected final RequestAdapter anonymousAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
-    
+
     protected RegistryClient createRestClientV3() {
         anonymousAdapter.setBaseUrl(registryV3ApiUrl);
         var client = new RegistryClient(anonymousAdapter);
@@ -109,16 +106,19 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         });
     }
 
-    protected CreateArtifactResponse createArtifact(String artifactId, String artifactType, String content, String contentType) throws Exception {
-        return createArtifact(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, artifactType, content, contentType);
+    protected CreateArtifactResponse createArtifact(String artifactId, String artifactType, String content,
+            String contentType) throws Exception {
+        return createArtifact(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, artifactType,
+                content, contentType);
     }
 
-    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType, String content, String contentType) throws Exception {
+    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType,
+            String content, String contentType) throws Exception {
         return createArtifact(groupId, artifactId, artifactType, content, contentType, null);
     }
 
-    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType, String content,
-                                                    String contentType, Consumer<CreateArtifact> requestCustomizer) throws Exception {
+    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType,
+            String content, String contentType, Consumer<CreateArtifact> requestCustomizer) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(artifactType);
@@ -133,31 +133,29 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             requestCustomizer.accept(createArtifact);
         }
 
-        var result = clientV3
-                .groups()
-                .byGroupId(groupId)
-                .artifacts()
-                .post(createArtifact)
-                ;
+        var result = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-        assert( result.getArtifact().getArtifactId().equals(artifactId) );
-        assert( result.getArtifact().getArtifactType().equals(artifactType) );
+        assert (result.getArtifact().getArtifactId().equals(artifactId));
+        assert (result.getArtifact().getArtifactType().equals(artifactType));
 
         return result;
     }
 
-    protected CreateArtifactResponse createArtifactWithReferences(String groupId, String artifactId, String artifactType, String content,
-                                                String contentType, List<ArtifactReference> artifactReferences) throws Exception {
-        var response = createArtifactExtendedRaw(groupId, artifactId, artifactType, content, contentType, artifactReferences);
+    protected CreateArtifactResponse createArtifactWithReferences(String groupId, String artifactId,
+            String artifactType, String content, String contentType,
+            List<ArtifactReference> artifactReferences) throws Exception {
+        var response = createArtifactExtendedRaw(groupId, artifactId, artifactType, content, contentType,
+                artifactReferences);
 
-        assert( response.getArtifact().getArtifactType().equals(artifactType) );
-        assert( response.getArtifact().getArtifactId().equals(artifactId) );
+        assert (response.getArtifact().getArtifactType().equals(artifactType));
+        assert (response.getArtifact().getArtifactId().equals(artifactId));
 
         return response;
     }
 
-    protected CreateArtifactResponse createArtifactExtendedRaw(String groupId, String artifactId, String artifactType,
-            String content, String contentType, List<ArtifactReference> versionReferences) throws Exception {
+    protected CreateArtifactResponse createArtifactExtendedRaw(String groupId, String artifactId,
+            String artifactType, String content, String contentType,
+            List<ArtifactReference> versionReferences) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(artifactType);
@@ -166,7 +164,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         VersionContent versionContent = new VersionContent();
         createVersion.setContent(versionContent);
         versionContent.setContent(content);
-        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        versionContent.setContentType(contentType);
 
         if (versionReferences != null) {
             var references = versionReferences.stream().map(r -> {
@@ -180,12 +178,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
             versionContent.setReferences(references);
         }
 
-        return clientV3
-                .groups()
-                .byGroupId(groupId)
-                .artifacts()
-                .post(createArtifact)
-                ;
+        return clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
     }
 
     protected VersionMetaData createArtifactVersionExtendedRaw(String groupId, String artifactId,
@@ -206,70 +199,50 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         }).collect(Collectors.toList());
         versionContent.setReferences(references);
 
-        return clientV3
-                .groups()
-                .byGroupId(groupId)
-                .artifacts()
-                .byArtifactId(artifactId)
-                .versions()
-                .post(createVersion)
-                ;
+        return clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
     }
 
-    protected Long createArtifactVersion(String artifactId, String content, String contentType) throws Exception {
-        return createArtifactVersion(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, content, contentType);
+    protected Long createArtifactVersion(String artifactId, String content, String contentType)
+            throws Exception {
+        return createArtifactVersion(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, content,
+                contentType);
     }
 
-    protected Long createArtifactVersion(String groupId, String artifactId, String content, String contentType) throws Exception {
+    protected Long createArtifactVersion(String groupId, String artifactId, String content,
+            String contentType) throws Exception {
         CreateVersion createVersion = new CreateVersion();
         VersionContent versionContent = new VersionContent();
         createVersion.setContent(versionContent);
         versionContent.setContent(content);
         versionContent.setContentType(contentType);
 
-        var version = clientV3
-                .groups()
-                .byGroupId(groupId)
-                .artifacts()
-                .byArtifactId(artifactId)
-                .versions()
-                .post(createVersion)
-                ;
+        var version = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
 
-        assert( version.getArtifactId().equals(artifactId) );
+        assert (version.getArtifactId().equals(artifactId));
 
         return version.getGlobalId();
     }
 
-    protected void createArtifactRule(String groupId, String artifactId, RuleType ruleType, String ruleConfig) {
+    protected void createArtifactRule(String groupId, String artifactId, RuleType ruleType,
+            String ruleConfig) {
         var createRule = new io.apicurio.registry.rest.client.models.CreateRule();
         createRule.setConfig(ruleConfig);
         createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
 
-        clientV3
-                .groups()
-                .byGroupId(groupId)
-                .artifacts()
-                .byArtifactId(artifactId)
-                .rules()
-                .post(createRule);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
     }
 
-    protected io.apicurio.registry.rest.client.models.Rule createGlobalRule(RuleType ruleType, String ruleConfig) {
+    protected io.apicurio.registry.rest.client.models.Rule createGlobalRule(RuleType ruleType,
+            String ruleConfig) {
         var createRule = new io.apicurio.registry.rest.client.models.CreateRule();
         createRule.setConfig(ruleConfig);
         createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
 
-        clientV3
-            .admin()
-            .rules()
-            .post(createRule);
+        clientV3.admin().rules().post(createRule);
         // TODO: verify this get
-        return clientV3
-                .admin()
-                .rules()
-                .byRuleType(ruleType.value())
-                .get();
+        return clientV3.admin().rules().byRuleType(ruleType.value()).get();
     }
 
     /**
@@ -278,26 +251,24 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
      * @param response
      * @param state
      */
-    protected void validateMetaDataResponseState(ValidatableResponse response, ArtifactState state, boolean version) {
+    protected void validateMetaDataResponseState(ValidatableResponse response, ArtifactState state,
+            boolean version) {
         response.statusCode(200);
         response.body("state", equalTo(state.name()));
     }
 
     protected String getRandomValidJsonSchemaContent() {
-        return "{\n" +
-                "  \"$id\": \"https://example.com/person.schema.json\",\n" +
-                "  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n" +
-                "  \"title\": \"Person-" + UUID.randomUUID() + "\",\n" +
-                "  \"type\": \"object\",\n" +
-                "  \"properties\": {\n" +
-                "  }\n" +
-                "}";
+        return "{\n" + "  \"$id\": \"https://example.com/person.schema.json\",\n"
+                + "  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n" + "  \"title\": \"Person-"
+                + UUID.randomUUID() + "\",\n" + "  \"type\": \"object\",\n" + "  \"properties\": {\n"
+                + "  }\n" + "}";
     }
 
     protected byte[] concatContentAndReferences(byte[] contentBytes, String references) throws IOException {
         if (references != null) {
             final byte[] referencesBytes = references.getBytes(StandardCharsets.UTF_8);
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(contentBytes.length + referencesBytes.length);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(
+                    contentBytes.length + referencesBytes.length);
             outputStream.write(contentBytes);
             outputStream.write(referencesBytes);
             return outputStream.toByteArray();
@@ -312,17 +283,16 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         }
         return references.stream()
                 .peek(r -> r.setGroupId(new GroupId(r.getGroupId()).getRawGroupIdWithNull()))
-                .map(V3ApiUtil::referenceToDto)
-                .collect(Collectors.toList());
+                .map(V3ApiUtil::referenceToDto).collect(Collectors.toList());
     }
 
     protected void assertForbidden(Exception exception) {
         Assertions.assertEquals(ApiException.class, exception.getClass());
-        Assertions.assertEquals(403, ((ApiException)exception).getResponseStatusCode());
+        Assertions.assertEquals(403, ((ApiException) exception).getResponseStatusCode());
     }
 
     protected void assertNotAuthorized(Exception exception) {
-        if (exception instanceof  NotAuthorizedException) {
+        if (exception instanceof NotAuthorizedException) {
             // thrown by the token provider adapter
         } else {
             // mapped by Kiota

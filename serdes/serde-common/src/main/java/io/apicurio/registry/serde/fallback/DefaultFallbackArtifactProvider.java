@@ -1,11 +1,10 @@
 package io.apicurio.registry.serde.fallback;
 
-import java.util.Map;
-
-import org.apache.kafka.common.header.Headers;
-
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.serde.SerdeConfig;
+import org.apache.kafka.common.header.Headers;
+
+import java.util.Map;
 
 /**
  * Default implementation of FallbackArtifactProvider that simply uses config properties
@@ -39,17 +38,15 @@ public class DefaultFallbackArtifactProvider implements FallbackArtifactProvider
         String fallbackVersion = (String) configs.get(versionConfigKey);
 
         if (fallbackArtifactId != null) {
-            fallbackArtifactReference = ArtifactReference.builder()
-                    .groupId(fallbackGroupId)
-                    .artifactId(fallbackArtifactId)
-                    .version(fallbackVersion)
-                    .build();
+            fallbackArtifactReference = ArtifactReference.builder().groupId(fallbackGroupId)
+                    .artifactId(fallbackArtifactId).version(fallbackVersion).build();
         }
 
     }
 
     /**
-     * @see io.apicurio.registry.serde.fallback.FallbackArtifactProvider#get(java.lang.String, org.apache.kafka.common.header.Headers, byte[])
+     * @see io.apicurio.registry.serde.fallback.FallbackArtifactProvider#get(java.lang.String,
+     *      org.apache.kafka.common.header.Headers, byte[])
      */
     @Override
     public ArtifactReference get(String topic, Headers headers, byte[] data) {

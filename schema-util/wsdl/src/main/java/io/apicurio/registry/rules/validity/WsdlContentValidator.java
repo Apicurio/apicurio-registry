@@ -22,7 +22,8 @@ public class WsdlContentValidator extends XmlContentValidator {
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
-    public void validate(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, TypedContent content,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream stream = content.getContent().stream()) {
                 Document wsdlDoc = DocumentBuilderAccessor.getDocumentBuilder().parse(stream);
@@ -31,7 +32,8 @@ public class WsdlContentValidator extends XmlContentValidator {
                     WSDLReaderAccessor.getWSDLReader().readWSDL(null, wsdlDoc);
                 }
             } catch (Exception e) {
-                throw new RuleViolationException("Syntax violation for WSDL Schema artifact.", RuleType.VALIDITY, level.name(), e);
+                throw new RuleViolationException("Syntax violation for WSDL Schema artifact.",
+                        RuleType.VALIDITY, level.name(), e);
             }
         }
     }

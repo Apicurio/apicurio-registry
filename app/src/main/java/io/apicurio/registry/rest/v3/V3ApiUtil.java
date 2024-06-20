@@ -5,6 +5,8 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v3.beans.BranchMetaData;
+import io.apicurio.registry.rest.v3.beans.BranchSearchResults;
 import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
@@ -12,6 +14,7 @@ import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
+import io.apicurio.registry.rest.v3.beans.SearchedBranch;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
 import io.apicurio.registry.rest.v3.beans.SearchedVersion;
 import io.apicurio.registry.rest.v3.beans.SortOrder;
@@ -21,6 +24,8 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -42,6 +47,7 @@ public final class V3ApiUtil {
 
     /**
      * Creates a jax-rs meta-data entity from the id, type, and artifactStore meta-data.
+     * 
      * @param dto
      */
     public static ArtifactMetaData dtoToArtifactMetaData(ArtifactMetaDataDto dto) {
@@ -61,6 +67,7 @@ public final class V3ApiUtil {
 
     /**
      * Creates a jax-rs version meta-data entity from the id, type, and artifactStore meta-data.
+     * 
      * @param dto
      */
     public static VersionMetaData dtoToVersionMetaData(ArtifactVersionMetaDataDto dto) {
@@ -87,7 +94,8 @@ public final class V3ApiUtil {
      * @param editableArtifactMetaData
      * @return the updated ArtifactMetaDataDto object
      */
-    public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto dto, EditableArtifactMetaDataDto editableArtifactMetaData) {
+    public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto dto,
+            EditableArtifactMetaDataDto editableArtifactMetaData) {
         if (editableArtifactMetaData.getName() != null) {
             dto.setName(editableArtifactMetaData.getName());
         }
@@ -104,7 +112,8 @@ public final class V3ApiUtil {
         return (id1, id2) -> compare(sortOrder, id1, id2);
     }
 
-    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
+    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1,
+            ArtifactMetaDataDto metaDataDto2) {
         String name1 = metaDataDto1.getName();
         if (name1 == null) {
             name1 = metaDataDto1.getArtifactId();
@@ -113,7 +122,8 @@ public final class V3ApiUtil {
         if (name2 == null) {
             name2 = metaDataDto2.getArtifactId();
         }
-        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1) : name1.compareToIgnoreCase(name2);
+        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1)
+            : name1.compareToIgnoreCase(name2);
     }
 
     public static ArtifactSearchResults dtoToSearchResults(ArtifactSearchResultsDto dto) {
@@ -138,7 +148,7 @@ public final class V3ApiUtil {
 
     public static GroupSearchResults dtoToSearchResults(GroupSearchResultsDto dto) {
         GroupSearchResults results = new GroupSearchResults();
-        results.setCount((int) dto.getCount());
+        results.setCount(dto.getCount());
         results.setGroups(new ArrayList<>(dto.getGroups().size()));
         dto.getGroups().forEach(group -> {
             SearchedGroup sg = new SearchedGroup();
@@ -149,6 +159,24 @@ public final class V3ApiUtil {
             sg.setModifiedBy(group.getModifiedBy());
             sg.setModifiedOn(group.getModifiedOn());
             results.getGroups().add(sg);
+        });
+        return results;
+    }
+
+    public static BranchSearchResults dtoToSearchResults(BranchSearchResultsDto dto) {
+        BranchSearchResults results = new BranchSearchResults();
+        results.setCount(dto.getCount());
+        results.setBranches(new ArrayList<>(dto.getBranches().size()));
+        dto.getBranches().forEach(branch -> {
+            SearchedBranch searchedBranch = new SearchedBranch();
+            searchedBranch.setOwner(branch.getOwner());
+            searchedBranch.setCreatedOn(new Date(branch.getCreatedOn()));
+            searchedBranch.setDescription(branch.getDescription());
+            searchedBranch.setSystemDefined(branch.isSystemDefined());
+            searchedBranch.setBranchId(branch.getBranchId());
+            searchedBranch.setModifiedBy(branch.getModifiedBy());
+            searchedBranch.setModifiedOn(new Date(branch.getModifiedOn()));
+            results.getBranches().add(searchedBranch);
         });
         return results;
     }
@@ -206,12 +234,8 @@ public final class V3ApiUtil {
     }
 
     public static Comment commentDtoToComment(CommentDto dto) {
-        return Comment.builder()
-                .commentId(dto.getCommentId())
-                .owner(dto.getOwner())
-                .createdOn(new Date(dto.getCreatedOn()))
-                .value(dto.getValue())
-                .build();
+        return Comment.builder().commentId(dto.getCommentId()).owner(dto.getOwner())
+                .createdOn(new Date(dto.getCreatedOn())).value(dto.getValue()).build();
     }
 
     public static RoleMapping dtoToRoleMapping(RoleMappingDto dto) {
@@ -231,7 +255,8 @@ public final class V3ApiUtil {
         return results;
     }
 
-    public static ConfigurationProperty dtoToConfigurationProperty(DynamicConfigPropertyDef def, DynamicConfigPropertyDto dto) {
+    public static ConfigurationProperty dtoToConfigurationProperty(DynamicConfigPropertyDef def,
+            DynamicConfigPropertyDto dto) {
         ConfigurationProperty rval = new ConfigurationProperty();
         rval.setName(def.getName());
         rval.setValue(dto.getValue());
@@ -241,4 +266,10 @@ public final class V3ApiUtil {
         return rval;
     }
 
+    public static BranchMetaData dtoToBranchMetaData(BranchMetaDataDto branch) {
+        return BranchMetaData.builder().groupId(branch.getGroupId()).artifactId(branch.getArtifactId())
+                .branchId(branch.getBranchId()).description(branch.getDescription()).owner(branch.getOwner())
+                .systemDefined(branch.isSystemDefined()).createdOn(new Date(branch.getCreatedOn()))
+                .modifiedBy(branch.getModifiedBy()).modifiedOn(new Date(branch.getModifiedOn())).build();
+    }
 }

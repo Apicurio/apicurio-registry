@@ -1,7 +1,5 @@
 package io.apicurio.registry.auth;
 
-
-
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -35,7 +33,8 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -43,26 +42,21 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
     @Test
     public void testReadOperationWithNoRole() throws Exception {
         // Read-only operation should work with credentials but no role.
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrl, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrl, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var results = client.search().artifacts().get(config -> config.queryParameters.groupId = groupId);
         Assertions.assertTrue(results.getCount() >= 0);
 
         // Write operation should fail with credentials but not role.
-        String data = "{\r\n" +
-                "    \"type\" : \"record\",\r\n" +
-                "    \"name\" : \"userInfo\",\r\n" +
-                "    \"namespace\" : \"my.example\",\r\n" +
-                "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
-                "}";
+        String data = "{\r\n" + "    \"type\" : \"record\",\r\n" + "    \"name\" : \"userInfo\",\r\n"
+                + "    \"namespace\" : \"my.example\",\r\n"
+                + "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" + "}";
         var exception = Assertions.assertThrows(Exception.class, () -> {
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact("testReadOperationWithNoRole", ArtifactType.AVRO, data, ContentTypes.APPLICATION_JSON);
-            client
-                    .groups()
-                    .byGroupId(groupId)
-                    .artifacts()
-                    .post(createArtifact);
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact("testReadOperationWithNoRole",
+                    ArtifactType.AVRO, data, ContentTypes.APPLICATION_JSON);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
         });
         assertForbidden(exception);
     }

@@ -18,14 +18,18 @@ public class OpenApiContentDereferencerTest extends ArtifactUtilProviderTestBase
     public void testRewriteReferences() {
         TypedContent content = resourceToTypedContentHandle("openapi-to-rewrite.json");
         OpenApiDereferencer dereferencer = new OpenApiDereferencer();
-        TypedContent modifiedContent = dereferencer.rewriteReferences(content, Map.of(
-                "./types/bar-types.json#/components/schemas/Bar", "https://www.example.org/schemas/bar-types.json#/components/schemas/Bar",
-                "./types/foo-types.json#/components/schemas/Foo", "https://www.example.org/schemas/foo-types.json#/components/schemas/Foo"));
-        
+        TypedContent modifiedContent = dereferencer.rewriteReferences(content,
+                Map.of("./types/bar-types.json#/components/schemas/Bar",
+                        "https://www.example.org/schemas/bar-types.json#/components/schemas/Bar",
+                        "./types/foo-types.json#/components/schemas/Foo",
+                        "https://www.example.org/schemas/foo-types.json#/components/schemas/Foo"));
+
         ReferenceFinder finder = new OpenApiReferenceFinder();
         Set<ExternalReference> externalReferences = finder.findExternalReferences(modifiedContent);
-        Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference("https://www.example.org/schemas/bar-types.json#/components/schemas/Bar")));
-        Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference("https://www.example.org/schemas/foo-types.json#/components/schemas/Foo")));
+        Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference(
+                "https://www.example.org/schemas/bar-types.json#/components/schemas/Bar")));
+        Assertions.assertTrue(externalReferences.contains(new JsonPointerExternalReference(
+                "https://www.example.org/schemas/foo-types.json#/components/schemas/Foo")));
     }
 
 }

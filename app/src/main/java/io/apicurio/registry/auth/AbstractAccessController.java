@@ -30,7 +30,8 @@ public abstract class AbstractAccessController implements IAccessController {
             String groupId = getStringParam(context, 0);
             String artifactId = getStringParam(context, 1);
             return verifyArtifactOwner(groupId, artifactId);
-        } else if (style == AuthorizedStyle.GroupOnly && authConfig.ownerOnlyAuthorizationLimitGroupAccess.get()) {
+        } else if (style == AuthorizedStyle.GroupOnly
+                && authConfig.ownerOnlyAuthorizationLimitGroupAccess.get()) {
             String groupId = getStringParam(context, 0);
             return verifyGroupOwner(groupId);
         } else if (style == AuthorizedStyle.ArtifactOnly) {
@@ -71,7 +72,8 @@ public abstract class AbstractAccessController implements IAccessController {
     private boolean verifyArtifactOwner(long globalId) {
         try {
             ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(globalId);
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(versionMetaData.getGroupId(), versionMetaData.getArtifactId());
+            ArtifactMetaDataDto dto = storage.getArtifactMetaData(versionMetaData.getGroupId(),
+                    versionMetaData.getArtifactId());
             String owner = dto.getOwner();
             return owner == null || owner.equals(securityIdentity.getPrincipal().getName());
         } catch (NotFoundException nfe) {

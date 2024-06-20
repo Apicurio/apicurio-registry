@@ -27,40 +27,23 @@ public class ProtobufSchemaLoader {
     private static final String GOOGLE_WELLKNOWN_PATH = "google/protobuf/";
     private static final String METADATA_PATH = "metadata/";
     private static final String DECIMAL_PATH = "additionalTypes/";
-    //Adding pre-built support for commonly used Google API Protos,
-    //https://github.com/googleapis/googleapis
-    //These files need to be manually loaded into the FileSystem
-    //as Square doesn't support them by default.
-    private final static Set<String> GOOGLE_API_PROTOS =
-        ImmutableSet.<String>builder()
-            .add("money.proto")
-            .add("timeofday.proto")
-            .add("date.proto")
-            .add("calendar_period.proto")
-            .add("color.proto")
-            .add("dayofweek.proto")
-            .add("latlng.proto")
-            .add("fraction.proto")
-            .add("month.proto")
-            .add("phone_number.proto")
-            .add("postal_address.proto")
-            .add("localized_text.proto")
-            .add("interval.proto")
-            .add("expr.proto")
-            .add("quaternion.proto")
-            .build();
-    //Adding support for Protobuf well-known types under package google.protobuf that are not covered by Square
-    //https://developers.google.com/protocol-buffers/docs/reference/google.protobuf
-    //These files need to be manually loaded into the FileSystem
-    //as Square doesn't support them by default.
-    private final static Set<String> GOOGLE_WELLKNOWN_PROTOS =
-        ImmutableSet.<String>builder()
-            .add("api.proto")
-            .add("field_mask.proto")
-            .add("source_context.proto")
-            .add("struct.proto")
-            .add("type.proto")
-            .build();
+    // Adding pre-built support for commonly used Google API Protos,
+    // https://github.com/googleapis/googleapis
+    // These files need to be manually loaded into the FileSystem
+    // as Square doesn't support them by default.
+    private final static Set<String> GOOGLE_API_PROTOS = ImmutableSet.<String> builder().add("money.proto")
+            .add("timeofday.proto").add("date.proto").add("calendar_period.proto").add("color.proto")
+            .add("dayofweek.proto").add("latlng.proto").add("fraction.proto").add("month.proto")
+            .add("phone_number.proto").add("postal_address.proto").add("localized_text.proto")
+            .add("interval.proto").add("expr.proto").add("quaternion.proto").build();
+    // Adding support for Protobuf well-known types under package google.protobuf that are not covered by
+    // Square
+    // https://developers.google.com/protocol-buffers/docs/reference/google.protobuf
+    // These files need to be manually loaded into the FileSystem
+    // as Square doesn't support them by default.
+    private final static Set<String> GOOGLE_WELLKNOWN_PROTOS = ImmutableSet.<String> builder()
+            .add("api.proto").add("field_mask.proto").add("source_context.proto").add("struct.proto")
+            .add("type.proto").build();
 
     private final static String METADATA_PROTO = "metadata.proto";
     private final static String DECIMAL_PROTO = "decimal.proto";
@@ -87,16 +70,17 @@ public class ProtobufSchemaLoader {
         return inMemoryFileSystem;
     }
 
-    private static void loadProtoFiles(FakeFileSystem inMemoryFileSystem, ClassLoader classLoader, Set<String> protos,
-                                       String protoPath)
-            throws IOException {
+    private static void loadProtoFiles(FakeFileSystem inMemoryFileSystem, ClassLoader classLoader,
+            Set<String> protos, String protoPath) throws IOException {
         for (String proto : protos) {
-            //Loads the proto file resource files.
+            // Loads the proto file resource files.
             final InputStream inputStream = classLoader.getResourceAsStream(protoPath + proto);
-            final String fileContents = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
+            final String fileContents = CharStreams
+                    .toString(new InputStreamReader(inputStream, Charsets.UTF_8));
             final okio.Path path = okio.Path.get("/" + protoPath + "/" + proto);
             FileHandle fileHandle = inMemoryFileSystem.openReadWrite(path);
-            fileHandle.write(0, fileContents.getBytes(StandardCharsets.UTF_8), 0, fileContents.getBytes(StandardCharsets.UTF_8).length);
+            fileHandle.write(0, fileContents.getBytes(StandardCharsets.UTF_8), 0,
+                    fileContents.getBytes(StandardCharsets.UTF_8).length);
             fileHandle.close();
         }
     }
@@ -115,31 +99,33 @@ public class ProtobufSchemaLoader {
     }
 
     /**
-     * Creates a schema loader using a in-memory file system. This is required for square wire schema parser and linker
-     * to load the types correctly. See https://github.com/square/wire/issues/2024#
-     * As of now this only supports reading one .proto file but can be extended to support reading multiple files.
+     * Creates a schema loader using a in-memory file system. This is required for square wire schema parser
+     * and linker to load the types correctly. See https://github.com/square/wire/issues/2024# As of now this
+     * only supports reading one .proto file but can be extended to support reading multiple files.
+     * 
      * @param packageName Package name for the .proto if present
      * @param fileName Name of the .proto file.
      * @param schemaDefinition Schema Definition to parse.
      * @return Schema - parsed and properly linked Schema.
      */
-    public static ProtobufSchemaLoaderContext loadSchema(Optional<String> packageName, String fileName, String schemaDefinition)
-        throws IOException {
+    public static ProtobufSchemaLoaderContext loadSchema(Optional<String> packageName, String fileName,
+            String schemaDefinition) throws IOException {
         return loadSchema(packageName, fileName, schemaDefinition, Collections.emptyMap());
     }
 
     /**
-     * Creates a schema loader using a in-memory file system. This is required for square wire schema parser and linker
-     * to load the types correctly. See https://github.com/square/wire/issues/2024#
-     * As of now this only supports reading one .proto file but can be extended to support reading multiple files.
+     * Creates a schema loader using a in-memory file system. This is required for square wire schema parser
+     * and linker to load the types correctly. See https://github.com/square/wire/issues/2024# As of now this
+     * only supports reading one .proto file but can be extended to support reading multiple files.
+     * 
      * @param packageName Package name for the .proto if present
      * @param fileName Name of the .proto file.
      * @param schemaDefinition Schema Definition to parse.
      * @param schemaDefinition Schema Definition to parse.
      * @return Schema - parsed and properly linked Schema.
      */
-    public static ProtobufSchemaLoaderContext loadSchema(Optional<String> packageName, String fileName, String schemaDefinition, Map<String, String> deps)
-            throws IOException {
+    public static ProtobufSchemaLoaderContext loadSchema(Optional<String> packageName, String fileName,
+            String schemaDefinition, Map<String, String> deps) throws IOException {
         final FileSystem inMemoryFileSystem = getFileSystem();
 
         String[] dirs = {};
@@ -164,14 +150,16 @@ public class ProtobufSchemaLoader {
                         // apply the same logic used for dirs of the root one
                         depDirPath = createDirectory(packageNameDep.split("\\."), inMemoryFileSystem);
                     }
-                    writeFile(depSchema, depKey.substring(beforeFileName + 1), depDirPath, inMemoryFileSystem);
+                    writeFile(depSchema, depKey.substring(beforeFileName + 1), depDirPath,
+                            inMemoryFileSystem);
                 } else {
                     writeFile(depSchema, depKey, dirPath, inMemoryFileSystem);
                 }
             }
 
             SchemaLoader schemaLoader = new SchemaLoader(inMemoryFileSystem);
-            schemaLoader.initRoots(Lists.newArrayList(Location.get("/")), Lists.newArrayList(Location.get("/")));
+            schemaLoader.initRoots(Lists.newArrayList(Location.get("/")),
+                    Lists.newArrayList(Location.get("/")));
 
             Schema schema = schemaLoader.loadSchema();
             ProtoFile protoFile = schema.protoFile(path.toString().replaceFirst("/", ""));
@@ -186,7 +174,8 @@ public class ProtobufSchemaLoader {
         }
     }
 
-    private static okio.Path writeFile(String schemaDefinition, String fileName, String dirPath, FileSystem inMemoryFileSystem) throws IOException {
+    private static okio.Path writeFile(String schemaDefinition, String fileName, String dirPath,
+            FileSystem inMemoryFileSystem) throws IOException {
         FileHandle fileHandle = null;
         try {
             String protoFileName = fileName.endsWith(".proto") ? fileName : fileName + ".proto";

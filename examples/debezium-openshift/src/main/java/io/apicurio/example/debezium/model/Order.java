@@ -30,12 +30,9 @@ public class Order {
         if (value == null) {
             return null;
         }
-        return Order.builder()
-                .orderNumber(value.getOrderNumber())
+        return Order.builder().orderNumber(value.getOrderNumber())
                 .orderDate(Instant.EPOCH.plus(Duration.ofDays(value.getOrderDate())))
-                .purchaser(value.getPurchaser())
-                .quantity(value.getQuantity())
-                .productId(value.getProductId())
+                .purchaser(value.getPurchaser()).quantity(value.getQuantity()).productId(value.getProductId())
                 .build();
     }
 }

@@ -1,6 +1,5 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
-
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -35,17 +34,13 @@ public class CustomizeDateFormatTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testGetArtifactMetaData/EmptyAPI", ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        createArtifact(GROUP, "testGetArtifactMetaData/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
 
         // Get the artifact meta-data
-        given()
-                .when()
-                .pathParam("groupId", GROUP)
-                .pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest")
-                .then()
-                .statusCode(200)
-                .body("createdOn", new BaseMatcher<Object>() {
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
+                .statusCode(200).body("createdOn", new BaseMatcher<Object>() {
 
                     @Override
                     public void describeTo(Description description) {

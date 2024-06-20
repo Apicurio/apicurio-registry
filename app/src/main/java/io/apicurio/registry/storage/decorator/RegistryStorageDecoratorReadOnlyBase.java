@@ -10,6 +10,8 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -41,7 +43,6 @@ import java.util.function.Function;
 
 /**
  * Forwards all read-only method calls to the delegate.
- *
  */
 public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistryStorage {
 
@@ -103,7 +104,7 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
 
     @Override
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
-                                                    OrderDirection orderDirection, int offset, int limit) {
+            OrderDirection orderDirection, int offset, int limit) {
         return delegate.searchArtifacts(filters, orderBy, orderDirection, offset, limit);
     }
 
@@ -115,9 +116,10 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId,
-                                                                          boolean canonical, TypedContent content, List<ArtifactReferenceDto> artifactReferences)
+            boolean canonical, TypedContent content, List<ArtifactReferenceDto> artifactReferences)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return delegate.getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, content, artifactReferences);
+        return delegate.getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, content,
+                artifactReferences);
     }
 
     @Override
@@ -128,7 +130,7 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
 
     @Override
     public void createArtifactRule(String groupId, String artifactId, RuleType rule,
-                                   RuleConfigurationDto config)
+            RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
         delegate.createArtifactRule(groupId, artifactId, rule, config);
     }
@@ -145,9 +147,9 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
         return delegate.getArtifactVersions(groupId, artifactId);
     }
 
-
     @Override
-    public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+    public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
         return delegate.searchVersions(filters, orderBy, orderDirection, offset, limit);
     }
 
@@ -158,14 +160,15 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId, String version)
+    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId,
+            String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersionContent(groupId, artifactId, version);
     }
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
-                                                                 String version)
+            String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersionMetaData(groupId, artifactId, version);
     }
@@ -214,7 +217,8 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public long countActiveArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
+    public long countActiveArtifactVersions(String groupId, String artifactId)
+            throws RegistryStorageException {
         return delegate.countActiveArtifactVersions(groupId, artifactId);
     }
 
@@ -239,7 +243,8 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit) throws RegistryStorageException {
+    public RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit)
+            throws RegistryStorageException {
         return delegate.searchRoleMappings(offset, limit);
     }
 
@@ -279,27 +284,32 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException {
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version)
+            throws RegistryStorageException {
         return delegate.isArtifactVersionExists(groupId, artifactId, version);
     }
 
     @Override
-    public List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
+    public List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId,
+            String version) {
         return delegate.getContentIdsReferencingArtifactVersion(groupId, artifactId, version);
     }
 
     @Override
-    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
+    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId,
+            String version) {
         return delegate.getGlobalIdsReferencingArtifactVersion(groupId, artifactId, version);
     }
 
     @Override
-    public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId, String version) {
+    public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId,
+            String version) {
         return delegate.getInboundArtifactReferences(groupId, artifactId, version);
     }
 
     @Override
-    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
+    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, Integer offset, Integer limit) {
         return delegate.searchGroups(filters, orderBy, orderDirection, offset, limit);
     }
 
@@ -314,7 +324,8 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) throws RegistryStorageException {
+    public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule)
+            throws RegistryStorageException {
         return delegate.isArtifactRuleExists(groupId, artifactId, rule);
     }
 
@@ -339,24 +350,28 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+    public List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior)
             throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersions(groupId, artifactId, behavior);
     }
 
     @Override
-    public GAV getArtifactBranchTip(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
-        return delegate.getArtifactBranchTip(ga, branchId, behavior);
+    public GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior) {
+        return delegate.getBranchTip(ga, branchId, behavior);
     }
 
     @Override
-    public Map<BranchId, List<GAV>> getArtifactBranches(GA ga) {
-        return delegate.getArtifactBranches(ga);
+    public VersionSearchResultsDto getBranchVersions(GA ga, BranchId branchId, int offset, int limit) {
+        return delegate.getBranchVersions(ga, branchId, offset, limit);
     }
 
     @Override
-    public List<GAV> getArtifactBranch(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
-        return delegate.getArtifactBranch(ga, branchId, behavior);
+    public BranchSearchResultsDto getBranches(GA ga, int offset, int limit) {
+        return delegate.getBranches(ga, offset, limit);
     }
 
+    @Override
+    public BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId) {
+        return delegate.getBranchMetaData(ga, branchId);
+    }
 }

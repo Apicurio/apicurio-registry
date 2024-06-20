@@ -31,10 +31,8 @@ public class JsonSchemaReferenceFinder implements ReferenceFinder {
             Set<String> externalTypes = new HashSet<>();
             findExternalTypesIn(tree, externalTypes);
 
-            return externalTypes.stream()
-                    .map(type -> new JsonPointerExternalReference(type))
-                    .filter(ref -> ref.getResource() != null)
-                    .collect(Collectors.toSet());
+            return externalTypes.stream().map(type -> new JsonPointerExternalReference(type))
+                    .filter(ref -> ref.getResource() != null).collect(Collectors.toSet());
         } catch (Exception e) {
             log.error("Error finding external references in an Avro file.", e);
             return Collections.emptySet();
@@ -46,7 +44,8 @@ public class JsonSchemaReferenceFinder implements ReferenceFinder {
             if (schema.has("$ref")) {
                 String ref = schema.get("$ref").asText(null);
                 if (ref != null) {
-                    // TODO: the value of the ref should be resolved against the $id in this schema if it has one
+                    // TODO: the value of the ref should be resolved against the $id in this schema if it has
+                    // one
                     externalTypes.add(ref);
                 }
             }

@@ -17,7 +17,8 @@ public class AvroCompatibilityChecker {
     public static final AvroCompatibilityChecker FORWARD_TRANSITIVE_CHECKER;
     public static final AvroCompatibilityChecker FULL_TRANSITIVE_CHECKER;
     public static final AvroCompatibilityChecker NO_OP_CHECKER;
-    private static final SchemaValidator BACKWARD_VALIDATOR = (new SchemaValidatorBuilder()).canReadStrategy().validateLatest();
+    private static final SchemaValidator BACKWARD_VALIDATOR = (new SchemaValidatorBuilder()).canReadStrategy()
+            .validateLatest();
     private static final SchemaValidator FORWARD_VALIDATOR;
     private static final SchemaValidator FULL_VALIDATOR;
     private static final SchemaValidator BACKWARD_TRANSITIVE_VALIDATOR;

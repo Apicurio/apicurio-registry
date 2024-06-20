@@ -66,10 +66,8 @@ public class SearchGroupsTest extends AbstractResourceTestBase {
         // Create 5 groups
         for (int idx = 0; idx < 5; idx++) {
             Labels labels = new Labels();
-            labels.setAdditionalData(Map.of(
-                    "byLabels", "byLabels-value-" + idx,
-                    "byLabels-" + idx, "byLabels-value-" + idx
-            ));
+            labels.setAdditionalData(
+                    Map.of("byLabels", "byLabels-value-" + idx, "byLabels-" + idx, "byLabels-value-" + idx));
 
             CreateGroup createGroup = new CreateGroup();
             createGroup.setGroupId(groupId + idx);
@@ -83,30 +81,30 @@ public class SearchGroupsTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, results.getGroups().size());
 
         results = clientV3.search().groups().get(request -> {
-            request.queryParameters.labels = new String[]{ "byLabels" };
+            request.queryParameters.labels = new String[] { "byLabels" };
         });
         Assertions.assertEquals(5, results.getGroups().size());
 
         results = clientV3.search().groups().get(request -> {
-            request.queryParameters.labels = new String[]{ "byLabels-3" };
+            request.queryParameters.labels = new String[] { "byLabels-3" };
         });
         Assertions.assertEquals(1, results.getGroups().size());
         Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
 
         results = clientV3.search().groups().get(request -> {
-            request.queryParameters.labels = new String[]{ "byLabels:byLabels-value-3" };
+            request.queryParameters.labels = new String[] { "byLabels:byLabels-value-3" };
         });
         Assertions.assertEquals(1, results.getGroups().size());
         Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
 
         results = clientV3.search().groups().get(request -> {
-            request.queryParameters.labels = new String[]{ "byLabels-3" };
+            request.queryParameters.labels = new String[] { "byLabels-3" };
         });
         Assertions.assertEquals(1, results.getGroups().size());
         Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
 
         results = clientV3.search().groups().get(request -> {
-            request.queryParameters.labels = new String[]{ "byLabels-3:byLabels-value-3" };
+            request.queryParameters.labels = new String[] { "byLabels-3:byLabels-value-3" };
         });
         Assertions.assertEquals(1, results.getGroups().size());
         Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());

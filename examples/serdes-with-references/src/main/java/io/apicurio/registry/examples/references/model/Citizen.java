@@ -20,13 +20,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Citizen {
 
-    @JsonProperty("firstName") private String firstName;
+    @JsonProperty("firstName")
+    private String firstName;
 
-    @JsonProperty("lastName") private String lastName;
+    @JsonProperty("lastName")
+    private String lastName;
 
-    @JsonProperty("age") private int age;
+    @JsonProperty("age")
+    private int age;
 
-    @JsonProperty("city") City city;
+    @JsonProperty("city")
+    City city;
 
     public Citizen() {
     }

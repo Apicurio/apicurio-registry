@@ -26,8 +26,10 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
             String contentType = content.getContentType();
-            if (contentType.toLowerCase().contains("xml") && ContentTypeUtil.isParsableXml(content.getContent())) {
-                Document xmlDocument = DocumentBuilderAccessor.getDocumentBuilder().parse(content.getContent().stream());
+            if (contentType.toLowerCase().contains("xml")
+                    && ContentTypeUtil.isParsableXml(content.getContent())) {
+                Document xmlDocument = DocumentBuilderAccessor.getDocumentBuilder()
+                        .parse(content.getContent().stream());
                 Element root = xmlDocument.getDocumentElement();
                 String ns = root.getNamespaceURI();
                 if (ns != null && ns.equals("http://www.w3.org/2001/XMLSchema")) {
@@ -73,7 +75,7 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
      */
     @Override
     protected ContentValidator createContentValidator() {
-       return new XmlContentValidator();
+        return new XmlContentValidator();
     }
 
     /**
@@ -88,7 +90,7 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
     public ContentDereferencer getContentDereferencer() {
         return null;
     }
-    
+
     /**
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
      */

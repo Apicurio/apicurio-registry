@@ -17,12 +17,14 @@ public interface TestSeparator {
     @BeforeEach
     default void beforeEachTest(TestInfo testInfo) {
         SEPARATOR_LOGGER.info(String.join("", Collections.nCopies(76, SEPARATOR_CHAR)));
-        SEPARATOR_LOGGER.info(String.format("%s.%s-STARTED", testInfo.getTestClass().get().getName(), testInfo.getTestMethod().get().getName()));
+        SEPARATOR_LOGGER.info(String.format("%s.%s-STARTED", testInfo.getTestClass().get().getName(),
+                testInfo.getTestMethod().get().getName()));
     }
 
     @AfterEach
     default void afterEachTest(TestInfo testInfo) {
-        SEPARATOR_LOGGER.info(String.format("%s.%s-FINISHED", testInfo.getTestClass().get().getName(), testInfo.getTestMethod().get().getName()));
+        SEPARATOR_LOGGER.info(String.format("%s.%s-FINISHED", testInfo.getTestClass().get().getName(),
+                testInfo.getTestMethod().get().getName()));
         SEPARATOR_LOGGER.info(String.join("", Collections.nCopies(76, SEPARATOR_CHAR)));
     }
 }

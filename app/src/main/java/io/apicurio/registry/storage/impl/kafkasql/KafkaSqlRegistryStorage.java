@@ -8,7 +8,6 @@ import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLiveness
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
-import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
@@ -31,9 +30,10 @@ import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.SqlDataImporter;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.impexp.ArtifactBranchEntity;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.BranchEntity;
 import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
@@ -59,12 +59,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
- * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates 'write' operations
- * to other nodes in a cluster using a Kafka topic.  As a result, all reads are performed locally but all
- * writes are published to a topic for consumption by all nodes.
+ * An implementation of a registry artifactStore that extends the basic SQL artifactStore but federates
+ * 'write' operations to other nodes in a cluster using a Kafka topic. As a result, all reads are performed
+ * locally but all writes are published to a topic for consumption by all nodes.
  */
 @ApplicationScoped
 @PersistenceExceptionLivenessApply
@@ -113,7 +112,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     private volatile boolean stopped = true;
     private volatile boolean snapshotProcessed = false;
 
-    //The snapshot id used to determine if this replica must process a snapshot message
+    // The snapshot id used to determine if this replica must process a snapshot message
     private volatile String lastTriggeredSnapshot = null;
 
     @Override
@@ -125,20 +124,20 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     public void initialize() {
         log.info("Using Kafka-SQL artifactStore.");
 
-        //First, if needed create the Kafka topics.
+        // First, if needed create the Kafka topics.
         if (configuration.isTopicAutoCreate()) {
             autoCreateTopics();
         }
 
-        //Try to restore the internal database from a snapshot
+        // Try to restore the internal database from a snapshot
         final long bootstrapStart = System.currentTimeMillis();
         String snapshotId = consumeSnapshotsTopic(snapshotsConsumer);
 
-        //Once the topics are created, and the snapshots processed, initialize the internal SQL Storage.
+        // Once the topics are created, and the snapshots processed, initialize the internal SQL Storage.
         sqlStore.initialize();
         setDelegate(sqlStore);
 
-        //Once the SQL storage has been initialized, start the Kafka consumer thread.
+        // Once the SQL storage has been initialized, start the Kafka consumer thread.
         log.info("SQL store initialized, starting consumer thread.");
         startConsumerThread(journalConsumer, snapshotId, bootstrapStart);
     }
@@ -167,38 +166,41 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     private void autoCreateTopics() {
         Set<String> topicNames = Set.of(configuration.topic(), configuration.snapshotsTopic());
         Map<String, String> topicProperties = new HashMap<>();
-        configuration.topicProperties().forEach((key, value) -> topicProperties.put(key.toString(), value.toString()));
+        configuration.topicProperties()
+                .forEach((key, value) -> topicProperties.put(key.toString(), value.toString()));
         Properties adminProperties = configuration.adminProperties();
-        adminProperties.putIfAbsent(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, configuration.bootstrapServers());
+        adminProperties.putIfAbsent(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG,
+                configuration.bootstrapServers());
         try {
             KafkaUtil.createTopics(adminProperties, topicNames, topicProperties);
-        }
-        catch (TopicExistsException e) {
+        } catch (TopicExistsException e) {
             log.info("Topic {} already exists, skipping.", configuration.topic());
         }
     }
 
     /**
-     * Consume the snapshots topic, looking for the most recent snapshots in the topic. Once found, it restores the internal h2 database using the snapshot's content.
-     * WARNING: This has the limitation of processing the first 500 snapshots, which should be enough for most deployments.
+     * Consume the snapshots topic, looking for the most recent snapshots in the topic. Once found, it
+     * restores the internal h2 database using the snapshot's content. WARNING: This has the limitation of
+     * processing the first 500 snapshots, which should be enough for most deployments.
      */
     private String consumeSnapshotsTopic(KafkaConsumer<String, String> snapshotsConsumer) {
         // Subscribe to the snapshots topic
         Collection<String> topics = Collections.singleton(configuration.snapshotsTopic());
         snapshotsConsumer.subscribe(topics);
-        ConsumerRecords<String, String> records = snapshotsConsumer.poll(Duration.ofMillis(configuration.pollTimeout()));
+        ConsumerRecords<String, String> records = snapshotsConsumer
+                .poll(Duration.ofMillis(configuration.pollTimeout()));
         List<ConsumerRecord<String, String>> snapshots = new ArrayList<>();
         String snapshotRecordKey = null;
         if (records != null && !records.isEmpty()) {
-            //collect all snapshots into a list
+            // collect all snapshots into a list
             records.forEach(snapshots::add);
 
-            //sort snapshots by timestamp
+            // sort snapshots by timestamp
             snapshots.sort(Comparator.comparingLong(ConsumerRecord::timestamp));
 
             Path mostRecentSnapshotPath = null;
             for (ConsumerRecord<String, String> snapshotFound : snapshots) {
-                //Restore database from snapshot
+                // Restore database from snapshot
                 try {
                     String path = snapshotFound.value();
                     if (null != path && !path.isBlank() && Files.exists(Path.of(snapshotFound.value()))) {
@@ -206,13 +208,15 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                         snapshotRecordKey = snapshotFound.key();
                         mostRecentSnapshotPath = Path.of(snapshotFound.value());
                     }
-                }
-                catch (IllegalArgumentException ex) {
-                    log.warn("Snapshot with path {} ignored, the snapshot is likely invalid or cannot be found", snapshotFound.value());
+                } catch (IllegalArgumentException ex) {
+                    log.warn(
+                            "Snapshot with path {} ignored, the snapshot is likely invalid or cannot be found",
+                            snapshotFound.value());
                 }
             }
 
-            //Here we have the most recent snapshot that we can find, try to restore the internal database from it.
+            // Here we have the most recent snapshot that we can find, try to restore the internal database
+            // from it.
             if (null != mostRecentSnapshotPath) {
                 log.info("Restoring snapshot {} to the internal database...", mostRecentSnapshotPath);
                 sqlStore.restoreFromSnapshot(mostRecentSnapshotPath.toString());
@@ -223,11 +227,12 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic,
-     * consuming JournalRecord entries found on that topic, and applying those journal entries to
-     * the internal data model.
+     * Start the KSQL Kafka consumer thread which is responsible for subscribing to the kafka topic, consuming
+     * JournalRecord entries found on that topic, and applying those journal entries to the internal data
+     * model.
      */
-    private void startConsumerThread(final KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer, String snapshotId, long bootstrapStart) {
+    private void startConsumerThread(final KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer,
+            String snapshotId, long bootstrapStart) {
         log.info("Starting KSQL consumer thread on topic: {}", configuration.topic());
         log.info("Bootstrap servers: {}", configuration.bootstrapServers());
 
@@ -243,37 +248,46 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
                 // Main consumer loop
                 while (!stopped) {
-                    final ConsumerRecords<KafkaSqlMessageKey, KafkaSqlMessage> records = consumer.poll(Duration.ofMillis(configuration.pollTimeout()));
+                    final ConsumerRecords<KafkaSqlMessageKey, KafkaSqlMessage> records = consumer
+                            .poll(Duration.ofMillis(configuration.pollTimeout()));
 
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
 
                         if (null != snapshotId && !snapshotProcessed) {
-                            //If there is a snapshot key present, we process (and discard) all the messages until we find the snapshot marker that corresponds to the snapshot key.
-                            Iterator<ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> it = records.iterator();
+                            // If there is a snapshot key present, we process (and discard) all the messages
+                            // until we find the snapshot marker that corresponds to the snapshot key.
+                            Iterator<ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> it = records
+                                    .iterator();
                             while (it.hasNext() && !snapshotProcessed) {
                                 ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
                                 if (processSnapshot(snapshotId, record)) {
-                                    log.debug("Snapshot marker found {} the new messages will be applied on top of the snapshot data.", record.key());
+                                    log.debug(
+                                            "Snapshot marker found {} the new messages will be applied on top of the snapshot data.",
+                                            record.key());
                                     snapshotProcessed = true;
                                     break;
-                                }
-                                else {
-                                    log.debug("Discarding message with key {} as it was sent before a newer snapshot was created.", record.key());
+                                } else {
+                                    log.debug(
+                                            "Discarding message with key {} as it was sent before a newer snapshot was created.",
+                                            record.key());
                                 }
                             }
 
-                            //If the snapshot marker has not been found, continue with message skipping until we find it.
+                            // If the snapshot marker has not been found, continue with message skipping until
+                            // we find it.
                             if (snapshotProcessed) {
-                                //Once the snapshot marker message has been found, we can process the rest of the messages as usual, applying the new changes on top of the existing ones in the snapshot.
+                                // Once the snapshot marker message has been found, we can process the rest of
+                                // the messages as usual, applying the new changes on top of the existing ones
+                                // in the snapshot.
                                 while (it.hasNext()) {
                                     ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
                                     processRecord(record, bootstrapId, bootstrapStart);
                                 }
                             }
-                        }
-                        else {
-                            //If there is no snapshot, simply process the existing messages in the kafka topic as usual.
+                        } else {
+                            // If there is no snapshot, simply process the existing messages in the kafka
+                            // topic as usual.
                             records.forEach(record -> processRecord(record, bootstrapId, bootstrapStart));
                         }
                     }
@@ -287,33 +301,39 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         thread.start();
     }
 
-    private boolean processSnapshot(String snapshotId, ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record) {
-        return record.value() instanceof CreateSnapshot1Message && snapshotId.equals(((CreateSnapshot1Message) record.value()).getSnapshotId());
+    private boolean processSnapshot(String snapshotId,
+            ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record) {
+        return record.value() instanceof CreateSnapshot1Message
+                && snapshotId.equals(((CreateSnapshot1Message) record.value()).getSnapshotId());
     }
 
-    private void processRecord(ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record, String bootstrapId, long bootstrapStart) {
+    private void processRecord(ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record, String bootstrapId,
+            long bootstrapStart) {
         // If the key is null, we couldn't deserialize the message
         if (record.key() == null) {
             log.warn("Discarded an unreadable/unrecognized Kafka message.");
             return;
         }
 
-        // If the key is a Bootstrap key, then we have processed all messages and can set bootstrapped to 'true'
+        // If the key is a Bootstrap key, then we have processed all messages and can set bootstrapped to
+        // 'true'
         if ("Bootstrap".equals(record.key().getMessageType())) {
             KafkaSqlMessageKey bkey = (KafkaSqlMessageKey) record.key();
             if (bkey.getUuid().equals(bootstrapId)) {
                 this.bootstrapped = true;
-                storageEvent.fireAsync(StorageEvent.builder()
-                        .type(StorageEventType.READY)
-                        .build());
-                log.info("KafkaSQL storage bootstrapped in {} ms.", System.currentTimeMillis() - bootstrapStart);
+                storageEvent.fireAsync(StorageEvent.builder().type(StorageEventType.READY).build());
+                log.info("KafkaSQL storage bootstrapped in {} ms.",
+                        System.currentTimeMillis() - bootstrapStart);
             }
             return;
         }
 
-        // If the key is a CreateSnapshotMessage key, but this replica does not have the snapshotId, it means that it wasn't triggered here, so just skip the message.
-        if (record.value() instanceof CreateSnapshot1Message && !((CreateSnapshot1Message) record.value()).getSnapshotId().equals(lastTriggeredSnapshot)) {
-            log.debug("Snapshot trigger message with id {} being skipped since this replica did not trigger the creation.",
+        // If the key is a CreateSnapshotMessage key, but this replica does not have the snapshotId, it means
+        // that it wasn't triggered here, so just skip the message.
+        if (record.value() instanceof CreateSnapshot1Message
+                && !((CreateSnapshot1Message) record.value()).getSnapshotId().equals(lastTriggeredSnapshot)) {
+            log.debug(
+                    "Snapshot trigger message with id {} being skipped since this replica did not trigger the creation.",
                     ((CreateSnapshot1Message) record.value()).getSnapshotId());
             return;
         }
@@ -325,7 +345,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             return;
         }
 
-        // TODO instead of processing the journal record directly on the consumer thread, instead queue them and have *another* thread process the queue
+        // TODO instead of processing the journal record directly on the consumer thread, instead queue them
+        // and have *another* thread process the queue
         kafkaSqlSink.processMessage(record);
     }
 
@@ -350,14 +371,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     @Override
-    public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId, String artifactId,
-                                                                                String artifactType, EditableArtifactMetaDataDto artifactMetaData, String version,
-                                                                                ContentWrapperDto versionContent,
-                                                                                EditableVersionMetaDataDto versionMetaData, List<String> versionBranches)
-            throws RegistryStorageException {
+    public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
+            String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
+            String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
+            List<String> versionBranches) throws RegistryStorageException {
         String content = versionContent != null ? versionContent.getContent().content() : null;
         String contentType = versionContent != null ? versionContent.getContentType() : null;
-        List<ArtifactReferenceDto> references = versionContent != null ? versionContent.getReferences() : null;
+        List<ArtifactReferenceDto> references = versionContent != null ? versionContent.getReferences()
+            : null;
         var message = new CreateArtifact8Message(groupId, artifactId, artifactType, artifactMetaData, version,
                 contentType, content, references, versionMetaData, versionBranches);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
@@ -369,7 +390,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      */
     @SuppressWarnings("unchecked")
     @Override
-    public List<String> deleteArtifact(String groupId, String artifactId) throws ArtifactNotFoundException, RegistryStorageException {
+    public List<String> deleteArtifact(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException {
         var message = new DeleteArtifact2Message(groupId, artifactId);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         return (List<String>) coordinator.waitForResponse(uuid);
@@ -387,30 +409,32 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
-                                                            String artifactType, ContentWrapperDto contentDto, EditableVersionMetaDataDto metaData, List<String> branches)
-            throws RegistryStorageException {
+            String artifactType, ContentWrapperDto contentDto, EditableVersionMetaDataDto metaData,
+            List<String> branches) throws RegistryStorageException {
         String content = contentDto != null ? contentDto.getContent().content() : null;
         String contentType = contentDto != null ? contentDto.getContentType() : null;
         List<ArtifactReferenceDto> references = contentDto != null ? contentDto.getReferences() : null;
-        var message = new CreateArtifactVersion7Message(groupId, artifactId, version, artifactType, contentType,
-                content, references, metaData, branches);
+        var message = new CreateArtifactVersion7Message(groupId, artifactId, version, artifactType,
+                contentType, content, references, metaData, branches);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         return (ArtifactVersionMetaDataDto) coordinator.waitForResponse(uuid);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactMetaData(java.lang.String,
+     *      java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
     public void updateArtifactMetaData(String groupId, String artifactId,
-                                       EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+            EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         var message = new UpdateArtifactMetaData3Message(groupId, artifactId, metaData);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRules(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRules(java.lang.String,
+     *      java.lang.String)
      */
     @Override
     public void deleteArtifactRules(String groupId, String artifactId)
@@ -421,10 +445,13 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactRule(java.lang.String,
+     *      java.lang.String, io.apicurio.registry.types.RuleType,
+     *      io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
-    public void updateArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
+    public void updateArtifactRule(String groupId, String artifactId, RuleType rule,
+            RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         var message = new UpdateArtifactRule4Message(groupId, artifactId, rule, config);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
@@ -432,7 +459,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRule(java.lang.String, java.lang.String, io.apicurio.registry.types.RuleType)
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRule(java.lang.String,
+     *      java.lang.String, io.apicurio.registry.types.RuleType)
      */
     @Override
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
@@ -443,7 +471,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersion(java.lang.String,
+     *      java.lang.String, java.lang.String)
      */
     @Override
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
@@ -454,10 +483,12 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableVersionMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionMetaData(java.lang.String,
+     *      java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableVersionMetaDataDto)
      */
     @Override
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableVersionMetaDataDto metaData)
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
+            EditableVersionMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         var message = new UpdateArtifactVersionMetaData4Message(groupId, artifactId, version, metaData);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
@@ -465,7 +496,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType,
+     *      io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
@@ -486,7 +518,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType, io.apicurio.registry.storage.dto.RuleConfigurationDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGlobalRule(io.apicurio.registry.types.RuleType,
+     *      io.apicurio.registry.storage.dto.RuleConfigurationDto)
      */
     @Override
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
@@ -510,7 +543,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      * @see io.apicurio.registry.storage.RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
     @Override
-    public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
+    public void createGroup(GroupMetaDataDto group)
+            throws GroupAlreadyExistsException, RegistryStorageException {
         var message = new CreateGroup1Message(group);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
@@ -527,7 +561,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(java.lang.String, io.apicurio.registry.storage.dto.EditableGroupMetaDataDto)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(java.lang.String,
+     *      io.apicurio.registry.storage.dto.EditableGroupMetaDataDto)
      */
     @Override
     public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto) {
@@ -537,30 +572,32 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream, boolean, boolean)
+     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream,
+     *      boolean, boolean)
      */
     @Override
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId)
             throws RegistryStorageException {
-        DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId, preserveContentId);
+        DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId,
+                preserveContentId);
         dataImporter.importData(entities, () -> {
             // Because importing just pushes a bunch of Kafka messages, we may need to
-            // wait for a few seconds before we send the reset messages.  Due to partitioning,
+            // wait for a few seconds before we send the reset messages. Due to partitioning,
             // we can't guarantee ordering of these next two messages, and we NEED them to
             // be consumed after all the import messages.
             // TODO We can wait until the last message is read (a specific one),
             // or create a new message type for this purpose (a sync message).
             try {
                 Thread.sleep(2000);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 // Noop
             }
         });
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#createRoleMapping(java.lang.String, java.lang.String,
+     *      java.lang.String)
      */
     @Override
     public void createRoleMapping(String principalId, String role, String principalName)
@@ -631,31 +668,38 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#createArtifactVersionComment(java.lang.String,
+     *      java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) {
+    public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version,
+            String value) {
         var message = new CreateArtifactVersionComment4Message(groupId, artifactId, version, value);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         return (CommentDto) coordinator.waitForResponse(uuid);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersionComment(java.lang.String,
+     *      java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
+    public void deleteArtifactVersionComment(String groupId, String artifactId, String version,
+            String commentId) {
         var message = new DeleteArtifactVersionComment4Message(groupId, artifactId, version, commentId);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionComment(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionComment(java.lang.String,
+     *      java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value) {
-        var message = new UpdateArtifactVersionComment5Message(groupId, artifactId, version, commentId, value);
+    public void updateArtifactVersionComment(String groupId, String artifactId, String version,
+            String commentId, String value) {
+        var message = new UpdateArtifactVersionComment5Message(groupId, artifactId, version, commentId,
+                value);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
@@ -771,6 +815,13 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(uuid);
     }
 
+    @Override
+    public void importArtifact(ArtifactEntity entity) {
+        var message = new ImportArtifact1Message(entity);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#importArtifactRule(io.apicurio.registry.utils.impexp.ArtifactRuleEntity)
      */
@@ -782,17 +833,18 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importArtifactBranch(io.apicurio.registry.utils.impexp.ArtifactBranchEntity)
+     * @see io.apicurio.registry.storage.RegistryStorage#importBranch(BranchEntity)
      */
     @Override
-    public void importArtifactBranch(ArtifactBranchEntity entity) {
-        var message = new ImportArtifactBranch1Message(entity);
+    public void importBranch(BranchEntity entity) {
+        var message = new ImportBranch1Message(entity);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#updateContentCanonicalHash(java.lang.String, long, java.lang.String)
+     * @see io.apicurio.registry.storage.RegistryStorage#updateContentCanonicalHash(java.lang.String, long,
+     *      java.lang.String)
      */
     @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
@@ -801,42 +853,55 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(uuid);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createOrUpdateArtifactBranch(io.apicurio.registry.model.GAV, io.apicurio.registry.model.BranchId)
-     */
     @Override
-    public void createOrUpdateArtifactBranch(GAV gav, BranchId branchId) {
-        var message = new CreateOrUpdateArtifactBranch2Message(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
-                gav.getRawVersionId(), branchId.getRawBranchId());
+    public void appendVersionToBranch(GA ga, BranchId branchId, VersionId version) {
+        var message = new AppendVersionToBranch3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                branchId.getRawBranchId(), version.getRawVersionId());
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
 
-    /**
-     * @see io.apicurio.registry.storage.RegistryStorage#createOrReplaceArtifactBranch(io.apicurio.registry.model.GA, io.apicurio.registry.model.BranchId, java.util.List)
-     */
     @Override
-    public void createOrReplaceArtifactBranch(GA ga, BranchId branchId, List<VersionId> versions) {
-        List<String> rawVersions = versions == null ? List.of() : versions.stream().map(v -> v.getRawVersionId()).collect(Collectors.toList());
-        var message = new CreateOrReplaceArtifactBranch3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                branchId.getRawBranchId(), rawVersions);
+    public void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto) {
+        var message = new UpdateBranchMetaData3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                branchId.getRawBranchId(), dto);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
 
+    @Override
+    public void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions) {
+        var message = new ReplaceBranchVersions3Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                branchId.getRawBranchId(), versions.stream().map(VersionId::getRawVersionId).toList());
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description,
+            List<String> versions) {
+        var message = new CreateBranch4Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                branchId.getRawBranchId(), description, versions);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        return (BranchMetaDataDto) coordinator.waitForResponse(uuid);
+    }
+
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactBranch(io.apicurio.registry.model.GA, io.apicurio.registry.model.BranchId)
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteBranch(io.apicurio.registry.model.GA,
+     *      io.apicurio.registry.model.BranchId)
      */
     @Override
-    public void deleteArtifactBranch(GA ga, BranchId branchId) {
-        var message = new DeleteArtifactBranch2Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), branchId.getRawBranchId());
+    public void deleteBranch(GA ga, BranchId branchId) {
+        var message = new DeleteBranch2Message(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                branchId.getRawBranchId());
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
 
     @Override
     public String triggerSnapshotCreation() throws RegistryStorageException {
-        //First we generate an identifier for the snapshot, then we send a snapshot marker to the journal topic.
+        // First we generate an identifier for the snapshot, then we send a snapshot marker to the journal
+        // topic.
         String snapshotId = UUID.randomUUID().toString();
         Path path = Path.of(configuration.snapshotLocation(), snapshotId + ".sql");
         var message = new CreateSnapshot1Message(path.toString(), snapshotId);
@@ -844,9 +909,10 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         log.debug("Snapshot with id {} triggered.", snapshotId);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         String snapshotLocation = (String) coordinator.waitForResponse(uuid);
-        //Then we send a new message to the snapshots topic, using the snapshot id as the key of the snapshot message.
-        ProducerRecord<String, String> record = new ProducerRecord<>(configuration.snapshotsTopic(), 0, snapshotId, snapshotLocation,
-                Collections.emptyList());
+        // Then we send a new message to the snapshots topic, using the snapshot id as the key of the snapshot
+        // message.
+        ProducerRecord<String, String> record = new ProducerRecord<>(configuration.snapshotsTopic(), 0,
+                snapshotId, snapshotLocation, Collections.emptyList());
         RecordMetadata recordMetadata = ConcurrentUtil.get(snapshotsProducer.apply(record));
         return snapshotLocation;
     }

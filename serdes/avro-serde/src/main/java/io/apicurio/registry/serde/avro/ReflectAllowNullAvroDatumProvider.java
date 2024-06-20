@@ -9,6 +9,6 @@ public class ReflectAllowNullAvroDatumProvider<T> extends ReflectAvroDatumProvid
     }
 
     public ReflectAllowNullAvroDatumProvider(Class<T> clazz) {
-        super(ReflectData.AllowNull.get(),clazz);
+        super(ReflectData.AllowNull.get(), clazz);
     }
 }

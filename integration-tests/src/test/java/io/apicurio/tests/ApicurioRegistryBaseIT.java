@@ -67,9 +67,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Base class for all base classes for integration tests or for integration tests directly.
- * This class must not contain any functionality nor implement any beforeAll, beforeEach.
- *
+ * Base class for all base classes for integration tests or for integration tests directly. This class must
+ * not contain any functionality nor implement any beforeAll, beforeEach.
  */
 @DisplayNameGeneration(SimpleDisplayName.class)
 @TestInstance(Lifecycle.PER_CLASS)
@@ -83,7 +82,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    protected Function<Exception, Integer> errorCodeExtractor = e -> ((ApiException)e).getResponseStatusCode();
+    protected Function<Exception, Integer> errorCodeExtractor = e -> ((ApiException) e)
+            .getResponseStatusCode();
 
     protected RegistryClient registryClient;
 
@@ -97,7 +97,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     @BeforeAll
     void prepareRestAssured() {
-        authServerUrlConfigured = Optional.ofNullable(ConfigProvider.getConfig().getConfigValue("quarkus.oidc.token-path").getValue())
+        authServerUrlConfigured = Optional
+                .ofNullable(ConfigProvider.getConfig().getConfigValue("quarkus.oidc.token-path").getValue())
                 .orElse("http://localhost:8090/realms/registry/protocol/openid-connect/token");
         registryClient = createRegistryClient();
         RestAssured.baseURI = getRegistryV3ApiUrl();
@@ -110,15 +111,18 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     public void cleanArtifacts() throws Exception {
         logger.info("Removing all artifacts");
         // Retrying to delete artifacts can solve the problem with bad order caused by artifacts references
-        // TODO: Solve problem with artifact references circle - maybe use of deleteAllUserData for cleaning artifacts after IT
+        // TODO: Solve problem with artifact references circle - maybe use of deleteAllUserData for cleaning
+        // artifacts after IT
         retry(() -> {
             ArtifactSearchResults artifacts = registryClient.search().artifacts().get();
             for (SearchedArtifact artifact : artifacts.getArtifacts()) {
                 try {
-                    registryClient.groups().byGroupId(normalizeGroupId(artifact.getGroupId())).artifacts().byArtifactId(artifact.getArtifactId()).delete();
-                    registryClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().delete();
+                    registryClient.groups().byGroupId(normalizeGroupId(artifact.getGroupId())).artifacts()
+                            .byArtifactId(artifact.getArtifactId()).delete();
+                    registryClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
+                            .artifacts().delete();
                 } catch (ApiException e) {
-                    //because of async storage artifact may be already deleted but listed anyway
+                    // because of async storage artifact may be already deleted but listed anyway
                     logger.info(e.getMessage());
                 } catch (Exception e) {
                     logger.error("", e);
@@ -134,9 +138,11 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return groupId != null ? groupId : "default"; // TODO
     }
 
-    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType, String content,
-                                                    String contentType, IfArtifactExists ifExists, Consumer<CreateArtifact> customizer) throws Exception {
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, artifactType, content, contentType);
+    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType,
+            String content, String contentType, IfArtifactExists ifExists,
+            Consumer<CreateArtifact> customizer) throws Exception {
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, artifactType, content,
+                contentType);
         if (customizer != null) {
             customizer.accept(createArtifact);
         }
@@ -149,33 +155,38 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
         // make sure we have schema registered
         ensureClusterSync(response.getVersion().getGlobalId());
-        ensureClusterSync(normalizeGroupId(response.getArtifact().getGroupId()), response.getArtifact().getArtifactId(),
-                String.valueOf(response.getVersion().getVersion()));
+        ensureClusterSync(normalizeGroupId(response.getArtifact().getGroupId()),
+                response.getArtifact().getArtifactId(), String.valueOf(response.getVersion().getVersion()));
 
         return response;
     }
 
-    protected VersionMetaData createArtifactVersion(String groupId, String artifactId, String content, String contentType, Consumer<CreateVersion> customizer) throws Exception {
+    protected VersionMetaData createArtifactVersion(String groupId, String artifactId, String content,
+            String contentType, Consumer<CreateVersion> customizer) throws Exception {
         CreateVersion createVersion = TestUtils.clientCreateVersion(content, contentType);
         if (customizer != null) {
             customizer.accept(createVersion);
         }
-        VersionMetaData meta = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
+        VersionMetaData meta = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().post(createVersion);
 
-        //wait for storage
+        // wait for storage
         ensureClusterSync(meta.getGlobalId());
-        ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getArtifactId(), String.valueOf(meta.getVersion()));
+        ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getArtifactId(),
+                String.valueOf(meta.getVersion()));
 
         return meta;
     }
 
-    //DO NOT USE FOR CREATE OR UPDATE OPERATIONS
+    // DO NOT USE FOR CREATE OR UPDATE OPERATIONS
     protected void retryOp(RegistryWaitUtils.ConsumerExc<RegistryClient> registryOp) throws Exception {
         RegistryWaitUtils.retry(registryClient, registryOp);
     }
 
-    //DO NOT USE FOR CREATE OR UPDATE OPERATIONS
-    protected void retryAssertClientError(String expectedErrorName, int expectedCode, RegistryWaitUtils.ConsumerExc<RegistryClient> registryOp, Function<Exception, Integer> errorCodeExtractor) throws Exception {
+    // DO NOT USE FOR CREATE OR UPDATE OPERATIONS
+    protected void retryAssertClientError(String expectedErrorName, int expectedCode,
+            RegistryWaitUtils.ConsumerExc<RegistryClient> registryOp,
+            Function<Exception, Integer> errorCodeExtractor) throws Exception {
         RegistryWaitUtils.retry(registryClient, (rc) -> {
             assertClientError(expectedErrorName, expectedCode, () -> registryOp.run(rc), errorCodeExtractor);
         });
@@ -186,7 +197,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     private void ensureClusterSync(String groupId, String artifactId, String version) throws Exception {
-        retry(() -> registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get());
+        retry(() -> registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(version).get());
     }
 
     private void ensureClusterSync(Consumer<RegistryClient> function) throws Exception {
@@ -194,21 +206,18 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     protected List<String> listArtifactVersions(RegistryClient rc, String groupId, String artifactId) {
-        return rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
-                    .versions().get(config -> {
-                        config.queryParameters.limit = 10;
-                        config.queryParameters.offset = 0;
-                    })
-                    .getVersions()
-                    .stream()
-                    .map(SearchedVersion::getVersion)
-                    .collect(Collectors.toList());
+        return rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get(config -> {
+            config.queryParameters.limit = 10;
+            config.queryParameters.offset = 0;
+        }).getVersions().stream().map(SearchedVersion::getVersion).collect(Collectors.toList());
     }
 
     public static String resourceToString(String resourceName) {
-        try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName)) {
+        try (InputStream stream = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream(resourceName)) {
             assertNotNull(stream, "Resource not found: " + resourceName);
-            return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
+            return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines()
+                    .collect(Collectors.joining("\n"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -242,7 +251,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         if (REGISTRY_URL != null) {
             return String.format("http://%s:%s", REGISTRY_URL.getHost(), REGISTRY_URL.getPort());
         } else {
-            return String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"), System.getProperty("quarkus.http.test-port"));
+            return String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"),
+                    System.getProperty("quarkus.http.test-port"));
         }
     }
 
@@ -284,17 +294,19 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     /**
      * Poll the given {@code ready} function every {@code pollIntervalMs} milliseconds until it returns true,
-     * or throw a TimeoutException if it doesn't returns true within {@code timeoutMs} milliseconds.
-     * (helpful if you have several calls which need to share a common timeout)
+     * or throw a TimeoutException if it doesn't returns true within {@code timeoutMs} milliseconds. (helpful
+     * if you have several calls which need to share a common timeout)
      *
      * @return The remaining time left until timeout occurs
      */
-    public long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready) throws TimeoutException {
+    public long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready)
+            throws TimeoutException {
         return waitFor(description, pollIntervalMs, timeoutMs, ready, () -> {
         });
     }
 
-    public long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready, Runnable onTimeout) throws TimeoutException {
+    public long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready,
+            Runnable onTimeout) throws TimeoutException {
         log.debug("Waiting for {}", description);
         long deadline = System.currentTimeMillis() + timeoutMs;
         while (true) {
@@ -310,13 +322,15 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             }
             if (timeLeft <= 0) {
                 onTimeout.run();
-                TimeoutException exception = new TimeoutException("Timeout after " + timeoutMs + " ms waiting for " + description);
+                TimeoutException exception = new TimeoutException(
+                        "Timeout after " + timeoutMs + " ms waiting for " + description);
                 exception.printStackTrace();
                 throw exception;
             }
             long sleepTime = Math.min(pollIntervalMs, timeLeft);
             if (log.isTraceEnabled()) {
-                log.trace("{} not ready, will try again in {} ms ({}ms till timeout)", description, sleepTime, timeLeft);
+                log.trace("{} not ready, will try again in {} ms ({}ms till timeout)", description, sleepTime,
+                        timeLeft);
             }
             try {
                 Thread.sleep(sleepTime);
@@ -330,7 +344,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
      * Method to create and write String content file.
      *
      * @param filePath path to file
-     * @param text     content
+     * @param text content
      */
     public void writeFile(String filePath, String text) {
         try {
@@ -433,7 +447,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         throw new IllegalStateException("Should not be here!");
     }
 
-    public void assertClientError(String expectedErrorName, int expectedCode, TestUtils.RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) throws Exception {
+    public void assertClientError(String expectedErrorName, int expectedCode, TestUtils.RunnableExc runnable,
+            Function<Exception, Integer> errorCodeExtractor) throws Exception {
         try {
             internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor);
         } catch (Exception e) {
@@ -441,22 +456,28 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }
     }
 
-    public void assertClientError(String expectedErrorName, int expectedCode, TestUtils.RunnableExc runnable, boolean retry, Function<Exception, Integer> errorCodeExtractor) throws Exception {
+    public void assertClientError(String expectedErrorName, int expectedCode, TestUtils.RunnableExc runnable,
+            boolean retry, Function<Exception, Integer> errorCodeExtractor) throws Exception {
         if (retry) {
-            retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor));
+            retry(() -> internalAssertClientError(expectedErrorName, expectedCode, runnable,
+                    errorCodeExtractor));
         } else {
             internalAssertClientError(expectedErrorName, expectedCode, runnable, errorCodeExtractor);
         }
     }
 
-    private void internalAssertClientError(String expectedErrorName, int expectedCode, TestUtils.RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) {
+    private void internalAssertClientError(String expectedErrorName, int expectedCode,
+            TestUtils.RunnableExc runnable, Function<Exception, Integer> errorCodeExtractor) {
         try {
             runnable.run();
-            Assertions.fail("Expected (but didn't get) a registry client application exception with code: " + expectedCode);
+            Assertions.fail("Expected (but didn't get) a registry client application exception with code: "
+                    + expectedCode);
         } catch (Exception e) {
             Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, e.getClass());
-            Assertions.assertEquals(expectedErrorName, ((io.apicurio.registry.rest.client.models.Error)e).getName());
-            Assertions.assertEquals(expectedCode, ((io.apicurio.registry.rest.client.models.Error)e).getErrorCode());
+            Assertions.assertEquals(expectedErrorName,
+                    ((io.apicurio.registry.rest.client.models.Error) e).getName());
+            Assertions.assertEquals(expectedCode,
+                    ((io.apicurio.registry.rest.client.models.Error) e).getErrorCode());
         }
     }
 
@@ -466,7 +487,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         waitForSchema(schemaFinder, bytes, ByteBuffer::getLong);
     }
 
-    public void waitForSchema(Predicate<Long> schemaFinder, byte[] bytes, Function<ByteBuffer, Long> globalIdExtractor) throws Exception {
+    public void waitForSchema(Predicate<Long> schemaFinder, byte[] bytes,
+            Function<ByteBuffer, Long> globalIdExtractor) throws Exception {
         waitForSchemaCustom(schemaFinder, bytes, input -> {
             ByteBuffer buffer = ByteBuffer.wrap(input);
             buffer.get(); // magic byte
@@ -475,7 +497,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     // we can have non-default Apicurio serialization; e.g. ExtJsonConverter
-    public void waitForSchemaCustom(Predicate<Long> schemaFinder, byte[] bytes, Function<byte[], Long> globalIdExtractor) throws Exception {
+    public void waitForSchemaCustom(Predicate<Long> schemaFinder, byte[] bytes,
+            Function<byte[], Long> globalIdExtractor) throws Exception {
         long id = globalIdExtractor.apply(bytes);
         boolean schemaExists = retry(() -> schemaFinder.test(id));
         Assertions.assertTrue(schemaExists); // wait for global id to populate
@@ -493,7 +516,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return builder.toString();
     }
 
-
     public Response getArtifact(String groupId, String artifactId) {
         return getArtifact(groupId, artifactId, "", 200);
     }
@@ -503,8 +525,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     public Response getArtifact(String groupId, String artifactId, String version, int returnCode) {
-        return
-                getRequest(RestConstants.JSON, "/groups/" + encodeURIComponent(groupId) + "/artifacts/" + encodeURIComponent(artifactId) + "/" + version, returnCode);
+        return getRequest(RestConstants.JSON, "/groups/" + encodeURIComponent(groupId) + "/artifacts/"
+                + encodeURIComponent(artifactId) + "/" + version, returnCode);
     }
 
     private String encodeURIComponent(String value) {
@@ -516,155 +538,69 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     public Response getRequest(String contentType, String endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .get(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).get(getRegistryV3ApiUrl() + endpoint).then()
+                .statusCode(returnCode).extract().response();
     }
 
     public Response getRequest(String contentType, URL endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .get(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).get(getRegistryV3ApiUrl() + endpoint).then()
+                .statusCode(returnCode).extract().response();
     }
 
     public Response postRequest(String contentType, String body, String endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .body(body)
-                .post(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).body(body).post(getRegistryV3ApiUrl() + endpoint)
+                .then().statusCode(returnCode).extract().response();
     }
 
     public Response postRequest(String contentType, String body, URL endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .body(body)
-                .post(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).body(body).post(getRegistryV3ApiUrl() + endpoint)
+                .then().statusCode(returnCode).extract().response();
     }
 
     public Response putRequest(String contentType, String body, String endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .body(body)
-                .put(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).body(body).put(getRegistryV3ApiUrl() + endpoint).then()
+                .statusCode(returnCode).extract().response();
     }
 
     public Response putRequest(String contentType, String body, URL endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .body(body)
-                .put(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).body(body).put(getRegistryV3ApiUrl() + endpoint).then()
+                .statusCode(returnCode).extract().response();
     }
 
     public Response deleteRequest(String contentType, String endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .delete(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).delete(getRegistryV3ApiUrl() + endpoint).then()
+                .statusCode(returnCode).extract().response();
     }
 
     public Response rulesPostRequest(String contentType, String rule, String endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .body(rule)
-                .post(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).body(rule).post(getRegistryV3ApiUrl() + endpoint)
+                .then().statusCode(returnCode).extract().response();
     }
 
     public Response rulesPostRequest(String contentType, String rule, URL endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .body(rule)
-                .post(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).body(rule).post(getRegistryV3ApiUrl() + endpoint)
+                .then().statusCode(returnCode).extract().response();
     }
 
     public Response rulesGetRequest(String contentType, String endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .get(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).get(getRegistryV3ApiUrl() + endpoint).then()
+                .statusCode(returnCode).extract().response();
     }
 
     public Response rulesPutRequest(String contentType, String rule, String endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .body(rule)
-                .put(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).body(rule).put(getRegistryV3ApiUrl() + endpoint).then()
+                .statusCode(returnCode).extract().response();
     }
 
     public Response rulesDeleteRequest(String contentType, String endpoint, int returnCode) {
-        return given()
-                .when()
-                .contentType(contentType)
-                .delete(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+        return given().when().contentType(contentType).delete(getRegistryV3ApiUrl() + endpoint).then()
+                .statusCode(returnCode).extract().response();
     }
 
-    public Response artifactPostRequest(String artifactId, String contentType, String body, String endpoint, int returnCode) {
-        return given()
-                .when()
-                .header("X-Registry-Artifactid", artifactId)
-                .contentType(contentType)
-                .body(body)
-                .post(getRegistryV3ApiUrl() + endpoint)
-                .then()
-                .statusCode(returnCode)
-                .extract()
-                .response();
+    public Response artifactPostRequest(String artifactId, String contentType, String body, String endpoint,
+            int returnCode) {
+        return given().when().header("X-Registry-Artifactid", artifactId).contentType(contentType).body(body)
+                .post(getRegistryV3ApiUrl() + endpoint).then().statusCode(returnCode).extract().response();
     }
 
     protected void assertNotAuthorized(Exception exception) {
@@ -676,6 +612,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     protected void assertForbidden(Exception exception) {
         assertNotNull(exception);
         Assertions.assertEquals(ApiException.class, exception.getClass());
-        Assertions.assertEquals(403, ((ApiException)exception).getResponseStatusCode());
+        Assertions.assertEquals(403, ((ApiException) exception).getResponseStatusCode());
     }
 }

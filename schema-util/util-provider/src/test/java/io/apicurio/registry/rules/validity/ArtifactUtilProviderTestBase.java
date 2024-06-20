@@ -17,12 +17,12 @@ public class ArtifactUtilProviderTestBase {
     protected final String resourceToString(String resourceName) {
         try (InputStream stream = getClass().getResourceAsStream(resourceName)) {
             Assertions.assertNotNull(stream, "Resource not found: " + resourceName);
-            return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
+            return new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).lines()
+                    .collect(Collectors.joining("\n"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-
 
     protected final ContentHandle resourceToContentHandle(String resourceName) {
         return ContentHandle.create(resourceToString(resourceName));
@@ -33,7 +33,8 @@ public class ArtifactUtilProviderTestBase {
         if (resourceName.toLowerCase().endsWith("yaml") || resourceName.toLowerCase().endsWith("yml")) {
             ct = ContentTypes.APPLICATION_YAML;
         }
-        if (resourceName.toLowerCase().endsWith("xml")  || resourceName.toLowerCase().endsWith("wsdl") || resourceName.toLowerCase().endsWith("xsd") ) {
+        if (resourceName.toLowerCase().endsWith("xml") || resourceName.toLowerCase().endsWith("wsdl")
+                || resourceName.toLowerCase().endsWith("xsd")) {
             ct = ContentTypes.APPLICATION_XML;
         }
         if (resourceName.toLowerCase().endsWith("proto")) {

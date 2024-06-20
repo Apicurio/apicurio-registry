@@ -48,7 +48,6 @@ public class JsonSerdeReferencesExample {
         String topicName = TOPIC_NAME;
         String subjectName = SUBJECT_NAME;
 
-
         RegistryClient client = createRegistryClient(REGISTRY_URL);
 
         InputStream citySchema = JsonSerdeReferencesExample.class.getClassLoader()
@@ -65,9 +64,10 @@ public class JsonSerdeReferencesExample {
         createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(citySchema));
         createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-        final io.apicurio.registry.rest.client.models.VersionMetaData amdCity = client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
-            config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
-        }).getVersion();
+        final io.apicurio.registry.rest.client.models.VersionMetaData amdCity = client.groups()
+                .byGroupId("default").artifacts().post(createArtifact, config -> {
+                    config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+                }).getVersion();
 
         final ArtifactReference reference = new ArtifactReference();
         reference.setVersion(amdCity.getVersion());
@@ -86,12 +86,12 @@ public class JsonSerdeReferencesExample {
         citizenCreateArtifact.getFirstVersion().setContent(new VersionContent());
         citizenCreateArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(citizenSchema));
         citizenCreateArtifact.getFirstVersion().getContent().setContentType("application/json");
-        citizenCreateArtifact.getFirstVersion().getContent().setReferences(Collections.singletonList(reference));
+        citizenCreateArtifact.getFirstVersion().getContent()
+                .setReferences(Collections.singletonList(reference));
 
         client.groups().byGroupId("default").artifacts().post(citizenCreateArtifact, config -> {
             config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfArtifactExists.FIND_OR_CREATE_VERSION;
         });
-
 
         // Create the producer.
         Producer<Object, Object> producer = createKafkaProducer();
@@ -175,7 +175,7 @@ public class JsonSerdeReferencesExample {
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka producer
@@ -206,10 +206,10 @@ public class JsonSerdeReferencesExample {
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
         // No other configuration needed for the deserializer, because the globalId of the schema
-        // the deserializer should use is sent as part of the payload.  So the deserializer simply
+        // the deserializer should use is sent as part of the payload. So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka Consumer
@@ -232,10 +232,12 @@ public class JsonSerdeReferencesExample {
                     "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
             props.putIfAbsent("security.protocol", "SASL_SSL");
 
-            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format(
-                    "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
-                            + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
-                            + "  oauth.token.endpoint.uri=\"%s\" ;", authClient, authSecret, tokenEndpoint));
+            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG,
+                    String.format(
+                            "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
+                                    + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
+                                    + "  oauth.token.endpoint.uri=\"%s\" ;",
+                            authClient, authSecret, tokenEndpoint));
         }
     }
 
@@ -245,7 +247,7 @@ public class JsonSerdeReferencesExample {
     private static RegistryClient createRegistryClient(String registryUrl) {
         final String tokenEndpoint = System.getenv(SchemaResolverConfig.AUTH_TOKEN_ENDPOINT);
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         if (tokenEndpoint != null) {
             final String authClient = System.getenv(SchemaResolverConfig.AUTH_CLIENT_ID);
             final String authSecret = System.getenv(SchemaResolverConfig.AUTH_CLIENT_SECRET);

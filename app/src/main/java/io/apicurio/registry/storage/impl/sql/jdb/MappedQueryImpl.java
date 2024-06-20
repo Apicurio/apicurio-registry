@@ -21,6 +21,7 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
 
     /**
      * Constructor.
+     * 
      * @param statement
      * @param mapper
      * @throws SQLException
@@ -162,7 +163,8 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
      */
     @Override
     public Stream<T> stream() {
-        return StreamSupport.stream(new Spliterators.AbstractSpliterator<T>(Long.MAX_VALUE, Spliterator.IMMUTABLE | Spliterator.ORDERED | Spliterator.DISTINCT | Spliterator.NONNULL) {
+        return StreamSupport.stream(new Spliterators.AbstractSpliterator<T>(Long.MAX_VALUE,
+                Spliterator.IMMUTABLE | Spliterator.ORDERED | Spliterator.DISTINCT | Spliterator.NONNULL) {
             @Override
             public boolean tryAdvance(Consumer<? super T> action) {
                 try {

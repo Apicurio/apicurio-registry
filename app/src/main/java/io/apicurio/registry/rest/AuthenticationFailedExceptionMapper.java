@@ -1,7 +1,6 @@
 package io.apicurio.registry.rest;
 
 import io.quarkus.security.AuthenticationFailedException;
-
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 

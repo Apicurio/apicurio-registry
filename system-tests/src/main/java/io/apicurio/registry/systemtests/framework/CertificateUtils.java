@@ -29,16 +29,8 @@ public class CertificateUtils {
      * @param publicKey Path to the public key to be imported
      */
     private static void runTruststoreCmd(Path path, String password, Path publicKey) {
-        Exec.executeAndCheck(
-                "keytool",
-                "-keystore", path.toString(),
-                "-storepass", password,
-                "-noprompt",
-                "-alias", "ca",
-                "-import",
-                "-file", publicKey.toString(),
-                "-storetype", "PKCS12"
-        );
+        Exec.executeAndCheck("keytool", "-keystore", path.toString(), "-storepass", password, "-noprompt",
+                "-alias", "ca", "-import", "-file", publicKey.toString(), "-storetype", "PKCS12");
     }
 
     /**
@@ -47,25 +39,14 @@ public class CertificateUtils {
      * @param publicKey Public key to be imported
      * @param privateKey Private key to be imported
      */
-    private static void runKeystoreCmd(Path path, String password, Path publicKey, Path privateKey, String hostname) {
-        List<String> commands = List.of(
-                "openssl",
-                "pkcs12",
-                "-export",
-                "-in", publicKey.toString(),
-                "-inkey", privateKey.toString(),
-                "-name", hostname,
-                "-password", "pass:" + password,
-                "-out", path.toString()
-        );
+    private static void runKeystoreCmd(Path path, String password, Path publicKey, Path privateKey,
+            String hostname) {
+        List<String> commands = List.of("openssl", "pkcs12", "-export", "-in", publicKey.toString(), "-inkey",
+                privateKey.toString(), "-name", hostname, "-password", "pass:" + password, "-out",
+                path.toString());
 
-        Exec.executeAndCheck(
-                commands,
-                60_000,
-                true,
-                true,
-                Collections.singletonMap("RANDFILE", Environment.getTmpPath(".rnd").toString())
-        );
+        Exec.executeAndCheck(commands, 60_000, true, true,
+                Collections.singletonMap("RANDFILE", Environment.getTmpPath(".rnd").toString()));
     }
 
     private static String encode(Path path) {
@@ -81,9 +62,7 @@ public class CertificateUtils {
     }
 
     private static String decode(String data) {
-        return new String(
-                Base64.getDecoder().decode(data)
-        );
+        return new String(Base64.getDecoder().decode(data));
     }
 
     private static String decodeBase64Secret(String namespace, String name, String key) {
@@ -98,26 +77,16 @@ public class CertificateUtils {
         }
     }
 
-    private static void createSecret(
-            ExtensionContext testContext, String namespace, String name, Map<String, String> secretData
-    ) throws InterruptedException {
-        Secret secret = new SecretBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                .endMetadata()
-                .addToData(secretData)
-                .build();
+    private static void createSecret(ExtensionContext testContext, String namespace, String name,
+            Map<String, String> secretData) throws InterruptedException {
+        Secret secret = new SecretBuilder().withNewMetadata().withName(name).withNamespace(namespace)
+                .endMetadata().addToData(secretData).build();
 
-        ResourceManager.getInstance().createResource( true, secret);
+        ResourceManager.getInstance().createResource(true, secret);
     }
 
-    public static void createTruststore(
-            ExtensionContext testContext,
-            String namespace,
-            String caCertSecretName,
-            String truststoreSecretName
-    ) throws InterruptedException {
+    public static void createTruststore(ExtensionContext testContext, String namespace,
+            String caCertSecretName, String truststoreSecretName) throws InterruptedException {
         LOGGER.info("Preparing truststore...");
 
         String timestamp = String.valueOf(Instant.now().getEpochSecond());
@@ -131,21 +100,19 @@ public class CertificateUtils {
 
         runTruststoreCmd(truststorePath, truststorePassword, caPath);
 
-        Map<String, String> secretData = new HashMap<>() {{
-            put("ca.p12", encode(truststorePath));
-            put("ca.password", encode(truststorePassword));
-        }};
+        Map<String, String> secretData = new HashMap<>() {
+            {
+                put("ca.p12", encode(truststorePath));
+                put("ca.password", encode(truststorePassword));
+            }
+        };
 
         createSecret(testContext, namespace, truststoreSecretName, secretData);
     }
 
-    public static void createKeystore(
-            ExtensionContext testContext,
-            String namespace,
-            String clientCertSecretName,
-            String keystoreSecretName,
-            String hostname
-    ) throws InterruptedException {
+    public static void createKeystore(ExtensionContext testContext, String namespace,
+            String clientCertSecretName, String keystoreSecretName, String hostname)
+            throws InterruptedException {
         LOGGER.info("Preparing keystore...");
 
         String timestamp = String.valueOf(Instant.now().getEpochSecond());
@@ -162,10 +129,12 @@ public class CertificateUtils {
 
         runKeystoreCmd(keystorePath, keystorePassword, userCertPath, userKeyPath, hostname);
 
-        Map<String, String> secretData = new HashMap<>() {{
-            put("user.p12", encode(keystorePath));
-            put("user.password", encode(keystorePassword));
-        }};
+        Map<String, String> secretData = new HashMap<>() {
+            {
+                put("user.p12", encode(keystorePath));
+                put("user.password", encode(keystorePassword));
+            }
+        };
 
         createSecret(testContext, namespace, keystoreSecretName, secretData);
     }

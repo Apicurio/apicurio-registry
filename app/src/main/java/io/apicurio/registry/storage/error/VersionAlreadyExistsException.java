@@ -18,7 +18,6 @@ public class VersionAlreadyExistsException extends AlreadyExistsException {
     @Getter
     private Long globalId;
 
-
     public VersionAlreadyExistsException(String groupId, String artifactId, String version) {
         super(message(groupId, artifactId, version, null));
         this.groupId = groupId;
@@ -26,19 +25,17 @@ public class VersionAlreadyExistsException extends AlreadyExistsException {
         this.version = version;
     }
 
-
     public VersionAlreadyExistsException(long globalId) {
         super(message(null, null, null, globalId));
         this.globalId = globalId;
     }
 
-
     private static String message(String groupId, String artifactId, String version, Long globalId) {
         if (globalId != null) {
             return "An artifact with global ID '" + globalId + "' already exists.";
         } else {
-            return "An artifact version '" + version + "' for artifact ID '" + artifactId + "' " +
-                    "in group '" + groupId + "' already exists.";
+            return "An artifact version '" + version + "' for artifact ID '" + artifactId + "' "
+                    + "in group '" + groupId + "' already exists.";
         }
     }
 }

@@ -22,7 +22,6 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 
-
     @Test
     public void testValidSyntax_OpenApi31() throws Exception {
         TypedContent content = resourceToTypedContentHandle("openapi-valid-syntax-openapi31.json");
@@ -64,16 +63,10 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         // Properly map both required references - success.
         {
             List<ArtifactReference> references = new ArrayList<>();
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("ExternalWidget")
-                    .version("1.0")
-                    .name("example.com#/components/schemas/ExternalWidget").build());
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("AnotherWidget")
-                    .version("1.1")
-                    .name("example.com#/components/schemas/AnotherWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("ExternalWidget")
+                    .version("1.0").name("example.com#/components/schemas/ExternalWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("AnotherWidget")
+                    .version("1.1").name("example.com#/components/schemas/AnotherWidget").build());
             validator.validateReferences(content, references);
         }
 
@@ -86,27 +79,18 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         // Only map one of the two required refs - failure.
         Assertions.assertThrows(RuleViolationException.class, () -> {
             List<ArtifactReference> references = new ArrayList<>();
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("AnotherWidget")
-                    .version("1.1")
-                    .name("example.com#/components/schemas/AnotherWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("AnotherWidget")
+                    .version("1.1").name("example.com#/components/schemas/AnotherWidget").build());
             validator.validateReferences(content, references);
         });
 
         // Only map one of the two required refs - failure.
         Assertions.assertThrows(RuleViolationException.class, () -> {
             List<ArtifactReference> references = new ArrayList<>();
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("AnotherWidget")
-                    .version("1.1")
-                    .name("example.com#/components/schemas/AnotherWidget").build());
-            references.add(ArtifactReference.builder()
-                    .groupId("default")
-                    .artifactId("WrongWidget")
-                    .version("2.3")
-                    .name("example.com#/components/schemas/WrongWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("AnotherWidget")
+                    .version("1.1").name("example.com#/components/schemas/AnotherWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("WrongWidget")
+                    .version("2.3").name("example.com#/components/schemas/WrongWidget").build());
             validator.validateReferences(content, references);
         });
     }

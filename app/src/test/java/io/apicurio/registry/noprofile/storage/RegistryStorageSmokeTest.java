@@ -6,7 +6,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior;
+import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -88,51 +88,54 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         // Create artifact 1
         EditableArtifactMetaDataDto artifactMetaData1 = EditableArtifactMetaDataDto.builder().build();
         ContentWrapperDto versionContent1 = ContentWrapperDto.builder()
-                .content(ContentHandle.create("content1"))
-                .contentType(ContentTypes.APPLICATION_JSON)
-                .build();
+                .content(ContentHandle.create("content1")).contentType(ContentTypes.APPLICATION_JSON).build();
         EditableVersionMetaDataDto versionMetaData1 = EditableVersionMetaDataDto.builder().build();
-        ArtifactVersionMetaDataDto vmdDto1_1 = getStorage().createArtifact(GROUP_ID, artifactId1, ArtifactType.JSON,
-                artifactMetaData1, null, versionContent1, versionMetaData1, List.of()).getRight();
+        ArtifactVersionMetaDataDto vmdDto1_1 = getStorage().createArtifact(GROUP_ID, artifactId1,
+                ArtifactType.JSON, artifactMetaData1, null, versionContent1, versionMetaData1, List.of())
+                .getRight();
         // Create version 2 (for artifact 1)
-        ArtifactVersionMetaDataDto vmdDto1_2 = getStorage().createArtifactVersion(GROUP_ID, artifactId1, null, ArtifactType.JSON,
-                versionContent1, versionMetaData1, List.of());
+        ArtifactVersionMetaDataDto vmdDto1_2 = getStorage().createArtifactVersion(GROUP_ID, artifactId1, null,
+                ArtifactType.JSON, versionContent1, versionMetaData1, List.of());
 
         // Create artifact 2
         EditableArtifactMetaDataDto artifactMetaData2 = EditableArtifactMetaDataDto.builder().build();
         ContentWrapperDto versionContent2 = ContentWrapperDto.builder()
-                .content(ContentHandle.create("content2"))
-                .contentType(ContentTypes.APPLICATION_JSON)
-                .build();
+                .content(ContentHandle.create("content2")).contentType(ContentTypes.APPLICATION_JSON).build();
         EditableVersionMetaDataDto versionMetaData2 = EditableVersionMetaDataDto.builder().build();
-        getStorage().createArtifact(GROUP_ID, artifactId2, ArtifactType.AVRO,
-                artifactMetaData2, null, versionContent2, versionMetaData2, List.of()).getRight();
+        getStorage().createArtifact(GROUP_ID, artifactId2, ArtifactType.AVRO, artifactMetaData2, null,
+                versionContent2, versionMetaData2, List.of()).getRight();
 
         assertEquals(size + 2, getStorage().getArtifactIds(null).size());
         assertTrue(getStorage().getArtifactIds(null).contains(artifactId1));
 
-        StoredArtifactVersionDto a1 = getStorage().getArtifactVersionContent(GROUP_ID, artifactId1, vmdDto1_2.getVersion());
+        StoredArtifactVersionDto a1 = getStorage().getArtifactVersionContent(GROUP_ID, artifactId1,
+                vmdDto1_2.getVersion());
         assertNotNull(a1);
         assertNotNull(a1.getGlobalId());
         assertNotNull(a1.getVersion());
         assertNotNull(a1.getContent());
 
-        GAV latestGAV = getStorage().getArtifactBranchTip(new GA(GROUP_ID, artifactId1), BranchId.LATEST, ArtifactRetrievalBehavior.DEFAULT);
-        ArtifactVersionMetaDataDto metaLatest = getStorage().getArtifactVersionMetaData(GROUP_ID, artifactId1, latestGAV.getRawVersionId());
+        GAV latestGAV = getStorage().getBranchTip(new GA(GROUP_ID, artifactId1), BranchId.LATEST,
+                RetrievalBehavior.DEFAULT);
+        ArtifactVersionMetaDataDto metaLatest = getStorage().getArtifactVersionMetaData(GROUP_ID, artifactId1,
+                latestGAV.getRawVersionId());
         assertEquals(vmdDto1_2, metaLatest);
 
         List<String> versions = getStorage().getArtifactVersions(GROUP_ID, artifactId1);
         assertEquals(2, versions.size());
         assertTrue(versions.contains(a1.getVersion()));
 
-        assertEquals(a1, getStorage().getArtifactVersionContent(GROUP_ID, artifactId1, vmdDto1_2.getVersion()));
+        assertEquals(a1,
+                getStorage().getArtifactVersionContent(GROUP_ID, artifactId1, vmdDto1_2.getVersion()));
 
         // define name in an older version metadata
         getStorage().updateArtifactVersionMetaData(GROUP_ID, artifactId1, vmdDto1_1.getVersion(),
                 EditableVersionMetaDataDto.builder().name("foo").build());
 
-        ArtifactVersionMetaDataDto vmeta1 = getStorage().getArtifactVersionMetaData(GROUP_ID, artifactId1, vmdDto1_1.getVersion());
-        ArtifactVersionMetaDataDto vmeta2 = getStorage().getArtifactVersionMetaData(GROUP_ID, artifactId1, vmdDto1_2.getVersion());
+        ArtifactVersionMetaDataDto vmeta1 = getStorage().getArtifactVersionMetaData(GROUP_ID, artifactId1,
+                vmdDto1_1.getVersion());
+        ArtifactVersionMetaDataDto vmeta2 = getStorage().getArtifactVersionMetaData(GROUP_ID, artifactId1,
+                vmdDto1_2.getVersion());
         assertNotEquals(vmeta1, vmeta2);
         assertEquals("foo", vmeta1.getName());
         assertNull(vmeta2.getName());
@@ -159,9 +162,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         // Create artifact
         EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder().build();
         ContentWrapperDto versionContent1 = ContentWrapperDto.builder()
-                .content(ContentHandle.create("content1"))
-                .contentType(ContentTypes.APPLICATION_JSON)
-                .build();
+                .content(ContentHandle.create("content1")).contentType(ContentTypes.APPLICATION_JSON).build();
         EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder().build();
         getStorage().createArtifact(GROUP_ID, artifactId, ArtifactType.JSON, artifactMetaData, null,
                 versionContent1, versionMetaData, List.of()).getRight();
@@ -178,7 +179,8 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         assertEquals(1, getStorage().getArtifactRules(GROUP_ID, artifactId).size());
         assertTrue(getStorage().getArtifactRules(GROUP_ID, artifactId).contains(RuleType.VALIDITY));
 
-        assertEquals("config", getStorage().getArtifactRule(GROUP_ID, artifactId, RuleType.VALIDITY).getConfiguration());
+        assertEquals("config",
+                getStorage().getArtifactRule(GROUP_ID, artifactId, RuleType.VALIDITY).getConfiguration());
 
         assertEquals(1, getStorage().getGlobalRules().size());
         assertTrue(getStorage().getGlobalRules().contains(RuleType.VALIDITY));
@@ -193,18 +195,19 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         final String testId2 = TestUtils.generateArtifactId();
 
         try {
-            ContentWrapperDto content = ContentWrapperDto.builder()
-                    .content(ContentHandle.create("{}"))
-                    .contentType(ContentTypes.APPLICATION_JSON)
-                    .build();
+            ContentWrapperDto content = ContentWrapperDto.builder().content(ContentHandle.create("{}"))
+                    .contentType(ContentTypes.APPLICATION_JSON).build();
 
-            getStorage().createArtifact(GROUP_ID, testId0, ArtifactType.JSON, null, null, content, null, List.of());
+            getStorage().createArtifact(GROUP_ID, testId0, ArtifactType.JSON, null, null, content, null,
+                    List.of());
 
             int size = getStorage().getArtifactIds(null).size();
 
             // Create 2 artifacts
-            getStorage().createArtifact(GROUP_ID, testId1, ArtifactType.JSON, null, null, content, null, List.of());
-            getStorage().createArtifact(GROUP_ID, testId2, ArtifactType.JSON, null, null, content, null, List.of());
+            getStorage().createArtifact(GROUP_ID, testId1, ArtifactType.JSON, null, null, content, null,
+                    List.of());
+            getStorage().createArtifact(GROUP_ID, testId2, ArtifactType.JSON, null, null, content, null,
+                    List.of());
 
             int newSize = getStorage().getArtifactIds(null).size();
             int limitedSize = getStorage().getArtifactIds(1).size();

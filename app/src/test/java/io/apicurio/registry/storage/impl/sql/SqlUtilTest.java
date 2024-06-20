@@ -1,10 +1,10 @@
 package io.apicurio.registry.storage.impl.sql;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 class SqlUtilTest {
 
@@ -23,7 +23,8 @@ class SqlUtilTest {
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.storage.impl.sql.SqlUtil#deserializeLabels(java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.storage.impl.sql.SqlUtil#deserializeLabels(java.lang.String)}.
      */
     @Test
     void testDeserializeLabels() {

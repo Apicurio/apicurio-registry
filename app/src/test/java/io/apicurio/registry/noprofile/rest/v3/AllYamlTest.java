@@ -62,40 +62,41 @@ public class AllYamlTest extends AbstractResourceTestBase {
                         operationId: test
             """;
     private static String JSON_CONTENT = """
-          {
-              "openapi": "3.0.2",
-              "info": {
-                  "title": "Empty API",
-                  "version": "1.0.0",
-                  "description": "Just an empty API."
-              },
-              "paths": {
-                  "/test": {
-                      "get": {
-                          "responses": {
-                              "200": {
-                                  "content": {
-                                      "application/json": {
-                                          "schema": {
-                                              "type": "string"
-                                          }
-                                      }
-                                  },
-                                  "description": "Success."
-                              }
-                          },
-                          "operationId": "test"
-                      }
-                  }
-              }
-          }""";
+            {
+                "openapi": "3.0.2",
+                "info": {
+                    "title": "Empty API",
+                    "version": "1.0.0",
+                    "description": "Just an empty API."
+                },
+                "paths": {
+                    "/test": {
+                        "get": {
+                            "responses": {
+                                "200": {
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "description": "Success."
+                                }
+                            },
+                            "operationId": "test"
+                        }
+                    }
+                }
+            }""";
 
     @Test
     public void testCreateYamlArtifact() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, YAML_CONTENT, ContentTypes.APPLICATION_YAML);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                YAML_CONTENT, ContentTypes.APPLICATION_YAML);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
     }
 
@@ -104,7 +105,8 @@ public class AllYamlTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, null, YAML_CONTENT, ContentTypes.APPLICATION_YAML);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, null, YAML_CONTENT,
+                ContentTypes.APPLICATION_YAML);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
     }
 
@@ -119,7 +121,8 @@ public class AllYamlTest extends AbstractResourceTestBase {
         clientV3.admin().rules().post(createRule);
 
         try {
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, YAML_CONTENT, ContentTypes.APPLICATION_YAML);
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                    YAML_CONTENT, ContentTypes.APPLICATION_YAML);
             clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         } catch (Error e) {
             System.out.println("ERROR: " + e.getDetail());
@@ -133,11 +136,14 @@ public class AllYamlTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, YAML_CONTENT, ContentTypes.APPLICATION_YAML);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                YAML_CONTENT, ContentTypes.APPLICATION_YAML);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-        CreateVersion createVersion = TestUtils.clientCreateVersion(YAML_CONTENT_V2, ContentTypes.APPLICATION_YAML);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
+        CreateVersion createVersion = TestUtils.clientCreateVersion(YAML_CONTENT_V2,
+                ContentTypes.APPLICATION_YAML);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
     }
 
     @Test
@@ -145,7 +151,8 @@ public class AllYamlTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, YAML_CONTENT, ContentTypes.APPLICATION_YAML);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                YAML_CONTENT, ContentTypes.APPLICATION_YAML);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // Enable the compatibility rule for the artifact
@@ -155,8 +162,10 @@ public class AllYamlTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
         // Now create a new version
-        CreateVersion createVersion = TestUtils.clientCreateVersion(YAML_CONTENT_V2, ContentTypes.APPLICATION_YAML);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
+        CreateVersion createVersion = TestUtils.clientCreateVersion(YAML_CONTENT_V2,
+                ContentTypes.APPLICATION_YAML);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
     }
 
     @Test
@@ -164,7 +173,8 @@ public class AllYamlTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, YAML_CONTENT, ContentTypes.APPLICATION_YAML);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                YAML_CONTENT, ContentTypes.APPLICATION_YAML);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // Enable the compatibility rule for the artifact
@@ -174,9 +184,11 @@ public class AllYamlTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
         // Now create a new version with a missing $ref
-        CreateVersion createVersion = TestUtils.clientCreateVersion(YAML_CONTENT_WITH_REF, ContentTypes.APPLICATION_YAML);
+        CreateVersion createVersion = TestUtils.clientCreateVersion(YAML_CONTENT_WITH_REF,
+                ContentTypes.APPLICATION_YAML);
         Assertions.assertThrows(Exception.class, () -> {
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .post(createVersion);
         });
     }
 
@@ -189,41 +201,58 @@ public class AllYamlTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, yamlContent, ContentTypes.APPLICATION_YAML);
-        CreateArtifactResponse response = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                yamlContent, ContentTypes.APPLICATION_YAML);
+        CreateArtifactResponse response = clientV3.groups().byGroupId(groupId).artifacts()
+                .post(createArtifact);
 
         // Search for the version by its content as YAML
-        VersionSearchResults results = clientV3.search().versions().post(IoUtil.toStream(yamlContent), ContentTypes.APPLICATION_YAML);
+        VersionSearchResults results = clientV3.search().versions().post(IoUtil.toStream(yamlContent),
+                ContentTypes.APPLICATION_YAML);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
-        Assertions.assertEquals(response.getVersion().getArtifactId(), results.getVersions().get(0).getArtifactId());
-        Assertions.assertEquals(response.getVersion().getGroupId(), results.getVersions().get(0).getGroupId());
-        Assertions.assertEquals(response.getVersion().getVersion(), results.getVersions().get(0).getVersion());
-        Assertions.assertEquals(response.getVersion().getGlobalId(), results.getVersions().get(0).getGlobalId());
+        Assertions.assertEquals(response.getVersion().getArtifactId(),
+                results.getVersions().get(0).getArtifactId());
+        Assertions.assertEquals(response.getVersion().getGroupId(),
+                results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(response.getVersion().getVersion(),
+                results.getVersions().get(0).getVersion());
+        Assertions.assertEquals(response.getVersion().getGlobalId(),
+                results.getVersions().get(0).getGlobalId());
 
         // Search for the version by its canonical content as YAML
-        results = clientV3.search().versions().post(IoUtil.toStream(yamlContent), ContentTypes.APPLICATION_YAML, config -> {
-            config.queryParameters.canonical = true;
-            config.queryParameters.artifactType = ArtifactType.OPENAPI;
-        });
+        results = clientV3.search().versions().post(IoUtil.toStream(yamlContent),
+                ContentTypes.APPLICATION_YAML, config -> {
+                    config.queryParameters.canonical = true;
+                    config.queryParameters.artifactType = ArtifactType.OPENAPI;
+                });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
-        Assertions.assertEquals(response.getVersion().getArtifactId(), results.getVersions().get(0).getArtifactId());
-        Assertions.assertEquals(response.getVersion().getGroupId(), results.getVersions().get(0).getGroupId());
-        Assertions.assertEquals(response.getVersion().getVersion(), results.getVersions().get(0).getVersion());
-        Assertions.assertEquals(response.getVersion().getGlobalId(), results.getVersions().get(0).getGlobalId());
+        Assertions.assertEquals(response.getVersion().getArtifactId(),
+                results.getVersions().get(0).getArtifactId());
+        Assertions.assertEquals(response.getVersion().getGroupId(),
+                results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(response.getVersion().getVersion(),
+                results.getVersions().get(0).getVersion());
+        Assertions.assertEquals(response.getVersion().getGlobalId(),
+                results.getVersions().get(0).getGlobalId());
 
         // Search for the version again by its canonical content as JSON
-        results = clientV3.search().versions().post(IoUtil.toStream(jsonContent), ContentTypes.APPLICATION_JSON, config -> {
-            config.queryParameters.canonical = true;
-            config.queryParameters.artifactType = ArtifactType.OPENAPI;
-        });
+        results = clientV3.search().versions().post(IoUtil.toStream(jsonContent),
+                ContentTypes.APPLICATION_JSON, config -> {
+                    config.queryParameters.canonical = true;
+                    config.queryParameters.artifactType = ArtifactType.OPENAPI;
+                });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
-        Assertions.assertEquals(response.getVersion().getArtifactId(), results.getVersions().get(0).getArtifactId());
-        Assertions.assertEquals(response.getVersion().getGroupId(), results.getVersions().get(0).getGroupId());
-        Assertions.assertEquals(response.getVersion().getVersion(), results.getVersions().get(0).getVersion());
-        Assertions.assertEquals(response.getVersion().getGlobalId(), results.getVersions().get(0).getGlobalId());
+        Assertions.assertEquals(response.getVersion().getArtifactId(),
+                results.getVersions().get(0).getArtifactId());
+        Assertions.assertEquals(response.getVersion().getGroupId(),
+                results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(response.getVersion().getVersion(),
+                results.getVersions().get(0).getVersion());
+        Assertions.assertEquals(response.getVersion().getGlobalId(),
+                results.getVersions().get(0).getGlobalId());
     }
 
 }

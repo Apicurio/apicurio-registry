@@ -1,8 +1,7 @@
 package io.apicurio.registry.services.http;
 
-import jakarta.ws.rs.core.Response;
-
 import io.apicurio.registry.rest.v3.beans.Error;
+import jakarta.ws.rs.core.Response;
 
 public class ErrorHttpResponse {
 

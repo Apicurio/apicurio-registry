@@ -1,11 +1,12 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
-import java.util.HashMap;
-import java.util.Map;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.DescriptorProtos.DescriptorProto;
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
 import metadata.ProtobufSchemaMetadata;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class ProtobufMessage {
 
@@ -53,44 +54,19 @@ public class ProtobufMessage {
         return descriptorProtoBuilder.build();
     }
 
-    public void addField(
-            String label,
-            String type,
-            String typeName,
-            String name,
-            int num,
-            String defaultVal,
-            String jsonName,
-            Boolean isDeprecated,
-            Boolean isPacked,
-            DescriptorProtos.FieldOptions.CType ctype,
-            DescriptorProtos.FieldOptions.JSType jsType,
-            String metadataKey,
-            String metadataValue,
-            Integer oneOfIndex,
-            Boolean isProto3Optional
-        ) {
-        descriptorProtoBuilder.addField(
-                buildFieldDescriptorProto(label, type, typeName, name, num, defaultVal, jsonName, isDeprecated,
-                        isPacked, ctype, jsType, metadataKey, metadataValue, oneOfIndex, isProto3Optional)
-        );
+    public void addField(String label, String type, String typeName, String name, int num, String defaultVal,
+            String jsonName, Boolean isDeprecated, Boolean isPacked,
+            DescriptorProtos.FieldOptions.CType ctype, DescriptorProtos.FieldOptions.JSType jsType,
+            String metadataKey, String metadataValue, Integer oneOfIndex, Boolean isProto3Optional) {
+        descriptorProtoBuilder.addField(buildFieldDescriptorProto(label, type, typeName, name, num,
+                defaultVal, jsonName, isDeprecated, isPacked, ctype, jsType, metadataKey, metadataValue,
+                oneOfIndex, isProto3Optional));
     }
 
-    public static FieldDescriptorProto buildFieldDescriptorProto(String label,
-                                                                 String type,
-                                                                 String typeName,
-                                                                 String name,
-                                                                 int num,
-                                                                 String defaultVal,
-                                                                 String jsonName,
-                                                                 Boolean isDeprecated,
-                                                                 Boolean isPacked,
-                                                                 DescriptorProtos.FieldOptions.CType ctype,
-                                                                 DescriptorProtos.FieldOptions.JSType jsType,
-                                                                 String metadataKey,
-                                                                 String metadataValue,
-                                                                 Integer oneOfIndex,
-                                                                 Boolean isProto3Optional) {
+    public static FieldDescriptorProto buildFieldDescriptorProto(String label, String type, String typeName,
+            String name, int num, String defaultVal, String jsonName, Boolean isDeprecated, Boolean isPacked,
+            DescriptorProtos.FieldOptions.CType ctype, DescriptorProtos.FieldOptions.JSType jsType,
+            String metadataKey, String metadataValue, Integer oneOfIndex, Boolean isProto3Optional) {
         FieldDescriptorProto.Builder fieldBuilder = FieldDescriptorProto.newBuilder();
         FieldDescriptorProto.Label protoLabel = fieldDescriptorLabels.get(label);
         if (label != null) {
@@ -105,11 +81,11 @@ public class ProtobufMessage {
                 fieldDescriptorType = fieldDescriptorTypes.get(type);
                 fieldBuilder.setType(fieldDescriptorType);
             }
-            if (fieldDescriptorType != null &&
-                    (fieldDescriptorType.equals(FieldDescriptorProto.Type.TYPE_MESSAGE) || fieldDescriptorType.equals(
-                            FieldDescriptorProto.Type.TYPE_ENUM)))  {
-                //References to other nested messages / enums / google.protobuf types start with "."
-                //See https://developers.google.com/protocol-buffers/docs/proto#packages_and_name_resolution
+            if (fieldDescriptorType != null
+                    && (fieldDescriptorType.equals(FieldDescriptorProto.Type.TYPE_MESSAGE)
+                            || fieldDescriptorType.equals(FieldDescriptorProto.Type.TYPE_ENUM))) {
+                // References to other nested messages / enums / google.protobuf types start with "."
+                // See https://developers.google.com/protocol-buffers/docs/proto#packages_and_name_resolution
                 fieldBuilder.setTypeName(typeName.startsWith(".") ? typeName : "." + typeName);
             } else {
                 fieldBuilder.setTypeName(typeName);

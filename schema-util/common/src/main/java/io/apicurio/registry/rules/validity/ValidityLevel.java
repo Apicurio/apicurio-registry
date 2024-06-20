@@ -7,5 +7,5 @@ public enum ValidityLevel {
 
     // TODO definitions
     NONE, SYNTAX_ONLY, FULL;
-    
+
 }

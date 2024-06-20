@@ -40,8 +40,7 @@ public class NonRecordContainer<T> implements GenericContainer {
             return false;
         }
         NonRecordContainer<?> that = (NonRecordContainer<?>) o;
-        return Objects.equals(schema, that.schema)
-               && Objects.equals(value, that.value);
+        return Objects.equals(schema, that.schema) && Objects.equals(value, that.value);
     }
 
     @Override

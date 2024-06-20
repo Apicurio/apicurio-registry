@@ -23,12 +23,14 @@ public class RegistryDemoUtil {
      * @param artifactId
      * @param schema
      */
-    public static void createSchemaInServiceRegistry(RegistryClient service, String artifactId, String schema) {
+    public static void createSchemaInServiceRegistry(RegistryClient service, String artifactId,
+            String schema) {
 
         LOGGER.info("---------------------------------------------------------");
         LOGGER.info("=====> Creating artifact in the registry for JSON Schema with ID: {}", artifactId);
         try {
-            final ByteArrayInputStream content = new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8));
+            final ByteArrayInputStream content = new ByteArrayInputStream(
+                    schema.getBytes(StandardCharsets.UTF_8));
 
             CreateArtifact createArtifact = new CreateArtifact();
             createArtifact.setArtifactId(artifactId);
@@ -38,9 +40,10 @@ public class RegistryDemoUtil {
             createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(content));
             createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = service.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
-                config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
-            }).getVersion();
+            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = service.groups()
+                    .byGroupId("default").artifacts().post(createArtifact, config -> {
+                        config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+                    }).getVersion();
 
             assert metaData != null;
             LOGGER.info("=====> Successfully created JSON Schema artifact in Service Registry: {}", metaData);
@@ -60,7 +63,8 @@ public class RegistryDemoUtil {
         LOGGER.info("---------------------------------------------------------");
         LOGGER.info("=====> Fetching artifact from the registry for JSON Schema with ID: {}", artifactId);
         try {
-            final ArtifactMetaData metaData = service.groups().byGroupId("default").artifacts().byArtifactId(artifactId).get();
+            final ArtifactMetaData metaData = service.groups().byGroupId("default").artifacts()
+                    .byArtifactId(artifactId).get();
             assert metaData != null;
             LOGGER.info("=====> Successfully fetched JSON Schema artifact in Service Registry: {}", metaData);
             LOGGER.info("---------------------------------------------------------");

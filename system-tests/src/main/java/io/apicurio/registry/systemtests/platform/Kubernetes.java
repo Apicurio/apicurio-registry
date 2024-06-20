@@ -42,9 +42,7 @@ public final class Kubernetes {
     private static KubernetesClient client;
 
     private Kubernetes() {
-        Config config = Config.autoConfigure(
-                System.getenv().getOrDefault("TEST_CLUSTER_CONTEXT", null)
-        );
+        Config config = Config.autoConfigure(System.getenv().getOrDefault("TEST_CLUSTER_CONTEXT", null));
 
         client = new DefaultOpenShiftClient(new OpenShiftConfig(config));
     }
@@ -96,89 +94,50 @@ public final class Kubernetes {
     }
 
     public static void createOrReplaceResources(String namespace, Collection<HasMetadata> resourcesList) {
-        getClient()
-                .resourceList(resourcesList)
-                .inNamespace(namespace)
-                .createOrReplace();
+        getClient().resourceList(resourcesList).inNamespace(namespace).createOrReplace();
     }
 
     public static void deleteResources(String namespace, Collection<HasMetadata> resourcesList) {
-        getClient()
-                .resourceList(resourcesList)
-                .inNamespace(namespace)
-                .delete();
+        getClient().resourceList(resourcesList).inNamespace(namespace).delete();
     }
 
     public static Secret getSecret(String namespace, String name) {
-        return getClient()
-                .secrets()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return getClient().secrets().inNamespace(namespace).withName(name).get();
     }
 
     public static void createSecret(String namespace, Secret secret) {
-        getClient()
-                .secrets()
-                .inNamespace(namespace)
-                .create(secret);
+        getClient().secrets().inNamespace(namespace).create(secret);
     }
 
     public static void createOrReplaceSecret(String namespace, Secret secret) {
-        getClient()
-                .secrets()
-                .inNamespace(namespace)
-                .createOrReplace(secret);
+        getClient().secrets().inNamespace(namespace).createOrReplace(secret);
     }
 
     public static void deleteSecret(String namespace, String name) {
-        getClient()
-                .secrets()
-                .inNamespace(namespace)
-                .withName(name)
-                .delete();
+        getClient().secrets().inNamespace(namespace).withName(name).delete();
     }
 
     public static StatefulSet getStatefulSet(String namespace, String name) {
-        return getClient()
-                .apps()
-                .statefulSets()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return getClient().apps().statefulSets().inNamespace(namespace).withName(name).get();
     }
 
     public static void createCatalogSource(String namespace, CatalogSource catalogSource) {
-        ((OpenShiftClient) getClient())
-                .operatorHub()
-                .catalogSources()
-                .inNamespace(namespace)
+        ((OpenShiftClient) getClient()).operatorHub().catalogSources().inNamespace(namespace)
                 .create(catalogSource);
     }
 
     public static void createOrReplaceCatalogSource(String namespace, CatalogSource catalogSource) {
-        ((OpenShiftClient) getClient())
-                .operatorHub()
-                .catalogSources()
-                .inNamespace(namespace)
+        ((OpenShiftClient) getClient()).operatorHub().catalogSources().inNamespace(namespace)
                 .createOrReplace(catalogSource);
     }
 
     public static CatalogSource getCatalogSource(String namespace, String name) {
-        return ((OpenShiftClient) getClient())
-                .operatorHub()
-                .catalogSources()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return ((OpenShiftClient) getClient()).operatorHub().catalogSources().inNamespace(namespace)
+                .withName(name).get();
     }
 
     public static void deleteCatalogSource(String namespace, String name) {
-        ((OpenShiftClient) getClient())
-                .operatorHub()
-                .catalogSources()
-                .inNamespace(namespace)
-                .withName(name)
+        ((OpenShiftClient) getClient()).operatorHub().catalogSources().inNamespace(namespace).withName(name)
                 .delete();
     }
 
@@ -193,22 +152,15 @@ public final class Kubernetes {
     }
 
     public static void createNamespace(Namespace namespace) {
-        Kubernetes.getClient()
-                .namespaces()
-                .create(namespace);
+        Kubernetes.getClient().namespaces().create(namespace);
     }
 
     public static void createOrReplaceNamespace(Namespace namespace) {
-        Kubernetes.getClient()
-                .namespaces()
-                .createOrReplace(namespace);
+        Kubernetes.getClient().namespaces().createOrReplace(namespace);
     }
 
     public static Namespace getNamespace(String name) {
-        return getClient()
-                .namespaces()
-                .withName(name)
-                .get();
+        return getClient().namespaces().withName(name).get();
     }
 
     public static Namespace getNamespace(Namespace namespace) {
@@ -216,50 +168,30 @@ public final class Kubernetes {
     }
 
     public static void deleteNamespace(String name) {
-        getClient()
-                .namespaces()
-                .withName(name)
-                .delete();
+        getClient().namespaces().withName(name).delete();
     }
 
     public static Route getRoute(String namespace, String name) {
-        return ((OpenShiftClient) getClient())
-                .routes()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return ((OpenShiftClient) getClient()).routes().inNamespace(namespace).withName(name).get();
     }
 
     public static Route getRoute(ApicurioRegistry apicurioRegistry) {
-        return ((OpenShiftClient) getClient())
-                .routes()
+        return ((OpenShiftClient) getClient()).routes()
                 .inNamespace(apicurioRegistry.getMetadata().getNamespace())
-                .withLabels(Collections.singletonMap("app", apicurioRegistry.getMetadata().getName()))
-                .list()
-                .getItems()
-                .get(0);
+                .withLabels(Collections.singletonMap("app", apicurioRegistry.getMetadata().getName())).list()
+                .getItems().get(0);
     }
 
     public static void createRoute(String namespace, Route route) {
-        ((OpenShiftClient) getClient())
-                .routes()
-                .inNamespace(namespace)
-                .create(route);
+        ((OpenShiftClient) getClient()).routes().inNamespace(namespace).create(route);
     }
 
     public static void createOrReplaceRoute(String namespace, Route route) {
-        ((OpenShiftClient) getClient())
-                .routes()
-                .inNamespace(namespace)
-                .createOrReplace(route);
+        ((OpenShiftClient) getClient()).routes().inNamespace(namespace).createOrReplace(route);
     }
 
     public static void deleteRoute(String namespace, String name) {
-        ((OpenShiftClient) getClient())
-                .routes()
-                .inNamespace(namespace)
-                .withName(name)
-                .delete();
+        ((OpenShiftClient) getClient()).routes().inNamespace(namespace).withName(name).delete();
     }
 
     public static boolean isRouteReady(String namespace, String name) {
@@ -269,130 +201,76 @@ public final class Kubernetes {
             return false;
         }
 
-        return route
-                .getStatus()
-                .getIngress()
-                .size() > 0;
+        return route.getStatus().getIngress().size() > 0;
     }
 
     public static PodList getPods(String namespace, String labelKey, String labelValue) {
-        return getClient()
-                .pods()
-                .inNamespace(namespace)
-                .withLabel(labelKey, labelValue)
-                .list();
+        return getClient().pods().inNamespace(namespace).withLabel(labelKey, labelValue).list();
     }
 
     public static void deletePods(String namespace, String labelKey, String labelValue) {
-        getClient()
-                .pods()
-                .inNamespace(namespace)
-                .withLabel(labelKey, labelValue)
-                .delete();
+        getClient().pods().inNamespace(namespace).withLabel(labelKey, labelValue).delete();
     }
 
     public static OperatorGroup getOperatorGroup(String namespace, String name) {
-        return ((OpenShiftClient) getClient())
-                .operatorHub()
-                .operatorGroups()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return ((OpenShiftClient) getClient()).operatorHub().operatorGroups().inNamespace(namespace)
+                .withName(name).get();
     }
 
     public static void createOperatorGroup(String namespace, OperatorGroup operatorGroup) {
-        ((OpenShiftClient) getClient())
-                .operatorHub()
-                .operatorGroups()
-                .inNamespace(namespace)
+        ((OpenShiftClient) getClient()).operatorHub().operatorGroups().inNamespace(namespace)
                 .create(operatorGroup);
     }
 
     public static void createOrReplaceOperatorGroup(String namespace, OperatorGroup operatorGroup) {
-        ((OpenShiftClient) getClient())
-                .operatorHub()
-                .operatorGroups()
-                .inNamespace(namespace)
+        ((OpenShiftClient) getClient()).operatorHub().operatorGroups().inNamespace(namespace)
                 .createOrReplace(operatorGroup);
     }
 
     public static void deleteOperatorGroup(String namespace, String name) {
-        ((OpenShiftClient) getClient())
-                .operatorHub()
-                .operatorGroups()
-                .inNamespace(namespace)
-                .withName(name)
+        ((OpenShiftClient) getClient()).operatorHub().operatorGroups().inNamespace(namespace).withName(name)
                 .delete();
     }
 
     public static void createSubscription(String namespace, Subscription subscription) {
-        ((OpenShiftClient) getClient())
-                .operatorHub()
-                .subscriptions()
-                .inNamespace(namespace)
+        ((OpenShiftClient) getClient()).operatorHub().subscriptions().inNamespace(namespace)
                 .create(subscription);
     }
 
     public static void createOrReplaceSubscription(String namespace, Subscription subscription) {
-        ((OpenShiftClient) getClient())
-                .operatorHub()
-                .subscriptions()
-                .inNamespace(namespace)
+        ((OpenShiftClient) getClient()).operatorHub().subscriptions().inNamespace(namespace)
                 .createOrReplace(subscription);
     }
 
     public static Subscription getSubscription(String namespace, String name) {
-        return ((OpenShiftClient) getClient())
-                .operatorHub()
-                .subscriptions()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return ((OpenShiftClient) getClient()).operatorHub().subscriptions().inNamespace(namespace)
+                .withName(name).get();
     }
 
     public static void deleteSubscription(String namespace, String name) {
-        ((OpenShiftClient) getClient())
-                .operatorHub()
-                .subscriptions()
-                .inNamespace(namespace)
-                .withName(name)
+        ((OpenShiftClient) getClient()).operatorHub().subscriptions().inNamespace(namespace).withName(name)
                 .delete();
     }
 
     public static ClusterServiceVersion getClusterServiceVersion(String namespace, String name) {
-        return ((OpenShiftClient) getClient())
-                .operatorHub()
-                .clusterServiceVersions()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return ((OpenShiftClient) getClient()).operatorHub().clusterServiceVersions().inNamespace(namespace)
+                .withName(name).get();
     }
 
     public static boolean isClusterServiceVersionReady(String namespace, String name) {
-        ClusterServiceVersion csvToBeReady = ((OpenShiftClient) getClient())
-                .operatorHub()
-                .clusterServiceVersions()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        ClusterServiceVersion csvToBeReady = ((OpenShiftClient) getClient()).operatorHub()
+                .clusterServiceVersions().inNamespace(namespace).withName(name).get();
 
         if (csvToBeReady == null || csvToBeReady.getStatus() == null) {
             return false;
         }
 
-        return csvToBeReady
-                .getStatus()
-                .getPhase()
-                .equals("Succeeded");
+        return csvToBeReady.getStatus().getPhase().equals("Succeeded");
     }
 
     public static void deleteClusterServiceVersion(String namespace, String name) {
-        ((OpenShiftClient) getClient())
-                .operatorHub()
-                .clusterServiceVersions()
-                .inNamespace(namespace)
-                .withName(name)
-                .delete();
+        ((OpenShiftClient) getClient()).operatorHub().clusterServiceVersions().inNamespace(namespace)
+                .withName(name).delete();
     }
 
     public static String getRouteHost(String namespace, String name) {
@@ -402,40 +280,23 @@ public final class Kubernetes {
             return null;
         }
 
-        return route
-                .getStatus()
-                .getIngress()
-                .get(0)
-                .getHost();
+        return route.getStatus().getIngress().get(0).getHost();
     }
 
     public static String getSecretValue(String namespace, String name, String secretKey) {
-        return getSecret(namespace, name)
-                .getData()
-                .get(secretKey);
+        return getSecret(namespace, name).getData().get(secretKey);
     }
 
     public static PackageManifest getPackageManifest(String catalog, String name) {
-        return ((OpenShiftClient) Kubernetes.getClient())
-                .operatorHub()
-                .packageManifests()
-                .list()
-                .getItems()
-                .stream()
-                .filter(p -> p.getMetadata().getName().equals(name))
-                .filter(p -> p.getMetadata().getLabels().get("catalog").equals(catalog))
-                .findFirst()
+        return ((OpenShiftClient) Kubernetes.getClient()).operatorHub().packageManifests().list().getItems()
+                .stream().filter(p -> p.getMetadata().getName().equals(name))
+                .filter(p -> p.getMetadata().getLabels().get("catalog").equals(catalog)).findFirst()
                 .orElse(null);
     }
 
     public static Deployment getDeployment(String namespace, String name) {
         try {
-            return getClient()
-                    .apps()
-                    .deployments()
-                    .inNamespace(namespace)
-                    .withName(name)
-                    .get();
+            return getClient().apps().deployments().inNamespace(namespace).withName(name).get();
         } catch (Exception e) {
             return null;
         }
@@ -443,111 +304,57 @@ public final class Kubernetes {
     }
 
     public static Deployment getDeploymentByPrefix(String namespace, String prefix) {
-        return getClient()
-                .apps()
-                .deployments()
-                .inNamespace(namespace)
-                .list()
-                .getItems()
-                .stream()
-                .filter(d -> d.getMetadata().getName().startsWith(prefix))
-                .findFirst()
-                .orElse(null);
+        return getClient().apps().deployments().inNamespace(namespace).list().getItems().stream()
+                .filter(d -> d.getMetadata().getName().startsWith(prefix)).findFirst().orElse(null);
     }
 
     public static void createDeployment(String namespace, Deployment deployment) {
-        getClient()
-                .apps()
-                .deployments()
-                .inNamespace(namespace)
-                .create(deployment);
+        getClient().apps().deployments().inNamespace(namespace).create(deployment);
     }
 
     public static void createOrReplaceDeployment(String namespace, Deployment deployment) {
-        getClient()
-                .apps()
-                .deployments()
-                .inNamespace(namespace)
-                .createOrReplace(deployment);
+        getClient().apps().deployments().inNamespace(namespace).createOrReplace(deployment);
     }
 
     public static void deleteDeployment(String namespace, String name) {
-        getClient()
-                .apps()
-                .deployments()
-                .inNamespace(namespace)
-                .withName(name)
-                .delete();
+        getClient().apps().deployments().inNamespace(namespace).withName(name).delete();
     }
 
     public static Service getService(String namespace, String name) {
-        return getClient()
-                .services()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return getClient().services().inNamespace(namespace).withName(name).get();
     }
 
     public static void createService(String namespace, Service service) {
-        getClient()
-                .services()
-                .inNamespace(namespace)
-                .create(service);
+        getClient().services().inNamespace(namespace).create(service);
     }
 
     public static void createOrReplaceService(String namespace, Service service) {
-        getClient()
-                .services()
-                .inNamespace(namespace)
-                .createOrReplace(service);
+        getClient().services().inNamespace(namespace).createOrReplace(service);
     }
 
     public static void deleteService(String namespace, String name) {
-        getClient()
-                .services()
-                .inNamespace(namespace)
-                .withName(name)
-                .delete();
+        getClient().services().inNamespace(namespace).withName(name).delete();
     }
 
     public static boolean isServiceReady(String namespace, Map<String, String> selector) {
-        return getClient()
-                .pods()
-                .inNamespace(namespace)
-                .withLabels(selector)
-                .list()
-                .getItems()
-                .size() > 0;
+        return getClient().pods().inNamespace(namespace).withLabels(selector).list().getItems().size() > 0;
     }
 
     public static PersistentVolumeClaim getPersistentVolumeClaim(String namespace, String name) {
-        return getClient()
-                .persistentVolumeClaims()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return getClient().persistentVolumeClaims().inNamespace(namespace).withName(name).get();
     }
 
     public static void createPersistentVolumeClaim(String namespace, PersistentVolumeClaim volumeClaim) {
-        getClient()
-                .persistentVolumeClaims()
-                .inNamespace(namespace)
-                .create(volumeClaim);
+        getClient().persistentVolumeClaims().inNamespace(namespace).create(volumeClaim);
     }
 
-    public static void createOrReplacePersistentVolumeClaim(String namespace, PersistentVolumeClaim volumeClaim) {
-        getClient()
-                .persistentVolumeClaims()
-                .inNamespace(namespace)
-                .createOrReplace(volumeClaim);
+    public static void createOrReplacePersistentVolumeClaim(String namespace,
+            PersistentVolumeClaim volumeClaim) {
+        getClient().persistentVolumeClaims().inNamespace(namespace).createOrReplace(volumeClaim);
     }
 
     public static void deletePersistentVolumeClaim(String namespace, String name) {
-        getClient()
-                .persistentVolumeClaims()
-                .inNamespace(namespace)
-                .withName(name)
-                .delete();
+        getClient().persistentVolumeClaims().inNamespace(namespace).withName(name).delete();
     }
 
     public static boolean isStatefulSetReady(String namespace, String name) {
@@ -566,19 +373,14 @@ public final class Kubernetes {
         return status.getReadyReplicas() > 0;
     }
 
-    public static <T extends HasMetadata> MixedOperation<T, KubernetesResourceList<T>, Resource<T>>
-    getResources(Class<T> tClass) {
+    public static <T extends HasMetadata> MixedOperation<T, KubernetesResourceList<T>, Resource<T>> getResources(
+            Class<T> tClass) {
         return Kubernetes.getClient().resources(tClass);
     }
 
     public static boolean namespaceHasAnyOperatorGroup(String name) {
-        int namespaceOperatorGroupsCount = ((OpenShiftClient) getClient())
-                .operatorHub()
-                .operatorGroups()
-                .inNamespace(name)
-                .list()
-                .getItems()
-                .size();
+        int namespaceOperatorGroupsCount = ((OpenShiftClient) getClient()).operatorHub().operatorGroups()
+                .inNamespace(name).list().getItems().size();
         return namespaceOperatorGroupsCount > 0;
     }
 }

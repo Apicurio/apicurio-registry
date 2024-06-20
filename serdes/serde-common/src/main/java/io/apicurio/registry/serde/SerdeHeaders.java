@@ -1,10 +1,8 @@
 package io.apicurio.registry.serde;
 
 /**
- * Contains all of the header names used when serde classes are configured to pass information
- * via headers instead of via the message payload.  Note that these header names can be overridden
- * via configuration.
- *
+ * Contains all of the header names used when serde classes are configured to pass information via headers
+ * instead of via the message payload. Note that these header names can be overridden via configuration.
  */
 public class SerdeHeaders {
 
@@ -26,4 +24,3 @@ public class SerdeHeaders {
     public static final String HEADER_VALUE_MESSAGE_TYPE = "apicurio.value.msgType";
 
 }
-

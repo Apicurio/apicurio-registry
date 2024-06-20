@@ -80,7 +80,8 @@ public class RegistryLoader {
                 createArtifact.setFirstVersion(createVersion);
                 VersionContent versionContent = new VersionContent();
                 createVersion.setContent(versionContent);
-                versionContent.setContent(simpleAvro.replace("userInfo", "userInfo" + threadId + numArtifacts));
+                versionContent
+                        .setContent(simpleAvro.replace("userInfo", "userInfo" + threadId + numArtifacts));
                 versionContent.setContentType("application/json");
 
                 client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
@@ -89,7 +90,8 @@ public class RegistryLoader {
                 CreateRule createRule = new CreateRule();
                 createRule.setRuleType(RuleType.VALIDITY);
                 createRule.setConfig("SYNTAX_ONLY");
-                client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(createRule);
+                client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules()
+                        .post(createRule);
             }
         }
     }

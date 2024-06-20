@@ -31,20 +31,21 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
 
     @BeforeAll
     public void init() {
-        //Create a bunch of artifacts and rules, so they're added on top of the snapshot.
+        // Create a bunch of artifacts and rules, so they're added on top of the snapshot.
         String simpleAvro = resourceToString("avro.json");
 
         for (int idx = 0; idx < 1000; idx++) {
             System.out.println("Iteration: " + idx);
             String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, simpleAvro,
-                    ContentTypes.APPLICATION_JSON);
-            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts()
-                    .post(createArtifact, config -> config.headers.add("X-Registry-ArtifactId", artifactId));
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                    simpleAvro, ContentTypes.APPLICATION_JSON);
+            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().post(createArtifact,
+                    config -> config.headers.add("X-Registry-ArtifactId", artifactId));
             CreateRule createRule = new CreateRule();
             createRule.setRuleType(RuleType.VALIDITY);
             createRule.setConfig("SYNTAX_ONLY");
-            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(createRule);
+            clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts()
+                    .byArtifactId(artifactId).rules().post(createRule);
         }
     }
 

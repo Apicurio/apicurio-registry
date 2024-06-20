@@ -43,8 +43,10 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
             validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
         Assertions.assertFalse(error.getCauses().isEmpty());
-        Assertions.assertEquals("expected type: Number, found: Boolean", error.getCauses().iterator().next().getDescription());
-        Assertions.assertEquals("#/items/properties/price/exclusiveMinimum", error.getCauses().iterator().next().getContext());
+        Assertions.assertEquals("expected type: Number, found: Boolean",
+                error.getCauses().iterator().next().getDescription());
+        Assertions.assertEquals("#/items/properties/price/exclusiveMinimum",
+                error.getCauses().iterator().next().getContext());
     }
 
     @Test
@@ -52,6 +54,7 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
         TypedContent city = resourceToTypedContentHandle("city.json");
         TypedContent citizen = resourceToTypedContentHandle("citizen.json");
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
-        validator.validate(ValidityLevel.FULL, citizen, Collections.singletonMap("https://example.com/city.json", city));
+        validator.validate(ValidityLevel.FULL, citizen,
+                Collections.singletonMap("https://example.com/city.json", city));
     }
 }

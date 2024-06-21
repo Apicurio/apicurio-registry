@@ -217,13 +217,13 @@
     <version.javadoc.plugin>3.7.0</version.javadoc.plugin>
     <version.source.plugin>3.3.1</version.source.plugin>
     <version.surefire.plugin>3.3.0</version.surefire.plugin>
-    <version.jar.plugin>3.4.1</version.jar.plugin>
+    <version.jar.plugin>3.4.2</version.jar.plugin>
     <version.checkstyle.plugin>3.4.0</version.checkstyle.plugin>
     <version.properties.plugin>1.2.1</version.properties.plugin>
     <version.dependency.plugin>3.7.0</version.dependency.plugin>
     <version.assembly.plugin>3.7.1</version.assembly.plugin>
     <version.resources.plugin>3.3.1</version.resources.plugin>
-    <version.clean.plugin>3.3.2</version.clean.plugin>
+    <version.clean.plugin>3.4.0</version.clean.plugin>
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
     <version.spotless>2.43.0</version.spotless>
 

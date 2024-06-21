@@ -1,6 +1,17 @@
-import { AnonymousAuthenticationProvider, AuthenticationProvider, RequestAdapter } from "@microsoft/kiota-abstractions";
+import {
+    AnonymousAuthenticationProvider,
+    AuthenticationProvider,
+    RequestAdapter,
+    ParseNodeFactoryRegistry,
+    ParseNodeFactory
+} from "@microsoft/kiota-abstractions";
 import { FetchRequestAdapter } from "@microsoft/kiota-http-fetchlibrary";
+import { JsonParseNodeFactory } from "@microsoft/kiota-serialization-json";
 import { ApicurioRegistryClient, createApicurioRegistryClient } from "../generated-client/apicurioRegistryClient.ts";
+
+const localParseNodeFactory: ParseNodeFactoryRegistry = new ParseNodeFactoryRegistry();
+const jsonParseNodeFactory: ParseNodeFactory = new JsonParseNodeFactory();
+localParseNodeFactory.contentTypeAssociatedFactories.set(jsonParseNodeFactory.getValidContentType(), jsonParseNodeFactory);
 
 export class RegistryClientFactory {
 
@@ -11,7 +22,7 @@ export class RegistryClientFactory {
         if (authProvider === undefined || authProvider === null) {
             authProvider = new AnonymousAuthenticationProvider();
         }
-        const requestAdapter: RequestAdapter = new FetchRequestAdapter(authProvider);
+        const requestAdapter: RequestAdapter = new FetchRequestAdapter(authProvider, localParseNodeFactory);
         requestAdapter.baseUrl = baseUrl;
         return createApicurioRegistryClient(requestAdapter);
     }

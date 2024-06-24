@@ -1,6 +1,5 @@
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import { UpdateConfigurationProperty } from "@models/updateConfigurationProperty.model.ts";
 import { createAuthOptions, createEndpoint, getRegistryClient, httpPost } from "@utils/rest.utils.ts";
 import { Paging } from "@models/paging.model.ts";
 import {
@@ -10,7 +9,7 @@ import {
     RoleMappingSearchResults,
     RoleType,
     Rule,
-    RuleType,
+    RuleType, UpdateConfigurationProperty,
     type UpdateRole
 } from "@sdk/lib/generated-client/models";
 

@@ -2,11 +2,10 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useParams } from "react-router-dom";
-import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import {
     ContentTabContent,
     DocumentationTabContent,
-    InfoTabContent,
+    VersionInfoTabContent,
     PageDataLoader,
     PageError,
     PageErrorHandler,
@@ -22,7 +21,7 @@ import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
-import { VersionMetaData } from "@models/versionMetaData.model.ts";
+import { ArtifactMetaData, Labels, VersionMetaData } from "@sdk/lib/generated-client/models";
 
 
 export type ArtifactVersionPageProps = {
@@ -151,7 +150,7 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
         return artifactVersion?.description || "";
     };
 
-    const versionLabels = (): { [key: string]: string } => {
+    const versionLabels = (): Labels => {
         return artifactVersion?.labels || {};
     };
 
@@ -205,7 +204,7 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
 
     const tabs: any[] = [
         <Tab data-testid="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
-            <InfoTabContent
+            <VersionInfoTabContent
                 artifact={artifact as ArtifactMetaData}
                 version={artifactVersion as VersionMetaData}
                 onEditMetaData={openEditMetaDataModal}

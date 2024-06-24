@@ -6,7 +6,16 @@ import { AuthenticationProvider, Headers, RequestInformation } from "@microsoft/
 import { ConfigService } from "@services/useConfigService";
 import { RegistryClientFactory } from "@sdk/lib/sdk";
 import { ApicurioRegistryClient } from "@sdk/lib/generated-client/apicurioRegistryClient.ts";
+import { Labels } from "@sdk/lib/generated-client/models";
 
+export const labelsToAny = (labels: Labels | undefined): any => {
+    const rval: any = {
+        ...(labels||{}),
+        ...(labels?.additionalData||{})
+    };
+    delete rval["additionalData"];
+    return rval;
+};
 
 /**
  * An authentication provider for Kiota - used in the generated SDK client to provide
@@ -246,133 +255,6 @@ export function httpPost<I>(url: string, body: I, options?: AxiosRequestConfig, 
         }).catch((error: any) => {
             return Promise.reject(unwrapErrorData(error));
         });
-}
-
-/**
- * Performs an HTTP POST operation to the given URL with the given body and options.  Returns
- * a Promise to the HTTP response data.
- * @param url
- * @param body
- * @param options
- * @param successCallback
- */
-export function httpPostWithReturn<I, O>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: (data: any) => O): Promise<O> {
-    console.info("[BaseService] Making a POST request to: ", url);
-
-    if (!options) {
-        options = createOptions({
-            "Accept": ContentTypes.APPLICATION_JSON,
-            "Content-Type": ContentTypes.APPLICATION_JSON
-        });
-    }
-
-    const config: AxiosRequestConfig = createAxiosConfig("post", url, options, body);
-    return AXIOS.request(config)
-        .then(response => {
-            const data: O = response.data;
-            if (successCallback) {
-                return successCallback(data);
-            } else {
-                return data;
-            }
-        }).catch((error: any) => {
-            return Promise.reject(unwrapErrorData(error));
-        });
-}
-
-/**
- * Performs an HTTP PUT operation to the given URL with the given body and options.  Returns
- * a Promise to null (no response data expected).
- * @param url
- * @param body
- * @param options
- * @param successCallback
- */
-export function httpPut<I>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: () => void): Promise<void> {
-    console.info("[BaseService] Making a PUT request to: ", url);
-
-    if (!options) {
-        options = createOptions({ "Content-Type": ContentTypes.APPLICATION_JSON });
-    }
-
-    const config: AxiosRequestConfig = createAxiosConfig("put", url, options, body);
-    return AXIOS.request(config)
-        .then(() => {
-            if (successCallback) {
-                return successCallback();
-            } else {
-                return;
-            }
-        }).catch((error: any) => {
-            return Promise.reject(unwrapErrorData(error));
-        });
-}
-
-/**
- * Performs an HTTP PUT operation to the given URL with the given body and options.  Returns
- * a Promise to the HTTP response data.
- * @param url
- * @param body
- * @param options
- * @param successCallback
- */
-export function httpPutWithReturn<I, O>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: (data: O) => O): Promise<O> {
-    console.info("[BaseService] Making a PUT request to: ", url);
-
-    if (!options) {
-        options = createOptions({
-            "Accept": ContentTypes.APPLICATION_JSON,
-            "Content-Type": ContentTypes.APPLICATION_JSON
-        });
-    }
-
-    const config: AxiosRequestConfig = createAxiosConfig("put", url, options, body);
-    return AXIOS.request(config)
-        .then(response => {
-            const data: O = response.data;
-            if (successCallback) {
-                return successCallback(data);
-            } else {
-                return data;
-            }
-        }).catch((error: any) => {
-            return Promise.reject(unwrapErrorData(error));
-        });
-}
-
-/**
- * Performs an HTTP DELETE operation to the given URL with the given body and options.
- * @param url
- * @param options
- * @param successCallback
- */
-export function httpDelete<T>(url: string, options?: AxiosRequestConfig, successCallback?: () => T): Promise<T> {
-    console.info("[BaseService] Making a DELETE request to: ", url);
-
-    if (!options) {
-        options = {};
-    }
-
-    const config: AxiosRequestConfig = createAxiosConfig("delete", url, options);
-
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    return AXIOS.request(config)
-        .then(() => {
-            return successCallback ? successCallback() : null;
-        }).catch((error: any) => {
-            return Promise.reject(unwrapErrorData(error));
-        });
-}
-
-export function stripTrailingSlash(baseHref: string | undefined): string {
-    if (!baseHref) {
-        return "";
-    }
-    if (baseHref.endsWith("/")) {
-        return baseHref.substring(0, baseHref.length - 1);
-    }
-    return baseHref;
 }
 
 export function createHref(baseHref: string, path: string): string {

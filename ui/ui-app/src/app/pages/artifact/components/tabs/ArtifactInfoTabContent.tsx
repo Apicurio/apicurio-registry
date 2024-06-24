@@ -19,9 +19,9 @@ import {
 } from "@patternfly/react-core";
 import { PencilAltIcon } from "@patternfly/react-icons";
 import { FromNow, If } from "@apicurio/common-ui-components";
-import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
-import { Rule } from "@sdk/lib/generated-client/models";
+import { ArtifactMetaData, Rule } from "@sdk/lib/generated-client/models";
+import { labelsToAny } from "@utils/rest.utils.ts";
 
 /**
  * Properties
@@ -49,6 +49,8 @@ export const ArtifactInfoTabContent: FunctionComponent<ArtifactInfoTabContentPro
         return props.artifact.name || "No name";
     };
 
+    const labels: any = labelsToAny(props.artifact.labels);
+
     return (
         <div className="artifact-tab-content">
             <div className="artifact-basics">
@@ -56,7 +58,7 @@ export const ArtifactInfoTabContent: FunctionComponent<ArtifactInfoTabContentPro
                     <CardTitle>
                         <div className="title-and-type">
                             <Flex>
-                                <FlexItem className="type"><ArtifactTypeIcon artifactType={props.artifact.artifactType} /></FlexItem>
+                                <FlexItem className="type"><ArtifactTypeIcon artifactType={props.artifact.artifactType!} /></FlexItem>
                                 <FlexItem className="title">Artifact metadata</FlexItem>
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                                     <IfAuth isDeveloper={true}>
@@ -124,9 +126,9 @@ export const ArtifactInfoTabContent: FunctionComponent<ArtifactInfoTabContentPro
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Labels</DescriptionListTerm>
-                                {!props.artifact.labels || !Object.keys(props.artifact.labels).length ?
+                                {!labels || !Object.keys(labels).length ?
                                     <DescriptionListDescription data-testid="artifact-details-labels" className="empty-state-text">No labels</DescriptionListDescription> :
-                                    <DescriptionListDescription data-testid="artifact-details-labels">{Object.entries(props.artifact.labels).map(([key, value]) =>
+                                    <DescriptionListDescription data-testid="artifact-details-labels">{Object.entries(labels).map(([key, value]) =>
                                         <Label key={`label-${key}`} color="purple" style={{ marginBottom: "2px", marginRight: "5px" }}>
                                             <Truncate className="label-truncate" content={`${key}=${value}`} />
                                         </Label>

@@ -16,10 +16,10 @@ import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
 import { ArtifactTypesService, useArtifactTypesService } from "@services/useArtifactTypesService.ts";
-import { CreateArtifact } from "@models/createArtifact.model.ts";
 import { detectContentType } from "@utils/content.utils.ts";
 import { ContentTypes } from "@models/contentTypes.model.ts";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
+import { CreateArtifact } from "@sdk/lib/generated-client/models";
 
 /**
  * Properties
@@ -125,7 +125,7 @@ export const CreateArtifactForm: FunctionComponent<CreateArtifactFormProps> = (p
     const fireOnChange = (): void => {
         const data: CreateArtifact = {
             artifactId,
-            type: artifactType
+            artifactType
         };
         if (!isStringEmptyOrUndefined(content)) {
             data.firstVersion = {

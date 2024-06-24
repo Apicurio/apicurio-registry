@@ -2,17 +2,20 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ReferencesTabContent.css";
 import { EmptyState, EmptyStateBody, EmptyStateVariant, Title } from "@patternfly/react-core";
 import { ReferenceList, ReferencesSort } from "./ReferenceList.tsx";
-import { ArtifactReference } from "@models/artifactReference.model.ts";
 import {
     ReferencesToolbar,
     ReferencesToolbarFilterCriteria
 } from "@app/pages/version/components/tabs/ReferencesToolbar.tsx";
-import { ReferenceType } from "@models/referenceType.ts";
 import { ListWithToolbar } from "@apicurio/common-ui-components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
-import { VersionMetaData } from "@models/versionMetaData.model.ts";
 import { Paging } from "@models/paging.model.ts";
+import {
+    ArtifactReference,
+    ReferenceType,
+    ReferenceTypeObject,
+    VersionMetaData
+} from "@sdk/lib/generated-client/models";
 
 /**
  * Properties
@@ -42,7 +45,7 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         direction: "asc",
         by: "name"
     });
-    const [ referenceType, setReferenceType ] = useState<ReferenceType>("OUTBOUND");
+    const [ referenceType, setReferenceType ] = useState<ReferenceType>(ReferenceTypeObject.OUTBOUND);
 
     const groups: GroupsService = useGroupsService();
     const logger: LoggerService = useLoggerService();
@@ -65,7 +68,7 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         let refs: ArtifactReference[] = allReferences.filter((ref) => {
             if (criteria.filterSelection === "name") {
                 if (criteria.filterValue) {
-                    return ref.name.toLowerCase().includes(criteria.filterValue.toLowerCase());
+                    return ref.name!.toLowerCase().includes(criteria.filterValue.toLowerCase());
                 }
             }
             return true;
@@ -73,10 +76,10 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         setReferenceCount(refs.length);
         refs.sort((ref1, ref2) => {
             if (sort.by === "name") {
-                return ref1.name.localeCompare(ref2.name);
+                return ref1.name!.localeCompare(ref2.name!);
             }
             if (sort.by === "id") {
-                return ref1.artifactId.localeCompare(ref2.artifactId);
+                return ref1.artifactId!.localeCompare(ref2.artifactId!);
             }
             if (sort.by === "group") {
                 const g1: string = ref1.groupId || "";
@@ -112,10 +115,10 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
     };
 
     const onToggleReferenceType = (): void => {
-        if (referenceType === "INBOUND") {
-            setReferenceType("OUTBOUND");
+        if (referenceType === ReferenceTypeObject.INBOUND) {
+            setReferenceType(ReferenceTypeObject.OUTBOUND);
         } else {
-            setReferenceType("INBOUND");
+            setReferenceType(ReferenceTypeObject.INBOUND);
         }
     };
 

@@ -2,7 +2,6 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useParams } from "react-router-dom";
-import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import { PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
 import {
     ChangeOwnerModal,
@@ -21,10 +20,8 @@ import {
     ArtifactPageHeader,
     VersionsTabContent
 } from "@app/pages/artifact/components";
-import { SearchedVersion } from "@models/searchedVersion.model.ts";
-import { CreateVersion } from "@models/createVersion.model.ts";
 import { ApiError } from "@models/apiError.model.ts";
-import { Rule, RuleType } from "@sdk/lib/generated-client/models";
+import { ArtifactMetaData, CreateVersion, Rule, RuleType, SearchedVersion } from "@sdk/lib/generated-client/models";
 
 
 export type ArtifactPageProps = {
@@ -183,7 +180,7 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
     const onViewVersion = (version: SearchedVersion): void => {
         const groupId: string = encodeURIComponent(artifact?.groupId || "default");
         const artifactId: string = encodeURIComponent(artifact?.artifactId || "");
-        const ver: string = encodeURIComponent(version.version);
+        const ver: string = encodeURIComponent(version.version!);
         appNavigation.navigateTo(`/explore/${groupId}/${artifactId}/${ver}`);
     };
 
@@ -218,8 +215,8 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
 
         groups.createArtifactVersion(groupId as string, artifactId as string, data).then(versionMetaData => {
             const groupId: string = encodeURIComponent(versionMetaData.groupId ? versionMetaData.groupId : "default");
-            const artifactId: string = encodeURIComponent(versionMetaData.artifactId);
-            const version: string = encodeURIComponent(versionMetaData.version);
+            const artifactId: string = encodeURIComponent(versionMetaData.artifactId!);
+            const version: string = encodeURIComponent(versionMetaData.version!);
             const artifactVersionLocation: string = `/explore/${groupId}/${artifactId}/${version}`;
             logger.info("[ArtifactPage] Artifact version successfully created.  Redirecting to details: ", artifactVersionLocation);
             pleaseWait(false);

@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import { Button, Form, FormGroup, Grid, GridItem, Modal, TextInput } from "@patternfly/react-core";
-import { CreateGroup } from "@models/createGroup.model.ts";
+import { CreateGroup } from "@sdk/lib/generated-client/models";
 
 
 /**

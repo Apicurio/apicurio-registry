@@ -2,10 +2,8 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactsTabContent.css";
 import "@app/styles/empty.css";
 import { ListWithToolbar } from "@apicurio/common-ui-components";
-import { GroupMetaData } from "@models/groupMetaData.model.ts";
 import { ArtifactsTabToolbar } from "@app/pages/group/components/tabs/ArtifactsTabToolbar.tsx";
 import { Paging } from "@models/paging.model.ts";
-import { ArtifactSearchResults } from "@models/artifactSearchResults.model.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import {
     Button,
@@ -21,9 +19,12 @@ import { PlusCircleIcon } from "@patternfly/react-icons";
 import { IfAuth, IfFeature } from "@app/components";
 import { ArtifactsTable } from "@app/pages/group/components/tabs/ArtifactsTable.tsx";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { ArtifactSortBy } from "@models/artifactSortBy.model.ts";
-import { SortOrder } from "@models/sortOrder.model.ts";
-import { SearchedArtifact } from "@models/searchedArtifact.model.ts";
+import {
+    ArtifactSearchResults, ArtifactSortBy,
+    ArtifactSortByObject, GroupMetaData,
+    SearchedArtifact, SortOrder,
+    SortOrderObject
+} from "@sdk/lib/generated-client/models";
 
 /**
  * Properties
@@ -45,8 +46,8 @@ export const ArtifactsTabContent: FunctionComponent<ArtifactsTabContentProps> = 
         page: 1,
         pageSize: 20
     });
-    const [sortBy, setSortBy] = useState(ArtifactSortBy.artifactId);
-    const [sortOrder, setSortOrder] = useState(SortOrder.asc);
+    const [sortBy, setSortBy] = useState<ArtifactSortBy>(ArtifactSortByObject.ArtifactId);
+    const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrderObject.Asc);
     const [results, setResults] = useState<ArtifactSearchResults>({
         count: 0,
         artifacts: []
@@ -58,7 +59,7 @@ export const ArtifactsTabContent: FunctionComponent<ArtifactsTabContentProps> = 
     const refresh = (): void => {
         setLoading(true);
 
-        groups.getGroupArtifacts(props.group.groupId, sortBy, sortOrder, paging).then(sr => {
+        groups.getGroupArtifacts(props.group.groupId!, sortBy, sortOrder, paging).then(sr => {
             setResults(sr);
             setLoading(false);
         }).catch(error => {
@@ -119,7 +120,7 @@ export const ArtifactsTabContent: FunctionComponent<ArtifactsTabContentProps> = 
                     isEmpty={results.count === 0}
                 >
                     <ArtifactsTable
-                        artifacts={results.artifacts}
+                        artifacts={results.artifacts!}
                         onSort={onSort}
                         sortBy={sortBy}
                         sortOrder={sortOrder}

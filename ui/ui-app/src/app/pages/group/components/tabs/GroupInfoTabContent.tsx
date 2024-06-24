@@ -20,8 +20,9 @@ import {
 } from "@patternfly/react-core";
 import { IndustryIcon, OutlinedFolderIcon, PencilAltIcon } from "@patternfly/react-icons";
 import { FromNow, If } from "@apicurio/common-ui-components";
-import { GroupMetaData } from "@models/groupMetaData.model.ts";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
+import { GroupMetaData } from "@sdk/lib/generated-client/models";
+import { labelsToAny } from "@utils/rest.utils.ts";
 
 /**
  * Properties
@@ -40,6 +41,8 @@ export const GroupInfoTabContent: FunctionComponent<GroupInfoTabContentProps> = 
     const description = (): string => {
         return props.group.description || "No description";
     };
+
+    const labels: any = labelsToAny(props.group.labels);
 
     return (
         <div className="group-tab-content">
@@ -107,9 +110,9 @@ export const GroupInfoTabContent: FunctionComponent<GroupInfoTabContentProps> = 
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Labels</DescriptionListTerm>
-                                {!props.group.labels || !Object.keys(props.group.labels).length ?
+                                {!labels || !Object.keys(labels).length ?
                                     <DescriptionListDescription data-testid="group-details-labels" className="empty-state-text">No labels</DescriptionListDescription> :
-                                    <DescriptionListDescription data-testid="group-details-labels">{Object.entries(props.group.labels).map(([key, value]) =>
+                                    <DescriptionListDescription data-testid="group-details-labels">{Object.entries(labels).map(([key, value]) =>
                                         <Label key={`label-${key}`} color="purple" style={{ marginBottom: "2px", marginRight: "5px" }}>
                                             <Truncate className="label-truncate" content={`${key}=${value}`} />
                                         </Label>

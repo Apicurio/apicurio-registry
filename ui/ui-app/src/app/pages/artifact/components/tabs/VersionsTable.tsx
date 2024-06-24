@@ -4,11 +4,15 @@ import { SortByDirection, ThProps } from "@patternfly/react-table";
 import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { shash } from "@utils/string.utils.ts";
-import { SortOrder } from "@models/sortOrder.model.ts";
-import { SearchedVersion } from "@models/searchedVersion.model.ts";
-import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
-import { VersionSortBy } from "@models/versionSortBy.model.ts";
 import { ArtifactDescription } from "@app/components";
+import {
+    ArtifactMetaData,
+    SearchedVersion,
+    SortOrder,
+    SortOrderObject,
+    VersionSortBy,
+    VersionSortByObject
+} from "@sdk/lib/generated-client/models";
 
 export type VersionsTableProps = {
     artifact: ArtifactMetaData;
@@ -35,10 +39,10 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
     const appNavigation: AppNavigation = useAppNavigation();
 
     const columns: any[] = [
-        { index: 0, id: "version", label: "Version", width: 40, sortable: true, sortBy: VersionSortBy.version },
-        { index: 1, id: "globalId", label: "Global Id", width: 10, sortable: true, sortBy: VersionSortBy.globalId },
+        { index: 0, id: "version", label: "Version", width: 40, sortable: true, sortBy: VersionSortByObject.Version },
+        { index: 1, id: "globalId", label: "Global Id", width: 10, sortable: true, sortBy: VersionSortByObject.GlobalId },
         { index: 2, id: "contentId", label: "Content Id", width: 10, sortable: false },
-        { index: 3, id: "createdOn", label: "Created on", width: 15, sortable: true, sortBy: VersionSortBy.createdOn },
+        { index: 3, id: "createdOn", label: "Created on", width: 15, sortable: true, sortBy: VersionSortByObject.CreatedOn },
     ];
 
     const renderColumnData = (column: SearchedVersion, colIndex: number): React.ReactNode => {
@@ -48,10 +52,10 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
                 <div>
                     <Link className="version-title"
                         style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                        to={appNavigation.createLink(`/explore/${encodeURIComponent(props.artifact.groupId || "default")}/${encodeURIComponent(props.artifact.artifactId)}/${encodeURIComponent(column.version)}`)}
+                        to={appNavigation.createLink(`/explore/${encodeURIComponent(props.artifact.groupId || "default")}/${encodeURIComponent(props.artifact.artifactId!)}/${encodeURIComponent(column.version!)}`)}
                     >
                         <span>{ column.version }</span>
-                        <If condition={column.name !== undefined && column.name !== null}>
+                        <If condition={column.name != "" && column.name !== undefined && column.name !== null}>
                             <span style={{ marginLeft: "10px" }}>({column.name})</span>
                         </If>
                     </Link>
@@ -82,7 +86,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
     };
 
     const actionsFor = (version: SearchedVersion): (VersionAction | VersionActionSeparator)[] => {
-        const vhash: number = shash(version.version);
+        const vhash: number = shash(version.version!);
         // TODO hide/show actions based on user role
         return [
             { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` },
@@ -98,20 +102,20 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
                 direction: props.sortOrder
             },
             onSort: (_event, index, direction) => {
-                props.onSort(columns[index].sortBy, direction === SortByDirection.asc ? SortOrder.asc : SortOrder.desc);
+                props.onSort(columns[index].sortBy, direction === SortByDirection.asc ? SortOrderObject.Asc : SortOrderObject.Desc);
             },
             columnIndex: column.index
         } : undefined;
     };
 
     useEffect(() => {
-        if (props.sortBy === VersionSortBy.version) {
+        if (props.sortBy === VersionSortByObject.Version) {
             setSortByIndex(0);
         }
-        if (props.sortBy === VersionSortBy.globalId) {
+        if (props.sortBy === VersionSortByObject.GlobalId) {
             setSortByIndex(1);
         }
-        if (props.sortBy === VersionSortBy.createdOn) {
+        if (props.sortBy === VersionSortByObject.CreatedOn) {
             setSortByIndex(3);
         }
     }, [props.sortBy]);
@@ -135,7 +139,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
                         modifier="truncate">{column.label}</Th>
                 )}
                 renderCell={({ row, colIndex, Td }) => (
-                    <Td className="versions-table-cell" key={`cell-${colIndex}-${shash(row.version)}`}
+                    <Td className="versions-table-cell" key={`cell-${colIndex}-${shash(row.version!)}`}
                         style={{ maxWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                         children={renderColumnData(row as SearchedVersion, colIndex) as any} />
                 )}
@@ -148,7 +152,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
                         itemToTestId={item => item.testId}
                         itemIsDivider={item => item.isSeparator}
                         onSelect={item => item.onClick()}
-                        testId={`api-actions-${shash(row.version)}`}
+                        testId={`api-actions-${shash(row.version!)}`}
                         popperProps={{
                             position: "right"
                         }}

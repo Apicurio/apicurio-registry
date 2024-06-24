@@ -1,7 +1,6 @@
 export * from "./searchedVersion.model";
 export * from "./downloadRef.model";
 export * from "./configurationProperty.model";
-export * from "./artifactTypeInfo.model";
 export * from "./updateConfigurationProperty.model";
 export * from "./apiError.model";
 export * from "./referenceType";
@@ -13,7 +12,6 @@ export * from "./RuleViolationCause.model";
 export * from "./contentTypes.model";
 export * from "./versionMetaData.model";
 export * from "./searchedArtifact.model";
-export * from "./rule.model";
 export * from "./artifactMetaData.model";
 export * from "./artifactReference.model";
 export * from "./userInfo.model";

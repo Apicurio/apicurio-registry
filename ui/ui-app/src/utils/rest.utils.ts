@@ -2,9 +2,73 @@ import axios, { AxiosRequestConfig } from "axios";
 import { ContentTypes } from "@models/contentTypes.model.ts";
 import { AuthService } from "@apicurio/common-ui-components";
 import { Buffer } from "buffer";
+import { AuthenticationProvider, Headers, RequestInformation } from "@microsoft/kiota-abstractions";
+import { ConfigService } from "@services/useConfigService";
+import { RegistryClientFactory } from "@sdk/lib/sdk";
+import { ApicurioRegistryClient } from "@sdk/lib/generated-client/apicurioRegistryClient.ts";
+
+
+/**
+ * An authentication provider for Kiota - used in the generated SDK client to provide
+ * auth information when making REST calls to the Registry backend.
+ *
+ * TODO: possibly move this to https://github.com/Apicurio/apicurio-common-ui-components
+ */
+export class TokenAuthenticationProvider implements AuthenticationProvider {
+    private readonly key: string;
+    private readonly accessTokenProvider: () => Promise<string>;
+    private static readonly authorizationHeaderKey = "Authorization";
+    public constructor(key: string, accessTokenProvider: () => Promise<string>) {
+        this.key = key;
+        this.accessTokenProvider = accessTokenProvider;
+    }
+
+    public authenticateRequest = async (request: RequestInformation, additionalAuthenticationContext?: Record<string, unknown>): Promise<void> => {
+        if (!request) {
+            throw new Error("request info cannot be null");
+        }
+        if (additionalAuthenticationContext?.claims && request.headers.has(TokenAuthenticationProvider.authorizationHeaderKey)) {
+            request.headers.delete(TokenAuthenticationProvider.authorizationHeaderKey);
+        }
+        if (!request.headers || !request.headers.has(TokenAuthenticationProvider.authorizationHeaderKey)) {
+            const token = await this.accessTokenProvider();
+            if (!request.headers) {
+                request.headers = new Headers();
+            }
+            if (token) {
+                request.headers.add(TokenAuthenticationProvider.authorizationHeaderKey, `${this.key} ${token}`);
+            }
+        }
+    };
+}
+
+export function createAuthProvider(auth: AuthService): AuthenticationProvider | undefined {
+    if (auth.isOidcAuthEnabled()) {
+        return new TokenAuthenticationProvider("Bearer", () => auth.getToken().then(v => v!));
+    } else if (auth.isBasicAuthEnabled()) {
+        const creds = auth.getUsernameAndPassword();
+        const base64Credentials = Buffer.from(`${creds?.username}:${creds?.password}`, "ascii").toString("base64");
+        return new TokenAuthenticationProvider("Basic", async () => base64Credentials);
+    }
+    return undefined;
+}
+
+function createRegistryClient(config: ConfigService, auth: AuthService): ApicurioRegistryClient {
+    const authProvider = createAuthProvider(auth);
+    return RegistryClientFactory.createRegistryClient(config.artifactsUrl(), authProvider);
+}
+
+let client: ApicurioRegistryClient;
+
+export const getRegistryClient = (config: ConfigService, auth: AuthService): ApicurioRegistryClient => {
+    if (client === undefined) {
+        client = createRegistryClient(config, auth);
+    }
+    return client;
+};
+
 
 const AXIOS = axios.create();
-
 
 function createAxiosConfig(method: string, url: string, options: any, data?: any): AxiosRequestConfig {
     if (typeof data === "string") {

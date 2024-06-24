@@ -18,10 +18,10 @@ import {
     Truncate
 } from "@patternfly/react-core";
 import { PencilAltIcon } from "@patternfly/react-icons";
-import { Rule } from "@models/rule.model.ts";
 import { FromNow, If } from "@apicurio/common-ui-components";
 import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
+import { Rule } from "@sdk/lib/generated-client/models";
 
 /**
  * Properties

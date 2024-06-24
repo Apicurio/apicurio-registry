@@ -83,6 +83,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
 
+      - name: Build and verify the typescript-sdk
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-registry-sdk
+          npm run lint
+          npm run build
+
       - name: Install UI Dependencies
         run: |
           cd ui

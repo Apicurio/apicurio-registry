@@ -12,7 +12,6 @@ import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
 import { VersionMetaData } from "@models/versionMetaData.model.ts";
 import { ReferenceType } from "@models/referenceType.ts";
 import { ArtifactReference } from "@models/artifactReference.model.ts";
-import { Rule } from "@models/rule.model.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
 import { CreateArtifact } from "@models/createArtifact.model.ts";
 import { CreateArtifactResponse } from "@models/createArtifactResponse.model.ts";
@@ -28,7 +27,7 @@ import { SortOrder } from "@models/sortOrder.model.ts";
 import { ArtifactSortBy } from "@models/artifactSortBy.model.ts";
 import { VersionSortBy } from "@models/versionSortBy.model.ts";
 import { VersionSearchResults } from "@models/versionSearchResults.model.ts";
-import { CreateRule } from "@models/createRule.model.ts";
+import { CreateRule, Rule, RuleType } from "@sdk/lib/generated-client/models";
 
 
 export interface ClientGeneration {
@@ -251,7 +250,7 @@ const createArtifactRule = async (config: ConfigService, auth: AuthService, grou
     const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
     const body: CreateRule = {
         config: configValue,
-        ruleType
+        ruleType: ruleType as RuleType
     };
     const options = await createAuthOptions(auth);
     return httpPostWithReturn(endpoint, body, options);
@@ -267,7 +266,10 @@ const updateArtifactRule = async (config: ConfigService, auth: AuthService, grou
         artifactId,
         "rule": ruleType
     });
-    const body: Rule = { config: configValue, ruleType };
+    const body: Rule = {
+        config: configValue,
+        ruleType: ruleType as RuleType
+    };
     const options = await createAuthOptions(auth);
     return httpPutWithReturn<Rule, Rule>(endpoint, body, options);
 };

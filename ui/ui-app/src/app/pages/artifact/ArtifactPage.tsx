@@ -3,7 +3,6 @@ import "./ArtifactPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useParams } from "react-router-dom";
 import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
-import { Rule } from "@models/rule.model.ts";
 import { PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
 import {
     ChangeOwnerModal,
@@ -25,6 +24,7 @@ import {
 import { SearchedVersion } from "@models/searchedVersion.model.ts";
 import { CreateVersion } from "@models/createVersion.model.ts";
 import { ApiError } from "@models/apiError.model.ts";
+import { Rule, RuleType } from "@sdk/lib/generated-client/models";
 
 
 export type ArtifactPageProps = {
@@ -94,7 +94,7 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
         groups.createArtifactRule(groupId as string, artifactId as string, ruleType, config).catch(error => {
             setPageError(toPageError(error, `Error enabling "${ ruleType }" artifact rule.`));
         });
-        setRules([...rules, { config, ruleType: ruleType }]);
+        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {

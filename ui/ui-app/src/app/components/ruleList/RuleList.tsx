@@ -11,7 +11,7 @@ import {
     ValidityLabel,
     ValiditySelect
 } from "@app/components";
-import { Rule } from "@models/rule.model.ts";
+import { Rule } from "@sdk/lib/generated-client/models";
 
 
 export type RuleListProps = {
@@ -48,7 +48,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
     const getRuleConfig = (ruleType: string): string => {
         const frules: Rule[] = props.rules.filter(r => r.ruleType === ruleType);
         if (frules.length === 1) {
-            return frules[0].config;
+            return frules[0].config as string;
         } else {
             return "UNKNOWN";
         }

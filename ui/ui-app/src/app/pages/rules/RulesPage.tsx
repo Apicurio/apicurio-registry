@@ -1,11 +1,11 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./RulesPage.css";
 import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
-import { Rule } from "@models/rule.model.ts";
 import { RootPageHeader, RuleList } from "@app/components";
 import { PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { Rule, RuleType } from "@sdk/lib/generated-client/models";
 
 
 export type RulesPageProps = {
@@ -38,7 +38,7 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
         admin.createRule(ruleType, config).catch(error => {
             setPageError(toPageError(error, `Error enabling "${ ruleType }" global rule.`));
         });
-        setRules([...rules, { config, ruleType: ruleType }]);
+        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {

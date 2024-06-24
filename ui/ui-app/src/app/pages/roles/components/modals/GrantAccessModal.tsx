@@ -14,8 +14,8 @@ import {
 } from "@patternfly/react-core";
 import { OutlinedQuestionCircleIcon } from "@patternfly/react-icons";
 import "./GrantAccessModal.css";
-import { RoleMapping, RoleTypes } from "@models/roleMapping.model.ts";
 import { Principal } from "@services/useConfigService.ts";
+import { RoleMapping, RoleType, RoleTypeObject } from "@sdk/lib/generated-client/models";
 
 /**
  * Properties
@@ -45,7 +45,7 @@ export const GrantAccessModal: FunctionComponent<GrantAccessModalProps> = (props
 
     useEffect(() => {
         if (props.isOpen && props.defaultRole) {
-            setAccountId(props.defaultRole.principalId);
+            setAccountId(props.defaultRole.principalId!);
             setAccountName(props.defaultRole.principalName);
             setCurrentRole(props.defaultRole.role);
             setRole(props.defaultRole.role);
@@ -60,7 +60,7 @@ export const GrantAccessModal: FunctionComponent<GrantAccessModalProps> = (props
         reset();
     };
 
-    const appendString = (roleName: string, roleType: RoleTypes): string => {
+    const appendString = (roleName: string, roleType: RoleType): string => {
         if (currentRole === roleType) {
             return `${roleName} (current role)`;
         }
@@ -203,33 +203,33 @@ export const GrantAccessModal: FunctionComponent<GrantAccessModalProps> = (props
                         <Radio id="grant-access-role-admin"
                             className="grant-access-radio-button"
                             name="grant-access-role"
-                            label={appendString("Administrator",RoleTypes.ADMIN)}
+                            label={appendString("Administrator",RoleTypeObject.ADMIN)}
                             description="Assign roles to other accounts on this Registry instance, configure global rules, and access data import and export features."
-                            value={RoleTypes.ADMIN}
+                            value={RoleTypeObject.ADMIN}
                             onChange={handleRoleChange}
-                            isChecked={role == RoleTypes.ADMIN}
+                            isChecked={role == RoleTypeObject.ADMIN}
                             isDisabled={isFetchingMappingRole}
                         />
 
                         <Radio id="grant-access-role-manager"
                             className="grant-access-radio-button"
                             name="grant-access-role"
-                            label={appendString("Manager",RoleTypes.DEVELOPER)}
+                            label={appendString("Manager",RoleTypeObject.DEVELOPER)}
                             description="Read and write artifacts on this Registry instance."
-                            value={RoleTypes.DEVELOPER}
+                            value={RoleTypeObject.DEVELOPER}
                             onChange={handleRoleChange}
-                            isChecked={role == RoleTypes.DEVELOPER}
+                            isChecked={role == RoleTypeObject.DEVELOPER}
                             isDisabled={isFetchingMappingRole}
                         />
 
                         <Radio id="grant-access-role-viewer"
                             className="grant-access-radio-button"
                             name="grant-access-role"
-                            label={appendString("Viewer",RoleTypes.READ_ONLY)}
+                            label={appendString("Viewer",RoleTypeObject.READ_ONLY)}
                             description="Read artifacts on this Registry instance."
-                            value={RoleTypes.READ_ONLY}
+                            value={RoleTypeObject.READ_ONLY}
                             onChange={handleRoleChange}
-                            isChecked={role == RoleTypes.READ_ONLY}
+                            isChecked={role == RoleTypeObject.READ_ONLY}
                             isDisabled={isFetchingMappingRole}
                         />
                     </FormGroup>

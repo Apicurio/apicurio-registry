@@ -98,7 +98,7 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
     const onExportArtifacts = (): void => {
         admin.exportAs("all-artifacts.zip").then(dref => {
             const link = document.createElement("a");
-            link.href = dref.href;
+            link.href = dref.href || "";
             link.download = "all-artifacts.zip";
             link.click();
         }).catch(error => {

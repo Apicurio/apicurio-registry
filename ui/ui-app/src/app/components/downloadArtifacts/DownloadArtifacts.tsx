@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import { Button, ButtonVariant } from "@patternfly/react-core";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
-import { DownloadRef } from "@models/downloadRef.model.ts";
+import { DownloadRef } from "@sdk/lib/generated-client/models";
 
 
 export type DownloadArtifactsProps = {
@@ -23,7 +23,7 @@ export const DownloadArtifacts: FunctionComponent<DownloadArtifactsProps> = (pro
     const downloadArtifacts = () => {
         const { fileName } = props;
         admin.exportAs(fileName).then((response: DownloadRef) => {
-            generateDownloadLink(fileName, response?.href);
+            generateDownloadLink(fileName, response?.href || "");
         });
     };
 

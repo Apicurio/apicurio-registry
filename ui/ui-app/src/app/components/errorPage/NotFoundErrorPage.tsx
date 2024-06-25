@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from "react";
-import "./ErrorPage.css";
+import "./NotFoundErrorPage.css";
 import {
     Button,
     EmptyState,
@@ -11,12 +11,11 @@ import {
     PageSection,
     PageSectionVariants
 } from "@patternfly/react-core";
-import { LockedIcon } from "@patternfly/react-icons";
+import { QuestionCircleIcon } from "@patternfly/react-icons";
 import { ErrorPageProps } from "./ErrorPage.tsx";
 
 
-//export class AccessErrorPage extends ErrorPage {
-export const AccessErrorPage: FunctionComponent<ErrorPageProps> = () => {
+export const NotFoundErrorPage: FunctionComponent<ErrorPageProps> = () => {
 
     const navigateBack = (): void => {
         window.history.back();
@@ -27,9 +26,10 @@ export const AccessErrorPage: FunctionComponent<ErrorPageProps> = () => {
             <PageSection className="ps_error" variant={PageSectionVariants.light}>
                 <div className="centerizer">
                     <EmptyState>
-                        <EmptyStateHeader titleText="Access permissions needed" headingLevel="h4" icon={<EmptyStateIcon icon={LockedIcon} />} />
+                        <EmptyStateHeader titleText="Resource not found" headingLevel="h4" icon={<EmptyStateIcon icon={QuestionCircleIcon} />} />
                         <EmptyStateBody>
-                            To access this Registry instance, contact your organization administrator.
+                            The resource you were looking for could not be found.  Perhaps it
+                            was deleted?
                         </EmptyStateBody>
                         <EmptyStateFooter>
                             <EmptyStateActions>

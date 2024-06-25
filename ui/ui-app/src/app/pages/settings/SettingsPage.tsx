@@ -10,11 +10,11 @@ import {
     TextContent
 } from "@patternfly/react-core";
 import { RootPageHeader } from "@app/components";
-import { ConfigurationProperty } from "@models/configurationProperty.model.ts";
 import { ConfigProperty, PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
 import { If, IfNotEmpty } from "@apicurio/common-ui-components";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { AlertsService, useAlertsService } from "@services/useAlertsService.tsx";
+import { ConfigurationProperty } from "@sdk/lib/generated-client/models";
 
 
 interface PropertyGroup {
@@ -91,7 +91,7 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
 
     const groupFor = (groups: PropertyGroup[], prop: ConfigurationProperty): PropertyGroup => {
         for (const group of groups) {
-            if (group.propertyNames.indexOf(prop.name) >= 0) {
+            if (group.propertyNames.indexOf(prop.name!) >= 0) {
                 return group;
             }
         }
@@ -114,7 +114,7 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
         });
         groups.forEach(group => {
             group.properties = group.properties?.sort(
-                (prop1, prop2) => prop1.label.localeCompare(prop2.label));
+                (prop1, prop2) => prop1.label!.localeCompare(prop2.label!));
         });
         return groups;
     };
@@ -124,8 +124,8 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
             return true;
         }
         const sc: string = searchCriteria.toLocaleLowerCase();
-        return property.label.toLocaleLowerCase().indexOf(sc) >= 0 ||
-            property.description.toLocaleLowerCase().indexOf(sc) >= 0;
+        return property.label!.toLocaleLowerCase().indexOf(sc) >= 0 ||
+            property.description!.toLocaleLowerCase().indexOf(sc) >= 0;
     };
 
     const filterProperties = (properties: ConfigurationProperty[]): void => {
@@ -135,7 +135,7 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
 
     const onPropertyChange = (property: ConfigurationProperty, newValue: string): void => {
         property.value = newValue;
-        admin.setConfigurationProperty(property.name, newValue).then(() => {
+        admin.setConfigurationProperty(property.name!, newValue).then(() => {
             // The property was updated successfully.  Update the UI to display all config
             // properties (the list may have changed by changing one of the values).
             createLoaders();

@@ -22,11 +22,9 @@ import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { GroupMetaData } from "@models/groupMetaData.model.ts";
 import { ArtifactsTabContent } from "@app/pages/group/components/tabs/ArtifactsTabContent.tsx";
 import { ApiError } from "@models/apiError.model.ts";
-import { SearchedArtifact } from "@models/searchedArtifact.model.ts";
-import { CreateArtifact } from "@models/createArtifact.model.ts";
+import { CreateArtifact, GroupMetaData, SearchedArtifact } from "@sdk/lib/generated-client/models";
 
 
 export type GroupPageProps = {
@@ -115,8 +113,8 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
         onCreateArtifactModalClose();
         pleaseWait(true, "Creating artifact, please wait.");
         groups.createArtifact(group?.groupId as string, data).then(response => {
-            const groupId: string = response.artifact.groupId || "default";
-            const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact.artifactId) }`;
+            const groupId: string = response.artifact!.groupId || "default";
+            const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact!.artifactId!) }`;
             logger.info("[ExplorePage] Artifact successfully created.  Redirecting to details page: ", artifactLocation);
             appNavigation.navigateTo(artifactLocation);
         }).catch( error => {
@@ -173,7 +171,7 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
 
     const onViewArtifact = (artifact: SearchedArtifact): void => {
         const groupId: string = encodeURIComponent(group?.groupId || "default");
-        const artifactId: string = encodeURIComponent(artifact.artifactId);
+        const artifactId: string = encodeURIComponent(artifact.artifactId!);
         appNavigation.navigateTo(`/explore/${groupId}/${artifactId}`);
     };
 

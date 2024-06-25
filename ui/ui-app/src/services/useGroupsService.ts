@@ -1,33 +1,31 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import {
-    createAuthOptions,
-    createEndpoint,
-    httpDelete,
-    httpGet,
-    httpPostWithReturn,
-    httpPut,
-    httpPutWithReturn
-} from "@utils/rest.utils.ts";
-import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
-import { VersionMetaData } from "@models/versionMetaData.model.ts";
-import { ReferenceType } from "@models/referenceType.ts";
-import { ArtifactReference } from "@models/artifactReference.model.ts";
+import { getRegistryClient } from "@utils/rest.utils.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
-import { CreateArtifact } from "@models/createArtifact.model.ts";
-import { CreateArtifactResponse } from "@models/createArtifactResponse.model.ts";
-import { CreateVersion } from "@models/createVersion.model.ts";
-import { EditableVersionMetaData } from "@models/editableVersionMetaData.model.ts";
-import { EditableArtifactMetaData } from "@models/editableArtifactMetaData.model.ts";
-import { GroupMetaData } from "@models/groupMetaData.model.ts";
-import { CreateGroup } from "@models/createGroup.model.ts";
-import { EditableGroupMetaData } from "@models/editableGroupMetaData.model.ts";
-import { ArtifactSearchResults } from "@models/artifactSearchResults.model.ts";
 import { Paging } from "@models/paging.model.ts";
-import { SortOrder } from "@models/sortOrder.model.ts";
-import { ArtifactSortBy } from "@models/artifactSortBy.model.ts";
-import { VersionSortBy } from "@models/versionSortBy.model.ts";
-import { VersionSearchResults } from "@models/versionSearchResults.model.ts";
-import { CreateRule, Rule, RuleType } from "@sdk/lib/generated-client/models";
+import {
+    ArtifactMetaData,
+    ArtifactReference,
+    ArtifactSearchResults,
+    ArtifactSortBy,
+    CreateArtifact,
+    CreateArtifactResponse,
+    CreateGroup,
+    CreateRule,
+    CreateVersion,
+    EditableArtifactMetaData,
+    EditableGroupMetaData,
+    EditableVersionMetaData,
+    GroupMetaData, ReferenceType, ReferenceTypeObject,
+    Rule,
+    RuleType,
+    SortOrder,
+    VersionMetaData,
+    VersionSearchResults,
+    VersionSortBy
+} from "@sdk/lib/generated-client/models";
+
+
+const arrayDecoder: TextDecoder = new TextDecoder("utf-8");
 
 
 export interface ClientGeneration {
@@ -40,20 +38,16 @@ export interface ClientGeneration {
 }
 
 const createGroup = async (config: ConfigService, auth: AuthService, data: CreateGroup): Promise<GroupMetaData> => {
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups", { groupId: data.groupId });
-    const options = await createAuthOptions(auth);
-
-    return httpPostWithReturn<CreateGroup, GroupMetaData>(endpoint, data, options);
+    return getRegistryClient(config, auth).groups.post(data).then(v => v!);
 };
 
 const getGroupMetaData = async (config: ConfigService, auth: AuthService, groupId: string): Promise<GroupMetaData> => {
     groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId", { groupId });
-    const options = await createAuthOptions(auth);
-    return httpGet<GroupMetaData>(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).get().then(v => v!).then(d => {
+        console.info("GROUP: ", d);
+        console.info("GROUP Labels: ", d.labels);
+        return d;
+    });
 };
 
 const getGroupArtifacts = async (config: ConfigService, auth: AuthService, groupId: string, sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> => {
@@ -67,19 +61,14 @@ const getGroupArtifacts = async (config: ConfigService, auth: AuthService, group
         orderby: sortBy
     };
 
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts", { groupId }, queryParams);
-    const options = await createAuthOptions(auth);
-    return httpGet<ArtifactSearchResults>(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.get({
+        queryParameters: queryParams
+    }).then(v => v!);
 };
 
 const updateGroupMetaData = async (config: ConfigService, auth: AuthService, groupId: string, metaData: EditableGroupMetaData): Promise<void> => {
     groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId", { groupId });
-    const options = await createAuthOptions(auth);
-    return httpPut<EditableGroupMetaData>(endpoint, metaData, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).put(metaData).then(v => v!);
 };
 
 const updateGroupOwner = async (config: ConfigService, auth: AuthService, groupId: string, newOwner: string): Promise<void> => {
@@ -90,63 +79,40 @@ const updateGroupOwner = async (config: ConfigService, auth: AuthService, groupI
 
 const deleteGroup = async (config: ConfigService, auth: AuthService, groupId: string): Promise<void> => {
     groupId = normalizeGroupId(groupId);
-
     console.info("[GroupsService] Deleting group:", groupId);
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId", { groupId });
-    const options = await createAuthOptions(auth);
-    return httpDelete(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).delete();
 };
 
 
 const createArtifact = async (config: ConfigService, auth: AuthService, groupId: string|null, data: CreateArtifact): Promise<CreateArtifactResponse> => {
     groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts", { groupId });
-    const options = await createAuthOptions(auth);
-
-    return httpPostWithReturn<CreateArtifact, CreateArtifactResponse>(endpoint, data, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.post(data).then(v => v!);
 };
 
 const createArtifactVersion = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData> => {
     groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId });
-
-    return httpPostWithReturn<CreateVersion, VersionMetaData>(endpoint, data, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions.post(data).then(v => v!);
 };
 
 const getArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<ArtifactMetaData> => {
     groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
-    const options = await createAuthOptions(auth);
-    return httpGet<ArtifactMetaData>(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).get().then(v => v!);
 };
 
 const getArtifactVersionMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData> => {
     groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
     const versionExpression: string = (version == "latest") ? "branch=latest" : version;
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression",
-        { groupId, artifactId, versionExpression });
-    const options = await createAuthOptions(auth);
-    return httpGet<VersionMetaData>(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions
+        .byVersionExpression(versionExpression).get().then(v => v!);
 };
 
 const getArtifactReferences = async (config: ConfigService, auth: AuthService, globalId: number, refType: ReferenceType): Promise<ArtifactReference[]> => {
     const queryParams: any = {
-        refType: refType || "OUTBOUND"
+        refType: refType || ReferenceTypeObject.OUTBOUND
     };
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/ids/globalIds/:globalId/references", { globalId }, queryParams);
-    const options = await createAuthOptions(auth);
-    return httpGet<ArtifactReference[]>(endpoint, options);
+    return getRegistryClient(config, auth).ids.globalIds.byGlobalId(globalId).references.get({
+        queryParameters: queryParams
+    }).then(v => v!);
 };
 
 const getLatestArtifact = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<string> => {
@@ -155,22 +121,14 @@ const getLatestArtifact = async (config: ConfigService, auth: AuthService, group
 
 const updateArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, metaData: EditableArtifactMetaData): Promise<void> => {
     groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
-    const options = await createAuthOptions(auth);
-    return httpPut<EditableArtifactMetaData>(endpoint, metaData, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).put(metaData).then(v => v!);
 };
 
 const updateArtifactVersionMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, metaData: EditableVersionMetaData): Promise<void> => {
     groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
     const versionExpression: string = (version == "latest") ? "branch=latest" : version;
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression",
-        { groupId, artifactId, versionExpression });
-    const options = await createAuthOptions(auth);
-    return httpPut<EditableVersionMetaData>(endpoint, metaData, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions
+        .byVersionExpression(versionExpression).put(metaData).then(v => v!);
 };
 
 const updateArtifactOwner = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, newOwner: string): Promise<void> => {
@@ -181,21 +139,15 @@ const updateArtifactOwner = async (config: ConfigService, auth: AuthService, gro
 
 const getArtifactVersionContent = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<string> => {
     groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
     const versionExpression: string = (version == "latest") ? "branch=latest" : version;
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:versionExpression/content",
-        { groupId, artifactId, versionExpression });
-
-    const options = await createAuthOptions(auth);
-    options.headers = {
-        ...options.headers,
-        "Accept": "*"
-    };
-    options.maxContentLength = 5242880; // TODO 5MB hard-coded, make this configurable?
-    options.responseType = "text";
-    options.transformResponse = (data: any) => data;
-    return httpGet<string>(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions
+        .byVersionExpression(versionExpression).content.get({
+            headers: {
+                "Accept": "*"
+            }
+        }).then(value => {
+            return arrayDecoder.decode(value!);
+        });
 };
 
 const getArtifactVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults> => {
@@ -210,113 +162,69 @@ const getArtifactVersions = async (config: ConfigService, auth: AuthService, gro
     };
 
     console.info("[GroupsService] Getting the list of versions for artifact: ", groupId, artifactId);
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions", { groupId, artifactId }, queryParams);
-    const options = await createAuthOptions(auth);
-    return httpGet<VersionSearchResults>(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions.get({
+        queryParameters: queryParams
+    }).then(v => v!);
 };
 
 const getArtifactRules = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<Rule[]> => {
     groupId = normalizeGroupId(groupId);
 
     console.info("[GroupsService] Getting the list of rules for artifact: ", groupId, artifactId);
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
-    const options = await createAuthOptions(auth);
-    return httpGet<string[]>(endpoint, options).then( ruleTypes => {
-        return Promise.all(ruleTypes.map(rt => getArtifactRule(config, auth, groupId, artifactId, rt)));
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).rules.get().then(ruleTypes => {
+        return Promise.all(ruleTypes!.map(rt => getArtifactRule(config, auth, groupId, artifactId, rt)));
     });
 };
 
 const getArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, ruleType: string): Promise<Rule> => {
     groupId = normalizeGroupId(groupId);
-
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules/:rule", {
-        groupId,
-        artifactId,
-        rule: ruleType
-    });
-    const options = await createAuthOptions(auth);
-    return httpGet<Rule>(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).rules.byRuleType(ruleType).get().then(v => v!);
 };
 
 const createArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, ruleType: string, configValue: string): Promise<Rule> => {
     groupId = normalizeGroupId(groupId);
-
     console.info("[GroupsService] Creating rule:", ruleType);
-
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules", { groupId, artifactId });
     const body: CreateRule = {
         config: configValue,
         ruleType: ruleType as RuleType
     };
-    const options = await createAuthOptions(auth);
-    return httpPostWithReturn(endpoint, body, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).rules.post(body).then(v => v!);
 };
 
 const updateArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, ruleType: string, configValue: string): Promise<Rule> => {
     groupId = normalizeGroupId(groupId);
-
     console.info("[GroupsService] Updating rule:", ruleType);
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules/:rule", {
-        groupId,
-        artifactId,
-        "rule": ruleType
-    });
     const body: Rule = {
         config: configValue,
         ruleType: ruleType as RuleType
     };
-    const options = await createAuthOptions(auth);
-    return httpPutWithReturn<Rule, Rule>(endpoint, body, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).rules
+        .byRuleType(ruleType).put(body).then(v => v!);
 };
 
 const deleteArtifactRule = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, ruleType: string): Promise<void> => {
     groupId = normalizeGroupId(groupId);
-
     console.info("[GroupsService] Deleting rule:", ruleType);
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/rules/:rule", {
-        groupId,
-        artifactId,
-        "rule": ruleType
-    });
-    const options = await createAuthOptions(auth);
-    return httpDelete(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).rules
+        .byRuleType(ruleType).delete();
 };
 
 const deleteArtifact = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<void> => {
     groupId = normalizeGroupId(groupId);
-
     console.info("[GroupsService] Deleting artifact:", groupId, artifactId);
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId", { groupId, artifactId });
-    const options = await createAuthOptions(auth);
-    return httpDelete(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).delete();
 };
-
 
 const deleteArtifactVersion = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<void> => {
     groupId = normalizeGroupId(groupId);
-
     console.info("[GroupsService] Deleting version: ", groupId, artifactId, version);
-    const baseHref: string = config.artifactsUrl();
-    const endpoint: string = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version", {
-        groupId,
-        artifactId,
-        version
-    });
-    const options = await createAuthOptions(auth);
-    return httpDelete(endpoint, options);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId)
+        .versions.byVersionExpression(version).delete();
 };
 
 const normalizeGroupId = (groupId: string|null): string => {
     return groupId || "default";
 };
-
 
 export interface GroupsService {
     createGroup(data: CreateGroup): Promise<GroupMetaData>;

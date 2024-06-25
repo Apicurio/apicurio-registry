@@ -1,7 +1,6 @@
 import { FunctionComponent, useState } from "react";
 import "./RoleToolbar.css";
 import { If, ObjectSelect } from "@apicurio/common-ui-components";
-import { RoleMapping, RoleTypes } from "@models/roleMapping.model.ts";
 import {
     Button,
     ButtonVariant,
@@ -16,6 +15,7 @@ import {
 import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { Paging } from "@models/paging.model.ts";
+import { RoleMapping, RoleTypeObject } from "@sdk/lib/generated-client/models";
 
 
 type FilterType = {
@@ -44,15 +44,15 @@ const ROLE_TYPES: RoleType[] = [
         label: "All Roles"
     },
     {
-        type: RoleTypes.READ_ONLY,
+        type: RoleTypeObject.READ_ONLY,
         label: "Viewer"
     },
     {
-        type: RoleTypes.DEVELOPER,
+        type: RoleTypeObject.DEVELOPER,
         label: "Manager"
     },
     {
-        type: RoleTypes.ADMIN,
+        type: RoleTypeObject.ADMIN,
         label: "Administrator"
     }
 ];

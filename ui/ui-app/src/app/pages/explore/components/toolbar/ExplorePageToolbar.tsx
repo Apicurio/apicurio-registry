@@ -18,11 +18,10 @@ import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/compo
 import { If, ObjectDropdown, ObjectSelect } from "@apicurio/common-ui-components";
 import { useLoggerService } from "@services/useLoggerService.ts";
 import { ExploreType } from "@app/pages/explore/ExploreType.ts";
-import { ArtifactSearchResults } from "@models/artifactSearchResults.model.ts";
-import { GroupSearchResults } from "@models/groupSearchResults.model.ts";
 import { plural } from "pluralize";
 import { Paging } from "@models/paging.model.ts";
 import { FilterBy } from "@services/useSearchService.ts";
+import { ArtifactSearchResults, GroupSearchResults } from "@sdk/lib/generated-client/models";
 
 export type ExplorePageToolbarFilterCriteria = {
     filterBy: FilterBy;
@@ -83,7 +82,7 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
     const logger = useLoggerService();
 
     const totalArtifactsCount = (): number => {
-        return props.results.count;
+        return props.results.count!;
     };
 
     const onFilterSubmit = (event: any|undefined): void => {

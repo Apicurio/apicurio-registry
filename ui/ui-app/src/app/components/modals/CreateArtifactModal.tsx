@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import { Button, Modal } from "@patternfly/react-core";
-import { CreateArtifact } from "@models/createArtifact.model.ts";
 import { CreateArtifactForm } from "@app/components";
+import { CreateArtifact } from "@sdk/lib/generated-client/models";
 
 const EMPTY_FORM_DATA: CreateArtifact = {
 };

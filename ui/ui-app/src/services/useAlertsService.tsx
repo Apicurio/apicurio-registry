@@ -1,4 +1,4 @@
-import { ConfigurationProperty } from "@models/configurationProperty.model.ts";
+import { ConfigurationProperty } from "@sdk/lib/generated-client/models";
 
 
 export interface AlertsService {

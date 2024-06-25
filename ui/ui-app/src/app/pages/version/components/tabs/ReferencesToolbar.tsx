@@ -14,10 +14,9 @@ import {
 } from "@patternfly/react-core";
 import { SearchIcon } from "@patternfly/react-icons";
 import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
-import { ArtifactReference } from "@models/artifactReference.model.ts";
-import { ReferenceType } from "@models/referenceType.ts";
 import { ObjectSelect } from "@apicurio/common-ui-components";
 import { Paging } from "@models/paging.model.ts";
+import { ArtifactReference, ReferenceType, ReferenceTypeObject } from "@sdk/lib/generated-client/models";
 
 export interface ReferencesToolbarFilterCriteria {
     filterSelection: string;
@@ -101,7 +100,7 @@ export const ReferencesToolbar: FunctionComponent<ReferencesToolbarProps> = (pro
                         id="simple-switch"
                         label="View artifacts that reference this artifact"
                         labelOff="View artifacts that reference this artifact"
-                        isChecked={ props.referenceType === "INBOUND" }
+                        isChecked={ props.referenceType === ReferenceTypeObject.INBOUND }
                         onChange={ props.onToggleReferenceType }
                     />
                 </ToolbarItem>

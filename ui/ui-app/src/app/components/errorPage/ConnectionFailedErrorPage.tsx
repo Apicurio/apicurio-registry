@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from "react";
-import "./ErrorPage.css";
+import "./ConnectionFailedErrorPage.css";
 import {
     Button,
     EmptyState,
@@ -11,15 +11,14 @@ import {
     PageSection,
     PageSectionVariants
 } from "@patternfly/react-core";
-import { LockedIcon } from "@patternfly/react-icons";
+import { NetworkIcon } from "@patternfly/react-icons";
 import { ErrorPageProps } from "./ErrorPage.tsx";
 
 
-//export class AccessErrorPage extends ErrorPage {
-export const AccessErrorPage: FunctionComponent<ErrorPageProps> = () => {
+export const ConnectionFailedErrorPage: FunctionComponent<ErrorPageProps> = () => {
 
-    const navigateBack = (): void => {
-        window.history.back();
+    const reload = (): void => {
+        window.location.reload();
     };
 
     return (
@@ -27,17 +26,18 @@ export const AccessErrorPage: FunctionComponent<ErrorPageProps> = () => {
             <PageSection className="ps_error" variant={PageSectionVariants.light}>
                 <div className="centerizer">
                     <EmptyState>
-                        <EmptyStateHeader titleText="Access permissions needed" headingLevel="h4" icon={<EmptyStateIcon icon={LockedIcon} />} />
+                        <EmptyStateHeader titleText="Connection failed" headingLevel="h4" icon={<EmptyStateIcon icon={NetworkIcon} />} />
                         <EmptyStateBody>
-                            To access this Registry instance, contact your organization administrator.
+                            Connection to the Registry server failed (could not reach the server).  Please
+                            check your connection and try again, or report this error to an admin.
                         </EmptyStateBody>
                         <EmptyStateFooter>
                             <EmptyStateActions>
                             </EmptyStateActions>
                             <EmptyStateActions>
                                 <Button variant="link"
-                                    data-testid="error-btn-back"
-                                    onClick={navigateBack}>Return to previous page</Button>
+                                    data-testid="error-btn-reload"
+                                    onClick={reload}>Reload the page</Button>
                             </EmptyStateActions>
                         </EmptyStateFooter>
                     </EmptyState>

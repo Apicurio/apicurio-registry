@@ -12,12 +12,12 @@ import {
     toPageError
 } from "@app/pages";
 import { RootPageHeader } from "@app/components";
-import { RoleMapping } from "@models/roleMapping.model.ts";
 import { GrantAccessModal } from "@app/pages/roles/components/modals/GrantAccessModal.tsx";
 import { If, PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { Principal } from "@services/useConfigService.ts";
 import { Paging } from "@models/paging.model.ts";
+import { RoleMapping } from "@sdk/lib/generated-client/models";
 
 
 export type RolesPageProps = {
@@ -47,7 +47,7 @@ export const RolesPage: FunctionComponent<RolesPageProps> = () => {
             page: 1,
             pageSize: 100
         };
-        return admin.getRoleMappings(paging).then(results => setRoles(results.roleMappings))
+        return admin.getRoleMappings(paging).then(results => setRoles(results.roleMappings!))
             .catch(error => {
                 setPageError(toPageError(error, "Error loading role mappings."));
             });
@@ -117,9 +117,9 @@ export const RolesPage: FunctionComponent<RolesPageProps> = () => {
 
     const onRevokeRoleMapping = (role: RoleMapping): void => {
         pleaseWait(true, `Revoking access for ${role.principalName || role.principalId}, please wait...`);
-        admin.deleteRoleMapping(role.principalId).then(() => {
+        admin.deleteRoleMapping(role.principalId!).then(() => {
             pleaseWait(false, "");
-            removeMapping(role.principalId);
+            removeMapping(role.principalId!);
         }).catch(error => {
             setPageError(toPageError(error, "Error revoking access."));
         });
@@ -157,7 +157,7 @@ export const RolesPage: FunctionComponent<RolesPageProps> = () => {
         filteredRoles.sort((a, b) => {
             const ascending: boolean = criteria ? criteria.ascending : true;
             const direction: number = ascending ? 1 : -1;
-            return a.principalId.localeCompare(b.principalId) * direction;
+            return a.principalId!.localeCompare(b.principalId!) * direction;
         });
 
         // Now handle pagination

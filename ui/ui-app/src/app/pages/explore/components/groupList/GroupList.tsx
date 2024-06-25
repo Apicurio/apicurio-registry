@@ -1,9 +1,9 @@
 import { FunctionComponent } from "react";
 import "./GroupList.css";
-import { Badge, DataList, DataListCell, DataListItemCells, DataListItemRow, Icon } from "@patternfly/react-core";
-import { SearchedGroup } from "@models/searchedGroup.model.ts";
+import { DataList, DataListCell, DataListItemCells, DataListItemRow, Icon } from "@patternfly/react-core";
 import { OutlinedFolderIcon } from "@patternfly/react-icons";
 import { ArtifactGroup } from "@app/pages";
+import { SearchedGroup } from "@sdk/lib/generated-client/models";
 
 /**
  * Properties
@@ -17,10 +17,6 @@ export type GroupListProps = {
  * Models the list of groups.
  */
 export const GroupList: FunctionComponent<GroupListProps> = (props: GroupListProps) => {
-
-    const labels = (group: SearchedGroup): string[] => {
-        return group.labels ? group.labels : [];
-    };
 
     const description = (group: SearchedGroup): string => {
         if (group.description) {
@@ -43,16 +39,16 @@ export const GroupList: FunctionComponent<GroupListProps> = (props: GroupListPro
                                 </DataListCell>,
                                 <DataListCell key="main content" className="content-cell">
                                     <div className="group-title">
-                                        <ArtifactGroup groupId={group.groupId} />
+                                        <ArtifactGroup groupId={group.groupId!} />
                                     </div>
                                     <div className="group-description">{description(group)}</div>
-                                    <div className="group-labels">
-                                        {
-                                            labels(group).map( label =>
-                                                <Badge key={label} isRead={true}>{label}</Badge>
-                                            )
-                                        }
-                                    </div>
+                                    {/*<div className="group-labels">*/}
+                                    {/*    {*/}
+                                    {/*        labels(group).map( label =>*/}
+                                    {/*            <Badge key={label} isRead={true}>{label}</Badge>*/}
+                                    {/*        )*/}
+                                    {/*    }*/}
+                                    {/*</div>*/}
                                 </DataListCell>
                             ]}
                         />

@@ -12,31 +12,37 @@ import {
 } from "@patternfly/react-core";
 import { If } from "@apicurio/common-ui-components";
 import { ArtifactLabel, LabelsFormGroup } from "@app/components";
+import { Labels } from "@sdk/lib/generated-client/models";
+import { labelsToAny } from "@utils/rest.utils.ts";
 
 
 export type MetaData = {
     name?: string;
     description: string;
-    labels: { [key: string]: string|undefined };
+    labels: Labels;
 }
 
 
-function labelsToList(labels: { [key: string]: string|undefined }): ArtifactLabel[] {
-    return Object.keys(labels).filter((key) => key !== undefined).map(key => {
+function labelsToList(labels: Labels): ArtifactLabel[] {
+    const theLabels: any = labelsToAny(labels);
+    delete theLabels["additionalData"];
+    return Object.keys(theLabels).filter((key) => key !== undefined).map(key => {
         return {
             name: key,
-            value: labels[key],
+            value: theLabels[key] as string,
             nameValidated: "default",
             valueValidated: "default"
         };
     });
 }
 
-function listToLabels(labels: ArtifactLabel[]): { [key: string]: string|undefined } {
-    const rval: { [key: string]: string|undefined } = {};
+function listToLabels(labels: ArtifactLabel[]): Labels {
+    const rval: Labels = {
+        additionalData: {}
+    };
     labels.forEach(label => {
         if (label.name) {
-            rval[label.name] = label.value;
+            rval.additionalData![label.name] = label.value;
         }
     });
     return rval;
@@ -50,7 +56,7 @@ export type EditMetaDataModalProps = {
     entityType: string;
     name?: string;
     description: string;
-    labels: { [key: string]: string|undefined };
+    labels: Labels;
     isOpen: boolean;
     onClose: () => void;
     onEditMetaData: (metaData: MetaData) => void;

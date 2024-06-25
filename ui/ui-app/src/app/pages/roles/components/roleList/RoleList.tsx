@@ -2,8 +2,8 @@ import React, { FunctionComponent, useState } from "react";
 import "./RoleList.css";
 import { Button, Modal } from "@patternfly/react-core";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
-import { RoleMapping, RoleTypes } from "@models/roleMapping.model.ts";
 import { RoleMappingsEmptyState } from "@app/pages";
+import { RoleMapping, RoleTypeObject } from "@sdk/lib/generated-client/models";
 
 /**
  * Properties
@@ -24,11 +24,11 @@ export const RoleList: FunctionComponent<RoleListProps> = (props: RoleListProps)
 
     const roleName = (role: string): string => {
         switch (role) {
-            case RoleTypes.DEVELOPER:
+            case RoleTypeObject.DEVELOPER:
                 return "Manager";
-            case RoleTypes.ADMIN:
+            case RoleTypeObject.ADMIN:
                 return "Administrator";
-            case RoleTypes.READ_ONLY:
+            case RoleTypeObject.READ_ONLY:
                 return "Viewer";
         }
         return role;
@@ -82,7 +82,7 @@ export const RoleList: FunctionComponent<RoleListProps> = (props: RoleListProps)
                                     <div className="principal-id">{ role.principalId }</div>
                                     <div className="principal-name">{ role.principalName }</div>
                                 </Td>
-                                <Td>{roleName(role.role)}</Td>
+                                <Td>{roleName(role.role!)}</Td>
                                 <Td className = "role-list-action-column"
                                     key={`${rowIndex}_2`}
                                     actions={{

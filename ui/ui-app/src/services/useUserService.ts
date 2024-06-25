@@ -1,7 +1,7 @@
-import { UserInfo } from "@models/userInfo.model.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
-import { createAuthOptions, createEndpoint, httpGet } from "@utils/rest.utils.ts";
+import { getRegistryClient } from "@utils/rest.utils.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+import { UserInfo } from "@sdk/lib/generated-client/models";
 
 let currentUserInfo: UserInfo = {
     username: "",
@@ -19,12 +19,9 @@ const currentUser = (): UserInfo => {
 const updateCurrentUser = async (config: ConfigService, auth: AuthService): Promise<UserInfo> => {
     const isAuthenticated: boolean = await auth.isAuthenticated();
     if (isAuthenticated) {
-        // TODO cache the response for a few minutes to limit the # of times this is called per minute??
-        const endpoint: string = createEndpoint(config.artifactsUrl(), "/users/me");
-        const options = await createAuthOptions(auth);
-        return httpGet<UserInfo>(endpoint, options).then(userInfo => {
-            currentUserInfo = userInfo;
-            return userInfo;
+        return getRegistryClient(config, auth).users.me.get().then(userInfo => {
+            currentUserInfo = userInfo!;
+            return userInfo!;
         });
     } else {
         return Promise.resolve(currentUserInfo);

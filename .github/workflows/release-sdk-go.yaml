@@ -18,7 +18,7 @@ env:
 
 jobs:
   release-sdk:
-    if: github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio' && startsWith(github.event.release.tag_name, '3.')
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     env:

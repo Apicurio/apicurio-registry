@@ -1,5 +1,11 @@
 import React, { FunctionComponent } from "react";
-import { AccessErrorPage, ErrorPage, RateLimitErrorPage } from "@app/components";
+import {
+    AccessErrorPage,
+    ConnectionFailedErrorPage,
+    ErrorPage,
+    NotFoundErrorPage,
+    RateLimitErrorPage
+} from "@app/components";
 import { PageError } from "@app/pages/PageError.ts";
 
 /**
@@ -20,11 +26,17 @@ export const PageErrorHandler: FunctionComponent<PageErrorHandlerProps> = (props
     const isError = (): boolean => {
         return props.error !== undefined;
     };
+    const isFetchError = (): boolean => {
+        return props.error !== undefined && props.error.error instanceof TypeError && (props.error.error as TypeError).message.includes("fetch");
+    };
+    const is404Error = (): boolean => {
+        return props.error && props.error.error.error_code && (props.error.error.error_code == 404);
+    };
     const is403Error = (): boolean => {
-        return props.error && props.error.error.status && (props.error.error.status == 403);
+        return props.error && props.error.error.error_code && (props.error.error.error_code == 403);
     };
     const is419Error = (): boolean => {
-        return props.error && props.error.error.status && (props.error.error.status == 419);
+        return props.error && props.error.error.error_code && (props.error.error.error_code == 419);
     };
     
     if (isError()) {
@@ -35,6 +47,14 @@ export const PageErrorHandler: FunctionComponent<PageErrorHandlerProps> = (props
         } else if (is419Error()) {
             return (
                 <RateLimitErrorPage error={props.error}/>
+            );
+        } else if (is404Error()) {
+            return (
+                <NotFoundErrorPage error={props.error}/>
+            );
+        } else if (isFetchError()) {
+            return (
+                <ConnectionFailedErrorPage error={props.error}/>
             );
         } else {
             return (

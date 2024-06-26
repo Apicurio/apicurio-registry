@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - 'docs/**'
-    branches: ['main', '[1-9].[0-9].x']
+    branches: [ main ]
 
 jobs:
   publish-docs:

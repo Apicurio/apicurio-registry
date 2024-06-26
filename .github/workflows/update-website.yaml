@@ -6,9 +6,14 @@ on:
 
 jobs:
   update-website:
-    if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '2.5.'))
+    if: github.repository_owner == 'Apicurio'
     runs-on: ubuntu-20.04
     steps:
+
+      - name: Check Prerequisites
+        if: github.event_name != 'workflow_dispatch' && !startsWith(github.event.release.tag_name, '2.5.')
+        run: |
+          exit 1
 
       - name: Apicurio Website Checkout
         run: |

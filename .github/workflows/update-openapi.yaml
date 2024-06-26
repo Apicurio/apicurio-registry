@@ -5,7 +5,7 @@ on:
       - common/src/main/resources/META-INF/openapi.json
       - utils/tools/src/main/java/io/apicurio/registry/utils/tools/AddOpenApiAuth.java
       - utils/tools/src/main/java/io/apicurio/registry/utils/tools/TransformOpenApiForClientGen.java
-    branches: [ main ]
+    branches: [ '2.5.x' ]
 
 jobs:
   update-openapi:
@@ -22,8 +22,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
           git fetch
-          git checkout main
-          git branch --set-upstream-to=origin/main
+          git checkout 2.5.x
+          git branch --set-upstream-to=origin/2.5.x
           git pull
 
       - name: Set up JDK 17
@@ -61,7 +61,3 @@ jobs:
   validate:
     needs: update-openapi
     uses: ./.github/workflows/validate-openapi.yaml
-
-  dispatch:
-    needs: validate
-    uses: ./.github/workflows/dispatch-openapi.yaml

@@ -16,6 +16,7 @@ DOCKER_BUILD_WORKSPACE ?= $(DOCKERFILE_LOCATION)
 IMAGE_REPO ?= docker.io
 IMAGE_GROUP ?= apicurio
 IMAGE_TAG ?= latest
+ADDITIONAL_IMAGE_TAG ?= none
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
 SKIP_TESTS ?= false
 INTEGRATION_TESTS_PROFILE ?= ci
@@ -284,8 +285,13 @@ mem-multiarch-images:
 	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
+	@echo " Additional image tag: $(ADDITIONAL_IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Publishing additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MEM_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem:$(ADDITIONAL_IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+endif
 
 .PHONY: sql-multiarch-images ## Builds and pushes multi-arch images for 'sql' storage variant. Variables available for override [SQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 sql-multiarch-images:
@@ -294,8 +300,13 @@ sql-multiarch-images:
 	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
+	@echo " Additional image tag: $(ADDITIONAL_IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(SQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Publishing additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(SQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql:$(ADDITIONAL_IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+endif
 
 .PHONY: mssql-multiarch-images ## Builds and pushes multi-arch images for 'mssql' storage variant. Variables available for override [MSSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 mssql-multiarch-images:
@@ -304,8 +315,13 @@ mssql-multiarch-images:
 	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
+	@echo " Additional image tag: $(ADDITIONAL_IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mssql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Publishing additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MSSQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mssql:$(ADDITIONAL_IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+endif
 
 .PHONY: mysql-multiarch-images ## Builds and pushes multi-arch images for 'mysql' storage variant. Variables available for override [MYSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 mysql-multiarch-images:
@@ -314,8 +330,13 @@ mysql-multiarch-images:
 	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
+	@echo " Additional image tag: $(ADDITIONAL_IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MYSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mysql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Publishing additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(MYSQL_DOCKERFILE) -t $(IMAGE_REPO)/apicurio/apicurio-registry-mysql:$(ADDITIONAL_IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+endif
 
 .PHONY: kafkasql-multiarch-images ## Builds and pushes multi-arch images for kafkasql storage variant. Variables available for override [KAFKASQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 kafkasql-multiarch-images:
@@ -324,8 +345,13 @@ kafkasql-multiarch-images:
 	@echo " Supported Platforms: $(IMAGE_PLATFORMS)"
 	@echo " Repository: $(IMAGE_REPO)"
 	@echo " Tag: $(IMAGE_TAG)"
+	@echo " Additional image tag: $(ADDITIONAL_IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql:$(IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Publishing additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker buildx build --push -f $(DOCKERFILE_LOCATION)/$(KAFKASQL_DOCKERFILE) -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql:$(ADDITIONAL_IMAGE_TAG) --platform $(IMAGE_PLATFORMS) $(DOCKER_BUILD_WORKSPACE)
+endif
 
 .PHONY: mem-native-scratch-image ## Builds and pushes multi-arch images for mem storage variant based on scratch. Variables available for override [MEM_SCRATCH_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 mem-native-scratch-image:

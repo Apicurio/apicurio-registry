@@ -6,14 +6,14 @@ on:
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [main]
+    branches: ['2.5.x']
   pull_request:
     paths-ignore:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [main, 2.0.x]
+    branches: ['2.5.x']
 
 concurrency:
   # Only run once for latest commit per ref and cancel other (previous) runs.

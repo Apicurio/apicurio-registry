@@ -285,7 +285,8 @@ jobs:
       - name: Build Native Images
         env:
           IMAGE_REPO: quay.io
-          IMAGE_TAG: latest-snapshot
+          IMAGE_TAG: 2.6.x-snapshot
+          ADDITIONAL_IMAGE_TAG: latest-snapshot
         run: |
           make build-mem-native-image
 
@@ -296,7 +297,8 @@ jobs:
       - name: Push Native Images
         env:
           IMAGE_REPO: quay.io
-          IMAGE_TAG: latest-snapshot
+          IMAGE_TAG: 2.6.x-snapshot
+          ADDITIONAL_IMAGE_TAG: latest-snapshot
         if: github.event_name == 'push'
         run: |
           make push-mem-native-image
@@ -393,7 +395,8 @@ jobs:
       - name: Build Native Images
         env:
           IMAGE_REPO: quay.io
-          IMAGE_TAG: latest-snapshot
+          IMAGE_TAG: 2.6.x-snapshot
+          ADDITIONAL_IMAGE_TAG: latest-snapshot
         run: |
           make build-sql-native-image
 
@@ -404,7 +407,8 @@ jobs:
       - name: Push Native Images
         env:
           IMAGE_REPO: quay.io
-          IMAGE_TAG: latest-snapshot
+          IMAGE_TAG: 2.6.x-snapshot
+          ADDITIONAL_IMAGE_TAG: latest-snapshot
         if: github.event_name == 'push'
         run: |
           make push-sql-native-image

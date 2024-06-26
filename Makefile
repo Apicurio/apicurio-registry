@@ -133,6 +133,10 @@ build-mem-native-image:
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native:$(IMAGE_TAG) app/
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Creating additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker tag $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native:$(IMAGE_TAG) $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native:$(ADDITIONAL_IMAGE_TAG)
+endif
 
 .PHONY: build-mem-native-scratch-image ## Builds native docker image from scratch for 'mem' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 build-mem-native-scratch-image:
@@ -161,7 +165,10 @@ push-mem-native-image:
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native:$(IMAGE_TAG)
-
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Pushing additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-mem-native:$(ADDITIONAL_IMAGE_TAG)
+endif
 
 .PHONY: build-sql-image ## Builds docker image for 'sql' storage variant. Variables available for override [SQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-sql-image:
@@ -189,6 +196,10 @@ build-sql-native-image:
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql-native:$(IMAGE_TAG) storage/sql
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Creating additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker tag $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql-native:$(IMAGE_TAG) $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql-native:$(ADDITIONAL_IMAGE_TAG)
+endif
 
 .PHONY: push-sql-native-image ## Pushes native docker image for 'sql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-sql-native-image:
@@ -198,6 +209,10 @@ push-sql-native-image:
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql-native:$(IMAGE_TAG)
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Pushing additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-sql-native:$(ADDITIONAL_IMAGE_TAG)
+endif
 
 .PHONY: build-mssql-image ## Builds docker image for 'mssql' storage variant. Variables available for override [MSSQL_DOCKERFILE, IMAGE_REPO, IMAGE_TAG, DOCKER_BUILD_WORKSPACE]
 build-mssql-image:
@@ -261,6 +276,10 @@ build-kafkasql-native-image:
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker build -f $(DOCKERFILE_LOCATION)/Dockerfile.native -t $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql-native:$(IMAGE_TAG) storage/kafkasql
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Creating additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker tag $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql-native:$(IMAGE_TAG) $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql-native:$(ADDITIONAL_IMAGE_TAG)
+endif
 
 .PHONY: push-kafkasql-native-image ## Pushes native docker image for 'kafkasql' storage variant. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 push-kafkasql-native-image:
@@ -270,6 +289,10 @@ push-kafkasql-native-image:
 	@echo " Tag: $(IMAGE_TAG)"
 	@echo "------------------------------------------------------------------------"
 	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql-native:$(IMAGE_TAG)
+ifneq ($(ADDITIONAL_IMAGE_TAG), none)
+	@echo "Pushing additional tag: $(ADDITIONAL_IMAGE_TAG)"
+	docker push $(IMAGE_REPO)/$(IMAGE_GROUP)/apicurio-registry-kafkasql-native:$(ADDITIONAL_IMAGE_TAG)
+endif
 
 .PHONY: build-all-images ## Builds all the Images. Variables available for override [IMAGE_REPO, IMAGE_TAG]
 build-all-images: build-mem-image build-sql-image build-mssql-image build-kafkasql-image build-mysql-image

@@ -139,7 +139,7 @@
 
     <!-- Schema types -->
     <avro.version>1.11.3</avro.version>
-    <json-schema-validator.version>1.4.2</json-schema-validator.version>
+    <json-schema-validator.version>1.4.3</json-schema-validator.version>
     <wire-schema.version>4.9.9</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <wire-compiler.version>4.9.9</wire-compiler.version>

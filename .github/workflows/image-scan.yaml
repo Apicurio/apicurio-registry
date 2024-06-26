@@ -9,15 +9,15 @@ jobs:
   call-image-scan-registry-mem:
     uses: Apicurio/apicurio-gh-workflows/.github/workflows/image-scan.yaml@main
     with:
-      image: quay.io/apicurio/apicurio-registry-mem:latest-snapshot
+      image: quay.io/apicurio/apicurio-registry-mem:2.6.x-snapshot
 
   call-image-scan-registry-sql:
     uses: Apicurio/apicurio-gh-workflows/.github/workflows/image-scan.yaml@main
     with:
-      image: quay.io/apicurio/apicurio-registry-sql:latest-snapshot
+      image: quay.io/apicurio/apicurio-registry-sql:2.6.x-snapshot
 
   call-image-scan-registry-kafkasql:
     uses: Apicurio/apicurio-gh-workflows/.github/workflows/image-scan.yaml@main
     with:
-      image: quay.io/apicurio/apicurio-registry-kafkasql:latest-snapshot
+      image: quay.io/apicurio/apicurio-registry-kafkasql:2.6.x-snapshot
 

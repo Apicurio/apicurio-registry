@@ -3,7 +3,7 @@ on:
   workflow_call: { }
   pull_request:
     branches:
-      - main
+      - ['2.6.x']
     paths:
       - common/src/main/resources/META-INF/openapi.json
 

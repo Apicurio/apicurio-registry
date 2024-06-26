@@ -52,16 +52,9 @@ then
 fi
 
 
+# In the past, if the branch name was "main", we have built and pushed images with tag "latest-{type}" instead of "{branch}-type".
+# But since main now contains code for Registry 3.x, which also uses different image repositories (apicurio-registry and apicurio-registry-ui),
+# we now need to use the latest tags for the latest minor branch (2.<minor>.x).
 
-case $BRANCH_NAME in
+make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${BRANCH_NAME}-${RELEASE_TYPE} ADDITIONAL_IMAGE_TAG=latest-${RELEASE_TYPE} ${VARIANT}
 
-  "main"|"2.5.x")
-       # if main branch, build images with tag "latest-${RELEASE_TYPE}"
-       make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=latest-${RELEASE_TYPE} ${VARIANT}
-       ;;
-
-   *)
-       # if other than main, build images with tag "${BRANCH_NAME}-${RELEASE_TYPE}"
-       make IMAGE_REPO=${IMAGE_REPOSITORY} IMAGE_TAG=${BRANCH_NAME}-${RELEASE_TYPE} ${VARIANT}
-       ;;
-esac

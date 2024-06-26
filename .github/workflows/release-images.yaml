@@ -19,12 +19,18 @@ env:
 
 jobs:
   release-images:
-    if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '2.6.'))
+    if: github.repository_owner == 'Apicurio'
     runs-on: ubuntu-20.04
     timeout-minutes: 120
     env:
       RELEASE_TYPE: release
     steps:
+
+      - name: Check Prerequisites
+        if: github.event_name != 'workflow_dispatch' && !startsWith(github.event.release.tag_name, '2.6.')
+        run: |
+          exit 1
+
       - name: View Disk Usage
         run: df -h
 

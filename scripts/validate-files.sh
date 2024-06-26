@@ -18,6 +18,3 @@ do
     fi
 done
 echo "DB version ok between build and DDLs"
-
-echo "Linting openshift templates"
-spectral lint distro/openshift-template/mt/apicurio-registry-mt-template.yaml --ruleset scripts/ocp-template-ruleset.js

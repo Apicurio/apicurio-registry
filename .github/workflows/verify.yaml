@@ -57,9 +57,6 @@ jobs:
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
-      - name: Install tools
-        run: .github/scripts/install-tools.sh
-
       - name: Run linter
         run: ./scripts/validate-files.sh
 

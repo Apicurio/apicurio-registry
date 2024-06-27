@@ -257,7 +257,7 @@
         <test-containers.version>1.19.7</test-containers.version>
         <embedded-postgres.version>2.0.7</embedded-postgres.version>
         <strimzi.version>0.105.0</strimzi.version>
-        <wiremock-jre8.version>2.35.2</wiremock-jre8.version>
+        <wiremock.version>3.7.0</wiremock.version>
     </properties>
 
     <dependencyManagement>
@@ -787,9 +787,9 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>com.github.tomakehurst</groupId>
-                <artifactId>wiremock-jre8</artifactId>
-                <version>${wiremock-jre8.version}</version>
+                <groupId>org.wiremock</groupId>
+                <artifactId>wiremock</artifactId>
+                <version>${wiremock.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.truth.extensions</groupId>

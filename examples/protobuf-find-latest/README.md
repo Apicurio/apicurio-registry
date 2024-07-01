@@ -1,4 +1,4 @@
-# simple-avro-downstream
+# protobuf-find-latest
 
 This is an Apicurio Registry example. For more information about Apicurio Registry see https://www.apicur.io/registry/
 
@@ -6,15 +6,15 @@ This is an Apicurio Registry example. For more information about Apicurio Regist
 
 
 This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe
-scenario with Avro as the serialization type.  The following aspects are demonstrated:
+scenario with Protobuf as the serialization type.  The following aspects are demonstrated:
 
 <ol>
 <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
 <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
-<li>Auto-register the Avro schema in the registry (registered by the producer)</li>
-<li>Data sent as a simple GenericRecord, no java beans needed</li>
+<li>Manually registering the Protobuf schema in the registry (registered using the RegistryClient before running the producer/consumer), this would be equivalent to using the maven plugin or a custom CI/CD process</li>
+<li>Data sent as a custom java bean and received as the same java bean</li>
 </ol>
-<p>
+
 Pre-requisites:
 
 <ul>
@@ -23,4 +23,5 @@ Pre-requisites:
 </ul>
 
 @author eric.wittmann@gmail.com
+@author carles.arnal@redhat.com
 

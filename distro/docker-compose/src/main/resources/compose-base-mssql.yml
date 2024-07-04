@@ -6,6 +6,8 @@ services:
     environment:
       ACCEPT_EULA: Y
       MSSQL_SA_PASSWORD: "Your_password123"
+    cap_drop:
+      - NET_RAW
   app:
     image: apicurio/apicurio-registry-mssql:latest
     ports:
@@ -16,3 +18,5 @@ services:
       REGISTRY_DATASOURCE_PASSWORD: "Your_password123"
     depends_on:
       - mssql
+    cap_drop:
+      - NET_RAW

@@ -6,6 +6,8 @@ services:
     environment:
       POSTGRES_USER: apicurio-registry
       POSTGRES_PASSWORD: password
+    cap_drop:
+      - NET_RAW
   app:
     image: apicurio/apicurio-registry-sql:latest
     ports:
@@ -16,3 +18,5 @@ services:
       REGISTRY_DATASOURCE_PASSWORD: password
     depends_on:
       - postgres
+    cap_drop:
+      - NET_RAW

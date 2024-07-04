@@ -69,7 +69,7 @@ services:
 
     # Schema Registry
   schema-registry:
-    image: apicurio/apicurio-registry-sql:latest-snapshot
+    image: apicurio/apicurio-registry-sql:2.6.x-release
     restart: always
     ports:
       - "8080:8080"

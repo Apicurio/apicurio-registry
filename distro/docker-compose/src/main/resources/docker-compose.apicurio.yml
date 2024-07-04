@@ -32,7 +32,7 @@ services:
       - NET_RAW
 
   app:
-    image: apicurio/apicurio-registry-sql:latest-snapshot
+    image: apicurio/apicurio-registry-sql:2.6.x-release
     environment:
       REGISTRY_DATASOURCE_URL: 'jdbc:postgresql://database-apicurio:5432/apicurio-registry'
       REGISTRY_DATASOURCE_USERNAME: apicurio-registry

@@ -1,6 +1,34 @@
+# TODO: Requires update.
+# Grafana 11 reports a configuration error,
+# and Grafana 10 does not start with the following error:
+# Error: ✗ Datasource provisioning error: yaml: unmarshal errors:
+#   line 4: cannot unmarshal !!map into []*datasources.upsertDataSourceFromConfigV1
+#
 version: '3.1'
 
 services:
+
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: apicurio-registry
+      POSTGRES_PASSWORD: password
+    cap_drop:
+      - NET_RAW
+
+  app:
+    image: apicurio/apicurio-registry-sql:2.6.x-release
+    ports:
+      - 8080:8080
+    environment:
+      REGISTRY_DATASOURCE_URL: jdbc:postgresql://postgres/apicurio-registry
+      REGISTRY_DATASOURCE_USERNAME: apicurio-registry
+      REGISTRY_DATASOURCE_PASSWORD: password
+    depends_on:
+      - postgres
+    cap_drop:
+      - NET_RAW
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -9,25 +37,26 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
-      - config:/etc/prometheus:rw
+      - ./config:/etc/prometheus:rw
     depends_on:
       - app
     cap_drop:
       - NET_RAW
+
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:10.4.5
     depends_on:
       - prometheus
     ports:
       - 3000:3000
     volumes:
-      - config:/etc/grafana:rw
+      - ./config:/etc/grafana:rw
     environment:
       GF_SECURITY_ADMIN_PASSWORD: password
       GF_USERS_ALLOW_SIGN_UP: 'false'
     cap_drop:
       - NET_RAW
 
-volumes:
-  config:
-    external: true
+#volumes:
+#  config:
+#    external: true

@@ -5,17 +5,18 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: Y
-      MSSQL_SA_PASSWORD: "Your_password123"
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: Your_password123
     cap_drop:
       - NET_RAW
   app:
-    image: apicurio/apicurio-registry-mssql:latest
+    image: apicurio/apicurio-registry-mssql:2.6.x-release
     ports:
       - 8080:8080
     environment:
-      REGISTRY_DATASOURCE_URL: 'jdbc:sqlserver://mssql;'
+      REGISTRY_DATASOURCE_URL: jdbc:sqlserver://mssql;trustServerCertificate=true
       REGISTRY_DATASOURCE_USERNAME: sa
-      REGISTRY_DATASOURCE_PASSWORD: "Your_password123"
+      REGISTRY_DATASOURCE_PASSWORD: Your_password123
     depends_on:
       - mssql
     cap_drop:

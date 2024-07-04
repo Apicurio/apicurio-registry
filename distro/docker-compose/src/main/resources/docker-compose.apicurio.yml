@@ -19,6 +19,8 @@ services:
       - 8080:8080
     volumes:
       - ./config/keycloak/apicurio-realm.json:/opt/keycloak/data/import/realm.json
+    cap_drop:
+      - NET_RAW
 
   postgres:
     container_name: database-apicurio
@@ -26,6 +28,8 @@ services:
     environment:
       POSTGRES_USER: apicurio-registry
       POSTGRES_PASSWORD: password
+    cap_drop:
+      - NET_RAW
 
   app:
     image: apicurio/apicurio-registry-sql:latest-snapshot
@@ -46,3 +50,5 @@ services:
     depends_on:
       - postgres
       - keycloak-server
+    cap_drop:
+      - NET_RAW

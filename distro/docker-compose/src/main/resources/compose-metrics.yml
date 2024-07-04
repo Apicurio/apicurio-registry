@@ -12,6 +12,8 @@ services:
       - config:/etc/prometheus:rw
     depends_on:
       - app
+    cap_drop:
+      - NET_RAW
   grafana:
     image: grafana/grafana
     depends_on:
@@ -23,6 +25,8 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: password
       GF_USERS_ALLOW_SIGN_UP: 'false'
+    cap_drop:
+      - NET_RAW
 
 volumes:
   config:

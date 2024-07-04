@@ -12,6 +12,8 @@ services:
       - "2181:2181"
     environment:
       LOG_DIR: /tmp/logs
+    cap_drop:
+      - NET_RAW
 
   kafka:
     image: strimzi/kafka:0.20.1-kafka-2.6.0
@@ -30,3 +32,5 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    cap_drop:
+      - NET_RAW

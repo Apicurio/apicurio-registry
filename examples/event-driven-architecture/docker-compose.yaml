@@ -13,6 +13,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    cap_drop:
+      - NET_RAW
 
 
   kafka-connect0:
@@ -40,6 +42,8 @@ services:
       CONNECT_VALUE_CONVERTER_APICURIO_REGISTRY_AUTO-REGISTER: "true"
       CONNECT_VALUE_CONVERTER_APICURIO_REGISTRY_FIND-LATEST: "true"
       CONNECT_SCHEMA_NAME_ADJUSTMENT_MODE: avro
+    cap_drop:
+      - NET_RAW
 
   broker:
     image: confluentinc/cp-kafka:7.2.1
@@ -59,6 +63,8 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    cap_drop:
+      - NET_RAW
 
 
     # Schema Registry
@@ -73,6 +79,8 @@ services:
       REGISTRY_DATASOURCE_PASSWORD: "postgres"
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: divolte-kafka:2181
+    cap_drop:
+      - NET_RAW
 
   kafka-ui:
     container_name: kafka-ui
@@ -90,6 +98,8 @@ services:
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: first
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: "http://kafka-connect0:8083"
       KAFKA_CLUSTERS_0_KSQLDBSERVER: "http://ksqldb-server:8088"
+    cap_drop:
+      - NET_RAW
 
   ksqldb-server:
     image: confluentinc/ksqldb-server:0.28.2
@@ -105,6 +115,8 @@ services:
       KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schema-registry:8080/apis/ccompat/v6"
+    cap_drop:
+      - NET_RAW
 
   ksqldb-cli:
     image: confluentinc/ksqldb-cli:0.28.2
@@ -114,6 +126,8 @@ services:
       - ksqldb-server
     entrypoint: /bin/sh
     tty: true
+    cap_drop:
+      - NET_RAW
 
   apicurio-db:
     ports:
@@ -129,3 +143,5 @@ services:
       - "postgres"
       - "-c"
       - "wal_level=logical"
+    cap_drop:
+      - NET_RAW

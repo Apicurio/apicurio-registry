@@ -1417,6 +1417,34 @@
         ],
         "type": "object"
       }
+    },
+    "securitySchemes": {
+      "BasicAuth": {
+        "description": "By default, Apicurio Registry supports authentication by using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the Apicurio Registry REST API. However, because some tools do not support OpenID Connect, you can also configure Apicurio Registry to support HTTP basic authentication.",
+        "scheme": "basic",
+        "type": "http"
+      },
+      "OAuth2": {
+        "description": "The Apicurio Registry web console and core REST API support authentication in Keycloak based on OAuth and OpenID Connect (OIDC). The same Keycloak realm and users are federated across the Apicurio Registry web console and core REST API using OpenID Connect so that you only require one set of credentials.\n\nApicurio Registry provides role-based authorization for default admin, write, and read-only user roles. Apicurio Registry provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. Apicurio Registry authentication and authorization settings are disabled by default.",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://keycloak.example/realms/registry/protocol/openid-connect/auth",
+            "refreshUrl": "https://keycloak.example/realms/registry/protocol/openid-connect/token",
+            "scopes": {
+              "sr-admin": "Full access to all create, read, update, and delete operations.",
+              "sr-developer": "Access to create, read, update, and delete operations, except configuring global rules. This role can configure artifact-specific rules.",
+              "sr-readonly": "Access to read and search operations only. This role cannot configure any rules."
+            },
+            "tokenUrl": "https://keycloak.example/realms/registry/protocol/openid-connect/token"
+          }
+        },
+        "type": "oauth2"
+      },
+      "OIDC": {
+        "description": "The Apicurio Registry web console and core REST API support authentication in Keycloak based on OAuth and OpenID Connect (OIDC). The same Keycloak realm and users are federated across the Apicurio Registry web console and core REST API using OpenID Connect so that you only require one set of credentials.\n\nApicurio Registry provides role-based authorization for default admin, write, and read-only user roles. Apicurio Registry provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. Apicurio Registry authentication and authorization settings are disabled by default.",
+        "openIdConnectUrl": "https://keycloak.example/realms/registry/.well-known/openid-configuration",
+        "type": "openIdConnect"
+      }
     }
   },
   "info": {
@@ -1457,6 +1485,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "List artifact types",
         "tags": [
           "Artifact Type",
@@ -1487,6 +1529,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "List all configuration properties",
         "tags": [
           "Admin"
@@ -1509,6 +1561,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Reset a configuration property",
         "tags": [
           "Admin"
@@ -1535,6 +1597,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Get configuration property value",
         "tags": [
           "Admin"
@@ -1575,6 +1647,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Update a configuration property",
         "tags": [
           "Admin"
@@ -1616,6 +1698,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Export registry data",
         "tags": [
           "Admin"
@@ -1665,6 +1757,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Import registry data",
         "tags": [
           "Admin"
@@ -1694,6 +1796,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "List logging configurations",
         "tags": [
           "Admin"
@@ -1720,6 +1832,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Removes logger configuration",
         "tags": [
           "Admin"
@@ -1743,6 +1865,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Get a single logger configuration",
         "tags": [
           "Admin"
@@ -1788,6 +1920,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Set a logger's configuration",
         "tags": [
           "Admin"
@@ -1817,6 +1959,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "List all role mappings",
         "tags": [
           "Admin"
@@ -1843,6 +1995,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Create a new role mapping",
         "tags": [
           "Admin"
@@ -1865,6 +2027,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Delete a role mapping",
         "tags": [
           "Admin"
@@ -1891,6 +2063,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Return a single role mapping",
         "tags": [
           "Admin"
@@ -1931,6 +2113,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Update a role mapping",
         "tags": [
           "Admin"
@@ -1950,6 +2142,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Delete all global rules",
         "tags": [
           "Global rules",
@@ -1977,6 +2179,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "List global rules",
         "tags": [
           "Global rules",
@@ -2010,6 +2226,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Create global rule",
         "tags": [
           "Global rules",
@@ -2033,6 +2259,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Delete global rule",
         "tags": [
           "Global rules",
@@ -2060,6 +2296,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get global rule configuration",
         "tags": [
           "Global rules",
@@ -2108,6 +2358,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Update global rule configuration",
         "tags": [
           "Global rules",
@@ -2169,6 +2429,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-readonly",
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "List groups",
         "tags": [
           "Groups"
@@ -2205,6 +2479,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-developer",
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Create a new group",
         "tags": [
           "Groups"
@@ -2227,6 +2513,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Delete a group by the specified ID.",
         "tags": [
           "Groups"
@@ -2253,6 +2551,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get a group by the specified ID.",
         "tags": [
           "Groups"
@@ -2283,6 +2595,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Delete artifacts in group",
         "tags": [
           "Artifacts"
@@ -2340,6 +2664,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "List artifacts in group",
         "tags": [
           "Artifacts"
@@ -2551,6 +2889,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Create artifact",
         "tags": [
           "Artifacts"
@@ -2573,6 +2923,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Delete artifact",
         "tags": [
           "Artifacts"
@@ -2603,6 +2965,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get latest artifact",
         "tags": [
           "Artifacts"
@@ -2770,6 +3146,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Update artifact",
         "tags": [
           "Artifacts"
@@ -2799,6 +3187,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-readonly",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get artifact metadata",
         "tags": [
           "Metadata"
@@ -2931,6 +3333,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Get artifact version metadata by content",
         "tags": [
           "Metadata"
@@ -2961,6 +3375,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Update artifact metadata",
         "tags": [
           "Metadata"
@@ -2990,6 +3416,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get artifact owner",
         "tags": [
           "Metadata"
@@ -3039,6 +3479,16 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin"
+            ],
+            "OIDC": [
+              "sr-admin"
+            ]
+          }
+        ],
         "summary": "Update artifact owner",
         "tags": [
           "Metadata"
@@ -3061,6 +3511,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Delete artifact rules",
         "tags": [
           "Artifact rules"
@@ -3090,6 +3552,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "List artifact rules",
         "tags": [
           "Artifact rules"
@@ -3142,6 +3618,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Create artifact rule",
         "tags": [
           "Artifact rules"
@@ -3164,6 +3652,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Delete artifact rule",
         "tags": [
           "Artifact rules"
@@ -3190,6 +3690,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get artifact rule configuration",
         "tags": [
           "Artifact rules"
@@ -3260,6 +3774,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Update artifact rule configuration",
         "tags": [
           "Artifact rules"
@@ -3315,6 +3841,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Update artifact state",
         "tags": [
           "Artifacts"
@@ -3371,6 +3909,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Test update artifact",
         "tags": [
           "Artifact rules"
@@ -3430,6 +3980,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "List artifact versions",
         "tags": [
           "Versions"
@@ -3597,6 +4161,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Create artifact version",
         "tags": [
           "Versions"
@@ -3622,6 +4198,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Delete artifact version",
         "tags": [
           "Versions"
@@ -3651,6 +4239,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get artifact version",
         "tags": [
           "Versions"
@@ -3712,6 +4314,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get artifact version comments",
         "tags": [
           "Versions"
@@ -3777,6 +4393,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Add new comment",
         "tags": [
           "Versions"
@@ -3799,6 +4427,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Delete a single comment",
         "tags": [
           "Versions"
@@ -3866,6 +4506,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Update a comment",
         "tags": [
           "Versions"
@@ -3888,6 +4540,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Delete artifact version metadata",
         "tags": [
           "Metadata"
@@ -3914,6 +4578,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get artifact version metadata",
         "tags": [
           "Metadata"
@@ -3972,6 +4650,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Update artifact version metadata",
         "tags": [
           "Metadata"
@@ -4004,6 +4694,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get artifact version references",
         "tags": [
           "Versions"
@@ -4106,6 +4810,18 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer"
+            ]
+          }
+        ],
         "summary": "Update artifact version state",
         "tags": [
           "Versions"
@@ -4128,6 +4844,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get artifact content by SHA-256 hash",
         "tags": [
           "Artifacts"
@@ -4165,6 +4895,20 @@
             "description": "A list containing all the references for the artifact with the given content hash."
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "List artifact references by hash",
         "tags": [
           "Artifacts"
@@ -4197,6 +4941,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get artifact content by ID",
         "tags": [
           "Artifacts"
@@ -4235,6 +4993,20 @@
             "description": "A list containing all the references for the artifact with the given content id."
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "List artifact references by content ID",
         "tags": [
           "Artifacts"
@@ -4278,6 +5050,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Get artifact by global ID",
         "tags": [
           "Artifacts"
@@ -4316,6 +5102,20 @@
             "description": "A list containing all the references for the artifact with the given global id."
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "List artifact references by global ID",
         "tags": [
           "Artifacts"
@@ -4464,6 +5264,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Search for artifacts",
         "tags": [
           "Search",
@@ -4561,6 +5375,20 @@
             "$ref": "#/components/responses/ServerError"
           }
         },
+        "security": [
+          {
+            "OAuth2": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ],
+            "OIDC": [
+              "sr-admin",
+              "sr-developer",
+              "sr-readonly"
+            ]
+          }
+        ],
         "summary": "Search for artifacts by content",
         "tags": [
           "Search",

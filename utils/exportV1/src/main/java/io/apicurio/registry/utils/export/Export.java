@@ -248,7 +248,7 @@ public class Export implements QuarkusApplication {
         okHttpClientBuilder = addHeaders(okHttpClientBuilder, baseUrl, configs);
 
         try {
-            SSLContext sc = SSLContext.getInstance("SSL");
+            SSLContext sc = SSLContext.getInstance("TLSv1.2");
             X509TrustManager[] trustManagers = new X509TrustManager[]{new FakeTrustManager()};
             sc.init(null, trustManagers, new java.security.SecureRandom());
             okHttpClientBuilder.sslSocketFactory(sc.getSocketFactory(), trustManagers[0]);

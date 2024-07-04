@@ -25,20 +25,16 @@ import io.apicurio.registry.services.DisabledApisMatcherService;
 import io.apicurio.registry.services.http.ErrorHttpResponse;
 import io.apicurio.registry.services.http.RegistryExceptionMapperService;
 import io.apicurio.tenantmanager.api.datamodel.TenantStatusValue;
-import org.slf4j.Logger;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.servlet.Filter;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.RequestDispatcher;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
+import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.MediaType;
+import org.slf4j.Logger;
+
 import java.io.IOException;
+import java.net.URI;
 import java.util.Optional;
 
 /**
@@ -79,47 +75,44 @@ public class RegistryApplicationServletFilter implements Filter {
      * @see jakarta.servlet.Filter#doFilter(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse, jakarta.servlet.FilterChain)
      */
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        StringBuilder rewriteContext = new StringBuilder();
-        HttpServletRequest req = (HttpServletRequest) request;
-        String requestURI = req.getRequestURI();
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws ServletException, IOException {
+        try {
+            HttpServletRequest req = (HttpServletRequest) request;
 
-        if (requestURI != null) {
-            Optional<String> tenantIdOpt;
-            try {
+            if (req.getRequestURI() != null) { // TODO: Can the reverse happen?
 
-                tenantIdOpt = tenantIdResolver.resolveTenantId(
+                URI requestURI = new URI(req.getRequestURI()).normalize();
+                StringBuilder rewritePath = new StringBuilder(); // We have to do this because rewritePath must be (effectively) final.
+
+                Optional<String> tenantIdOpt = tenantIdResolver.resolveTenantId(
                         // Request URI
-                        requestURI,
+                        requestURI.getPath(),
                         // Function to get an HTTP request header value
                         req::getHeader,
                         // Function to get the serverName from the HTTP request
                         req::getServerName,
                         // Handler/callback to do some URL rewriting only if needed
                         (tenantId) -> {
-                            String actualUri = requestURI.substring(tenantIdResolver.tenantPrefixLength(tenantId));
-                            if (actualUri.length() == 0) {
-                                actualUri = "/";
+                            String p = requestURI.getPath().substring(tenantIdResolver.tenantPrefixLength(tenantId));
+                            if (p.length() == 0) {
+                                p = "/";
                             }
+                            rewritePath.append(p);
 
-                            log.debug("tenantId[{}] Rewriting request {} to {}", tenantId, requestURI, actualUri);
-
-                            rewriteContext.append(actualUri);
+                            log.debug("tenantId[{}] Rewriting request {} to {}", tenantId, requestURI, p);
                         });
-            } catch (Throwable throwable) {
-                mapException(response, throwable);
-                //important to return, to stop the filters chain
-                return;
-            }
 
 
-            boolean rewriteRequest = tenantIdOpt.isPresent() && rewriteContext.length() != 0;
-            String evaluatedURI = requestURI;
-            if (rewriteRequest) {
-                evaluatedURI = rewriteContext.toString();
-            }
+                boolean rewriteRequest = tenantIdOpt.isPresent() && rewritePath.length() != 0;
+                URI effectiveURI;
+                if (rewriteRequest) {
+                    effectiveURI = new URI(requestURI.getScheme(), requestURI.getUserInfo(), requestURI.getHost(), // Most of these are empty, but we're being pedantic.
+                            requestURI.getPort(), rewritePath.toString(), requestURI.getQuery(), requestURI.getFragment());
+                } else {
+                    effectiveURI = requestURI;
+                }
 
-            try {
+
                 var tenantStatus = tenantContext.getTenantStatus();
                 if (mtProperties.isMultitenancyEnabled() && tenantStatus != TenantStatusValue.READY) {
                     log.debug("Request {} is rejected because the tenant is not ready. Status is {}",
@@ -130,29 +123,31 @@ public class RegistryApplicationServletFilter implements Filter {
                     //important to return, to stop the filters chain
                     return;
                 }
-            } catch (Throwable throwable) {
-                mapException(response, throwable);
-                return;
+
+
+                boolean disabled = disabledApisMatcherService.isDisabled(effectiveURI.getPath());
+
+                if (disabled) {
+                    HttpServletResponse httpResponse = (HttpServletResponse) response;
+                    httpResponse.reset();
+                    httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    //important to return, to stop the filters chain
+                    return;
+                } else if (rewriteRequest) {
+                    RequestDispatcher dispatcher = req.getRequestDispatcher(effectiveURI.toString());
+                    dispatcher.forward(req, response);
+                    //important to return, to stop the filters chain
+                    return;
+                }
             }
 
-            boolean disabled = disabledApisMatcherService.isDisabled(evaluatedURI);
+            chain.doFilter(request, response);
 
-            if (disabled) {
-                HttpServletResponse httpResponse = (HttpServletResponse) response;
-                httpResponse.reset();
-                httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                //important to return, to stop the filters chain
-                return;
-            } else if (rewriteRequest) {
-                RequestDispatcher dispatcher = req.getRequestDispatcher(rewriteContext.toString());
-                dispatcher.forward(req, response);
-                //important to return, to stop the filters chain
-                return;
-            }
-
+        } catch (ServletException ex) {
+            throw ex;
+        } catch (Throwable throwable) {
+            mapException(response, throwable);
         }
-
-        chain.doFilter(request, response);
     }
 
     private void mapException(ServletResponse response, Throwable throwable) throws IOException {

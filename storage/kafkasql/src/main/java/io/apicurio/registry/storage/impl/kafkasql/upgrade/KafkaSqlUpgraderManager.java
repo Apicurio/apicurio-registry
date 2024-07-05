@@ -17,6 +17,8 @@
 package io.apicurio.registry.storage.impl.kafkasql.upgrade;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.common.apps.multitenancy.TenantContext;
+import io.apicurio.common.apps.multitenancy.TenantContextLoader;
 import io.apicurio.registry.exception.RuntimeAssertionFailedException;
 import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
@@ -26,7 +28,9 @@ import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlStore;
 import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
 import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 import io.apicurio.registry.storage.impl.kafkasql.values.UpgraderValue;
+import io.apicurio.registry.utils.impexp.ContentEntity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import lombok.Getter;
@@ -102,6 +106,12 @@ public class KafkaSqlUpgraderManager {
 
     @Inject
     ThreadContext threadContext;
+
+    @Inject
+    TenantContextLoader tcl;
+
+    @Inject
+    TenantContext tctx;
 
     /**
      * Unique ID of this upgrader, generated on each Registry start.
@@ -336,10 +346,11 @@ public class KafkaSqlUpgraderManager {
                                     lockHeartbeat.heartbeat(); // Initialize heartbeat
                                     if (testMode) {
                                         try {
-                                            var c = sqlStore.getContentEntityByContentId(2);
+                                            var c = getContentEntityByContentIdForTest(2);
                                             log.debug("Content hash before: {}", c.contentHash);
                                             log.debug("Canonical content hash before: {}", c.canonicalHash);
-                                        } catch (Exception ignored) {
+                                        } catch (Exception ex) {
+                                            log.error("Suppressing exception in TEST MODE", ex);
                                         }
                                     }
                                     for (KafkaSqlUpgrader u : activeUpgraders) {
@@ -357,10 +368,11 @@ public class KafkaSqlUpgraderManager {
                                     }
                                     if (testMode) {
                                         try {
-                                            var c = sqlStore.getContentEntityByContentId(2);
+                                            var c = getContentEntityByContentIdForTest(2);
                                             log.debug("Content hash after: {}", c.contentHash);
                                             log.debug("Canonical content hash after: {}", c.canonicalHash);
-                                        } catch (Exception ignored) {
+                                        } catch (Exception ex) {
+                                            log.error("Suppressing exception in TEST MODE", ex);
                                         }
                                     }
                                 }
@@ -524,6 +536,15 @@ public class KafkaSqlUpgraderManager {
             default:
                 throw new RuntimeAssertionFailedException("Read an upgrader message with unsupported action type: " + value.getAction());
         }
+    }
+
+
+    @ActivateRequestContext
+    synchronized ContentEntity getContentEntityByContentIdForTest(int contentId) {
+        tctx.setContext(tcl.loadBatchJobContext(TenantContext.DEFAULT_TENANT_ID));
+        var res = sqlStore.getContentEntityByContentId(contentId);
+        tctx.clearContext();
+        return res;
     }
 
 

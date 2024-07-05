@@ -7,6 +7,12 @@ import io.apicurio.registry.storage.impl.kafkasql.values.MessageValue;
 /**
  * Implementors of this interface provide upgrade functionality for KafkaSQL storage.
  * Please read the javadoc of {@link KafkaSqlUpgraderManager} as well.
+ * <p>
+ * Multitenancy considerations:
+ * Methods on this class are not called with request context active.
+ * Therefore, upgraders MUST NOT rely on multitenancy features, unless handled manually
+ * (e.g. use @ActivateRequestContext and load a tenant manually).
+ * As a result, they MUST be tenant agnostic.
  */
 public interface KafkaSqlUpgrader extends AutoCloseable {
 

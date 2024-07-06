@@ -30,7 +30,7 @@ spec:
               name: http
               protocol: TCP
           readinessProbe:
-            failureThreshold: 60 # Intentionally high
+            failureThreshold: 120 # Intentionally high
             httpGet:
               path: /health/ready
               port: 8080
@@ -40,7 +40,7 @@ spec:
             successThreshold: 1
             timeoutSeconds: 10
           livenessProbe:
-            failureThreshold: 60 # Intentionally high
+            failureThreshold: 120 # Intentionally high
             httpGet:
               path: /health/live
               port: 8080

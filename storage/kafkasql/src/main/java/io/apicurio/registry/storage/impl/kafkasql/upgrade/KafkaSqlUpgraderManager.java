@@ -34,6 +34,7 @@ import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import lombok.Getter;
+import lombok.ToString;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.context.ThreadContext;
@@ -76,7 +77,7 @@ public class KafkaSqlUpgraderManager {
      * <p>
      * However, since we have heartbeat messages, this time does not have to be too long.
      */
-    @ConfigProperty(name = "registry.kafkasql.upgrade-lock-timeout", defaultValue = "10s")
+    @ConfigProperty(name = "registry.kafkasql.upgrade-lock-timeout", defaultValue = "80s")
     @Info(category = "store", description = "How long should KafkaSQL upgrader manager hold the lock before it's assumed to have failed. " +
             "There is a tradeoff between giving the upgrade process enough time and recovering from a failed upgrade. " +
             "You may need to increase this value if your Kafka cluster is very busy.", availableSince = "2.5.9.Final")
@@ -128,6 +129,8 @@ public class KafkaSqlUpgraderManager {
 
     private long sequence;
 
+    private Instant kafkaClock;
+
     private volatile boolean localTryLocked;
     private Instant localTryLockedTimestamp;
     private volatile boolean upgrading;
@@ -165,8 +168,9 @@ public class KafkaSqlUpgraderManager {
         // We need to keep in mind that multiple nodes might start at the same time.
         // Upgrader runs only once on startup, so this can be set once.
         localUpgraderUUID = UUID.randomUUID().toString();
+        log.debug("UUID of this upgrader is {}", localUpgraderUUID);
 
-        waitHeartbeatEmitter = new WaitHeartbeatEmitter(scale(lockTimeout, 1.1f), submitter, log, threadContext);
+        waitHeartbeatEmitter = new WaitHeartbeatEmitter(scale(lockTimeout, 0.26f), submitter, log, threadContext);
 
         // Produce a bootstrap message to know when we are up-to-date with the topic. We don't know the version yet.
         submitter.send(UpgraderKey.create(true), UpgraderValue.create(ActionType.UPGRADE_BOOTSTRAP, localUpgraderUUID, null));
@@ -192,9 +196,12 @@ public class KafkaSqlUpgraderManager {
             }
 
             if (key instanceof UpgraderKey) {
+                log.debug("Reading UpgraderKey {}", key);
+                log.debug("Reading UpgraderValue {} {}", ((UpgraderValue) value).getAction(), value);
                 // Update our lock map
                 var upgraderValue = (UpgraderValue) value;
-                updateLockMap(currentTimestamp, upgraderValue);
+                processMessage(currentTimestamp, upgraderValue);
+                log.debug("Lock map state: {}", lockMap);
             }
         }
 
@@ -218,8 +225,10 @@ public class KafkaSqlUpgraderManager {
                                     var slip = Duration.between(initTimestamp, currentTimestamp).abs().toMillis();
                                     if (slip > scale(lockTimeout, 0.25f).toMillis()) {
                                         log.warn("We detected a significant time difference ({} ms) between a moment when a Kafka message is produced (local time), " +
-                                                "and it's creation timestamp reported by Kafka at the moment it is consumed. If this causes issues during KafkaSQL storage upgrade, " +
-                                                "consider increasing 'registry.kafkasql.upgrade-lock-timeout' config value (currently {} ms).", slip, lockTimeout);
+                                                "and it's creation timestamp reported by Kafka at the moment it is consumed. " +
+                                                "This might happen when Kafka is configured with message.timestamp.type=LogAppendTime. " +
+                                                "If this causes issues during KafkaSQL storage upgrade, " +
+                                                "consider increasing 'registry.kafkasql.upgrade-lock-timeout' config value (currently {}).", slip, lockTimeout);
                                     }
                                     switchState(State.WAIT);
                                 }
@@ -256,9 +265,8 @@ public class KafkaSqlUpgraderManager {
                             // Nobody tried to upgrade yet, or failed, we should try.
                             if (localTryLocked) {
                                 // We have tried to lock, eventually it might be our turn to go, but we have to check for our own timeout
-                                var now = Instant.now();
-                                if (lockMap.get(localUpgraderUUID).latestLockTimestamp != null && now.isAfter(lockMap.get(localUpgraderUUID).latestLockTimestamp.plus(lockTimeout)) &&
-                                        localTryLockedTimestamp != null && now.isAfter(localTryLockedTimestamp.plus(scale(lockTimeout, 1.5f)))) { // We need to prevent loop here, so we keep a local timestamp as well
+                                if (lockMap.get(localUpgraderUUID).latestLockTimestamp != null && kafkaClock.isAfter(lockMap.get(localUpgraderUUID).latestLockTimestamp.plus(lockTimeout)) &&
+                                        localTryLockedTimestamp != null && Instant.now().isAfter(localTryLockedTimestamp.plus(scale(lockTimeout, 1.5f)))) { // We need to prevent loop here, so we keep a local timestamp as well
                                     // Our own lock has timed out, we can try again
                                     localTryLocked = false;
                                     switchState(State.TRY_LOCK);
@@ -282,11 +290,10 @@ public class KafkaSqlUpgraderManager {
                             // We've got the lock, but we may have sent an unlock message
                             if (localTryLocked) {
                                 // We got the lock, but first check if we have enough time.
-                                var now = Instant.now();
-                                if (now.isAfter(lockMap.get(localUpgraderUUID).latestLockTimestamp.plus(scale(lockTimeout, 0.5f)))) {
+                                if (kafkaClock.isAfter(lockMap.get(localUpgraderUUID).latestLockTimestamp.plus(scale(lockTimeout, 0.5f)))) {
                                     // We should unlock and wait, then try again
                                     log.warn("We've got the lock but we don't have enough time ({} ms remaining). Unlocking.",
-                                            Duration.between(lockMap.get(localUpgraderUUID).latestLockTimestamp, now).toMillis());
+                                            Duration.between(lockMap.get(localUpgraderUUID).latestLockTimestamp, kafkaClock).toMillis());
                                     submitter.send(UpgraderKey.create(true), UpgraderValue.create(ActionType.UPGRADE_ABORT_AND_UNLOCK, localUpgraderUUID, targetVersion));
                                     localTryLocked = false;
                                     // No need to send heartbeat, since we're expecting to read the unlock message
@@ -488,14 +495,46 @@ public class KafkaSqlUpgraderManager {
         var r = lockMap.values().stream()
                 .filter(rr -> rr.targetVersion != null &&
                         rr.targetVersion == targetVersion &&
-                        rr.tryLocked &&
-                        !rr.isTimedOut(Instant.now(), lockTimeout))
+                        rr.tryLocked)
+                .filter(rr -> {
+                    var to = rr.isTimedOut(kafkaClock, lockTimeout);
+                    if (to) {
+                        log.debug("Lock of upgrader {} has timed out.", rr.upgraderUUID);
+                    }
+                    return !to;
+                })
                 .min(Comparator.comparingLong(rr -> rr.tryLockSequence));
         return r.orElse(null);
     }
 
 
-    private void updateLockMap(Instant timestamp, UpgraderValue value) {
+    private void processMessage(Instant timestamp, UpgraderValue value) {
+        /*
+         * There are two main ways how the Kafka message gets a timestamp:
+         *   - By the broker when a message is put into the log (LogAppendTime), or
+         *   - By a client/producer when a message is created (CreateTime)
+         * based on topic configuration https://kafka.apache.org/documentation/#log.message.timestamp.type
+         *
+         * The first case is better for synchronisation, and we try to set it by default in
+         * io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage.autoCreateTopics.
+         *
+         * However, we have to handle the second case as well, so we have to ensure that:
+         *   - the kafka clock does not go back in time, and
+         *   - we use big enough lock timeout to handle potentially large round-trip times.
+         */
+        if (kafkaClock == null || timestamp.isAfter(kafkaClock)) {
+            kafkaClock = timestamp;
+        } else {
+            var slip = Duration.between(timestamp, kafkaClock).abs().toMillis();
+            if (slip > scale(lockTimeout, 0.25f).toMillis()) {
+                log.warn("Ignoring significantly antedated timestamp {}, current kafka clock is {}. " +
+                        "This might happen when Kafka is configured with message.timestamp.type=CreateTime. " +
+                        "If this causes issues during KafkaSQL storage upgrade, " +
+                        "consider increasing 'registry.kafkasql.upgrade-lock-timeout' config value (currently {}).", timestamp, kafkaClock, lockTimeout);
+            } else {
+                log.debug("Ignoring antedated timestamp {}, current kafka clock is {}.", timestamp, kafkaClock);
+            }
+        }
         if (value.getUpgraderUUID() == null) {
             return;
         }
@@ -559,6 +598,7 @@ public class KafkaSqlUpgraderManager {
     }
 
 
+    @ToString
     private static class LockRecord {
         // UUID of the upgrader
         String upgraderUUID;
@@ -608,7 +648,7 @@ public class KafkaSqlUpgraderManager {
          */
         public synchronized void heartbeat() {
             var now = Instant.now();
-            if (lastHeartbeat == null || now.isAfter(lastHeartbeat.plus(scale(lockTimeout, 0.35f)))) {
+            if (lastHeartbeat == null || now.isAfter(lastHeartbeat.plus(scale(lockTimeout, 0.25f)))) {
                 log.debug("Sending lock heartbeat.");
                 submitter.send(UpgraderKey.create(true), UpgraderValue.create(ActionType.UPGRADE_LOCK_HEARTBEAT, localUpgraderUUID, null));
                 lastHeartbeat = now;
@@ -617,7 +657,7 @@ public class KafkaSqlUpgraderManager {
 
 
         private synchronized boolean isTimedOut() {
-            return Instant.now().isAfter(lastHeartbeat.plus(scale(lockTimeout, 0.85f)));
+            return Instant.now().isAfter(lastHeartbeat.plus(scale(lockTimeout, 0.75f)));
         }
     }
 
@@ -697,13 +737,13 @@ public class KafkaSqlUpgraderManager {
 
     /* This is the current lock timeout schematic:
      *
-     * Lock timeout:         |------------------------------|        100% =  10s (default)
-     * Wait heartbeat:       |                              .  |     110% =  11s
-     * Lock heartbeat:       |           |                  .         35% = 3.5s
-     * Too late to upgrade:  |               |              .         50% =   5s
-     * Upgrader timeout*:    |                          |   .         85% = 8.5s
+     * Lock timeout:         |------------------------------|      100%
+     * Wait heartbeat:       |        |                     .      26%
+     * Lock heartbeat:       |       |                      .      25%
+     * Too late to upgrade:  |              |               .      50%
+     * Upgrader timeout*:    |                      |       .      75%
      *
      * * This is the longest time upgrader can block without sending a heartbeat,
-     *   assuming that the heartbeat Kafka message is stored within ~15% of lock timeout (1.5s by default).
+     *   assuming that the heartbeat Kafka message is stored within ~25% of lock timeout.
      */
 }

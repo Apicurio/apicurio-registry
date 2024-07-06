@@ -45,12 +45,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Tag(Constants.KAFKASQL_MANUAL)
 public class KafkaSqlStorageUpgraderManagerIT implements TestSeparator, Constants {
 
-    public static final int LOCK_TIMEOUT_SECONDS = 10;
+    public static final int LOCK_TIMEOUT_SECONDS = 80;
 
     private long testTimeoutMultiplier = 1;
 
     private static final BiConsumer<String, RegistryRunner> REPORTER = (line, node) -> {
-        if (line.contains("We detected a significant time difference")) {
+        if (line.contains("consider increasing 'registry.kafkasql.upgrade-lock-timeout' config value")) {
             node.getReport().put("time-slip-detected", true);
         }
         if (line.contains("State change: WAIT -> LOCKED")) {

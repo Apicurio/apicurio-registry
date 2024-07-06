@@ -192,6 +192,8 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         configuration.topicProperties().entrySet().forEach(entry -> topicProperties.put(entry.getKey().toString(), entry.getValue().toString()));
         // Use log compaction by default.
         topicProperties.putIfAbsent(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT);
+        // See KafkaSqlUpgraderManager
+        topicProperties.putIfAbsent(TopicConfig.MESSAGE_TIMESTAMP_TYPE_CONFIG, "LogAppendTime");
         Properties adminProperties = configuration.adminProperties();
         adminProperties.putIfAbsent(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, configuration.bootstrapServers());
         try {

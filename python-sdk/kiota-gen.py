@@ -24,8 +24,8 @@ def generate_kiota_client_files(setup_kwargs):
     if kiota_arch_name is None:
         print("Unsupported architecture.")
         exit(1)
-
-    if platform.processor()[0] == "arm" and kiota_arch_name == "x64":
+    processor = platform.processor()
+    if len(processor) == 1 and processor[0] == "arm" and kiota_arch_name == "x64":
         kiota_arch_name = "arm64"
 
     kiota_release_name = f"{kiota_os_name}-{kiota_arch_name}.zip"

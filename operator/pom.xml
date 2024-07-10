@@ -28,7 +28,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <awaitility.version>4.2.1</awaitility.version>
     <kubernetes-client-java-gen.version>6.13.1</kubernetes-client-java-gen.version>
-    <assertj.core.version>3.26.0</assertj.core.version>
+    <assertj.core.version>3.26.3</assertj.core.version>
     <bouncycastle.version>1.70</bouncycastle.version>
     <!-- ATTENTION! The Quarkus version needs to be aligned with the Quarkus Operator SDK -->
     <!-- TODO: possibly stabilize on something shared with the rest of the repo -->

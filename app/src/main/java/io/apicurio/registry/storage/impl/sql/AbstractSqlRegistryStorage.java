@@ -281,6 +281,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         log.info("Build's DB version is {}", DB_VERSION);
         int version = this.getDatabaseVersion(handle);
 
+        // Fast-fail if we try to run Registry v3 against a v2 DB.
         if (version < 100) {
             String message = "[Apicurio Registry 3.x] Detected legacy 2.x database.  Automatic upgrade from 2.x to 3.x is not supported.  Please see documentation for migration instructions.";
             log.error("--------------------------");

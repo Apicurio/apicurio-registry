@@ -51,7 +51,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
             return (
                 <div>
                     <Link className="version-title"
-                        style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                        style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
                         to={appNavigation.createLink(`/explore/${encodeURIComponent(props.artifact.groupId || "default")}/${encodeURIComponent(props.artifact.artifactId!)}/${encodeURIComponent(column.version!)}`)}
                     >
                         <span>{ column.version }</span>

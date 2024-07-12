@@ -31,7 +31,7 @@
     "vite-tsconfig-paths": "4.3.2"
   },
   "dependencies": {
-    "@apicurio/common-ui-components": "2.0.1",
+    "@apicurio/common-ui-components": "2.0.2",
     "@apicurio/apicurio-registry-sdk": "file:../../typescript-sdk",
     "@apicurio/data-models": "1.1.27",
     "@microsoft/kiota-abstractions": "1.0.0-preview.57",

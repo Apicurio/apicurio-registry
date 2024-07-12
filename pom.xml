@@ -696,6 +696,12 @@
             </dependency>
 
             <dependency>
+                <groupId>io.strimzi</groupId>
+                <artifactId>kafka-oauth-common</artifactId>
+                <version>${kafka-oauth-client.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>

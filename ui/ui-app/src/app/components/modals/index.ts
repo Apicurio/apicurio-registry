@@ -1,6 +1,5 @@
 export * from "./ChangeOwnerModal";
 export * from "./ConfirmDeleteModal";
-export * from "./CreateArtifactForm";
 export * from "./CreateArtifactModal";
 export * from "./CreateGroupModal";
 export * from "./CreateVersionModal";

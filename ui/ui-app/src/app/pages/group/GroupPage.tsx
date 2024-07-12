@@ -107,7 +107,7 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
         });
     };
 
-    const doCreateArtifact = (_groupId: string|null, data: CreateArtifact): void => {
+    const doCreateArtifact = (_groupId: string | undefined, data: CreateArtifact): void => {
         // Note: the create artifact modal passes the groupId, but we don't care about that because
         // this is the group page, so we know we want to create the artifact within this group!
         onCreateArtifactModalClose();

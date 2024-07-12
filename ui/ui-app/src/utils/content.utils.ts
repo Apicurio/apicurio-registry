@@ -100,7 +100,7 @@ export function contentToString(content: any): string {
 }
 
 
-export function detectContentType(artifactType: string, content: string): string {
+export function detectContentType(artifactType: string | undefined, content: string | undefined): string {
     switch (artifactType) {
         case "PROTOBUF":
             return ContentTypes.APPLICATION_PROTOBUF;
@@ -110,6 +110,9 @@ export function detectContentType(artifactType: string, content: string): string
             return ContentTypes.APPLICATION_XML;
         case "GRAPHQL":
             return ContentTypes.APPLICATION_GRAPHQL;
+    }
+    if (content === undefined) {
+        return ContentTypes.APPLICATION_OCTET_STREAM;
     }
     if (isJson(content)) {
         return ContentTypes.APPLICATION_JSON;

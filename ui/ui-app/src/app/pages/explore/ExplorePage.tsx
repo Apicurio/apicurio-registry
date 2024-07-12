@@ -143,12 +143,12 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         }
     };
 
-    const doCreateArtifact = (groupId: string|null, data: CreateArtifact): void => {
+    const doCreateArtifact = (groupId: string | undefined, data: CreateArtifact): void => {
         onCreateArtifactModalClose();
         pleaseWait(true);
 
         if (data !== null) {
-            groups.createArtifact(groupId, data).then(response => {
+            groups.createArtifact(groupId || "default", data).then(response => {
                 const groupId: string = response.artifact!.groupId || "default";
                 const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact!.artifactId!) }`;
                 logger.info("[ExplorePage] Artifact successfully created.  Redirecting to details: ", artifactLocation);

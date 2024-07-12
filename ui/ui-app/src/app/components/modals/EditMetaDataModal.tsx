@@ -13,39 +13,13 @@ import {
 import { If } from "@apicurio/common-ui-components";
 import { ArtifactLabel, LabelsFormGroup } from "@app/components";
 import { Labels } from "@sdk/lib/generated-client/models";
-import { labelsToAny } from "@utils/rest.utils.ts";
+import { labelsToList, listToLabels } from "@utils/labels.utils.ts";
 
 
 export type MetaData = {
     name?: string;
     description: string;
     labels: Labels;
-}
-
-
-function labelsToList(labels: Labels): ArtifactLabel[] {
-    const theLabels: any = labelsToAny(labels);
-    delete theLabels["additionalData"];
-    return Object.keys(theLabels).filter((key) => key !== undefined).map(key => {
-        return {
-            name: key,
-            value: theLabels[key] as string,
-            nameValidated: "default",
-            valueValidated: "default"
-        };
-    });
-}
-
-function listToLabels(labels: ArtifactLabel[]): Labels {
-    const rval: Labels = {
-        additionalData: {}
-    };
-    labels.forEach(label => {
-        if (label.name) {
-            rval.additionalData![label.name] = label.value;
-        }
-    });
-    return rval;
 }
 
 

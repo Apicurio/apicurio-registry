@@ -278,13 +278,22 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     const isValid: boolean = isCoordinates1Valid;
 
     const coordinatesStepFooter: Partial<WizardFooterProps> = {
+        nextButtonProps: {
+            id: "next-wizard-page"
+        },
         onClose: props.onClose,
         isNextDisabled: !isCoordinates1Valid
     };
     const artifactMetadataStepFooter: Partial<WizardFooterProps> = {
+        nextButtonProps: {
+            id: "next-wizard-page"
+        },
         onClose: props.onClose
     };
     const versionContentStepFooter: Partial<WizardFooterProps> = {
+        nextButtonProps: {
+            id: "next-wizard-page"
+        },
         onClose: props.onClose
     };
     if (!hasVersionContent) {
@@ -293,6 +302,9 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         versionContentStepFooter.isNextDisabled = !isValid;
     }
     const versionMetadataStepFooter: Partial<WizardFooterProps> = {
+        nextButtonProps: {
+            id: "next-wizard-page"
+        },
         nextButtonText: "Create",
         isNextDisabled: !isValid,
         onNext: fireCreateEvent,
@@ -316,7 +328,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                 isRequired={false}
                                 type="text"
                                 id="form-group"
-                                data-testid="create-artifact-form-group"
+                                data-testid="create-artifact-modal-group"
                                 name="form-group"
                                 aria-describedby="form-group-helper"
                                 value={groupId as string || ""}
@@ -339,7 +351,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                 isRequired={false}
                                 type="text"
                                 id="form-id"
-                                data-testid="create-artifact-form-id"
+                                data-testid="create-artifact-modal-id"
                                 name="form-id"
                                 aria-describedby="form-id-helper"
                                 value={data.artifactId || ""}
@@ -359,10 +371,10 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                             <ObjectSelect
                                 value={selectedType}
                                 items={artifactTypeOptions}
-                                testId="create-artifact-form-type-select"
+                                testId="create-artifact-modal-type-select"
                                 onSelect={setSelectedType}
                                 itemIsDivider={(item) => item.isDivider}
-                                itemToTestId={(item) => `create-artifact-form-${item.value}`}
+                                itemToTestId={(item) => `create-artifact-modal-${item.value}`}
                                 itemToString={(item) => item.label}
                                 appendTo="document"
                             />
@@ -383,7 +395,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                         isRequired={false}
                                         type="text"
                                         id="artifact-name"
-                                        data-testid="artifact-metadata-name"
+                                        data-testid="create-artifact-modal-artifact-metadata-name"
                                         name="artifact-name"
                                         aria-describedby="artifact-name-helper"
                                         value={data.name || ""}
@@ -398,7 +410,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                     <TextArea
                                         isRequired={false}
                                         id="artifact-description"
-                                        data-testid="artifact-metadata-description"
+                                        data-testid="create-artifact-modal-artifact-metadata-description"
                                         name="artifact-description"
                                         aria-describedby="artifact-description-helper"
                                         value={data.description || ""}
@@ -425,7 +437,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                 isRequired={false}
                                 type="text"
                                 id="form-version"
-                                data-testid="create-artifact-form-version"
+                                data-testid="create-artifact-modal-version"
                                 name="form-version"
                                 aria-describedby="form-version-helper"
                                 value={data.firstVersion?.version || ""}
@@ -456,7 +468,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                 >
                                     <FileUpload
                                         id="artifact-content"
-                                        data-testid="create-artifact-form-file-upload"
+                                        data-testid="create-artifact-modal-file-upload"
                                         type="text"
                                         value={data.firstVersion?.content?.content || ""}
                                         isRequired={false}
@@ -478,7 +490,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                     <UrlUpload
                                         id="artifact-content-url"
                                         urlPlaceholder="Enter a valid and accessible URL"
-                                        testId="create-artifact-form-url-upload"
+                                        testId="create-artifact-modal-url-upload"
                                         onChange={(value) => {
                                             onFileTextChange(null, value);
                                         }}
@@ -509,7 +521,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                         isRequired={false}
                                         type="text"
                                         id="version-name"
-                                        data-testid="version-metadata-name"
+                                        data-testid="create-artifact-modal-version-metadata-name"
                                         name="version-name"
                                         aria-describedby="version-name-helper"
                                         value={data.firstVersion?.name || ""}
@@ -524,7 +536,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                     <TextArea
                                         isRequired={false}
                                         id="version-description"
-                                        data-testid="version-metadata-description"
+                                        data-testid="create-artifact-modal-version-metadata-description"
                                         name="version-description"
                                         aria-describedby="version-description-helper"
                                         value={data.firstVersion?.description || ""}

@@ -16,7 +16,8 @@ import {
     TextArea,
     TextInput,
     Wizard,
-    WizardStep
+    WizardStep,
+    WizardFooterProps
 } from "@patternfly/react-core";
 import { CreateArtifact } from "@sdk/lib/generated-client/models";
 import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
@@ -26,7 +27,6 @@ import { ArtifactTypesService, useArtifactTypesService } from "@services/useArti
 import { ArtifactLabel, LabelsFormGroup } from "@app/components";
 import { listToLabels } from "@utils/labels.utils.ts";
 import { detectContentType } from "@utils/content.utils.ts";
-import { WizardFooterProps } from "@patternfly/react-core/src/components/Wizard/WizardFooter.tsx";
 
 
 export type ValidType = "default" | "success" | "error";

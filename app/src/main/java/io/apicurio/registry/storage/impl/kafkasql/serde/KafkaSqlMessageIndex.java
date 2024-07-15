@@ -26,6 +26,7 @@ import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGlobalRule1Mess
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGlobalRules0Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGroup1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteRoleMapping1Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.ExecuteSqlStatement1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.ImportArtifact1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.ImportArtifactRule1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.ImportArtifactVersion1Message;
@@ -94,7 +95,8 @@ public class KafkaSqlMessageIndex {
                 UpdateArtifactRule4Message.class, UpdateArtifactVersionComment5Message.class,
                 UpdateArtifactVersionMetaData4Message.class, UpdateBranchMetaData3Message.class,
                 UpdateContentCanonicalHash3Message.class, UpdateGlobalRule2Message.class,
-                UpdateGroupMetaData2Message.class, UpdateRoleMapping2Message.class);
+                UpdateGroupMetaData2Message.class, UpdateRoleMapping2Message.class,
+                ExecuteSqlStatement1Message.class);
     }
 
     public static Class<? extends KafkaSqlMessage> lookup(String name) {

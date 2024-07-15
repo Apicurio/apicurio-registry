@@ -126,7 +126,7 @@ test("End to End - Create new version", async ({ page }) => {
     await page.getByTestId("modal-btn-create").click();
 
     // Make sure we redirected to the artifact detail page.
-    await expect(page).toHaveURL(/.+\/explore\/e2e\/MyArtifact\/2/);
+    await expect(page).toHaveURL(/.+\/explore\/e2e\/MyArtifact\/versions\/2/);
 });
 
 

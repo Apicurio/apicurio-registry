@@ -6,7 +6,7 @@ import { FunctionComponent } from "react";
 import { Page } from "@patternfly/react-core";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AppHeader } from "@app/components";
-import { ExplorePage, GroupPage, NotFoundPage, RootRedirectPage, RulesPage, VersionPage } from "@app/pages";
+import { BranchPage, ExplorePage, GroupPage, NotFoundPage, RootRedirectPage, RulesPage, VersionPage } from "@app/pages";
 import { RolesPage, SettingsPage } from "./pages";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
@@ -50,18 +50,56 @@ export const App: FunctionComponent<AppProps> = () => {
                             <Route path="/roles" element={ <RolesPage /> } />
                             <Route path="/settings" element={ <SettingsPage /> } />
                             <Route path="/explore" element={ <ExplorePage /> } />
+
                             <Route
                                 path="/explore/:groupId"
                                 element={ <GroupPage /> }
                             />
                             <Route
+                                path="/explore/:groupId/artifacts"
+                                element={ <GroupPage /> }
+                            />
+
+                            <Route
                                 path="/explore/:groupId/:artifactId"
                                 element={ <ArtifactPage /> }
                             />
                             <Route
-                                path="/explore/:groupId/:artifactId/:version"
+                                path="/explore/:groupId/:artifactId/versions"
+                                element={ <ArtifactPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/branches"
+                                element={ <ArtifactPage /> }
+                            />
+
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version"
                                 element={ <VersionPage /> }
                             />
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version/content"
+                                element={ <VersionPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version/documentation"
+                                element={ <VersionPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version/references"
+                                element={ <VersionPage /> }
+                            />
+
+                            <Route
+                                path="/explore/:groupId/:artifactId/branches/:branchId"
+                                element={ <BranchPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/branches/:branchId/versions"
+                                element={ <BranchPage /> }
+                            />
+
+
                             <Route element={ <NotFoundPage /> } />
                         </Routes>
                     </Page>

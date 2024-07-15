@@ -50,8 +50,10 @@ export const ReferenceList: FunctionComponent<ReferenceListProps> = (
         }
         // ID
         if (colIndex === 2) {
-            const groupId: string = column.groupId == null ? "default" : column.groupId;
-            const link: string = `/explore/${ encodeURIComponent(groupId)}/${ encodeURIComponent(column.artifactId!) }/${ encodeURIComponent(column.version!) }`;
+            const groupId: string = encodeURIComponent(column.groupId || "default");
+            const artifactId: string = encodeURIComponent(column.artifactId!);
+            const version: string = encodeURIComponent(column.version!);
+            const link: string = `/explore/${groupId}/${artifactId}/versions/${version}`;
             return (
                 <Link className="reference-id" to={ link }>{ column.artifactId }</Link>
             );

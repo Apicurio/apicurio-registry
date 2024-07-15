@@ -225,8 +225,6 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     };
 
     const fireCreateEvent = (): void => {
-        console.debug("---");
-        console.debug(data);
         props.onCreate(groupId, data);
     };
 

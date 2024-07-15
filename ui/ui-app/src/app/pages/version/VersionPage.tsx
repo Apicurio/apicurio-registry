@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
     ContentTabContent,
     DocumentationTabContent,
@@ -34,7 +34,6 @@ export type ArtifactVersionPageProps = {
 export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
-    const [activeTabKey, setActiveTabKey] = useState("overview");
     const [artifact, setArtifact] = useState<ArtifactMetaData>();
     const [artifactVersion, setArtifactVersion] = useState<VersionMetaData>();
     const [versionContent, setArtifactContent] = useState("");
@@ -48,6 +47,16 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     const groups: GroupsService = useGroupsService();
     const download: DownloadService = useDownloadService();
     const { groupId, artifactId, version }= useParams();
+    const location = useLocation();
+
+    let activeTabKey: string = "overview";
+    if (location.pathname.indexOf("/content") !== -1) {
+        activeTabKey = "content";
+    } else if (location.pathname.indexOf("/references") !== -1) {
+        activeTabKey = "references";
+    } else if (location.pathname.indexOf("/documentation") !== -1) {
+        activeTabKey = "documentation";
+    }
 
     const is404 = (e: any) => {
         if (typeof e === "string") {
@@ -95,7 +104,14 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     };
 
     const handleTabClick = (_event: any, tabIndex: any): void => {
-        setActiveTabKey(tabIndex);
+        const gid: string = encodeURIComponent(groupId as string);
+        const aid: string = encodeURIComponent(artifactId as string);
+        const ver: string = encodeURIComponent(version as string);
+        if (tabIndex === "overview") {
+            appNavigation.navigateTo(`/explore/${gid}/${aid}/versions/${ver}`);
+        } else {
+            appNavigation.navigateTo(`/explore/${gid}/${aid}/versions/${ver}/${tabIndex}`);
+        }
     };
 
     const onDeleteVersion = (): void => {
@@ -163,9 +179,9 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
         pleaseWait(true, "Deleting version, please wait...");
         groups.deleteArtifactVersion(groupId as string, artifactId as string, version as string).then( () => {
             pleaseWait(false);
-            const gid = encodeURIComponent(groupId || "default");
+            const gid: string = encodeURIComponent(groupId || "default");
             const aid: string = encodeURIComponent(artifactId as string);
-            appNavigation.navigateTo(`/explore/${gid}/${aid}`);
+            appNavigation.navigateTo(`/explore/${gid}/${aid}/versions`);
         }).catch(error => {
             setPageError(toPageError(error, "Error deleting a version."));
         });
@@ -229,9 +245,9 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     let breadcrumbs = (
         <Breadcrumb>
             <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/artifacts`)}
                 data-testid="breadcrumb-lnk-group">{ gid }</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }/versions`)}
                 data-testid="breadcrumb-lnk-artifact">{ artifactId }</Link></BreadcrumbItem>
             <BreadcrumbItem isActive={true}>{ version as string }</BreadcrumbItem>
         </Breadcrumb>
@@ -240,7 +256,7 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
         breadcrumbs = (
             <Breadcrumb>
                 <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-                <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }`)}
+                <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }/versions`)}
                     data-testid="breadcrumb-lnk-artifact">{ artifactId }</Link></BreadcrumbItem>
                 <BreadcrumbItem isActive={true}>{ version as string }</BreadcrumbItem>
             </Breadcrumb>

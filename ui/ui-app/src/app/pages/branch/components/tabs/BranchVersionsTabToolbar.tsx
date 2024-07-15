@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import "./VersionsTabToolbar.css";
+import "./BranchVersionsTabToolbar.css";
 import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Paging } from "@models/paging.model.ts";
 import { IfAuth, IfFeature } from "@app/components";
@@ -9,18 +9,17 @@ import { VersionSearchResults } from "@sdk/lib/generated-client/models";
 /**
  * Properties
  */
-export type VersionsToolbarProps = {
+export type BranchVersionsToolbarProps = {
     results: VersionSearchResults;
     paging: Paging;
     onPageChange: (paging: Paging) => void;
-    onCreateVersion: () => void;
 };
 
 
 /**
- * Models the toolbar for the Versions tab on the Artifact page.
+ * Models the toolbar for the Versions tab on the Branch page.
  */
-export const VersionsTabToolbar: FunctionComponent<VersionsToolbarProps> = (props: VersionsToolbarProps) => {
+export const BranchVersionsTabToolbar: FunctionComponent<BranchVersionsToolbarProps> = (props: BranchVersionsToolbarProps) => {
 
     const onSetPage = (_event: any, newPage: number, perPage?: number): void => {
         const newPaging: Paging = {
@@ -39,16 +38,8 @@ export const VersionsTabToolbar: FunctionComponent<VersionsToolbarProps> = (prop
     };
 
     return (
-        <Toolbar id="versions-toolbar-1" className="versions-toolbar">
+        <Toolbar id="branches-toolbar-1" className="branches-toolbar">
             <ToolbarContent>
-                <ToolbarItem className="create-version-item">
-                    <IfAuth isDeveloper={true}>
-                        <IfFeature feature="readOnly" isNot={true}>
-                            <Button className="btn-header-create-version" data-testid="btn-toolbar-create-version"
-                                variant="primary" onClick={props.onCreateVersion}>Create version</Button>
-                        </IfFeature>
-                    </IfAuth>
-                </ToolbarItem>
                 <ToolbarItem className="paging-item" align={{ default: "alignRight" }}>
                     <Pagination
                         variant="top"

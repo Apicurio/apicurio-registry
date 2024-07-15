@@ -60,7 +60,6 @@ export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (pro
     }, [width, height]);
 
     const switchJsonYaml = (mode: string): void => {
-        console.info("SWITCHING TO: ", mode);
         if (mode === editorMode) {
             return;
         } else {
@@ -68,10 +67,8 @@ export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (pro
             try {
                 if (mode === "yaml") {
                     newContent = YAML.stringify(JSON.parse(content), null, 4);
-                    console.info("NEW CONTENT (yaml): ", newContent);
                 } else {
                     newContent = JSON.stringify(YAML.parse(content), null, 2);
-                    console.info("NEW CONTENT (json): ", newContent);
                 }
             } catch (e) {
                 handleInvalidContentError(e);

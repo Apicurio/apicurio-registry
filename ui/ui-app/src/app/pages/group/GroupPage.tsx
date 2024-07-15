@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./GroupPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
     GroupInfoTabContent,
     GroupPageHeader,
@@ -37,7 +37,6 @@ export type GroupPageProps = {
 export const GroupPage: FunctionComponent<GroupPageProps> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
-    const [activeTabKey, setActiveTabKey] = useState("overview");
     const [group, setGroup] = useState<GroupMetaData>();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeleteArtifactModalOpen, setIsDeleteArtifactModalOpen] = useState(false);
@@ -55,6 +54,12 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
     const { groupId }= useParams();
+    const location = useLocation();
+
+    let activeTabKey: string = "overview";
+    if (location.pathname.indexOf("/artifacts") !== -1) {
+        activeTabKey = "artifacts";
+    }
 
     const createLoaders = (): Promise<any>[] => {
         logger.info("Loading data for group: ", groupId);
@@ -68,7 +73,11 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
     };
 
     const handleTabClick = (_event: any, tabIndex: any): void => {
-        setActiveTabKey(tabIndex);
+        if (tabIndex === "overview") {
+            appNavigation.navigateTo(`/explore/${groupId}`);
+        } else {
+            appNavigation.navigateTo(`/explore/${groupId}/${tabIndex}`);
+        }
     };
 
     const onDeleteGroup = (): void => {

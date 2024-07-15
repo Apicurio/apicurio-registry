@@ -192,7 +192,6 @@
     <httpclient.version>4.5.14</httpclient.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <apicurio-common-app-components.version>1.2.0</apicurio-common-app-components.version>
-    <kafka-oauth-client.version>0.15.0</kafka-oauth-client.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
     <snakeyaml.version>2.2</snakeyaml.version>
     <guava.version>33.2.1-jre</guava.version>
@@ -614,12 +613,6 @@
         <groupId>com.fasterxml.jackson.dataformat</groupId>
         <artifactId>jackson-dataformat-yaml</artifactId>
         <version>${jackson-dataformat-yaml.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.strimzi</groupId>
-        <artifactId>kafka-oauth-client</artifactId>
-        <version>${kafka-oauth-client.version}</version>
       </dependency>
 
       <dependency>

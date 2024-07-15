@@ -1,5 +1,5 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import "./VersionsTabContent.css";
+import "./BranchesTabContent.css";
 import "@app/styles/empty.css";
 import { ListWithToolbar } from "@apicurio/common-ui-components";
 import { Paging } from "@models/paging.model.ts";
@@ -17,43 +17,32 @@ import {
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { IfAuth, IfFeature } from "@app/components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { VersionsTable, VersionsTabToolbar } from "@app/pages/artifact";
-import {
-    ArtifactMetaData,
-    SearchedVersion,
-    SortOrder,
-    SortOrderObject,
-    VersionSearchResults,
-    VersionSortBy,
-    VersionSortByObject
-} from "@sdk/lib/generated-client/models";
+import { ArtifactMetaData, BranchSearchResults, SearchedBranch, } from "@sdk/lib/generated-client/models";
+import { BranchesTable, BranchesTabToolbar } from "@app/pages/artifact";
 
 /**
  * Properties
  */
-export type VersionsTabContentProps = {
+export type BranchesTabContentProps = {
     artifact: ArtifactMetaData;
-    onCreateVersion: () => void;
-    onViewVersion: (version: SearchedVersion) => void;
-    onDeleteVersion: (version: SearchedVersion, deleteSuccessCallback: () => void) => void;
-    onAddVersionToBranch: (version: SearchedVersion) => void;
+    onCreateBranch: () => void;
+    onViewBranch: (version: SearchedBranch) => void;
+    onDeleteBranch: (version: SearchedBranch, deleteSuccessCallback: () => void) => void;
 };
 
 /**
- * Models the content of the Version Info tab.
+ * Models the content of the Artifact branches tab.
  */
-export const VersionsTabContent: FunctionComponent<VersionsTabContentProps> = (props: VersionsTabContentProps) => {
+export const BranchesTabContent: FunctionComponent<BranchesTabContentProps> = (props: BranchesTabContentProps) => {
     const [isLoading, setLoading] = useState<boolean>(true);
     const [isError, setError] = useState<boolean>(false);
     const [paging, setPaging] = useState<Paging>({
         page: 1,
         pageSize: 20
     });
-    const [sortBy, setSortBy] = useState<VersionSortBy>(VersionSortByObject.GlobalId);
-    const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrderObject.Asc);
-    const [results, setResults] = useState<VersionSearchResults>({
+    const [results, setResults] = useState<BranchSearchResults>({
         count: 0,
-        versions: []
+        branches: []
     });
 
     const groups: GroupsService = useGroupsService();
@@ -62,7 +51,7 @@ export const VersionsTabContent: FunctionComponent<VersionsTabContentProps> = (p
     const refresh = (): void => {
         setLoading(true);
 
-        groups.getArtifactVersions(props.artifact.groupId!, props.artifact.artifactId!, sortBy, sortOrder, paging).then(sr => {
+        groups.getArtifactBranches(props.artifact.groupId!, props.artifact.artifactId!, paging).then(sr => {
             setResults(sr);
             setLoading(false);
         }).catch(error => {
@@ -72,38 +61,33 @@ export const VersionsTabContent: FunctionComponent<VersionsTabContentProps> = (p
         });
     };
 
-    const onSort = (by: VersionSortBy, order: SortOrder): void => {
-        setSortBy(by);
-        setSortOrder(order);
-    };
-
-    const onDeleteVersion = (version: SearchedVersion): void => {
-        props.onDeleteVersion(version, () => {
+    const onDeleteBranch = (branch: SearchedBranch): void => {
+        props.onDeleteBranch(branch, () => {
             setTimeout(refresh, 100);
         });
     };
 
     useEffect(() => {
         refresh();
-    }, [props.artifact, paging, sortBy, sortOrder]);
+    }, [props.artifact, paging]);
 
     const toolbar = (
-        <VersionsTabToolbar results={results} paging={paging} onPageChange={setPaging} onCreateVersion={props.onCreateVersion} />
+        <BranchesTabToolbar results={results} paging={paging} onPageChange={setPaging} onCreateBranch={props.onCreateBranch} />
     );
 
     const emptyState = (
         <EmptyState variant={EmptyStateVariant.sm}>
             <EmptyStateIcon icon={PlusCircleIcon}/>
-            <Title headingLevel="h5" size="lg">No versions found</Title>
+            <Title headingLevel="h5" size="lg">No branches found</Title>
             <EmptyStateBody>
-                There are currently no versions in this artifact.  Create some versions in the artifact to view them here.
+                There are currently no branches in this artifact.  Create some branches in the artifact to view them here.
             </EmptyStateBody>
             <EmptyStateFooter>
                 <EmptyStateActions>
                     <IfAuth isDeveloper={true}>
                         <IfFeature feature="readOnly" isNot={true}>
                             <Button className="empty-btn-create" variant="primary"
-                                data-testid="empty-btn-create" onClick={props.onCreateVersion}>Create version</Button>
+                                data-testid="empty-btn-create" onClick={props.onCreateBranch}>Create version</Button>
                         </IfFeature>
                     </IfAuth>
                 </EmptyStateActions>
@@ -112,8 +96,8 @@ export const VersionsTabContent: FunctionComponent<VersionsTabContentProps> = (p
     );
 
     return (
-        <div className="artifacts-tab-content">
-            <div className="artifacts-toolbar-and-table">
+        <div className="branches-tab-content">
+            <div className="branches-toolbar-and-table">
                 <ListWithToolbar toolbar={toolbar}
                     emptyState={emptyState}
                     filteredEmptyState={emptyState}
@@ -122,15 +106,11 @@ export const VersionsTabContent: FunctionComponent<VersionsTabContentProps> = (p
                     isFiltered={false}
                     isEmpty={results.count === 0}
                 >
-                    <VersionsTable
+                    <BranchesTable
                         artifact={props.artifact}
-                        versions={results.versions!}
-                        onSort={onSort}
-                        sortBy={sortBy}
-                        sortOrder={sortOrder}
-                        onDelete={onDeleteVersion}
-                        onView={props.onViewVersion}
-                        onAddToBranch={props.onAddVersionToBranch}
+                        branches={results.branches!}
+                        onDelete={onDeleteBranch}
+                        onView={props.onViewBranch}
                     />
                 </ListWithToolbar>
             </div>

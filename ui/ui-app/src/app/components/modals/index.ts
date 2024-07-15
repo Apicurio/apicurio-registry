@@ -1,6 +1,7 @@
 export * from "./ChangeOwnerModal";
 export * from "./ConfirmDeleteModal";
 export * from "./CreateArtifactModal";
+export * from "./CreateBranchModal";
 export * from "./CreateGroupModal";
 export * from "./CreateVersionModal";
 export * from "./EditMetaDataModal";

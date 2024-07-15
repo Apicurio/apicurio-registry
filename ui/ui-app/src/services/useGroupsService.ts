@@ -3,19 +3,20 @@ import { getRegistryClient } from "@utils/rest.utils.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
 import { Paging } from "@models/paging.model.ts";
 import {
+    AddVersionToBranch,
     ArtifactMetaData,
     ArtifactReference,
     ArtifactSearchResults,
-    ArtifactSortBy,
+    ArtifactSortBy, BranchMetaData, BranchSearchResults,
     CreateArtifact,
-    CreateArtifactResponse,
+    CreateArtifactResponse, CreateBranch,
     CreateGroup,
     CreateRule,
     CreateVersion,
-    EditableArtifactMetaData,
+    EditableArtifactMetaData, EditableBranchMetaData,
     EditableGroupMetaData,
     EditableVersionMetaData,
-    GroupMetaData, ReferenceType, ReferenceTypeObject,
+    GroupMetaData, ReferenceType, ReferenceTypeObject, ReplaceBranchVersions,
     Rule,
     RuleType,
     SortOrder,
@@ -43,11 +44,7 @@ const createGroup = async (config: ConfigService, auth: AuthService, data: Creat
 
 const getGroupMetaData = async (config: ConfigService, auth: AuthService, groupId: string): Promise<GroupMetaData> => {
     groupId = normalizeGroupId(groupId);
-    return getRegistryClient(config, auth).groups.byGroupId(groupId).get().then(v => v!).then(d => {
-        console.info("GROUP: ", d);
-        console.info("GROUP Labels: ", d.labels);
-        return d;
-    });
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).get().then(v => v!);
 };
 
 const getGroupArtifacts = async (config: ConfigService, auth: AuthService, groupId: string, sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> => {
@@ -167,6 +164,78 @@ const getArtifactVersions = async (config: ConfigService, auth: AuthService, gro
     }).then(v => v!);
 };
 
+const getArtifactBranches = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, paging: Paging): Promise<VersionSearchResults> => {
+    groupId = normalizeGroupId(groupId);
+    const start: number = (paging.page - 1) * paging.pageSize;
+    const end: number = start + paging.pageSize;
+    const queryParams: any = {
+        limit: end,
+        offset: start
+    };
+
+    console.info("[GroupsService] Getting the list of branches for artifact: ", groupId, artifactId);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).branches.get({
+        queryParameters: queryParams
+    }).then(v => v!);
+};
+
+const createArtifactBranch = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, data: CreateBranch): Promise<BranchMetaData> => {
+    groupId = normalizeGroupId(groupId);
+
+    console.info("[GroupsService] Creating a new branch: ", groupId, artifactId, data);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).branches.post(data).then(v => v!);
+};
+
+const deleteArtifactBranch = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, branchId: string): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+
+    console.info("[GroupsService] Deleting new branch: ", groupId, artifactId, branchId);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).branches.byBranchId(branchId).delete();
+};
+
+const getArtifactBranchMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, branchId: string): Promise<BranchMetaData> => {
+    groupId = normalizeGroupId(groupId);
+
+    console.info("[GroupsService] Deleting new branch: ", groupId, artifactId, branchId);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).branches.byBranchId(branchId).get().then(v => v!);
+};
+
+const updateArtifactBranchMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, branchId: string, data: EditableBranchMetaData): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+
+    console.info("[GroupsService] Updating branch metadata: ", groupId, artifactId, branchId, data);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).branches.byBranchId(branchId).put(data);
+};
+
+const getArtifactBranchVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, branchId: string, paging: Paging): Promise<VersionSearchResults> => {
+    groupId = normalizeGroupId(groupId);
+    const start: number = (paging.page - 1) * paging.pageSize;
+    const end: number = start + paging.pageSize;
+    const queryParams: any = {
+        limit: end,
+        offset: start
+    };
+
+    console.info("[GroupsService] Getting the list of versions for artifact branch: ", groupId, artifactId, branchId);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).branches.byBranchId(branchId).versions.get({
+        queryParameters: queryParams
+    }).then(v => v!);
+};
+
+const appendArtifactBranchVersion = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, branchId: string, data: AddVersionToBranch): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+
+    console.info("[GroupsService] Appending a new version to an artifact branch: ", groupId, artifactId, branchId, data);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).branches.byBranchId(branchId).versions.post(data);
+};
+
+const replaceArtifactBranchVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, branchId: string, data: ReplaceBranchVersions): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+
+    console.info("[GroupsService] Replacing all versions in an artifact branch: ", groupId, artifactId, branchId, data);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).branches.byBranchId(branchId).versions.put(data);
+};
+
 const getArtifactRules = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<Rule[]> => {
     groupId = normalizeGroupId(groupId);
 
@@ -238,7 +307,6 @@ export interface GroupsService {
     getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData>;
     getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]>;
     getArtifactRules(groupId: string|null, artifactId: string): Promise<Rule[]>;
-    getArtifactVersions(groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults>;
     getLatestArtifact(groupId: string|null, artifactId: string): Promise<string>;
     updateArtifactMetaData(groupId: string|null, artifactId: string, metaData: EditableArtifactMetaData): Promise<void>;
     updateArtifactOwner(groupId: string|null, artifactId: string, newOwner: string): Promise<void>;
@@ -249,11 +317,21 @@ export interface GroupsService {
     updateArtifactRule(groupId: string|null, artifactId: string, ruleType: string, configValue: string): Promise<Rule>;
     deleteArtifactRule(groupId: string|null, artifactId: string, ruleType: string): Promise<void>;
 
+    getArtifactVersions(groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults>;
     createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData>;
     getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
     getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
     updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableVersionMetaData): Promise<void>;
     deleteArtifactVersion(groupId: string|null, artifactId: string, version: string): Promise<void>;
+
+    getArtifactBranches(groupId: string|null, artifactId: string, paging: Paging): Promise<BranchSearchResults>;
+    createArtifactBranch(groupId: string|null, artifactId: string, data: CreateBranch): Promise<BranchMetaData>;
+    deleteArtifactBranch(groupId: string|null, artifactId: string, branchId: string): Promise<void>;
+    getArtifactBranchMetaData(groupId: string|null, artifactId: string, branchId: string): Promise<BranchMetaData>;
+    updateArtifactBranchMetaData(groupId: string|null, artifactId: string, branchId: string, data: EditableBranchMetaData): Promise<void>;
+    getArtifactBranchVersions(groupId: string|null, artifactId: string, branchId: string, paging: Paging): Promise<VersionSearchResults>;
+    appendArtifactBranchVersion(groupId: string|null, artifactId: string, branchId: string, data: AddVersionToBranch): Promise<void>;
+    replaceArtifactBranchVersions(groupId: string|null, artifactId: string, branchId: string, data: ReplaceBranchVersions): Promise<void>;
 }
 
 
@@ -337,5 +415,31 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         deleteArtifactVersion(groupId: string|null, artifactId: string, version: string): Promise<void> {
             return deleteArtifactVersion(config, auth, groupId, artifactId, version);
         },
+
+        getArtifactBranches(groupId: string|null, artifactId: string, paging: Paging): Promise<VersionSearchResults> {
+            return getArtifactBranches(config, auth, groupId, artifactId, paging);
+        },
+        createArtifactBranch(groupId: string|null, artifactId: string, data: CreateBranch): Promise<BranchMetaData> {
+            return createArtifactBranch(config, auth, groupId, artifactId, data);
+        },
+        deleteArtifactBranch(groupId: string|null, artifactId: string, branchId: string): Promise<void> {
+            return deleteArtifactBranch(config, auth, groupId, artifactId, branchId);
+        },
+        getArtifactBranchMetaData(groupId: string|null, artifactId: string, branchId: string): Promise<BranchMetaData> {
+            return getArtifactBranchMetaData(config, auth, groupId, artifactId, branchId);
+        },
+        updateArtifactBranchMetaData(groupId: string|null, artifactId: string, branchId: string, data: EditableBranchMetaData): Promise<void> {
+            return updateArtifactBranchMetaData(config, auth, groupId, artifactId, branchId, data);
+        },
+        getArtifactBranchVersions(groupId: string|null, artifactId: string, branchId: string, paging: Paging): Promise<VersionSearchResults> {
+            return getArtifactBranchVersions(config, auth, groupId, artifactId, branchId, paging);
+        },
+        appendArtifactBranchVersion(groupId: string|null, artifactId: string, branchId: string, data: AddVersionToBranch): Promise<void> {
+            return appendArtifactBranchVersion(config, auth, groupId, artifactId, branchId, data);
+        },
+        replaceArtifactBranchVersions(groupId: string|null, artifactId: string, branchId: string, data: ReplaceBranchVersions): Promise<void> {
+            return replaceArtifactBranchVersions(config, auth, groupId, artifactId, branchId, data);
+        }
+
     };
 };

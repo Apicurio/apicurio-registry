@@ -154,7 +154,7 @@ export const ArtifactsTable: FunctionComponent<ArtifactsTableProps> = (props: Ar
                         itemToTestId={item => item.testId}
                         itemIsDivider={item => item.isSeparator}
                         onSelect={item => item.onClick()}
-                        testId={`api-actions-${shash(row.artifactId!)}`}
+                        testId={`artifact-actions-${shash(row.artifactId!)}`}
                         popperProps={{
                             position: "right"
                         }}

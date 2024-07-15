@@ -1,28 +1,17 @@
-import React, { FunctionComponent, useEffect, useState } from "react";
+import React, { FunctionComponent } from "react";
+import "./BranchVersionsTable.css";
 import { Link } from "react-router-dom";
-import { SortByDirection, ThProps } from "@patternfly/react-table";
 import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { shash } from "@utils/string.utils.ts";
 import { ArtifactDescription } from "@app/components";
-import {
-    ArtifactMetaData,
-    SearchedVersion,
-    SortOrder,
-    SortOrderObject,
-    VersionSortBy,
-    VersionSortByObject
-} from "@sdk/lib/generated-client/models";
+import { ArtifactMetaData, BranchMetaData, SearchedVersion } from "@sdk/lib/generated-client/models";
 
-export type VersionsTableProps = {
+export type BranchVersionsTableProps = {
     artifact: ArtifactMetaData;
+    branch: BranchMetaData;
     versions: SearchedVersion[];
-    sortBy: VersionSortBy;
-    sortOrder: SortOrder;
-    onSort: (by: VersionSortBy, order: SortOrder) => void;
     onView: (version: SearchedVersion) => void;
-    onAddToBranch: (version: SearchedVersion) => void;
-    onDelete: (version: SearchedVersion) => void;
 }
 type VersionAction = {
     label: string;
@@ -34,16 +23,14 @@ type VersionActionSeparator = {
     isSeparator: true;
 };
 
-export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: VersionsTableProps) => {
-    const [sortByIndex, setSortByIndex] = useState<number>();
-
+export const BranchVersionsTable: FunctionComponent<BranchVersionsTableProps> = (props: BranchVersionsTableProps) => {
     const appNavigation: AppNavigation = useAppNavigation();
 
     const columns: any[] = [
-        { index: 0, id: "version", label: "Version", width: 40, sortable: true, sortBy: VersionSortByObject.Version },
-        { index: 1, id: "globalId", label: "Global Id", width: 10, sortable: true, sortBy: VersionSortByObject.GlobalId },
+        { index: 0, id: "version", label: "Version", width: 40, sortable: false },
+        { index: 1, id: "globalId", label: "Global Id", width: 10, sortable: false },
         { index: 2, id: "contentId", label: "Content Id", width: 10, sortable: false },
-        { index: 3, id: "createdOn", label: "Created on", width: 15, sortable: true, sortBy: VersionSortByObject.CreatedOn },
+        { index: 3, id: "createdOn", label: "Created on", width: 15, sortable: false },
     ];
 
     const renderColumnData = (column: SearchedVersion, colIndex: number): React.ReactNode => {
@@ -93,40 +80,12 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
         const vhash: number = shash(version.version!);
         // TODO hide/show actions based on user role
         return [
-            { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` },
-            { label: "Add to branch", onClick: () => props.onAddToBranch(version), testId: `add-to-branch-version-${vhash}` },
-            { isSeparator: true },
-            { label: "Delete version", onClick: () => props.onDelete(version), testId: `delete-version-${vhash}` }
+            { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` }
         ];
     };
 
-    const sortParams = (column: any): ThProps["sort"] | undefined => {
-        return column.sortable ? {
-            sortBy: {
-                index: sortByIndex,
-                direction: props.sortOrder
-            },
-            onSort: (_event, index, direction) => {
-                props.onSort(columns[index].sortBy, direction === SortByDirection.asc ? SortOrderObject.Asc : SortOrderObject.Desc);
-            },
-            columnIndex: column.index
-        } : undefined;
-    };
-
-    useEffect(() => {
-        if (props.sortBy === VersionSortByObject.Version) {
-            setSortByIndex(0);
-        }
-        if (props.sortBy === VersionSortByObject.GlobalId) {
-            setSortByIndex(1);
-        }
-        if (props.sortBy === VersionSortByObject.CreatedOn) {
-            setSortByIndex(3);
-        }
-    }, [props.sortBy]);
-
     return (
-        <div className="versions-table">
+        <div className="branch-versions-table">
             <ResponsiveTable
                 ariaLabel="table of versions"
                 columns={columns}
@@ -137,7 +96,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
                     console.log(row);
                 }}
                 renderHeader={({ column, Th }) => (
-                    <Th sort={sortParams(column)}
+                    <Th
                         className="versions-table-header"
                         key={`header-${column.id}`}
                         width={column.width}

@@ -1444,8 +1444,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 binder.bind(countQuery, idx);
                 idx++;
             }
-            versionsQuery.bind(idx++, limit);
-            versionsQuery.bind(idx++, offset);
+
+            // TODO find a better way to swap arguments
+            if ("mssql".equals(sqlStatements.dbType())) {
+                versionsQuery.bind(idx++, offset);
+                versionsQuery.bind(idx++, limit);
+            } else {
+                versionsQuery.bind(idx++, limit);
+                versionsQuery.bind(idx++, offset);
+            }
 
             // Execute query
             List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();

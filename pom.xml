@@ -151,7 +151,7 @@
     <xmlsec.version>4.0.2</xmlsec.version>
     <protobuf.googleapi.types.version>2.41.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
-    <google.truth.extension.version>1.4.3</google.truth.extension.version>
+    <google.truth.extension.version>1.4.4</google.truth.extension.version>
 
     <!-- Picocli -->
     <picocli.version>4.6.3</picocli.version>

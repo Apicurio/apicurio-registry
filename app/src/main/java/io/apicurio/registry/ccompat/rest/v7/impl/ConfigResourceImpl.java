@@ -77,7 +77,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public CompatibilityLevelParamDto getGlobalCompatibilityLevel() {
         return getCompatibilityLevel(() -> storage.getGlobalRule(RuleType.COMPATIBILITY).getConfiguration());
     }

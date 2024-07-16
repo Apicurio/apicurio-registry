@@ -577,6 +577,8 @@ public interface SqlStatements {
 
     public String selectBranchTipNotDisabled();
 
+    public String updateBranchModifiedTime();
+
     public String insertBranchVersion();
 
     public String appendBranchVersion();

@@ -1035,6 +1035,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String updateBranchModifiedTime() {
+        return "UPDATE branches SET modifiedBy = ? , modifiedOn = ? WHERE groupId = ? AND artifactId = ? AND branchId = ?";
+    }
+
+    @Override
     public String selectBranch() {
         return "SELECT b.* FROM branches b WHERE b.groupId = ? AND b.artifactId = ? AND b.branchId = ?";
     }

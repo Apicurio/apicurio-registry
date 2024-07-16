@@ -2934,7 +2934,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 return null;
             });
 
-            return BranchMetaDataDto.builder().groupId(ga.getRawGroupId()).artifactId(ga.getRawArtifactId())
+            return BranchMetaDataDto.builder().groupId(ga.getRawGroupIdWithNull()).artifactId(ga.getRawArtifactId())
                     .branchId(branchId.getRawBranchId()).description(description).owner(user)
                     .createdOn(now.getTime()).modifiedBy(user).modifiedOn(now.getTime()).build();
         } catch (Exception ex) {
@@ -2963,6 +2963,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 throw new BranchNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(),
                         branchId.getRawBranchId());
             }
+
+            updateBranchModifiedTimeRaw(handle, ga, branchId);
 
             return null;
         });
@@ -3140,6 +3142,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         try {
             handles.withHandle(handle -> {
                 appendVersionToBranchRaw(handle, ga, branchId, version);
+                updateBranchModifiedTimeRaw(handle, ga, branchId);
                 return null;
             });
         } catch (Exception ex) {
@@ -3186,89 +3189,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
                         .bind(3, branchOrder++).bind(4, version.getRawVersionId()).execute();
             }
+
+            // Update branch modified time
+            updateBranchModifiedTimeRaw(handle, ga, branchId);
+
             return null;
         });
     }
-    //
-    // @Override
-    // @Transactional
-    // public Map<BranchId, List<GAV>> getBranches(GA ga) {
-    //
-    // var data1 = handles.withHandleNoException(handle -> {
-    //
-    // if (!isArtifactExists(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId())) {
-    // throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId());
-    // }
-    //
-    // return handle.createQuery(sqlStatements.selectBranches())
-    // .bind(0, ga.getRawGroupId())
-    // .bind(1, ga.getRawArtifactId())
-    // .map(BranchDtoMapper.instance)
-    // .list();
-    // });
-    //
-    // var data2 = new HashMap<BranchId, List<BranchDto>>();
-    // for (BranchDto dto : data1) {
-    // data2.compute(new BranchId(dto.getBranchId()), (_ignored, v) -> {
-    // if (v == null) {
-    // var initial = new ArrayList<BranchDto>();
-    // initial.add(dto);
-    // return initial;
-    // } else {
-    // v.add(dto);
-    // return v;
-    // }
-    // });
-    // }
-    //
-    // var data3 = new HashMap<BranchId, List<GAV>>();
-    // for (Entry<BranchId, List<BranchDto>> entry : data2.entrySet()) {
-    // data3.put(entry.getKey(), entry.getValue().stream()
-    // .sorted(Comparator.comparingInt(BranchDto::getBranchOrder).reversed()) // Highest first
-    // .map(BranchDto::toGAV)
-    // .collect(toList()));
-    // }
-    //
-    // return data3;
-    // }
-    //
-    //
-    // @Override
-    // @Transactional
-    // public List<GAV> getBranch(GA ga, BranchId branchId, ArtifactRetrievalBehavior behavior) {
-    //
-    // String sql;
-    // switch (behavior) {
-    // case DEFAULT:
-    // sql = sqlStatements.selectBranchOrdered();
-    // break;
-    // case SKIP_DISABLED_LATEST:
-    // sql = sqlStatements.selectBranchOrderedNotDisabled();
-    // break;
-    // default:
-    // throw new UnreachableCodeException();
-    // }
-    // var finalSql = sql;
-    //
-    // var res = handles.withHandleNoException(handle -> {
-    //
-    // return handle.createQuery(finalSql)
-    // .bind(0, ga.getRawGroupId())
-    // .bind(1, ga.getRawArtifactId())
-    // .bind(2, branchId.getRawBranchId())
-    // .map(BranchDtoMapper.instance)
-    // .list()
-    // .stream()
-    // .map(BranchDto::toGAV)
-    // .collect(toList());
-    // });
-    //
-    // if (res.isEmpty()) {
-    // throw new BranchNotFoundException(ga, branchId);
-    // }
-    //
-    // return res;
-    // }
 
     /**
      * This method ensures that the named branch exists for the version *and* also adds the version to that
@@ -3291,6 +3218,19 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         // Now add the version to it.
         appendVersionToBranchRaw(handle, gav, branchId, gav.getVersionId());
+    }
+
+    private void updateBranchModifiedTimeRaw(Handle handle, GA ga, BranchId branchId) {
+        String user = securityIdentity.getPrincipal().getName();
+        Date now = new Date();
+
+        handle.createUpdate(sqlStatements.updateBranchModifiedTime())
+                .bind(0, user)
+                .bind(1, now)
+                .bind(2, ga.getRawGroupId())
+                .bind(3, ga.getRawArtifactId())
+                .bind(4, branchId.getRawBranchId())
+                .execute();
     }
 
     @Override

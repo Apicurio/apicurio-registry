@@ -91,7 +91,7 @@ export const BranchInfoTabContent: FunctionComponent<BranchInfoTabContentProps> 
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Modified</DescriptionListTerm>
                                 <DescriptionListDescription data-testid="version-details-modified-on">
-                                    <FromNow date={props.artifact.modifiedOn} />
+                                    <FromNow date={props.branch.modifiedOn} />
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
                         </DescriptionList>

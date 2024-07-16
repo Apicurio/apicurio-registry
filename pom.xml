@@ -142,7 +142,7 @@
     <json-schema-validator.version>1.5.0</json-schema-validator.version>
     <wire-schema.version>4.9.9</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <wire-compiler.version>4.9.9</wire-compiler.version>
+    <wire-compiler.version>5.0.0</wire-compiler.version>
     <okio-jvm.version>3.9.0</okio-jvm.version>
     <okio.version>3.9.0</okio.version>
     <okio-fake-file-system.version>3.9.0</okio-fake-file-system.version>

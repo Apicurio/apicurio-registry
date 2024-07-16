@@ -13,6 +13,7 @@ import {
     VersionSortBy,
     VersionSortByObject
 } from "@sdk/lib/generated-client/models";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 export type VersionsTableProps = {
     artifact: ArtifactMetaData;
@@ -38,6 +39,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
     const [sortByIndex, setSortByIndex] = useState<number>();
 
     const appNavigation: AppNavigation = useAppNavigation();
+    const config: ConfigService = useConfigService();
 
     const columns: any[] = [
         { index: 0, id: "version", label: "Version", width: 40, sortable: true, sortBy: VersionSortByObject.Version },
@@ -92,7 +94,9 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
     const actionsFor = (version: SearchedVersion): (VersionAction | VersionActionSeparator)[] => {
         const vhash: number = shash(version.version!);
         // TODO hide/show actions based on user role
-        return [
+        return config.featureReadOnly() ? [
+            { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` },
+        ] : [
             { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` },
             { label: "Add to branch", onClick: () => props.onAddToBranch(version), testId: `add-to-branch-version-${vhash}` },
             { isSeparator: true },

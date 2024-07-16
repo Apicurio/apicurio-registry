@@ -12,18 +12,6 @@ on:
         description: 'Branch to release from'
         required: true
         default: 'main'
-      skip-maven-deploy:
-        description: 'Skip maven deploy'
-        required: true
-        default: 'false'
-      skip-python-sdk:
-        description: 'Skip python sdk deploy'
-        required: true
-        default: 'false'
-      skip-go-sdk:
-        description: 'Skip golang sdk deploy'
-        required: true
-        default: 'false'
 jobs:
   release:
     runs-on: ubuntu-20.04

@@ -179,7 +179,7 @@ function overrideObject(base: any, overrides: any | undefined): any {
     Object.getOwnPropertyNames(base).forEach(propertyName => {
         const baseValue: any = base[propertyName];
         const overrideValue: any = overrides[propertyName];
-        if (overrideValue) {
+        if (overrideValue !== undefined) {
             if (typeof baseValue === "object" && typeof overrideValue === "object") {
                 rval[propertyName] = overrideObject(baseValue, overrideValue);
             } else {
@@ -226,6 +226,7 @@ export class ConfigServiceImpl implements ConfigService {
         const endpoint: string = createEndpoint(this.artifactsUrl(), "/system/uiConfig");
 
         const localConfig: ApicurioRegistryConfig = registryConfig;
+        console.info("[Config] Local configuration: ", localConfig);
 
         console.info("[Config] Fetching UI configuration from: ", endpoint);
         return httpGet<ApicurioRegistryConfig>(endpoint).then(remoteConfig => {
@@ -235,6 +236,10 @@ export class ConfigServiceImpl implements ConfigService {
             // Override the remote config with anything in the local config.  Then set the result
             // as the new official app config.
             registryConfig = overrideConfig(remoteConfig, localConfig);
+
+            // Log unified config
+            console.info("[Config] Unified configuration: ", registryConfig);
+
             // Check for extra/unknown local config and warn about it.
             const diff: any = difference(remoteConfig, localConfig);
             if (Object.keys(diff).length > 0) {

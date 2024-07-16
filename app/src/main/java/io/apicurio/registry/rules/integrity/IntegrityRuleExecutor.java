@@ -60,6 +60,9 @@ public class IntegrityRuleExecutor implements RuleExecutor {
 
     private void validateReferencesExist(RuleContext context) throws RuleViolationException {
         List<ArtifactReference> references = context.getReferences();
+        if (references == null) {
+            references = List.of();
+        }
         Map<String, TypedContent> resolvedReferences = context.getResolvedReferences();
 
         Set<RuleViolation> causes = new HashSet<>();

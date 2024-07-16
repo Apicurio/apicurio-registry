@@ -7,6 +7,7 @@ import { ArtifactDescription } from "@app/components";
 import { ArtifactMetaData, SearchedBranch } from "@sdk/lib/generated-client/models";
 import { DesktopIcon } from "@patternfly/react-icons";
 import { Tooltip } from "@patternfly/react-core";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 export type BranchesTableProps = {
     artifact: ArtifactMetaData;
@@ -29,6 +30,7 @@ type BranchActionSeparator = {
 
 export const BranchesTable: FunctionComponent<BranchesTableProps> = (props: BranchesTableProps) => {
     const appNavigation: AppNavigation = useAppNavigation();
+    const config: ConfigService = useConfigService();
 
     const columns: any[] = [
         { index: 0, id: "branch", label: "Branch", width: 50, sortable: false },
@@ -75,7 +77,9 @@ export const BranchesTable: FunctionComponent<BranchesTableProps> = (props: Bran
     const actionsFor = (branch: SearchedBranch): (BranchAction | BranchActionSeparator)[] => {
         const vhash: number = shash(branch.branchId!);
         // TODO hide/show actions based on user role
-        return [
+        return config.featureReadOnly() ? [
+            { label: "View branch", onClick: () => props.onView(branch), testId: `view-branch-${vhash}` },
+        ] : [
             { label: "View branch", onClick: () => props.onView(branch), testId: `view-branch-${vhash}` },
             { isSeparator: true, isVisible: !branch.systemDefined },
             { label: "Delete branch", onClick: () => props.onDelete(branch), testId: `delete-branch-${vhash}`, isVisible: !branch.systemDefined }

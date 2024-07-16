@@ -2934,9 +2934,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 return null;
             });
 
-            return BranchMetaDataDto.builder().groupId(ga.getRawGroupIdWithNull()).artifactId(ga.getRawArtifactId())
-                    .branchId(branchId.getRawBranchId()).description(description).owner(user)
-                    .createdOn(now.getTime()).modifiedBy(user).modifiedOn(now.getTime()).build();
+            return BranchMetaDataDto.builder().groupId(ga.getRawGroupIdWithNull())
+                    .artifactId(ga.getRawArtifactId()).branchId(branchId.getRawBranchId())
+                    .description(description).owner(user).createdOn(now.getTime()).modifiedBy(user)
+                    .modifiedOn(now.getTime()).build();
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {
                 throw new BranchAlreadyExistsException(ga.getRawGroupIdWithDefaultString(),
@@ -3224,12 +3225,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         String user = securityIdentity.getPrincipal().getName();
         Date now = new Date();
 
-        handle.createUpdate(sqlStatements.updateBranchModifiedTime())
-                .bind(0, user)
-                .bind(1, now)
-                .bind(2, ga.getRawGroupId())
-                .bind(3, ga.getRawArtifactId())
-                .bind(4, branchId.getRawBranchId())
+        handle.createUpdate(sqlStatements.updateBranchModifiedTime()).bind(0, user).bind(1, now)
+                .bind(2, ga.getRawGroupId()).bind(3, ga.getRawArtifactId()).bind(4, branchId.getRawBranchId())
                 .execute();
     }
 

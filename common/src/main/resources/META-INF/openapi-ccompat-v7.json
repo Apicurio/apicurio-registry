@@ -89,12 +89,12 @@
                   "$ref": "#/components/schemas/CompatibilityCheckResponse"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompatibilityCheckResponse"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompatibilityCheckResponse"
                 }
@@ -109,12 +109,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -129,12 +129,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -149,12 +149,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -177,12 +177,12 @@
                   "type": "string"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "string"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "string"
                 }
@@ -241,7 +241,7 @@
                   }
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "object",
                   "additionalProperties": {
@@ -249,7 +249,7 @@
                   }
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "object",
                   "additionalProperties": {
@@ -332,12 +332,12 @@
                   "$ref": "#/components/schemas/CompatibilityCheckResponse"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompatibilityCheckResponse"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompatibilityCheckResponse"
                 }
@@ -352,12 +352,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -372,12 +372,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -404,12 +404,12 @@
                   "$ref": "#/components/schemas/Config"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Config"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Config"
                 }
@@ -424,12 +424,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -480,12 +480,12 @@
                   "$ref": "#/components/schemas/ConfigUpdateRequest"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfigUpdateRequest"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfigUpdateRequest"
                 }
@@ -500,12 +500,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -520,12 +520,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -560,7 +560,7 @@
                 },
                 "example": "FULL_TRANSITIVE"
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "string",
                   "enum": [
@@ -575,7 +575,7 @@
                 },
                 "example": "FULL_TRANSITIVE"
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "string",
                   "enum": [
@@ -600,12 +600,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -651,12 +651,12 @@
                   "$ref": "#/components/schemas/Config"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Config"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Config"
                 }
@@ -671,12 +671,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -691,12 +691,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -758,12 +758,12 @@
                   "$ref": "#/components/schemas/ConfigUpdateRequest"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfigUpdateRequest"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfigUpdateRequest"
                 }
@@ -778,12 +778,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -798,12 +798,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -818,12 +818,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -869,7 +869,7 @@
                 },
                 "example": "FULL_TRANSITIVE"
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "string",
                   "enum": [
@@ -884,7 +884,7 @@
                 },
                 "example": "FULL_TRANSITIVE"
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "string",
                   "enum": [
@@ -909,12 +909,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -929,12 +929,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -965,7 +965,7 @@
                   }
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -974,7 +974,7 @@
                   }
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -993,12 +993,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1025,12 +1025,12 @@
                   "$ref": "#/components/schemas/Mode"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Mode"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Mode"
                 }
@@ -1094,12 +1094,12 @@
                   "$ref": "#/components/schemas/ModeUpdateRequest"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ModeUpdateRequest"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ModeUpdateRequest"
                 }
@@ -1114,12 +1114,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1134,12 +1134,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1185,12 +1185,12 @@
                   "$ref": "#/components/schemas/Mode"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Mode"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Mode"
                 }
@@ -1205,12 +1205,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1225,12 +1225,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1300,12 +1300,12 @@
                   "$ref": "#/components/schemas/ModeUpdateRequest"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ModeUpdateRequest"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ModeUpdateRequest"
                 }
@@ -1320,12 +1320,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1340,12 +1340,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1381,12 +1381,12 @@
                   "$ref": "#/components/schemas/Mode"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Mode"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Mode"
                 }
@@ -1401,12 +1401,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1421,12 +1421,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1505,7 +1505,7 @@
                   }
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -1513,7 +1513,7 @@
                   }
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -1531,12 +1531,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1601,12 +1601,12 @@
                   "$ref": "#/components/schemas/SchemaString"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/SchemaString"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SchemaString"
                 }
@@ -1621,12 +1621,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1641,12 +1641,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1705,7 +1705,7 @@
                   }
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -1714,7 +1714,7 @@
                   }
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -1733,12 +1733,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1753,12 +1753,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1816,7 +1816,7 @@
                   }
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -1824,7 +1824,7 @@
                   }
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -1842,12 +1842,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1862,12 +1862,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1898,7 +1898,7 @@
                   }
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -1907,7 +1907,7 @@
                   }
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -1926,12 +1926,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -1989,7 +1989,7 @@
                   }
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -1998,7 +1998,7 @@
                   }
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -2017,12 +2017,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2102,12 +2102,12 @@
                   "$ref": "#/components/schemas/Schema"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Schema"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Schema"
                 }
@@ -2122,12 +2122,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2142,12 +2142,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2196,7 +2196,7 @@
                   }
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -2206,7 +2206,7 @@
                   }
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -2226,12 +2226,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2246,12 +2246,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2310,7 +2310,7 @@
                   }
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -2320,7 +2320,7 @@
                   }
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -2340,12 +2340,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2360,12 +2360,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2435,12 +2435,12 @@
                   "$ref": "#/components/schemas/RegisterSchemaResponse"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RegisterSchemaResponse"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RegisterSchemaResponse"
                 }
@@ -2455,12 +2455,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2475,12 +2475,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2495,12 +2495,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2555,12 +2555,12 @@
                   "$ref": "#/components/schemas/Schema"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Schema"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Schema"
                 }
@@ -2575,12 +2575,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2595,12 +2595,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2615,12 +2615,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2675,14 +2675,14 @@
                   "example": 1
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "integer",
                   "format": "int32",
                   "example": 1
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "integer",
                   "format": "int32",
@@ -2699,12 +2699,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2719,12 +2719,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2739,12 +2739,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2796,7 +2796,7 @@
                   }
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -2806,7 +2806,7 @@
                   }
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -2826,12 +2826,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2846,12 +2846,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2866,12 +2866,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2927,13 +2927,13 @@
                   "example": "{\"schema\": \"{\"type\": \"string\"}\"}"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "string",
                   "example": "{\"schema\": \"{\"type\": \"string\"}\"}"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "string",
                   "example": "{\"schema\": \"{\"type\": \"string\"}\"}"
@@ -2949,12 +2949,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2969,12 +2969,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -2989,12 +2989,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -3065,13 +3065,13 @@
                   "example": "{\"schema\": \"{\"type\": \"string\"}\"}"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "string",
                   "example": "{\"schema\": \"{\"type\": \"string\"}\"}"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "type": "string",
                   "example": "{\"schema\": \"{\"type\": \"string\"}\"}"
@@ -3087,12 +3087,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -3107,12 +3107,12 @@
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorMessage"
                 }
@@ -3191,12 +3191,12 @@
                   "$ref": "#/components/schemas/Schema"
                 }
               },
-              "application/vnd.schemaregistry+json; qs=0.9": {
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Schema"
                 }
               },
-              "application/json; qs=0.5": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Schema"
                 }
@@ -3211,7 +3211,8 @@
           }
         }
       }
-    }
+    },
+    "x-codegen-contextRoot": "/apis/ccompat/v7"
   },
   "components": {
     "schemas": {
@@ -3376,19 +3377,22 @@
         },
         "description": "Config update request"
       },
+      "ModeType": {
+        "type": "string",
+        "description": "Schema Registry operating mode",
+        "example": "READWRITE",
+        "enum": [
+          "READWRITE",
+          "READONLY",
+          "READONLY_OVERRIDE",
+          "IMPORT"
+        ]
+      },
       "Mode": {
         "type": "object",
         "properties": {
           "mode": {
-            "type": "string",
-            "description": "Schema Registry operating mode",
-            "example": "READWRITE",
-            "enum": [
-              "READWRITE",
-              "READONLY",
-              "READONLY_OVERRIDE",
-              "IMPORT"
-            ]
+            "$ref": "#/components/schemas/ModeType"
           }
         },
         "description": "Schema Registry operating mode"
@@ -3708,5 +3712,31 @@
         "description": "Schema rule set"
       }
     }
+  },
+  "x-codegen": {
+    "suppress-date-time-formatting": true,
+    "bean-annotations": [
+      "io.quarkus.runtime.annotations.RegisterForReflection",
+      {
+        "annotation": "lombok.experimental.SuperBuilder",
+        "excludeEnums": true
+      },
+      {
+        "annotation": "lombok.AllArgsConstructor",
+        "excludeEnums": true
+      },
+      {
+        "annotation": "lombok.NoArgsConstructor",
+        "excludeEnums": true
+      },
+      {
+        "annotation": "lombok.EqualsAndHashCode",
+        "excludeEnums": true
+      },
+      {
+        "annotation": "lombok.ToString(callSuper = true)",
+        "excludeEnums": true
+      }
+    ]
   }
 }

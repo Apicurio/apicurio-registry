@@ -1,26 +1,26 @@
-package io.apicurio.registry.ccompat.rest.v7.impl;
+package io.apicurio.registry.ccompat.rest.v7;
 
 import io.apicurio.common.apps.logging.Logged;
-import io.apicurio.registry.ccompat.dto.ModeDto;
 import io.apicurio.registry.ccompat.rest.error.Errors;
-import io.apicurio.registry.ccompat.rest.v7.ModeResource;
+import io.apicurio.registry.ccompat.v7.RootResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.interceptor.Interceptors;
 
+import java.io.InputStream;
+
+@ApplicationScoped
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
-public class ModeResourceImpl extends AbstractResource implements ModeResource {
-
+public class RootResourceImpl implements RootResource {
     @Override
-    public ModeDto getGlobalMode() {
+    public void get() {
         Errors.operationNotSupported();
-        return null;
     }
 
     @Override
-    public ModeDto updateGlobalMode(ModeDto request) {
+    public void post(InputStream data) {
         Errors.operationNotSupported();
-        return null;
     }
 }

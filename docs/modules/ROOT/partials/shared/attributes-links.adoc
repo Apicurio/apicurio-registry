@@ -14,7 +14,7 @@
 ifdef::RHAF[]
 :productpkg: red_hat_build_of_apicurio_registry 
 :RegistryProductURL: apicurio_registry
-:ServiceRegistryURLVersion: 2.5
+:ServiceRegistryURLVersion: 2.6
 endif::[]
 
 :LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index

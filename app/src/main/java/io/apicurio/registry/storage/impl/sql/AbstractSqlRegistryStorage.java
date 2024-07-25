@@ -3320,7 +3320,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (!StringUtil.isEmpty(location)) {
             log.debug("Creating internal database snapshot to location {}.", location);
             handles.withHandleNoException(handle -> {
-                handle.createQuery(sqlStatements.createDataSnapshot()).bind(0, location).mapTo(String.class).first();
+                handle.createQuery(sqlStatements.createDataSnapshot()).bind(0, location).mapTo(String.class)
+                        .first();
             });
             return location;
         } else {

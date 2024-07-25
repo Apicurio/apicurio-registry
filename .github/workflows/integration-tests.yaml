@@ -274,7 +274,7 @@ jobs:
       - name: Run UI tests
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
           echo "Starting Registry UI"
           docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:1d
 

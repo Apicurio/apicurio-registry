@@ -42,15 +42,12 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
                 if (resultSet.next()) {
                     throw new RuntimeSqlException("SQL error: Expected only one result but got multiple.");
                 }
-            }
-            else {
+            } else {
                 throw new RuntimeSqlException("SQL error: Expected only one result row but got none.");
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeSqlException(e);
-        }
-        finally {
+        } finally {
             close();
         }
         return rval;
@@ -65,15 +62,12 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
         try (ResultSet resultSet = statement.executeQuery()) {
             if (resultSet.next()) {
                 rval = this.mapper.map(resultSet);
-            }
-            else {
+            } else {
                 throw new RuntimeSqlException("SQL error: Expected AT LEAST one result row but got none.");
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeSqlException(e);
-        }
-        finally {
+        } finally {
             close();
         }
         return rval;
@@ -91,15 +85,12 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
                 if (resultSet.next()) {
                     throw new RuntimeSqlException("SQL error: Expected only one result but got multiple.");
                 }
-            }
-            else {
+            } else {
                 rval = Optional.empty();
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeSqlException(e);
-        }
-        finally {
+        } finally {
             close();
         }
         return rval;
@@ -114,15 +105,12 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
         try (ResultSet resultSet = statement.executeQuery()) {
             if (resultSet.next()) {
                 rval = Optional.of(this.mapper.map(resultSet));
-            }
-            else {
+            } else {
                 rval = Optional.empty();
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeSqlException(e);
-        }
-        finally {
+        } finally {
             close();
         }
         return rval;
@@ -141,11 +129,9 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
             if (rval == null) {
                 rval = Optional.empty();
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeSqlException(e);
-        }
-        finally {
+        } finally {
             close();
         }
         return rval;
@@ -162,11 +148,9 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
                 T t = this.mapper.map(resultSet);
                 rval.add(t);
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeSqlException(e);
-        }
-        finally {
+        } finally {
             close();
         }
         return rval;
@@ -179,8 +163,9 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
     public Stream<T> stream() {
         try {
             ResultSet resultSet = statement.executeQuery();
-            return StreamSupport.stream(
-                    new Spliterators.AbstractSpliterator<T>(Long.MAX_VALUE, Spliterator.IMMUTABLE | Spliterator.ORDERED | Spliterator.DISTINCT | Spliterator.NONNULL) {
+            return StreamSupport
+                    .stream(new Spliterators.AbstractSpliterator<T>(Long.MAX_VALUE, Spliterator.IMMUTABLE
+                            | Spliterator.ORDERED | Spliterator.DISTINCT | Spliterator.NONNULL) {
                         @Override
                         public boolean tryAdvance(Consumer<? super T> action) {
                             try {
@@ -190,23 +175,20 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
                                 T t = mapper.map(resultSet);
                                 action.accept(t);
                                 return true;
-                            }
-                            catch (SQLException e) {
+                            } catch (SQLException e) {
                                 throw new RuntimeSqlException(e);
                             }
                         }
 
                     }, false).onClose(() -> {
-                try {
-                    resultSet.close();
-                    close();
-                }
-                catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        }
-        catch (SQLException e) {
+                        try {
+                            resultSet.close();
+                            close();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
@@ -218,8 +200,7 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
     public void close() {
         try {
             this.statement.close();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeSqlException(e);
         }
     }

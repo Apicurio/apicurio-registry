@@ -78,7 +78,6 @@ export const BranchVersionsTable: FunctionComponent<BranchVersionsTableProps> = 
 
     const actionsFor = (version: SearchedVersion): (VersionAction | VersionActionSeparator)[] => {
         const vhash: number = shash(version.version!);
-        // TODO hide/show actions based on user role
         return [
             { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` }
         ];

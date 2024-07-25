@@ -547,7 +547,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     @Test
     public void testConfigProperties() throws Exception {
         String property1Name = "apicurio.ccompat.legacy-id-mode.enabled";
-        String property2Name = "apicurio.rest.artifact.deletion.enabled";
+        String property2Name = "apicurio.ccompat.use-canonical-hash";
 
         // Start with default mappings
         given().when().get("/registry/v3/admin/config/properties").then().statusCode(200)
@@ -563,7 +563,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("propertyName", property2Name)
                 .get("/registry/v3/admin/config/properties/{propertyName}").then().statusCode(200)
                 .contentType(ContentType.JSON).body("name", equalTo(property2Name))
-                .body("value", equalTo("true"));
+                .body("value", equalTo("false"));
 
         // Set value for property 1
         UpdateConfigurationProperty update = new UpdateConfigurationProperty();
@@ -580,7 +580,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
         // Set value for property 2
         update = new UpdateConfigurationProperty();
-        update.setValue("false");
+        update.setValue("true");
         given().when().contentType(CT_JSON).body(update).pathParam("propertyName", property2Name)
                 .put("/registry/v3/admin/config/properties/{propertyName}").then().statusCode(204)
                 .body(anything());
@@ -589,7 +589,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("propertyName", property2Name)
                 .get("/registry/v3/admin/config/properties/{propertyName}").then().statusCode(200)
                 .contentType(ContentType.JSON).body("name", equalTo(property2Name))
-                .body("value", equalTo("false"));
+                .body("value", equalTo("true"));
 
         // Reset a config property
         given().when().pathParam("propertyName", property2Name)
@@ -600,7 +600,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("propertyName", property2Name)
                 .get("/registry/v3/admin/config/properties/{propertyName}").then().statusCode(200)
                 .contentType(ContentType.JSON).body("name", equalTo(property2Name))
-                .body("value", equalTo("true"));
+                .body("value", equalTo("false"));
 
         // Reset the other property
         given().when().contentType(CT_JSON).body(update).pathParam("propertyName", property1Name)

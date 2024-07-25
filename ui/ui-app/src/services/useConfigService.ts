@@ -58,6 +58,9 @@ export interface FeaturesConfig {
     readOnly?: boolean;
     breadcrumbs?: boolean;
     roleManagement?: boolean;
+    deleteGroup?: boolean;
+    deleteArtifact?: boolean;
+    deleteVersion?: boolean;
     settings?: boolean;
     alerts?: Alerts;
 }
@@ -211,6 +214,9 @@ export interface ConfigService {
     featureBreadcrumbs(): boolean;
     featureRoleManagement(): boolean;
     featureSettings(): boolean;
+    featureDeleteGroup(): boolean;
+    featureDeleteArtifact(): boolean;
+    featureDeleteVersion(): boolean;
     authType(): string;
     authRbacEnabled(): boolean;
     authObacEnabled(): boolean;
@@ -304,6 +310,18 @@ export class ConfigServiceImpl implements ConfigService {
 
     public featureSettings(): boolean {
         return this.features().settings || true;
+    }
+
+    public featureDeleteGroup(): boolean {
+        return this.features().deleteGroup || false;
+    }
+
+    public featureDeleteArtifact(): boolean {
+        return this.features().deleteArtifact || false;
+    }
+
+    public featureDeleteVersion(): boolean {
+        return this.features().deleteVersion || false;
     }
 
     public authType(): string {

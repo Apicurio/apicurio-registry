@@ -27,6 +27,9 @@ public class BasicAuthWithPropertiesTestProfile implements QuarkusTestProfile {
         map.put("quarkus.security.users.embedded.roles.bob1", "sr-developer");
         map.put("quarkus.security.users.embedded.roles.bob2", "sr-developer");
         map.put("quarkus.security.users.embedded.roles.duncan", "sr-readonly");
+        map.put("apicurio.rest.deletion.group.enabled", "true");
+        map.put("apicurio.rest.deletion.artifact.enabled", "true");
+        map.put("apicurio.rest.deletion.artifactVersion.enabled", "true");
         return map;
     }
 

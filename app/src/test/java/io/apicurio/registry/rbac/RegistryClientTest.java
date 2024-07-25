@@ -1455,7 +1455,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     @Test
     public void testConfigProperties() throws Exception {
         String property1Name = "apicurio.ccompat.legacy-id-mode.enabled";
-        String property2Name = "apicurio.rest.artifact.deletion.enabled";
+        String property2Name = "apicurio.rest.deletion.artifact.enabled";
 
         // Start with all default values
         List<ConfigurationProperty> configProperties = clientV3.admin().config().properties().get();

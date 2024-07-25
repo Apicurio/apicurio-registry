@@ -94,14 +94,24 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
     const actionsFor = (version: SearchedVersion): (VersionAction | VersionActionSeparator)[] => {
         const vhash: number = shash(version.version!);
         // TODO hide/show actions based on user role
-        return config.featureReadOnly() ? [
+        const actions: (VersionAction | VersionActionSeparator)[] = [
             { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` },
-        ] : [
-            { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` },
-            { label: "Add to branch", onClick: () => props.onAddToBranch(version), testId: `add-to-branch-version-${vhash}` },
-            { isSeparator: true },
-            { label: "Delete version", onClick: () => props.onDelete(version), testId: `delete-version-${vhash}` }
         ];
+        if (!config.featureReadOnly()) {
+            actions.push(
+                { label: "Add to branch", onClick: () => props.onAddToBranch(version), testId: `add-to-branch-version-${vhash}` },
+            );
+
+            if (config.featureDeleteVersion()) {
+                actions.push(
+                    { isSeparator: true },
+                );
+                actions.push(
+                    { label: "Delete version", onClick: () => props.onDelete(version), testId: `delete-version-${vhash}` }
+                );
+            }
+        }
+        return actions;
     };
 
     const sortParams = (column: any): ThProps["sort"] | undefined => {

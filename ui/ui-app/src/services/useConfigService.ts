@@ -1,4 +1,4 @@
-import {createEndpoint, httpGet} from "@utils/rest.utils.ts";
+import { createEndpoint, httpGet } from "@utils/rest.utils.ts";
 import { cloneObject } from "@utils/object.utils.ts";
 
 export enum AlertVariant {

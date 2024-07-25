@@ -13,6 +13,7 @@ import {
     SortOrder,
     SortOrderObject
 } from "@sdk/lib/generated-client/models";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 export type ArtifactsTableProps = {
     artifacts: SearchedArtifact[];
@@ -35,6 +36,7 @@ type ArtifactActionSeparator = {
 export const ArtifactsTable: FunctionComponent<ArtifactsTableProps> = (props: ArtifactsTableProps) => {
     const [sortByIndex, setSortByIndex] = useState<number>();
 
+    const config: ConfigService = useConfigService();
     const appNavigation: AppNavigation = useAppNavigation();
 
     const columns: any[] = [
@@ -87,10 +89,13 @@ export const ArtifactsTable: FunctionComponent<ArtifactsTableProps> = (props: Ar
 
     const actionsFor = (artifact: SearchedArtifact): (ArtifactAction | ArtifactActionSeparator)[] => {
         const ahash: number = shash(artifact.artifactId!);
-        return [
+
+        return config.featureDeleteArtifact() ? [
             { label: "View artifact", onClick: () => props.onView(artifact), testId: `view-artifact-${ahash}` },
             { isSeparator: true },
             { label: "Delete artifact", onClick: () => props.onDelete(artifact), testId: `delete-artifact-${ahash}` }
+        ] : [
+            { label: "View artifact", onClick: () => props.onView(artifact), testId: `view-artifact-${ahash}` },
         ];
     };
 

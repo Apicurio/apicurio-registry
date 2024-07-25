@@ -10,6 +10,12 @@ type UserInterfaceConfigFeatures struct {
 	additionalData map[string]any
 	// The breadcrumbs property
 	breadcrumbs *bool
+	// The deleteArtifact property
+	deleteArtifact *bool
+	// The deleteGroup property
+	deleteGroup *bool
+	// The deleteVersion property
+	deleteVersion *bool
 	// The readOnly property
 	readOnly *bool
 	// The roleManagement property
@@ -40,6 +46,21 @@ func (m *UserInterfaceConfigFeatures) GetBreadcrumbs() *bool {
 	return m.breadcrumbs
 }
 
+// GetDeleteArtifact gets the deleteArtifact property value. The deleteArtifact property
+func (m *UserInterfaceConfigFeatures) GetDeleteArtifact() *bool {
+	return m.deleteArtifact
+}
+
+// GetDeleteGroup gets the deleteGroup property value. The deleteGroup property
+func (m *UserInterfaceConfigFeatures) GetDeleteGroup() *bool {
+	return m.deleteGroup
+}
+
+// GetDeleteVersion gets the deleteVersion property value. The deleteVersion property
+func (m *UserInterfaceConfigFeatures) GetDeleteVersion() *bool {
+	return m.deleteVersion
+}
+
 // GetFieldDeserializers the deserialization information for the current model
 func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
@@ -50,6 +71,36 @@ func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i8
 		}
 		if val != nil {
 			m.SetBreadcrumbs(val)
+		}
+		return nil
+	}
+	res["deleteArtifact"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetDeleteArtifact(val)
+		}
+		return nil
+	}
+	res["deleteGroup"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetDeleteGroup(val)
+		}
+		return nil
+	}
+	res["deleteVersion"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetDeleteVersion(val)
 		}
 		return nil
 	}
@@ -110,6 +161,24 @@ func (m *UserInterfaceConfigFeatures) Serialize(writer i878a80d2330e89d26896388a
 		}
 	}
 	{
+		err := writer.WriteBoolValue("deleteArtifact", m.GetDeleteArtifact())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteBoolValue("deleteGroup", m.GetDeleteGroup())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteBoolValue("deleteVersion", m.GetDeleteVersion())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteBoolValue("readOnly", m.GetReadOnly())
 		if err != nil {
 			return err
@@ -146,6 +215,21 @@ func (m *UserInterfaceConfigFeatures) SetBreadcrumbs(value *bool) {
 	m.breadcrumbs = value
 }
 
+// SetDeleteArtifact sets the deleteArtifact property value. The deleteArtifact property
+func (m *UserInterfaceConfigFeatures) SetDeleteArtifact(value *bool) {
+	m.deleteArtifact = value
+}
+
+// SetDeleteGroup sets the deleteGroup property value. The deleteGroup property
+func (m *UserInterfaceConfigFeatures) SetDeleteGroup(value *bool) {
+	m.deleteGroup = value
+}
+
+// SetDeleteVersion sets the deleteVersion property value. The deleteVersion property
+func (m *UserInterfaceConfigFeatures) SetDeleteVersion(value *bool) {
+	m.deleteVersion = value
+}
+
 // SetReadOnly sets the readOnly property value. The readOnly property
 func (m *UserInterfaceConfigFeatures) SetReadOnly(value *bool) {
 	m.readOnly = value
@@ -166,10 +250,16 @@ type UserInterfaceConfigFeaturesable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetBreadcrumbs() *bool
+	GetDeleteArtifact() *bool
+	GetDeleteGroup() *bool
+	GetDeleteVersion() *bool
 	GetReadOnly() *bool
 	GetRoleManagement() *bool
 	GetSettings() *bool
 	SetBreadcrumbs(value *bool)
+	SetDeleteArtifact(value *bool)
+	SetDeleteGroup(value *bool)
+	SetDeleteVersion(value *bool)
 	SetReadOnly(value *bool)
 	SetRoleManagement(value *bool)
 	SetSettings(value *bool)

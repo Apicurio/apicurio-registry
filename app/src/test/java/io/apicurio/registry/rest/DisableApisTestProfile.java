@@ -11,7 +11,7 @@ public class DisableApisTestProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         Map<String, String> props = new HashMap<>();
         props.put("apicurio.disable.apis", "/apis/ccompat/v7/subjects/[^/]+/versions.*,/ui/.*");
-        props.put("apicurio.rest.artifact.deletion.enabled", "false");
+        props.put("apicurio.rest.deletion.artifact.enabled", "false");
         return props;
     }
 

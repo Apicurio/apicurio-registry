@@ -40,8 +40,10 @@ export const VersionPageHeader: FunctionComponent<ArtifactVersionPageHeaderProps
                     data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
                 <IfAuth isDeveloper={true}>
                     <IfFeature feature="readOnly" isNot={true}>
-                        <Button id="delete-artifact-button" variant="danger"
-                            data-testid="header-btn-delete" onClick={props.onDelete}>Delete version</Button>
+                        <IfFeature feature="deleteVersion" is={true}>
+                            <Button id="delete-artifact-button" variant="danger"
+                                data-testid="header-btn-delete" onClick={props.onDelete}>Delete version</Button>
+                        </IfFeature>
                     </IfFeature>
                 </IfAuth>
             </FlexItem>

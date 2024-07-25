@@ -272,6 +272,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID })
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifact(String groupId, String artifactId) {
+        if (!restConfig.isArtifactDeletionEnabled()) {
+            throw new NotAllowedException("Artifact deletion operation is not enabled.", HttpMethod.GET,
+                    (String[]) null);
+        }
+
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
 
@@ -363,6 +368,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroupById(String groupId) {
+        if (!restConfig.isGroupDeletionEnabled()) {
+            throw new NotAllowedException("Group deletion operation is not enabled.", HttpMethod.GET,
+                    (String[]) null);
+        }
+
         storage.deleteGroup(groupId);
     }
 
@@ -841,6 +851,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited(extractParameters = { "0", KEY_GROUP_ID })
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteArtifactsInGroup(String groupId) {
+        if (!restConfig.isArtifactDeletionEnabled()) {
+            throw new NotAllowedException("Artifact deletion operation is not enabled.", HttpMethod.GET,
+                    (String[]) null);
+        }
+
         requireParameter("groupId", groupId);
 
         storage.deleteArtifacts(defaultGroupIdToNull(groupId));

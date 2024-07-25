@@ -9,6 +9,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.limits.RegistryLimitsConfiguration;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v3.beans.Limits;
 import io.apicurio.registry.rest.v3.beans.SystemInfo;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfig;
@@ -39,6 +40,9 @@ public class SystemResourceImpl implements SystemResource {
 
     @Inject
     RegistryLimitsConfiguration registryLimitsConfiguration;
+
+    @Inject
+    RestConfig restConfig;
 
     /**
      * @see io.apicurio.registry.rest.v3.SystemResource#getSystemInfo()
@@ -91,6 +95,9 @@ public class SystemResourceImpl implements SystemResource {
                         .readOnly("true".equals(uiConfig.featureReadOnly))
                         .breadcrumbs("true".equals(uiConfig.featureBreadcrumbs))
                         .roleManagement(authConfig.isRbacEnabled())
+                        .deleteGroup(restConfig.isGroupDeletionEnabled())
+                        .deleteArtifact(restConfig.isArtifactDeletionEnabled())
+                        .deleteVersion(restConfig.isArtifactVersionDeletionEnabled())
                         .settings("true".equals(uiConfig.featureSettings)).build())
                 .build();
     }

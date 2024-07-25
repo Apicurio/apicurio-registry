@@ -51,7 +51,6 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static final String CT_PROTO = "application/x-protobuf";
     protected static final String CT_YAML = "application/x-yaml";
     protected static final String CT_XML = "application/xml";
-    public static final String CT_JSON_EXTENDED = "application/create.extended+json";
 
     public String registryApiBaseUrl;
     protected String registryV3ApiUrl;

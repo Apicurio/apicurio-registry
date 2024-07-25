@@ -9,6 +9,7 @@ import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
+import io.apicurio.registry.utils.tests.DeletionEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.CompatibilityLevel;
@@ -36,6 +37,7 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializerConfig;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializerConfig;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.apache.avro.generic.GenericData;
@@ -72,6 +74,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @QuarkusTest
+@TestProfile(DeletionEnabledProfile.class)
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ConfluentClientTest extends AbstractResourceTestBase {
 

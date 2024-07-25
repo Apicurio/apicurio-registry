@@ -350,7 +350,7 @@ jobs:
       - name: Run Legacy Integration Tests (Core API v2)
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8181:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
           cd registry-v2
           ./mvnw -T 1.5C -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true
           cd integration-tests

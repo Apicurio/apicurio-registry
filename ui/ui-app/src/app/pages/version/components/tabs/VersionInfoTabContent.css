@@ -1,28 +1,14 @@
 .overview-tab-content {
     padding: 22px;
+    display: flex;
+    flex-direction: row;
     background-color: rgb(240,240,240);
 }
 
 .overview-tab-content .version-basics {
-    width: 50%;
-}
-
-@media only screen and (max-width: 1400px) {
-    .overview-tab-content .version-basics {
-        width: 60%;
-    }
-}
-
-@media only screen and (max-width: 1024px) {
-    .overview-tab-content .version-basics {
-        width: 75%;
-    }
-}
-
-@media only screen and (max-width: 800px) {
-    .overview-tab-content .version-basics {
-        width: 100%;
-    }
+    flex-grow: 1;
+    flex-basis: 40%;
+    margin-right: 15px;
 }
 
 .overview-tab-content .version-basics .title-and-type {
@@ -43,6 +29,18 @@
 }
 
 .overview-tab-content .version-basics .actions {
+}
+
+.overview-tab-content .version-comments {
+    flex-grow: 1;
+    flex-basis: 60%;
+}
+
+.overview-tab-content .version-comments .comments-label {
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 29px;
+    padding-bottom: 7px;
 }
 
 

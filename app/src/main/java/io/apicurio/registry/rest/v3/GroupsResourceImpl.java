@@ -325,6 +325,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             throw new MissingRequiredParameterException("config");
         }
 
+        if (new GroupId(groupId).isDefaultGroup()) {
+            throw new NotAllowedException("Default group is not allowed");
+        }
+
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
 

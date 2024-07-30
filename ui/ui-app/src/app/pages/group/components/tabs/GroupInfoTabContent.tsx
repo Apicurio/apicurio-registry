@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import "./GroupInfoTabContent.css";
 import "@app/styles/empty.css";
-import { IfAuth, IfFeature } from "@app/components";
+import { IfAuth, IfFeature, RuleList, RuleListType } from "@app/components";
 import {
     Button,
     Card,
@@ -18,10 +18,10 @@ import {
     Label,
     Truncate
 } from "@patternfly/react-core";
-import { IndustryIcon, OutlinedFolderIcon, PencilAltIcon } from "@patternfly/react-icons";
+import { OutlinedFolderIcon, PencilAltIcon } from "@patternfly/react-icons";
 import { FromNow, If } from "@apicurio/common-ui-components";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
-import { GroupMetaData } from "@sdk/lib/generated-client/models";
+import { GroupMetaData, Rule } from "@sdk/lib/generated-client/models";
 import { labelsToAny } from "@utils/rest.utils.ts";
 
 /**
@@ -29,6 +29,10 @@ import { labelsToAny } from "@utils/rest.utils.ts";
  */
 export type GroupInfoTabContentProps = {
     group: GroupMetaData;
+    rules: Rule[];
+    onEnableRule: (ruleType: string) => void;
+    onDisableRule: (ruleType: string) => void;
+    onConfigureRule: (ruleType: string, config: string) => void;
     onEditMetaData: () => void;
     onChangeOwner: () => void;
 };
@@ -135,16 +139,13 @@ export const GroupInfoTabContent: FunctionComponent<GroupInfoTabContentProps> = 
                             individually enabled, configured, and disabled. Group-specific rules override
                             the equivalent global rules.
                         </p>
-                        <p>
-                            <b><IndustryIcon /> Under construction </b>
-                        </p>
-                        {/*<RuleList*/}
-                        {/*    isGlobalRules={false}*/}
-                        {/*    rules={props.rules}*/}
-                        {/*    onEnableRule={props.onEnableRule}*/}
-                        {/*    onDisableRule={props.onDisableRule}*/}
-                        {/*    onConfigureRule={props.onConfigureRule}*/}
-                        {/*/>*/}
+                        <RuleList
+                            type={RuleListType.Group}
+                            rules={props.rules}
+                            onEnableRule={props.onEnableRule}
+                            onDisableRule={props.onDisableRule}
+                            onConfigureRule={props.onConfigureRule}
+                        />
                     </CardBody>
                 </Card>
             </div>

@@ -82,6 +82,47 @@ const deleteGroup = async (config: ConfigService, auth: AuthService, groupId: st
 };
 
 
+const getGroupRules = async (config: ConfigService, auth: AuthService, groupId: string|null): Promise<Rule[]> => {
+    groupId = normalizeGroupId(groupId);
+
+    console.info("[GroupsService] Getting the list of rules for group: ", groupId);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).rules.get().then(ruleTypes => {
+        return Promise.all(ruleTypes!.map(rt => getGroupRule(config, auth, groupId, rt)));
+    });
+};
+
+const getGroupRule = async (config: ConfigService, auth: AuthService, groupId: string|null, ruleType: string): Promise<Rule> => {
+    groupId = normalizeGroupId(groupId);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).rules.byRuleType(ruleType).get().then(v => v!);
+};
+
+const createGroupRule = async (config: ConfigService, auth: AuthService, groupId: string|null, ruleType: string, configValue: string): Promise<Rule> => {
+    groupId = normalizeGroupId(groupId);
+    console.info("[GroupsService] Creating group rule:", ruleType);
+    const body: CreateRule = {
+        config: configValue,
+        ruleType: ruleType as RuleType
+    };
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).rules.post(body).then(v => v!);
+};
+
+const updateGroupRule = async (config: ConfigService, auth: AuthService, groupId: string|null, ruleType: string, configValue: string): Promise<Rule> => {
+    groupId = normalizeGroupId(groupId);
+    console.info("[GroupsService] Updating group rule:", ruleType);
+    const body: Rule = {
+        config: configValue,
+        ruleType: ruleType as RuleType
+    };
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).rules.byRuleType(ruleType).put(body).then(v => v!);
+};
+
+const deleteGroupRule = async (config: ConfigService, auth: AuthService, groupId: string|null, ruleType: string): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+    console.info("[GroupsService] Deleting group rule:", ruleType);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).rules.byRuleType(ruleType).delete();
+};
+
+
 const createArtifact = async (config: ConfigService, auth: AuthService, groupId: string|null, data: CreateArtifact): Promise<CreateArtifactResponse> => {
     groupId = normalizeGroupId(groupId);
     return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.post(data).then(v => v!);
@@ -333,6 +374,12 @@ export interface GroupsService {
     updateGroupOwner(groupId: string, newOwner: string): Promise<void>;
     deleteGroup(groupId: string): Promise<void>;
 
+    getGroupRules(groupId: string|null): Promise<Rule[]>;
+    createGroupRule(groupId: string|null, ruleType: string, configValue: string): Promise<Rule>;
+    getGroupRule(groupId: string|null, ruleType: string): Promise<Rule>;
+    updateGroupRule(groupId: string|null, ruleType: string, configValue: string): Promise<Rule>;
+    deleteGroupRule(groupId: string|null, ruleType: string): Promise<void>;
+
     createArtifact(groupId: string|null, data: CreateArtifact): Promise<CreateArtifactResponse>;
     getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData>;
     getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]>;
@@ -392,6 +439,22 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         },
         deleteGroup(groupId: string): Promise<void> {
             return deleteGroup(config, auth, groupId);
+        },
+
+        getGroupRules(groupId: string|null): Promise<Rule[]> {
+            return getGroupRules(config, auth, groupId);
+        },
+        createGroupRule(groupId: string|null, ruleType: string, configValue: string): Promise<Rule> {
+            return createGroupRule(config, auth, groupId, ruleType, configValue);
+        },
+        getGroupRule(groupId: string|null, ruleType: string): Promise<Rule> {
+            return getGroupRule(config, auth, groupId, ruleType);
+        },
+        updateGroupRule(groupId: string|null, ruleType: string, configValue: string): Promise<Rule> {
+            return updateGroupRule(config, auth, groupId, ruleType, configValue);
+        },
+        deleteGroupRule(groupId: string|null, ruleType: string): Promise<void> {
+            return deleteGroupRule(config, auth, groupId, ruleType);
         },
 
         createArtifact(groupId: string|null, data: CreateArtifact): Promise<CreateArtifactResponse> {

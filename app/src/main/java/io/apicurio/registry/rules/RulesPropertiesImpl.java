@@ -3,9 +3,9 @@ package io.apicurio.registry.rules;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.RuleType;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class RulesPropertiesImpl implements RulesProperties {
@@ -22,10 +22,8 @@ public class RulesPropertiesImpl implements RulesProperties {
     }
 
     @Override
-    public List<RuleType> getFilteredDefaultGlobalRules(List<RuleType> excludeRulesFilter) {
-        return defaultGlobalRules.keySet().stream()
-                .filter(ruleType -> excludeRulesFilter == null || !excludeRulesFilter.contains(ruleType))
-                .collect(Collectors.toList());
+    public Set<RuleType> getDefaultGlobalRules() {
+        return defaultGlobalRules.keySet();
     }
 
     @Override

@@ -73,6 +73,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
@@ -305,6 +306,75 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         storage.createGroup(group.build());
 
         return V3ApiUtil.groupDtoToGroup(storage.getGroupMetaData(data.getGroupId()));
+    }
+
+    @Override
+    public List<RuleType> listGroupRules(String groupId) {
+        requireParameter("groupId", groupId);
+
+        return storage.getGroupRules(new GroupId(groupId).getRawGroupIdWithNull());
+    }
+
+    @Override
+    public void createGroupRule(String groupId, CreateRule data) {
+        requireParameter("groupId", groupId);
+        requireParameter("ruleType", data.getRuleType());
+        requireParameter("config", data.getConfig());
+
+        if (data.getConfig() == null || data.getConfig().isEmpty()) {
+            throw new MissingRequiredParameterException("config");
+        }
+
+        RuleConfigurationDto config = new RuleConfigurationDto();
+        config.setConfiguration(data.getConfig());
+
+        if (!storage.isGroupExists(new GroupId(groupId).getRawGroupIdWithNull())) {
+            throw new GroupNotFoundException(groupId);
+        }
+
+        storage.createGroupRule(new GroupId(groupId).getRawGroupIdWithNull(), data.getRuleType(), config);
+    }
+
+    @Override
+    public Rule updateGroupRuleConfig(String groupId, RuleType ruleType, Rule data) {
+        requireParameter("groupId", groupId);
+        requireParameter("ruleType", ruleType);
+        requireParameter("config", data.getConfig());
+
+        RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
+        storage.updateGroupRule(new GroupId(groupId).getRawGroupIdWithNull(), ruleType, dto);
+        Rule rval = new Rule();
+        rval.setRuleType(ruleType);
+        rval.setConfig(data.getConfig());
+        return rval;
+    }
+
+    @Override
+    public void deleteGroupRules(String groupId) {
+        requireParameter("groupId", groupId);
+
+        storage.deleteGroupRules(new GroupId(groupId).getRawGroupIdWithNull());
+    }
+
+    @Override
+    public Rule getGroupRuleConfig(String groupId, RuleType ruleType) {
+        requireParameter("groupId", groupId);
+        requireParameter("ruleType", ruleType);
+
+        RuleConfigurationDto dto = storage.getGroupRule(new GroupId(groupId).getRawGroupIdWithNull(),
+                ruleType);
+        Rule rval = new Rule();
+        rval.setConfig(dto.getConfiguration());
+        rval.setRuleType(ruleType);
+        return rval;
+    }
+
+    @Override
+    public void deleteGroupRule(String groupId, RuleType rule) {
+        requireParameter("groupId", groupId);
+        requireParameter("rule", rule);
+
+        storage.deleteGroupRule(new GroupId(groupId).getRawGroupIdWithNull(), rule);
     }
 
     /**

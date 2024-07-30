@@ -83,6 +83,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GroupRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RoleMappingDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RuleConfigurationDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
@@ -107,6 +108,7 @@ import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.GroupRuleEntity;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
@@ -1153,6 +1155,27 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
+    public List<RuleType> getGroupRules(String groupId) throws RegistryStorageException {
+        log.debug("Getting a list of all group rules for: {}", groupId);
+        return handles.withHandle(handle -> {
+            List<RuleType> rules = handle.createQuery(sqlStatements.selectGroupRules())
+                    .bind(0, normalizeGroupId(groupId)).map(new RowMapper<RuleType>() {
+                        @Override
+                        public RuleType map(ResultSet rs) throws SQLException {
+                            return RuleType.fromValue(rs.getString("type"));
+                        }
+                    }).list();
+            if (rules.isEmpty()) {
+                if (!isGroupExists(groupId)) {
+                    throw new GroupNotFoundException(groupId);
+                }
+            }
+            return rules;
+        });
+    }
+
+    @Override
+    @Transactional
     public void createArtifactRule(String groupId, String artifactId, RuleType rule,
             RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
@@ -1179,6 +1202,29 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
+    public void createGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws RegistryStorageException {
+        log.debug("Inserting a group rule row for group: {} rule: {}", groupId, rule.name());
+        try {
+            handles.withHandle(handle -> {
+                handle.createUpdate(sqlStatements.insertGroupRule()).bind(0, normalizeGroupId(groupId))
+                        .bind(1, rule.name()).bind(2, config.getConfiguration()).execute();
+                return null;
+            });
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new RuleAlreadyExistsException(rule);
+            }
+            if (sqlStatements.isForeignKeyViolation(ex)) {
+                throw new GroupNotFoundException(groupId, ex);
+            }
+            throw ex;
+        }
+        log.debug("Group rule row successfully inserted.");
+    }
+
+    @Override
+    @Transactional
     public void deleteArtifactRules(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Deleting all artifact rules for artifact: {} {}", groupId, artifactId);
@@ -1188,6 +1234,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             if (count == 0) {
                 if (!isArtifactExists(groupId, artifactId)) {
                     throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+            }
+            return null;
+        });
+    }
+
+    @Override
+    @Transactional
+    public void deleteGroupRules(String groupId) throws RegistryStorageException {
+        log.debug("Deleting all group rules for group: {}", groupId);
+        handles.withHandle(handle -> {
+            int count = handle.createUpdate(sqlStatements.deleteGroupRules())
+                    .bind(0, normalizeGroupId(groupId)).execute();
+            if (count == 0) {
+                if (!isGroupExists(groupId)) {
+                    throw new GroupNotFoundException(groupId);
                 }
             }
             return null;
@@ -1207,6 +1269,23 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return res.orElseThrow(() -> {
                 if (!isArtifactExists(groupId, artifactId)) {
                     return new ArtifactNotFoundException(groupId, artifactId);
+                }
+                return new RuleNotFoundException(rule);
+            });
+        });
+    }
+
+    @Override
+    @Transactional
+    public RuleConfigurationDto getGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        log.debug("Selecting a single group rule for group: {} and rule: {}", groupId, rule.name());
+        return handles.withHandle(handle -> {
+            Optional<RuleConfigurationDto> res = handle.createQuery(sqlStatements.selectGroupRuleByType())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, rule.name())
+                    .map(RuleConfigurationDtoMapper.instance).findOne();
+            return res.orElseThrow(() -> {
+                if (!isGroupExists(groupId)) {
+                    return new GroupNotFoundException(groupId);
                 }
                 return new RuleNotFoundException(rule);
             });
@@ -1236,6 +1315,26 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     @Transactional
+    public void updateGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws RegistryStorageException {
+        log.debug("Updating a group rule for group: {} and rule: {}::{}", groupId, rule.name(),
+                config.getConfiguration());
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.updateGroupRule())
+                    .bind(0, config.getConfiguration()).bind(1, normalizeGroupId(groupId))
+                    .bind(2, rule.name()).execute();
+            if (rowCount == 0) {
+                if (!isGroupExists(groupId)) {
+                    throw new GroupNotFoundException(groupId);
+                }
+                throw new RuleNotFoundException(rule);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    @Transactional
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         log.debug("Deleting an artifact rule for artifact: {} {} and rule: {}", groupId, artifactId,
@@ -1246,6 +1345,23 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             if (rowCount == 0) {
                 if (!isArtifactExists(groupId, artifactId)) {
                     throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+                throw new RuleNotFoundException(rule);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    @Transactional
+    public void deleteGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        log.debug("Deleting an group rule for group: {} and rule: {}", groupId, rule.name());
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.deleteGroupRule())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, rule.name()).execute();
+            if (rowCount == 0) {
+                if (!isGroupExists(groupId)) {
+                    throw new GroupNotFoundException(groupId);
                 }
                 throw new RuleNotFoundException(rule);
             }
@@ -2028,6 +2144,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return null;
         });
 
+        // Export all group rules
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<GroupRuleEntity> stream = handle.createQuery(sqlStatements.exportGroupRules())
+                    .setFetchSize(50).map(GroupRuleEntityMapper.instance).stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
         // Export all artifacts
         /////////////////////////////////
         handles.withHandle(handle -> {
@@ -2628,6 +2756,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
 
                 log.info("Successfully reset {} to {}", sequenceName, id);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    @Transactional
+    public void importGroupRule(GroupRuleEntity entity) {
+        handles.withHandleNoException(handle -> {
+            if (isGroupExists(entity.groupId)) {
+                handle.createUpdate(sqlStatements.importGroupRule()).bind(0, normalizeGroupId(entity.groupId))
+                        .bind(1, entity.type.name()).bind(2, entity.configuration).execute();
+            } else {
+                throw new GroupNotFoundException(entity.groupId);
             }
             return null;
         });

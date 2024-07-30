@@ -38,6 +38,7 @@ import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.GroupRuleEntity;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import jakarta.annotation.PreDestroy;
@@ -432,6 +433,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(uuid);
     }
 
+    @Override
+    public void createArtifactRule(String groupId, String artifactId, RuleType rule,
+            RuleConfigurationDto config) throws RegistryStorageException {
+        var message = new CreateArtifactRule4Message(groupId, artifactId, rule, config);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactRules(java.lang.String,
      *      java.lang.String)
@@ -466,6 +475,36 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         var message = new DeleteArtifactRule3Message(groupId, artifactId, rule);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void createGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws RegistryStorageException {
+        var message = new CreateGroupRule3Message(groupId, rule, config);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void updateGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws RegistryStorageException {
+        var message = new UpdateGroupRule3Message(groupId, rule, config);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void deleteGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        var message = new DeleteGroupRule2Message(groupId, rule);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void deleteGroupRules(String groupId) throws RegistryStorageException {
+        var message = new DeleteGroupRules1Message(groupId);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
@@ -828,6 +867,13 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
         var message = new ImportArtifactRule1Message(entity);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void importGroupRule(GroupRuleEntity entity) {
+        var message = new ImportGroupRule1Message(entity);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }

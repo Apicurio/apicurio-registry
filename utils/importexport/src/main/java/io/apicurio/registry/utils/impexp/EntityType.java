@@ -5,6 +5,6 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 @RegisterForReflection
 public enum EntityType {
 
-    Manifest, GlobalRule, Content, Group, Artifact, ArtifactVersion, ArtifactRule, Comment, Branch
+    Manifest, GlobalRule, Content, Group, Artifact, ArtifactVersion, ArtifactRule, Comment, Branch, GroupRule
 
 }

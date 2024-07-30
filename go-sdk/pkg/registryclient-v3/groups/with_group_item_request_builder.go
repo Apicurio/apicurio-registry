@@ -109,6 +109,11 @@ func (m *WithGroupItemRequestBuilder) Put(ctx context.Context, body i00eb2e63d15
 	return nil
 }
 
+// Rules manage the rules for a group.
+func (m *WithGroupItemRequestBuilder) Rules() *ItemRulesRequestBuilder {
+	return NewItemRulesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // ToDeleteRequestInformation deletes a group by identifier.  This operation also deletes all artifacts withinthe group, so should be used very carefully.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group does not exist (HTTP error `404`)
 func (m *WithGroupItemRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *WithGroupItemRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)

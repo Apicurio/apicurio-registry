@@ -13,9 +13,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 /**
  * Implements the {@link RulesService} interface.
@@ -45,9 +47,9 @@ public class RulesServiceImpl implements RulesService {
             RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         @SuppressWarnings("unchecked")
-        List<RuleType> rules = Collections.EMPTY_LIST;
+        Set<RuleType> artifactRules = Collections.EMPTY_SET;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
-            rules = storage.getArtifactRules(groupId, artifactId);
+            artifactRules = new HashSet<>(storage.getArtifactRules(groupId, artifactId));
         }
         LazyContentList currentContent = null;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
@@ -57,39 +59,44 @@ public class RulesServiceImpl implements RulesService {
             currentContent = new LazyContentList(storage, Collections.emptyList());
         }
 
-        applyGlobalAndArtifactRules(groupId, artifactId, artifactType, currentContent, content, rules,
-                references, resolvedReferences);
+        applyAllRules(groupId, artifactId, artifactType, currentContent, content, artifactRules, references,
+                resolvedReferences);
     }
 
-    private void applyGlobalAndArtifactRules(String groupId, String artifactId, String artifactType,
-            List<TypedContent> currentContent, TypedContent updatedContent, List<RuleType> artifactRules,
+    private void applyAllRules(String groupId, String artifactId, String artifactType,
+            List<TypedContent> currentContent, TypedContent updatedContent, Set<RuleType> artifactRules,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences) {
 
-        Map<RuleType, RuleConfigurationDto> globalOrArtifactRulesMap = artifactRules.stream()
-                .collect(Collectors.toMap(ruleType -> ruleType,
-                        ruleType -> storage.getArtifactRule(groupId, artifactId, ruleType)));
+        // TODO Getting the list of rules to apply results in several (admittedly fast) DB calls.
+        // Can we perhaps do a single DB call to get the map of rules to apply?
 
-        if (globalOrArtifactRulesMap.isEmpty()) {
-            List<RuleType> globalRules = storage.getGlobalRules();
-            globalOrArtifactRulesMap = globalRules.stream()
-                    .collect(Collectors.toMap(ruleType -> ruleType, storage::getGlobalRule));
+        Map<RuleType, RuleConfigurationDto> allRules = new HashMap<>();
 
-            // Add any default global rules to the map (after filtering out any global rules from
-            // artifactStore)
-            Map<RuleType, RuleConfigurationDto> filteredDefaultGlobalRulesMap = rulesProperties
-                    .getFilteredDefaultGlobalRules(globalRules).stream().collect(Collectors
-                            .toMap(ruleType -> ruleType, rulesProperties::getDefaultGlobalRuleConfiguration));
-            globalOrArtifactRulesMap.putAll(filteredDefaultGlobalRulesMap);
-        }
+        // Get the group rules (we already have the artifact rules)
+        Set<RuleType> groupRules = storage.isGroupExists(groupId)
+            ? new HashSet<>(storage.getGroupRules(groupId)) : Set.of();
+        // Get the global rules
+        Set<RuleType> globalRules = new HashSet<>(storage.getGlobalRules());
+        // Get the configured default global rules
+        Set<RuleType> defaultGlobalRules = rulesProperties.getDefaultGlobalRules();
 
-        if (globalOrArtifactRulesMap.isEmpty()) {
-            return;
-        }
+        // Build the map of rules to apply (may be empty)
+        List.of(RuleType.values()).forEach(rt -> {
+            if (artifactRules.contains(rt)) {
+                allRules.put(rt, storage.getArtifactRule(groupId, artifactId, rt));
+            } else if (groupRules.contains(rt)) {
+                allRules.put(rt, storage.getGroupRule(groupId, rt));
+            } else if (globalRules.contains(rt)) {
+                allRules.put(rt, storage.getGlobalRule(rt));
+            } else if (defaultGlobalRules.contains(rt)) {
+                allRules.put(rt, rulesProperties.getDefaultGlobalRuleConfiguration(rt));
+            }
+        });
 
-        for (RuleType ruleType : globalOrArtifactRulesMap.keySet()) {
+        // Apply rules
+        for (RuleType ruleType : allRules.keySet()) {
             applyRule(groupId, artifactId, artifactType, currentContent, updatedContent, ruleType,
-                    globalOrArtifactRulesMap.get(ruleType).getConfiguration(), references,
-                    resolvedReferences);
+                    allRules.get(ruleType).getConfiguration(), references, resolvedReferences);
         }
     }
 
@@ -138,8 +145,8 @@ public class RulesServiceImpl implements RulesService {
                 artifactVersion);
         TypedContent typedVersionContent = TypedContent.create(versionContent.getContent(),
                 versionContent.getContentType());
-        applyGlobalAndArtifactRules(groupId, artifactId, artifactType,
-                Collections.singletonList(typedVersionContent), updatedContent,
-                storage.getArtifactRules(groupId, artifactId), references, resolvedReferences);
+        Set<RuleType> artifactRules = new HashSet<>(storage.getArtifactRules(groupId, artifactId));
+        applyAllRules(groupId, artifactId, artifactType, Collections.singletonList(typedVersionContent),
+                updatedContent, artifactRules, references, resolvedReferences);
     }
 }

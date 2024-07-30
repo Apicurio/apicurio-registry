@@ -241,7 +241,7 @@ public interface SqlStatements {
     public String deleteArtifactRules();
 
     /**
-     * A statement to delete all rules for a all artifacts.
+     * A statement to delete all rules for all artifacts.
      */
     public String deleteAllArtifactRules();
 
@@ -461,6 +461,8 @@ public interface SqlStatements {
 
     public String exportGroups();
 
+    public String exportGroupRules();
+
     public String exportArtifactRules();
 
     public String exportVersionComments();
@@ -480,6 +482,8 @@ public interface SqlStatements {
     public String importGlobalRule();
 
     public String importGroup();
+
+    public String importGroupRule();
 
     public String importArtifactRule();
 
@@ -516,6 +520,22 @@ public interface SqlStatements {
     public String updateRoleMapping();
 
     public String selectRoleMappingCountByPrincipal();
+
+    /*
+     * The next few statements support group rule management.
+     */
+
+    public String selectGroupRules();
+
+    public String deleteGroupRules();
+
+    public String insertGroupRule();
+
+    public String selectGroupRuleByType();
+
+    public String updateGroupRule();
+
+    public String deleteGroupRule();
 
     /*
      * The next few statements support downloads.

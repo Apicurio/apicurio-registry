@@ -33,6 +33,7 @@ import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.GroupRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
@@ -88,6 +89,22 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     }
 
     @Override
+    public void deleteGroupRules(String groupId) throws RegistryStorageException {
+        delegate.deleteGroupRules(groupId);
+    }
+
+    @Override
+    public void deleteGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        delegate.deleteGroupRule(groupId, rule);
+    }
+
+    @Override
+    public void updateGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws RegistryStorageException {
+        delegate.updateGroupRule(groupId, rule, config);
+    }
+
+    @Override
     public void updateArtifactRule(String groupId, String artifactId, RuleType rule,
             RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
@@ -117,6 +134,18 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
             throws RuleAlreadyExistsException, RegistryStorageException {
         delegate.createGlobalRule(rule, config);
+    }
+
+    @Override
+    public void createArtifactRule(String groupId, String artifactId, RuleType rule,
+            RuleConfigurationDto config) throws RegistryStorageException {
+        delegate.createArtifactRule(groupId, artifactId, rule, config);
+    }
+
+    @Override
+    public void createGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws RegistryStorageException {
+        delegate.createGroupRule(groupId, rule, config);
     }
 
     @Override
@@ -270,6 +299,11 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
         delegate.importArtifactRule(entity);
+    }
+
+    @Override
+    public void importGroupRule(GroupRuleEntity entity) {
+        delegate.importGroupRule(entity);
     }
 
     @Override

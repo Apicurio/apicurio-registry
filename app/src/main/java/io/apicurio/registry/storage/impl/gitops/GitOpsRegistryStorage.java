@@ -268,8 +268,18 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
+    public List<RuleType> getGroupRules(String groupId) throws RegistryStorageException {
+        return proxy(storage -> storage.getGroupRules(groupId));
+    }
+
+    @Override
     public RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule) {
         return proxy(storage -> storage.getArtifactRule(groupId, artifactId, rule));
+    }
+
+    @Override
+    public RuleConfigurationDto getGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        return proxy(storage -> storage.getGroupRule(groupId, rule));
     }
 
     @Override

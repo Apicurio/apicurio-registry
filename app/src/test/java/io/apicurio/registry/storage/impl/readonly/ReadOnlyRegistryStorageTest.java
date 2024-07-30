@@ -179,6 +179,15 @@ public class ReadOnlyRegistryStorageTest {
                 entry("updateGlobalRule2", new State(true, s -> s.updateGlobalRule(null, null))),
                 entry("updateGroupMetaData2", new State(true, s -> s.updateGroupMetaData(null, null))),
                 entry("updateRoleMapping2", new State(true, s -> s.updateRoleMapping(null, null))),
+
+                entry("getGroupRules1", new State(false, s -> s.getGroupRules(null))),
+                entry("getGroupRule2", new State(false, s -> s.getGroupRule(null, null))),
+                entry("updateGroupRule3", new State(true, s -> s.updateGroupRule(null, null, null))),
+                entry("createGroupRule3", new State(true, s -> s.createGroupRule(null, null, null))),
+                entry("deleteGroupRule2", new State(true, s -> s.deleteGroupRule(null, null))),
+                entry("deleteGroupRules1", new State(true, s -> s.deleteGroupRules(null))),
+                entry("importGroupRule1", new State(true, s -> s.importGroupRule(null))),
+
                 entry("triggerSnapshotCreation0", new State(true, RegistryStorage::triggerSnapshotCreation)),
                 entry("createSnapshot1", new State(true, s -> s.createSnapshot(null))));
 

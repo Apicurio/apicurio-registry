@@ -4,12 +4,14 @@ import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 import io.apicurio.registry.storage.impl.kafkasql.messages.AppendVersionToBranch3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.ConsumeDownload1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifact8Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactRule4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersion7Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersionComment4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateBranch4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateDownload1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateGlobalRule2Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateGroup1Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.CreateGroupRule3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateRoleMapping3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateSnapshot1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteAllExpiredDownloads0Message;
@@ -25,6 +27,8 @@ import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteConfigProperty1
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGlobalRule1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGlobalRules0Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGroup1Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGroupRule2Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteGroupRules1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteRoleMapping1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.ExecuteSqlStatement1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.ImportArtifact1Message;
@@ -35,6 +39,7 @@ import io.apicurio.registry.storage.impl.kafkasql.messages.ImportComment1Message
 import io.apicurio.registry.storage.impl.kafkasql.messages.ImportContent1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.ImportGlobalRule1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.ImportGroup1Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.ImportGroupRule1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.NextCommentId0Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.NextContentId0Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.NextGlobalId0Message;
@@ -51,6 +56,7 @@ import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateBranchMetaData3
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateContentCanonicalHash3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateGlobalRule2Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateGroupMetaData2Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateGroupRule3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateRoleMapping2Message;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -76,6 +82,7 @@ public class KafkaSqlMessageIndex {
     static {
         indexMessageClasses(AppendVersionToBranch3Message.class, ConsumeDownload1Message.class,
                 CreateArtifact8Message.class, CreateArtifactVersion7Message.class,
+                CreateArtifactRule4Message.class, CreateGroupRule3Message.class,
                 CreateArtifactVersionComment4Message.class, CreateBranch4Message.class,
                 CreateDownload1Message.class, CreateGlobalRule2Message.class, CreateGroup1Message.class,
                 CreateRoleMapping3Message.class, CreateSnapshot1Message.class,
@@ -96,7 +103,8 @@ public class KafkaSqlMessageIndex {
                 UpdateArtifactVersionMetaData4Message.class, UpdateBranchMetaData3Message.class,
                 UpdateContentCanonicalHash3Message.class, UpdateGlobalRule2Message.class,
                 UpdateGroupMetaData2Message.class, UpdateRoleMapping2Message.class,
-                ExecuteSqlStatement1Message.class);
+                UpdateGroupRule3Message.class, DeleteGroupRule2Message.class, DeleteGroupRules1Message.class,
+                ImportGroupRule1Message.class, ExecuteSqlStatement1Message.class);
     }
 
     public static Class<? extends KafkaSqlMessage> lookup(String name) {

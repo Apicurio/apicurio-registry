@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./RulesPage.css";
 import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
-import { RootPageHeader, RuleList } from "@app/components";
+import { RootPageHeader, RuleList, RuleListType } from "@app/components";
 import { PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
@@ -81,7 +81,7 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     <React.Fragment>
                         <RuleList
-                            isGlobalRules={true}
+                            type={RuleListType.Global}
                             rules={rules}
                             onEnableRule={doEnableRule}
                             onDisableRule={doDisableRule}

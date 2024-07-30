@@ -79,7 +79,7 @@ func (m *ItemArtifactsItemRulesRequestBuilder) Delete(ctx context.Context, reque
 	return nil
 }
 
-// Get returns a list of all rules configured for the artifact.  The set of rules determineshow the content of an artifact can evolve over time.  If no rules are configured foran artifact, the set of globally configured rules are used.  If no global rules are defined, there are no restrictions on content evolution.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// Get returns a list of all rules configured for the artifact.  The set of rules determineshow the content of an artifact can evolve over time.  If no rules are configured foran artifact, then the rules configured for the group is used.  If no rules are configured at the group level, then the set of globally configured rules are used.  If no global rules are defined, there are no restrictions on content evolution.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 func (m *ItemArtifactsItemRulesRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemArtifactsItemRulesRequestBuilderGetRequestConfiguration) ([]i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.RuleType, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -102,7 +102,7 @@ func (m *ItemArtifactsItemRulesRequestBuilder) Get(ctx context.Context, requestC
 	return val, nil
 }
 
-// Post adds a rule to the list of rules that get applied to the artifact when adding newversions.  All configured rules must pass to successfully add a new artifact version.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* Rule (named in the request body) is unknown (HTTP error `400`)* A server error occurred (HTTP error `500`)
+// Post adds a rule to the list of rules that get applied to the artifact when adding newversions.  All configured rules must pass to successfully add a new artifact version.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* Rule (named in the request body) is unknown (HTTP error `400`)* Rule is already configured (HTTP error `409`)* A server error occurred (HTTP error `500`)
 func (m *ItemArtifactsItemRulesRequestBuilder) Post(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateRuleable, requestConfiguration *ItemArtifactsItemRulesRequestBuilderPostRequestConfiguration) error {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -111,6 +111,7 @@ func (m *ItemArtifactsItemRulesRequestBuilder) Post(ctx context.Context, body i0
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
 		"400": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateErrorFromDiscriminatorValue,
 		"404": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateErrorFromDiscriminatorValue,
+		"409": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateErrorFromDiscriminatorValue,
 		"500": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateErrorFromDiscriminatorValue,
 	}
 	err = m.BaseRequestBuilder.RequestAdapter.SendNoContent(ctx, requestInfo, errorMapping)
@@ -131,7 +132,7 @@ func (m *ItemArtifactsItemRulesRequestBuilder) ToDeleteRequestInformation(ctx co
 	return requestInfo, nil
 }
 
-// ToGetRequestInformation returns a list of all rules configured for the artifact.  The set of rules determineshow the content of an artifact can evolve over time.  If no rules are configured foran artifact, the set of globally configured rules are used.  If no global rules are defined, there are no restrictions on content evolution.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// ToGetRequestInformation returns a list of all rules configured for the artifact.  The set of rules determineshow the content of an artifact can evolve over time.  If no rules are configured foran artifact, then the rules configured for the group is used.  If no rules are configured at the group level, then the set of globally configured rules are used.  If no global rules are defined, there are no restrictions on content evolution.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 func (m *ItemArtifactsItemRulesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemRulesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -142,7 +143,7 @@ func (m *ItemArtifactsItemRulesRequestBuilder) ToGetRequestInformation(ctx conte
 	return requestInfo, nil
 }
 
-// ToPostRequestInformation adds a rule to the list of rules that get applied to the artifact when adding newversions.  All configured rules must pass to successfully add a new artifact version.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* Rule (named in the request body) is unknown (HTTP error `400`)* A server error occurred (HTTP error `500`)
+// ToPostRequestInformation adds a rule to the list of rules that get applied to the artifact when adding newversions.  All configured rules must pass to successfully add a new artifact version.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* Rule (named in the request body) is unknown (HTTP error `400`)* Rule is already configured (HTTP error `409`)* A server error occurred (HTTP error `500`)
 func (m *ItemArtifactsItemRulesRequestBuilder) ToPostRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateRuleable, requestConfiguration *ItemArtifactsItemRulesRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {

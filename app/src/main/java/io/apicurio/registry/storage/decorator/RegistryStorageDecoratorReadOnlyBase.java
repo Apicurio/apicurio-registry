@@ -28,7 +28,6 @@ import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
-import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
@@ -129,16 +128,21 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public void createArtifactRule(String groupId, String artifactId, RuleType rule,
-            RuleConfigurationDto config)
-            throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
-        delegate.createArtifactRule(groupId, artifactId, rule, config);
-    }
-
-    @Override
     public RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         return delegate.getArtifactRule(groupId, artifactId, rule);
+    }
+
+    @Override
+    public List<RuleType> getGroupRules(String groupId)
+            throws GroupNotFoundException, RegistryStorageException {
+        return delegate.getGroupRules(groupId);
+    }
+
+    @Override
+    public RuleConfigurationDto getGroupRule(String groupId, RuleType rule)
+            throws GroupNotFoundException, RuleNotFoundException, RegistryStorageException {
+        return delegate.getGroupRule(groupId, rule);
     }
 
     @Override

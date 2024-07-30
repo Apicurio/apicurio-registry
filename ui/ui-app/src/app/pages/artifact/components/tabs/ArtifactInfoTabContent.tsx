@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import "./ArtifactInfoTabContent.css";
 import "@app/styles/empty.css";
-import { ArtifactTypeIcon, IfAuth, IfFeature, RuleList } from "@app/components";
+import { ArtifactTypeIcon, IfAuth, IfFeature, RuleList, RuleListType } from "@app/components";
 import {
     Button,
     Card,
@@ -152,7 +152,7 @@ export const ArtifactInfoTabContent: FunctionComponent<ArtifactInfoTabContentPro
                             the equivalent global rules.
                         </p>
                         <RuleList
-                            isGlobalRules={false}
+                            type={RuleListType.Artifact}
                             rules={props.rules}
                             onEnableRule={props.onEnableRule}
                             onDisableRule={props.onDisableRule}

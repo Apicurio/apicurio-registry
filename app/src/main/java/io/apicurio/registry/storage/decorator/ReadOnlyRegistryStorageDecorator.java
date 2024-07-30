@@ -36,6 +36,7 @@ import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.GroupRuleEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -148,6 +149,33 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
         checkReadOnly();
         delegate.deleteArtifactRule(groupId, artifactId, rule);
+    }
+
+    @Override
+    public void createGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws GroupNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
+        checkReadOnly();
+        delegate.createGroupRule(groupId, rule, config);
+    }
+
+    @Override
+    public void deleteGroupRules(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        checkReadOnly();
+        delegate.deleteGroupRules(groupId);
+    }
+
+    @Override
+    public void updateGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws GroupNotFoundException, RuleNotFoundException, RegistryStorageException {
+        checkReadOnly();
+        delegate.updateGroupRule(groupId, rule, config);
+    }
+
+    @Override
+    public void deleteGroupRule(String groupId, RuleType rule)
+            throws GroupNotFoundException, RuleNotFoundException, RegistryStorageException {
+        checkReadOnly();
+        delegate.deleteGroupRule(groupId, rule);
     }
 
     @Override
@@ -354,6 +382,12 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     public void importArtifactRule(ArtifactRuleEntity entity) {
         checkReadOnly();
         delegate.importArtifactRule(entity);
+    }
+
+    @Override
+    public void importGroupRule(GroupRuleEntity entity) {
+        checkReadOnly();
+        delegate.importGroupRule(entity);
     }
 
     @Override

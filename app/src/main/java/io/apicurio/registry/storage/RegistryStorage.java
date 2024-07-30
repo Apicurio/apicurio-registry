@@ -51,6 +51,7 @@ import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.GroupRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
@@ -242,6 +243,74 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData)
             throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Get all rules configured for a group.
+     * 
+     * @param groupId
+     * @throws GroupNotFoundException
+     * @throws RegistryStorageException
+     */
+    List<RuleType> getGroupRules(String groupId) throws GroupNotFoundException, RegistryStorageException;
+
+    /**
+     * Create/configure a rule for a group.
+     * 
+     * @param groupId
+     * @param rule
+     * @param config
+     * @throws GroupNotFoundException
+     * @throws RuleAlreadyExistsException
+     * @throws RegistryStorageException
+     */
+    void createGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws GroupNotFoundException, RuleAlreadyExistsException, RegistryStorageException;
+
+    /**
+     * Delete all rules configured for a group.
+     * 
+     * @param groupId
+     * @throws GroupNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteGroupRules(String groupId) throws GroupNotFoundException, RegistryStorageException;
+
+    /**
+     * Update the configuration for a specific rule in a group.
+     * 
+     * @param groupId
+     * @param rule
+     * @param config
+     * @throws GroupNotFoundException
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    void updateGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws GroupNotFoundException, RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Delete (unconfigure) a single rule for a group.
+     * 
+     * @param groupId
+     * @param rule
+     * @throws GroupNotFoundException
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteGroupRule(String groupId, RuleType rule)
+            throws GroupNotFoundException, RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the current configuration of a single rule in the group.
+     * 
+     * @param groupId
+     * @param rule
+     * @throws GroupNotFoundException
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    RuleConfigurationDto getGroupRule(String groupId, RuleType rule)
+            throws GroupNotFoundException, RuleNotFoundException, RegistryStorageException;
 
     /**
      * Gets a list of rules configured for a specific Artifact (by group and ID). This will return only the
@@ -817,6 +886,8 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void importComment(CommentEntity entity);
 
     void importGroup(GroupEntity entity);
+
+    void importGroupRule(GroupRuleEntity entity);
 
     void importGlobalRule(GlobalRuleEntity entity);
 

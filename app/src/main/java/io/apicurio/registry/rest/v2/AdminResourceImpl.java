@@ -1,6 +1,10 @@
 package io.apicurio.registry.rest.v2;
 
-import io.apicurio.common.apps.config.*;
+import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.config.DynamicConfigPropertyIndex;
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
@@ -10,7 +14,13 @@ import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
-import io.apicurio.registry.rest.v2.beans.*;
+import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
+import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
+import io.apicurio.registry.rest.v2.beans.DownloadRef;
+import io.apicurio.registry.rest.v2.beans.RoleMapping;
+import io.apicurio.registry.rest.v2.beans.Rule;
+import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
+import io.apicurio.registry.rest.v2.beans.UpdateRole;
 import io.apicurio.registry.rest.v2.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
@@ -46,12 +56,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
 import static io.apicurio.registry.utils.DtoUtil.appAuthPropertyToRegistry;
 import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
 
@@ -117,8 +134,9 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<RuleType> listGlobalRules() {
         List<RuleType> rules = storage.getGlobalRules();
-        List<RuleType> defaultRules = rulesProperties.getFilteredDefaultGlobalRules(rules);
-        return Stream.concat(rules.stream(), defaultRules.stream()).sorted().collect(Collectors.toList());
+        Set<RuleType> defaultRules = rulesProperties.getDefaultGlobalRules();
+        return Stream.concat(rules.stream(), defaultRules.stream()).collect(Collectors.toSet()).stream()
+                .sorted().collect(Collectors.toList());
     }
 
     /**

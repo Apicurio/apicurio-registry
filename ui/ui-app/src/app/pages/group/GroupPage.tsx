@@ -24,7 +24,7 @@ import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { ArtifactsTabContent } from "@app/pages/group/components/tabs/ArtifactsTabContent.tsx";
 import { ApiError } from "@models/apiError.model.ts";
-import { CreateArtifact, GroupMetaData, SearchedArtifact } from "@sdk/lib/generated-client/models";
+import { CreateArtifact, GroupMetaData, Rule, RuleType, SearchedArtifact } from "@sdk/lib/generated-client/models";
 
 
 export type GroupPageProps = {
@@ -49,6 +49,7 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
     const [isInvalidContentModalOpen, setInvalidContentModalOpen] = useState<boolean>(false);
     const [artifactToDelete, setArtifactToDelete] = useState<SearchedArtifact>();
     const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
+    const [rules, setRules] = useState<Rule[]>([]);
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
@@ -66,6 +67,11 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
         return [
             groups.getGroupMetaData(groupId as string)
                 .then(setGroup)
+                .catch(error => {
+                    setPageError(toPageError(error, "Error loading page data."));
+                }),
+            groups.getGroupRules(groupId as string)
+                .then(setRules)
                 .catch(error => {
                     setPageError(toPageError(error, "Error loading page data."));
                 }),
@@ -136,6 +142,40 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
         });
     };
 
+    const doEnableRule = (ruleType: string): void => {
+        logger.debug("[GroupPage] Enabling rule:", ruleType);
+        let config: string = "FULL";
+        if (ruleType === "COMPATIBILITY") {
+            config = "BACKWARD";
+        }
+        groups.createGroupRule(groupId as string, ruleType, config).catch(error => {
+            setPageError(toPageError(error, `Error enabling "${ ruleType }" group rule.`));
+        });
+        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
+    };
+
+    const doDisableRule = (ruleType: string): void => {
+        logger.debug("[GroupPage] Disabling rule:", ruleType);
+        groups.deleteGroupRule(groupId as string, ruleType).catch(error => {
+            setPageError(toPageError(error, `Error disabling "${ ruleType }" group rule.`));
+        });
+        setRules(rules.filter(r => r.ruleType !== ruleType));
+    };
+
+    const doConfigureRule = (ruleType: string, config: string): void => {
+        logger.debug("[GroupPage] Configuring rule:", ruleType, config);
+        groups.updateGroupRule(groupId as string, ruleType, config).catch(error => {
+            setPageError(toPageError(error, `Error configuring "${ ruleType }" group rule.`));
+        });
+        setRules(rules.map(r => {
+            if (r.ruleType === ruleType) {
+                return { config, ruleType: r.ruleType };
+            } else {
+                return r;
+            }
+        }));
+    };
+
     const closeInvalidContentModal = (): void => {
         setInvalidContentModalOpen(false);
     };
@@ -201,7 +241,15 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
 
     const tabs: any[] = [
         <Tab data-testid="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
-            <GroupInfoTabContent group={group as GroupMetaData} onEditMetaData={() => setIsEditModalOpen(true)} onChangeOwner={() => {}} />
+            <GroupInfoTabContent
+                group={group as GroupMetaData}
+                rules={rules}
+                onEnableRule={doEnableRule}
+                onDisableRule={doDisableRule}
+                onConfigureRule={doConfigureRule}
+                onEditMetaData={() => setIsEditModalOpen(true)}
+                onChangeOwner={() => {}}
+            />
         </Tab>,
         <Tab data-testid="artifacts-tab" eventKey="artifacts" title="Artifacts" key="artifacts" tabContentId="tab-artifacts">
             <ArtifactsTabContent

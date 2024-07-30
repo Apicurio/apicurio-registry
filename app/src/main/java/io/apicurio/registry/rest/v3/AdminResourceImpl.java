@@ -60,6 +60,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -144,8 +145,9 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<RuleType> listGlobalRules() {
         List<RuleType> rules = storage.getGlobalRules();
-        List<RuleType> defaultRules = rulesProperties.getFilteredDefaultGlobalRules(rules);
-        return Stream.concat(rules.stream(), defaultRules.stream()).sorted().collect(Collectors.toList());
+        Set<RuleType> defaultRules = rulesProperties.getDefaultGlobalRules();
+        return Stream.concat(rules.stream(), defaultRules.stream()).collect(Collectors.toSet()).stream()
+                .sorted().collect(Collectors.toList());
     }
 
     /**

@@ -670,6 +670,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT g.* FROM groups g WHERE g.groupId = ?";
     }
 
+    @Override
+    public String exportGroupRules() {
+        return "SELECT * FROM group_rules r";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactRules()
      */
@@ -734,6 +739,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String importArtifactRule() {
         return "INSERT INTO artifact_rules (groupId, artifactId, type, configuration) VALUES (?, ?, ?, ?)";
+    }
+
+    @Override
+    public String importGroupRule() {
+        return "INSERT INTO group_rules (groupId, type, configuration) VALUES (?, ?, ?)";
     }
 
     /**
@@ -1092,4 +1102,33 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "DELETE FROM branches";
     }
 
+    @Override
+    public String insertGroupRule() {
+        return "INSERT INTO group_rules (groupId, type, configuration) VALUES (?, ?, ?)";
+    }
+
+    @Override
+    public String selectGroupRules() {
+        return "SELECT r.* FROM group_rules r WHERE r.groupId = ?";
+    }
+
+    @Override
+    public String updateGroupRule() {
+        return "UPDATE group_rules SET configuration = ? WHERE groupId = ? AND type = ?";
+    }
+
+    @Override
+    public String selectGroupRuleByType() {
+        return "SELECT r.* FROM group_rules r WHERE r.groupId = ? AND r.type = ?";
+    }
+
+    @Override
+    public String deleteGroupRule() {
+        return "DELETE FROM group_rules WHERE groupId = ? AND type = ?";
+    }
+
+    @Override
+    public String deleteGroupRules() {
+        return "DELETE FROM group_rules WHERE groupId = ?";
+    }
 }

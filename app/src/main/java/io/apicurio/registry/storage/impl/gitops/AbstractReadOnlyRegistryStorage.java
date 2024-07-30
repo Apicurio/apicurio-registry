@@ -29,6 +29,7 @@ import io.apicurio.registry.utils.impexp.CommentEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.GroupRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
@@ -100,6 +101,28 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     @Override
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
             throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void createGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void deleteGroupRules(String groupId) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void updateGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void deleteGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
         readOnlyViolation();
     }
 
@@ -270,6 +293,11 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void importGroupRule(GroupRuleEntity entity) {
         readOnlyViolation();
     }
 

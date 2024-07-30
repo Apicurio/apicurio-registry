@@ -727,7 +727,7 @@
         },
         "operationId": "listArtifactRules",
         "summary": "List artifact rules",
-        "description": "Returns a list of all rules configured for the artifact.  The set of rules determines\nhow the content of an artifact can evolve over time.  If no rules are configured for\nan artifact, the set of globally configured rules are used.  If no global rules \nare defined, there are no restrictions on content evolution.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+        "description": "Returns a list of all rules configured for the artifact.  The set of rules determines\nhow the content of an artifact can evolve over time.  If no rules are configured for\nan artifact, then the rules configured for the group is used.  If no rules are \nconfigured at the group level, then the set of globally configured rules are used.  \nIf no global rules are defined, there are no restrictions on content evolution.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
       },
       "post": {
         "requestBody": {
@@ -753,13 +753,16 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
         },
         "operationId": "createArtifactRule",
         "summary": "Create artifact rule",
-        "description": "Adds a rule to the list of rules that get applied to the artifact when adding new\nversions.  All configured rules must pass to successfully add a new artifact version.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* Rule (named in the request body) is unknown (HTTP error `400`)\n* A server error occurred (HTTP error `500`)"
+        "description": "Adds a rule to the list of rules that get applied to the artifact when adding new\nversions.  All configured rules must pass to successfully add a new artifact version.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* Rule (named in the request body) is unknown (HTTP error `400`)\n* Rule is already configured (HTTP error `409`)\n* A server error occurred (HTTP error `500`)"
       },
       "delete": {
         "tags": [
@@ -3125,6 +3128,212 @@
         }
       ]
     },
+    "/groups/{groupId}/rules": {
+      "summary": "Manage the rules for a group.",
+      "get": {
+        "tags": [
+          "Group rules"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuleType"
+                  }
+                }
+              }
+            },
+            "description": "Returns the names of the rules configured for the group."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "listGroupRules",
+        "summary": "List group rules",
+        "description": "Returns a list of all rules configured for the group.  The set of rules determines\nhow the content of an artifact in the group can evolve over time.  If no rules are \nconfigured for a group, the set of globally configured rules are used.\n\nThis operation can fail for the following reasons:\n\n* No group with this `groupId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRule"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Group rules"
+        ],
+        "responses": {
+          "204": {
+            "description": "The rule was added."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "createGroupRule",
+        "summary": "Create group rule",
+        "description": "Adds a rule to the list of rules that get applied to an artifact in the group when adding new\nversions.  All configured rules must pass to successfully add a new artifact version.\n\nThis operation can fail for the following reasons:\n\n* No group with this `groupId` exists (HTTP error `404`)\n* Rule (named in the request body) is unknown (HTTP error `400`)\n* Rule is already configured (HTTP error `409`)\n* A server error occurred (HTTP error `500`)"
+      },
+      "delete": {
+        "tags": [
+          "Group rules"
+        ],
+        "responses": {
+          "204": {
+            "description": "The rules were successfully deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deleteGroupRules",
+        "summary": "Delete group rules",
+        "description": "Deletes all of the rules configured for the group.  After this is done, the global\nrules apply to artifacts in the group again.\n\nThis operation can fail for the following reasons:\n\n* No group with this `groupId` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/rules/{ruleType}": {
+      "summary": "Manage the configuration of a single group rule.",
+      "get": {
+        "tags": [
+          "Group rules"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rule"
+                }
+              }
+            },
+            "description": "Information about a rule."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getGroupRuleConfig",
+        "summary": "Get group rule configuration",
+        "description": "Returns information about a single rule configured for a group.  This is useful\nwhen you want to know what the current configuration settings are for a specific rule.\n\nThis operation can fail for the following reasons:\n\n* No group with this `groupId` exists (HTTP error `404`)\n* No rule with this name/type is configured for this artifact (HTTP error `404`)\n* Invalid rule type (HTTP error `400`)\n* A server error occurred (HTTP error `500`)"
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Rule"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Group rules"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rule"
+                }
+              }
+            },
+            "description": "Rule configuration was updated."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "updateGroupRuleConfig",
+        "summary": "Update group rule configuration",
+        "description": "Updates the configuration of a single rule for the group.  The configuration data\nis specific to each rule type, so the configuration of the `COMPATIBILITY` rule \nis in a different format from the configuration of the `VALIDITY` rule.\n\nThis operation can fail for the following reasons:\n\n* No group with this `groupId` exists (HTTP error `404`)\n* No rule with this name/type is configured for this artifact (HTTP error `404`)\n* Invalid rule type (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "delete": {
+        "tags": [
+          "Group rules"
+        ],
+        "responses": {
+          "204": {
+            "description": "The rule was successfully deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deleteGroupRule",
+        "summary": "Delete group rule",
+        "description": "Deletes a rule from the group.  This results in the rule no longer applying for\nthis group.  If this is the only rule configured for the group, this is the \nsame as deleting **all** rules, and the globally configured rules now apply to\nthis group.\n\nThis operation can fail for the following reasons:\n\n* No group with this `groupId` exists (HTTP error `404`)\n* No rule with this name/type is configured for this group (HTTP error `404`)\n* Invalid rule type (HTTP error `400`)\n* A server error occurred (HTTP error `500`)"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "ruleType",
+          "description": "The unique name/type of a rule.",
+          "schema": {
+            "enum": [
+              "VALIDITY",
+              "COMPATIBILITY",
+              "INTEGRITY"
+            ],
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "x-codegen-contextRoot": "/apis/registry/v3"
   },
   "components": {
@@ -5061,6 +5270,10 @@
     {
       "name": "Branches",
       "description": "Artifacts can optionally have branches that are just an ordered list of version identifiers."
+    },
+    {
+      "name": "Group rules",
+      "description": "Rules can be configured on a per-group basis, allowing for different approaches\nto content evolution for artifacts in the group.  These rules override any global rules\nthat have been configured. This section contains the operations used to manage the\nrules in a single group."
     }
   ],
   "x-codegen": {

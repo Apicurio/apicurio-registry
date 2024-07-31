@@ -800,8 +800,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             // Apply any configured rules
             if (content != null) {
-                rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                        typedContent, RuleApplicationType.CREATE, references, resolvedReferences);
+                rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                        artifactType, typedContent, RuleApplicationType.CREATE, references,
+                        resolvedReferences);
             }
 
             // Create the artifact (with optional first version)

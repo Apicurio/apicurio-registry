@@ -740,6 +740,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             if (data.getFirstVersion().getBranches() == null) {
                 data.getFirstVersion().setBranches(Collections.emptyList());
             }
+        } else {
+            requireParameter("body.artifactType", data.getArtifactType());
         }
 
         if (!ArtifactIdValidator.isGroupIdAllowed(groupId)) {
@@ -797,8 +799,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(referencesAsDtos);
 
             // Apply any configured rules
-            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                    typedContent, RuleApplicationType.CREATE, references, resolvedReferences);
+            if (content != null) {
+                rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
+                        typedContent, RuleApplicationType.CREATE, references, resolvedReferences);
+            }
 
             // Create the artifact (with optional first version)
             EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()

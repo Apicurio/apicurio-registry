@@ -1,5 +1,7 @@
-package io.apicurio.registry.utils.impexp;
+package io.apicurio.registry.utils.impexp.v3;
 
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import java.util.Date;
@@ -15,7 +17,7 @@ public class ManifestEntity extends Entity {
     public String exportedBy;
 
     /**
-     * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()
+     * @see Entity#getEntityType()
      */
     @Override
     public EntityType getEntityType() {

@@ -1,4 +1,4 @@
-package io.apicurio.registry;
+package io.apicurio.registry.upgrade;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -8,7 +8,7 @@ import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.v3.EntityReader;
+import io.apicurio.registry.utils.impexp.v2.EntityReader;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
@@ -24,7 +24,7 @@ import java.util.Optional;
 import java.util.zip.ZipInputStream;
 
 @ApplicationScoped
-public class ImportLifecycleBean {
+public class DataUpgrader {
 
     @Inject
     Logger log;
@@ -33,18 +33,18 @@ public class ImportLifecycleBean {
     @Current
     RegistryStorage storage;
 
-    @ConfigProperty(name = "apicurio.import.url")
-    @Info(category = "import", description = "The import URL", availableSince = "2.1.0.Final")
-    Optional<URL> registryImportUrlProp;
+    @ConfigProperty(name = "apicurio.upgrade.file.location")
+    @Info(category = "import", description = "The import URL", availableSince = "3.0.0")
+    Optional<URL> regisrtryV2ExportFile;
 
     void onStorageReady(@ObservesAsync StorageEvent ev) {
-        if (StorageEventType.READY.equals(ev.getType()) && registryImportUrlProp.isPresent()) {
-            log.info("Import URL exists.");
-            final URL registryImportUrl = registryImportUrlProp.get();
-            try (final InputStream registryImportZip = new BufferedInputStream(
-                    registryImportUrl.openStream())) {
-                log.info("Importing {} on startup.", registryImportUrl);
-                final ZipInputStream zip = new ZipInputStream(registryImportZip, StandardCharsets.UTF_8);
+        if (StorageEventType.READY.equals(ev.getType()) && regisrtryV2ExportFile.isPresent()) {
+            log.info("Registry V2 export file exists.");
+            final URL registryV2ExportUrl = regisrtryV2ExportFile.get();
+            try (final InputStream registryV2ExportZip = new BufferedInputStream(
+                    registryV2ExportUrl.openStream())) {
+                log.info("Importing {} on startup.", registryV2ExportUrl);
+                final ZipInputStream zip = new ZipInputStream(registryV2ExportZip, StandardCharsets.UTF_8);
                 final EntityReader reader = new EntityReader(zip);
                 try (EntityInputStream stream = new EntityInputStream() {
                     @Override
@@ -52,7 +52,7 @@ public class ImportLifecycleBean {
                         try {
                             return reader.readEntity();
                         } catch (Exception e) {
-                            log.error("Error reading data from import ZIP file {}.", registryImportUrl, e);
+                            log.error("Error reading data from import ZIP file {}.", registryV2ExportUrl, e);
                             return null;
                         }
                     }
@@ -62,13 +62,14 @@ public class ImportLifecycleBean {
                         zip.close();
                     }
                 }) {
-                    storage.importData(stream, true, true);
-                    log.info("Registry successfully imported from {}", registryImportUrl);
+                    storage.upgradeData(stream, true, true);
+                    log.info("Registry V2 data successfully upgraded and imported from {}",
+                            registryV2ExportUrl);
                 } catch (ReadOnlyStorageException e) {
-                    log.error("Registry import failed, because the storage is in read-only mode.");
+                    log.error("Registry V2 data import failed, because the storage is in read-only mode.");
                 }
             } catch (IOException ioe) {
-                log.error("Registry import from {} failed", registryImportUrl, ioe);
+                log.error("Registry V2 data import from {} failed", registryV2ExportUrl, ioe);
             }
         }
     }

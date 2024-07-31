@@ -3,7 +3,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.VersionState;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

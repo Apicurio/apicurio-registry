@@ -42,16 +42,16 @@ import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.ArtifactEntity;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.BranchEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
-import io.apicurio.registry.utils.impexp.GroupRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
@@ -248,7 +248,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Get all rules configured for a group.
-     * 
+     *
      * @param groupId
      * @throws GroupNotFoundException
      * @throws RegistryStorageException
@@ -257,7 +257,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Create/configure a rule for a group.
-     * 
+     *
      * @param groupId
      * @param rule
      * @param config
@@ -270,7 +270,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Delete all rules configured for a group.
-     * 
+     *
      * @param groupId
      * @throws GroupNotFoundException
      * @throws RegistryStorageException
@@ -279,7 +279,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Update the configuration for a specific rule in a group.
-     * 
+     *
      * @param groupId
      * @param rule
      * @param config
@@ -292,7 +292,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Delete (unconfigure) a single rule for a group.
-     * 
+     *
      * @param groupId
      * @param rule
      * @throws GroupNotFoundException
@@ -304,7 +304,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Gets the current configuration of a single rule in the group.
-     * 
+     *
      * @param groupId
      * @param rule
      * @throws GroupNotFoundException
@@ -624,6 +624,19 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId)
             throws RegistryStorageException;
+
+    /**
+     * Called to upgrade and import previously exported data into the registry. It upgrades the data structure
+     * from v2 to v3 and imports the data into Registry.
+     *
+     * @param entities
+     * @param preserveGlobalId Preserve global ids. If false, global ids will be set to next id in global id
+     *            sequence.
+     * @param preserveContentId Preserve content id. If false, content ids will be set to the next ids in the
+     *            content id sequence. Content-Version mapping will be preserved.
+     * @throws RegistryStorageException
+     */
+    void upgradeData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId);
 
     /**
      * Counts the total number of artifacts in the registry.

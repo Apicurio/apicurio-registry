@@ -1,6 +1,8 @@
-package io.apicurio.registry.utils.impexp;
+package io.apicurio.registry.utils.impexp.v3;
 
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,18 +16,17 @@ import static lombok.AccessLevel.PRIVATE;
 @AllArgsConstructor(access = PRIVATE)
 @ToString
 @RegisterForReflection
-public class ArtifactRuleEntity extends Entity {
+public class GlobalRuleEntity extends Entity {
 
-    public String groupId;
-    public String artifactId;
-    public RuleType type;
+    public RuleType ruleType;
     public String configuration;
 
     /**
-     * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()
+     * @see Entity#getEntityType()
      */
     @Override
     public EntityType getEntityType() {
-        return EntityType.ArtifactRule;
+        return EntityType.GlobalRule;
     }
+
 }

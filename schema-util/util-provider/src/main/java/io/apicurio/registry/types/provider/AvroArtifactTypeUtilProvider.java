@@ -9,7 +9,6 @@ import io.apicurio.registry.content.extract.AvroContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.refs.JsonSchemaReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
-import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.AvroContentValidator;
@@ -37,22 +36,19 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
-            String contentType = content.getContentType();
-            if (contentType.toLowerCase().contains("json")
-                    && ContentTypeUtil.isParsableJson(content.getContent())) {
-                // Avro without quote
-                final Schema.Parser parser = new Schema.Parser();
-                final List<Schema> schemaRefs = new ArrayList<>();
-                for (Map.Entry<String, TypedContent> referencedContent : resolvedReferences.entrySet()) {
-                    if (!parser.getTypes().containsKey(referencedContent.getKey())) {
-                        Schema schemaRef = parser.parse(referencedContent.getValue().getContent().content());
-                        schemaRefs.add(schemaRef);
-                    }
+
+            // Avro without quote
+            final Schema.Parser parser = new Schema.Parser();
+            final List<Schema> schemaRefs = new ArrayList<>();
+            for (Map.Entry<String, TypedContent> referencedContent : resolvedReferences.entrySet()) {
+                if (!parser.getTypes().containsKey(referencedContent.getKey())) {
+                    Schema schemaRef = parser.parse(referencedContent.getValue().getContent().content());
+                    schemaRefs.add(schemaRef);
                 }
-                final Schema schema = parser.parse(removeQuotedBrackets(content.getContent().content()));
-                schema.toString(schemaRefs, false);
-                return true;
             }
+            final Schema schema = parser.parse(removeQuotedBrackets(content.getContent().content()));
+            schema.toString(schemaRefs, false);
+            return true;
         } catch (Exception e) {
             // ignored
         }

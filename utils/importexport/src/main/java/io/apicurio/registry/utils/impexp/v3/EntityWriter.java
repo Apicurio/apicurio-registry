@@ -1,8 +1,10 @@
-package io.apicurio.registry.utils.impexp;
+package io.apicurio.registry.utils.impexp.v3;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityType;
 
 import java.io.IOException;
 import java.util.zip.ZipEntry;

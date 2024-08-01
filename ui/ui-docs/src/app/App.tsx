@@ -14,11 +14,7 @@ export type DocsUpdateType = {
     contentType: ContentType;
 };
 
-export type AppProps = {
-    // No props
-};
-
-export const App: FunctionComponent<AppProps> = () => {
+export const App: FunctionComponent<object> = () => {
     const [content, setContent] = useState<any>({});
     const [contentType, setContentType] = useState(ContentType.OTHER);
 

@@ -25,6 +25,10 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     @Override
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
+            String contentType = content.getContentType();
+            if (contentType != null && !contentType.toLowerCase().contains("proto")) {
+                return false;
+            }
             ProtobufFile.toProtoFileElement(content.getContent().content());
             return true;
         } catch (Exception e) {

@@ -1,4 +1,4 @@
-package io.apicurio.registry.upgrade;
+package io.apicurio.registry.upgrade.v2;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -23,6 +23,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.zip.ZipInputStream;
 
+/**
+ * This class, once the storage is ready, checks if a v2 export file has been configured to restore the data
+ * from an older server and, if there's one present, triggers the data upgrade process, eventually changing
+ * the data structure and inserting the information into the database in v3 format.
+ */
 @ApplicationScoped
 public class DataUpgrader {
 
@@ -34,13 +39,13 @@ public class DataUpgrader {
     RegistryStorage storage;
 
     @ConfigProperty(name = "apicurio.upgrade.file.location")
-    @Info(category = "import", description = "The import URL", availableSince = "3.0.0")
-    Optional<URL> regisrtryV2ExportFile;
+    @Info(category = "upgrade", description = "The URL to a v2 export file", availableSince = "3.0.0")
+    Optional<URL> registryV2ExportFile;
 
     void onStorageReady(@ObservesAsync StorageEvent ev) {
-        if (StorageEventType.READY.equals(ev.getType()) && regisrtryV2ExportFile.isPresent()) {
+        if (StorageEventType.READY.equals(ev.getType()) && registryV2ExportFile.isPresent()) {
             log.info("Registry V2 export file exists.");
-            final URL registryV2ExportUrl = regisrtryV2ExportFile.get();
+            final URL registryV2ExportUrl = registryV2ExportFile.get();
             try (final InputStream registryV2ExportZip = new BufferedInputStream(
                     registryV2ExportUrl.openStream())) {
                 log.info("Importing {} on startup.", registryV2ExportUrl);

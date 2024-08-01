@@ -621,6 +621,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId,
                 preserveContentId);
         dataImporter.importData(entities, () -> {
+            // TODO Re-visit this, since Apicurio Registry 3 all messages live in the same partition, so there
+            // should be no need to wait.
             // Because importing just pushes a bunch of Kafka messages, we may need to
             // wait for a few seconds before we send the reset messages. Due to partitioning,
             // we can't guarantee ordering of these next two messages, and we NEED them to
@@ -636,7 +638,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream,
+     * @see io.apicurio.registry.storage.RegistryStorage#upgradeData(io.apicurio.registry.storage.impexp.EntityInputStream,
      *      boolean, boolean)
      */
     @Override
@@ -645,6 +647,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         DataImporter dataImporter = new SqlDataUpgrader(log, utils, this, preserveGlobalId,
                 preserveContentId);
         dataImporter.importData(entities, () -> {
+            // TODO Re-visit this, since Apicurio Registry 3 all messages live in the same partition, so there
+            // should be no need to wait.
             // Because importing just pushes a bunch of Kafka messages, we may need to
             // wait for a few seconds before we send the reset messages. Due to partitioning,
             // we can't guarantee ordering of these next two messages, and we NEED them to

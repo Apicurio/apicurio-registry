@@ -5,10 +5,12 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
@@ -32,6 +34,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.apicurio.registry.types.ArtifactType.*;
+
+/**
+ * This class takes a stream of Registry v2 entities and imports them into the application using
+ * {@link SqlDataUpgrader#importData(EntityInputStream, Runnable)} as it's entry point. It must be used in the
+ * upgrade process from v2 to v3.
+ */
 public class SqlDataUpgrader extends AbstractDataImporter {
 
     protected RegistryStorageContentUtils utils;
@@ -97,7 +106,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity newEntity = io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity
                     .builder().createdOn(entity.createdOn).description(entity.description)
                     .labels(entity.labels != null
-                        ? entity.labels.stream().collect(Collectors.toMap(label -> label, label -> label))
+                        ? entity.labels.stream().collect(Collectors.toMap(label -> label, label -> null))
                         : Collections.emptyMap())
                     .name(entity.name).owner(entity.createdBy)
                     .state(VersionState.fromValue(entity.state.value())).artifactId(entity.artifactId)
@@ -111,7 +120,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                         .artifactType(entity.artifactType).createdOn(entity.createdOn)
                         .description(entity.description).groupId(entity.groupId)
                         .labels(entity.labels != null
-                            ? entity.labels.stream().collect(Collectors.toMap(label -> label, label -> label))
+                            ? entity.labels.stream().collect(Collectors.toMap(label -> label, s -> null))
                             : Collections.emptyMap())
                         .modifiedBy(entity.createdBy).modifiedOn(entity.createdOn).name(entity.name)
                         .owner(entity.createdBy).build();
@@ -169,10 +178,10 @@ public class SqlDataUpgrader extends AbstractDataImporter {
 
             // Finally, using the information from the old content, a V3 content entity is created.
             io.apicurio.registry.utils.impexp.v3.ContentEntity newEntity = io.apicurio.registry.utils.impexp.v3.ContentEntity
-                    .builder().contentType(entity.artifactType).contentHash(entity.contentHash)
-                    .artifactType(entity.artifactType).contentBytes(entity.contentBytes)
-                    .serializedReferences(entity.serializedReferences).canonicalHash(entity.canonicalHash)
-                    .contentId(entity.contentId).build();
+                    .builder().contentType(determineContentType(entity.artifactType, typedContent))
+                    .contentHash(entity.contentHash).artifactType(entity.artifactType)
+                    .contentBytes(entity.contentBytes).serializedReferences(entity.serializedReferences)
+                    .canonicalHash(entity.canonicalHash).contentId(entity.contentId).build();
 
             storage.importContent(newEntity);
             log.debug("Content imported successfully: {}", entity);
@@ -210,7 +219,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
         try {
             io.apicurio.registry.utils.impexp.v3.GroupEntity newEntity = io.apicurio.registry.utils.impexp.v3.GroupEntity
                     .builder().artifactsType(entity.artifactsType).createdOn(entity.createdOn)
-                    .description(entity.description).groupId(entity.groupId).labels(entity.properties)
+                    .description(entity.description).groupId(entity.groupId).labels(Collections.emptyMap())
                     .modifiedBy(entity.modifiedBy).modifiedOn(entity.modifiedOn).owner(entity.createdBy)
                     .build();
             storage.importGroup(newEntity);
@@ -266,5 +275,29 @@ public class SqlDataUpgrader extends AbstractDataImporter {
         } catch (IOException ex) {
             throw new RegistryException("Could not read next entity to import", ex);
         }
+    }
+
+    private String determineContentType(String artifactTypeHint, TypedContent content) {
+        if (content.getContentType() != null) {
+            return content.getContentType();
+        } else {
+            switch (artifactTypeHint) {
+                case ASYNCAPI:
+                case JSON:
+                case OPENAPI:
+                case AVRO:
+                    // WARNING: This is only safe here. We can safely return JSON because in V2 we were
+                    // transforming all YAML to JSON before storing the content in the database.
+                    return ContentTypes.APPLICATION_JSON;
+                case PROTOBUF:
+                    return ContentTypes.APPLICATION_PROTOBUF;
+                case GRAPHQL:
+                    return ContentTypes.APPLICATION_GRAPHQL;
+                case XML:
+                case XSD:
+                    return ContentTypes.APPLICATION_XML;
+            }
+        }
+        throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + artifactTypeHint);
     }
 }

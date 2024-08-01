@@ -9,6 +9,7 @@ import io.apicurio.registry.content.extract.AvroContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.refs.JsonSchemaReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.AvroContentValidator;
@@ -36,7 +37,10 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
-
+            if (content.getContentType() != null && content.getContentType().toLowerCase().contains("json")
+                    && !ContentTypeUtil.isParsableJson(content.getContent())) {
+                return false;
+            }
             // Avro without quote
             final Schema.Parser parser = new Schema.Parser();
             final List<Schema> schemaRefs = new ArrayList<>();

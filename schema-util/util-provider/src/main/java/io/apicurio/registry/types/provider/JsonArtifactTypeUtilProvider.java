@@ -24,6 +24,10 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
+            if (content.getContentType() != null && content.getContentType().toLowerCase().contains("json")
+                    && !ContentTypeUtil.isParsableJson(content.getContent())) {
+                return false;
+            }
             JsonNode tree = ContentTypeUtil.parseJson(content.getContent());
             if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org")
                     || tree.has("properties")) {

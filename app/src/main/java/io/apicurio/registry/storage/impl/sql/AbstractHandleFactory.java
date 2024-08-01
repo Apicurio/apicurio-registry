@@ -2,13 +2,11 @@ package io.apicurio.registry.storage.impl.sql;
 
 import io.agroal.api.AgroalDataSource;
 import io.apicurio.registry.storage.error.RegistryStorageException;
-import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.HandleAction;
 import io.apicurio.registry.storage.impl.sql.jdb.HandleCallback;
 import io.apicurio.registry.storage.impl.sql.jdb.HandleImpl;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,35 +30,56 @@ public abstract class AbstractHandleFactory implements HandleFactory {
 
     @Override
     public <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) throws X {
-        /*
-         * Handles are cached and reused if calls to this method are nested. Make sure that all nested uses of
-         * a handle are either within a transaction context, or without one. Starting a transaction with a
-         * nested handle will cause an exception.
-         */
+        LocalState state = state();
         try {
-            if (get().handle == null) {
-                get().handle = new HandleImpl(dataSource.getConnection());
+            // Create a new handle, or throw if one already exists (only one handle allowed at a time)
+            if (state.handle == null) {
+                state.handle = new HandleImpl(dataSource.getConnection());
             } else {
-                get().level++;
+                throw new RegistryStorageException("Attempt to acquire a nested DB Handle.");
             }
-            return callback.withHandle(get().handle);
+
+            // Invoke the callback with the handle. This will either return a value (success)
+            // or throw some sort of exception.
+            return callback.withHandle(state.handle);
         } catch (SQLException e) {
+            // If a SQL exception is thrown, set the handle to rollback.
+            state.handle.setRollback(true);
+            // Wrap the SQL exception.
             throw new RegistryStorageException(e);
+        } catch (Exception e) {
+            // If any other exception is thrown, also set the handle to rollback.
+            if (state.handle != null) {
+                state.handle.setRollback(true);
+            }
+            throw e;
         } finally {
-            if (get().level > 0) {
-                get().level--;
-            } else {
-                try {
-                    LocalState partialState = get();
-                    if (partialState.handle != null) {
-                        partialState.handle.close();
+            // Commit or rollback the transaction
+            try {
+                if (state.handle != null) {
+                    if (state.handle.isRollback()) {
+                        log.trace("Rollback: {} #{}", state.handle.getConnection(),
+                                state.handle.getConnection().hashCode());
+                        state.handle.getConnection().rollback();
+                    } else {
+                        log.trace("Commit: {} #{}", state.handle.getConnection(),
+                                state.handle.getConnection().hashCode());
+                        state().handle.getConnection().commit();
                     }
-                } catch (IOException ex) {
-                    // Nothing we can do
-                    log.error("Could not close a database handle", ex);
-                } finally {
-                    local.get().remove(dataSourceId);
                 }
+            } catch (Exception e) {
+                log.error("Could not release database connection/transaction", e);
+            }
+
+            // Close the connection
+            try {
+                if (state.handle != null) {
+                    state.handle.close();
+                    state.handle = null;
+                }
+            } catch (Exception ex) {
+                // Nothing we can do
+                log.error("Could not close a database connection.", ex);
             }
         }
     }
@@ -84,14 +103,11 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         });
     }
 
-    private LocalState get() {
+    private LocalState state() {
         return local.get().computeIfAbsent(dataSourceId, k -> new LocalState());
     }
 
     private static class LocalState {
-
-        Handle handle;
-
-        int level;
+        HandleImpl handle;
     }
 }

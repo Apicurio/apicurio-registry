@@ -1,6 +1,8 @@
 package io.apicurio.registry.storage.impl.sql;
 
 import io.agroal.api.AgroalDataSource;
+import io.agroal.api.configuration.AgroalConnectionFactoryConfiguration.TransactionIsolation;
+import io.agroal.api.configuration.AgroalConnectionPoolConfiguration.TransactionRequirement;
 import io.agroal.api.configuration.supplier.AgroalPropertiesReader;
 import io.apicurio.common.apps.config.Info;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -64,6 +66,15 @@ public class RegistryDatasourceProducer {
         props.put(AgroalPropertiesReader.PRINCIPAL, username);
         props.put(AgroalPropertiesReader.CREDENTIAL, password);
         props.put(AgroalPropertiesReader.PROVIDER_CLASS_NAME, databaseKind.getDriverClassName());
+
+        /*
+         * We need to disable auto-commit to have proper transaction rollback, otherwise the data may be in an
+         * inconsistent state (e.g. partial deletes), or operations would not be rolled back on exception.
+         */
+        props.put(AgroalPropertiesReader.AUTO_COMMIT, "false");
+        props.put(AgroalPropertiesReader.TRANSACTION_ISOLATION, TransactionIsolation.READ_COMMITTED.name());
+        props.put(AgroalPropertiesReader.TRANSACTION_REQUIREMENT, TransactionRequirement.WARN.name());
+        props.put(AgroalPropertiesReader.FLUSH_ON_CLOSE, "true");
 
         AgroalDataSource datasource = AgroalDataSource
                 .from(new AgroalPropertiesReader().readProperties(props).get());

@@ -2989,7 +2989,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             Date now = new Date();
 
             handles.withHandle(handle -> {
-                // Insert a row into the groups table
+                // Insert a row into the branches table
                 handle.createUpdate(sqlStatements.insertBranch()).bind(0, ga.getRawGroupId())
                         .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
                         .bind(3, description).bind(4, false).bind(5, user).bind(6, now).bind(7, user)
@@ -3226,7 +3226,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     private void appendVersionToBranchRaw(Handle handle, GA ga, BranchId branchId, VersionId version) {
         try {
-            // Insert a row into the groups table
+            // Insert a row into the branch_versions table
             handle.createUpdate(sqlStatements.appendBranchVersion()).bind(0, ga.getRawGroupId())
                     .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
                     .bind(3, version.getRawVersionId()).bind(4, ga.getRawGroupId())
@@ -3276,18 +3276,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             String user = securityIdentity.getPrincipal().getName();
             Date now = new Date();
 
-            handle.createUpdate(sqlStatements.insertBranch()).bind(0, gav.getRawGroupId())
+            handle.createUpdate(sqlStatements.upsertBranch()).bind(0, gav.getRawGroupId())
                     .bind(1, gav.getRawArtifactId()).bind(2, branchId.getRawBranchId()).bind(3, (String) null)
                     .bind(4, systemDefined).bind(5, user).bind(6, now).bind(7, user).bind(8, now).execute();
         } catch (Exception ex) {
-            java.lang.System.out.println("================ createOrUpdateBranchRaw ======================");
+            // Only needed for H2, which doesn't support upsert (check this, it might now)
             if (!sqlStatements.isPrimaryKeyViolation(ex)) {
-                java.lang.System.out.println("           RETHROW: " + ex.getMessage());
-                ex.printStackTrace();
                 throw ex;
             }
-            java.lang.System.out.println("           !IGNORED!");
-            java.lang.System.out.println("===============================================================");
         }
 
         // Now add the version to it.
@@ -3358,7 +3354,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(),
                         ga.getRawArtifactId());
             }
-            handle.createUpdate(sqlStatements.insertBranch()).bind(0, ga.getRawGroupId())
+            handle.createUpdate(sqlStatements.importBranch()).bind(0, ga.getRawGroupId())
                     .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
                     .bind(3, entity.description).bind(4, entity.systemDefined).bind(5, entity.owner)
                     .bind(6, new Date(entity.createdOn)).bind(7, entity.modifiedBy)

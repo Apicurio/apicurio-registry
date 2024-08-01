@@ -3280,9 +3280,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(1, gav.getRawArtifactId()).bind(2, branchId.getRawBranchId()).bind(3, (String) null)
                     .bind(4, systemDefined).bind(5, user).bind(6, now).bind(7, user).bind(8, now).execute();
         } catch (Exception ex) {
+            java.lang.System.out.println("================ createOrUpdateBranchRaw ======================");
             if (!sqlStatements.isPrimaryKeyViolation(ex)) {
+                java.lang.System.out.println("           RETHROW: " + ex.getMessage());
+                ex.printStackTrace();
                 throw ex;
             }
+            java.lang.System.out.println("           !IGNORED!");
+            java.lang.System.out.println("===============================================================");
         }
 
         // Now add the version to it.

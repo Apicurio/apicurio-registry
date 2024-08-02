@@ -90,8 +90,9 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         ContentWrapperDto versionContent1 = ContentWrapperDto.builder()
                 .content(ContentHandle.create("content1")).contentType(ContentTypes.APPLICATION_JSON).build();
         EditableVersionMetaDataDto versionMetaData1 = EditableVersionMetaDataDto.builder().build();
-        ArtifactVersionMetaDataDto vmdDto1_1 = getStorage().createArtifact(GROUP_ID, artifactId1,
-                ArtifactType.JSON, artifactMetaData1, null, versionContent1, versionMetaData1, List.of(), false)
+        ArtifactVersionMetaDataDto vmdDto1_1 = getStorage()
+                .createArtifact(GROUP_ID, artifactId1, ArtifactType.JSON, artifactMetaData1, null,
+                        versionContent1, versionMetaData1, List.of(), false)
                 .getRight();
         // Create version 2 (for artifact 1)
         ArtifactVersionMetaDataDto vmdDto1_2 = getStorage().createArtifactVersion(GROUP_ID, artifactId1, null,

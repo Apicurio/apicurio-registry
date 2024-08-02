@@ -737,7 +737,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches, boolean dryRun) throws VersionAlreadyExistsException, RegistryStorageException {
+            List<String> branches, boolean dryRun)
+            throws VersionAlreadyExistsException, RegistryStorageException {
         log.debug("Creating new artifact version for {} {} (version {}).", groupId, artifactId, version);
 
         String owner = securityIdentity.getPrincipal().getName();

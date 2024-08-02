@@ -45,7 +45,7 @@ public class ReadOnlyRegistryStorageTest {
                         new State(false, s -> s.countActiveArtifactVersions(null, null))),
                 entry("countTotalArtifactVersions0",
                         new State(false, RegistryStorage::countTotalArtifactVersions)),
-                entry("createArtifact", new State(true,
+                entry("createArtifact9", new State(true,
                         s -> s.createArtifact(null, null, null, null, null, null, null, null, false))),
                 entry("createArtifactRule4",
                         new State(true, s -> s.createArtifactRule(null, null, null, null))),

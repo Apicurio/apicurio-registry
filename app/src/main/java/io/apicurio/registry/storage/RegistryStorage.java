@@ -106,7 +106,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
     Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId, String artifactId,
             String artifactType, EditableArtifactMetaDataDto artifactMetaData, String version,
             ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches) throws ArtifactAlreadyExistsException, RegistryStorageException;
+            List<String> versionBranches, boolean dryRun) throws ArtifactAlreadyExistsException, RegistryStorageException;
 
     /**
      * Deletes an artifact by its group and unique id. Returns list of artifact versions.
@@ -178,10 +178,11 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param content
      * @param metaData
      * @param branches
+     * @param dryRun
      */
     ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches)
+            List<String> branches, boolean dryRun)
             throws ArtifactNotFoundException, VersionAlreadyExistsException, RegistryStorageException;
 
     /**

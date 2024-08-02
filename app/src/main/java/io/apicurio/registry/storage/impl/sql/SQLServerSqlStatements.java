@@ -116,7 +116,8 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 MERGE INTO content_references AS target
                 USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, groupId, artifactId, version, name)
                 ON (target.contentId = source.contentId AND target.name = source.name)
-                WHEN NOT MATCHED THEN", "INSERT (contentId, groupId, artifactId, version, name)
+                WHEN NOT MATCHED THEN
+                INSERT (contentId, groupId, artifactId, version, name)
                 VALUES (source.contentId, source.groupId, source.artifactId, source.version, source.name)
                 """;
     }
@@ -135,7 +136,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     @Override
     public String selectGroups() {
         // TODO pagination?
-        return "SELECT TOP (?) * FROM groups " + "ORDER BY groupId ASC";
+        return "SELECT TOP (?) * FROM groups ORDER BY groupId ASC";
     }
 
     @Override

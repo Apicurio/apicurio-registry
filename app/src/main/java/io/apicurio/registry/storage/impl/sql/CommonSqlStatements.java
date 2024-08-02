@@ -658,8 +658,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGroups() {
-        // TODO pagination?
-        return "SELECT g.* FROM groups g " + "ORDER BY g.groupId ASC LIMIT ?";
+        return "SELECT g.* FROM groups g ORDER BY g.groupId ASC LIMIT ?";
     }
 
     /**

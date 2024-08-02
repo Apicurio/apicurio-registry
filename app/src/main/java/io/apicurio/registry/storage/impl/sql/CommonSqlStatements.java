@@ -658,8 +658,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGroups() {
-        // TODO pagination?
-        return "SELECT g.* FROM groups g " + "ORDER BY g.groupId ASC LIMIT ?";
+        return "SELECT g.* FROM groups g ORDER BY g.groupId ASC LIMIT ?";
     }
 
     /**
@@ -1035,6 +1034,18 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String insertBranch() {
+        return "INSERT INTO branches (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ";
+    }
+
+    @Override
+    public String upsertBranch() {
+        return "INSERT INTO branches (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ";
+    }
+
+    @Override
+    public String importBranch() {
         return "INSERT INTO branches (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }

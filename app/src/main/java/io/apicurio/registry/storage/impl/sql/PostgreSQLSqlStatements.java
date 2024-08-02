@@ -77,6 +77,15 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String upsertBranch() {
+        return """
+                INSERT INTO branches (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (groupId, artifactId, branchId) DO NOTHING
+                """;
+    }
+
+    @Override
     public String createDataSnapshot() {
         throw new IllegalStateException("Snapshot creation is not supported for Postgresql storage");
     }

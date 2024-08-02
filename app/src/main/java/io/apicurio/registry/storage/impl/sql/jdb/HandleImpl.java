@@ -1,12 +1,17 @@
 package io.apicurio.registry.storage.impl.sql.jdb;
 
+import lombok.Getter;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
 public class HandleImpl implements Handle {
 
+    @Getter
     private final Connection connection;
+    @Getter
+    private boolean rollback;
 
     /**
      * Constructor.
@@ -47,4 +52,8 @@ public class HandleImpl implements Handle {
         return update;
     }
 
+    @Override
+    public void setRollback(boolean rollback) {
+        this.rollback = rollback;
+    }
 }

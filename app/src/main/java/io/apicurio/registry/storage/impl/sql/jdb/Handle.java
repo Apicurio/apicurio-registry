@@ -18,4 +18,11 @@ public interface Handle extends Closeable {
      */
     Update createUpdate(String sql);
 
+    /**
+     * Set the rollback status of this handle. If set to true, the database transaction will be rolled back
+     * instead of commited.
+     * 
+     * @param rollback
+     */
+    void setRollback(boolean rollback);
 }

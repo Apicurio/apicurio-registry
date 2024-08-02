@@ -483,6 +483,8 @@ public interface SqlStatements {
 
     public String importGroup();
 
+    public String importBranch();
+
     public String importGroupRule();
 
     public String importArtifactRule();
@@ -586,6 +588,8 @@ public interface SqlStatements {
     public String selectGAVByGlobalId();
 
     public String insertBranch();
+
+    public String upsertBranch();
 
     public String updateBranch();
 

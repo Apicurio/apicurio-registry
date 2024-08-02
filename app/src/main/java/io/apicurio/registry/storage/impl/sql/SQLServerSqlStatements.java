@@ -44,16 +44,31 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'artifacts'";
     }
 
+    @Override
+    public String upsertBranch() {
+        return """
+                MERGE INTO branches AS target
+                USING (VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)) AS source (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn)
+                ON (target.groupId = source.groupId AND target.artifactId = source.artifactId AND target.branchId = source.branchId)
+                WHEN NOT MATCHED THEN
+                INSERT (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn)
+                VALUES (source.groupId, source.artifactId, source.branchId, source.description, source.systemDefined, source.owner, source.createdOn, source.modifiedBy, source.modifiedOn)
+                """;
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
      */
     @Override
     public String upsertContent() {
-        return String.join(" ", "MERGE INTO content AS target",
-                "USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, contentType, content, refs)",
-                "ON (target.contentHash = source.contentHash)", "WHEN NOT MATCHED THEN",
-                "INSERT (contentId, canonicalHash, contentHash, contentType, content, refs)",
-                "VALUES (source.contentId, source.canonicalHash, source.contentHash, source.contentType, source.content, source.refs);");
+        return """
+                MERGE INTO content AS target
+                USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, contentType, content, refs)
+                ON (target.contentHash = source.contentHash)
+                WHEN NOT MATCHED THEN
+                INSERT (contentId, canonicalHash, contentHash, contentType, content, refs)
+                VALUES (source.contentId, source.canonicalHash, source.contentHash, source.contentType, source.content, source.refs)
+                """;
     }
 
     /**
@@ -61,10 +76,17 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return String.join(" ", "MERGE INTO sequences AS target", "USING (VALUES  (?)) AS source (seqName)",
-                "ON (target.seqName = source.seqName)", "WHEN MATCHED THEN",
-                "UPDATE SET seqValue = target.seqValue + 1", "WHEN NOT MATCHED THEN",
-                "INSERT (seqName, seqValue)", "VALUES (source.seqName, 1)", "OUTPUT INSERTED.seqValue;");
+        return """
+                MERGE INTO sequences AS target
+                USING (VALUES  (?)) AS source (seqName)
+                ON (target.seqName = source.seqName)
+                WHEN MATCHED THEN
+                UPDATE SET seqValue = target.seqValue + 1
+                WHEN NOT MATCHED THEN
+                INSERT (seqName, seqValue)
+                VALUES (source.seqName, 1)
+                OUTPUT INSERTED.seqValue
+                """;
     }
 
     /**
@@ -72,11 +94,17 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return String.join(" ", "MERGE INTO sequences AS target",
-                "USING (VALUES (?, ?)) AS source (seqName, seqValue)", "ON (target.seqName = source.seqName)",
-                "WHEN MATCHED THEN", "UPDATE SET seqValue = ?", "WHEN NOT MATCHED THEN",
-                "INSERT (seqName, seqValue)", "VALUES (source.seqName, source.seqValue)",
-                "OUTPUT INSERTED.seqValue;");
+        return """
+                MERGE INTO sequences AS target
+                USING (VALUES (?, ?)) AS source (seqName, seqValue)
+                ON (target.seqName = source.seqName)
+                WHEN MATCHED THEN
+                UPDATE SET seqValue = ?
+                WHEN NOT MATCHED THEN
+                INSERT (seqName, seqValue)
+                VALUES (source.seqName, source.seqValue)
+                OUTPUT INSERTED.seqValue
+                """;
     }
 
     /**
@@ -84,11 +112,14 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContentReference() {
-        return String.join(" ", "MERGE INTO content_references AS target",
-                "USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, groupId, artifactId, version, name)",
-                "ON (target.contentId = source.contentId AND target.name = source.name)",
-                "WHEN NOT MATCHED THEN", "INSERT (contentId, groupId, artifactId, version, name)",
-                "VALUES (source.contentId, source.groupId, source.artifactId, source.version, source.name);");
+        return """
+                MERGE INTO content_references AS target
+                USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, groupId, artifactId, version, name)
+                ON (target.contentId = source.contentId AND target.name = source.name)
+                WHEN NOT MATCHED THEN
+                INSERT (contentId, groupId, artifactId, version, name)
+                VALUES (source.contentId, source.groupId, source.artifactId, source.version, source.name)
+                """;
     }
 
     /**
@@ -105,7 +136,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     @Override
     public String selectGroups() {
         // TODO pagination?
-        return "SELECT TOP (?) * FROM groups " + "ORDER BY groupId ASC";
+        return "SELECT TOP (?) * FROM groups ORDER BY groupId ASC";
     }
 
     @Override

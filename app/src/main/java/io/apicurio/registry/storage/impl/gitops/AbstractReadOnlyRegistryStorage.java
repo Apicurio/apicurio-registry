@@ -51,7 +51,7 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches) throws RegistryStorageException {
+            List<String> versionBranches, boolean dryRun) throws RegistryStorageException {
         readOnlyViolation();
         return null;
     }
@@ -59,7 +59,7 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches) throws RegistryStorageException {
+            List<String> branches, boolean dryRun) throws RegistryStorageException {
         readOnlyViolation();
         return null;
     }

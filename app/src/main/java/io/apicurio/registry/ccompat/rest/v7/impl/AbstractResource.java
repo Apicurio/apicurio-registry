@@ -92,7 +92,7 @@ public abstract class AbstractResource {
                         .contentType(contentType).references(parsedReferences).build();
 
                 res = storage.createArtifact(groupId, subject, artifactType, artifactMetaData, null,
-                        firstVersionContent, firstVersionMetaData, null).getValue();
+                        firstVersionContent, firstVersionMetaData, null, false).getValue();
             } else {
                 TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
                 rulesService.applyRules(groupId, subject, artifactType, typedSchemaContent,
@@ -100,7 +100,7 @@ public abstract class AbstractResource {
                 ContentWrapperDto versionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();
                 res = storage.createArtifactVersion(groupId, subject, null, artifactType, versionContent,
-                        EditableVersionMetaDataDto.builder().build(), List.of());
+                        EditableVersionMetaDataDto.builder().build(), List.of(), false);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {

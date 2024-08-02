@@ -823,21 +823,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 firstVersionBranches = data.getFirstVersion().getBranches();
             }
 
-            // Don't actually do anything if "dryRun" is 'true'
-            if (dryRun != null && dryRun) {
-                return CreateArtifactResponse.builder()
-                        .artifact(ArtifactMetaData.builder().groupId(groupId).artifactId(artifactId)
-                                .createdOn(new Date()).owner(securityIdentity.getPrincipal().getName())
-                                .modifiedBy(securityIdentity.getPrincipal().getName()).modifiedOn(new Date())
-                                .name(artifactMetaData.getName())
-                                .description(artifactMetaData.getDescription())
-                                .labels(artifactMetaData.getLabels()).artifactType(artifactType).build())
-                        .build();
-            }
-
             Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> storageResult = storage.createArtifact(
                     new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, artifactMetaData,
-                    firstVersion, firstVersionContent, firstVersionMetaData, firstVersionBranches);
+                    firstVersion, firstVersionContent, firstVersionMetaData, firstVersionBranches,
+                    dryRun != null && dryRun);
 
             // Now return both the artifact metadata and (if available) the version metadata
             CreateArtifactResponse rval = CreateArtifactResponse.builder()
@@ -919,19 +908,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(ct).content(content)
                 .references(referencesAsDtos).build();
 
-        // Don't actually do anything if "dryRun" is 'true'
-        if (dryRun != null && dryRun) {
-            return VersionMetaData.builder().groupId(groupId).artifactId(artifactId)
-                    .version(data.getVersion() == null ? "0" : data.getVersion()).createdOn(new Date())
-                    .owner(securityIdentity.getPrincipal().getName()).contentId(-1L)
-                    .name(metaDataDto.getName()).description(metaDataDto.getDescription())
-                    .labels(metaDataDto.getLabels()).state(VersionState.ENABLED).globalId(-1L)
-                    .artifactType(artifactType).build();
-        }
-
         ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(
                 new GroupId(groupId).getRawGroupIdWithNull(), artifactId, data.getVersion(), artifactType,
-                contentDto, metaDataDto, data.getBranches());
+                contentDto, metaDataDto, data.getBranches(), dryRun != null && dryRun);
 
         return V3ApiUtil.dtoToVersionMetaData(vmd);
     }
@@ -1197,7 +1176,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(contentType).content(content)
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(groupId, artifactId, version,
-                artifactType, contentDto, metaData, branches);
+                artifactType, contentDto, metaData, branches, false);
         VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
 
         // Need to also return the artifact metadata

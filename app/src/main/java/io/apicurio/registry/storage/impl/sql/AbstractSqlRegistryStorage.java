@@ -455,7 +455,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches) throws RegistryStorageException {
+            List<String> versionBranches, boolean dryRun) throws RegistryStorageException {
         log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
 
         String owner = securityIdentity.getPrincipal().getName();
@@ -473,6 +473,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         try {
             return handles.withHandle(handle -> {
+                // Always roll back the transaction if this is a dryRun
+                if (dryRun) {
+                    handle.setRollback(true);
+                }
+
                 Map<String, String> labels = amd.getLabels();
                 String labelsStr = SqlUtil.serializeLabels(labels);
 
@@ -732,7 +737,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches) throws VersionAlreadyExistsException, RegistryStorageException {
+            List<String> branches, boolean dryRun)
+            throws VersionAlreadyExistsException, RegistryStorageException {
         log.debug("Creating new artifact version for {} {} (version {}).", groupId, artifactId, version);
 
         String owner = securityIdentity.getPrincipal().getName();
@@ -741,6 +747,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         try {
             // Create version and return
             return handles.withHandle(handle -> {
+                // Always roll back the transaction if this is a dryRun
+                if (dryRun) {
+                    handle.setRollback(true);
+                }
+
                 // Put the content in the DB and get the unique content ID back.
                 long contentId = getOrCreateContent(handle, artifactType, content);
 

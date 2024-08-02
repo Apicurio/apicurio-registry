@@ -60,11 +60,11 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches) throws RegistryStorageException {
+            List<String> versionBranches, boolean dryRun) throws RegistryStorageException {
         Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> rval = withLimitsCheck(
                 () -> limitsService.canCreateArtifact(artifactMetaData, versionContent, versionMetaData))
                 .execute(() -> super.createArtifact(groupId, artifactId, artifactType, artifactMetaData,
-                        version, versionContent, versionMetaData, versionBranches));
+                        version, versionContent, versionMetaData, versionBranches, dryRun));
         limitsService.artifactCreated();
         return rval;
     }
@@ -72,11 +72,11 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches) throws RegistryStorageException {
+            List<String> branches, boolean dryRun) throws RegistryStorageException {
         ArtifactVersionMetaDataDto dto = withLimitsCheck(
                 () -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content.getContent()))
                 .execute(() -> super.createArtifactVersion(groupId, artifactId, version, artifactType,
-                        content, metaData, branches));
+                        content, metaData, branches, dryRun));
         limitsService.artifactVersionCreated(groupId, artifactId);
         return dto;
     }

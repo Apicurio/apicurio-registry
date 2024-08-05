@@ -11,6 +11,8 @@ This chapter provides reference information on the configuration options that ar
 * xref:all-registry-configs_{context}[]
 
 .Additional resources
+* For details on migrating a 2.x Apicurio Registry deployment to 3.x see xref:migration-table_{context}[]
+
 * For details on setting configuration options by using the Core Registry API, see the `/admin/config/properties` endpoint in the {registry-rest-api}.
 * For details on client configuration options for Kafka serializers and deserializers, see 
 ifdef::apicurio-registry[]

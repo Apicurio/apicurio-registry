@@ -1,0 +1,294 @@
+[id="migration-table_{context}"]
+= {registry} V2 to V3 configuration migration
+
+The following {registry} configuration options are available for each component category:
+
+Starting with {registry} v3 we have simplified the different configuration options, removing duplicities and improved consistency.
+In the following table you can see a migration table for options that were present in {registry} 2.x and have changed in some fashion.
+For most options, the only change is the renaming of the prefix from `registry` to `apicurio`, like, for instance, changing `registry.kafkasql.bootstrap.servers` to `apicurio.kafkasql.bootstrap.servers`.
+Also note that, for every configuration property mentioned in the table, you also have the possibility of overriding the value by using the corresponding environment variable, in the case above, `APICURIO_KAFKA_SQL_BOOTSTRAP_SERVERS`.
+
+== api
+.api configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.api.errors.include-stack-in-response`
+|
+|`registry.disable.apis`
+|
+|===
+
+== auth
+.auth configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.auth.admin-override.claim`
+|
+|`registry.auth.admin-override.claim-value`
+|
+|`registry.auth.admin-override.enabled`
+|
+|`registry.auth.admin-override.from`
+|
+|`registry.auth.admin-override.role`
+|
+|`registry.auth.admin-override.type`
+|
+|`registry.auth.anonymous-read-access.enabled`
+|
+|`registry.auth.audit.log.prefix`
+|
+|`registry.auth.authenticated-read-access.enabled`
+|
+|`registry.auth.basic-auth-client-credentials.cache-expiration`
+|
+|`registry.auth.basic-auth-client-credentials.cache-expiration-offset`
+|
+|`registry.auth.basic-auth-client-credentials.enabled`
+|
+|`registry.auth.basic-auth.scope`
+|
+|`registry.auth.client-id`
+|
+|`registry.auth.client-secret`
+|
+|`registry.auth.enabled`
+|
+|`registry.auth.owner-only-authorization`
+|
+|`registry.auth.owner-only-authorization.limit-group-access`
+|
+|`registry.auth.role-based-authorization`
+|
+|`registry.auth.role-source`
+|
+|`registry.auth.role-source.header.name`
+|
+|`registry.auth.roles.admin`
+|
+|`registry.auth.roles.developer`
+|
+|`registry.auth.roles.readonly`
+|
+|`registry.auth.tenant-owner-is-admin.enabled`
+|
+|`registry.auth.token.endpoint`
+|===
+
+== cache
+.cache configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.config.cache.enabled`
+|
+|===
+
+== ccompat
+.ccompat configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.ccompat.legacy-id-mode.enabled`
+|
+|`registry.ccompat.max-subjects`
+|
+|`registry.ccompat.use-canonical-hash`
+|
+|===
+
+== download
+.download configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.download.href.ttl`
+|
+|===
+
+== events
+.events configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.events.ksink`
+|
+|===
+
+== health
+.health configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.liveness.errors.ignored`
+|
+|`registry.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec`
+|
+|`registry.metrics.PersistenceExceptionLivenessCheck.disableLogging`
+|
+|`registry.metrics.PersistenceExceptionLivenessCheck.errorThreshold`
+|
+|`registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec`
+|
+|`registry.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec`
+|
+|`registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold`
+|
+|`registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec`
+|
+|`registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec`
+|
+|`registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec`
+|
+|`registry.metrics.ResponseErrorLivenessCheck.disableLogging`
+|
+|`registry.metrics.ResponseErrorLivenessCheck.errorThreshold`
+|
+|`registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec`
+|
+|`registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec`
+|
+|`registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold`
+|
+|`registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec`
+|
+|`registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec`
+|
+|`registry.storage.metrics.cache.check-period`
+|===
+
+== import
+.import configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.import.url`
+|
+|===
+
+== kafka
+.kafka configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.events.kafka.topic`
+|
+|`registry.events.kafka.topic-partition`
+|
+|===
+
+== limits
+.limits configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.limits.config.max-artifact-labels`
+|
+|`registry.limits.config.max-artifact-properties`
+|
+|`registry.limits.config.max-artifacts`
+|
+|`registry.limits.config.max-description-length`
+|
+|`registry.limits.config.max-label-size`
+|
+|`registry.limits.config.max-name-length`
+|
+|`registry.limits.config.max-property-key-size`
+|
+|`registry.limits.config.max-property-value-size`
+|
+|`registry.limits.config.max-requests-per-second`
+|
+|`registry.limits.config.max-schema-size-bytes`
+|
+|`registry.limits.config.max-total-schemas`
+|
+|`registry.limits.config.max-versions-per-artifact`
+|
+|`registry.storage.metrics.cache.max-size`
+|
+|Storage metrics cache max size.
+|===
+
+== redirects
+.redirects configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.enable-redirects`
+|
+|`registry.redirects`
+|
+|`registry.url.override.host`
+|
+|`registry.url.override.port`
+|
+|===
+
+== rest
+.rest configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.rest.artifact.deletion.enabled`
+|
+|`registry.rest.artifact.download.maxSize`
+|
+|`registry.rest.artifact.download.skipSSLValidation`
+|
+|===
+
+== store
+.store configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`artifacts.skip.disabled.latest`
+|
+|`registry.sql.init`
+|
+|===
+
+== ui
+.ui configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.ui.config.apiUrl`
+|
+|`registry.ui.config.auth.oidc.client-id`
+|
+|`registry.ui.config.auth.oidc.redirect-url`
+|
+|`registry.ui.config.auth.oidc.url`
+|
+|`registry.ui.config.auth.type`
+|
+|`registry.ui.config.uiCodegenEnabled`
+|
+|`registry.ui.config.uiContextPath`
+|
+|`registry.ui.features.readOnly`
+|
+|`registry.ui.features.settings`
+|
+|`registry.ui.root`
+|
+|===

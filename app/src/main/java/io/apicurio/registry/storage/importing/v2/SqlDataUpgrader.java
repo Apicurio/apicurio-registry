@@ -103,6 +103,17 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                 entity.globalId = storage.nextGlobalId();
             }
 
+            Map<String, String> artifactVersionLabels = new HashMap<>();
+
+            if (entity.labels != null) {
+                artifactVersionLabels
+                        .putAll(entity.labels.stream().collect(Collectors.toMap(label -> label, s -> null)));
+            }
+
+            if (entity.properties != null) {
+                artifactVersionLabels.putAll(entity.properties);
+            }
+
             io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity newEntity = io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity
                     .builder().createdOn(entity.createdOn).description(entity.description)
                     .labels(entity.labels != null
@@ -118,10 +129,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             if (entity.versionId == 1) {
                 ArtifactEntity artifactEntity = ArtifactEntity.builder().artifactId(entity.artifactId)
                         .artifactType(entity.artifactType).createdOn(entity.createdOn)
-                        .description(entity.description).groupId(entity.groupId)
-                        .labels(entity.labels != null
-                            ? entity.labels.stream().collect(Collectors.toMap(label -> label, s -> null))
-                            : Collections.emptyMap())
+                        .description(entity.description).groupId(entity.groupId).labels(artifactVersionLabels)
                         .modifiedBy(entity.createdBy).modifiedOn(entity.createdOn).name(entity.name)
                         .owner(entity.createdBy).build();
                 storage.importArtifact(artifactEntity);
@@ -295,6 +303,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                     return ContentTypes.APPLICATION_GRAPHQL;
                 case XML:
                 case XSD:
+                case WSDL:
                     return ContentTypes.APPLICATION_XML;
             }
         }

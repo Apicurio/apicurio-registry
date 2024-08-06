@@ -3,7 +3,6 @@ package io.apicurio.registry.rules.compatibility;
 import com.google.common.collect.ImmutableSet;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
-import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaCompatibility;
 import org.apache.avro.SchemaCompatibility.Incompatibility;

@@ -826,19 +826,3 @@ The following {registry} configuration options are available for each component 
 |Navigation prefix for all UI paths
 |===
 
-== upgrade
-.upgrade configuration options
-[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
-|===
-|Name
-|Type
-|Default
-|Available from
-|Description
-|`apicurio.upgrade.file.location`
-|`optional<url>`
-|
-|`3.0.0`
-|The URL to a v2 export file
-|===
-

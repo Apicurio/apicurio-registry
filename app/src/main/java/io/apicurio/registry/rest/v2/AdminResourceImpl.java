@@ -38,7 +38,7 @@ import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.v3.EntityReader;
+import io.apicurio.registry.utils.impexp.v2.EntityReader;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -264,7 +264,7 @@ public class AdminResourceImpl implements AdminResource {
                 zip.close();
             }
         };
-        this.storage.importData(stream, isNullOrTrue(xRegistryPreserveGlobalId),
+        this.storage.upgradeData(stream, isNullOrTrue(xRegistryPreserveGlobalId),
                 isNullOrTrue(xRegistryPreserveContentId));
     }
 

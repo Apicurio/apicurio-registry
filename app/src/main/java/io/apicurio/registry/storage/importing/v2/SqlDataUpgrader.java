@@ -5,6 +5,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
@@ -60,6 +61,12 @@ public class SqlDataUpgrader extends AbstractDataImporter {
     // ID remapping
     protected final Map<Long, Long> globalIdMapping = new HashMap<>();
     protected final Map<Long, Long> contentIdMapping = new HashMap<>();
+
+    // Collection of content waiting for required references. A given content cannot be imported unless the
+    // expected reference is present.
+    // TODO do a second round to this, since this currently means enforcing the integrity rule. (Maybe try a
+    // first round and, if there are no artifacts remaining, just import the orphaned content).
+    protected final Map<ContentEntity, Set<GAV>> waitingForReference = new HashMap<>();
 
     // To keep track of which versions have been imported
     private final Set<GAV> gavDone = new HashSet<>();
@@ -126,13 +133,23 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                     .groupId(entity.groupId).build();
 
             // If the version being imported is the first one, we have to create the artifact first
-            if (entity.versionId == 1) {
+            if (!storage.isArtifactExists(entity.groupId, entity.artifactId)) {
                 ArtifactEntity artifactEntity = ArtifactEntity.builder().artifactId(entity.artifactId)
                         .artifactType(entity.artifactType).createdOn(entity.createdOn)
                         .description(entity.description).groupId(entity.groupId).labels(artifactVersionLabels)
                         .modifiedBy(entity.createdBy).modifiedOn(entity.createdOn).name(entity.name)
                         .owner(entity.createdBy).build();
                 storage.importArtifact(artifactEntity);
+            }
+
+            if (entity.isLatest) {
+                // If this version is the latest, update the artifact metadata with its metadata
+                EditableArtifactMetaDataDto editableArtifactMetaDataDto = EditableArtifactMetaDataDto
+                        .builder().name(newEntity.name).owner(newEntity.owner)
+                        .description(newEntity.description).labels(newEntity.labels).build();
+
+                storage.updateArtifactMetaData(newEntity.groupId, newEntity.artifactId,
+                        editableArtifactMetaDataDto);
             }
 
             storage.importArtifactVersion(newEntity);
@@ -149,6 +166,20 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             }
             waitingForVersion.removeAll(commentsToImport);
 
+            // Once the artifact version is processed, check if there is some content waiting for this as it's
+            // reference
+            // For each content waiting for the version we just inserted, remove it from the list.
+            waitingForReference.values().forEach(waitingReferences -> waitingReferences.remove(gav));
+
+            // Finally, once the list of required deps is updated, if it was the last reference needed, import
+            // the content.
+            waitingForReference.keySet().stream()
+                    .filter(content -> waitingForReference.get(content).isEmpty())
+                    .forEach(contentToImport -> {
+                        if (!contentIdMapping.containsKey(contentToImport.contentId)) {
+                            importContent(contentToImport);
+                        }
+                    });
         } catch (VersionAlreadyExistsException ex) {
             if (ex.getGlobalId() != null) {
                 log.warn("Duplicate globalId {} detected, skipping import of artifact version: {}",
@@ -166,6 +197,27 @@ public class SqlDataUpgrader extends AbstractDataImporter {
         try {
             List<ArtifactReferenceDto> references = SqlUtil
                     .deserializeReferences(entity.serializedReferences);
+
+            Set<GAV> referencesGavs = references
+                    .stream().map(referenceDto -> new GAV(referenceDto.getGroupId(),
+                            referenceDto.getArtifactId(), referenceDto.getVersion()))
+                    .collect(Collectors.toSet());
+
+            Set<ArtifactReferenceDto> requiredReferences = new HashSet<>();
+
+            // If there are references and they've not been imported yet, add them to the waiting collection
+            if (!references.isEmpty() && !gavDone.containsAll(referencesGavs)) {
+                waitingForReference.put(entity, referencesGavs);
+
+                // For each artifact reference, if it has not been imported yet, add it to the waiting list
+                // for this content.
+                referencesGavs.stream()
+                        .filter(artifactReference -> !referencesGavs.contains(artifactReference))
+                        .forEach(artifactReference -> waitingForReference.get(entity).add(artifactReference));
+
+                // This content cannot be imported until all the references are imported.
+                return;
+            }
 
             TypedContent typedContent = TypedContent.create(ContentHandle.create(entity.contentBytes), null);
             Map<String, TypedContent> resolvedReferences = storage.resolveReferences(references);

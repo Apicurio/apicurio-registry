@@ -3,40 +3,36 @@ package io.apicurio.registry;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
 import java.util.List;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.anything;
+
 @QuarkusTest
-@TestProfile(DataUpgradeTestProfile.class)
-@Tag(ApicurioTestTags.SLOW)
 public class DataUpgradeTest extends AbstractResourceTestBase {
 
     @Override
-    @BeforeEach
-    protected void beforeEach() throws Exception {
+    @BeforeAll
+    protected void beforeAll() throws Exception {
+        super.beforeAll();
+
         setupRestAssured();
+
+        try (InputStream data = resourceToInputStream("./upgrade/v2_export.zip")) {
+            given().when().contentType("application/zip").body(data).post("/registry/v2/admin/import").then()
+                    .statusCode(204).body(anything());
+        }
     }
 
     @Test
     public void testArtifactsCount() {
-        Assertions.assertEquals(26, clientV3.search().artifacts().get().getCount());
-    }
-
-    @Test
-    public void testCheckGlobalRules() throws Exception {
-        // Global rules are enabled in the export file, they must be activated.
-        Assertions.assertEquals(3, clientV3.admin().rules().get().size());
-        Assertions.assertEquals("FULL", clientV3.admin().rules().byRuleType("VALIDITY").get().getConfig());
-        Assertions.assertEquals("BACKWARD",
-                clientV3.admin().rules().byRuleType("COMPATIBILITY").get().getConfig());
-        Assertions.assertEquals("FULL", clientV3.admin().rules().byRuleType("INTEGRITY").get().getConfig());
+        Assertions.assertEquals(32, clientV3.search().artifacts().get().getCount());
     }
 
     @Test

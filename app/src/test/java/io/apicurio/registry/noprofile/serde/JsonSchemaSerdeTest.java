@@ -69,18 +69,20 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void testJsonSchemaSerde() throws Exception {
-        InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);
 
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema), ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -126,7 +128,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         Person person = new Person("Carles", "Arnal", 30);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -168,19 +170,20 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void testJsonSchemaSerdeHeaders() throws Exception {
-        InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);
 
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        Long globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema), ContentTypes.APPLICATION_JSON)
-                .getVersion().getGlobalId();
+        Long globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
 
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -213,19 +216,20 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testJsonSchemaSerdeMagicByte() throws Exception {
 
-        InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema-with-java-type.json");
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema-with-java-type.json");
         Assertions.assertNotNull(jsonSchema);
 
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        Long globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema), ContentTypes.APPLICATION_JSON)
-                .getVersion().getGlobalId();
+        Long globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
 
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -253,10 +257,13 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
     public void testJsonSchemaSerdeWithReferences() throws Exception {
         InputStream citySchema = getClass().getResourceAsStream("/io/apicurio/registry/util/city.json");
         InputStream citizenSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/citizen.json");
-        InputStream citizenIdentifier = getClass().getResourceAsStream("/io/apicurio/registry/util/citizenIdentifier.json");
-        InputStream qualificationSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/qualification.json");
+        InputStream citizenIdentifier = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/citizenIdentifier.json");
+        InputStream qualificationSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/qualification.json");
 
-        InputStream addressSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/sample.address.json");
+        InputStream addressSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/sample.address.json");
 
         Assertions.assertNotNull(citizenSchema);
         Assertions.assertNotNull(citySchema);
@@ -264,41 +271,43 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(qualificationSchema);
         Assertions.assertNotNull(addressSchema);
 
-
         String groupId = TestUtils.generateGroupId();
         String cityArtifactId = generateArtifactId();
         String qualificationsId = generateArtifactId();
         String identifierArtifactId = generateArtifactId();
         String addressId = generateArtifactId();
 
+        createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema),
+                ContentTypes.APPLICATION_JSON);
 
-        createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema), ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema),
+                ContentTypes.APPLICATION_JSON);
 
-        createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema), ContentTypes.APPLICATION_JSON);
-
-        final  io.apicurio.registry.rest.v3.beans.ArtifactReference qualificationsReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
+        final io.apicurio.registry.rest.v3.beans.ArtifactReference qualificationsReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
         qualificationsReference.setVersion("1");
         qualificationsReference.setGroupId(groupId);
         qualificationsReference.setArtifactId(qualificationsId);
         qualificationsReference.setName("qualification.json");
 
-        createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema), ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema),
+                ContentTypes.APPLICATION_JSON);
 
-        final  io.apicurio.registry.rest.v3.beans.ArtifactReference addressReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
+        final io.apicurio.registry.rest.v3.beans.ArtifactReference addressReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
         addressReference.setVersion("1");
         addressReference.setGroupId(groupId);
         addressReference.setArtifactId(addressId);
         addressReference.setName("sample.address.json");
 
-        final  io.apicurio.registry.rest.v3.beans.ArtifactReference cityReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
+        final io.apicurio.registry.rest.v3.beans.ArtifactReference cityReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
         cityReference.setVersion("1");
         cityReference.setGroupId(groupId);
         cityReference.setArtifactId(cityArtifactId);
         cityReference.setName("city.json");
 
-        createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier), ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier),
+                ContentTypes.APPLICATION_JSON);
 
-        final  io.apicurio.registry.rest.v3.beans.ArtifactReference identifierReference = new  io.apicurio.registry.rest.v3.beans.ArtifactReference();
+        final io.apicurio.registry.rest.v3.beans.ArtifactReference identifierReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
         identifierReference.setVersion("1");
         identifierReference.setGroupId(groupId);
         identifierReference.setArtifactId(identifierArtifactId);
@@ -307,14 +316,16 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
 
         createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema),
-                ContentTypes.APPLICATION_JSON, List.of(qualificationsReference, cityReference, identifierReference, addressReference));
+                ContentTypes.APPLICATION_JSON,
+                List.of(qualificationsReference, cityReference, identifierReference, addressReference));
 
         City city = new City("New York", 10001);
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
-        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
-             Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
+        try (
+            JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient, true);
+            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient, true)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -351,8 +362,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             } catch (Exception ignored) {
             }
 
-
-            //invalid identifier present, should fail
+            // invalid identifier present, should fail
             identifier = new CitizenIdentifier(-1234356);
             citizen.setIdentifier(identifier);
 
@@ -365,16 +375,20 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             } catch (Exception ignored) {
             }
 
-            //no identifier present, should pass
+            // no identifier present, should pass
             citizen.setIdentifier(null);
             serializer.serialize(artifactId, new RecordHeaders(), citizen);
 
-            //valid qualification, should pass
-            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6), new Qualification(UUID.randomUUID().toString(), 7), new Qualification(UUID.randomUUID().toString(), 8)));
+            // valid qualification, should pass
+            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6),
+                    new Qualification(UUID.randomUUID().toString(), 7),
+                    new Qualification(UUID.randomUUID().toString(), 8)));
             serializer.serialize(artifactId, new RecordHeaders(), citizen);
 
-            //invalid qualification, should fail
-            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6), new Qualification(UUID.randomUUID().toString(), -7), new Qualification(UUID.randomUUID().toString(), 8)));
+            // invalid qualification, should fail
+            citizen.setQualifications(List.of(new Qualification(UUID.randomUUID().toString(), 6),
+                    new Qualification(UUID.randomUUID().toString(), -7),
+                    new Qualification(UUID.randomUUID().toString(), 8)));
             try {
                 serializer.serialize(artifactId, new RecordHeaders(), citizen);
                 Assertions.fail();
@@ -404,45 +418,32 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(phone);
 
         String schemaContent = new String(address.readAllBytes(), StandardCharsets.UTF_8);
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact("sample.address.json", ArtifactType.JSON, schemaContent, ContentTypes.APPLICATION_JSON);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact("sample.address.json",
+                ArtifactType.JSON, schemaContent, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion(version);
-        final VersionMetaData amdAddress =
-                client
-                        .groups()
-                        .byGroupId("GLOBAL")
-                        .artifacts()
-                        .post(createArtifact, config -> {
-                            config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
-                            config.queryParameters.canonical = false;
-                        })
-                        .getVersion();
+        final VersionMetaData amdAddress = client.groups().byGroupId("GLOBAL").artifacts()
+                .post(createArtifact, config -> {
+                    config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
+                    config.queryParameters.canonical = false;
+                }).getVersion();
 
-        createArtifact.getFirstVersion().getContent().setContent(new String(email.readAllBytes(), StandardCharsets.UTF_8));
+        createArtifact.getFirstVersion().getContent()
+                .setContent(new String(email.readAllBytes(), StandardCharsets.UTF_8));
         createArtifact.setArtifactId("sample.email.json");
-        final VersionMetaData amdEmail =
-                client
-                        .groups()
-                        .byGroupId("GLOBAL")
-                        .artifacts()
-                        .post(createArtifact, config -> {
-                            config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
-                            config.queryParameters.canonical = false;
-                        })
-                        .getVersion();
+        final VersionMetaData amdEmail = client.groups().byGroupId("GLOBAL").artifacts()
+                .post(createArtifact, config -> {
+                    config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
+                    config.queryParameters.canonical = false;
+                }).getVersion();
 
-        createArtifact.getFirstVersion().getContent().setContent(new String(phone.readAllBytes(), StandardCharsets.UTF_8));
+        createArtifact.getFirstVersion().getContent()
+                .setContent(new String(phone.readAllBytes(), StandardCharsets.UTF_8));
         createArtifact.setArtifactId("sample.phone.json");
-        final VersionMetaData amdPhone =
-                client
-                        .groups()
-                        .byGroupId("GLOBAL")
-                        .artifacts()
-                        .post(createArtifact, config -> {
-                            config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
-                            config.queryParameters.canonical = false;
-                        })
-                        .getVersion();
-
+        final VersionMetaData amdPhone = client.groups().byGroupId("GLOBAL").artifacts()
+                .post(createArtifact, config -> {
+                    config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
+                    config.queryParameters.canonical = false;
+                }).getVersion();
 
         final ArtifactReference addressReference = new ArtifactReference();
         addressReference.setVersion(amdAddress.getVersion());
@@ -468,34 +469,32 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         artifactReferences.add(emailReference);
         artifactReferences.add(phoneReference);
 
-        createArtifact.getFirstVersion().getContent().setContent(new String(account.readAllBytes(), StandardCharsets.UTF_8));
+        createArtifact.getFirstVersion().getContent()
+                .setContent(new String(account.readAllBytes(), StandardCharsets.UTF_8));
         createArtifact.getFirstVersion().getContent().setReferences(artifactReferences);
         createArtifact.setArtifactId("sample.account.json");
-        client
-                .groups()
-                .byGroupId("GLOBAL")
-                .artifacts()
-                .post(createArtifact, config -> {
-                    config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
-                    config.queryParameters.canonical = false;
-                });
+        client.groups().byGroupId("GLOBAL").artifacts().post(createArtifact, config -> {
+            config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
+            config.queryParameters.canonical = false;
+        });
 
         String data = "{\n" + "  \"id\": \"abc\",\n" + "  \n" + "  \"accountPhones\": [{\n"
                 + "  \"phoneRelationTypeCd\": \"ABCDEFGHIJ\",\n"
                 + "  \"effectiveDate\": \"201-09-29T18:46:19Z\"\n" + "  \n" + "  \n" + "  }]\n" + "}";
 
-        ObjectMapper objectMapper = new ObjectMapper().configure(
-                DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        ObjectMapper objectMapper = new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         JsonNode validationFor = objectMapper.readTree(data);
 
-        VersionMetaData global =
-            client.groups().byGroupId("GLOBAL").artifacts().byArtifactId("sample.account.json").versions().byVersionExpression("branch=latest").get();
-                // client.getArtifactMetaData("GLOBAL", "sample.account.json");
-        io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference = io.apicurio.registry.resolver.strategy.ArtifactReference.builder().globalId(global.getGlobalId())
-                .groupId("GLOBAL")//.version("4")
+        VersionMetaData global = client.groups().byGroupId("GLOBAL").artifacts()
+                .byArtifactId("sample.account.json").versions().byVersionExpression("branch=latest").get();
+        // client.getArtifactMetaData("GLOBAL", "sample.account.json");
+        io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference = io.apicurio.registry.resolver.strategy.ArtifactReference
+                .builder().globalId(global.getGlobalId()).groupId("GLOBAL")// .version("4")
                 .artifactId("sample.account.json").build();
 
-        SchemaResolverConfigurer<JsonSchema, Object> src = new SchemaResolverConfigurer<JsonSchema, Object>(client);
+        SchemaResolverConfigurer<JsonSchema, Object> src = new SchemaResolverConfigurer<JsonSchema, Object>(
+                client);
 
         SchemaResolver<JsonSchema, Object> sr = src.getSchemaResolver();
         Map<String, String> configs = new HashMap<>();
@@ -503,13 +502,14 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                 DefaultSchemaResolver.class.getName());
         configs.put(SchemaResolverConfig.CHECK_PERIOD_MS, "600000");
         sr.configure(configs, new JsonSchemaParser<Object>());
-        ParsedSchema<JsonSchema> ps = sr.resolveSchemaByArtifactReference((artifactReference)).getParsedSchema();
+        ParsedSchema<JsonSchema> ps = sr.resolveSchemaByArtifactReference((artifactReference))
+                .getParsedSchema();
 
         validateDataWithSchema(ps, objectMapper.writeValueAsBytes(validationFor), objectMapper);
     }
 
     protected static void validateDataWithSchema(ParsedSchema<JsonSchema> schema, byte[] data,
-                                                 ObjectMapper mapper) throws IOException {
+            ObjectMapper mapper) throws IOException {
         try {
             schema.getParsedSchema().validate(mapper.readTree(data));
         } catch (ValidationException e) {

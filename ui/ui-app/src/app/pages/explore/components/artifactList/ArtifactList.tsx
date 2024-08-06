@@ -1,9 +1,9 @@
 import { FunctionComponent } from "react";
 import "./ArtifactList.css";
-import { Badge, DataList, DataListCell, DataListItemCells, DataListItemRow } from "@patternfly/react-core";
+import { DataList, DataListCell, DataListItemCells, DataListItemRow } from "@patternfly/react-core";
 import { ArtifactTypeIcon } from "@app/components";
 import { ArtifactGroup, ArtifactName } from "@app/pages";
-import { SearchedArtifact } from "@models/searchedArtifact.model.ts";
+import { SearchedArtifact } from "@sdk/lib/generated-client/models";
 
 /**
  * Properties
@@ -18,26 +18,11 @@ export type ArtifactListProps = {
  */
 export const ArtifactList: FunctionComponent<ArtifactListProps> = (props: ArtifactListProps) => {
 
-    const labels = (artifact: SearchedArtifact): string[] => {
-        return artifact.labels ? artifact.labels : [];
-    };
-
-    const statuses = (artifact: SearchedArtifact): string[] => {
-        const rval: string[] = [];
-        if (artifact.state === "DISABLED") {
-            rval.push("Disabled");
-        }
-        if (artifact.state === "DEPRECATED") {
-            rval.push("Deprecated");
-        }
-        return rval;
-    };
-
     const description = (artifact: SearchedArtifact): string => {
         if (artifact.description) {
             return artifact.description;
         }
-        return `An artifact of type ${artifact.type} with no description.`;
+        return `An artifact of type ${artifact.artifactType} with no description.`;
     };
 
     return (
@@ -48,26 +33,26 @@ export const ArtifactList: FunctionComponent<ArtifactListProps> = (props: Artifa
                         <DataListItemCells
                             dataListCells={[
                                 <DataListCell key="type icon" className="type-icon-cell">
-                                    <ArtifactTypeIcon type={artifact.type}/>
+                                    <ArtifactTypeIcon artifactType={artifact.artifactType!}/>
                                 </DataListCell>,
                                 <DataListCell key="main content" className="content-cell">
                                     <div className="artifact-title">
-                                        <ArtifactGroup groupId={artifact.groupId} />
-                                        <ArtifactName groupId={artifact.groupId} id={artifact.artifactId} name={artifact.name} />
-                                        {
-                                            statuses(artifact).map( status =>
-                                                <Badge className="status-badge" key={status} isRead={true}>{status}</Badge>
-                                            )
-                                        }
+                                        <ArtifactGroup groupId={artifact.groupId!} />
+                                        <ArtifactName groupId={artifact.groupId!} id={artifact.artifactId!} name={artifact.name!} />
+                                        {/*{*/}
+                                        {/*    statuses(artifact).map( status =>*/}
+                                        {/*        <Badge className="status-badge" key={status} isRead={true}>{status}</Badge>*/}
+                                        {/*    )*/}
+                                        {/*}*/}
                                     </div>
                                     <div className="artifact-description">{description(artifact)}</div>
-                                    <div className="artifact-tags">
-                                        {
-                                            labels(artifact).map( label =>
-                                                <Badge key={label} isRead={true}>{label}</Badge>
-                                            )
-                                        }
-                                    </div>
+                                    {/*<div className="artifact-tags">*/}
+                                    {/*    {*/}
+                                    {/*        labels(artifact).map( label =>*/}
+                                    {/*            <Badge key={label} isRead={true}>{label}</Badge>*/}
+                                    {/*        )*/}
+                                    {/*    }*/}
+                                    {/*</div>*/}
                                 </DataListCell>
                             ]}
                         />

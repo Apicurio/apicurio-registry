@@ -48,9 +48,11 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
         }
     }
 
-    protected void testRegister(RegisterRegistryMojo mojo, String groupId) throws IOException, MojoFailureException, MojoExecutionException {
+    protected void testRegister(RegisterRegistryMojo mojo, String groupId)
+            throws IOException, MojoFailureException, MojoExecutionException {
         Schema keySchema = Schema.create(Schema.Type.STRING);
-        Schema valueSchema = Schema.createUnion(Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
+        Schema valueSchema = Schema.createUnion(
+                Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
         File keySchemaFile = new File(this.tempDirectory, KEY_SUBJECT + ".avsc");
         File valueSchemaFile = new File(this.tempDirectory, VALUE_SUBJECT + ".avsc");
         writeContent(keySchemaFile, keySchema.toString(true).getBytes(StandardCharsets.UTF_8));
@@ -65,20 +67,21 @@ public class RegistryMojoTestBase extends AbstractResourceTestBase {
         mojo.execute();
     }
 
-    private static List<RegisterArtifact> createArtifacts(String groupId, File keySchemaFile, File valueSchemaFile) {
+    private static List<RegisterArtifact> createArtifacts(String groupId, File keySchemaFile,
+            File valueSchemaFile) {
         List<RegisterArtifact> artifacts = new ArrayList<>();
 
         RegisterArtifact keySchemaArtifact = new RegisterArtifact();
         keySchemaArtifact.setGroupId(groupId);
         keySchemaArtifact.setArtifactId(KEY_SUBJECT);
-        keySchemaArtifact.setType(ArtifactType.AVRO);
+        keySchemaArtifact.setArtifactType(ArtifactType.AVRO);
         keySchemaArtifact.setFile(keySchemaFile);
         artifacts.add(keySchemaArtifact);
 
         RegisterArtifact valueSchemaArtifact = new RegisterArtifact();
         valueSchemaArtifact.setGroupId(groupId);
         valueSchemaArtifact.setArtifactId(VALUE_SUBJECT);
-        valueSchemaArtifact.setType(ArtifactType.AVRO);
+        valueSchemaArtifact.setArtifactType(ArtifactType.AVRO);
         valueSchemaArtifact.setFile(valueSchemaFile);
         artifacts.add(valueSchemaArtifact);
         return artifacts;

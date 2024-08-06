@@ -1,7 +1,5 @@
 package io.apicurio.registry.storage.dto;
 
-import java.util.Map;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -9,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+
+import java.util.Map;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -27,6 +27,6 @@ public class ArtifactMetaDataDto {
     private long createdOn;
     private String modifiedBy;
     private long modifiedOn;
-    private String type;
+    private String artifactType;
     private Map<String, String> labels;
 }

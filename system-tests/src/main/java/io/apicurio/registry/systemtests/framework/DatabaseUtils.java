@@ -11,7 +11,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class DatabaseUtils {
     public static void deployDefaultPostgresqlDatabase(ExtensionContext testContext) {
-        PersistentVolumeClaim persistentVolumeClaim = PersistentVolumeClaimResourceType.getDefaultPostgresql();
+        PersistentVolumeClaim persistentVolumeClaim = PersistentVolumeClaimResourceType
+                .getDefaultPostgresql();
         Deployment deployment = DeploymentResourceType.getDefaultPostgresql();
         Service service = ServiceResourceType.getDefaultPostgresql();
 
@@ -25,10 +26,8 @@ public class DatabaseUtils {
     }
 
     public static void deployPostgresqlDatabase(ExtensionContext testContext, String name, String namespace) {
-        PersistentVolumeClaim persistentVolumeClaim = PersistentVolumeClaimResourceType.getDefaultPostgresql(
-                name,
-                namespace
-        );
+        PersistentVolumeClaim persistentVolumeClaim = PersistentVolumeClaimResourceType
+                .getDefaultPostgresql(name, namespace);
         Deployment deployment = DeploymentResourceType.getDefaultPostgresql(name, namespace);
         Service service = ServiceResourceType.getDefaultPostgresql(name, namespace);
 

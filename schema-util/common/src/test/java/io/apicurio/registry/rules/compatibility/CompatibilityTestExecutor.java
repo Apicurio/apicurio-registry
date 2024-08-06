@@ -2,6 +2,8 @@ package io.apicurio.registry.rules.compatibility;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.types.ContentTypes;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -52,12 +54,18 @@ public class CompatibilityTestExecutor {
 
             log.info("Running test case: {}", caseId);
             var original = testCaseData.get("original").toString();
+            var originalCT = testCaseData.has("originalContentType")
+                ? testCaseData.get("originalContentType").toString() : ContentTypes.APPLICATION_JSON;
+            var originalTypedContent = TypedContent.create(original, originalCT);
             var updated = testCaseData.get("updated").toString();
+            var updatedCT = testCaseData.has("updatedContentType")
+                ? testCaseData.get("updatedContentType").toString() : ContentTypes.APPLICATION_JSON;
+            var updatedTypedContent = TypedContent.create(updated, updatedCT);
 
-            var resultBackward = checker.testCompatibility(CompatibilityLevel.BACKWARD, List.of(original),
-                    updated, Collections.emptyMap());
-            var resultForward = checker.testCompatibility(CompatibilityLevel.FORWARD, List.of(original),
-                    updated, Collections.emptyMap());
+            var resultBackward = checker.testCompatibility(CompatibilityLevel.BACKWARD,
+                    List.of(originalTypedContent), updatedTypedContent, Collections.emptyMap());
+            var resultForward = checker.testCompatibility(CompatibilityLevel.FORWARD,
+                    List.of(originalTypedContent), updatedTypedContent, Collections.emptyMap());
 
             switch (testCaseData.getString("compatibility")) {
                 case "backward":
@@ -101,13 +109,13 @@ public class CompatibilityTestExecutor {
 
     public static void throwOnFailure(Set<String> failed) {
         if (!failed.isEmpty()) {
-            throw new RuntimeException(failed.size() + " test cases failed: " + failed.stream()
-                    .reduce("", (a, s) -> a + "\n" + s));
+            throw new RuntimeException(failed.size() + " test cases failed: "
+                    + failed.stream().reduce("", (a, s) -> a + "\n" + s));
         }
     }
 
     private static void logFail(String caseId, CompatibilityExecutionResult resultBackward,
-                                CompatibilityExecutionResult resultForward) {
+            CompatibilityExecutionResult resultForward) {
         log.error("\nFailed caseId: {}\nBackward {}: {}\nForward {}: {}\n", caseId,
                 resultBackward.isCompatible(), resultBackward.getIncompatibleDifferences(),
                 resultForward.isCompatible(), resultForward.getIncompatibleDifferences());

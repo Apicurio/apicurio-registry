@@ -25,19 +25,17 @@ public class DiffContext {
 
     final Set<SchemaLocation> visited = new HashSet<>();
 
-
-    private DiffContext(DiffContext rootContext, DiffContext parentContext, String pathUpdated, Set<SchemaLocation> visited) {
+    private DiffContext(DiffContext rootContext, DiffContext parentContext, String pathUpdated,
+            Set<SchemaLocation> visited) {
         this.rootContext = rootContext;
         this.parentContext = parentContext;
         this.pathUpdated = pathUpdated;
         this.visited.addAll(visited);
     }
 
-
     public DiffContext sub(String pathFragmentUpdated) {
         return new DiffContext(rootContext, this, pathUpdated + "/" + pathFragmentUpdated, this.visited);
     }
-
 
     private void initRootContext(DiffContext rootContext) {
         if (this.rootContext != null || parentContext != null)
@@ -47,7 +45,7 @@ public class DiffContext {
     }
 
     public static DiffContext createRootContext(String basePathFragmentUpdated, Set<SchemaLocation> visited) {
-        if(visited == null)
+        if (visited == null)
             visited = new HashSet<>();
         DiffContext rootContext = new DiffContext(null, null, basePathFragmentUpdated, visited);
         rootContext.initRootContext(rootContext);
@@ -58,25 +56,19 @@ public class DiffContext {
         return createRootContext("", null);
     }
 
-
     private void addToDifferenceSets(Difference difference) {
         diff.add(difference);
         if (rootContext != this)
             parentContext.addToDifferenceSets(difference);
     }
 
-
     public void addDifference(DiffType type, Object originalSubchema, Object updatedSubchema) {
-        Difference difference = Difference.builder()
-             .diffType(type)
-             .pathOriginal("")
-             .pathUpdated(pathUpdated)
-             .subSchemaOriginal(Objects.toString(originalSubchema)) // make sure toString is good enough
-             .subSchemaUpdated(Objects.toString(updatedSubchema))
-             .build();
+        Difference difference = Difference.builder().diffType(type).pathOriginal("").pathUpdated(pathUpdated)
+                .subSchemaOriginal(Objects.toString(originalSubchema)) // make sure toString is good enough
+                .subSchemaUpdated(Objects.toString(updatedSubchema)).build();
         addToDifferenceSets(difference);
-//        if(!type.isBackwardsCompatible())
-//            log.warn("New incompatible difference found: " + difference);
+        // if(!type.isBackwardsCompatible())
+        // log.warn("New incompatible difference found: " + difference);
     }
 
     public void log(String message) {
@@ -87,7 +79,6 @@ public class DiffContext {
         return new HashSet<>(diff);
     }
 
-
     /**
      * Return true, if this context contains an incompatible difference.
      */
@@ -96,7 +87,8 @@ public class DiffContext {
     }
 
     public Set<Difference> getIncompatibleDifferences() {
-        return diff.stream().filter(d -> !d.getDiffType().isBackwardsCompatible()).collect(Collectors.toSet());
+        return diff.stream().filter(d -> !d.getDiffType().isBackwardsCompatible())
+                .collect(Collectors.toSet());
     }
 
     public boolean foundAllDifferencesAreCompatible() {
@@ -105,10 +97,7 @@ public class DiffContext {
 
     @Override
     public String toString() {
-        return "DiffContext {" +
-                " foundAllDifferencesAreCompatible = " + foundAllDifferencesAreCompatible() +
-                ", diff = " + diff +
-                ", pathAtUpdated = '" + pathUpdated + "'" +
-                " }";
+        return "DiffContext {" + " foundAllDifferencesAreCompatible = " + foundAllDifferencesAreCompatible()
+                + ", diff = " + diff + ", pathAtUpdated = '" + pathUpdated + "'" + " }";
     }
 }

@@ -7,10 +7,8 @@ import java.util.function.BiFunction;
 
 public class VersionExpressionParser {
 
-
     private VersionExpressionParser() {
     }
-
 
     public static GAV parse(GA ga, String versionExpression, BiFunction<GA, BranchId, GAV> branchToVersion) {
         if (VersionId.isValid(versionExpression)) {
@@ -28,7 +26,6 @@ public class VersionExpressionParser {
         }
         throw new UnreachableCodeException();
     }
-
 
     private static void fail(String versionExpression) {
         throw new ValidationException("Could not parse version expression '" + versionExpression + "'.");

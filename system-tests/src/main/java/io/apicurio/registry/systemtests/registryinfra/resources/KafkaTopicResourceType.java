@@ -24,10 +24,7 @@ public class KafkaTopicResourceType implements ResourceType<KafkaTopic> {
 
     @Override
     public KafkaTopic get(String namespace, String name) {
-        return getOperation()
-                .inNamespace(namespace)
-                .withName(name)
-                .get();
+        return getOperation().inNamespace(namespace).withName(name).get();
     }
 
     public static MixedOperation<KafkaTopic, KubernetesResourceList<KafkaTopic>, Resource<KafkaTopic>> getOperation() {
@@ -36,24 +33,18 @@ public class KafkaTopicResourceType implements ResourceType<KafkaTopic> {
 
     @Override
     public void create(KafkaTopic resource) {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .create(resource);
+        getOperation().inNamespace(resource.getMetadata().getNamespace()).create(resource);
     }
 
     @Override
     public void createOrReplace(KafkaTopic resource) {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .createOrReplace(resource);
+        getOperation().inNamespace(resource.getMetadata().getNamespace()).createOrReplace(resource);
     }
 
     @Override
     public void delete(KafkaTopic resource) throws Exception {
-        getOperation()
-                .inNamespace(resource.getMetadata().getNamespace())
-                .withName(resource.getMetadata().getName())
-                .delete();
+        getOperation().inNamespace(resource.getMetadata().getNamespace())
+                .withName(resource.getMetadata().getName()).delete();
     }
 
     @Override
@@ -64,14 +55,9 @@ public class KafkaTopicResourceType implements ResourceType<KafkaTopic> {
             return false;
         }
 
-        return kafkaTopic
-                .getStatus()
-                .getConditions()
-                .stream()
+        return kafkaTopic.getStatus().getConditions().stream()
                 .filter(condition -> condition.getType().equals("Ready"))
-                .map(condition -> condition.getStatus().equals("True"))
-                .findFirst()
-                .orElse(false);
+                .map(condition -> condition.getStatus().equals("True")).findFirst().orElse(false);
     }
 
     @Override
@@ -93,20 +79,13 @@ public class KafkaTopicResourceType implements ResourceType<KafkaTopic> {
     /** Get default instances **/
 
     public static KafkaTopic getDefault(String name, String namespace, String clusterName) {
-        return new KafkaTopicBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                    .withLabels(Collections.singletonMap("strimzi.io/cluster", clusterName))
-                .endMetadata()
-                .withNewSpec()
-                    .withPartitions(3)
-                    .withReplicas(3)
-                    .withConfig(new HashMap<>() {{
+        return new KafkaTopicBuilder().withNewMetadata().withName(name).withNamespace(namespace)
+                .withLabels(Collections.singletonMap("strimzi.io/cluster", clusterName)).endMetadata()
+                .withNewSpec().withPartitions(3).withReplicas(3).withConfig(new HashMap<>() {
+                    {
                         put("retention.ms", 7200000);
                         put("segment.bytes", 1073741824);
-                    }})
-                .endSpec()
-                .build();
+                    }
+                }).endSpec().build();
     }
 }

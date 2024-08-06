@@ -44,4 +44,3 @@ curl -X POST "http://<registry-url>/apis/registry/v3/admin/import" \
   -H "X-Registry-Preserve-ContentId: false" \
   --data-binary @confluent-schema-registry-export.zip
 ```
-

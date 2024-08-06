@@ -11,16 +11,15 @@ public class KafkasqlRecoverFromSnapshotTestProfile implements QuarkusTestProfil
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("apicurio.storage.kind", "kafkasql", "apicurio.datasource.url", "jdbc:h2:mem:" + UUID.randomUUID());
+        return Map.of("apicurio.storage.kind", "kafkasql", "apicurio.datasource.url",
+                "jdbc:h2:mem:" + UUID.randomUUID());
     }
 
     @Override
     public List<TestResourceEntry> testResources() {
         if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            return List.of(
-                    new TestResourceEntry(KafkaTestContainerManager.class));
-        }
-        else {
+            return List.of(new TestResourceEntry(KafkaTestContainerManager.class));
+        } else {
             return Collections.emptyList();
         }
     }

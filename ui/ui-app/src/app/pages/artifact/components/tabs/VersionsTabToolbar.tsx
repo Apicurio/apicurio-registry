@@ -3,7 +3,7 @@ import "./VersionsTabToolbar.css";
 import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Paging } from "@models/paging.model.ts";
 import { IfAuth, IfFeature } from "@app/components";
-import { VersionSearchResults } from "@models/versionSearchResults.model.ts";
+import { VersionSearchResults } from "@sdk/lib/generated-client/models";
 
 
 /**
@@ -39,7 +39,7 @@ export const VersionsTabToolbar: FunctionComponent<VersionsToolbarProps> = (prop
     };
 
     return (
-        <Toolbar id="references-toolbar-1" className="references-toolbar">
+        <Toolbar id="versions-toolbar-1" className="versions-toolbar">
             <ToolbarContent>
                 <ToolbarItem className="create-version-item">
                     <IfAuth isDeveloper={true}>
@@ -58,8 +58,8 @@ export const VersionsTabToolbar: FunctionComponent<VersionsToolbarProps> = (prop
                         page={ props.paging.page }
                         onSetPage={ onSetPage }
                         onPerPageSelect={ onPerPageSelect }
-                        widgetId="reference-list-pagination"
-                        className="reference-list-pagination"
+                        widgetId="version-list-pagination"
+                        className="version-list-pagination"
                     />
                 </ToolbarItem>
             </ToolbarContent>

@@ -20,7 +20,8 @@ public class JsonSchemaCompatibilityDifference implements CompatibilityDifferenc
     /**
      * @see CompatibilityDifference#asRuleViolation()
      */
-    @Override public RuleViolation asRuleViolation() {
+    @Override
+    public RuleViolation asRuleViolation() {
         return new RuleViolation(difference.getDiffType().getDescription(), difference.getPathUpdated());
     }
 }

@@ -29,7 +29,6 @@ public class WrongConfiguredConsumerTesterBuilder<P, C> extends SimpleSerdesTest
         return new FailingConsumerTester();
     }
 
-
     private class FailingConsumerTester extends SerdesTester<String, P, C> implements Tester {
 
         /**
@@ -37,7 +36,8 @@ public class WrongConfiguredConsumerTesterBuilder<P, C> extends SimpleSerdesTest
          */
         @Override
         public void test() throws Exception {
-            Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class, serializer, topic, artifactResolverStrategy);
+            Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class,
+                    serializer, topic, artifactResolverStrategy);
 
             int messageCount = 10;
             this.produceMessages(producer, topic, dataGenerator, messageCount);
@@ -46,9 +46,11 @@ public class WrongConfiguredConsumerTesterBuilder<P, C> extends SimpleSerdesTest
                 assertTrue(afterProduceValidator.validate(), "After produce validation failed");
             }
 
-            Consumer<String, C> consumer = this.createConsumer(consumerProperties, StringDeserializer.class, deserializer, topic);
+            Consumer<String, C> consumer = this.createConsumer(consumerProperties, StringDeserializer.class,
+                    deserializer, topic);
 
-            assertThrows(ExecutionException.class, () -> this.consumeMessages(consumer, topic, messageCount, dataValidator));
+            assertThrows(ExecutionException.class,
+                    () -> this.consumeMessages(consumer, topic, messageCount, dataValidator));
         }
 
     }

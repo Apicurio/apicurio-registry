@@ -16,12 +16,10 @@
 
 package io.apicurio.registry.examples.mix.avro;
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Properties;
-import java.util.UUID;
-
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -36,30 +34,30 @@ import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import io.apicurio.registry.serde.SerdeConfig;
-import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
-import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Properties;
+import java.util.UUID;
 
 /**
- * This example application showcases a scenario where Apache Avro messages are published to the same
- * Kafka topic using different Avro schemas. This example uses the Apicurio Registry serdes classes to serialize
- * and deserialize Apache Avro messages using different schemas, even if received in the same Kafka topic.
- * The following aspects are demonstrated:
- *
+ * This example application showcases a scenario where Apache Avro messages are published to the same Kafka
+ * topic using different Avro schemas. This example uses the Apicurio Registry serdes classes to serialize and
+ * deserialize Apache Avro messages using different schemas, even if received in the same Kafka topic. The
+ * following aspects are demonstrated:
  * <ol>
- *   <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
- *   <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
- *   <li>Auto-register the Avro schema in the registry (registered by the producer)</li>
- *   <li>Data sent as a simple GenericRecord, no java beans needed</li>
- *   <li>Producing and consuming Avro messages using different schemas mapped to different Apicurio Registry Artifacts</li>
+ * <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
+ * <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
+ * <li>Auto-register the Avro schema in the registry (registered by the producer)</li>
+ * <li>Data sent as a simple GenericRecord, no java beans needed</li>
+ * <li>Producing and consuming Avro messages using different schemas mapped to different Apicurio Registry
+ * Artifacts</li>
  * </ol>
  * <p>
  * Pre-requisites:
- *
  * <ul>
- *   <li>Kafka must be running on localhost:9092</li>
- *   <li>Apicurio Registry must be running on localhost:8080</li>
+ * <li>Kafka must be running on localhost:9092</li>
+ * <li>Apicurio Registry must be running on localhost:8080</li>
  * </ul>
  *
  * @author Fabian Martinez
@@ -92,7 +90,6 @@ public class MixAvroExample {
 
             producedMessages += produceMessages(producer, topicName, FAREWELLSCHEMAV2, "extra farewell");
 
-
         } finally {
             System.out.println("Closing the producer.");
             producer.flush();
@@ -117,22 +114,27 @@ public class MixAvroExample {
                 if (records.count() == 0) {
                     // Do nothing - no messages waiting.
                     System.out.println("No messages waiting...");
-                } else records.forEach(record -> {
-                    GenericRecord value = record.value();
-                    value.getSchema().getFullName();
-                    if (value.hasField("Extra")) {
-                        System.out.println("Consumed " + value.getSchema().getFullName() + ": " + value.get("Message") + " @ " + new Date((long) value.get("Time")) + " @ " + value.get("Extra"));
-                    } else {
-                        System.out.println("Consumed " + value.getSchema().getFullName() + ": " + value.get("Message") + " @ " + new Date((long) value.get("Time")));
-                    }
-                });
+                } else
+                    records.forEach(record -> {
+                        GenericRecord value = record.value();
+                        value.getSchema().getFullName();
+                        if (value.hasField("Extra")) {
+                            System.out.println("Consumed " + value.getSchema().getFullName() + ": "
+                                    + value.get("Message") + " @ " + new Date((long) value.get("Time"))
+                                    + " @ " + value.get("Extra"));
+                        } else {
+                            System.out.println("Consumed " + value.getSchema().getFullName() + ": "
+                                    + value.get("Message") + " @ " + new Date((long) value.get("Time")));
+                        }
+                    });
             }
         }
 
         System.out.println("Done (success).");
     }
 
-    private static int produceMessages(Producer<Object, Object> producer, String topicName, String schemaContent, String extra) throws InterruptedException {
+    private static int produceMessages(Producer<Object, Object> producer, String topicName,
+            String schemaContent, String extra) throws InterruptedException {
         int producedMessages = 0;
         Schema schema = new Schema.Parser().parse(schemaContent);
         System.out.println("Producing (5) messages.");
@@ -148,7 +150,8 @@ public class MixAvroExample {
             }
 
             // Send/produce the message on the Kafka Producer
-            ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, UUID.randomUUID().toString(), record);
+            ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName,
+                    UUID.randomUUID().toString(), record);
             producer.send(producedRecord);
 
             Thread.sleep(100);
@@ -179,7 +182,7 @@ public class MixAvroExample {
         // Get an existing schema or auto-register if not found
         props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT, Boolean.TRUE);
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka producer
@@ -201,15 +204,16 @@ public class MixAvroExample {
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         // Use the Apicurio Registry provided Kafka Deserializer for Avro
-        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
+        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                AvroKafkaDeserializer.class.getName());
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
         // No other configuration needed for the deserializer, because the globalId of the schema
-        // the deserializer should use is sent as part of the payload.  So the deserializer simply
+        // the deserializer should use is sent as part of the payload. So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka Consumer
@@ -228,13 +232,16 @@ public class MixAvroExample {
             props.putIfAbsent(SerdeConfig.AUTH_CLIENT_ID, authClient);
             props.putIfAbsent(SerdeConfig.AUTH_TOKEN_ENDPOINT, tokenEndpoint);
             props.putIfAbsent(SaslConfigs.SASL_MECHANISM, "OAUTHBEARER");
-            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
+            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
+                    "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
             props.putIfAbsent("security.protocol", "SASL_SSL");
 
-            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                    "  oauth.client.id=\"%s\" "+
-                    "  oauth.client.secret=\"%s\" "+
-                    "  oauth.token.endpoint.uri=\"%s\" ;", authClient, authSecret, tokenEndpoint));
+            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG,
+                    String.format(
+                            "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
+                                    + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
+                                    + "  oauth.token.endpoint.uri=\"%s\" ;",
+                            authClient, authSecret, tokenEndpoint));
         }
     }
 }

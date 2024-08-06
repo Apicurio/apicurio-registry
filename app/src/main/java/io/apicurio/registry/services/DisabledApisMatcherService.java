@@ -47,7 +47,8 @@ public class DisabledApisMatcherService {
     public boolean isDisabled(String requestPath) {
         for (Pattern pattern : disabledPatternsList) {
             if (pattern.matcher(requestPath).matches()) {
-                log.warn("Request {} is rejected because it's disabled by pattern {}", requestPath, pattern.pattern());
+                log.warn("Request {} is rejected because it's disabled by pattern {}", requestPath,
+                        pattern.pattern());
                 return true;
             }
         }

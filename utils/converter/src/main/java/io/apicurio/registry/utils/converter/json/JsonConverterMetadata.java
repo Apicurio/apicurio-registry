@@ -1,9 +1,8 @@
 package io.apicurio.registry.utils.converter.json;
 
+import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.connect.data.Schema;
-
-import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 
 public class JsonConverterMetadata extends KafkaSerdeMetadata {
 
@@ -11,6 +10,7 @@ public class JsonConverterMetadata extends KafkaSerdeMetadata {
 
     /**
      * Constructor.
+     * 
      * @param topic
      * @param isKey
      * @param headers

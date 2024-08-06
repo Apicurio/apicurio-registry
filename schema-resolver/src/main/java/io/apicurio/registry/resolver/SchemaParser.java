@@ -11,9 +11,9 @@ public interface SchemaParser<S, U> {
     S parseSchema(byte[] rawSchema, Map<String, ParsedSchema<S>> resolvedReferences);
 
     /**
-     * In some artifact types, such as AVRO, it is possible to extract the schema from the java object.
-     * But this can be easily extended to other formats by using a custom {@link Record} implementation that adds additional fields
-     * that allows to build a {@link ParsedSchema}
+     * In some artifact types, such as AVRO, it is possible to extract the schema from the java object. But
+     * this can be easily extended to other formats by using a custom {@link Record} implementation that adds
+     * additional fields that allows to build a {@link ParsedSchema}
      *
      * @param data
      * @return the ParsedSchema, containing both the raw schema (bytes) and the parsed schema. Can be null.
@@ -21,9 +21,9 @@ public interface SchemaParser<S, U> {
     ParsedSchema<S> getSchemaFromData(Record<U> data);
 
     /**
-     * In some artifact types, such as AVRO, it is possible to extract the schema from the java object.
-     * But this can be easily extended to other formats by using a custom {@link Record} implementation that adds additional fields
-     * that allows to build a {@link ParsedSchema}
+     * In some artifact types, such as AVRO, it is possible to extract the schema from the java object. But
+     * this can be easily extended to other formats by using a custom {@link Record} implementation that adds
+     * additional fields that allows to build a {@link ParsedSchema}
      *
      * @param data
      * @param dereference indicate the schema parser whether to try to dereference the record schema.

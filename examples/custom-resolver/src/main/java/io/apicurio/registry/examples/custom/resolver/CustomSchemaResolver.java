@@ -37,9 +37,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A custom schema resolver that simply uses the Avro schema found in the {@link Config}
- * class - and ensures that the schema exists in the registry (so that the deserializer
- * is guaranteed to be able to retrieve the exact schema used).
+ * A custom schema resolver that simply uses the Avro schema found in the {@link Config} class - and ensures
+ * that the schema exists in the registry (so that the deserializer is guaranteed to be able to retrieve the
+ * exact schema used).
  *
  * @author eric.wittmann@gmail.com
  */
@@ -48,7 +48,8 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
     protected final Map<String, SchemaLookupResult<Schema>> schemaLookupCacheByContent = new ConcurrentHashMap<>();
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean, io.apicurio.registry.serde.SchemaParser)
+     * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean,
+     *      io.apicurio.registry.serde.SchemaParser)
      */
     @Override
     public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<Schema> schemaMapper) {
@@ -56,11 +57,13 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchema(java.lang.String, org.apache.kafka.common.header.Headers, java.lang.Object, io.apicurio.registry.serde.ParsedSchema)
+     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchema(java.lang.String,
+     *      org.apache.kafka.common.header.Headers, java.lang.Object, io.apicurio.registry.serde.ParsedSchema)
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public SchemaLookupResult<Schema> resolveSchema(String topic, Headers headers, D data, ParsedSchema<Schema> parsedSchema) {
+    public SchemaLookupResult<Schema> resolveSchema(String topic, Headers headers, D data,
+            ParsedSchema<Schema> parsedSchema) {
         System.out.println("[CustomSchemaResolver] Resolving a schema for topic: " + topic);
         String schema = Config.SCHEMA;
 
@@ -69,29 +72,26 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
             String artifactId = topic + "-value";
             Schema schemaObj = AvroSchemaUtils.parse(schema);
 
-            ByteArrayInputStream schemaContent = new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8));
+            ByteArrayInputStream schemaContent = new ByteArrayInputStream(
+                    schema.getBytes(StandardCharsets.UTF_8));
             // Ensure the schema exists in the schema registry.
 
             CreateArtifact createArtifact = new CreateArtifact();
             createArtifact.setArtifactId(artifactId);
-            createArtifact.setType(ArtifactType.AVRO);
+            createArtifact.setArtifactType(ArtifactType.AVRO);
             createArtifact.setFirstVersion(new CreateVersion());
             createArtifact.getFirstVersion().setContent(new VersionContent());
             createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(schemaContent));
             createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
-                config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
-            }).getVersion();
+            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = client.groups()
+                    .byGroupId("default").artifacts().post(createArtifact, config -> {
+                        config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+                    }).getVersion();
 
-            SchemaLookupResult result = SchemaLookupResult.builder()
-                    .groupId(groupId)
-                    .artifactId(artifactId)
-                    .version(String.valueOf(metaData.getVersion()))
-                    .globalId(metaData.getGlobalId())
-                    .schema(schemaObj)
-                    .rawSchema(schema.getBytes(StandardCharsets.UTF_8))
-                    .build();
+            SchemaLookupResult result = SchemaLookupResult.builder().groupId(groupId).artifactId(artifactId)
+                    .version(String.valueOf(metaData.getVersion())).globalId(metaData.getGlobalId())
+                    .schema(schemaObj).rawSchema(schema.getBytes(StandardCharsets.UTF_8)).build();
 
             // Also update the schemaCacheByGlobalId - useful if this resolver is used by both
             // the serializer and deserializer in the same Java application.
@@ -104,7 +104,8 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
      */
     @Override
     public SchemaLookupResult<Schema> resolveSchemaByArtifactReference(ArtifactReference reference) {
-        throw new UnsupportedOperationException("resolveSchemaByArtifactReference() is not supported by this implementation.");
+        throw new UnsupportedOperationException(
+                "resolveSchemaByArtifactReference() is not supported by this implementation.");
     }
 
     @Override

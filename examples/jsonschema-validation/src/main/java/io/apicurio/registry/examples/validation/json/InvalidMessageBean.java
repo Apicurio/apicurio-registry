@@ -22,10 +22,10 @@ import java.util.Date;
  * @author famartin@redhat.com
  */
 public class InvalidMessageBean {
-    
+
     private String message;
     private Date time;
-    
+
     /**
      * Constructor.
      */

@@ -44,8 +44,8 @@ public final class V2ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static ArtifactMetaData dtoToMetaData(String groupId, String artifactId,
-                                                 String artifactType, ArtifactMetaDataDto dto) {
+    public static ArtifactMetaData dtoToMetaData(String groupId, String artifactId, String artifactType,
+            ArtifactMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getOwner());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
@@ -66,7 +66,7 @@ public final class V2ApiUtil {
         if (artifactType != null) {
             metaData.setType(artifactType);
         } else {
-            metaData.setType(dto.getType());
+            metaData.setType(dto.getArtifactType());
         }
         metaData.setState(ArtifactState.ENABLED); // TODO artifact state has gone away from the storage layer
         metaData.setLabels(toV2Labels(dto.getLabels()));
@@ -76,6 +76,7 @@ public final class V2ApiUtil {
 
     /**
      * Converts v3 labels into v2 properties.
+     * 
      * @param v3Labels
      * @return
      */
@@ -96,6 +97,7 @@ public final class V2ApiUtil {
 
     /**
      * Converts v3 labels into v2 labels.
+     * 
      * @param v3Labels
      */
     public static List<String> toV2Labels(Map<String, String> v3Labels) {
@@ -115,6 +117,7 @@ public final class V2ApiUtil {
 
     /**
      * Converts v2 labels and properties into v3 labels.
+     * 
      * @param v2Labels
      * @param v2Properties
      */
@@ -139,7 +142,7 @@ public final class V2ApiUtil {
      * @param dto
      */
     public static ArtifactMetaData dtoToMetaData(String groupId, String artifactId, String artifactType,
-                                                       ArtifactVersionMetaDataDto dto) {
+            ArtifactVersionMetaDataDto dto) {
         ArtifactMetaData metaData = new ArtifactMetaData();
         metaData.setCreatedBy(dto.getOwner());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
@@ -152,7 +155,7 @@ public final class V2ApiUtil {
         if (artifactType != null) {
             metaData.setType(artifactType);
         } else {
-            metaData.setType(dto.getType());
+            metaData.setType(dto.getArtifactType());
         }
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
@@ -163,7 +166,6 @@ public final class V2ApiUtil {
         return metaData;
     }
 
-
     /**
      * Creates a jax-rs version meta-data entity from the id, type, and artifactStore meta-data.
      *
@@ -172,8 +174,8 @@ public final class V2ApiUtil {
      * @param artifactType
      * @param dto
      */
-    public static VersionMetaData dtoToVersionMetaData(String groupId, String artifactId,
-                                                             String artifactType, ArtifactMetaDataDto dto) {
+    public static VersionMetaData dtoToVersionMetaData(String groupId, String artifactId, String artifactType,
+            ArtifactMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -182,7 +184,8 @@ public final class V2ApiUtil {
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
         metaData.setType(artifactType);
-        metaData.setState(ArtifactState.ENABLED); // This is ok because this method is only called when creating an artifact version
+        metaData.setState(ArtifactState.ENABLED); // This is ok because this method is only called when
+                                                  // creating an artifact version
         metaData.setLabels(toV2Labels(dto.getLabels()));
         metaData.setProperties(toV2Properties(dto.getLabels()));
         return metaData;
@@ -196,7 +199,7 @@ public final class V2ApiUtil {
      * @param dto
      */
     public static VersionMetaData dtoToVersionMetaData(String groupId, String artifactId, String artifactType,
-                                                             ArtifactVersionMetaDataDto dto) {
+            ArtifactVersionMetaDataDto dto) {
         VersionMetaData metaData = new VersionMetaData();
         metaData.setGroupId(groupId);
         metaData.setId(artifactId);
@@ -221,7 +224,8 @@ public final class V2ApiUtil {
      * @param editableArtifactMetaData
      * @return the updated ArtifactMetaDataDto object
      */
-    public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd, EditableArtifactMetaDataDto editableArtifactMetaData) {
+    public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd,
+            EditableArtifactMetaDataDto editableArtifactMetaData) {
         if (editableArtifactMetaData.getName() != null) {
             amdd.setName(editableArtifactMetaData.getName());
         }
@@ -238,7 +242,8 @@ public final class V2ApiUtil {
         return (id1, id2) -> compare(sortOrder, id1, id2);
     }
 
-    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1, ArtifactMetaDataDto metaDataDto2) {
+    public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1,
+            ArtifactMetaDataDto metaDataDto2) {
         String name1 = metaDataDto1.getName();
         if (name1 == null) {
             name1 = metaDataDto1.getArtifactId();
@@ -247,7 +252,8 @@ public final class V2ApiUtil {
         if (name2 == null) {
             name2 = metaDataDto2.getArtifactId();
         }
-        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1) : name1.compareToIgnoreCase(name2);
+        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1)
+            : name1.compareToIgnoreCase(name2);
     }
 
     public static ArtifactSearchResults dtoToSearchResults(ArtifactSearchResultsDto dto) {
@@ -265,7 +271,7 @@ public final class V2ApiUtil {
             sa.setModifiedOn(artifact.getModifiedOn());
             sa.setName(artifact.getName());
             sa.setState(ArtifactState.ENABLED);
-            sa.setType(artifact.getType());
+            sa.setType(artifact.getArtifactType());
             results.getArtifacts().add(sa);
         });
         return results;
@@ -301,7 +307,7 @@ public final class V2ApiUtil {
             sv.setContentId(version.getContentId());
             sv.setName(version.getName());
             sv.setState(ArtifactState.fromValue(version.getState().name()));
-            sv.setType(version.getType());
+            sv.setType(version.getArtifactType());
             sv.setVersion(version.getVersion());
             results.getVersions().add(sv);
         });
@@ -339,19 +345,15 @@ public final class V2ApiUtil {
     }
 
     public static Comment commentDtoToComment(CommentDto dto) {
-        return Comment.builder()
-                .commentId(dto.getCommentId())
-                .createdBy(dto.getOwner())
-                .createdOn(new Date(dto.getCreatedOn()))
-                .value(dto.getValue())
-                .build();
+        return Comment.builder().commentId(dto.getCommentId()).createdBy(dto.getOwner())
+                .createdOn(new Date(dto.getCreatedOn())).value(dto.getValue()).build();
     }
 
     public static String prettyPrintReferences(Collection<ArtifactReference> references) {
         return references.stream()
-                .map(ar -> nullGroupIdToDefault(ar.getGroupId()) + ":" + ar.getArtifactId() + ":" + ar.getVersion() + "->" + ar.getName())
-                .reduce((left, right) -> left + ", " + right)
-                .orElse("");
+                .map(ar -> nullGroupIdToDefault(ar.getGroupId()) + ":" + ar.getArtifactId() + ":"
+                        + ar.getVersion() + "->" + ar.getName())
+                .reduce((left, right) -> left + ", " + right).orElse("");
     }
 
     public static String defaultGroupIdToNull(String groupId) {

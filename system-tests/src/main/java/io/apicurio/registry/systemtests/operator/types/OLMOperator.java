@@ -58,7 +58,8 @@ public abstract class OLMOperator extends Operator {
         String expectedCSV = OperatorUtils.getCurrentCSV(catalog, Environment.REGISTRY_PACKAGE, channel);
         String subscriptionNamespace = subscription.getMetadata().getNamespace();
         String subscriptionName = subscription.getMetadata().getName();
-        Subscription operatorSubscription = Kubernetes.getSubscription(subscriptionNamespace, subscriptionName);
+        Subscription operatorSubscription = Kubernetes.getSubscription(subscriptionNamespace,
+                subscriptionName);
 
         while (!timeout.timeoutExpired()) {
             if (operatorSubscription.getStatus().getCurrentCSV().equals(expectedCSV)) {

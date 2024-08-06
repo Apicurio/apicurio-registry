@@ -1,8 +1,8 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArtifactReference } from "@models/artifactReference.model.ts";
 import { ThProps } from "@patternfly/react-table";
 import { ResponsiveTable } from "@apicurio/common-ui-components";
+import { ArtifactReference } from "@sdk/lib/generated-client/models";
 
 export type SortDirection = "asc" | "desc";
 export type SortBy = "name" | "group" | "id";
@@ -50,8 +50,10 @@ export const ReferenceList: FunctionComponent<ReferenceListProps> = (
         }
         // ID
         if (colIndex === 2) {
-            const groupId: string = column.groupId == null ? "default" : column.groupId;
-            const link: string = `/explore/${ encodeURIComponent(groupId)}/${ encodeURIComponent(column.artifactId) }/${ encodeURIComponent(column.version) }`;
+            const groupId: string = encodeURIComponent(column.groupId || "default");
+            const artifactId: string = encodeURIComponent(column.artifactId!);
+            const version: string = encodeURIComponent(column.version!);
+            const link: string = `/explore/${groupId}/${artifactId}/versions/${version}`;
             return (
                 <Link className="reference-id" to={ link }>{ column.artifactId }</Link>
             );

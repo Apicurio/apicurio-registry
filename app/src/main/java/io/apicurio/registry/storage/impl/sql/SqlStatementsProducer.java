@@ -20,7 +20,8 @@ public class SqlStatementsProducer {
     /**
      * Produces an {@link SqlStatements} instance for injection.
      */
-    @Produces @ApplicationScoped
+    @Produces
+    @ApplicationScoped
     public SqlStatements createSqlStatements() {
         log.debug("Creating an instance of ISqlStatements for DB: " + databaseType);
         if ("h2".equals(databaseType)) {

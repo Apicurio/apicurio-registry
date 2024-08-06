@@ -1,5 +1,6 @@
 import YAML from "yaml";
 import { ContentTypes } from "@models/contentTypes.model.ts";
+import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
 
 /**
  * Returns true if the given content is JSON formatted.
@@ -99,8 +100,8 @@ export function contentToString(content: any): string {
 }
 
 
-export function detectContentType(type: string, content: string): string {
-    switch (type) {
+export function detectContentType(artifactType: string | undefined, content: string | undefined): string {
+    switch (artifactType) {
         case "PROTOBUF":
             return ContentTypes.APPLICATION_PROTOBUF;
         case "WSDL":
@@ -110,12 +111,17 @@ export function detectContentType(type: string, content: string): string {
         case "GRAPHQL":
             return ContentTypes.APPLICATION_GRAPHQL;
     }
+    if (content === undefined) {
+        return ContentTypes.APPLICATION_OCTET_STREAM;
+    }
     if (isJson(content)) {
         return ContentTypes.APPLICATION_JSON;
     } else if (isXml(content)) {
         return ContentTypes.APPLICATION_XML;
     } else if (isYaml(content)) {
         return ContentTypes.APPLICATION_YAML;
+    } else if (!isStringEmptyOrUndefined(content) && (content.indexOf("proto2") != -1 || content.indexOf("proto3") != -1)) {
+        return ContentTypes.APPLICATION_PROTOBUF;
     } else {
         return ContentTypes.APPLICATION_OCTET_STREAM;
     }

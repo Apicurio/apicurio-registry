@@ -1,7 +1,8 @@
 package io.apicurio.registry.storage.impl.gitops;
 
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.storage.impl.gitops.model.GitFile;
 import io.apicurio.registry.storage.impl.gitops.model.Type;
 import io.apicurio.registry.storage.impl.gitops.model.v0.Artifact;
@@ -15,7 +16,7 @@ import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
-import io.apicurio.registry.util.ContentTypeUtil;
+import io.apicurio.registry.utils.impexp.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.ContentEntity;
@@ -62,11 +63,9 @@ public class GitManager {
     @Getter
     private RevCommit previousCommit;
 
-
     public void start() throws IOException, URISyntaxException, GitAPIException {
         initRepo();
     }
-
 
     private void initRepo() throws IOException, GitAPIException, URISyntaxException {
 
@@ -76,26 +75,16 @@ public class GitManager {
         if (Files.exists(gitPath.resolve("config"))) {
             git = Git.open(gitPath.toFile());
         } else {
-            git = Git.init()
-                    .setGitDir(gitPath.toFile())
-                    .setInitialBranch(UUID.randomUUID().toString())
+            git = Git.init().setGitDir(gitPath.toFile()).setInitialBranch(UUID.randomUUID().toString())
                     .call();
         }
 
         var previousOID = git.getRepository().resolve("refs/heads/empty");
         if (previousOID == null) {
 
-            git.commit()
-                    .setMessage("empty")
-                    .setAllowEmpty(true)
-                    .call();
+            git.commit().setMessage("empty").setAllowEmpty(true).call();
 
-            git.checkout()
-                    .setName("empty")
-                    .setCreateBranch(true)
-                    .setForced(true)
-                    .setOrphan(true)
-                    .call();
+            git.checkout().setName("empty").setCreateBranch(true).setForced(true).setOrphan(true).call();
 
             previousOID = git.getRepository().resolve("refs/heads/empty");
         }
@@ -104,26 +93,18 @@ public class GitManager {
         originRemoteName = ensureRemote(config.getOriginRepoURI());
     }
 
-
     private String ensureRemote(String repoURI) throws GitAPIException, URISyntaxException {
         var repoURIish = new URIish(repoURI);
-        var remote = git.remoteList()
-                .call()
-                .stream()
-                .filter(r -> r.getURIs().stream().allMatch(u -> u.equals(repoURIish)))
-                .findAny();
+        var remote = git.remoteList().call().stream()
+                .filter(r -> r.getURIs().stream().allMatch(u -> u.equals(repoURIish))).findAny();
         if (remote.isPresent()) {
             return remote.get().getName();
         } else {
             var name = UUID.randomUUID().toString();
-            git.remoteAdd()
-                    .setName(name)
-                    .setUri(repoURIish)
-                    .call();
+            git.remoteAdd().setName(name).setUri(repoURIish).call();
             return name;
         }
     }
-
 
     /**
      * Checks the configured origin repo branch and returns the corresponding latest RevCommit
@@ -134,12 +115,7 @@ public class GitManager {
 
         var fetchRef = "refs/heads/" + config.getOriginRepoBranch() + ":" + updatedRef;
 
-        git.fetch()
-                .setRemote(originRemoteName)
-                .setRefSpecs(fetchRef)
-                .setDepth(1)
-                .setForceUpdate(true)
-                .call();
+        git.fetch().setRemote(originRemoteName).setRefSpecs(fetchRef).setDepth(1).setForceUpdate(true).call();
 
         var updatedOID = git.getRepository().resolve(updatedRef);
         if (updatedOID == null) {
@@ -148,11 +124,9 @@ public class GitManager {
         return git.getRepository().parseCommit(updatedOID);
     }
 
-
     public void updateCurrentCommit(RevCommit currentCommit) {
         previousCommit = currentCommit;
     }
-
 
     public void run(ProcessingState state, RevCommit updatedCommit) throws GitAPIException, IOException {
 
@@ -183,14 +157,11 @@ public class GitManager {
         log.debug("Processing {} files", state.getPathIndex().size());
         process(state);
 
-        var unprocessed = state.getPathIndex().values().stream()
-                .filter(f -> !f.isProcessed())
-                .map(GitFile::getPath)
-                .collect(Collectors.toList());
+        var unprocessed = state.getPathIndex().values().stream().filter(f -> !f.isProcessed())
+                .map(GitFile::getPath).collect(Collectors.toList());
 
         log.debug("The following {} file(s) were not processed: {}", unprocessed.size(), unprocessed);
     }
-
 
     private void process(ProcessingState state) {
 
@@ -218,10 +189,10 @@ public class GitManager {
             }
 
         } else {
-            log.warn("Git repository does not contain data for this registry (ID = {})", config.getRegistryId());
+            log.warn("Git repository does not contain data for this registry (ID = {})",
+                    config.getRegistryId());
         }
     }
-
 
     private void processSettings(ProcessingState state) {
         var settings = state.getCurrentRegistry().getSettings();
@@ -234,12 +205,12 @@ public class GitManager {
                     log.debug("Importing {}", dto);
                     state.getStorage().setConfigProperty(dto);
                 } catch (Exception ex) {
-                    state.recordError("Could not import configuration property %s: %s", setting.getName(), ex.getMessage());
+                    state.recordError("Could not import configuration property %s: %s", setting.getName(),
+                            ex.getMessage());
                 }
             }
         }
     }
-
 
     private void processGlobalRules(ProcessingState state) {
         var globalRules = state.getCurrentRegistry().getGlobalRules();
@@ -252,17 +223,19 @@ public class GitManager {
                     log.debug("Importing {}", e);
                     state.getStorage().importGlobalRule(e);
                 } catch (Exception ex) {
-                    state.recordError("Could not import global rule %s: %s", globalRule.getType(), ex.getMessage());
+                    state.recordError("Could not import global rule %s: %s", globalRule.getType(),
+                            ex.getMessage());
                 }
             }
         }
     }
 
-
     private void processArtifact(ProcessingState state, GitFile artifactFile, Artifact artifact) {
+        boolean artifactImported = false;
+        String artifactType;
+
         var group = processGroupRef(state, artifact.getGroupId());
         if (group != null) {
-
             List<Version> versions = artifact.getVersions();
             for (int i = 0; i < versions.size(); i++) {
                 Version version = versions.get(i);
@@ -274,17 +247,27 @@ public class GitManager {
                     e.globalId = version.getGlobalId();
                     e.state = VersionState.ENABLED;
                     e.createdOn = state.getUpdatedCommit().getCommitTime();
+                    e.modifiedOn = state.getUpdatedCommit().getCommitTime();
                     // TODO name, description, labels
 
                     var content = processContent(state, artifactFile, version.getContentFile());
                     if (content != null) {
-
-                        e.artifactType = content.getArtifactType();
+                        artifactType = content.getArtifactType();
                         e.contentId = content.getId();
+
+                        if (!artifactImported) {
+                            ArtifactEntity artifactEntity = new ArtifactEntity();
+                            artifactEntity.groupId = artifact.getGroupId();
+                            artifactEntity.artifactId = artifact.getId();
+                            artifactEntity.artifactType = artifactType;
+                            artifactEntity.createdOn = state.getUpdatedCommit().getCommitTime();
+                            artifactEntity.modifiedOn = state.getUpdatedCommit().getCommitTime();
+                            state.getStorage().importArtifact(artifactEntity);
+                            artifactImported = true;
+                        }
 
                         log.debug("Importing {}", e);
                         state.getStorage().importArtifactVersion(e);
-
                     } else {
                         state.recordError("Could not import content for artifact version %s.",
                                 artifact.getGroupId() + ":" + artifact.getId() + ":" + version.getId());
@@ -292,7 +275,8 @@ public class GitManager {
                     }
                 } catch (Exception ex) {
                     state.recordError("Could not import artifact version '%s': %s",
-                            artifact.getGroupId() + ":" + artifact.getId() + ":" + version.getId(), ex.getMessage());
+                            artifact.getGroupId() + ":" + artifact.getId() + ":" + version.getId(),
+                            ex.getMessage());
                 }
             }
             processArtifactRules(state, artifact);
@@ -302,7 +286,6 @@ public class GitManager {
             state.recordError("Could not find group %s", artifact.getGroupId());
         }
     }
-
 
     private void processArtifactRules(ProcessingState state, Artifact artifact) {
         var rules = artifact.getRules();
@@ -317,27 +300,26 @@ public class GitManager {
                     log.debug("Importing {}", e);
                     state.getStorage().importArtifactRule(e);
                 } catch (Exception ex) {
-                    state.recordError("Could not import rule %s for artifact '%s': %s",
-                            rule.getType(), artifact.getGroupId() + ":" + artifact.getId(), ex.getMessage());
+                    state.recordError("Could not import rule %s for artifact '%s': %s", rule.getType(),
+                            artifact.getGroupId() + ":" + artifact.getId(), ex.getMessage());
                 }
             }
         }
     }
 
-
     private Group processGroupRef(ProcessingState state, String groupName) {
-        var groupFiles = state.fromTypeIndex(Type.GROUP).stream()
-                .filter(f -> {
-                    Group group = f.getEntityUnchecked();
-                    return state.isCurrentRegistryId(group.getRegistryId()) && groupName.equals(group.getId());
-                })
-                .collect(Collectors.toList());
+        var groupFiles = state.fromTypeIndex(Type.GROUP).stream().filter(f -> {
+            Group group = f.getEntityUnchecked();
+            return state.isCurrentRegistryId(group.getRegistryId()) && groupName.equals(group.getId());
+        }).collect(Collectors.toList());
 
         if (groupFiles.isEmpty()) {
-            state.recordError("Could not find group with ID %s in registry %s", groupName, state.getCurrentRegistry().getId());
+            state.recordError("Could not find group with ID %s in registry %s", groupName,
+                    state.getCurrentRegistry().getId());
             return null;
         } else if (groupFiles.size() > 1) {
-            state.recordError("Multiple groups with ID %s found in registry %s: %s", groupName, state.getCurrentRegistry().getId(), groupFiles);
+            state.recordError("Multiple groups with ID %s found in registry %s: %s", groupName,
+                    state.getCurrentRegistry().getId(), groupFiles);
             return null;
         } else {
             var groupFile = groupFiles.get(0);
@@ -359,7 +341,6 @@ public class GitManager {
         }
     }
 
-
     private Content processContent(ProcessingState state, GitFile base, String contentRef) {
         var contentFile = findFileByPathRef(state, base, contentRef);
         if (contentFile != null) {
@@ -374,18 +355,38 @@ public class GitManager {
                                 data = ContentTypeUtil.yamlToJson(data);
                             }
                             try {
+                                // FIXME need to better determine the content type?
+                                String contentType = ContentTypes.APPLICATION_JSON;
+                                if (dataFile.getPath().toLowerCase().endsWith(".yaml")
+                                        || dataFile.getPath().toLowerCase().endsWith(".yml")) {
+                                    contentType = ContentTypes.APPLICATION_YAML;
+                                } else if (dataFile.getPath().toLowerCase().endsWith(".xml")
+                                        || dataFile.getPath().toLowerCase().endsWith(".wsdl")
+                                        || dataFile.getPath().toLowerCase().endsWith(".xsd")) {
+                                    contentType = ContentTypes.APPLICATION_XML;
+                                } else if (dataFile.getPath().toLowerCase().endsWith(".proto")) {
+                                    contentType = ContentTypes.APPLICATION_PROTOBUF;
+                                } else if (dataFile.getPath().toLowerCase().endsWith(".graphql")) {
+                                    contentType = ContentTypes.APPLICATION_GRAPHQL;
+                                }
+                                var typedContent = TypedContent.create(data, contentType);
+
                                 var e = new ContentEntity();
                                 e.contentId = content.getId();
                                 e.contentHash = content.getContentHash();
                                 e.contentBytes = data.bytes();
-                                content.setArtifactType(utils.determineArtifactType(data, content.getArtifactType()));
-                                e.canonicalHash = utils.getCanonicalContentHash(data, content.getArtifactType(), null, null);
+                                content.setArtifactType(
+                                        utils.determineArtifactType(typedContent, content.getArtifactType()));
+                                e.canonicalHash = utils.getCanonicalContentHash(typedContent,
+                                        content.getArtifactType(), null, null);
                                 e.artifactType = content.getArtifactType();
-                                // FIXME need to better determine the content type?
-                                e.contentType = ContentTypes.APPLICATION_JSON;
-                                if (contentFile.getPath().toLowerCase().endsWith(".yaml") || contentFile.getPath().toLowerCase().endsWith(".yml")) {
+                                e.contentType = contentType;
+                                if (contentFile.getPath().toLowerCase().endsWith(".yaml")
+                                        || contentFile.getPath().toLowerCase().endsWith(".yml")) {
                                     e.contentType = ContentTypes.APPLICATION_YAML;
-                                } else if (contentFile.getPath().toLowerCase().endsWith(".xml") || contentFile.getPath().toLowerCase().endsWith(".wsdl") || contentFile.getPath().toLowerCase().endsWith(".xsd")) {
+                                } else if (contentFile.getPath().toLowerCase().endsWith(".xml")
+                                        || contentFile.getPath().toLowerCase().endsWith(".wsdl")
+                                        || contentFile.getPath().toLowerCase().endsWith(".xsd")) {
                                     e.contentType = ContentTypes.APPLICATION_XML;
                                 } else if (contentFile.getPath().toLowerCase().endsWith(".proto")) {
                                     e.contentType = ContentTypes.APPLICATION_PROTOBUF;
@@ -396,7 +397,8 @@ public class GitManager {
                                 dataFile.setProcessed(true);
                                 return content;
                             } catch (Exception ex) {
-                                state.recordError("Could not import content %s: %s", contentFile.getPath(), ex.getMessage());
+                                state.recordError("Could not import content %s: %s", contentFile.getPath(),
+                                        ex.getMessage());
                                 return null;
                             }
                         } else {
@@ -409,7 +411,8 @@ public class GitManager {
                         return content;
                     }
                 } else {
-                    state.recordError("Content file %s does not belong to this registry", contentFile.getPath());
+                    state.recordError("Content file %s does not belong to this registry",
+                            contentFile.getPath());
                     return null;
                 }
             } else {
@@ -423,12 +426,10 @@ public class GitManager {
         }
     }
 
-
     private GitFile findFileByPathRef(ProcessingState state, GitFile base, String path) {
         path = concat(concat(base.getPath(), ".."), path);
         return state.getPathIndex().get(path);
     }
-
 
     @PreDestroy
     public void close() {

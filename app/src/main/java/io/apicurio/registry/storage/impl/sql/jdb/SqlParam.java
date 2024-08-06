@@ -14,6 +14,7 @@ public class SqlParam {
 
     /**
      * Constructor.
+     * 
      * @param position
      * @param value
      * @param type
@@ -26,10 +27,12 @@ public class SqlParam {
 
     /**
      * Binds this SQL parameter to the given statement.
+     * 
      * @param statement
      */
     public void bindTo(PreparedStatement statement) {
-        int position = this.position + 1; // convert from sensible position (starts at 0) to JDBC position index (starts at 1)
+        int position = this.position + 1; // convert from sensible position (starts at 0) to JDBC position
+                                          // index (starts at 1)
         try {
             switch (type) {
                 case BYTES:
@@ -66,6 +69,9 @@ public class SqlParam {
                     break;
                 case STRING:
                     statement.setString(position, (String) value);
+                    break;
+                case BOOLEAN:
+                    statement.setBoolean(position, (Boolean) value);
                     break;
                 default:
                     throw new RuntimeSqlException("bindTo not supported for SqlParamType: " + type);

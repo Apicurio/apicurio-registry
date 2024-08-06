@@ -20,10 +20,10 @@ package io.apicurio.registry.examples.validation.json;
  * @author eric.wittmann@gmail.com
  */
 public class MessageBean {
-    
+
     private String message;
     private long time;
-    
+
     /**
      * Constructor.
      */

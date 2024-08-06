@@ -3,9 +3,8 @@ package io.apicurio.registry.storage.impl.sql;
 import java.util.List;
 
 /**
- * Returns SQL statements used by the JDB artifactStore implementation.  There are different
- * implementations of this interface depending on the database being used.
- *
+ * Returns SQL statements used by the JDB artifactStore implementation. There are different implementations of
+ * this interface depending on the database being used.
  */
 public interface SqlStatements {
 
@@ -16,15 +15,11 @@ public interface SqlStatements {
 
     /**
      * Returns true if the given exception represents a primary key violation.
-     *
-     * @param error
      */
     public boolean isPrimaryKeyViolation(Exception error);
 
     /**
      * Returns true if the given exception represents a foreign key violation.
-     *
-     * @param error
      */
     public boolean isForeignKeyViolation(Exception error);
 
@@ -40,9 +35,6 @@ public interface SqlStatements {
 
     /**
      * A sequence of statements needed to upgrade the DB from one version to another.
-     *
-     * @param fromVersion
-     * @param toVersion
      */
     public List<String> databaseUpgrade(int fromVersion, int toVersion);
 
@@ -87,8 +79,8 @@ public interface SqlStatements {
     public String insertArtifact();
 
     /**
-     * A statement used to update the 'version' column of the 'versions' table by globalId.  The value of the "versionOrder"
-     * column is copied into the "version" column.
+     * A statement used to update the 'version' column of the 'versions' table by globalId. The value of the
+     * "versionOrder" column is copied into the "version" column.
      */
     public String autoUpdateVersionForGlobalId();
 
@@ -123,9 +115,14 @@ public interface SqlStatements {
     public String selectArtifactVersionContentByGlobalId();
 
     /**
-     * A statement used to select all version #s for a given artifactId.
+     * A statement used to select all version numbers (only) for a given artifactId.
      */
     public String selectArtifactVersions();
+
+    /**
+     * A statement used to select non-disabled version numbers (only) for a given artifactId.
+     */
+    public String selectArtifactVersionsNotDisabled();
 
     /**
      * A statement used to select all versions for a given artifactId.
@@ -158,7 +155,8 @@ public interface SqlStatements {
     public String selectArtifactVersionMetaData();
 
     /**
-     * A statement to select the content of an artifact version from the versions table by artifactId + version.
+     * A statement to select the content of an artifact version from the versions table by artifactId +
+     * version.
      */
     public String selectArtifactVersionContent();
 
@@ -177,12 +175,10 @@ public interface SqlStatements {
      */
     public String updateContentCanonicalHash();
 
-
     /**
      * A statement to get a single artifact (latest version) meta-data by artifactId.
      */
     public String selectArtifactMetaData();
-
 
     /**
      * A statement to select the contentId of a row in the content table by hash value.
@@ -245,7 +241,7 @@ public interface SqlStatements {
     public String deleteArtifactRules();
 
     /**
-     * A statement to delete all rules for a all artifacts.
+     * A statement to delete all rules for all artifacts.
      */
     public String deleteAllArtifactRules();
 
@@ -254,11 +250,14 @@ public interface SqlStatements {
      */
 
     public String updateArtifactVersionNameByGAV();
-    public String updateArtifactVersionDescriptionByGAV();
-    public String updateArtifactVersionLabelsByGAV();
-    public String updateArtifactVersionOwnerByGAV();
-    public String updateArtifactVersionStateByGAV();
 
+    public String updateArtifactVersionDescriptionByGAV();
+
+    public String updateArtifactVersionLabelsByGAV();
+
+    public String updateArtifactVersionOwnerByGAV();
+
+    public String updateArtifactVersionStateByGAV();
 
     /**
      * A statement to delete all rows in the group_labels table for a given group.
@@ -269,7 +268,7 @@ public interface SqlStatements {
      * A statement to delete all rows in the artifact_labels table for a given artifact.
      */
     public String deleteArtifactLabels();
-    
+
     /**
      * A statement to delete the labels for a single artifact version.
      */
@@ -462,13 +461,17 @@ public interface SqlStatements {
 
     public String exportGroups();
 
+    public String exportGroupRules();
+
     public String exportArtifactRules();
 
     public String exportVersionComments();
 
+    public String exportArtifacts();
+
     public String exportArtifactVersions();
 
-    public String exportArtifactBranches();
+    public String exportBranches();
 
     /*
      * The next few statements support importing data into the DB.
@@ -480,11 +483,13 @@ public interface SqlStatements {
 
     public String importGroup();
 
+    public String importBranch();
+
+    public String importGroupRule();
+
     public String importArtifactRule();
 
     public String importArtifactVersion();
-
-    public String importArtifactBranch();
 
     public String selectMaxContentId();
 
@@ -495,7 +500,6 @@ public interface SqlStatements {
     public String selectContentExists();
 
     public String selectGlobalIdExists();
-
 
     /*
      * The next few statements support role mappings
@@ -519,6 +523,21 @@ public interface SqlStatements {
 
     public String selectRoleMappingCountByPrincipal();
 
+    /*
+     * The next few statements support group rule management.
+     */
+
+    public String selectGroupRules();
+
+    public String deleteGroupRules();
+
+    public String insertGroupRule();
+
+    public String selectGroupRuleByType();
+
+    public String updateGroupRule();
+
+    public String deleteGroupRule();
 
     /*
      * The next few statements support downloads.
@@ -531,7 +550,6 @@ public interface SqlStatements {
     public String deleteDownload();
 
     public String deleteExpiredDownloads();
-
 
     /*
      * The next few statements support config properties.
@@ -565,38 +583,37 @@ public interface SqlStatements {
 
     public String updateVersionComment();
 
-
     // ========== Branches ==========
-
 
     public String selectGAVByGlobalId();
 
-    public String selectArtifactBranches();
+    public String insertBranch();
 
-    public String selectArtifactBranchOrdered();
+    public String upsertBranch();
 
-    public String selectArtifactBranchOrderedNotDisabled();
+    public String updateBranch();
 
-    public String insertArtifactBranch();
+    public String selectBranch();
 
-    public String selectArtifactBranchTip();
+    public String selectBranchVersionNumbers();
 
-    public String selectArtifactBranchTipNotDisabled();
+    public String selectBranchTip();
 
-    public String deleteArtifactBranch();
+    public String selectBranchTipNotDisabled();
 
-    public String deleteVersionInArtifactBranches();
+    public String updateBranchModifiedTime();
 
-    public String deleteAllArtifactBranchesInArtifact();
+    public String insertBranchVersion();
 
-    public String deleteAllArtifactBranchesInGroup();
+    public String appendBranchVersion();
 
-    public String deleteAllArtifactBranches();
+    public String deleteBranchVersions();
 
-    public String selectVersionsWithoutArtifactBranch();
+    public String deleteBranch();
+
+    public String deleteAllBranches();
 
     public String createDataSnapshot();
 
     public String restoreFromSnapshot();
-
 }

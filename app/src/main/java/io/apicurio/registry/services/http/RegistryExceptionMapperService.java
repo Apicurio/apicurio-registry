@@ -65,8 +65,8 @@ public class RegistryExceptionMapperService {
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
         map.put(BadRequestException.class, HTTP_BAD_REQUEST);
-        map.put(ArtifactBranchNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(ArtifactBranchAlreadyContainsVersionException.class, HTTP_CONFLICT);
+        map.put(BranchAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(BranchNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
@@ -74,6 +74,7 @@ public class RegistryExceptionMapperService {
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ForbiddenException.class, HTTP_FORBIDDEN);
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(GroupAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
         map.put(InvalidVersionStateException.class, HTTP_BAD_REQUEST);
@@ -84,7 +85,8 @@ public class RegistryExceptionMapperService {
         map.put(LimitExceededException.class, HTTP_CONFLICT);
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
-        map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the latter for authx only.
+        map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the
+                                                           // latter for authx only.
         map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(NotFoundException.class, HTTP_NOT_FOUND);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
@@ -106,6 +108,7 @@ public class RegistryExceptionMapperService {
         map.put(UnprocessableSchemaException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(ValidationException.class, HTTP_BAD_REQUEST);
         map.put(VersionAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(VersionAlreadyExistsOnBranchException.class, HTTP_CONFLICT);
         map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
 
         CODE_MAP = Collections.unmodifiableMap(map);
@@ -128,7 +131,7 @@ public class RegistryExceptionMapperService {
 
         if (code == HTTP_INTERNAL_ERROR) {
             // If the error is not something we should ignore, then we report it to the liveness object
-            // and log it.  Otherwise we only log it if debug logging is enabled.
+            // and log it. Otherwise we only log it if debug logging is enabled.
             if (!livenessUtil.isIgnoreError(t)) {
                 liveness.suspectWithException(t);
             }
@@ -181,8 +184,7 @@ public class RegistryExceptionMapperService {
     }
 
     /**
-     * Gets the full stack trace for the given exception and returns it as a
-     * string.
+     * Gets the full stack trace for the given exception and returns it as a string.
      *
      * @param t
      */

@@ -1,17 +1,15 @@
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
-import java.util.Optional;
-
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
+import java.util.Optional;
 
 /**
  * Kafka deserializer responsible for deserializing the value of a KSQL Kafka message.
@@ -31,12 +29,13 @@ public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> 
      */
     @Override
     public KafkaSqlMessage deserialize(String topic, byte[] data) {
-        // Not supported - must deserializer with headers.
+        // Not supported - must deserialize with headers.
         return null;
     }
 
     /**
-     * @see org.apache.kafka.common.serialization.Deserializer#deserialize(java.lang.String, org.apache.kafka.common.header.Headers, byte[])
+     * @see org.apache.kafka.common.serialization.Deserializer#deserialize(java.lang.String,
+     *      org.apache.kafka.common.header.Headers, byte[])
      */
     @Override
     public KafkaSqlMessage deserialize(String topic, Headers headers, byte[] data) {
@@ -48,13 +47,13 @@ public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> 
         try {
             String messageType = extractMessageType(headers);
             if (messageType == null) {
-                log.error("Message missing required header: mt");
+                log.error("Message missing required message type header: mt");
                 return null;
             }
 
             Class<? extends KafkaSqlMessage> msgClass = KafkaSqlMessageIndex.lookup(messageType);
             if (msgClass == null) {
-                throw new Exception("Unknown KafkaSql message class: " + msgClass);
+                throw new Exception("Unknown KafkaSql message class for '" + messageType + "'");
             }
             KafkaSqlMessage message = mapper.readValue(data, msgClass);
             return message;
@@ -65,19 +64,12 @@ public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> 
     }
 
     /**
-     * Extracts the UUID from the message.  The UUID should be found in a message header.
-     *
-     * @param record
+     * Extracts the UUID from the message. The UUID should be found in a message header.
      */
     private static String extractMessageType(Headers headers) {
-        return Optional.ofNullable(headers.headers("mt"))
-                .map(Iterable::iterator)
-                .map(it -> {
-                    return it.hasNext() ? it.next() : null;
-                })
-                .map(Header::value)
-                .map(String::new)
-                .orElse(null);
+        return Optional.ofNullable(headers.headers("mt")).map(Iterable::iterator).map(it -> {
+            return it.hasNext() ? it.next() : null;
+        }).map(Header::value).map(String::new).orElse(null);
     }
 
 }

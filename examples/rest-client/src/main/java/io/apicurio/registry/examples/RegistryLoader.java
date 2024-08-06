@@ -19,8 +19,8 @@ package io.apicurio.registry.examples;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.kiota.http.vertx.VertXRequestAdapter;
@@ -74,22 +74,24 @@ public class RegistryLoader {
                 String artifactId = UUID.randomUUID().toString();
 
                 CreateArtifact createArtifact = new CreateArtifact();
-                createArtifact.setType("AVRO");
+                createArtifact.setArtifactType("AVRO");
                 createArtifact.setArtifactId(artifactId);
                 CreateVersion createVersion = new CreateVersion();
                 createArtifact.setFirstVersion(createVersion);
                 VersionContent versionContent = new VersionContent();
                 createVersion.setContent(versionContent);
-                versionContent.setContent(simpleAvro.replace("userInfo", "userInfo" + threadId + numArtifacts));
+                versionContent
+                        .setContent(simpleAvro.replace("userInfo", "userInfo" + threadId + numArtifacts));
                 versionContent.setContentType("application/json");
 
                 client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
                 });
 
-                Rule rule = new Rule();
-                rule.setType(RuleType.VALIDITY);
-                rule.setConfig("SYNTAX_ONLY");
-                client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule);
+                CreateRule createRule = new CreateRule();
+                createRule.setRuleType(RuleType.VALIDITY);
+                createRule.setConfig("SYNTAX_ONLY");
+                client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules()
+                        .post(createRule);
             }
         }
     }

@@ -133,7 +133,7 @@ let ALL_TYPES: string[] | undefined = undefined;
 const allTypes = async (admin: AdminService): Promise<string[]> => {
     if (ALL_TYPES === undefined) {
         try {
-            ALL_TYPES = (await admin.getArtifactTypes()).map(t => t.name);
+            ALL_TYPES = (await admin.getArtifactTypes()).map(t => t.name!);
         } catch (e) {
             ALL_TYPES = ["AVRO", "PROTOBUF", "JSON", "OPENAPI", "ASYNCAPI", "GRAPHQL", "KCONNECT", "WSDL", "XSD", "XML"];
         }

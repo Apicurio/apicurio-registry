@@ -31,11 +31,8 @@ public class OperatorUtils {
     private static final Logger LOGGER = LoggerUtils.getLogger();
 
     public static List<String> listFiles(Path directory) throws IOException {
-        return Files.list(directory)
-                .filter(file -> !Files.isDirectory(file))
-                .map(Path::getFileName)
-                .map(Path::toString)
-                .collect(Collectors.toList());
+        return Files.list(directory).filter(file -> !Files.isDirectory(file)).map(Path::getFileName)
+                .map(Path::toString).collect(Collectors.toList());
     }
 
     public static Deployment findDeployment(List<HasMetadata> resourceList) {
@@ -56,7 +53,8 @@ public class OperatorUtils {
         }
     }
 
-    public static boolean waitPodsExist(String namespace, String labelKey, String labelValue, TimeoutBudget timeout) {
+    public static boolean waitPodsExist(String namespace, String labelKey, String labelValue,
+            TimeoutBudget timeout) {
         while (!timeout.timeoutExpired()) {
             if (Kubernetes.getPods(namespace, labelKey, labelValue).getItems().size() > 0) {
                 return true;
@@ -72,10 +70,8 @@ public class OperatorUtils {
         }
 
         if (Kubernetes.getPods(namespace, labelKey, labelValue).getItems().size() == 0) {
-            LOGGER.error(
-                    "Pod(s) of catalog source in namespace {} with label {}={} failed creation check.",
-                    namespace, labelKey, labelValue
-            );
+            LOGGER.error("Pod(s) of catalog source in namespace {} with label {}={} failed creation check.",
+                    namespace, labelKey, labelValue);
 
             return false;
         }
@@ -84,7 +80,8 @@ public class OperatorUtils {
     }
 
     public static boolean waitPodsExist(String namespace, String labelKey, String labelValue) {
-        return waitPodsExist(namespace, labelKey, labelValue, TimeoutBudget.ofDuration(Duration.ofMinutes(3)));
+        return waitPodsExist(namespace, labelKey, labelValue,
+                TimeoutBudget.ofDuration(Duration.ofMinutes(3)));
     }
 
     private static boolean collectPodsReadiness(PodList podList) {
@@ -94,11 +91,8 @@ public class OperatorUtils {
             for (Pod p : podList.getItems()) {
                 boolean podReady = false;
 
-                if (
-                        p.getStatus() != null
-                        && p.getStatus().getContainerStatuses() != null
-                        && p.getStatus().getContainerStatuses().size() > 0
-                ) {
+                if (p.getStatus() != null && p.getStatus().getContainerStatuses() != null
+                        && p.getStatus().getContainerStatuses().size() > 0) {
                     podReady = p.getStatus().getContainerStatuses().get(0).getReady();
                 }
 
@@ -111,7 +105,8 @@ public class OperatorUtils {
         return false;
     }
 
-    public static boolean waitPodsReady(String namespace, String labelKey, String labelValue, TimeoutBudget timeout) {
+    public static boolean waitPodsReady(String namespace, String labelKey, String labelValue,
+            TimeoutBudget timeout) {
         while (!timeout.timeoutExpired()) {
             if (collectPodsReadiness(Kubernetes.getPods(namespace, labelKey, labelValue))) {
                 return true;
@@ -127,10 +122,8 @@ public class OperatorUtils {
         }
 
         if (!collectPodsReadiness(Kubernetes.getPods(namespace, labelKey, labelValue))) {
-            LOGGER.error(
-                    "Pod(s) of catalog source in namespace {} with label {}={} failed readiness check.",
-                    namespace, labelKey, labelValue
-            );
+            LOGGER.error("Pod(s) of catalog source in namespace {} with label {}={} failed readiness check.",
+                    namespace, labelKey, labelValue);
 
             return false;
         }
@@ -139,7 +132,8 @@ public class OperatorUtils {
     }
 
     public static boolean waitPodsReady(String namespace, String labelKey, String labelValue) {
-        return waitPodsReady(namespace, labelKey, labelValue, TimeoutBudget.ofDuration(Duration.ofMinutes(3)));
+        return waitPodsReady(namespace, labelKey, labelValue,
+                TimeoutBudget.ofDuration(Duration.ofMinutes(3)));
     }
 
     public static boolean waitCatalogSourceExists(String namespace, String name, TimeoutBudget timeout) {
@@ -158,7 +152,8 @@ public class OperatorUtils {
         }
 
         if (Kubernetes.getCatalogSource(namespace, name) == null) {
-            LOGGER.error("Catalog source in namespace {} with name {} failed creation check.", namespace, name);
+            LOGGER.error("Catalog source in namespace {} with name {} failed creation check.", namespace,
+                    name);
 
             return false;
         }
@@ -186,7 +181,8 @@ public class OperatorUtils {
         }
 
         if (!Kubernetes.isCatalogSourceReady(namespace, name)) {
-            LOGGER.error("Catalog source in namespace {} with name {} failed readiness check.", namespace, name);
+            LOGGER.error("Catalog source in namespace {} with name {} failed readiness check.", namespace,
+                    name);
 
             return false;
         }
@@ -201,17 +197,12 @@ public class OperatorUtils {
     public static OperatorGroup createOperatorGroup(String namespace) throws InterruptedException {
         String name = namespace + "-operator-group";
 
-        LOGGER.info("Creating operator group {} in namespace {} targeting namespace {}...", name, namespace, namespace);
+        LOGGER.info("Creating operator group {} in namespace {} targeting namespace {}...", name, namespace,
+                namespace);
 
-        OperatorGroup operatorGroup = new OperatorGroupBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                .endMetadata()
-                .withNewSpec()
-                    .withTargetNamespaces(namespace)
-                .endSpec()
-                .build();
+        OperatorGroup operatorGroup = new OperatorGroupBuilder().withNewMetadata().withName(name)
+                .withNamespace(namespace).endMetadata().withNewSpec().withTargetNamespaces(namespace)
+                .endSpec().build();
 
         ResourceManager.getInstance().createSharedResource(true, operatorGroup);
 
@@ -222,9 +213,8 @@ public class OperatorUtils {
         String name = operatorGroup.getMetadata().getName();
         String namespace = operatorGroup.getMetadata().getNamespace();
         List<String> targetNamespaces = operatorGroup.getSpec().getTargetNamespaces();
-        String info = MessageFormat.format(
-                "{0} in namespace {1} targeting namespaces {2}", name, namespace, targetNamespaces
-        );
+        String info = MessageFormat.format("{0} in namespace {1} targeting namespaces {2}", name, namespace,
+                targetNamespaces);
 
         if (Kubernetes.getOperatorGroup(namespace, name) == null) {
             LOGGER.info("Operator group {} already removed.", info);
@@ -244,11 +234,10 @@ public class OperatorUtils {
         String startingCSV = spec.getStartingCSV();
 
         String info = MessageFormat.format(
-                "{0} in namespace {1}: packageName={2}, catalogSourceName={3}, catalogSourceNamespace={4}, " +
-                        "startingCSV={5}, channel={6}, installPlanApproval={7}",
-                name, namespace, spec.getName(), spec.getSource(), spec.getSourceNamespace(),
-                startingCSV, spec.getChannel(), spec.getInstallPlanApproval()
-        );
+                "{0} in namespace {1}: packageName={2}, catalogSourceName={3}, catalogSourceNamespace={4}, "
+                        + "startingCSV={5}, channel={6}, installPlanApproval={7}",
+                name, namespace, spec.getName(), spec.getSource(), spec.getSourceNamespace(), startingCSV,
+                spec.getChannel(), spec.getInstallPlanApproval());
 
         if (Kubernetes.getSubscription(namespace, name) == null) {
             LOGGER.info("Subscription {} already removed.", info);
@@ -261,12 +250,14 @@ public class OperatorUtils {
 
     public static void deleteClusterServiceVersion(String namespace, String clusterServiceVersion) {
         if (clusterServiceVersion != null && !clusterServiceVersion.equals("")) {
-            LOGGER.info("Removing ClusterServiceVersion {} in namespace {}...", clusterServiceVersion, namespace);
+            LOGGER.info("Removing ClusterServiceVersion {} in namespace {}...", clusterServiceVersion,
+                    namespace);
 
             Kubernetes.deleteClusterServiceVersion(namespace, clusterServiceVersion);
 
             if (Kubernetes.getClusterServiceVersion(namespace, clusterServiceVersion) == null) {
-                LOGGER.info("ClusterServiceVersion {} in namespace {} removed.", clusterServiceVersion, namespace);
+                LOGGER.info("ClusterServiceVersion {} in namespace {} removed.", clusterServiceVersion,
+                        namespace);
             }
         }
     }

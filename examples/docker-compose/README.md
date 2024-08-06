@@ -10,7 +10,7 @@ and related configuration.
 
 ## Prerequisites
 
-Install *Docker* and *Docker Compose*. You can either build *Apicurio Registry* images locally 
+Install *Docker*. You can either build *Apicurio Registry* images locally 
 (see the build documentation in the project root), 
 or use the pre-built images from a public registry.
 
@@ -22,36 +22,34 @@ and copy the content of the `./config` directory to the volume - `docker volume 
 ### Metrics with Prometheus and Grafana
 
 Run `compose-metrics.yaml` together with a base compose file, e.g. 
-`docker-compose -f compose-metrics.yaml -f compose-base-sql.yaml up --abort-on-container-exit`.
+`docker compose -f compose-metrics.yaml -f compose-base-sql.yaml up --abort-on-container-exit`.
 
 *Grafana* console should be available at `http://localhost:3000` after logging in as *admin/password*.
 
-
-
-### Docker-compose and Quarkus based installation
+### Docker Compose and Quarkus based installation
 
 #### Overview
 
 This setup contains a fully configured Apicurio Registry package already integrated with Keycloak. Currently every application is routed to the host network without SSL support. This is a development version, do not use it in a production environment!
 
 Here is the port mapping:
+
 - 8080 for Keycloak
 - 8081 for the Registry API
 - 8888 for the Registry UI
 
-
 #### Starting the environment
 
-You can start the whole stack with these commands:
+You can start the whole stack with this command:
 
-```
-docker-compose -f docker-compose.apicurio.yml up
+```console
+docker compose -f docker-compose.apicurio.yml up
 ```
 
-To clear the environment, please run these commands:
+To clear the environment, please run this command:
 
-```
-docker system prune --volumes
+```console
+docker compose -f docker-compose.apicurio.yml down --volumes
 ```
 
 #### Configure users in Keycloak
@@ -63,11 +61,10 @@ At the first start there are no default users added to Keycloak. Please navigate
 
 The default credentials for Keycloak are: `admin` and the password is also `admin`.
 
-Select Registry realm and add a user to it. You'll need to also assign the appropriated role.
+Select `Registry` realm and add a user to it. You'll need to also assign the appropriate role.
 
 #### Login to Apicurio and Keycloak
 
 Apicurio Registry UI URL: `http://YOUR_IP:8888`
 Apicurio Registry API URL: `http://YOUR_IP:8081`
 Keycloak URL: `http://YOUR_IP:8080`
-

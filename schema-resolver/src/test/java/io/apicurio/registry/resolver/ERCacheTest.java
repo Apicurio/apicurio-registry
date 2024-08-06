@@ -1,18 +1,17 @@
 package io.apicurio.registry.resolver;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ERCacheTest {
 
@@ -26,24 +25,36 @@ public class ERCacheTest {
     @Test
     void testCheckInitializedFailsWithoutContentHashKeyExtractor() {
         ERCache<Object> cache = new ERCache<>();
-        Function<Object, Long> globalIdKeyExtractor = (o) -> {return 1L;};
-        Function<Object, Long> contentIdKeyExtractor = (o) -> {return 2L;};
-        Function<Object, ArtifactCoordinates> artifactKeyExtractor = (o) -> {return ArtifactCoordinates.builder().artifactId("artifact id").build();};
-        Function<Object, String> contentKeyExtractor = (o) -> {return "content";};
+        Function<Object, Long> globalIdKeyExtractor = (o) -> {
+            return 1L;
+        };
+        Function<Object, Long> contentIdKeyExtractor = (o) -> {
+            return 2L;
+        };
+        Function<Object, ArtifactCoordinates> artifactKeyExtractor = (o) -> {
+            return ArtifactCoordinates.builder().artifactId("artifact id").build();
+        };
+        Function<Object, String> contentKeyExtractor = (o) -> {
+            return "content";
+        };
 
         cache.configureGlobalIdKeyExtractor(globalIdKeyExtractor);
         cache.configureContentIdKeyExtractor(contentIdKeyExtractor);
         cache.configureArtifactCoordinatesKeyExtractor(artifactKeyExtractor);
         cache.configureContentKeyExtractor(contentKeyExtractor);
 
-        assertThrows(IllegalStateException.class, () -> {cache.checkInitialized();});
+        assertThrows(IllegalStateException.class, () -> {
+            cache.checkInitialized();
+        });
     }
 
     @Test
     void testContainsByContentHash() {
         String contentHashKey = "some key";
         ERCache<String> cache = newCache(contentHashKey);
-        Function<String, String> staticValueLoader = (key) -> {return "present";};
+        Function<String, String> staticValueLoader = (key) -> {
+            return "present";
+        };
 
         assertFalse(cache.containsByContentHash(contentHashKey));
         cache.getByContentHash(contentHashKey, staticValueLoader);
@@ -55,8 +66,12 @@ public class ERCacheTest {
     void testGetByContentHash() {
         String contentHashKey = "content hash key";
         ERCache<String> cache = newCache(contentHashKey);
-        Function<String, String> staticValueLoader = (key) -> {return "value";};
-        Function<String, String> ensureCachedLoader = (key) -> {throw new IllegalStateException("this should've been cached");};
+        Function<String, String> staticValueLoader = (key) -> {
+            return "value";
+        };
+        Function<String, String> ensureCachedLoader = (key) -> {
+            throw new IllegalStateException("this should've been cached");
+        };
 
         String uncachedValue = cache.getByContentHash(contentHashKey, staticValueLoader);
         assertEquals("value", uncachedValue);
@@ -71,8 +86,12 @@ public class ERCacheTest {
         String contentHashKey = "content hash ttl key";
         ERCache<String> cache = newCache(contentHashKey);
         cache.configureLifetime(Duration.ZERO);
-        Function<String, String> firstLoader = (key) -> {return "a value";};
-        Function<String, String> secondLoader = (key) -> {return "another value";};
+        Function<String, String> firstLoader = (key) -> {
+            return "a value";
+        };
+        Function<String, String> secondLoader = (key) -> {
+            return "another value";
+        };
 
         String firstValue = cache.getByContentHash(contentHashKey, firstLoader);
         assertEquals("a value", firstValue);
@@ -84,7 +103,9 @@ public class ERCacheTest {
     void testClearEmptiesContentHashIndex() {
         String contentHashKey = "another key";
         ERCache<String> cache = newCache(contentHashKey);
-        Function<String, String> staticValueLoader = (key) -> {return "some value";};
+        Function<String, String> staticValueLoader = (key) -> {
+            return "some value";
+        };
         cache.getByContentHash(contentHashKey, staticValueLoader);
 
         cache.clear();
@@ -96,9 +117,13 @@ public class ERCacheTest {
     void testThrowsLoadExceptionsByDefault() {
         String contentHashKey = "another key";
         ERCache<String> cache = newCache(contentHashKey);
-        Function<String, String> staticValueLoader = (key) -> {throw new IllegalStateException("load failure");};
+        Function<String, String> staticValueLoader = (key) -> {
+            throw new IllegalStateException("load failure");
+        };
 
-        assertThrows(RuntimeException.class, () -> {cache.getByContentHash(contentHashKey, staticValueLoader);});
+        assertThrows(RuntimeException.class, () -> {
+            cache.getByContentHash(contentHashKey, staticValueLoader);
+        });
     }
 
     @Test
@@ -109,11 +134,15 @@ public class ERCacheTest {
         cache.configureFaultTolerantRefresh(true);
 
         // Seed a value
-        Function<String, String> workingLoader = (key) -> {return "some value";};
+        Function<String, String> workingLoader = (key) -> {
+            return "some value";
+        };
         String originalLoadValue = cache.getByContentHash(contentHashKey, workingLoader);
 
         // Refresh with a failing loader
-        Function<String, String> failingLoader = (key) -> {throw new IllegalStateException("load failure");};
+        Function<String, String> failingLoader = (key) -> {
+            throw new IllegalStateException("load failure");
+        };
         String failingLoadValue = cache.getByContentHash(contentHashKey, failingLoader);
 
         assertEquals("some value", originalLoadValue);
@@ -127,9 +156,7 @@ public class ERCacheTest {
         cache.configureCacheLatest(true);
 
         ArtifactCoordinates latestKey = new ArtifactCoordinates.ArtifactCoordinatesBuilder()
-            .artifactId("someArtifactId")
-            .groupId("someGroupId")
-            .build();
+                .artifactId("someArtifactId").groupId("someGroupId").build();
         final AtomicInteger loadCount = new AtomicInteger(0);
         Function<ArtifactCoordinates, String> countingLoader = (key) -> {
             loadCount.incrementAndGet();
@@ -152,9 +179,7 @@ public class ERCacheTest {
         cache.configureCacheLatest(false);
 
         ArtifactCoordinates latestKey = new ArtifactCoordinates.ArtifactCoordinatesBuilder()
-            .artifactId("someArtifactId")
-            .groupId("someGroupId")
-            .build();
+                .artifactId("someArtifactId").groupId("someGroupId").build();
         final AtomicInteger loadCount = new AtomicInteger(0);
         Function<ArtifactCoordinates, String> countingLoader = (key) -> {
             loadCount.incrementAndGet();
@@ -173,11 +198,21 @@ public class ERCacheTest {
     private ERCache<String> newCache(String contentHashKey) {
         ERCache<String> cache = new ERCache<>();
         cache.configureLifetime(Duration.ofDays(30));
-        Function<String, Long> globalIdKeyExtractor = (o) -> {return 1L;};
-        Function<String, Long> contentIdKeyExtractor = (o) -> {return 2L;};
-        Function<String, String> contentHashKeyExtractor = (o) -> {return contentHashKey;};
-        Function<String, ArtifactCoordinates> artifactKeyExtractor = (o) -> {return ArtifactCoordinates.builder().artifactId("artifact id").build();};
-        Function<String, String> contentKeyExtractor = (o) -> {return "content";};
+        Function<String, Long> globalIdKeyExtractor = (o) -> {
+            return 1L;
+        };
+        Function<String, Long> contentIdKeyExtractor = (o) -> {
+            return 2L;
+        };
+        Function<String, String> contentHashKeyExtractor = (o) -> {
+            return contentHashKey;
+        };
+        Function<String, ArtifactCoordinates> artifactKeyExtractor = (o) -> {
+            return ArtifactCoordinates.builder().artifactId("artifact id").build();
+        };
+        Function<String, String> contentKeyExtractor = (o) -> {
+            return "content";
+        };
 
         cache.configureGlobalIdKeyExtractor(globalIdKeyExtractor);
         cache.configureContentIdKeyExtractor(contentIdKeyExtractor);

@@ -1,8 +1,8 @@
 package io.apicurio.registry.storage.impl.sql;
 
 /**
- * PostgreSQL implementation of the sql statements interface.  Provides sql statements that
- * are specific to PostgreSQL, where applicable.
+ * PostgreSQL implementation of the sql statements interface. Provides sql statements that are specific to
+ * PostgreSQL, where applicable.
  */
 public class PostgreSQLSqlStatements extends CommonSqlStatements {
 
@@ -74,6 +74,15 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     @Override
     public String upsertContentReference() {
         return "INSERT INTO content_references (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentId, name) DO NOTHING";
+    }
+
+    @Override
+    public String upsertBranch() {
+        return """
+                INSERT INTO branches (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (groupId, artifactId, branchId) DO NOTHING
+                """;
     }
 
     @Override

@@ -1,8 +1,5 @@
 package io.apicurio.registry.rest.v3;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import io.apicurio.common.apps.core.System;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.AuthConfig;
@@ -12,6 +9,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.limits.RegistryLimitsConfiguration;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v3.beans.Limits;
 import io.apicurio.registry.rest.v3.beans.SystemInfo;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfig;
@@ -23,28 +21,34 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @ApplicationScoped
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class SystemResourceImpl implements SystemResource {
 
     @Inject
     System system;
-    
+
     @Inject
     AuthConfig authConfig;
-    
+
     @Inject
     UserInterfaceConfigProperties uiConfig;
 
     @Inject
     RegistryLimitsConfiguration registryLimitsConfiguration;
 
+    @Inject
+    RestConfig restConfig;
+
     /**
      * @see io.apicurio.registry.rest.v3.SystemResource#getSystemInfo()
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public SystemInfo getSystemInfo() {
         SystemInfo info = new SystemInfo();
         info.setName(system.getName());
@@ -58,7 +62,7 @@ public class SystemResourceImpl implements SystemResource {
      * @see io.apicurio.registry.rest.v3.SystemResource#getResourceLimits()
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public Limits getResourceLimits() {
         var limitsConfig = registryLimitsConfiguration;
         var limits = new Limits();
@@ -76,26 +80,25 @@ public class SystemResourceImpl implements SystemResource {
         limits.setMaxRequestsPerSecondCount(limitsConfig.getMaxRequestsPerSecondCount());
         return limits;
     }
-    
+
     /**
      * @see io.apicurio.registry.rest.v3.SystemResource#getUIConfig()
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public UserInterfaceConfig getUIConfig() {
         return UserInterfaceConfig.builder()
-                .ui(UserInterfaceConfigUi.builder()
-                        .contextPath(uiConfig.contextPath)
-                        .navPrefixPath(uiConfig.navPrefixPath)
-                        .oaiDocsUrl(uiConfig.docsUrl)
-                        .build())
+                .ui(UserInterfaceConfigUi.builder().contextPath(uiConfig.contextPath)
+                        .navPrefixPath(uiConfig.navPrefixPath).oaiDocsUrl(uiConfig.docsUrl).build())
                 .auth(uiAuthConfig())
                 .features(UserInterfaceConfigFeatures.builder()
                         .readOnly("true".equals(uiConfig.featureReadOnly))
                         .breadcrumbs("true".equals(uiConfig.featureBreadcrumbs))
                         .roleManagement(authConfig.isRbacEnabled())
-                        .settings("true".equals(uiConfig.featureSettings))
-                        .build())
+                        .deleteGroup(restConfig.isGroupDeletionEnabled())
+                        .deleteArtifact(restConfig.isArtifactDeletionEnabled())
+                        .deleteVersion(restConfig.isArtifactVersionDeletionEnabled())
+                        .settings("true".equals(uiConfig.featureSettings)).build())
                 .build();
     }
 
@@ -103,8 +106,9 @@ public class SystemResourceImpl implements SystemResource {
         UserInterfaceConfigAuth rval = new UserInterfaceConfigAuth();
         rval.setObacEnabled(authConfig.isObacEnabled());
         rval.setRbacEnabled(authConfig.isRbacEnabled());
-        rval.setType(authConfig.isOidcAuthEnabled() ? UserInterfaceConfigAuth.Type.oidc :
-                authConfig.isBasicAuthEnabled() ? UserInterfaceConfigAuth.Type.basic : UserInterfaceConfigAuth.Type.none);
+        rval.setType(authConfig.isOidcAuthEnabled() ? UserInterfaceConfigAuth.Type.oidc
+            : authConfig.isBasicAuthEnabled() ? UserInterfaceConfigAuth.Type.basic
+                : UserInterfaceConfigAuth.Type.none);
         if (authConfig.isOidcAuthEnabled()) {
             Map<String, String> options = new HashMap<>();
             options.put("url", uiConfig.authOidcUrl);

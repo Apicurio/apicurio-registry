@@ -1,5 +1,22 @@
 package io.apicurio.registry.serde.protobuf;
 
+import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.FileDescriptor;
+import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.Message;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.utils.Utils;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.AbstractKafkaDeserializer;
+import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.header.Headers;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,26 +28,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.common.header.Headers;
-
-import com.google.protobuf.DescriptorProtos;
-import com.google.protobuf.Descriptors.Descriptor;
-import com.google.protobuf.Descriptors.FileDescriptor;
-import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.Message;
-
-import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaParser;
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.AbstractKafkaDeserializer;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
-import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
-
-public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaDeserializer<ProtobufSchema, U> {
+public class ProtobufKafkaDeserializer<U extends Message>
+        extends AbstractKafkaDeserializer<ProtobufSchema, U> {
 
     private static final String PROTOBUF_PARSE_METHOD = "parseFrom";
 
@@ -43,7 +42,6 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
     private Map<String, Method> parseMethodsCache = new ConcurrentHashMap<>();
 
     private ProtobufSerdeHeaders serdeHeaders;
-
 
     public ProtobufKafkaDeserializer() {
         super();
@@ -71,15 +69,19 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
         try {
             if (specificReturnClass != null) {
                 if (specificReturnClass.equals(DynamicMessage.class)) {
-                    this.specificReturnClassParseMethod = specificReturnClass.getDeclaredMethod(PROTOBUF_PARSE_METHOD, Descriptor.class, InputStream.class);
+                    this.specificReturnClassParseMethod = specificReturnClass
+                            .getDeclaredMethod(PROTOBUF_PARSE_METHOD, Descriptor.class, InputStream.class);
                 } else if (!specificReturnClass.equals(Object.class)) {
-                    this.specificReturnClassParseMethod = specificReturnClass.getDeclaredMethod(PROTOBUF_PARSE_METHOD, InputStream.class);
+                    this.specificReturnClassParseMethod = specificReturnClass
+                            .getDeclaredMethod(PROTOBUF_PARSE_METHOD, InputStream.class);
                 } else {
-                    throw new ConfigException("Class " + specificReturnClass.getCanonicalName() + " is not a valid protobuf message class");
+                    throw new ConfigException("Class " + specificReturnClass.getCanonicalName()
+                            + " is not a valid protobuf message class");
                 }
             }
         } catch (Exception e) {
-            throw new ConfigException("Class " + specificReturnClass.getCanonicalName() + " is not a valid protobuf message class", e);
+            throw new ConfigException("Class " + specificReturnClass.getCanonicalName()
+                    + " is not a valid protobuf message class", e);
         }
 
         deriveClass = config.deriveClass();
@@ -96,15 +98,18 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
+     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers,
+     *      io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
-    protected U readData(Headers headers, ParsedSchema<ProtobufSchema> schema, ByteBuffer buffer, int start, int length) {
+    protected U readData(Headers headers, ParsedSchema<ProtobufSchema> schema, ByteBuffer buffer, int start,
+            int length) {
         return internalReadData(headers, schema, buffer, start, length);
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(io.apicurio.registry.serde.ParsedSchema, java.nio.ByteBuffer, int, int)
+     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(io.apicurio.registry.serde.ParsedSchema,
+     *      java.nio.ByteBuffer, int, int)
      */
     @Override
     protected U readData(ParsedSchema<ProtobufSchema> schema, ByteBuffer buffer, int start, int length) {
@@ -112,7 +117,8 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
     }
 
     @SuppressWarnings("unchecked")
-    protected U internalReadData(Headers headers, ParsedSchema<ProtobufSchema> schema, ByteBuffer buff, int start, int length) {
+    protected U internalReadData(Headers headers, ParsedSchema<ProtobufSchema> schema, ByteBuffer buff,
+            int start, int length) {
         try {
             byte[] bytes = new byte[length];
             System.arraycopy(buff.array(), start, bytes, 0, length);
@@ -123,16 +129,18 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
             if (headers != null) {
                 String messageTypeName = serdeHeaders.getProtobufTypeName(headers);
                 if (messageTypeName != null) {
-                    descriptor = schema.getParsedSchema().getFileDescriptor().findMessageTypeByName(messageTypeName);
+                    descriptor = schema.getParsedSchema().getFileDescriptor()
+                            .findMessageTypeByName(messageTypeName);
                 }
             }
-            if (descriptor == null){
+            if (descriptor == null) {
                 try {
                     Ref ref = Ref.parseDelimitedFrom(is);
-                    descriptor = schema.getParsedSchema().getFileDescriptor().findMessageTypeByName(ref.getName());
+                    descriptor = schema.getParsedSchema().getFileDescriptor()
+                            .findMessageTypeByName(ref.getName());
                 } catch (IOException e) {
                     is = new ByteArrayInputStream(bytes);
-                    //use the first message type found
+                    // use the first message type found
                     descriptor = schema.getParsedSchema().getFileDescriptor().getMessageTypes().get(0);
                 }
             }
@@ -173,7 +181,8 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
                 try {
                     return protobufClass.getDeclaredMethod(PROTOBUF_PARSE_METHOD, InputStream.class);
                 } catch (NoSuchMethodException | SecurityException e) {
-                    throw new SerializationException("Class " + className + " is not a valid protobuf message class", e);
+                    throw new SerializationException(
+                            "Class " + className + " is not a valid protobuf message class", e);
                 }
             });
             return (U) parseMethod.invoke(null, buffer);
@@ -183,7 +192,7 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
         }
     }
 
-    //TODO refactor
+    // TODO refactor
     public String deriveClassFromDescriptor(Descriptor des) {
         Descriptor descriptor = des;
         FileDescriptor fd = descriptor.getFile();
@@ -210,6 +219,6 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
         String d1 = (!outer.isEmpty() || inner.length() != 0 ? "." : "");
         String d2 = (!outer.isEmpty() && inner.length() != 0 ? "$" : "");
         return p + d1 + outer + d2 + inner;
-      }
+    }
 
 }

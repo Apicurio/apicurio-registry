@@ -68,6 +68,12 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
         return (Q) this;
     }
 
+    @Override
+    public Q bind(int position, Boolean value) {
+        this.parameters.add(new SqlParam(position, value, SqlParamType.BOOLEAN));
+        return (Q) this;
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.jdb.Sql#bind(int, byte[])
      */

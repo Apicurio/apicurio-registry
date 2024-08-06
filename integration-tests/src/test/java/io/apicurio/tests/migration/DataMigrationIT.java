@@ -1,7 +1,6 @@
 package io.apicurio.tests.migration;
 
-
-
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.types.RuleType;
@@ -12,7 +11,6 @@ import io.apicurio.tests.utils.Constants;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -47,7 +45,8 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
     public static Map<String, String> doNotPreserveIdsImportArtifacts = new HashMap<>();
 
     /**
-     * The data required for this test is initialized by MigrationTestsDataInitializer.initializeMigrateTest(RegistryClient)
+     * The data required for this test is initialized by
+     * MigrationTestsDataInitializer.initializeMigrateTest(RegistryClient)
      *
      * @throws Exception
      */
@@ -66,12 +65,15 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
                 dest.ids().globalIds().byGlobalId(gid).get();
                 if (migrateReferencesMap.containsKey(gid)) {
                     List<ArtifactReference> srcReferences = migrateReferencesMap.get(gid);
-                    List<ArtifactReference> destReferences = dest.ids().globalIds().byGlobalId(gid).references().get();
+                    List<ArtifactReference> destReferences = dest.ids().globalIds().byGlobalId(gid)
+                            .references().get();
                     assertTrue(matchesReferences(srcReferences, destReferences));
                 }
             }
-            assertEquals("SYNTAX_ONLY", dest.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0").rules().byRule(RuleType.VALIDITY.name()).get().getConfig());
-            assertEquals("BACKWARD", dest.admin().rules().byRule(RuleType.COMPATIBILITY.name()).get().getConfig());
+            assertEquals("SYNTAX_ONLY", dest.groups().byGroupId("migrateTest").artifacts()
+                    .byArtifactId("avro-0").rules().byRuleType(RuleType.VALIDITY.name()).get().getConfig());
+            assertEquals("BACKWARD",
+                    dest.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get().getConfig());
         });
     }
 
@@ -84,14 +86,15 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         @Override
         public Map<String, String> start() {
             // TODO we will need to change this to 3.0.0 whenever that is released!
-            String registryBaseUrl = startRegistryApplication("quay.io/apicurio/apicurio-registry:latest-snapshot");
+            String registryBaseUrl = startRegistryApplication(
+                    "quay.io/apicurio/apicurio-registry:latest-snapshot");
             var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
             adapter.setBaseUrl(registryBaseUrl);
             RegistryClient source = new RegistryClient(adapter);
 
             try {
 
-                //Warm up until the source registry is ready.
+                // Warm up until the source registry is ready.
                 TestUtils.retry(() -> {
                     source.groups().byGroupId("default").artifacts().get();
                 });

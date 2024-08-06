@@ -3,7 +3,7 @@ package io.apicurio.deployment;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
-import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -23,7 +23,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static io.apicurio.deployment.KubernetesTestResources.*;
+import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_DEPLOYMENT;
+import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_KAFKA_SECURED_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.KAFKA_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
 import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
 import static io.apicurio.deployment.RegistryDeploymentManager.prepareTestsInfra;
 import static io.apicurio.tests.ApicurioRegistryBaseIT.resourceToString;
@@ -36,11 +40,9 @@ public class KafkaSqlDeploymentManager {
     static void deployKafkaApp(String registryImage) throws Exception {
         if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
             prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_SECURED_RESOURCES, true, registryImage);
-        }
-        else if (Constants.TEST_PROFILE.equals(Constants.KAFKA_SQL_SNAPSHOTTING)) {
+        } else if (Constants.TEST_PROFILE.equals(Constants.KAFKA_SQL_SNAPSHOTTING)) {
             prepareKafkaSqlSnapshottingTests(registryImage);
-        }
-        else {
+        } else {
             prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage);
         }
     }
@@ -48,20 +50,21 @@ public class KafkaSqlDeploymentManager {
     private static void prepareKafkaSqlSnapshottingTests(String registryImage) throws Exception {
         LOGGER.info("Preparing data for KafkaSQL snapshot tests...");
 
-        //First we deploy the Registry application with all the required data.
+        // First we deploy the Registry application with all the required data.
         prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage);
         prepareSnapshotData(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
 
-        //Once all the data has been introduced, the existing deployment is deleted so all the replicas are re-created and restored from the snapshot.
+        // Once all the data has been introduced, the existing deployment is deleted so all the replicas are
+        // re-created and restored from the snapshot.
         deleteRegistryDeployment();
 
-        //Now we re-recreate the deployment so all the replicas are restored from the snapshot.
+        // Now we re-recreate the deployment so all the replicas are restored from the snapshot.
         LOGGER.info("Finished preparing data for the KafkaSQL snapshot tests.");
         prepareTestsInfra(null, APPLICATION_KAFKA_RESOURCES, false, registryImage);
     }
 
     private static void prepareSnapshotData(String registryBaseUrl) {
-        //Create a bunch of artifacts and rules, so they're added to the snapshot.
+        // Create a bunch of artifacts and rules, so they're added to the snapshot.
         String simpleAvro = resourceToString("artifactTypes/avro/multi-field_v1.json");
 
         var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
@@ -71,14 +74,15 @@ public class KafkaSqlDeploymentManager {
         LOGGER.info("Creating 1000 artifacts that will be packed into a snapshot..");
         for (int idx = 0; idx < 1000; idx++) {
             String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, simpleAvro,
-                    ContentTypes.APPLICATION_JSON);
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                    simpleAvro, ContentTypes.APPLICATION_JSON);
+            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().post(createArtifact,
+                    config -> config.headers.add("X-Registry-ArtifactId", artifactId));
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig("SYNTAX_ONLY");
             client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts()
-                    .post(createArtifact, config -> config.headers.add("X-Registry-ArtifactId", artifactId));
-            Rule rule = new Rule();
-            rule.setType(RuleType.VALIDITY);
-            rule.setConfig("SYNTAX_ONLY");
-            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().byArtifactId(artifactId).rules().post(rule);
+                    .byArtifactId(artifactId).rules().post(createRule);
         }
 
         LOGGER.info("Creating kafkasql snapshot..");
@@ -87,34 +91,34 @@ public class KafkaSqlDeploymentManager {
         LOGGER.info("Adding new artifacts on top of the snapshot..");
         for (int idx = 0; idx < 1000; idx++) {
             String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, simpleAvro,
-                    ContentTypes.APPLICATION_JSON);
-            client.groups().byGroupId("default").artifacts()
-                    .post(createArtifact, config -> config.headers.add("X-Registry-ArtifactId", artifactId));
-            Rule rule = new Rule();
-            rule.setType(RuleType.VALIDITY);
-            rule.setConfig("SYNTAX_ONLY");
-            client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules().post(rule);
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                    simpleAvro, ContentTypes.APPLICATION_JSON);
+            client.groups().byGroupId("default").artifacts().post(createArtifact,
+                    config -> config.headers.add("X-Registry-ArtifactId", artifactId));
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig("SYNTAX_ONLY");
+            client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules()
+                    .post(createRule);
         }
     }
 
     private static void deleteRegistryDeployment() {
-        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE)
-                .withName(APPLICATION_DEPLOYMENT);
+        final RollableScalableResource<Deployment> deploymentResource = kubernetesClient.apps().deployments()
+                .inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT);
 
-        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT).delete();
+        kubernetesClient.apps().deployments().inNamespace(TEST_NAMESPACE).withName(APPLICATION_DEPLOYMENT)
+                .delete();
 
-        //Wait for the deployment to be deleted
+        // Wait for the deployment to be deleted
         CompletableFuture<List<Deployment>> deployment = deploymentResource
                 .informOnCondition(Collection::isEmpty);
 
         try {
             deployment.get(60, TimeUnit.SECONDS);
-        }
-        catch (ExecutionException | InterruptedException | TimeoutException e) {
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
             LOGGER.warn("Error waiting for deployment deletion", e);
-        }
-        finally {
+        } finally {
             deployment.cancel(true);
         }
     }

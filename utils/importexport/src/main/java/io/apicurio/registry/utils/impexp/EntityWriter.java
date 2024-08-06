@@ -1,12 +1,12 @@
 package io.apicurio.registry.utils.impexp;
 
-import java.io.IOException;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class EntityWriter {
 
@@ -21,6 +21,7 @@ public class EntityWriter {
 
     /**
      * Constructor.
+     * 
      * @param zip
      */
     public EntityWriter(ZipOutputStream zip) {
@@ -29,6 +30,7 @@ public class EntityWriter {
 
     /**
      * Writes the given entity to the zip output stream.
+     * 
      * @param entity
      * @throws IOException
      */
@@ -39,6 +41,9 @@ public class EntityWriter {
                 break;
             case Group:
                 writeEntity((GroupEntity) entity);
+                break;
+            case Artifact:
+                writeEntity((ArtifactEntity) entity);
                 break;
             case ArtifactVersion:
                 writeEntity((ArtifactVersionEntity) entity);
@@ -52,8 +57,8 @@ public class EntityWriter {
             case Comment:
                 writeEntity((CommentEntity) entity);
                 break;
-            case ArtifactBranch:
-                writeEntity((ArtifactBranchEntity) entity);
+            case Branch:
+                writeEntity((BranchEntity) entity);
                 break;
             case Manifest:
                 writeEntity((ManifestEntity) entity);
@@ -77,7 +82,8 @@ public class EntityWriter {
     }
 
     private void writeEntity(ManifestEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.Manifest, "manifest-" + entity.exportedOn.toInstant().toString(), "json");
+        ZipEntry mdEntry = createZipEntry(EntityType.Manifest,
+                "manifest-" + entity.exportedOn.toInstant().toString(), "json");
         write(mdEntry, entity, ManifestEntity.class);
     }
 
@@ -86,13 +92,21 @@ public class EntityWriter {
         write(mdEntry, entity, GroupEntity.class);
     }
 
+    private void writeEntity(ArtifactEntity entity) throws IOException {
+        ZipEntry mdEntry = createZipEntry(EntityType.Artifact, entity.groupId, entity.artifactId, "MetaData",
+                "json");
+        write(mdEntry, entity, ArtifactEntity.class);
+    }
+
     private void writeEntity(ArtifactVersionEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.ArtifactVersion, entity.groupId, entity.artifactId, entity.version, "json");
+        ZipEntry mdEntry = createZipEntry(EntityType.ArtifactVersion, entity.groupId, entity.artifactId,
+                entity.version, "json");
         write(mdEntry, entity, ArtifactVersionEntity.class);
     }
 
     private void writeEntity(ArtifactRuleEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.ArtifactRule, entity.groupId, entity.artifactId, entity.type.name(), "json");
+        ZipEntry mdEntry = createZipEntry(EntityType.ArtifactRule, entity.groupId, entity.artifactId,
+                entity.type.name(), "json");
         write(mdEntry, entity, ArtifactRuleEntity.class);
     }
 
@@ -102,28 +116,41 @@ public class EntityWriter {
     }
 
     private void writeEntity(CommentEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.Comment, entity.globalId + '-' + entity.commentId, "json");
+        ZipEntry mdEntry = createZipEntry(EntityType.Comment, entity.globalId + '-' + entity.commentId,
+                "json");
         write(mdEntry, entity, CommentEntity.class);
     }
 
-    private void writeEntity(ArtifactBranchEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.ArtifactBranch, entity.groupId, entity.artifactId, entity.branchId + '-' + entity.branchOrder, "json");
-        write(mdEntry, entity, ArtifactBranchEntity.class);
+    private void writeEntity(BranchEntity entity) throws IOException {
+        ZipEntry mdEntry = createZipEntry(EntityType.Branch, entity.groupId, entity.artifactId,
+                entity.branchId, "json");
+        write(mdEntry, entity, BranchEntity.class);
     }
 
     private ZipEntry createZipEntry(EntityType type, String fileName, String fileExt) {
         return createZipEntry(type, null, null, fileName, fileExt);
     }
-    private ZipEntry createZipEntry(EntityType type, String groupId, String artifactId, String fileName, String fileExt) {
+
+    private ZipEntry createZipEntry(EntityType type, String groupId, String artifactId, String fileName,
+            String fileExt) {
         // TODO encode groupId, artifactId, and filename as path elements
         String path = null;
         switch (type) {
             case ArtifactRule:
-                path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
+                path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupOrDefault(groupId),
+                        artifactId, fileName, type.name(), fileExt);
+                break;
+            case Artifact:
+                path = String.format("groups/%s/artifacts/%s/%s.%s.%s", groupOrDefault(groupId), artifactId,
+                        fileName, type.name(), fileExt);
+                break;
+            case Branch:
+                path = String.format("groups/%s/artifacts/%s/branches/%s.%s.%s", groupOrDefault(groupId),
+                        artifactId, fileName, type.name(), fileExt);
                 break;
             case ArtifactVersion:
-            case ArtifactBranch:
-                path = String.format("groups/%s/artifacts/%s/versions/%s.%s.%s", groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
+                path = String.format("groups/%s/artifacts/%s/versions/%s.%s.%s", groupOrDefault(groupId),
+                        artifactId, fileName, type.name(), fileExt);
                 break;
             case Content:
                 path = String.format("content/%s.%s.%s", fileName, type.name(), fileExt);

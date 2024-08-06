@@ -1,12 +1,11 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useParams } from "react-router-dom";
-import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
     ContentTabContent,
     DocumentationTabContent,
-    InfoTabContent,
+    VersionInfoTabContent,
     PageDataLoader,
     PageError,
     PageErrorHandler,
@@ -22,7 +21,7 @@ import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
-import { VersionMetaData } from "@models/versionMetaData.model.ts";
+import { ArtifactMetaData, Labels, VersionMetaData } from "@sdk/lib/generated-client/models";
 
 
 export type ArtifactVersionPageProps = {
@@ -35,7 +34,6 @@ export type ArtifactVersionPageProps = {
 export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
-    const [activeTabKey, setActiveTabKey] = useState("overview");
     const [artifact, setArtifact] = useState<ArtifactMetaData>();
     const [artifactVersion, setArtifactVersion] = useState<VersionMetaData>();
     const [versionContent, setArtifactContent] = useState("");
@@ -49,6 +47,16 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     const groups: GroupsService = useGroupsService();
     const download: DownloadService = useDownloadService();
     const { groupId, artifactId, version }= useParams();
+    const location = useLocation();
+
+    let activeTabKey: string = "overview";
+    if (location.pathname.indexOf("/content") !== -1) {
+        activeTabKey = "content";
+    } else if (location.pathname.indexOf("/references") !== -1) {
+        activeTabKey = "references";
+    } else if (location.pathname.indexOf("/documentation") !== -1) {
+        activeTabKey = "documentation";
+    }
 
     const is404 = (e: any) => {
         if (typeof e === "string") {
@@ -96,7 +104,14 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     };
 
     const handleTabClick = (_event: any, tabIndex: any): void => {
-        setActiveTabKey(tabIndex);
+        const gid: string = encodeURIComponent(groupId as string);
+        const aid: string = encodeURIComponent(artifactId as string);
+        const ver: string = encodeURIComponent(version as string);
+        if (tabIndex === "overview") {
+            appNavigation.navigateTo(`/explore/${gid}/${aid}/versions/${ver}`);
+        } else {
+            appNavigation.navigateTo(`/explore/${gid}/${aid}/versions/${ver}/${tabIndex}`);
+        }
     };
 
     const onDeleteVersion = (): void => {
@@ -104,7 +119,7 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     };
 
     const showDocumentationTab = (): boolean => {
-        return artifact?.type === "OPENAPI" && artifactVersion?.state !== "DISABLED";
+        return artifact?.artifactType === "OPENAPI" && artifactVersion?.state !== "DISABLED";
     };
 
     const doDownloadVersion = (): void => {
@@ -112,23 +127,23 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
 
         let contentType: string = ContentTypes.APPLICATION_JSON;
         let fext: string = "json";
-        if (artifact?.type === ArtifactTypes.PROTOBUF) {
+        if (artifact?.artifactType === ArtifactTypes.PROTOBUF) {
             contentType = ContentTypes.APPLICATION_PROTOBUF;
             fext = "proto";
         }
-        if (artifact?.type === ArtifactTypes.WSDL) {
+        if (artifact?.artifactType === ArtifactTypes.WSDL) {
             contentType = ContentTypes.APPLICATION_XML;
             fext = "wsdl";
         }
-        if (artifact?.type === ArtifactTypes.XSD) {
+        if (artifact?.artifactType === ArtifactTypes.XSD) {
             contentType = ContentTypes.APPLICATION_XML;
             fext = "xsd";
         }
-        if (artifact?.type === ArtifactTypes.XML) {
+        if (artifact?.artifactType === ArtifactTypes.XML) {
             contentType = ContentTypes.APPLICATION_XML;
             fext = "xml";
         }
-        if (artifact?.type === ArtifactTypes.GRAPHQL) {
+        if (artifact?.artifactType === ArtifactTypes.GRAPHQL) {
             contentType = ContentTypes.APPLICATION_JSON;
             fext = "graphql";
         }
@@ -151,7 +166,7 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
         return artifactVersion?.description || "";
     };
 
-    const versionLabels = (): { [key: string]: string } => {
+    const versionLabels = (): Labels => {
         return artifactVersion?.labels || {};
     };
 
@@ -164,9 +179,9 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
         pleaseWait(true, "Deleting version, please wait...");
         groups.deleteArtifactVersion(groupId as string, artifactId as string, version as string).then( () => {
             pleaseWait(false);
-            const gid = encodeURIComponent(groupId || "default");
+            const gid: string = encodeURIComponent(groupId || "default");
             const aid: string = encodeURIComponent(artifactId as string);
-            appNavigation.navigateTo(`/explore/${gid}/${aid}`);
+            appNavigation.navigateTo(`/explore/${gid}/${aid}/versions`);
         }).catch(error => {
             setPageError(toPageError(error, "Error deleting a version."));
         });
@@ -205,17 +220,17 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
 
     const tabs: any[] = [
         <Tab data-testid="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
-            <InfoTabContent
+            <VersionInfoTabContent
                 artifact={artifact as ArtifactMetaData}
                 version={artifactVersion as VersionMetaData}
                 onEditMetaData={openEditMetaDataModal}
             />
         </Tab>,
         <Tab data-testid="documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab">
-            <DocumentationTabContent versionContent={versionContent} artifactType={artifact?.type as string} />
+            <DocumentationTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
         </Tab>,
         <Tab data-testid="content-tab" eventKey="content" title="Content" key="content">
-            <ContentTabContent versionContent={versionContent} artifactType={artifact?.type as string} />
+            <ContentTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
         </Tab>,
         <Tab data-testid="references-tab" eventKey="references" title="References" key="references">
             <ReferencesTabContent version={artifactVersion as VersionMetaData} />
@@ -230,9 +245,9 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     let breadcrumbs = (
         <Breadcrumb>
             <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/artifacts`)}
                 data-testid="breadcrumb-lnk-group">{ gid }</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }/versions`)}
                 data-testid="breadcrumb-lnk-artifact">{ artifactId }</Link></BreadcrumbItem>
             <BreadcrumbItem isActive={true}>{ version as string }</BreadcrumbItem>
         </Breadcrumb>
@@ -241,7 +256,7 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
         breadcrumbs = (
             <Breadcrumb>
                 <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-                <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }`)}
+                <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }/versions`)}
                     data-testid="breadcrumb-lnk-artifact">{ artifactId }</Link></BreadcrumbItem>
                 <BreadcrumbItem isActive={true}>{ version as string }</BreadcrumbItem>
             </Breadcrumb>

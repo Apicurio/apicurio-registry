@@ -56,7 +56,6 @@ public class ObjectSchemaWrapper extends EqualitySchemaWrapper implements Schema
         return wrap(wrapped.getPatternProperties()); // TODO Possible deprecation issue
     }
 
-
     public Map<String, SchemaWrapper> getSchemaDependencies() {
         return wrap(wrapped.getSchemaDependencies());
     }
@@ -64,7 +63,6 @@ public class ObjectSchemaWrapper extends EqualitySchemaWrapper implements Schema
     public Map<String, SchemaWrapper> getPropertySchemas() {
         return wrap(wrapped.getPropertySchemas());
     }
-
 
     @Override
     public void accept(JsonSchemaWrapperVisitor visitor) {

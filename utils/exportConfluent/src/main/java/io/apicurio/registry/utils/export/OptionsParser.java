@@ -23,8 +23,7 @@ public class OptionsParser {
                 inSecure = true;
             } else if (arg.equals("--client-props")) {
                 String[] clientconf = Arrays.copyOfRange(args, i + 1, args.length);
-                clientProps = Arrays.stream(clientconf)
-                        .map(keyvalue -> keyvalue.split("="))
+                clientProps = Arrays.stream(clientconf).map(keyvalue -> keyvalue.split("="))
                         .collect(Collectors.toMap(kv -> kv[0], kv -> kv[1]));
                 System.out.println("Parsed client properties " + clientProps);
                 break;

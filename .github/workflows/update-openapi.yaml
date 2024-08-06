@@ -54,7 +54,3 @@ jobs:
   validate:
     needs: update-openapi
     uses: ./.github/workflows/validate-openapi.yaml
-
-  dispatch:
-    needs: validate
-    uses: ./.github/workflows/dispatch-openapi.yaml

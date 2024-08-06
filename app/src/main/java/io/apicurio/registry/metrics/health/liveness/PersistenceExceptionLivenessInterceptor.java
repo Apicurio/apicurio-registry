@@ -1,7 +1,6 @@
 package io.apicurio.registry.metrics.health.liveness;
 
 import jakarta.annotation.Priority;
-
 import jakarta.inject.Inject;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
@@ -9,7 +8,6 @@ import jakarta.interceptor.InvocationContext;
 
 /**
  * Fail liveness check if the number of exceptions thrown by artifactStore is too high.
- *
  */
 @Interceptor
 @Priority(Interceptor.Priority.APPLICATION)

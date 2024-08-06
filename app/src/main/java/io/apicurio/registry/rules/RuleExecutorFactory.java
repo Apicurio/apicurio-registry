@@ -1,19 +1,18 @@
 package io.apicurio.registry.rules;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
 import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
 import io.apicurio.registry.rules.integrity.IntegrityRuleExecutor;
 import io.apicurio.registry.rules.validity.ValidityRuleExecutor;
 import io.apicurio.registry.types.RuleType;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /**
  * Creates a rule executor from a {@link RuleType}.
  */
 @ApplicationScoped
 public class RuleExecutorFactory {
-    
+
     @Inject
     CompatibilityRuleExecutor compatibility;
     @Inject

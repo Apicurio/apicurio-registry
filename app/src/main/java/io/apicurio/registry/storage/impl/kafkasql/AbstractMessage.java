@@ -7,9 +7,7 @@ public abstract class AbstractMessage implements KafkaSqlMessage {
      */
     @Override
     public KafkaSqlMessageKey getKey() {
-        return KafkaSqlMessageKey.builder()
-                .messageType(getClass().getSimpleName())
-                .build();
+        return KafkaSqlMessageKey.builder().messageType(getClass().getSimpleName()).build();
     }
 
 }

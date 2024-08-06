@@ -14,21 +14,18 @@ public final class ArtifactId {
 
     private final String rawArtifactId;
 
-
     public ArtifactId(String rawArtifactId) {
         if (!isValid(rawArtifactId)) {
-            throw new ValidationException("Artifact ID '" + rawArtifactId + "' is invalid. " +
-                    "It must have length 1..512 (inclusive).");
+            throw new ValidationException("Artifact ID '" + rawArtifactId + "' is invalid. "
+                    + "It must have length 1..512 (inclusive).");
         }
         this.rawArtifactId = rawArtifactId;
     }
-
 
     @Override
     public String toString() {
         return rawArtifactId;
     }
-
 
     public static boolean isValid(String rawArtifactId) {
         return rawArtifactId != null && VALID_PATTERN.matcher(rawArtifactId).matches();

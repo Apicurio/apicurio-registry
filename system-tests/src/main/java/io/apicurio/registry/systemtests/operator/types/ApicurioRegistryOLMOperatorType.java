@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import java.text.MessageFormat;
 import java.time.Duration;
 
-
 public class ApicurioRegistryOLMOperatorType extends OLMOperator implements OperatorType {
     protected static final Logger LOGGER = LoggerUtils.getLogger();
     private CatalogSource catalogSource = null;
@@ -31,35 +30,22 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     }
 
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide) {
-        super(
-                Environment.CATALOG_IMAGE,
-                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE,
-                isClusterWide
-        );
+        super(Environment.CATALOG_IMAGE,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE, isClusterWide);
     }
 
     public ApicurioRegistryOLMOperatorType(String source, boolean isClusterWide) {
-        super(
-                source,
-                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE,
-                isClusterWide
-        );
+        super(source, isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : Environment.NAMESPACE,
+                isClusterWide);
     }
 
     public ApicurioRegistryOLMOperatorType(boolean isClusterWide, String operatorNamespace) {
-        super(
-                Environment.CATALOG_IMAGE,
-                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
-                isClusterWide
-        );
+        super(Environment.CATALOG_IMAGE,
+                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace, isClusterWide);
     }
 
     public ApicurioRegistryOLMOperatorType(String source, boolean isClusterWide, String operatorNamespace) {
-        super(
-                source,
-                isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace,
-                isClusterWide
-        );
+        super(source, isClusterWide ? Environment.CLUSTER_WIDE_NAMESPACE : operatorNamespace, isClusterWide);
     }
 
     /**
@@ -67,7 +53,8 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
      */
     private void createCatalogSource(String namespace) throws InterruptedException {
         String name = Constants.CATALOG_NAME;
-        String info = MessageFormat.format("{0} in namespace {1} with image {2}", name, namespace, getSource());
+        String info = MessageFormat.format("{0} in namespace {1} with image {2}", name, namespace,
+                getSource());
 
         LOGGER.info("Creating catalog source {}...", info);
 
@@ -160,15 +147,8 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
 
         LOGGER.info("OLM operator CSV: {}", getClusterServiceVersion());
 
-        setSubscription(SubscriptionResourceType.getDefault(
-                "registry-subscription",
-                getNamespace(),
-                registryPackage,
-                catalogName,
-                catalogNamespace,
-                getClusterServiceVersion(),
-                channelName
-        ));
+        setSubscription(SubscriptionResourceType.getDefault("registry-subscription", getNamespace(),
+                registryPackage, catalogName, catalogNamespace, getClusterServiceVersion(), channelName));
 
         ResourceManager.getInstance().createResource(true, getSubscription());
 
@@ -213,7 +193,8 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
     }
 
     public void upgrade() throws InterruptedException {
-        LOGGER.info("Upgrading {} {} operator...", getClusterWide() ? "cluster wide" : "namespaced", getKind());
+        LOGGER.info("Upgrading {} {} operator...", getClusterWide() ? "cluster wide" : "namespaced",
+                getKind());
 
         // Get current subscription namespace
         String subNamespace = getSubscription().getMetadata().getNamespace();
@@ -222,9 +203,8 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
         // Get namespace of current's subscription catalog
         String catalogNamespace = getSubscription().getSpec().getSourceNamespace();
 
-        LOGGER.info(
-                "CSV before upgrade: {}", Kubernetes.getSubscription(subNamespace, subName).getStatus().getCurrentCSV()
-        );
+        LOGGER.info("CSV before upgrade: {}",
+                Kubernetes.getSubscription(subNamespace, subName).getStatus().getCurrentCSV());
 
         // Update operator source (set it to image with catalog)
         setSource(Environment.CATALOG_IMAGE);
@@ -239,13 +219,10 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
         Kubernetes.createOrReplaceSubscription(subNamespace, getSubscription());
 
         // Wait for update of subscription (it points to CSV from new catalog source)
-        Assertions.assertTrue(
-                waitSubscriptionCurrentCSV(catalogSource.getMetadata().getName()),
+        Assertions.assertTrue(waitSubscriptionCurrentCSV(catalogSource.getMetadata().getName()),
                 MessageFormat.format(
                         "Timed out waiting for subscription {0} to have new current ClusterServiceVersion.",
-                        MessageFormat.format("{0} in namespace {1}", subName, subNamespace)
-                )
-        );
+                        MessageFormat.format("{0} in namespace {1}", subName, subNamespace)));
 
         // Get updated subscription
         Subscription newSubscription = Kubernetes.getSubscription(subNamespace, subName);
@@ -261,10 +238,8 @@ public class ApicurioRegistryOLMOperatorType extends OLMOperator implements Oper
         setClusterServiceVersion(newCSV);
 
         // Wait for creation of new CSV and its readiness
-        Assertions.assertTrue(
-                waitClusterServiceVersionReady(),
-                MessageFormat.format("New CSV {0} failed readiness check.", newCSV)
-        );
+        Assertions.assertTrue(waitClusterServiceVersionReady(),
+                MessageFormat.format("New CSV {0} failed readiness check.", newCSV));
 
         // Wait for operator readiness
         Assertions.assertTrue(waitReady(), "Operator failed readiness check after upgrade.");

@@ -9,7 +9,6 @@ public class CommentNotFoundException extends NotFoundException {
     @Getter
     private String commentId;
 
-
     public CommentNotFoundException(String commentId) {
         super("No comment with ID '" + commentId + "' was found.");
         this.commentId = commentId;

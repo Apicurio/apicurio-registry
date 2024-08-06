@@ -1,15 +1,14 @@
 package io.apicurio.registry.auth;
 
-import java.util.function.Supplier;
-
+import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.Info;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import jakarta.annotation.PostConstruct;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import io.apicurio.common.apps.config.Dynamic;
-import io.apicurio.common.apps.config.Info;
+import java.util.function.Supplier;
 
 @Singleton
 public class AuthConfig {
@@ -53,9 +52,7 @@ public class AuthConfig {
     Supplier<Boolean> ownerOnlyAuthorizationEnabled;
 
     @Dynamic(label = "Artifact group owner-only authorization", description = "When selected, Service Registry allows only the artifact group owner (creator) to modify an artifact group.", requires = {
-            "apicurio.auth.enabled=true",
-            "apicurio.auth.owner-only-authorization=true"
-    })
+            "apicurio.auth.enabled=true", "apicurio.auth.owner-only-authorization=true" })
     @ConfigProperty(name = "apicurio.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
     @Info(category = "auth", description = "Artifact group owner-only authorization", availableSince = "2.1.0.Final")
     Supplier<Boolean> ownerOnlyAuthorizationLimitGroupAccess;
@@ -66,9 +63,7 @@ public class AuthConfig {
     Supplier<Boolean> anonymousReadAccessEnabled;
 
     @Dynamic(label = "Authenticated read access", description = "When selected, requests from any authenticated user are granted at least read-only access.", requires = {
-            "apicurio.auth.enabled=true",
-            "apicurio.auth.role-based-authorization=true"
-    })
+            "apicurio.auth.enabled=true", "apicurio.auth.role-based-authorization=true" })
     @ConfigProperty(name = "apicurio.auth.authenticated-read-access.enabled", defaultValue = "false")
     @Info(category = "auth", description = "Authenticated read access", availableSince = "2.1.4.Final")
     Supplier<Boolean> authenticatedReadAccessEnabled;

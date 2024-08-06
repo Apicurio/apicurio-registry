@@ -1,15 +1,13 @@
 package io.apicurio.registry.storage.impl.kafkasql.serde;
 
-import java.io.IOException;
-
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
+import java.io.IOException;
 
 /**
  * Kafka deserializer responsible for deserializing the key of a KSQL Kafka message.

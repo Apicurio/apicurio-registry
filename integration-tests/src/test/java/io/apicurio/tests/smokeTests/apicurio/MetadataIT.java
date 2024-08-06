@@ -33,16 +33,20 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactDefinition, ContentTypes.APPLICATION_JSON, null, null);
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactDefinition,
+                ContentTypes.APPLICATION_JSON, null, null);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact());
 
-        ArtifactMetaData artifactMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        ArtifactMetaData artifactMetaData = registryClient.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).get();
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, artifactMetaData);
 
-        assertThat(artifactMetaData.getCreatedOn().toInstant().toEpochMilli(), OrderingComparison.greaterThan(0L));
-        assertThat(artifactMetaData.getModifiedOn().toInstant().toEpochMilli(), OrderingComparison.greaterThan(0L));
+        assertThat(artifactMetaData.getCreatedOn().toInstant().toEpochMilli(),
+                OrderingComparison.greaterThan(0L));
+        assertThat(artifactMetaData.getModifiedOn().toInstant().toEpochMilli(),
+                OrderingComparison.greaterThan(0L));
         assertThat(artifactMetaData.getArtifactId(), is(artifactId));
-        assertThat(artifactMetaData.getType(), is("AVRO"));
+        assertThat(artifactMetaData.getArtifactType(), is("AVRO"));
 
         EditableArtifactMetaData emd = new EditableArtifactMetaData();
 
@@ -56,7 +60,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
             LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, amd);
 
             assertThat(amd.getArtifactId(), is(artifactId));
-            assertThat(amd.getType(), is("AVRO"));
+            assertThat(amd.getArtifactType(), is("AVRO"));
             assertThat(amd.getDescription(), is("The description of the artifact."));
             assertThat(amd.getName(), is("Artifact Updated Name"));
         });
@@ -68,37 +72,43 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactDefinition, ContentTypes.APPLICATION_JSON, null, (ca) -> {
-            ca.getFirstVersion().setName("Version 1 Name");
-        });
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactDefinition,
+                ContentTypes.APPLICATION_JSON, null, (ca) -> {
+                    ca.getFirstVersion().setName("Version 1 Name");
+                });
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact());
 
         String artifactUpdateDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}";
 
-        var metaData = createArtifactVersion(groupId, artifactId, artifactUpdateDefinition, ContentTypes.APPLICATION_JSON, null);
+        var metaData = createArtifactVersion(groupId, artifactId, artifactUpdateDefinition,
+                ContentTypes.APPLICATION_JSON, null);
         LOGGER.info("Artifact with ID {} was updated: {}", artifactId, metaData);
 
-        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("2").get());
+        retryOp((rc) -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("2").get());
 
-        VersionMetaData versionMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("2").get();
+        VersionMetaData versionMetaData = registryClient.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).versions().byVersionExpression("2").get();
 
         LOGGER.info("Got metadata of artifact with ID {}: {}", artifactId, versionMetaData);
 
         assertThat(versionMetaData.getVersion(), is("2"));
-        assertThat(versionMetaData.getType(), is("AVRO"));
+        assertThat(versionMetaData.getArtifactType(), is("AVRO"));
 
         EditableVersionMetaData emd = new EditableVersionMetaData();
         emd.setName("Version 2 Name");
         emd.setDescription("The description of the artifact.");
 
-        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("2").put(emd);
+        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("2").put(emd);
 
-        versionMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").get();
+        versionMetaData = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("1").get();
 
         LOGGER.info("Got metadata of artifact with ID {} version 1: {}", artifactId, versionMetaData);
         assertThat(versionMetaData.getVersion(), is("1"));
-        assertThat(versionMetaData.getType(), is("AVRO"));
+        assertThat(versionMetaData.getArtifactType(), is("AVRO"));
         assertThat(versionMetaData.getName(), is("Version 1 Name"));
-        assertThat(versionMetaData.getDescription(),  nullValue());
+        assertThat(versionMetaData.getDescription(), nullValue());
     }
 }

@@ -12,34 +12,14 @@ import {
 } from "@patternfly/react-core";
 import { If } from "@apicurio/common-ui-components";
 import { ArtifactLabel, LabelsFormGroup } from "@app/components";
+import { Labels } from "@sdk/lib/generated-client/models";
+import { labelsToList, listToLabels } from "@utils/labels.utils.ts";
 
 
 export type MetaData = {
     name?: string;
-    description: string;
-    labels: { [key: string]: string|undefined };
-}
-
-
-function labelsToList(labels: { [key: string]: string|undefined }): ArtifactLabel[] {
-    return Object.keys(labels).filter((key) => key !== undefined).map(key => {
-        return {
-            name: key,
-            value: labels[key],
-            nameValidated: "default",
-            valueValidated: "default"
-        };
-    });
-}
-
-function listToLabels(labels: ArtifactLabel[]): { [key: string]: string|undefined } {
-    const rval: { [key: string]: string|undefined } = {};
-    labels.forEach(label => {
-        if (label.name) {
-            rval[label.name] = label.value;
-        }
-    });
-    return rval;
+    description?: string;
+    labels?: Labels;
 }
 
 
@@ -49,8 +29,8 @@ function listToLabels(labels: ArtifactLabel[]): { [key: string]: string|undefine
 export type EditMetaDataModalProps = {
     entityType: string;
     name?: string;
-    description: string;
-    labels: { [key: string]: string|undefined };
+    description?: string;
+    labels?: Labels;
     isOpen: boolean;
     onClose: () => void;
     onEditMetaData: (metaData: MetaData) => void;
@@ -71,6 +51,15 @@ export const EditMetaDataModal: FunctionComponent<EditMetaDataModalProps> = (pro
             description,
             labels: listToLabels(labels)
         };
+        if (props.name === undefined) {
+            delete data.name;
+        }
+        if (props.description === undefined) {
+            delete data.description;
+        }
+        if (props.labels === undefined) {
+            delete data.labels;
+        }
         props.onEditMetaData(data);
     };
 
@@ -87,26 +76,30 @@ export const EditMetaDataModal: FunctionComponent<EditMetaDataModalProps> = (pro
     };
 
     const validate = (): void => {
-        const labelsClone: ArtifactLabel[] = [...labels];
-        let isValid: boolean = true;
-        if (labelsClone) {
-            const labelKeys: string[] = [];
-            labelsClone.forEach(label => {
-                label.nameValidated = "default";
-                if ((label.name === "" || label.name === undefined) && label.value !== "") {
-                    label.nameValidated = "error";
-                    isValid = false;
-                } else if (label.name !== "" && label.name !== undefined) {
-                    if (labelKeys.includes(label.name)) {
+        if (props.labels !== undefined) {
+            const labelsClone: ArtifactLabel[] = [...labels];
+            let isValid: boolean = true;
+            if (labelsClone) {
+                const labelKeys: string[] = [];
+                labelsClone.forEach(label => {
+                    label.nameValidated = "default";
+                    if ((label.name === "" || label.name === undefined) && label.value !== "") {
                         label.nameValidated = "error";
                         isValid = false;
+                    } else if (label.name !== "" && label.name !== undefined) {
+                        if (labelKeys.includes(label.name)) {
+                            label.nameValidated = "error";
+                            isValid = false;
+                        }
+                        labelKeys.push(label.name);
                     }
-                    labelKeys.push(label.name);
-                }
-            });
+                });
+            }
+            setIsValid(isValid);
+            setLabels(labels);
+        } else {
+            setIsValid(true);
         }
-        setIsValid(isValid);
-        setLabels(labels);
     };
 
     useEffect(() => {
@@ -115,9 +108,15 @@ export const EditMetaDataModal: FunctionComponent<EditMetaDataModalProps> = (pro
 
     useEffect(() => {
         if (props.isOpen) {
-            setLabels(labelsToList(props.labels));
-            setName(props.name);
-            setDescription(props.description);
+            if (props.labels !== undefined) {
+                setLabels(labelsToList(props.labels));
+            }
+            if (props.name !== undefined) {
+                setName(props.name);
+            }
+            if (props.description !== undefined) {
+                setDescription(props.description);
+            }
             setIsValid(true);
         }
     }, [props.isOpen]);
@@ -157,24 +156,29 @@ export const EditMetaDataModal: FunctionComponent<EditMetaDataModalProps> = (pro
                         </GridItem>
                     </If>
 
-                    <GridItem span={12}>
-                        <FormGroup
-                            label="Description"
-                            fieldId="form-description"
-                        >
-                            <TextArea
-                                isRequired={false}
-                                id="form-description"
-                                data-testid="edit-metadata-modal-description"
-                                name="form-description"
-                                aria-describedby="form-description-helper"
-                                value={description}
-                                placeholder={`Description of the ${props.entityType}`}
-                                onChange={onDescriptionChange}
-                            />
-                        </FormGroup>
-                    </GridItem>
-                    <LabelsFormGroup labels={labels} onChange={onLabelsChange} />
+                    <If condition={props.description !== undefined}>
+                        <GridItem span={12}>
+                            <FormGroup
+                                label="Description"
+                                fieldId="form-description"
+                            >
+                                <TextArea
+                                    isRequired={false}
+                                    id="form-description"
+                                    data-testid="edit-metadata-modal-description"
+                                    name="form-description"
+                                    aria-describedby="form-description-helper"
+                                    value={description}
+                                    placeholder={`Description of the ${props.entityType}`}
+                                    onChange={onDescriptionChange}
+                                />
+                            </FormGroup>
+                        </GridItem>
+                    </If>
+
+                    <If condition={props.labels !== undefined}>
+                        <LabelsFormGroup labels={labels} onChange={onLabelsChange} />
+                    </If>
                 </Grid>
             </Form>
         </Modal>

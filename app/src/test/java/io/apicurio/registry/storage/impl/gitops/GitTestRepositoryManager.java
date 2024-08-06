@@ -15,14 +15,10 @@ public class GitTestRepositoryManager implements QuarkusTestResourceLifecycleMan
         testRepository = new GitTestRepository();
         testRepository.initialize();
 
-        return Map.of(
-                "apicurio.gitops.id", "test",
-                "apicurio.gitops.repo.origin.uri", testRepository.getGitRepoUrl(),
-                "apicurio.gitops.repo.origin.branch", testRepository.getGitRepoBranch(),
-                "apicurio.gitops.refresh.every", "5s"
-        );
+        return Map.of("apicurio.gitops.id", "test", "apicurio.gitops.repo.origin.uri",
+                testRepository.getGitRepoUrl(), "apicurio.gitops.repo.origin.branch",
+                testRepository.getGitRepoBranch(), "apicurio.gitops.refresh.every", "5s");
     }
-
 
     @Override
     public void stop() {

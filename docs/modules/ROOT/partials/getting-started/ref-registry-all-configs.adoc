@@ -502,11 +502,6 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.rest.artifact.deletion.enabled`
-|`boolean [dynamic]`
-|`false`
-|`2.4.2-SNAPSHOT`
-|Enables artifact version deletion
 |`apicurio.rest.artifact.download.maxSize.bytes`
 |`int`
 |`1000000`
@@ -517,6 +512,21 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.2.6-SNAPSHOT`
 |Skip SSL validation when downloading artifacts from URL
+|`apicurio.rest.deletion.artifact.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.0`
+|Enables artifact deletion
+|`apicurio.rest.deletion.artifactVersion.enabled`
+|`boolean [dynamic]`
+|`false`
+|`2.4.2-SNAPSHOT`
+|Enables artifact version deletion
+|`apicurio.rest.deletion.group.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.0`
+|Enables group deletion
 |===
 
 == storage

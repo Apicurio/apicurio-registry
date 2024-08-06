@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./GroupPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
     GroupInfoTabContent,
     GroupPageHeader,
@@ -22,11 +22,9 @@ import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { GroupMetaData } from "@models/groupMetaData.model.ts";
 import { ArtifactsTabContent } from "@app/pages/group/components/tabs/ArtifactsTabContent.tsx";
 import { ApiError } from "@models/apiError.model.ts";
-import { SearchedArtifact } from "@models/searchedArtifact.model.ts";
-import { CreateArtifact } from "@models/createArtifact.model.ts";
+import { CreateArtifact, GroupMetaData, Rule, RuleType, SearchedArtifact } from "@sdk/lib/generated-client/models";
 
 
 export type GroupPageProps = {
@@ -39,7 +37,6 @@ export type GroupPageProps = {
 export const GroupPage: FunctionComponent<GroupPageProps> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
-    const [activeTabKey, setActiveTabKey] = useState("overview");
     const [group, setGroup] = useState<GroupMetaData>();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeleteArtifactModalOpen, setIsDeleteArtifactModalOpen] = useState(false);
@@ -52,11 +49,18 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
     const [isInvalidContentModalOpen, setInvalidContentModalOpen] = useState<boolean>(false);
     const [artifactToDelete, setArtifactToDelete] = useState<SearchedArtifact>();
     const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
+    const [rules, setRules] = useState<Rule[]>([]);
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
     const { groupId }= useParams();
+    const location = useLocation();
+
+    let activeTabKey: string = "overview";
+    if (location.pathname.indexOf("/artifacts") !== -1) {
+        activeTabKey = "artifacts";
+    }
 
     const createLoaders = (): Promise<any>[] => {
         logger.info("Loading data for group: ", groupId);
@@ -66,11 +70,20 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
                 .catch(error => {
                     setPageError(toPageError(error, "Error loading page data."));
                 }),
+            groups.getGroupRules(groupId as string)
+                .then(setRules)
+                .catch(error => {
+                    setPageError(toPageError(error, "Error loading page data."));
+                }),
         ];
     };
 
     const handleTabClick = (_event: any, tabIndex: any): void => {
-        setActiveTabKey(tabIndex);
+        if (tabIndex === "overview") {
+            appNavigation.navigateTo(`/explore/${groupId}`);
+        } else {
+            appNavigation.navigateTo(`/explore/${groupId}/${tabIndex}`);
+        }
     };
 
     const onDeleteGroup = (): void => {
@@ -109,14 +122,14 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
         });
     };
 
-    const doCreateArtifact = (_groupId: string|null, data: CreateArtifact): void => {
+    const doCreateArtifact = (_groupId: string | undefined, data: CreateArtifact): void => {
         // Note: the create artifact modal passes the groupId, but we don't care about that because
         // this is the group page, so we know we want to create the artifact within this group!
         onCreateArtifactModalClose();
         pleaseWait(true, "Creating artifact, please wait.");
         groups.createArtifact(group?.groupId as string, data).then(response => {
-            const groupId: string = response.artifact.groupId || "default";
-            const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact.artifactId) }`;
+            const groupId: string = response.artifact!.groupId || "default";
+            const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact!.artifactId!) }`;
             logger.info("[ExplorePage] Artifact successfully created.  Redirecting to details page: ", artifactLocation);
             appNavigation.navigateTo(artifactLocation);
         }).catch( error => {
@@ -127,6 +140,40 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
                 setPageError(toPageError(error, "Error creating artifact."));
             }
         });
+    };
+
+    const doEnableRule = (ruleType: string): void => {
+        logger.debug("[GroupPage] Enabling rule:", ruleType);
+        let config: string = "FULL";
+        if (ruleType === "COMPATIBILITY") {
+            config = "BACKWARD";
+        }
+        groups.createGroupRule(groupId as string, ruleType, config).catch(error => {
+            setPageError(toPageError(error, `Error enabling "${ ruleType }" group rule.`));
+        });
+        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
+    };
+
+    const doDisableRule = (ruleType: string): void => {
+        logger.debug("[GroupPage] Disabling rule:", ruleType);
+        groups.deleteGroupRule(groupId as string, ruleType).catch(error => {
+            setPageError(toPageError(error, `Error disabling "${ ruleType }" group rule.`));
+        });
+        setRules(rules.filter(r => r.ruleType !== ruleType));
+    };
+
+    const doConfigureRule = (ruleType: string, config: string): void => {
+        logger.debug("[GroupPage] Configuring rule:", ruleType, config);
+        groups.updateGroupRule(groupId as string, ruleType, config).catch(error => {
+            setPageError(toPageError(error, `Error configuring "${ ruleType }" group rule.`));
+        });
+        setRules(rules.map(r => {
+            if (r.ruleType === ruleType) {
+                return { config, ruleType: r.ruleType };
+            } else {
+                return r;
+            }
+        }));
     };
 
     const closeInvalidContentModal = (): void => {
@@ -173,7 +220,7 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
 
     const onViewArtifact = (artifact: SearchedArtifact): void => {
         const groupId: string = encodeURIComponent(group?.groupId || "default");
-        const artifactId: string = encodeURIComponent(artifact.artifactId);
+        const artifactId: string = encodeURIComponent(artifact.artifactId!);
         appNavigation.navigateTo(`/explore/${groupId}/${artifactId}`);
     };
 
@@ -194,7 +241,15 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
 
     const tabs: any[] = [
         <Tab data-testid="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
-            <GroupInfoTabContent group={group as GroupMetaData} onEditMetaData={() => setIsEditModalOpen(true)} onChangeOwner={() => {}} />
+            <GroupInfoTabContent
+                group={group as GroupMetaData}
+                rules={rules}
+                onEnableRule={doEnableRule}
+                onDisableRule={doDisableRule}
+                onConfigureRule={doConfigureRule}
+                onEditMetaData={() => setIsEditModalOpen(true)}
+                onChangeOwner={() => {}}
+            />
         </Tab>,
         <Tab data-testid="artifacts-tab" eventKey="artifacts" title="Artifacts" key="artifacts" tabContentId="tab-artifacts">
             <ArtifactsTabContent

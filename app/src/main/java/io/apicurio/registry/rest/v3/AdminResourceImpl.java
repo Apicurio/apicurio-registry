@@ -16,6 +16,7 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
+import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.DownloadRef;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
@@ -59,6 +60,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -71,11 +73,11 @@ import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_M
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
-import static io.apicurio.registry.util.DtoUtil.appAuthPropertyToRegistry;
-import static io.apicurio.registry.util.DtoUtil.registryAuthPropertyToApp;
+import static io.apicurio.registry.utils.DtoUtil.appAuthPropertyToRegistry;
+import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
 
 @ApplicationScoped
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class AdminResourceImpl implements AdminResource {
 
@@ -119,22 +121,18 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v3.AdminResource#listArtifactTypes()
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<ArtifactTypeInfo> listArtifactTypes() {
-        return factory
-                .getAllArtifactTypes()
-                .stream()
-                .map(t -> {
-                    ArtifactTypeInfo ati = new ArtifactTypeInfo();
-                    ati.setName(t);
-                    return ati;
-                })
-                .collect(Collectors.toList());
+        return factory.getAllArtifactTypes().stream().map(t -> {
+            ArtifactTypeInfo ati = new ArtifactTypeInfo();
+            ati.setName(t);
+            return ati;
+        }).collect(Collectors.toList());
 
     }
 
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public SnapshotMetaData triggerSnapshot() {
         storage.triggerSnapshotCreation();
         return SnapshotMetaData.builder().build();
@@ -144,24 +142,23 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v3.AdminResource#listGlobalRules()
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<RuleType> listGlobalRules() {
         List<RuleType> rules = storage.getGlobalRules();
-        List<RuleType> defaultRules = rulesProperties.getFilteredDefaultGlobalRules(rules);
-        return Stream.concat(rules.stream(), defaultRules.stream())
-            .sorted()
-            .collect(Collectors.toList());
+        Set<RuleType> defaultRules = rulesProperties.getDefaultGlobalRules();
+        return Stream.concat(rules.stream(), defaultRules.stream()).collect(Collectors.toSet()).stream()
+                .sorted().collect(Collectors.toList());
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#createGlobalRule(io.apicurio.registry.rest.v3.beans.Rule)
+     * @see io.apicurio.registry.rest.v3.AdminResource#createGlobalRule(CreateRule)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_RULE})
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public void createGlobalRule(Rule data) {
-        RuleType type = data.getType();
-        requireParameter("type", type);
+    @Audited(extractParameters = { "0", KEY_RULE })
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void createGlobalRule(CreateRule data) {
+        RuleType ruleType = data.getRuleType();
+        requireParameter("ruleType", ruleType);
 
         if (data.getConfig() == null || data.getConfig().isEmpty()) {
             throw new MissingRequiredParameterException("Config");
@@ -169,7 +166,7 @@ public class AdminResourceImpl implements AdminResource {
 
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
-        storage.createGlobalRule(data.getType(), configDto);
+        storage.createGlobalRule(data.getRuleType(), configDto);
     }
 
     /**
@@ -177,7 +174,7 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Audited
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void deleteAllGlobalRules() {
         storage.deleteGlobalRules();
     }
@@ -186,46 +183,47 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v3.AdminResource#getGlobalRuleConfig(io.apicurio.registry.types.RuleType)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public Rule getGlobalRuleConfig(RuleType rule) {
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public Rule getGlobalRuleConfig(RuleType ruleType) {
         RuleConfigurationDto dto;
         try {
-            dto = storage.getGlobalRule(rule);
+            dto = storage.getGlobalRule(ruleType);
         } catch (RuleNotFoundException ruleNotFoundException) {
             // Check if the rule exists in the default global rules
-            dto = rulesProperties.getDefaultGlobalRuleConfiguration(rule);
+            dto = rulesProperties.getDefaultGlobalRuleConfiguration(ruleType);
             if (dto == null) {
                 throw ruleNotFoundException;
             }
         }
         Rule ruleBean = new Rule();
-        ruleBean.setType(rule);
+        ruleBean.setRuleType(ruleType);
         ruleBean.setConfig(dto.getConfiguration());
         return ruleBean;
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType, io.apicurio.registry.rest.v3.beans.Rule)
+     * @see io.apicurio.registry.rest.v3.AdminResource#updateGlobalRuleConfig(io.apicurio.registry.types.RuleType,
+     *      io.apicurio.registry.rest.v3.beans.Rule)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_RULE_TYPE, "1", KEY_RULE})
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
+    @Audited(extractParameters = { "0", KEY_RULE_TYPE, "1", KEY_RULE })
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public Rule updateGlobalRuleConfig(RuleType ruleType, Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
         try {
-            storage.updateGlobalRule(rule, configDto);
+            storage.updateGlobalRule(ruleType, configDto);
         } catch (RuleNotFoundException ruleNotFoundException) {
             // This global rule doesn't exist in artifactStore - if the rule exists in the default
             // global rules, override the default by creating a new global rule
-            if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
-                storage.createGlobalRule(rule, configDto);
+            if (rulesProperties.isDefaultGlobalRuleConfigured(ruleType)) {
+                storage.createGlobalRule(ruleType, configDto);
             } else {
                 throw ruleNotFoundException;
             }
         }
         Rule ruleBean = new Rule();
-        ruleBean.setType(rule);
+        ruleBean.setRuleType(ruleType);
         ruleBean.setConfig(data.getConfig());
         return ruleBean;
     }
@@ -234,8 +232,8 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v3.AdminResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_RULE_TYPE})
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Audited(extractParameters = { "0", KEY_RULE_TYPE })
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void deleteGlobalRule(RuleType rule) {
         try {
             storage.deleteGlobalRule(rule);
@@ -256,8 +254,9 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Audited
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    public void importData(Boolean xRegistryPreserveGlobalId, Boolean xRegistryPreserveContentId, InputStream data) {
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void importData(Boolean xRegistryPreserveGlobalId, Boolean xRegistryPreserveContentId,
+            InputStream data) {
         final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
         final EntityReader reader = new EntityReader(zip);
         EntityInputStream stream = new EntityInputStream() {
@@ -276,20 +275,22 @@ public class AdminResourceImpl implements AdminResource {
                 zip.close();
             }
         };
-        this.storage.importData(stream, isNullOrTrue(xRegistryPreserveGlobalId), isNullOrTrue(xRegistryPreserveContentId));
+        this.storage.importData(stream, isNullOrTrue(xRegistryPreserveGlobalId),
+                isNullOrTrue(xRegistryPreserveContentId));
     }
 
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#exportData(java.lang.Boolean)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_FOR_BROWSER})
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Audited(extractParameters = { "0", KEY_FOR_BROWSER })
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public Response exportData(Boolean forBrowser) {
         String acceptHeader = request.getHeader("Accept");
         if (Boolean.TRUE.equals(forBrowser) || MediaType.APPLICATION_JSON.equals(acceptHeader)) {
             long expires = System.currentTimeMillis() + (downloadHrefTtl.get() * 1000);
-            DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT).expires(expires).build();
+            DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT)
+                    .expires(expires).build();
             String downloadId = storage.createDownload(downloadCtx);
             String downloadHref = createDownloadHref(downloadId);
             DownloadRef downloadRef = new DownloadRef();
@@ -305,18 +306,19 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v3.AdminResource#createRoleMapping(io.apicurio.registry.rest.v3.beans.RoleMapping)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_ROLE_MAPPING})
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Audited(extractParameters = { "0", KEY_ROLE_MAPPING })
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void createRoleMapping(RoleMapping data) {
         storage.createRoleMapping(data.getPrincipalId(), data.getRole().name(), data.getPrincipalName());
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#listRoleMappings(java.math.BigInteger, java.math.BigInteger)
+     * @see io.apicurio.registry.rest.v3.AdminResource#listRoleMappings(java.math.BigInteger,
+     *      java.math.BigInteger)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public RoleMappingSearchResults listRoleMappings(BigInteger limit, BigInteger offset) {
         if (offset == null) {
@@ -334,7 +336,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v3.AdminResource#getRoleMapping(java.lang.String)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public RoleMapping getRoleMapping(String principalId) {
         RoleMappingDto dto = storage.getRoleMapping(principalId);
@@ -342,11 +344,12 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#updateRoleMapping (java.lang.String, io.apicurio.registry.rest.v3.beans.Role)
+     * @see io.apicurio.registry.rest.v3.AdminResource#updateRoleMapping (java.lang.String,
+     *      io.apicurio.registry.rest.v3.beans.Role)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_PRINCIPAL_ID, "1", KEY_UPDATE_ROLE})
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Audited(extractParameters = { "0", KEY_PRINCIPAL_ID, "1", KEY_UPDATE_ROLE })
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void updateRoleMapping(String principalId, UpdateRole data) {
         requireParameter("principalId", principalId);
@@ -358,19 +361,18 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v3.AdminResource#deleteRoleMapping(java.lang.String)
      */
     @Override
-    @Audited(extractParameters = {"0", KEY_PRINCIPAL_ID})
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Audited(extractParameters = { "0", KEY_PRINCIPAL_ID })
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void deleteRoleMapping(String principalId) {
         storage.deleteRoleMapping(principalId);
     }
 
-
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#listConfigProperties()
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public List<ConfigurationProperty> listConfigProperties() {
         // Query the DB for the set of configured properties.
         List<DynamicConfigPropertyDto> props = storage.getConfigProperties();
@@ -379,11 +381,14 @@ public class AdminResourceImpl implements AdminResource {
         Map<String, DynamicConfigPropertyDto> propsI = new HashMap<>();
         props.forEach(dto -> propsI.put(dto.getName(), dto));
 
-        // Return value is the set of all dynamic config properties, with either configured or default values (depending
+        // Return value is the set of all dynamic config properties, with either configured or default values
+        // (depending
         // on whether the value is actually configured and stored in the DB or not).
-        return dynamicPropertyIndex.getAcceptedPropertyNames().stream()
-                .sorted(String::compareTo)
-                .map(pname -> propsI.containsKey(pname) ? V3ApiUtil.dtoToConfigurationProperty(dynamicPropertyIndex.getProperty(pname), propsI.get(pname)) : defToConfigurationProperty(dynamicPropertyIndex.getProperty(pname)))
+        return dynamicPropertyIndex.getAcceptedPropertyNames().stream().sorted(String::compareTo)
+                .map(pname -> propsI.containsKey(pname)
+                    ? V3ApiUtil.dtoToConfigurationProperty(dynamicPropertyIndex.getProperty(pname),
+                            propsI.get(pname))
+                    : defToConfigurationProperty(dynamicPropertyIndex.getProperty(pname)))
                 .collect(Collectors.toList());
     }
 
@@ -391,7 +396,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v3.AdminResource#getConfigProperty(java.lang.String)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public ConfigurationProperty getConfigProperty(String propertyName) {
         // Ensure that the property is a valid dynamic config property.
         DynamicConfigPropertyDef def = resolveConfigProperty(propertyName);
@@ -405,10 +410,11 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#updateConfigProperty(java.lang.String, io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty)
+     * @see io.apicurio.registry.rest.v3.AdminResource#updateConfigProperty(java.lang.String,
+     *      io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void updateConfigProperty(String propertyName, UpdateConfigurationProperty data) {
         DynamicConfigPropertyDef propertyDef = resolveConfigProperty(propertyName);
         validateConfigPropertyValue(propertyDef, data.getValue());
@@ -423,15 +429,14 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v3.AdminResource#resetConfigProperty(java.lang.String)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
-    @Audited(extractParameters = {"0", KEY_NAME})
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @Audited(extractParameters = { "0", KEY_NAME })
     public void resetConfigProperty(String propertyName) {
         // Check if the config property exists.
         resolveConfigProperty(propertyName);
         // Delete it in the storage.
         storage.deleteConfigProperty(propertyName);
     }
-
 
     private static boolean isNullOrTrue(Boolean value) {
         return value == null || value;
@@ -442,7 +447,8 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     private ConfigurationProperty defToConfigurationProperty(DynamicConfigPropertyDef def) {
-        String propertyValue = config.getOptionalValue(def.getName(), String.class).orElse(def.getDefaultValue());
+        String propertyValue = config.getOptionalValue(def.getName(), String.class)
+                .orElse(def.getDefaultValue());
 
         ConfigurationProperty rval = new ConfigurationProperty();
         rval.setName(appAuthPropertyToRegistry(def.getName()));
@@ -454,8 +460,9 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * Lookup the dynamic configuration property being set.  Ensure that it exists (throws
-     * a {@link io.apicurio.registry.storage.error.NotFoundException} if it does not.
+     * Lookup the dynamic configuration property being set. Ensure that it exists (throws a
+     * {@link io.apicurio.registry.storage.error.NotFoundException} if it does not.
+     * 
      * @param propertyName the name of the dynamic property
      * @return the dynamic config property definition
      */
@@ -465,7 +472,7 @@ public class AdminResourceImpl implements AdminResource {
         if (property == null) {
             propertyName = registryAuthPropertyToApp(propertyName);
         }
-        //If registry property cannot be found, try with app property
+        // If registry property cannot be found, try with app property
         property = dynamicPropertyIndex.getProperty(propertyName);
 
         if (property == null) {
@@ -479,14 +486,16 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * Ensure that the value being set on the given property is value for the property type.
-     * For example, this should fail
+     * Ensure that the value being set on the given property is value for the property type. For example, this
+     * should fail
+     * 
      * @param propertyDef the dynamic config property definition
      * @param value the config property value
      */
     private void validateConfigPropertyValue(DynamicConfigPropertyDef propertyDef, String value) {
         if (!propertyDef.isValidValue(value)) {
-            throw new InvalidPropertyValueException("Invalid dynamic configuration property value for: " + propertyDef.getName());
+            throw new InvalidPropertyValueException(
+                    "Invalid dynamic configuration property value for: " + propertyDef.getName());
         }
     }
 

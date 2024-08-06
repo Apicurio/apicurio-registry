@@ -7,14 +7,14 @@ on:
       - 'README*'
       - 'docs/**'
       - '.github/workflows/**'
-    branches: [main, '[1-9].[1-9].x']
+    branches: [ main ]
   pull_request:
     paths-ignore:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [main]
+    branches: [ main ]
 
 concurrency:
   # Only run once for latest commit per ref and cancel other (previous) runs.
@@ -82,6 +82,14 @@ jobs:
           node-version: 16
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
+
+      - name: Build and verify the typescript-sdk
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-registry-sdk
+          npm run lint
+          npm run build
 
       - name: Install UI Dependencies
         run: |
@@ -266,7 +274,7 @@ jobs:
       - name: Run UI tests
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
           echo "Starting Registry UI"
           docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:1d
 
@@ -342,7 +350,7 @@ jobs:
       - name: Run Legacy Integration Tests (Core API v2)
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8181:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
           cd registry-v2
           ./mvnw -T 1.5C -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true
           cd integration-tests

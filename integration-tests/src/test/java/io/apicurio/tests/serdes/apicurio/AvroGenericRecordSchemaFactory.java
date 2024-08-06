@@ -49,22 +49,12 @@ public class AvroGenericRecordSchemaFactory {
 
     public Schema generateSchema() {
         if (schema == null) {
-            StringBuilder builder = new StringBuilder()
-                    .append("{\"type\":\"record\"")
-                    .append(",")
-                    .append("\"name\":")
-                    .append("\"")
-                    .append(recordName)
-                    .append("\"");
+            StringBuilder builder = new StringBuilder().append("{\"type\":\"record\"").append(",")
+                    .append("\"name\":").append("\"").append(recordName).append("\"");
             if (this.namespace != null) {
-                builder.append(",")
-                    .append("\"namespace\":")
-                    .append("\"")
-                    .append(this.namespace)
-                    .append("\"");
+                builder.append(",").append("\"namespace\":").append("\"").append(this.namespace).append("\"");
             }
-            builder.append(",")
-                .append("\"fields\":[");
+            builder.append(",").append("\"fields\":[");
             boolean first = true;
             for (String schemaKey : schemaKeys) {
                 if (!first) {

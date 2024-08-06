@@ -1,10 +1,10 @@
 import React, { FunctionComponent, useState } from "react";
 import "./ConfigProperty.css";
 import { Button, Flex, FlexItem, Switch } from "@patternfly/react-core";
-import { ConfigurationProperty } from "@models/configurationProperty.model.ts";
 import { PropertyInput } from "@app/pages";
 import { If } from "@apicurio/common-ui-components";
 import { CheckIcon, CloseIcon, PencilAltIcon } from "@patternfly/react-icons";
+import { ConfigurationProperty } from "@sdk/lib/generated-client/models";
 
 /**
  * Properties
@@ -17,7 +17,7 @@ export interface ConfigPropertyProps {
 
 export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ property, onChange }: ConfigPropertyProps) => {
     const [ isEditing, setEditing ] = useState(false);
-    const [ newPropertyValue, setNewPropertyValue ] = useState(property.value);
+    const [ newPropertyValue, setNewPropertyValue ] = useState(property.value!);
     const [ isValid, setValid ] = useState(true);
 
     const onCheckboxChange = (_event: any, checked: boolean): void => {
@@ -34,7 +34,7 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ propert
     };
 
     const onCancelEdit = (): void => {
-        setNewPropertyValue(property.value);
+        setNewPropertyValue(property.value!);
         setEditing(false);
     };
 
@@ -82,8 +82,8 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ propert
                     </If>
                     <If condition={isEditing}>
                         <div className="property-editor">
-                            <PropertyInput name={ property.name }
-                                value={ property.value }
+                            <PropertyInput name={ property.name! }
+                                value={ property.value! }
                                 type={ type }
                                 onChange={ onPropertyValueChange }
                                 onValid={ onPropertyValueValid }

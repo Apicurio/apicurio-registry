@@ -20,10 +20,10 @@ package io.apicurio.registry.examples.avro.bean;
  * @author eric.wittmann@gmail.com
  */
 public class GreetingBean {
-    
+
     private String message;
     private long time;
-    
+
     /**
      * Constructor.
      */

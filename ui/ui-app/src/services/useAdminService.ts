@@ -1,171 +1,121 @@
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import { ArtifactTypeInfo } from "@models/artifactTypeInfo.model.ts";
-import { Rule } from "@models/rule.model.ts";
-import { RoleMapping } from "@models/roleMapping.model.ts";
-import { DownloadRef } from "@models/downloadRef.model.ts";
-import { ConfigurationProperty } from "@models/configurationProperty.model.ts";
-import { UpdateConfigurationProperty } from "@models/updateConfigurationProperty.model.ts";
-import {
-    createAuthOptions,
-    createEndpoint,
-    httpDelete,
-    httpGet, httpPost,
-    httpPostWithReturn, httpPut,
-    httpPutWithReturn
-} from "@utils/rest.utils.ts";
-import { RoleMappingSearchResults } from "@models/roleMappingSearchResults.model.ts";
+import { createAuthOptions, createEndpoint, getRegistryClient, httpPost } from "@utils/rest.utils.ts";
 import { Paging } from "@models/paging.model.ts";
+import {
+    ArtifactTypeInfo, ConfigurationProperty,
+    CreateRule, DownloadRef,
+    RoleMapping,
+    RoleMappingSearchResults,
+    RoleType,
+    Rule,
+    RuleType, UpdateConfigurationProperty,
+    type UpdateRole
+} from "@sdk/lib/generated-client/models";
 
 
 const getArtifactTypes = async (config: ConfigService, auth: AuthService): Promise<ArtifactTypeInfo[]> => {
     console.info("[AdminService] Getting the global list of artifactTypes.");
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/config/artifactTypes");
-    return httpGet<ArtifactTypeInfo[]>(endpoint, options);
+    return await getRegistryClient(config, auth).admin.config.artifactTypes.get().then(v => v!);
 };
 
 const getRules = async (config: ConfigService, auth: AuthService): Promise<Rule[]> => {
     console.info("[AdminService] Getting the global list of rules.");
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/rules");
-    return httpGet<string[]>(endpoint, options).then( ruleTypes => {
-        return Promise.all(ruleTypes.map(rt => getRule(config, auth, rt)));
-    });
+    const ruleTypes = (await getRegistryClient(config, auth).admin.rules.get()) as RuleType[];
+    return Promise.all(
+        ruleTypes.map(rt => getRule(config, auth, rt))
+    );
 };
 
 const getRule = async (config: ConfigService, auth: AuthService, type: string): Promise<Rule> => {
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/rules/:rule", {
-        rule: type
-    });
-    return httpGet<Rule>(endpoint, options);
+    return await getRegistryClient(config, auth).admin.rules.byRuleType(type).get() as Promise<Rule>;
 };
 
-const createRule = async (config: ConfigService, auth: AuthService, type: string, configValue: string): Promise<Rule> => {
-    console.info("[AdminService] Creating global rule:", type);
-
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/rules");
-    const body: Rule = {
+const createRule = async (config: ConfigService, auth: AuthService, ruleType: string, configValue: string): Promise<Rule> => {
+    console.info("[AdminService] Creating global rule:", ruleType);
+    const body: CreateRule = {
         config: configValue,
-        type
+        ruleType: ruleType as RuleType
     };
-    return httpPostWithReturn(endpoint, body, options);
+    return getRegistryClient(config, auth).admin.rules.post(body).then(() => body);
 };
 
-const updateRule = async (config: ConfigService, auth: AuthService, type: string, configValue: string): Promise<Rule|null> => {
-    console.info("[AdminService] Updating global rule:", type);
-
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/rules/:rule", {
-        "rule": type
-    });
-    const body: Rule = { config: configValue, type };
-    return httpPutWithReturn<Rule, Rule>(endpoint, body, options);
+const updateRule = async (config: ConfigService, auth: AuthService, ruleType: string, configValue: string): Promise<Rule|null> => {
+    console.info("[AdminService] Updating global rule:", ruleType);
+    const rule: Rule = {
+        config: configValue,
+        ruleType: ruleType as RuleType
+    };
+    return getRegistryClient(config, auth).admin.rules.byRuleType(ruleType).put(rule).then(v => v!);
 };
 
-const deleteRule = async (config: ConfigService, auth: AuthService, type: string): Promise<null> => {
-    console.info("[AdminService] Deleting global rule:", type);
+const deleteRule = async (config: ConfigService, auth: AuthService, ruleType: string): Promise<null> => {
+    console.info("[AdminService] Deleting global rule:", ruleType);
 
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/rules/:rule", {
-        "rule": type
-    });
-    return httpDelete(endpoint, options);
+    return getRegistryClient(config, auth).admin.rules.byRuleType(ruleType).delete().then(() => null);
 };
 
 const getRoleMappings = async (config: ConfigService, auth: AuthService, paging: Paging): Promise<RoleMappingSearchResults> => {
     console.info("[AdminService] Getting the list of role mappings.");
     const start: number = (paging.page - 1) * paging.pageSize;
     const end: number = start + paging.pageSize;
-    const queryParams: any = {
-        limit: end,
-        offset: start
-    };
-
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings", {}, queryParams);
-    return httpGet<RoleMappingSearchResults>(endpoint, options);
+    return getRegistryClient(config, auth).admin.roleMappings.get({
+        queryParameters: {
+            limit: end,
+            offset: start
+        }
+    }).then(v => v!);
 };
 
 const getRoleMapping = async (config: ConfigService, auth: AuthService, principalId: string): Promise<RoleMapping> => {
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings/:principalId", {
-        principalId
-    });
-    return httpGet<RoleMapping>(endpoint, options);
+    return getRegistryClient(config, auth).admin.roleMappings.byPrincipalId(principalId).get().then(v => v!);
 };
 
 const createRoleMapping = async (config: ConfigService, auth: AuthService, principalId: string, role: string, principalName: string): Promise<RoleMapping> => {
     console.info("[AdminService] Creating a role mapping:", principalId, role, principalName);
-
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings");
-    const body: RoleMapping = { principalId, role, principalName };
-    return httpPost(endpoint, body, options).then(() => {
-        return body;
-    });
+    const body: RoleMapping = {
+        principalId,
+        role: role as RoleType,
+        principalName
+    };
+    return getRegistryClient(config, auth).admin.roleMappings.post(body).then(v => v!);
 };
 
 const updateRoleMapping = async (config: ConfigService, auth: AuthService, principalId: string, role: string): Promise<RoleMapping> => {
     console.info("[AdminService] Updating role mapping:", principalId, role);
-
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings/:principalId", {
-        principalId
-    });
-    const body: any = { role };
-    return httpPut<any>(endpoint, body, options).then(() => {
-        return { principalId, role, principalName: principalId };
-    });
+    const body: UpdateRole = {
+        role: role as RoleType
+    };
+    return getRegistryClient(config, auth).admin.roleMappings.byPrincipalId(principalId).put(body).then(v => v!);
 };
 
 const deleteRoleMapping = async (config: ConfigService, auth: AuthService, principalId: string): Promise<null> => {
     console.info("[AdminService] Deleting role mapping for:", principalId);
-
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/roleMappings/:principalId", {
-        principalId
-    });
-    return httpDelete(endpoint, options);
+    return getRegistryClient(config, auth).admin.roleMappings.byPrincipalId(principalId).delete().then(() => null);
 };
 
 const exportAs = async (config: ConfigService, auth: AuthService, filename: string): Promise<DownloadRef> => {
     const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    options.headers = {
-        ...options.headers,
-        "Accept": "application/zip"
-    };
-
-    const endpoint: string = createEndpoint(baseHref, "/admin/export", {}, {
-        forBrowser: true
-    });
-    return httpGet<DownloadRef>(endpoint, options).then(ref => {
-        if (ref.href.startsWith("/apis/registry/v2")) {
+    return getRegistryClient(config, auth).admin.exportEscaped.get({
+        headers: {
+            "Accept": "application/zip"
+        },
+        queryParameters: {
+            forBrowser: true
+        }
+    }).then(ref => {
+        if (ref?.href?.startsWith("/apis/registry/v2")) {
             ref.href = ref.href.replace("/apis/registry/v2", baseHref);
             ref.href = ref.href + "/" + filename;
-        } else if (ref.href.startsWith("/apis/registry/v3")) {
+        } else if (ref?.href?.startsWith("/apis/registry/v3")) {
             ref.href = ref.href.replace("/apis/registry/v3", baseHref);
             ref.href = ref.href + "/" + filename;
         }
-
-        return ref;
+        return ref!;
     });
 };
 
+// TODO convert to using the SDK?
 const importFrom = async (config: ConfigService, auth: AuthService, file: string | File, progressFunction: (progressEvent: any) => void): Promise<void> => {
     const baseHref: string = config.artifactsUrl();
     const options = await createAuthOptions(auth);
@@ -179,43 +129,30 @@ const importFrom = async (config: ConfigService, auth: AuthService, file: string
 
 const listConfigurationProperties = async (config: ConfigService, auth: AuthService): Promise<ConfigurationProperty[]> => {
     console.info("[AdminService] Getting the dynamic config properties.");
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/config/properties");
-    return httpGet<ConfigurationProperty[]>(endpoint, options);
+    return getRegistryClient(config, auth).admin.config.properties.get().then(v => v!);
 };
 
 const setConfigurationProperty = async (config: ConfigService, auth: AuthService, propertyName: string, newValue: string): Promise<void> => {
     console.info("[AdminService] Setting a config property: ", propertyName);
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/config/properties/:propertyName", {
-        propertyName
-    });
     const body: UpdateConfigurationProperty = {
         value: newValue
     };
-    return httpPut<UpdateConfigurationProperty>(endpoint, body, options);
+    return getRegistryClient(config, auth).admin.config.properties.byPropertyName(propertyName).put(body);
 };
 
 const resetConfigurationProperty = async (config: ConfigService, auth: AuthService, propertyName: string): Promise<void> => {
     console.info("[AdminService] Resetting a config property: ", propertyName);
-    const baseHref: string = config.artifactsUrl();
-    const options = await createAuthOptions(auth);
-    const endpoint: string = createEndpoint(baseHref, "/admin/config/properties/:propertyName", {
-        propertyName
-    });
-    return httpDelete(endpoint, options);
+    return getRegistryClient(config, auth).admin.config.properties.byPropertyName(propertyName).delete();
 };
 
 
 export interface AdminService {
     getArtifactTypes(): Promise<ArtifactTypeInfo[]>;
     getRules(): Promise<Rule[]>;
-    getRule(type: string): Promise<Rule>;
-    createRule(type: string, config: string): Promise<Rule>;
-    updateRule(type: string, config: string): Promise<Rule|null>;
-    deleteRule(type: string): Promise<null>;
+    getRule(ruleType: string): Promise<Rule>;
+    createRule(ruleType: string, config: string): Promise<Rule>;
+    updateRule(ruleType: string, config: string): Promise<Rule|null>;
+    deleteRule(ruleType: string): Promise<null>;
     getRoleMappings(paging: Paging): Promise<RoleMappingSearchResults>;
     getRoleMapping(principalId: string): Promise<RoleMapping>;
     createRoleMapping(principalId: string, role: string, principalName: string): Promise<RoleMapping>;
@@ -240,17 +177,17 @@ export const useAdminService: () => AdminService = (): AdminService => {
         getRules(): Promise<Rule[]> {
             return getRules(config, auth);
         },
-        getRule(type: string): Promise<Rule> {
-            return getRule(config, auth, type);
+        getRule(ruleType: string): Promise<Rule> {
+            return getRule(config, auth, ruleType);
         },
-        createRule(type: string, configValue: string): Promise<Rule> {
-            return createRule(config, auth, type, configValue);
+        createRule(ruleType: string, configValue: string): Promise<Rule> {
+            return createRule(config, auth, ruleType, configValue);
         },
-        updateRule(type: string, configValue: string): Promise<Rule|null> {
-            return updateRule(config, auth, type, configValue);
+        updateRule(ruleType: string, configValue: string): Promise<Rule|null> {
+            return updateRule(config, auth, ruleType, configValue);
         },
-        deleteRule(type: string): Promise<null> {
-            return deleteRule(config, auth, type);
+        deleteRule(ruleType: string): Promise<null> {
+            return deleteRule(config, auth, ruleType);
         },
         getRoleMappings(paging: Paging): Promise<RoleMappingSearchResults> {
             return getRoleMappings(config, auth, paging);

@@ -5,7 +5,8 @@ import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.serde.strategy.ArtifactReference;
 
 /**
- * This class is deprecated and eventually will be replaced by {@link io.apicurio.registry.resolver.SchemaLookupResult}
+ * This class is deprecated and eventually will be replaced by
+ * {@link io.apicurio.registry.resolver.SchemaLookupResult}
  */
 @Deprecated
 public class SchemaLookupResult<T> {
@@ -21,7 +22,7 @@ public class SchemaLookupResult<T> {
     private String version;
 
     private SchemaLookupResult() {
-        //empty initialize manually
+        // empty initialize manually
     }
 
     /**
@@ -81,35 +82,23 @@ public class SchemaLookupResult<T> {
     }
 
     public ArtifactReference toArtifactReference() {
-        return ArtifactReference.builder()
-                .globalId(this.getGlobalId())
-                .contentId(this.getContentId())
-                .contentHash(this.getContentHash())
-                .groupId(this.getGroupId())
-                .artifactId(this.getArtifactId())
-                .version(this.getVersion())
-                .build();
+        return ArtifactReference.builder().globalId(this.getGlobalId()).contentId(this.getContentId())
+                .contentHash(this.getContentHash()).groupId(this.getGroupId())
+                .artifactId(this.getArtifactId()).version(this.getVersion()).build();
     }
 
     public ArtifactCoordinates toArtifactCoordinates() {
-        return ArtifactCoordinates.builder()
-                .groupId(this.getGroupId())
-                .artifactId(this.getArtifactId())
-                .version(this.getVersion())
-                .build();
+        return ArtifactCoordinates.builder().groupId(this.getGroupId()).artifactId(this.getArtifactId())
+                .version(this.getVersion()).build();
     }
 
     @SuppressWarnings("rawtypes")
     public io.apicurio.registry.resolver.SchemaLookupResult toCompat() {
-        return io.apicurio.registry.resolver.SchemaLookupResult.builder()
-            .contentId(contentId)
-            .contentHash(contentHash)
-            .globalId(globalId)
-            .groupId(groupId)
-            .artifactId(artifactId)
-            .version(version)
-            .parsedSchema(new ParsedSchemaImpl<>().setParsedSchema(schema).setRawSchema(rawSchema))
-            .build();
+        return io.apicurio.registry.resolver.SchemaLookupResult.builder().contentId(contentId)
+                .contentHash(contentHash).globalId(globalId).groupId(groupId).artifactId(artifactId)
+                .version(version)
+                .parsedSchema(new ParsedSchemaImpl<>().setParsedSchema(schema).setRawSchema(rawSchema))
+                .build();
     }
 
     public static <T> SchemaLookupResultBuilder<T> builder() {

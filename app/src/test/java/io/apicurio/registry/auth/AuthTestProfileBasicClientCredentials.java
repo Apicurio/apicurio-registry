@@ -6,8 +6,8 @@ import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -42,13 +42,16 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
+
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var exception = Assertions.assertThrows(Exception.class, () -> {
@@ -59,7 +62,8 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
 
     @Test
     public void testBasicAuthClientCredentials() throws Exception {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -67,7 +71,7 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
             client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
 
             CreateArtifact createArtifact = new CreateArtifact();
-            createArtifact.setType(ArtifactType.JSON);
+            createArtifact.setArtifactType(ArtifactType.JSON);
             createArtifact.setArtifactId(artifactId);
             CreateVersion createVersion = new CreateVersion();
             createArtifact.setFirstVersion(createVersion);
@@ -76,28 +80,18 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
             versionContent.setContent("{}");
             versionContent.setContentType(ContentTypes.APPLICATION_JSON);
 
-            client
-                    .groups()
-                    .byGroupId(groupId)
-                    .artifacts()
-                    .post(createArtifact);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-            TestUtils.retry(() ->
-                    client
-                            .groups()
-                            .byGroupId(groupId)
-                            .artifacts()
-                            .byArtifactId(artifactId)
-                            .get()
-                            );
+            TestUtils.retry(
+                    () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
             assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            Rule ruleConfig = new Rule();
-            ruleConfig.setType(RuleType.VALIDITY);
-            ruleConfig.setConfig(ValidityLevel.NONE.name());
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig(ValidityLevel.NONE.name());
 
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
-            client.admin().rules().post(ruleConfig);
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
+            client.admin().rules().post(createRule);
         } finally {
             client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
         }

@@ -8,10 +8,11 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import java.util.Random;
 import java.util.UUID;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
@@ -22,7 +23,6 @@ public class ExampleRunner {
 
     private static final Logger log = LoggerFactory.getLogger(ExampleRunner.class);
 
-
     @Getter
     @Setter
     private boolean isEnabled;
@@ -30,14 +30,11 @@ public class ExampleRunner {
     @Inject
     Database database;
 
-
     @Scheduled(every = "5s", concurrentExecution = SKIP)
     public void run() {
         if (isEnabled) {
-            var product = Product.builder()
-                    .name("name-" + UUID.randomUUID())
-                    .description("description-" + UUID.randomUUID())
-                    .weight(RANDOM.nextFloat() * 100 + 1)
+            var product = Product.builder().name("name-" + UUID.randomUUID())
+                    .description("description-" + UUID.randomUUID()).weight(RANDOM.nextFloat() * 100 + 1)
                     .build();
             log.info("Inserting: {}", product);
             product.setId(database.insertProduct(product));

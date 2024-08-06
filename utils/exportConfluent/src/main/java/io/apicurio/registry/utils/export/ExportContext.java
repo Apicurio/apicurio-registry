@@ -16,7 +16,8 @@ public class ExportContext {
     private final List<SubjectVersionPair> exportedSubjectVersions = new ArrayList<>();
     private final Map<String, Long> contentIndex = new HashMap<>();
 
-    public ExportContext(EntityWriter writer, RestService restService, SchemaRegistryClient schemaRegistryClient) {
+    public ExportContext(EntityWriter writer, RestService restService,
+            SchemaRegistryClient schemaRegistryClient) {
         this.writer = writer;
         this.restService = restService;
         this.schemaRegistryClient = schemaRegistryClient;

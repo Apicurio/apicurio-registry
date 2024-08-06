@@ -9,9 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Exception thrown when a configured rule is violated, rejecting an artifact content
- * update.
- *
+ * Exception thrown when a configured rule is violated, rejecting an artifact content update.
  */
 public class RuleViolationException extends RegistryException {
 
@@ -34,7 +32,8 @@ public class RuleViolationException extends RegistryException {
      * @param ruleConfiguration
      * @param cause
      */
-    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Throwable cause) {
+    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration,
+            Throwable cause) {
         super(message, cause);
         this.ruleType = ruleType;
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
@@ -49,7 +48,8 @@ public class RuleViolationException extends RegistryException {
      * @param ruleConfiguration
      * @param causes
      */
-    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration, Set<RuleViolation> causes) {
+    public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration,
+            Set<RuleViolation> causes) {
         super(message);
         this.ruleType = ruleType;
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
@@ -66,7 +66,7 @@ public class RuleViolationException extends RegistryException {
      * @param cause
      */
     public RuleViolationException(String message, RuleType ruleType, String ruleConfiguration,
-                                  Set<RuleViolation> causes, Throwable cause) {
+            Set<RuleViolation> causes, Throwable cause) {
         super(message, cause);
         this.ruleType = ruleType;
         this.ruleConfiguration = Optional.ofNullable(ruleConfiguration);
@@ -75,9 +75,8 @@ public class RuleViolationException extends RegistryException {
 
     @Override
     public String getMessage() {
-        return super.getMessage() + causes.stream()
-                .map(rv -> rv.getDescription() + (rv.getContext() != null && !rv.getContext().isBlank() ? " at " + rv.getContext() : ""))
-                .reduce((left, right) -> left + ", " + right)
-                .map(s -> " Causes: " + s).orElse("");
+        return super.getMessage() + causes.stream().map(rv -> rv.getDescription()
+                + (rv.getContext() != null && !rv.getContext().isBlank() ? " at " + rv.getContext() : ""))
+                .reduce((left, right) -> left + ", " + right).map(s -> " Causes: " + s).orElse("");
     }
 }

@@ -5,8 +5,8 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
-import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.UserInfo;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
@@ -50,28 +50,31 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public static final String READONLY_USERNAME = "duncan";
     public static final String READONLY_PASSWORD = "duncan";
 
-
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter =new VertXRequestAdapter(buildSimpleAuthWebClient(ADMIN_USERNAME, ADMIN_PASSWORD));
+        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(ADMIN_USERNAME, ADMIN_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
 
     private static final CreateArtifact createArtifact;
     static {
-        createArtifact = TestUtils.clientCreateArtifact(AuthTestLocalRoles.class.getSimpleName(), ArtifactType.JSON, ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
+        createArtifact = TestUtils.clientCreateArtifact(AuthTestLocalRoles.class.getSimpleName(),
+                ArtifactType.JSON, ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
     }
 
     protected void assertArtifactNotFound(Exception exception) {
         Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, exception.getClass());
-        Assertions.assertEquals("ArtifactNotFoundException", ((io.apicurio.registry.rest.client.models.Error)exception).getName());
-        Assertions.assertEquals(404, ((io.apicurio.registry.rest.client.models.Error)exception).getErrorCode());
+        Assertions.assertEquals("ArtifactNotFoundException",
+                ((io.apicurio.registry.rest.client.models.Error) exception).getName());
+        Assertions.assertEquals(404,
+                ((io.apicurio.registry.rest.client.models.Error) exception).getErrorCode());
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var exception = Assertions.assertThrows(ApiException.class, () -> {
@@ -102,13 +105,16 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         });
         assertForbidden(exception3);
 
-        var devAdapter = new VertXRequestAdapter(buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var devAdapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient devClient = new RegistryClient(devAdapter);
 
-        VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
+        VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact)
+                .getVersion();
 
-        TestUtils.retry(() -> devClient.groups().byGroupId(groupId).artifacts().byArtifactId(meta.getArtifactId()).get());
+        TestUtils.retry(() -> devClient.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(meta.getArtifactId()).get());
 
         assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
@@ -122,7 +128,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testDevRole() throws Exception {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -131,17 +138,19 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
-            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
+            TestUtils.retry(
+                    () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
+            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
-            Rule ruleConfig = new Rule();
-            ruleConfig.setType(RuleType.VALIDITY);
-            ruleConfig.setConfig(ValidityLevel.NONE.name());
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig(ValidityLevel.NONE.name());
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
             var exception = Assertions.assertThrows(Exception.class, () -> {
-                client.admin().rules().post(ruleConfig);
+                client.admin().rules().post(createRule);
             });
             assertForbidden(exception);
 
@@ -167,16 +176,18 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
-            TestUtils.retry(() -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
+            TestUtils.retry(
+                    () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
 
-            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
+            assertTrue(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
 
-            Rule ruleConfig = new Rule();
-            ruleConfig.setType(RuleType.VALIDITY);
-            ruleConfig.setConfig(ValidityLevel.NONE.name());
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig(ValidityLevel.NONE.name());
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
-            client.admin().rules().post(ruleConfig);
+            client.admin().rules().post(createRule);
 
             UserInfo userInfo = client.users().me().get();
             assertNotNull(userInfo);
@@ -191,7 +202,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
-        var devAdapter = new VertXRequestAdapter(buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var devAdapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientDev = new RegistryClient(devAdapter);
 
@@ -215,53 +227,56 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         // But the admin user CAN make the change.
         clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(updatedMetaData);
 
-
         // Now the Dev user will create an artifact
         String artifactId2 = TestUtils.generateArtifactId();
         createArtifact.setArtifactId(artifactId2);
         clientDev.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // And the Admin user will modify it (allowed because it's the Admin user)
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig(CompatibilityLevel.BACKWARD.name());
-        clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).rules()
+                .post(createRule);
     }
 
     @Test
     public void testGetArtifactOwner() throws Exception {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
-        //Preparation
+        // Preparation
         final String groupId = "testGetArtifactOwner";
         final String artifactId = generateArtifactId();
         final String version = "1";
 
-        //Execution
+        // Execution
         createArtifact.setArtifactId(artifactId);
-        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
+        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact)
+                .getVersion();
 
-        //Assertions
+        // Assertions
         assertNotNull(created);
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getArtifactId());
         assertEquals(version, created.getVersion());
         assertEquals(DEVELOPER_USERNAME, created.getOwner());
 
-        //Get the artifact owner via the REST API and verify it
+        // Get the artifact owner via the REST API and verify it
         ArtifactMetaData amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals(DEVELOPER_USERNAME, amd.getOwner());
     }
 
     @Test
     public void testUpdateArtifactOwner() throws Exception {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
-        //Preparation
+        // Preparation
         final String groupId = "testUpdateArtifactOwner";
         final String artifactId = generateArtifactId();
 
@@ -269,46 +284,49 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         final String name = "testUpdateArtifactOwnerName";
         final String description = "testUpdateArtifactOwnerDescription";
 
-        //Execution
+        // Execution
         createArtifact.setArtifactId(artifactId);
         createArtifact.getFirstVersion().setVersion(version);
         createArtifact.getFirstVersion().setName(name);
         createArtifact.getFirstVersion().setDescription(description);
         createArtifact.setName(name);
         createArtifact.setDescription(description);
-        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
+        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact)
+                .getVersion();
 
-        //Assertions
+        // Assertions
         assertNotNull(created);
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getArtifactId());
         assertEquals(version, created.getVersion());
         assertEquals(DEVELOPER_USERNAME, created.getOwner());
 
-        //Get the artifact owner via the REST API and verify it
+        // Get the artifact owner via the REST API and verify it
         ArtifactMetaData amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals(DEVELOPER_USERNAME, amd.getOwner());
 
-        //Update the owner
+        // Update the owner
         EditableArtifactMetaData eamd = new EditableArtifactMetaData();
         eamd.setOwner(DEVELOPER_2_USERNAME);
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd);
 
-        //Check that the update worked
+        // Check that the update worked
         amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals(DEVELOPER_2_USERNAME, amd.getOwner());
     }
 
     @Test
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
-        var adapter_dev1 = new VertXRequestAdapter(buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var adapter_dev1 = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter_dev1.setBaseUrl(registryV3ApiUrl);
         RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
-        var adapter_dev2 = new VertXRequestAdapter(buildSimpleAuthWebClient(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
+        var adapter_dev2 = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
         adapter_dev2.setBaseUrl(registryV3ApiUrl);
         RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
 
-        //Preparation
+        // Preparation
         final String groupId = "testUpdateArtifactOwnerOnlyByOwner";
         final String artifactId = generateArtifactId();
 
@@ -316,27 +334,29 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         final String name = "testUpdateArtifactOwnerOnlyByOwnerName";
         final String description = "testUpdateArtifactOwnerOnlyByOwnerDescription";
 
-        //Execution
+        // Execution
         createArtifact.setArtifactId(artifactId);
         createArtifact.getFirstVersion().setVersion(version);
         createArtifact.getFirstVersion().setName(name);
         createArtifact.getFirstVersion().setDescription(description);
         createArtifact.setName(name);
         createArtifact.setDescription(description);
-        final VersionMetaData created = client_dev1.groups().byGroupId(groupId).artifacts().post(createArtifact).getVersion();
+        final VersionMetaData created = client_dev1.groups().byGroupId(groupId).artifacts()
+                .post(createArtifact).getVersion();
 
-        //Assertions
+        // Assertions
         assertNotNull(created);
         assertEquals(groupId, created.getGroupId());
         assertEquals(artifactId, created.getArtifactId());
         assertEquals(version, created.getVersion());
         assertEquals(DEVELOPER_USERNAME, created.getOwner());
 
-        //Get the artifact owner via the REST API and verify it
-        ArtifactMetaData amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        // Get the artifact owner via the REST API and verify it
+        ArtifactMetaData amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .get();
         assertEquals(DEVELOPER_USERNAME, amd.getOwner());
 
-        //Try to update the owner by dev2 (should fail)
+        // Try to update the owner by dev2 (should fail)
         var exception1 = assertThrows(Exception.class, () -> {
             EditableArtifactMetaData eamd = new EditableArtifactMetaData();
             eamd.setOwner(DEVELOPER_2_USERNAME);
@@ -344,7 +364,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         });
         assertForbidden(exception1);
 
-        //Should still be the original owner
+        // Should still be the original owner
         amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals(DEVELOPER_USERNAME, amd.getOwner());
     }

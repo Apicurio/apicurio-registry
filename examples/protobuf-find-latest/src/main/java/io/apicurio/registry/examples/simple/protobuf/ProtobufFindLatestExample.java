@@ -49,21 +49,21 @@ import java.util.Collections;
 import java.util.Properties;
 
 /**
- * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe
- * scenario with Protobuf as the serialization type.  The following aspects are demonstrated:
- *
+ * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe scenario with
+ * Protobuf as the serialization type. The following aspects are demonstrated:
  * <ol>
- *   <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
- *   <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
- *   <li>Manually registering the Protobuf schema in the registry (registered using the RegistryClient before running the producer/consumer), this would be equivalent to using the maven plugin or a custom CI/CD process</li>
- *   <li>Data sent as a custom java bean and received as the same java bean</li>
+ * <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
+ * <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
+ * <li>Manually registering the Protobuf schema in the registry (registered using the RegistryClient before
+ * running the producer/consumer), this would be equivalent to using the maven plugin or a custom CI/CD
+ * process</li>
+ * <li>Data sent as a custom java bean and received as the same java bean</li>
  * </ol>
  * <p>
  * Pre-requisites:
- *
  * <ul>
- *   <li>Kafka must be running on localhost:9092</li>
- *   <li>Apicurio Registry must be running on localhost:8080</li>
+ * <li>Kafka must be running on localhost:9092</li>
+ * <li>Apicurio Registry must be running on localhost:8080</li>
  * </ul>
  *
  * @author eric.wittmann@gmail.com
@@ -76,25 +76,25 @@ public class ProtobufFindLatestExample {
     private static final String TOPIC_NAME = ProtobufFindLatestExample.class.getSimpleName();
     private static final String SCHEMA_NAME = "AddressBook";
 
-
     public static final void main(String[] args) throws Exception {
         System.out.println("Starting example " + ProtobufFindLatestExample.class.getSimpleName());
         String topicName = TOPIC_NAME;
         String key = SCHEMA_NAME;
 
-
         VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
         System.out.println("Manually creating the artifact in Apicurio Registry");
-        //because the default ArtifactResolverStrategy is TopicIdStrategy the artifactId is in the form of topicName-value
+        // because the default ArtifactResolverStrategy is TopicIdStrategy the artifactId is in the form of
+        // topicName-value
 
         String artifactId = topicName + "-value";
-        InputStream protofile = Thread.currentThread().getContextClassLoader().getResourceAsStream("person.proto");
+        InputStream protofile = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream("person.proto");
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setType(ArtifactType.PROTOBUF);
+        createArtifact.setArtifactType(ArtifactType.PROTOBUF);
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(protofile));
@@ -114,20 +114,13 @@ public class ProtobufFindLatestExample {
             for (int idx = 0; idx < 2; idx++) {
 
                 AddressBookProtos.AddressBook book = AddressBook.newBuilder()
-                        .addPeople(Person.newBuilder()
-                                .setEmail("aa@bb.com")
-                                .setId(1)
-                                .setName("aa")
-                                .build())
-                        .addPeople(Person.newBuilder()
-                                .setEmail("bb@bb.com")
-                                .setId(2)
-                                .setName("bb")
-                                .build())
+                        .addPeople(Person.newBuilder().setEmail("aa@bb.com").setId(1).setName("aa").build())
+                        .addPeople(Person.newBuilder().setEmail("bb@bb.com").setId(2).setName("bb").build())
                         .build();
 
                 // Send/produce the message on the Kafka Producer
-                ProducerRecord<Object, AddressBook> producedRecord = new ProducerRecord<>(topicName, key, book);
+                ProducerRecord<Object, AddressBook> producedRecord = new ProducerRecord<>(topicName, key,
+                        book);
                 producer.send(producedRecord);
 
                 Thread.sleep(100);
@@ -157,10 +150,12 @@ public class ProtobufFindLatestExample {
                 if (records.count() == 0) {
                     // Do nothing - no messages waiting.
                     System.out.println("No messages waiting...");
-                } else records.forEach(record -> {
-                    AddressBook value = record.value();
-                    System.out.println("Consumed a message: People count in AddressBook " + value.getPeopleCount());
-                });
+                } else
+                    records.forEach(record -> {
+                        AddressBook value = record.value();
+                        System.out.println(
+                                "Consumed a message: People count in AddressBook " + value.getPeopleCount());
+                    });
             }
         } finally {
             consumer.close();
@@ -181,7 +176,8 @@ public class ProtobufFindLatestExample {
         props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
         props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         // Use the Apicurio Registry provided Kafka Serializer for Protobuf
-        props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ProtobufKafkaSerializer.class.getName());
+        props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                ProtobufKafkaSerializer.class.getName());
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
@@ -190,7 +186,7 @@ public class ProtobufFindLatestExample {
         // Find and use the latest artifact in the registry for the corresponding GroupId and ArtifactId
         props.putIfAbsent(SerdeConfig.FIND_LATEST_ARTIFACT, Boolean.TRUE);
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka producer
@@ -212,18 +208,19 @@ public class ProtobufFindLatestExample {
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         // Use the Apicurio Registry provided Kafka Deserializer for Protobuf
-        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ProtobufKafkaDeserializer.class.getName());
+        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                ProtobufKafkaDeserializer.class.getName());
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
         // No other configuration needed for the deserializer, because the globalId of the schema
-        // the deserializer should use is sent as part of the payload.  So the deserializer simply
+        // the deserializer should use is sent as part of the payload. So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.
 
         // the serializer also puts information about the AddressBook java class in the kafka record headers
         // with this the deserializer can automatically return that same java class.
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka Consumer
@@ -242,13 +239,16 @@ public class ProtobufFindLatestExample {
             props.putIfAbsent(SerdeConfig.AUTH_CLIENT_ID, authClient);
             props.putIfAbsent(SerdeConfig.AUTH_TOKEN_ENDPOINT, tokenEndpoint);
             props.putIfAbsent(SaslConfigs.SASL_MECHANISM, "OAUTHBEARER");
-            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
+            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
+                    "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
             props.putIfAbsent("security.protocol", "SASL_SSL");
 
-            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                    "  oauth.client.id=\"%s\" " +
-                    "  oauth.client.secret=\"%s\" " +
-                    "  oauth.token.endpoint.uri=\"%s\" ;", authClient, authSecret, tokenEndpoint));
+            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG,
+                    String.format(
+                            "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
+                                    + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
+                                    + "  oauth.token.endpoint.uri=\"%s\" ;",
+                            authClient, authSecret, tokenEndpoint));
         }
     }
 }

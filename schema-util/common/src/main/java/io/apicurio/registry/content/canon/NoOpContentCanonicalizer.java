@@ -1,6 +1,6 @@
 package io.apicurio.registry.content.canon;
 
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 
 import java.util.Map;
 
@@ -8,12 +8,12 @@ import java.util.Map;
  * A canonicalizer that passes through the content unchanged.
  */
 public class NoOpContentCanonicalizer implements ContentCanonicalizer {
-    
+
     /**
-     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.ContentHandle, Map)
+     * @see ContentCanonicalizer#canonicalize(TypedContent, Map)
      */
     @Override
-    public ContentHandle canonicalize(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
+    public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         return content;
     }
 

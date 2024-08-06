@@ -7,14 +7,14 @@ on:
       - 'README*'
       - 'docs/**'
       - '.github/workflows/**'
-    branches: [ main, '[1-9].[0-9].x' ]
+    branches: [ main ]
   pull_request:
     paths-ignore:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [ main, '[1-9].[0-9].x' ]
+    branches: [ main ]
 
 concurrency:
   # Only run once for latest commit per ref and cancel other (previous) runs.
@@ -56,9 +56,6 @@ jobs:
           echo "Status:    ${{ steps.buildx.outputs.status }}"
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
-
-      - name: Install tools
-        run: .github/scripts/install-tools.sh
 
       - name: Run linter
         run: ./scripts/validate-files.sh
@@ -115,7 +112,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
       
@@ -138,6 +135,14 @@ jobs:
           echo "Status:    ${{ steps.buildx.outputs.status }}"
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+
+      - name: Build and verify the typescript-sdk
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-registry-sdk
+          npm run lint
+          npm run build
 
       - name: Install Dependencies
         run: |

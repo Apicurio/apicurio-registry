@@ -39,6 +39,7 @@ public class TimeoutBudget {
 
     /**
      * Get the remaining time of the budget.
+     * 
      * @return The remaining time.
      */
     public Duration remaining() {

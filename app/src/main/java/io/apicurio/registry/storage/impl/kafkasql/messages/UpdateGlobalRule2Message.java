@@ -17,12 +17,12 @@ import lombok.ToString;
 @Builder
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper=false)
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class UpdateGlobalRule2Message extends AbstractMessage {
     private RuleType rule;
     private RuleConfigurationDto config;
-    
+
     /**
      * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(io.apicurio.registry.storage.RegistryStorage)
      */

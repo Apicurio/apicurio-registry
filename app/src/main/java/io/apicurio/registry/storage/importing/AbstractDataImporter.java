@@ -21,6 +21,9 @@ public abstract class AbstractDataImporter implements DataImporter {
             case ArtifactRule:
                 importArtifactRule((ArtifactRuleEntity) entity);
                 break;
+            case Artifact:
+                importArtifact((ArtifactEntity) entity);
+                break;
             case ArtifactVersion:
                 importArtifactVersion((ArtifactVersionEntity) entity);
                 break;
@@ -36,8 +39,8 @@ public abstract class AbstractDataImporter implements DataImporter {
             case Comment:
                 importComment((CommentEntity) entity);
                 break;
-            case ArtifactBranch:
-                importArtifactBranch((ArtifactBranchEntity) entity);
+            case Branch:
+                importBranch((BranchEntity) entity);
                 break;
             case Manifest:
                 ManifestEntity manifest = (ManifestEntity) entity;
@@ -50,12 +53,14 @@ public abstract class AbstractDataImporter implements DataImporter {
                 // Ignore the manifest for now.
                 break;
             default:
-                throw new RegistryStorageException("Unhandled entity type during import: " + entity.getEntityType());
+                throw new RegistryStorageException(
+                        "Unhandled entity type during import: " + entity.getEntityType());
         }
     }
 
-
     protected abstract void importArtifactRule(ArtifactRuleEntity entity);
+
+    protected abstract void importArtifact(ArtifactEntity entity);
 
     protected abstract void importArtifactVersion(ArtifactVersionEntity entity);
 
@@ -67,5 +72,5 @@ public abstract class AbstractDataImporter implements DataImporter {
 
     protected abstract void importGroup(GroupEntity entity);
 
-    protected abstract void importArtifactBranch(ArtifactBranchEntity entity);
+    protected abstract void importBranch(BranchEntity entity);
 }

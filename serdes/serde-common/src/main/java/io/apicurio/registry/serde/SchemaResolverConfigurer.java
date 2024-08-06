@@ -1,8 +1,5 @@
 package io.apicurio.registry.serde;
 
-import java.util.Map;
-import java.util.Objects;
-
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -10,9 +7,11 @@ import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 
+import java.util.Map;
+import java.util.Objects;
+
 /**
  * Base class for any kind of serializer/deserializer that depends on {@link SchemaResolver}
- *
  */
 public class SchemaResolverConfigurer<T, U> {
 
@@ -33,10 +32,7 @@ public class SchemaResolverConfigurer<T, U> {
         this(null, schemaResolver);
     }
 
-    public SchemaResolverConfigurer(
-        RegistryClient client,
-        SchemaResolver<T, U> schemaResolver
-    ) {
+    public SchemaResolverConfigurer(RegistryClient client, SchemaResolver<T, U> schemaResolver) {
         this();
         setSchemaResolver(schemaResolver);
         getSchemaResolver().setClient(client);
@@ -63,7 +59,8 @@ public class SchemaResolverConfigurer<T, U> {
         }
         // enforce default artifactResolverStrategy for kafka apps
         if (!configs.containsKey(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY)) {
-            configs.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY, SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT);
+            configs.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY,
+                    SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT);
         }
         // isKey is passed via config property
         configs.put(SerdeConfig.IS_KEY, isKey);

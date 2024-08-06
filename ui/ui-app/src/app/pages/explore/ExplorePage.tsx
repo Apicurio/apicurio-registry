@@ -21,15 +21,14 @@ import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { useAdminService } from "@services/useAdminService.ts";
 import { useLoggerService } from "@services/useLoggerService.ts";
 import { ExploreType } from "@app/pages/explore/ExploreType.ts";
-import { ArtifactSearchResults } from "@models/artifactSearchResults.model.ts";
 import { Paging } from "@models/paging.model.ts";
 import { FilterBy, SearchFilter, useSearchService } from "@services/useSearchService.ts";
-import { GroupSearchResults } from "@models/groupSearchResults.model.ts";
-import { CreateGroup } from "@models/createGroup.model.ts";
-import { SortOrder } from "@models/sortOrder.model.ts";
-import { ArtifactSortBy } from "@models/artifactSortBy.model.ts";
-import { GroupSortBy } from "@models/groupSortBy.model.ts";
-import { CreateArtifact } from "@models/createArtifact.model.ts";
+import {
+    ArtifactSearchResults,
+    ArtifactSortByObject, CreateArtifact, CreateGroup, GroupSearchResults, GroupSortByObject,
+    SortOrder,
+    SortOrderObject
+} from "@sdk/lib/generated-client/models";
 
 /**
  * Properties
@@ -98,7 +97,7 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
     const onExportArtifacts = (): void => {
         admin.exportAs("all-artifacts.zip").then(dref => {
             const link = document.createElement("a");
-            link.href = dref.href;
+            link.href = dref.href || "";
             link.download = "all-artifacts.zip";
             link.click();
         }).catch(error => {
@@ -144,14 +143,14 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         }
     };
 
-    const doCreateArtifact = (groupId: string|null, data: CreateArtifact): void => {
+    const doCreateArtifact = (groupId: string | undefined, data: CreateArtifact): void => {
         onCreateArtifactModalClose();
         pleaseWait(true);
 
         if (data !== null) {
-            groups.createArtifact(groupId, data).then(response => {
-                const groupId: string = response.artifact.groupId || "default";
-                const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact.artifactId) }`;
+            groups.createArtifact(groupId || "default", data).then(response => {
+                const groupId: string = response.artifact!.groupId || "default";
+                const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact!.artifactId!) }`;
                 logger.info("[ExplorePage] Artifact successfully created.  Redirecting to details: ", artifactLocation);
                 appNavigation.navigateTo(artifactLocation);
             }).catch( error => {
@@ -170,7 +169,7 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         pleaseWait(true);
 
         groups.createGroup(data).then(response => {
-            const groupId: string = response.groupId;
+            const groupId: string = response.groupId!;
             const groupLocation: string = `/explore/${ encodeURIComponent(groupId) }`;
             logger.info("[ExplorePage] Group successfully created.  Redirecting to details page: ", groupLocation);
             appNavigation.navigateTo(groupLocation);
@@ -202,15 +201,15 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
             }
         ];
 
-        const sortOrder: SortOrder = criteria.ascending ? SortOrder.asc : SortOrder.desc;
+        const sortOrder: SortOrder = criteria.ascending ? SortOrderObject.Asc : SortOrderObject.Desc;
         if (exploreType === ExploreType.ARTIFACT) {
-            return searchSvc.searchArtifacts(filters, ArtifactSortBy.name, sortOrder, paging).then(results => {
+            return searchSvc.searchArtifacts(filters, ArtifactSortByObject.Name, sortOrder, paging).then(results => {
                 onResultsLoaded(results);
             }).catch(error => {
                 setPageError(toPageError(error, "Error searching for artifacts."));
             });
         } else if (exploreType === ExploreType.GROUP) {
-            return searchSvc.searchGroups(filters, GroupSortBy.groupId, sortOrder, paging).then(results => {
+            return searchSvc.searchGroups(filters, GroupSortByObject.GroupId, sortOrder, paging).then(results => {
                 onResultsLoaded(results);
             }).catch(error => {
                 setPageError(toPageError(error, "Error searching for groups."));
@@ -316,10 +315,10 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
                         isFiltered={isFiltered()}
                         isEmpty={results.count === 0}>
                         <If condition={exploreType === ExploreType.ARTIFACT}>
-                            <ArtifactList artifacts={(results as ArtifactSearchResults).artifacts} />
+                            <ArtifactList artifacts={(results as ArtifactSearchResults).artifacts!} />
                         </If>
                         <If condition={exploreType === ExploreType.GROUP}>
-                            <GroupList groups={(results as GroupSearchResults).groups} />
+                            <GroupList groups={(results as GroupSearchResults).groups!} />
                         </If>
                     </ListWithToolbar>
                 </PageSection>

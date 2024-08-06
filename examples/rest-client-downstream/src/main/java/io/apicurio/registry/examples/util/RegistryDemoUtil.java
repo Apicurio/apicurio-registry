@@ -1,15 +1,14 @@
 package io.apicurio.registry.examples.util;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.types.ArtifactType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 
 public class RegistryDemoUtil {
 
@@ -21,13 +20,16 @@ public class RegistryDemoUtil {
      * @param artifactId
      * @param schema
      */
-    public static void createSchemaInServiceRegistry(RegistryClient service, String artifactId, String schema) {
+    public static void createSchemaInServiceRegistry(RegistryClient service, String artifactId,
+            String schema) {
 
         LOGGER.info("---------------------------------------------------------");
         LOGGER.info("=====> Creating artifact in the registry for JSON Schema with ID: {}", artifactId);
         try {
-            final ByteArrayInputStream content = new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8));
-            final ArtifactMetaData metaData = service.createArtifact("default", artifactId, ArtifactType.JSON, IfExists.RETURN, content);
+            final ByteArrayInputStream content = new ByteArrayInputStream(
+                    schema.getBytes(StandardCharsets.UTF_8));
+            final ArtifactMetaData metaData = service.createArtifact("default", artifactId, ArtifactType.JSON,
+                    IfExists.RETURN, content);
             assert metaData != null;
             LOGGER.info("=====> Successfully created JSON Schema artifact in Service Registry: {}", metaData);
             LOGGER.info("---------------------------------------------------------");

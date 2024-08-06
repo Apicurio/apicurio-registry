@@ -28,8 +28,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Indexed representation of the data resulting from parsing a single .proto protobuf schema file,
- * used mainly for schema validation.
+ * Indexed representation of the data resulting from parsing a single .proto protobuf schema file, used mainly
+ * for schema validation.
  *
  * @see <a href="https://github.com/nilslice/protolock">Protolock</a>
  * @see ProtobufCompatibilityChecker
@@ -60,7 +60,7 @@ public class ProtobufFile {
     }
 
     public ProtobufFile(File file) throws IOException {
-//        Location location = Location.get(file.getAbsolutePath());
+        // Location location = Location.get(file.getAbsolutePath());
         List<String> data = Files.readLines(file, StandardCharsets.UTF_8);
         element = toProtoFileElement(String.join("\n", data));
         buildIndexes();
@@ -152,7 +152,7 @@ public class ProtobufFile {
 
     public Syntax getSyntax() {
         Syntax syntax = element.getSyntax();
-        return syntax != null ? syntax : Syntax.PROTO_2 /* default  syntax */;
+        return syntax != null ? syntax : Syntax.PROTO_2 /* default syntax */;
     }
 
     private void buildIndexes() {
@@ -179,7 +179,8 @@ public class ProtobufFile {
             for (RpcElement rpcElement : serviceElement.getRpcs()) {
                 rpcNames.add(rpcElement.getName());
 
-                String signature = rpcElement.getRequestType() + ":" + rpcElement.getRequestStreaming() + "->" + rpcElement.getResponseType() + ":" + rpcElement.getResponseStreaming();
+                String signature = rpcElement.getRequestType() + ":" + rpcElement.getRequestStreaming() + "->"
+                        + rpcElement.getResponseType() + ":" + rpcElement.getResponseStreaming();
                 rpcSignatures.put(rpcElement.getName(), signature);
             }
             if (!rpcNames.isEmpty()) {
@@ -251,7 +252,6 @@ public class ProtobufFile {
                 fieldKeySet.add(fieldElement.getName());
             }
         }
-
 
         if (!fieldKeySet.isEmpty()) {
             nonReservedFields.put(scope + messageElement.getName(), fieldKeySet);

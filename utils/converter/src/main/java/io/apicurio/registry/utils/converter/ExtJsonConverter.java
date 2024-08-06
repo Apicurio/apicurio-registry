@@ -33,7 +33,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object> implements Converter, SchemaParser<JsonNode, Object>, AutoCloseable {
+public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
+        implements Converter, SchemaParser<JsonNode, Object>, AutoCloseable {
     private final JsonConverter jsonConverter;
     private final JsonConverter deserializingConverter;
     private final ObjectMapper mapper;
@@ -85,7 +86,8 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
             return null;
         }
 
-        JsonConverterRecord<Object> record = new JsonConverterRecord<Object>(new JsonConverterMetadata(topic, isKey, headers, schema), value);
+        JsonConverterRecord<Object> record = new JsonConverterRecord<Object>(
+                new JsonConverterMetadata(topic, isKey, headers, schema), value);
         SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchema(record);
 
         byte[] payload = jsonConverter.fromConnectData(topic, schema, value);
@@ -100,12 +102,14 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
         long globalId = ip.getGlobalId();
 
-        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchemaByArtifactReference(ArtifactReference.builder().globalId(globalId).build());
+        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver()
+                .resolveSchemaByArtifactReference(ArtifactReference.builder().globalId(globalId).build());
 
         JsonNode parsedSchema = schemaLookupResult.getParsedSchema().getParsedSchema();
         JsonNode dataDeserialized = jsonDeserializer.deserialize(topic, ip.getPayload());
 
-        //Since the json converter is expecting the data to have the schema to fully validate it, we build an envelope object containing the schema from registry and the data deserialized
+        // Since the json converter is expecting the data to have the schema to fully validate it, we build an
+        // envelope object containing the schema from registry and the data deserialized
         ObjectNode envelope = JsonNodeFactory.withExactBigDecimals(true).objectNode();
         envelope.set("schema", parsedSchema);
         envelope.set("payload", dataDeserialized);
@@ -119,7 +123,8 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
             throw new RuntimeException(e);
         }
 
-        Schema schema = deserializingConverter.asConnectSchema(schemaLookupResult.getParsedSchema().getParsedSchema());
+        Schema schema = deserializingConverter
+                .asConnectSchema(schemaLookupResult.getParsedSchema().getParsedSchema());
 
         return new SchemaAndValue(schema, sav.value());
     }
@@ -152,8 +157,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
         JsonConverterRecord<Object> jcr = (JsonConverterRecord<Object>) data;
         JsonNode jsonSchema = jsonConverter.asJsonSchema(jcr.metadata().getSchema());
         String schemaString = jsonSchema != null ? jsonSchema.toString() : null;
-        return new ParsedSchemaImpl<JsonNode>()
-                .setParsedSchema(jsonSchema)
+        return new ParsedSchemaImpl<JsonNode>().setParsedSchema(jsonSchema)
                 .setRawSchema(IoUtil.toBytes(schemaString));
     }
 

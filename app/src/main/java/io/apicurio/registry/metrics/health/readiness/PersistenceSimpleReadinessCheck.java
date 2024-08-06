@@ -3,14 +3,13 @@ package io.apicurio.registry.metrics.health.readiness;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessCheck;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Default;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Readiness;
 import org.slf4j.Logger;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Default;
-import jakarta.inject.Inject;
 
 @ApplicationScoped
 @Readiness
@@ -25,8 +24,7 @@ public class PersistenceSimpleReadinessCheck implements HealthCheck {
     RegistryStorage storage;
 
     /**
-     * An exception should also be caught by
-     * {@link PersistenceExceptionLivenessCheck}
+     * An exception should also be caught by {@link PersistenceExceptionLivenessCheck}
      */
     private boolean test() {
         try {
@@ -39,9 +37,6 @@ public class PersistenceSimpleReadinessCheck implements HealthCheck {
 
     @Override
     public synchronized HealthCheckResponse call() {
-        return HealthCheckResponse.builder()
-            .name("PersistenceSimpleReadinessCheck")
-            .status(test())
-            .build();
+        return HealthCheckResponse.builder().name("PersistenceSimpleReadinessCheck").status(test()).build();
     }
 }

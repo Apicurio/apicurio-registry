@@ -1,22 +1,7 @@
 package io.apicurio.registry.rest.v2;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import jakarta.inject.Inject;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.Context;
-
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -25,9 +10,22 @@ import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Context;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractResourceImpl {
-    
+
     @Inject
     Logger log;
 
@@ -46,27 +44,29 @@ public abstract class AbstractResourceImpl {
     String apiBaseHref;
 
     /**
-     * Handle the content references based on the value of "dereference" - this can mean
-     * we need to fully dereference the content.
+     * Handle the content references based on the value of "dereference" - this can mean we need to fully
+     * dereference the content.
+     * 
      * @param dereference
      * @param content
      */
-    protected ContentHandle handleContentReferences(boolean dereference, String artifactType,
-            ContentHandle content, List<ArtifactReferenceDto> references) {
+    protected TypedContent handleContentReferences(boolean dereference, String artifactType,
+            TypedContent content, List<ArtifactReferenceDto> references) {
         // Dereference or rewrite references
         if (!references.isEmpty() && dereference) {
-                ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
-                ContentDereferencer contentDereferencer = artifactTypeProvider.getContentDereferencer();
-                Map<String, ContentHandle> resolvedReferences = storage.resolveReferences(references);
-                content = contentDereferencer.dereference(content, resolvedReferences);
+            ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
+            ContentDereferencer contentDereferencer = artifactTypeProvider.getContentDereferencer();
+            Map<String, TypedContent> resolvedReferences = storage.resolveReferences(references);
+            content = contentDereferencer.dereference(content, resolvedReferences);
         }
         return content;
     }
 
     /**
-     * Convert the list of references into a list of REST API URLs that point to the content.  This means
-     * that we generate a REST API URL from the GAV (groupId, artifactId, version) information found in
-     * each reference.
+     * Convert the list of references into a list of REST API URLs that point to the content. This means that
+     * we generate a REST API URL from the GAV (groupId, artifactId, version) information found in each
+     * reference.
+     * 
      * @param references
      */
     protected Map<String, String> resolveReferenceUrls(List<ArtifactReferenceDto> references) {
@@ -85,8 +85,9 @@ public abstract class AbstractResourceImpl {
     }
 
     /**
-     * Convert a single artifact reference to a REST API URL.  This means that we generate a REST API URL 
-     * from the GAV (groupId, artifactId, version) information found in the reference.
+     * Convert a single artifact reference to a REST API URL. This means that we generate a REST API URL from
+     * the GAV (groupId, artifactId, version) information found in the reference.
+     * 
      * @param reference
      */
     protected String resolveReferenceUrl(ArtifactReferenceDto reference) {
@@ -104,7 +105,7 @@ public abstract class AbstractResourceImpl {
             this.log.error("Error trying to determine the baseHref of the REST API.", e);
             return null;
         }
-        
+
         if (baseHref == null) {
             this.log.warn("Failed to determine baseHref for the REST API.");
             return null;
@@ -119,7 +120,6 @@ public abstract class AbstractResourceImpl {
 
     /**
      * Resolves a host name from the information found in X-Forwarded-Host and X-Forwarded-Proto.
-     * @param path
      */
     private static URI getApiBaseHrefFromXForwarded(HttpServletRequest request) throws URISyntaxException {
         String fproto = request.getHeader("X-Forwarded-Proto");
@@ -133,7 +133,6 @@ public abstract class AbstractResourceImpl {
 
     /**
      * Resolves a host name from the request information.
-     * @param path
      */
     private static URI getApiBaseHrefFromRequest(HttpServletRequest request) throws URISyntaxException {
         String requestUrl = request.getRequestURL().toString();

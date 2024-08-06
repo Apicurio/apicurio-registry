@@ -27,8 +27,10 @@ export const GroupPageHeader: FunctionComponent<GroupPageHeaderProps> = (props: 
             <FlexItem align={{ default: "alignRight" }}>
                 <IfAuth isDeveloper={true}>
                     <IfFeature feature="readOnly" isNot={true}>
-                        <Button id="delete-artifact-button" variant="danger"
-                            data-testid="header-btn-delete" onClick={props.onDeleteGroup}>Delete group</Button>
+                        <IfFeature feature="deleteGroup" is={true}>
+                            <Button id="delete-artifact-button" variant="danger"
+                                data-testid="header-btn-delete" onClick={props.onDeleteGroup}>Delete group</Button>
+                        </IfFeature>
                     </IfFeature>
                 </IfAuth>
             </FlexItem>

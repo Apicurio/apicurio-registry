@@ -12,12 +12,9 @@ import java.util.Objects;
 import static io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil.MAPPER;
 
 /**
- * Equals and hashCode implementation from the Everit library
- * may not handle some schemas (with references) well,
- * resulting in {@link StackOverflowError} or other errors.
- * When using collections, always wrap the schema inside this wrapper,
- * or any other wrapper that inherits from this one.
- *
+ * Equals and hashCode implementation from the Everit library may not handle some schemas (with references)
+ * well, resulting in {@link StackOverflowError} or other errors. When using collections, always wrap the
+ * schema inside this wrapper, or any other wrapper that inherits from this one.
  */
 // TODO Should implement SchemaWrapper?
 public class EqualitySchemaWrapper implements SchemaWrapper {
@@ -32,8 +29,10 @@ public class EqualitySchemaWrapper implements SchemaWrapper {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
         EqualitySchemaWrapper that = (EqualitySchemaWrapper) o;
 
@@ -45,7 +44,8 @@ public class EqualitySchemaWrapper implements SchemaWrapper {
 
             return thisWrappedNode.equals(thatWrappedNode);
         } catch (IOException ex) {
-            throw new RuntimeException("Could not perform equality comparison on this " + this + " and that " + that, ex);
+            throw new RuntimeException(
+                    "Could not perform equality comparison on this " + this + " and that " + that, ex);
         }
     }
 

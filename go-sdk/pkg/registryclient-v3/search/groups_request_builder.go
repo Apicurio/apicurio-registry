@@ -11,7 +11,7 @@ type GroupsRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
-// GroupsRequestBuilderGetQueryParameters returns a paginated list of all artifacts that match the provided filter criteria.
+// GroupsRequestBuilderGetQueryParameters returns a paginated list of all groups that match the provided filter criteria.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
 type GroupsRequestBuilderGetQueryParameters struct {
 	// Filter by description.
 	Description *string `uriparametername:"description"`
@@ -60,7 +60,7 @@ func NewGroupsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 	return NewGroupsRequestBuilderInternal(urlParams, requestAdapter)
 }
 
-// Get returns a paginated list of all artifacts that match the provided filter criteria.
+// Get returns a paginated list of all groups that match the provided filter criteria.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
 func (m *GroupsRequestBuilder) Get(ctx context.Context, requestConfiguration *GroupsRequestBuilderGetRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.GroupSearchResultsable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -79,7 +79,7 @@ func (m *GroupsRequestBuilder) Get(ctx context.Context, requestConfiguration *Gr
 	return res.(i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.GroupSearchResultsable), nil
 }
 
-// ToGetRequestInformation returns a paginated list of all artifacts that match the provided filter criteria.
+// ToGetRequestInformation returns a paginated list of all groups that match the provided filter criteria.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
 func (m *GroupsRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *GroupsRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {

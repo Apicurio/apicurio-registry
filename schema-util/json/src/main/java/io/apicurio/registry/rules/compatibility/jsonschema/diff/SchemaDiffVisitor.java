@@ -50,11 +50,11 @@ public class SchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     }
 
     /**
-     * In case of e.g. enum of strings (with type property defined as "string"),
-     * the schema is not an EnumSchema or a StringSchema, but a CombinedSchema of both.
+     * In case of e.g. enum of strings (with type property defined as "string"), the schema is not an
+     * EnumSchema or a StringSchema, but a CombinedSchema of both.
      * <p>
-     * If original is Combined and updated is not, the backwards compatibility is
-     * satisfied iff the Combined schema contains a schema that is compatible with updated (and their type matches).
+     * If original is Combined and updated is not, the backwards compatibility is satisfied iff the Combined
+     * schema contains a schema that is compatible with updated (and their type matches).
      * <p>
      * This should only work for allOf criterion however.
      */
@@ -63,9 +63,9 @@ public class SchemaDiffVisitor extends JsonSchemaWrapperVisitor {
         requireNonNull(updated);
         if (original instanceof CombinedSchema) {
             Set<Schema> typeCompatible = ((CombinedSchema) original).getSubschemas().stream()
-                .filter(s -> s.getClass().isInstance(updated.getWrapped()))
-                .collect(Collectors.toSet());
-            if (ALL_CRITERION.equals(((CombinedSchema) original).getCriterion()) && typeCompatible.size() == 1)
+                    .filter(s -> s.getClass().isInstance(updated.getWrapped())).collect(Collectors.toSet());
+            if (ALL_CRITERION.equals(((CombinedSchema) original).getCriterion())
+                    && typeCompatible.size() == 1)
                 return typeCompatible.stream().findAny().get();
         }
         return original;
@@ -163,9 +163,7 @@ public class SchemaDiffVisitor extends JsonSchemaWrapperVisitor {
         if (orig instanceof EnumSchema) {
             Set<Object> possibleValues = ((EnumSchema) orig).getPossibleValues();
             if (possibleValues.size() == 1) {
-                orig = ConstSchema.builder()
-                    .permittedValue(possibleValues.stream().findAny().get())
-                    .build();
+                orig = ConstSchema.builder().permittedValue(possibleValues.stream().findAny().get()).build();
             }
         }
 
@@ -186,9 +184,7 @@ public class SchemaDiffVisitor extends JsonSchemaWrapperVisitor {
         // Const and single-enum equivalency
         if (orig instanceof ConstSchema) {
             Object permittedValue = ((ConstSchema) orig).getPermittedValue();
-            orig = EnumSchema.builder()
-                .possibleValue(permittedValue)
-                .build();
+            orig = EnumSchema.builder().possibleValue(permittedValue).build();
         }
 
         if (!(orig instanceof EnumSchema)) {

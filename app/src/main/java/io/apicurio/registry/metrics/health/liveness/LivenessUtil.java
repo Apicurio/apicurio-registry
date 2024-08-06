@@ -1,17 +1,15 @@
 package io.apicurio.registry.metrics.health.liveness;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
+import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.services.http.RegistryExceptionMapperService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.services.http.RegistryExceptionMapperService;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @ApplicationScoped
 public class LivenessUtil {

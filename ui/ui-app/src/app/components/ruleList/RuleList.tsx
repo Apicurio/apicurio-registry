@@ -6,12 +6,12 @@ import {
     CompatibilityLabel,
     CompatibilitySelect,
     IntegrityLabel,
-    IntegritySelect,
+    IntegritySelect, RuleListType,
     RuleValue,
     ValidityLabel,
     ValiditySelect
 } from "@app/components";
-import { Rule } from "@models/rule.model.ts";
+import { Rule } from "@sdk/lib/generated-client/models";
 
 
 export type RuleListProps = {
@@ -19,7 +19,7 @@ export type RuleListProps = {
     onDisableRule: (ruleType: string) => void;
     onConfigureRule: (ruleType: string, config: string) => void;
     rules: Rule[];
-    isGlobalRules: boolean;
+    type: RuleListType;
 };
 
 const NAME_COLUMN_WIDTH: string = "250px";
@@ -27,7 +27,7 @@ const NAME_COLUMN_WIDTH: string = "250px";
 export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps) => {
 
     const isRuleEnabled = (ruleType: string): boolean => {
-        return props.rules.filter(rule => rule.type === ruleType).length > 0;
+        return props.rules.filter(rule => rule.ruleType === ruleType).length > 0;
     };
 
     const getRuleRowClasses = (ruleType: string): string => {
@@ -46,9 +46,9 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
     };
 
     const getRuleConfig = (ruleType: string): string => {
-        const frules: Rule[] = props.rules.filter(r => r.type === ruleType);
+        const frules: Rule[] = props.rules.filter(r => r.ruleType === ruleType);
         if (frules.length === 1) {
-            return frules[0].config;
+            return frules[0].config as string;
         } else {
             return "UNKNOWN";
         }
@@ -151,13 +151,13 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
     }
 
     const validityDescription = (
-        <span>Ensure that content is <em>valid</em> when updating this artifact.</span>
+        <span>Ensure that content is <em>valid</em> when creating an artifact or artifact version.</span>
     );
     const compatibilityDescription = (
-        <span>Enforce a compatibility level when updating this artifact (for example, select Backward for backwards compatibility).</span>
+        <span>Enforce a compatibility level when creating a new artifact version (for example, select Backward for backwards compatibility).</span>
     );
     const integrityDescription = (
-        <span>Enforce artifact reference integrity when creating or updating artifacts.  Enable and configure this rule to ensure that artifact references provided are correct.</span>
+        <span>Enforce artifact reference integrity when creating an artifact or artifact version.  Enable and configure this rule to ensure that provided artifact references are correct.</span>
     );
 
     return (
@@ -176,7 +176,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <RuleValue isGlobalRule={props.isGlobalRules} actions={validityRuleActions} label={validityRuleLabel} />
+                        <RuleValue type={props.type} actions={validityRuleActions} label={validityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>
@@ -194,7 +194,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <RuleValue isGlobalRule={props.isGlobalRules} actions={compatibilityRuleActions} label={compatibilityRuleLabel} />
+                        <RuleValue type={props.type} actions={compatibilityRuleActions} label={compatibilityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>
@@ -212,7 +212,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <RuleValue isGlobalRule={props.isGlobalRules} actions={integrityRuleActions} label={integrityRuleLabel} />
+                        <RuleValue type={props.type} actions={integrityRuleActions} label={integrityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>

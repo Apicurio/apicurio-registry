@@ -1,11 +1,11 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./RulesPage.css";
 import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
-import { Rule } from "@models/rule.model.ts";
-import { RootPageHeader, RuleList } from "@app/components";
+import { RootPageHeader, RuleList, RuleListType } from "@app/components";
 import { PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { Rule, RuleType } from "@sdk/lib/generated-client/models";
 
 
 export type RulesPageProps = {
@@ -38,7 +38,7 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
         admin.createRule(ruleType, config).catch(error => {
             setPageError(toPageError(error, `Error enabling "${ ruleType }" global rule.`));
         });
-        setRules([...rules, { config, type: ruleType }]);
+        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
@@ -46,7 +46,7 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
         admin.deleteRule(ruleType).catch(error => {
             setPageError(toPageError(error, `Error disabling "${ ruleType }" global rule.`));
         });
-        setRules(rules.filter(r => r.type !== ruleType));
+        setRules(rules.filter(r => r.ruleType !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
@@ -55,8 +55,8 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
             setPageError(toPageError(error, `Error configuring "${ ruleType }" global rule.`));
         });
         setRules(rules.map(r => {
-            if (r.type === ruleType) {
-                return { config, type: r.type };
+            if (r.ruleType === ruleType) {
+                return { config, ruleType: r.ruleType };
             } else {
                 return r;
             }
@@ -81,7 +81,7 @@ export const RulesPage: FunctionComponent<RulesPageProps> = () => {
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
                     <React.Fragment>
                         <RuleList
-                            isGlobalRules={true}
+                            type={RuleListType.Global}
                             rules={rules}
                             onEnableRule={doEnableRule}
                             onDisableRule={doDisableRule}

@@ -1,11 +1,11 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto> {
 
@@ -32,7 +32,7 @@ public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto>
         dto.setLabels(SqlUtil.deserializeLabels(rs.getString("labels")));
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn").getTime());
-        dto.setType(rs.getString("type"));
+        dto.setArtifactType(rs.getString("type"));
         return dto;
     }
 

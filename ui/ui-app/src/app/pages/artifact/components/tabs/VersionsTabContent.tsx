@@ -17,12 +17,16 @@ import {
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { IfAuth, IfFeature } from "@app/components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { SortOrder } from "@models/sortOrder.model.ts";
-import { ArtifactMetaData } from "@models/artifactMetaData.model.ts";
-import { VersionSortBy } from "@models/versionSortBy.model.ts";
 import { VersionsTable, VersionsTabToolbar } from "@app/pages/artifact";
-import { VersionSearchResults } from "@models/versionSearchResults.model.ts";
-import { SearchedVersion } from "@models/searchedVersion.model.ts";
+import {
+    ArtifactMetaData,
+    SearchedVersion,
+    SortOrder,
+    SortOrderObject,
+    VersionSearchResults,
+    VersionSortBy,
+    VersionSortByObject
+} from "@sdk/lib/generated-client/models";
 
 /**
  * Properties
@@ -32,6 +36,7 @@ export type VersionsTabContentProps = {
     onCreateVersion: () => void;
     onViewVersion: (version: SearchedVersion) => void;
     onDeleteVersion: (version: SearchedVersion, deleteSuccessCallback: () => void) => void;
+    onAddVersionToBranch: (version: SearchedVersion) => void;
 };
 
 /**
@@ -44,8 +49,8 @@ export const VersionsTabContent: FunctionComponent<VersionsTabContentProps> = (p
         page: 1,
         pageSize: 20
     });
-    const [sortBy, setSortBy] = useState(VersionSortBy.globalId);
-    const [sortOrder, setSortOrder] = useState(SortOrder.asc);
+    const [sortBy, setSortBy] = useState<VersionSortBy>(VersionSortByObject.GlobalId);
+    const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrderObject.Asc);
     const [results, setResults] = useState<VersionSearchResults>({
         count: 0,
         versions: []
@@ -57,7 +62,7 @@ export const VersionsTabContent: FunctionComponent<VersionsTabContentProps> = (p
     const refresh = (): void => {
         setLoading(true);
 
-        groups.getArtifactVersions(props.artifact.groupId, props.artifact.artifactId, sortBy, sortOrder, paging).then(sr => {
+        groups.getArtifactVersions(props.artifact.groupId!, props.artifact.artifactId!, sortBy, sortOrder, paging).then(sr => {
             setResults(sr);
             setLoading(false);
         }).catch(error => {
@@ -119,12 +124,13 @@ export const VersionsTabContent: FunctionComponent<VersionsTabContentProps> = (p
                 >
                     <VersionsTable
                         artifact={props.artifact}
-                        versions={results.versions}
+                        versions={results.versions!}
                         onSort={onSort}
                         sortBy={sortBy}
                         sortOrder={sortOrder}
                         onDelete={onDeleteVersion}
                         onView={props.onViewVersion}
+                        onAddToBranch={props.onAddVersionToBranch}
                     />
                 </ListWithToolbar>
             </div>

@@ -36,7 +36,8 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
@@ -57,19 +58,13 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
         Assertions.assertTrue(results.getCount() >= 0);
 
         // Write operation should fail without any credentials
-        String data = "{\r\n" +
-                "    \"type\" : \"record\",\r\n" +
-                "    \"name\" : \"userInfo\",\r\n" +
-                "    \"namespace\" : \"my.example\",\r\n" +
-                "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" +
-                "}";
+        String data = "{\r\n" + "    \"type\" : \"record\",\r\n" + "    \"name\" : \"userInfo\",\r\n"
+                + "    \"namespace\" : \"my.example\",\r\n"
+                + "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" + "}";
         var exception = Assertions.assertThrows(ApiException.class, () -> {
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact("testNoCredentials", ArtifactType.AVRO, data, ContentTypes.APPLICATION_JSON);
-            client
-                .groups()
-                .byGroupId(groupId)
-                .artifacts()
-                .post(createArtifact);
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact("testNoCredentials",
+                    ArtifactType.AVRO, data, ContentTypes.APPLICATION_JSON);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
         });
         Assertions.assertEquals(401, exception.getResponseStatusCode());
     }

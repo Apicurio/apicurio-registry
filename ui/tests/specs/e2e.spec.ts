@@ -15,22 +15,42 @@ test("End to End - Create artifact", async ({ page }) => {
 
     // Click the "Create artifact" button
     await page.getByTestId("btn-toolbar-create-artifact").click();
-    await expect(page.getByTestId("create-artifact-form-group")).toHaveValue("");
+    await expect(page.getByTestId("create-artifact-modal-group")).toHaveValue("");
 
     // Create a new artifact
-    await page.getByTestId("create-artifact-form-group").fill("e2e");
-    await page.getByTestId("create-artifact-form-id").fill("MyArtifact");
-    await page.getByTestId("create-artifact-form-type-select").click();
-    await page.getByTestId("create-artifact-form-OPENAPI").click();
+
+    // Fill out page 1 of the create artifact wizard
+    await page.getByTestId("create-artifact-modal-group").fill("e2e");
+    await page.getByTestId("create-artifact-modal-id").fill("MyArtifact");
+    await page.getByTestId("create-artifact-modal-type-select").click();
+    await page.getByTestId("create-artifact-modal-OPENAPI").click();
+
+    // Click "Next" on the wizard
+    await page.locator("#next-wizard-page").click();
+
+    // Fill out page 2 of the create artifact wizard
+    await page.getByTestId("create-artifact-modal-artifact-metadata-name").fill("Test Artifact");
+    await page.getByTestId("create-artifact-modal-artifact-metadata-description").fill("Artifact description.");
+
+    // Click "Next" on the wizard
+    await page.locator("#next-wizard-page").click();
+
+    // Fill out page 3 of the create artifact wizard
+    await page.getByTestId("create-artifact-modal-version").fill("1.0.0");
     await page.locator("#artifact-content").fill(OPENAPI_DATA_STR);
-    await page.getByTestId("create-artifact-modal-btn-create").click();
+
+    // Click "Next" on the wizard
+    await page.locator("#next-wizard-page").click();
+
+    // Leave page 4 empty and click "Complete"
+    await page.locator("#next-wizard-page").click();
 
     // Make sure we redirected to the artifact page.
     await expect(page).toHaveURL(/.+\/explore\/e2e\/MyArtifact/);
 
     // Assert the meta-data is as expected
-    await expect(page.getByTestId("artifact-details-name")).toHaveText("No name");
-    await expect(page.getByTestId("artifact-details-description")).toHaveText("No description");
+    await expect(page.getByTestId("artifact-details-name")).toHaveText("Test Artifact");
+    await expect(page.getByTestId("artifact-details-description")).toHaveText("Artifact description.");
     await expect(page.getByTestId("artifact-details-labels")).toHaveText("No labels");
 });
 
@@ -41,7 +61,7 @@ test("End to End - Edit artifact metadata", async ({ page }) => {
 
     // Click the "Edit" button to show the modal
     await page.getByTestId("artifact-btn-edit").click();
-    await expect(page.getByTestId("edit-metadata-modal-name")).toBeEmpty();
+    await expect(page.getByTestId("edit-metadata-modal-name")).toHaveValue("Test Artifact");
 
     // Change/add some values
     await page.getByTestId("edit-metadata-modal-name").fill("Empty API Spec");
@@ -106,7 +126,7 @@ test("End to End - Create new version", async ({ page }) => {
     await page.getByTestId("modal-btn-create").click();
 
     // Make sure we redirected to the artifact detail page.
-    await expect(page).toHaveURL(/.+\/explore\/e2e\/MyArtifact\/2/);
+    await expect(page).toHaveURL(/.+\/explore\/e2e\/MyArtifact\/versions\/2/);
 });
 
 

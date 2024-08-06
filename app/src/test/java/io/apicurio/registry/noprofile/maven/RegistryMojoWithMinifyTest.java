@@ -33,33 +33,38 @@ public class RegistryMojoWithMinifyTest extends RegistryMojoTestBase {
         RegisterArtifact avroMinifiedArtifact = new RegisterArtifact();
         avroMinifiedArtifact.setGroupId(groupId);
         avroMinifiedArtifact.setArtifactId("userInfoMinified");
-        avroMinifiedArtifact.setType(ArtifactType.AVRO);
+        avroMinifiedArtifact.setArtifactType(ArtifactType.AVRO);
         avroMinifiedArtifact.setMinify(true);
         avroMinifiedArtifact.setFile(avroFile);
 
         RegisterArtifact avroNotMinifiedArtifact = new RegisterArtifact();
         avroNotMinifiedArtifact.setGroupId(groupId);
         avroNotMinifiedArtifact.setArtifactId("userInfoNotMinified");
-        avroNotMinifiedArtifact.setType(ArtifactType.AVRO);
+        avroNotMinifiedArtifact.setArtifactType(ArtifactType.AVRO);
         avroNotMinifiedArtifact.setFile(avroFile);
 
         registerMojo.setArtifacts(List.of(avroMinifiedArtifact, avroNotMinifiedArtifact));
         registerMojo.execute();
 
         // Wait for the artifact to be created.
-        InputStream artifactInputStream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoMinified").versions().byVersionExpression("branch=latest").content().get();
+        InputStream artifactInputStream = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId("userInfoMinified").versions().byVersionExpression("branch=latest").content()
+                .get();
         String artifactContent = new String(artifactInputStream.readAllBytes(), StandardCharsets.UTF_8);
-        Assertions.assertEquals("{\"type\":\"record\",\"name\":\"userInfo\",\"namespace\":\"my.example\",\"fields\":[{\"name\":\"age\",\"type\":\"int\"}]}", artifactContent);
+        Assertions.assertEquals(
+                "{\"type\":\"record\",\"name\":\"userInfo\",\"namespace\":\"my.example\",\"fields\":[{\"name\":\"age\",\"type\":\"int\"}]}",
+                artifactContent);
 
         // Wait for the artifact to be created.
-        artifactInputStream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("userInfoNotMinified").versions().byVersionExpression("branch=latest").content().get();
+        artifactInputStream = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId("userInfoNotMinified").versions().byVersionExpression("branch=latest").content()
+                .get();
         artifactContent = new String(artifactInputStream.readAllBytes(), StandardCharsets.UTF_8);
-        Assertions.assertEquals("{\n" +
-                "  \"type\" : \"record\",\n" +
-                "  \"name\" : \"userInfo\",\n" +
-                "  \"namespace\" : \"my.example\",\n" +
-                "  \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\n" +
-                "}", artifactContent);
+        Assertions.assertEquals(
+                "{\n" + "  \"type\" : \"record\",\n" + "  \"name\" : \"userInfo\",\n"
+                        + "  \"namespace\" : \"my.example\",\n"
+                        + "  \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\n" + "}",
+                artifactContent);
     }
 
 }

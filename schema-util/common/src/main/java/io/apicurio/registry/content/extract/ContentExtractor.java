@@ -1,13 +1,15 @@
 package io.apicurio.registry.content.extract;
 
-import static io.apicurio.registry.utils.StringUtil.isEmpty;
-
 import io.apicurio.registry.content.ContentHandle;
 
+import static io.apicurio.registry.utils.StringUtil.isEmpty;
+
+/**
+ * @deprecated only used in the v2 REST API - remove when v2 API is removed
+ */
 public interface ContentExtractor {
     /**
-     * Extract metadata from content.
-     * Return null if no content is extracted.
+     * Extract metadata from content. Return null if no content is extracted.
      *
      * @param content the content
      * @return extracted metadata or null if none

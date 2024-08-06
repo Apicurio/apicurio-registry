@@ -1,13 +1,12 @@
 package io.apicurio.example;
 
-import javax.inject.Inject;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-
+import io.apicurio.example.schema.avro.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.example.schema.avro.Event;
+import javax.inject.Inject;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
 
 @Path("/kafka")
 public class Resource {

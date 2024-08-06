@@ -25,11 +25,7 @@ public class Customer {
         if (value == null) {
             return null;
         }
-        return Customer.builder()
-                .id(value.getId())
-                .firstName(value.getFirstName())
-                .lastName(value.getLastName())
-                .email(value.getEmail())
-                .build();
+        return Customer.builder().id(value.getId()).firstName(value.getFirstName())
+                .lastName(value.getLastName()).email(value.getEmail()).build();
     }
 }

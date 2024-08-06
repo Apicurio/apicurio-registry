@@ -4,19 +4,19 @@
 package io.apicurio.registry.support;
 
 public final class TestCmmn {
-    private TestCmmn() {}
-    public static void registerAllExtensions(
-        com.google.protobuf.ExtensionRegistryLite registry) {
+    private TestCmmn() {
     }
 
-    public static void registerAllExtensions(
-        com.google.protobuf.ExtensionRegistry registry) {
-        registerAllExtensions(
-            (com.google.protobuf.ExtensionRegistryLite) registry);
+    public static void registerAllExtensions(com.google.protobuf.ExtensionRegistryLite registry) {
     }
+
+    public static void registerAllExtensions(com.google.protobuf.ExtensionRegistry registry) {
+        registerAllExtensions((com.google.protobuf.ExtensionRegistryLite) registry);
+    }
+
     public interface UUIDOrBuilder extends
-                                   // @@protoc_insertion_point(interface_extends:io.apicurio.registry.common.proto.UUID)
-                                       com.google.protobuf.MessageOrBuilder {
+            // @@protoc_insertion_point(interface_extends:io.apicurio.registry.common.proto.UUID)
+            com.google.protobuf.MessageOrBuilder {
 
         /**
          * <code>fixed64 msb = 1;</code>
@@ -28,42 +28,42 @@ public final class TestCmmn {
          */
         long getLsb();
     }
+
     /**
      * Protobuf type {@code io.apicurio.registry.common.proto.UUID}
      */
-    public  static final class UUID extends
-                                    com.google.protobuf.GeneratedMessageV3 implements
-                                                                           // @@protoc_insertion_point(message_implements:io.apicurio.registry.common.proto.UUID)
-                                                                               UUIDOrBuilder {
+    public static final class UUID extends com.google.protobuf.GeneratedMessageV3 implements
+            // @@protoc_insertion_point(message_implements:io.apicurio.registry.common.proto.UUID)
+            UUIDOrBuilder {
         private static final long serialVersionUID = 0L;
+
         // Use UUID.newBuilder() to construct.
         private UUID(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
             super(builder);
         }
+
         private UUID() {
         }
 
         @java.lang.Override
-        protected java.lang.Object newInstance(
-            UnusedPrivateParameter unused) {
+        protected java.lang.Object newInstance(UnusedPrivateParameter unused) {
             return new UUID();
         }
 
         @java.lang.Override
-        public final com.google.protobuf.UnknownFieldSet
-        getUnknownFields() {
+        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
             return this.unknownFields;
         }
-        private UUID(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+
+        private UUID(com.google.protobuf.CodedInputStream input,
+                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+                throws com.google.protobuf.InvalidProtocolBufferException {
             this();
             if (extensionRegistry == null) {
                 throw new java.lang.NullPointerException();
             }
-            com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-                com.google.protobuf.UnknownFieldSet.newBuilder();
+            com.google.protobuf.UnknownFieldSet.Builder unknownFields = com.google.protobuf.UnknownFieldSet
+                    .newBuilder();
             try {
                 boolean done = false;
                 while (!done) {
@@ -83,8 +83,7 @@ public final class TestCmmn {
                             break;
                         }
                         default: {
-                            if (!parseUnknownField(
-                                input, unknownFields, extensionRegistry, tag)) {
+                            if (!parseUnknownField(input, unknownFields, extensionRegistry, tag)) {
                                 done = true;
                             }
                             break;
@@ -94,28 +93,26 @@ public final class TestCmmn {
             } catch (com.google.protobuf.InvalidProtocolBufferException e) {
                 throw e.setUnfinishedMessage(this);
             } catch (java.io.IOException e) {
-                throw new com.google.protobuf.InvalidProtocolBufferException(
-                    e).setUnfinishedMessage(this);
+                throw new com.google.protobuf.InvalidProtocolBufferException(e).setUnfinishedMessage(this);
             } finally {
                 this.unknownFields = unknownFields.build();
                 makeExtensionsImmutable();
             }
         }
-        public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
+
+        public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
             return TestCmmn.internal_static_io_apicurio_registry_common_proto_UUID_descriptor;
         }
 
         @java.lang.Override
-        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internalGetFieldAccessorTable() {
+        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable internalGetFieldAccessorTable() {
             return TestCmmn.internal_static_io_apicurio_registry_common_proto_UUID_fieldAccessorTable
-                .ensureFieldAccessorsInitialized(
-                    TestCmmn.UUID.class, TestCmmn.UUID.Builder.class);
+                    .ensureFieldAccessorsInitialized(TestCmmn.UUID.class, TestCmmn.UUID.Builder.class);
         }
 
         public static final int MSB_FIELD_NUMBER = 1;
         private long msb_;
+
         /**
          * <code>fixed64 msb = 1;</code>
          */
@@ -126,6 +123,7 @@ public final class TestCmmn {
 
         public static final int LSB_FIELD_NUMBER = 2;
         private long lsb_;
+
         /**
          * <code>fixed64 lsb = 2;</code>
          */
@@ -135,19 +133,21 @@ public final class TestCmmn {
         }
 
         private byte memoizedIsInitialized = -1;
+
         @java.lang.Override
         public final boolean isInitialized() {
             byte isInitialized = memoizedIsInitialized;
-            if (isInitialized == 1) return true;
-            if (isInitialized == 0) return false;
+            if (isInitialized == 1)
+                return true;
+            if (isInitialized == 0)
+                return false;
 
             memoizedIsInitialized = 1;
             return true;
         }
 
         @java.lang.Override
-        public void writeTo(com.google.protobuf.CodedOutputStream output)
-        throws java.io.IOException {
+        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
             if (msb_ != 0L) {
                 output.writeFixed64(1, msb_);
             }
@@ -160,16 +160,15 @@ public final class TestCmmn {
         @java.lang.Override
         public int getSerializedSize() {
             int size = memoizedSize;
-            if (size != -1) return size;
+            if (size != -1)
+                return size;
 
             size = 0;
             if (msb_ != 0L) {
-                size += com.google.protobuf.CodedOutputStream
-                    .computeFixed64Size(1, msb_);
+                size += com.google.protobuf.CodedOutputStream.computeFixed64Size(1, msb_);
             }
             if (lsb_ != 0L) {
-                size += com.google.protobuf.CodedOutputStream
-                    .computeFixed64Size(2, lsb_);
+                size += com.google.protobuf.CodedOutputStream.computeFixed64Size(2, lsb_);
             }
             size += unknownFields.getSerializedSize();
             memoizedSize = size;
@@ -186,11 +185,12 @@ public final class TestCmmn {
             }
             TestCmmn.UUID other = (TestCmmn.UUID) obj;
 
-            if (getMsb()
-                != other.getMsb()) return false;
-            if (getLsb()
-                != other.getLsb()) return false;
-            if (!unknownFields.equals(other.unknownFields)) return false;
+            if (getMsb() != other.getMsb())
+                return false;
+            if (getLsb() != other.getLsb())
+                return false;
+            if (!unknownFields.equals(other.unknownFields))
+                return false;
             return true;
         }
 
@@ -203,124 +203,117 @@ public final class TestCmmn {
             int hash = 41;
             hash = (19 * hash) + getDescriptor().hashCode();
             hash = (37 * hash) + MSB_FIELD_NUMBER;
-            hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-                getMsb());
+            hash = (53 * hash) + com.google.protobuf.Internal.hashLong(getMsb());
             hash = (37 * hash) + LSB_FIELD_NUMBER;
-            hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-                getLsb());
+            hash = (53 * hash) + com.google.protobuf.Internal.hashLong(getLsb());
             hash = (29 * hash) + unknownFields.hashCode();
             memoizedHashCode = hash;
             return hash;
         }
 
-        public static TestCmmn.UUID parseFrom(
-            java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        public static TestCmmn.UUID parseFrom(java.nio.ByteBuffer data)
+                throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
-        public static TestCmmn.UUID parseFrom(
-            java.nio.ByteBuffer data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+
+        public static TestCmmn.UUID parseFrom(java.nio.ByteBuffer data,
+                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+                throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
-        public static TestCmmn.UUID parseFrom(
-            com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+
+        public static TestCmmn.UUID parseFrom(com.google.protobuf.ByteString data)
+                throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
-        public static TestCmmn.UUID parseFrom(
-            com.google.protobuf.ByteString data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+
+        public static TestCmmn.UUID parseFrom(com.google.protobuf.ByteString data,
+                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+                throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
+
         public static TestCmmn.UUID parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+                throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
-        public static TestCmmn.UUID parseFrom(
-            byte[] data,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+
+        public static TestCmmn.UUID parseFrom(byte[] data,
+                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+                throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
-        public static TestCmmn.UUID parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-            return com.google.protobuf.GeneratedMessageV3
-                .parseWithIOException(PARSER, input);
+
+        public static TestCmmn.UUID parseFrom(java.io.InputStream input) throws java.io.IOException {
+            return com.google.protobuf.GeneratedMessageV3.parseWithIOException(PARSER, input);
         }
-        public static TestCmmn.UUID parseFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-            return com.google.protobuf.GeneratedMessageV3
-                .parseWithIOException(PARSER, input, extensionRegistry);
+
+        public static TestCmmn.UUID parseFrom(java.io.InputStream input,
+                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
+            return com.google.protobuf.GeneratedMessageV3.parseWithIOException(PARSER, input,
+                    extensionRegistry);
         }
-        public static TestCmmn.UUID parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-            return com.google.protobuf.GeneratedMessageV3
-                .parseDelimitedWithIOException(PARSER, input);
+
+        public static TestCmmn.UUID parseDelimitedFrom(java.io.InputStream input) throws java.io.IOException {
+            return com.google.protobuf.GeneratedMessageV3.parseDelimitedWithIOException(PARSER, input);
         }
-        public static TestCmmn.UUID parseDelimitedFrom(
-            java.io.InputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-            return com.google.protobuf.GeneratedMessageV3
-                .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+
+        public static TestCmmn.UUID parseDelimitedFrom(java.io.InputStream input,
+                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
+            return com.google.protobuf.GeneratedMessageV3.parseDelimitedWithIOException(PARSER, input,
+                    extensionRegistry);
         }
-        public static TestCmmn.UUID parseFrom(
-            com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-            return com.google.protobuf.GeneratedMessageV3
-                .parseWithIOException(PARSER, input);
+
+        public static TestCmmn.UUID parseFrom(com.google.protobuf.CodedInputStream input)
+                throws java.io.IOException {
+            return com.google.protobuf.GeneratedMessageV3.parseWithIOException(PARSER, input);
         }
-        public static TestCmmn.UUID parseFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-            return com.google.protobuf.GeneratedMessageV3
-                .parseWithIOException(PARSER, input, extensionRegistry);
+
+        public static TestCmmn.UUID parseFrom(com.google.protobuf.CodedInputStream input,
+                com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
+            return com.google.protobuf.GeneratedMessageV3.parseWithIOException(PARSER, input,
+                    extensionRegistry);
         }
 
         @java.lang.Override
-        public Builder newBuilderForType() { return newBuilder(); }
+        public Builder newBuilderForType() {
+            return newBuilder();
+        }
+
         public static Builder newBuilder() {
             return DEFAULT_INSTANCE.toBuilder();
         }
+
         public static Builder newBuilder(TestCmmn.UUID prototype) {
             return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
         }
+
         @java.lang.Override
         public Builder toBuilder() {
-            return this == DEFAULT_INSTANCE
-                   ? new Builder() : new Builder().mergeFrom(this);
+            return this == DEFAULT_INSTANCE ? new Builder() : new Builder().mergeFrom(this);
         }
 
         @java.lang.Override
-        protected Builder newBuilderForType(
-            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        protected Builder newBuilderForType(com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
             Builder builder = new Builder(parent);
             return builder;
         }
+
         /**
          * Protobuf type {@code io.apicurio.registry.common.proto.UUID}
          */
-        public static final class Builder extends
-                                          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-                                                                                                  // @@protoc_insertion_point(builder_implements:io.apicurio.registry.common.proto.UUID)
-                                                                                                      TestCmmn.UUIDOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor
-            getDescriptor() {
+        public static final class Builder extends com.google.protobuf.GeneratedMessageV3.Builder<Builder>
+                implements
+                // @@protoc_insertion_point(builder_implements:io.apicurio.registry.common.proto.UUID)
+                TestCmmn.UUIDOrBuilder {
+            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
                 return TestCmmn.internal_static_io_apicurio_registry_common_proto_UUID_descriptor;
             }
 
             @java.lang.Override
-            protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-            internalGetFieldAccessorTable() {
+            protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable internalGetFieldAccessorTable() {
                 return TestCmmn.internal_static_io_apicurio_registry_common_proto_UUID_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(
-                        TestCmmn.UUID.class, TestCmmn.UUID.Builder.class);
+                        .ensureFieldAccessorsInitialized(TestCmmn.UUID.class, TestCmmn.UUID.Builder.class);
             }
 
             // Construct using io.apicurio.registry.support.Cmmn.UUID.newBuilder()
@@ -328,16 +321,16 @@ public final class TestCmmn {
                 maybeForceBuilderInitialization();
             }
 
-            private Builder(
-                com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+            private Builder(com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
                 super(parent);
                 maybeForceBuilderInitialization();
             }
+
             private void maybeForceBuilderInitialization() {
-                if (com.google.protobuf.GeneratedMessageV3
-                    .alwaysUseFieldBuilders) {
+                if (com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders) {
                 }
             }
+
             @java.lang.Override
             public Builder clear() {
                 super.clear();
@@ -349,8 +342,7 @@ public final class TestCmmn {
             }
 
             @java.lang.Override
-            public com.google.protobuf.Descriptors.Descriptor
-            getDescriptorForType() {
+            public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
                 return TestCmmn.internal_static_io_apicurio_registry_common_proto_UUID_descriptor;
             }
 
@@ -381,38 +373,39 @@ public final class TestCmmn {
             public Builder clone() {
                 return super.clone();
             }
+
             @java.lang.Override
-            public Builder setField(
-                com.google.protobuf.Descriptors.FieldDescriptor field,
-                java.lang.Object value) {
+            public Builder setField(com.google.protobuf.Descriptors.FieldDescriptor field,
+                    java.lang.Object value) {
                 return super.setField(field, value);
             }
+
             @java.lang.Override
-            public Builder clearField(
-                com.google.protobuf.Descriptors.FieldDescriptor field) {
+            public Builder clearField(com.google.protobuf.Descriptors.FieldDescriptor field) {
                 return super.clearField(field);
             }
+
             @java.lang.Override
-            public Builder clearOneof(
-                com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+            public Builder clearOneof(com.google.protobuf.Descriptors.OneofDescriptor oneof) {
                 return super.clearOneof(oneof);
             }
+
             @java.lang.Override
-            public Builder setRepeatedField(
-                com.google.protobuf.Descriptors.FieldDescriptor field,
-                int index, java.lang.Object value) {
+            public Builder setRepeatedField(com.google.protobuf.Descriptors.FieldDescriptor field, int index,
+                    java.lang.Object value) {
                 return super.setRepeatedField(field, index, value);
             }
+
             @java.lang.Override
-            public Builder addRepeatedField(
-                com.google.protobuf.Descriptors.FieldDescriptor field,
-                java.lang.Object value) {
+            public Builder addRepeatedField(com.google.protobuf.Descriptors.FieldDescriptor field,
+                    java.lang.Object value) {
                 return super.addRepeatedField(field, value);
             }
+
             @java.lang.Override
             public Builder mergeFrom(com.google.protobuf.Message other) {
                 if (other instanceof TestCmmn.UUID) {
-                    return mergeFrom((TestCmmn.UUID)other);
+                    return mergeFrom((TestCmmn.UUID) other);
                 } else {
                     super.mergeFrom(other);
                     return this;
@@ -420,7 +413,8 @@ public final class TestCmmn {
             }
 
             public Builder mergeFrom(TestCmmn.UUID other) {
-                if (other == TestCmmn.UUID.getDefaultInstance()) return this;
+                if (other == TestCmmn.UUID.getDefaultInstance())
+                    return this;
                 if (other.getMsb() != 0L) {
                     setMsb(other.getMsb());
                 }
@@ -438,10 +432,8 @@ public final class TestCmmn {
             }
 
             @java.lang.Override
-            public Builder mergeFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws java.io.IOException {
+            public Builder mergeFrom(com.google.protobuf.CodedInputStream input,
+                    com.google.protobuf.ExtensionRegistryLite extensionRegistry) throws java.io.IOException {
                 TestCmmn.UUID parsedMessage = null;
                 try {
                     parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
@@ -456,7 +448,8 @@ public final class TestCmmn {
                 return this;
             }
 
-            private long msb_ ;
+            private long msb_;
+
             /**
              * <code>fixed64 msb = 1;</code>
              */
@@ -464,6 +457,7 @@ public final class TestCmmn {
             public long getMsb() {
                 return msb_;
             }
+
             /**
              * <code>fixed64 msb = 1;</code>
              */
@@ -473,6 +467,7 @@ public final class TestCmmn {
                 onChanged();
                 return this;
             }
+
             /**
              * <code>fixed64 msb = 1;</code>
              */
@@ -483,7 +478,8 @@ public final class TestCmmn {
                 return this;
             }
 
-            private long lsb_ ;
+            private long lsb_;
+
             /**
              * <code>fixed64 lsb = 2;</code>
              */
@@ -491,6 +487,7 @@ public final class TestCmmn {
             public long getLsb() {
                 return lsb_;
             }
+
             /**
              * <code>fixed64 lsb = 2;</code>
              */
@@ -500,6 +497,7 @@ public final class TestCmmn {
                 onChanged();
                 return this;
             }
+
             /**
              * <code>fixed64 lsb = 2;</code>
              */
@@ -509,18 +507,16 @@ public final class TestCmmn {
                 onChanged();
                 return this;
             }
+
             @java.lang.Override
-            public final Builder setUnknownFields(
-                final com.google.protobuf.UnknownFieldSet unknownFields) {
+            public final Builder setUnknownFields(final com.google.protobuf.UnknownFieldSet unknownFields) {
                 return super.setUnknownFields(unknownFields);
             }
 
             @java.lang.Override
-            public final Builder mergeUnknownFields(
-                final com.google.protobuf.UnknownFieldSet unknownFields) {
+            public final Builder mergeUnknownFields(final com.google.protobuf.UnknownFieldSet unknownFields) {
                 return super.mergeUnknownFields(unknownFields);
             }
-
 
             // @@protoc_insertion_point(builder_scope:io.apicurio.registry.common.proto.UUID)
         }
@@ -535,13 +531,11 @@ public final class TestCmmn {
             return DEFAULT_INSTANCE;
         }
 
-        private static final com.google.protobuf.Parser<UUID>
-            PARSER = new com.google.protobuf.AbstractParser<UUID>() {
+        private static final com.google.protobuf.Parser<UUID> PARSER = new com.google.protobuf.AbstractParser<UUID>() {
             @java.lang.Override
-            public UUID parsePartialFrom(
-                com.google.protobuf.CodedInputStream input,
-                com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+            public UUID parsePartialFrom(com.google.protobuf.CodedInputStream input,
+                    com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+                    throws com.google.protobuf.InvalidProtocolBufferException {
                 return new UUID(input, extensionRegistry);
             }
         };
@@ -562,35 +556,25 @@ public final class TestCmmn {
 
     }
 
-    private static final com.google.protobuf.Descriptors.Descriptor
-        internal_static_io_apicurio_registry_common_proto_UUID_descriptor;
-    private static final
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internal_static_io_apicurio_registry_common_proto_UUID_fieldAccessorTable;
+    private static final com.google.protobuf.Descriptors.Descriptor internal_static_io_apicurio_registry_common_proto_UUID_descriptor;
+    private static final com.google.protobuf.GeneratedMessageV3.FieldAccessorTable internal_static_io_apicurio_registry_common_proto_UUID_fieldAccessorTable;
 
-    public static com.google.protobuf.Descriptors.FileDescriptor
-    getDescriptor() {
+    public static com.google.protobuf.Descriptors.FileDescriptor getDescriptor() {
         return descriptor;
     }
-    private static  com.google.protobuf.Descriptors.FileDescriptor
-        descriptor;
+
+    private static com.google.protobuf.Descriptors.FileDescriptor descriptor;
     static {
-        java.lang.String[] descriptorData = {
-            "\n\014common.proto\022!io.apicurio.registry.com" +
-            "mon.proto\" \n\004UUID\022\013\n\003msb\030\001 \001(\006\022\013\n\003lsb\030\002 " +
-            "\001(\006B)\n!io.apicurio.registry.common.proto" +
-            "B\004Cmmnb\006proto3"
-        };
-        descriptor = com.google.protobuf.Descriptors.FileDescriptor
-            .internalBuildGeneratedFileFrom(descriptorData,
-                                            new com.google.protobuf.Descriptors.FileDescriptor[] {
-                                            });
-        internal_static_io_apicurio_registry_common_proto_UUID_descriptor =
-            getDescriptor().getMessageTypes().get(0);
-        internal_static_io_apicurio_registry_common_proto_UUID_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-            internal_static_io_apicurio_registry_common_proto_UUID_descriptor,
-            new java.lang.String[] { "Msb", "Lsb", });
+        java.lang.String[] descriptorData = { "\n\014common.proto\022!io.apicurio.registry.com"
+                + "mon.proto\" \n\004UUID\022\013\n\003msb\030\001 \001(\006\022\013\n\003lsb\030\002 "
+                + "\001(\006B)\n!io.apicurio.registry.common.proto" + "B\004Cmmnb\006proto3" };
+        descriptor = com.google.protobuf.Descriptors.FileDescriptor.internalBuildGeneratedFileFrom(
+                descriptorData, new com.google.protobuf.Descriptors.FileDescriptor[] {});
+        internal_static_io_apicurio_registry_common_proto_UUID_descriptor = getDescriptor().getMessageTypes()
+                .get(0);
+        internal_static_io_apicurio_registry_common_proto_UUID_fieldAccessorTable = new com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+                internal_static_io_apicurio_registry_common_proto_UUID_descriptor,
+                new java.lang.String[] { "Msb", "Lsb", });
     }
 
     // @@protoc_insertion_point(outer_class_scope)

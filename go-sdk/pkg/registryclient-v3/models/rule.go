@@ -10,8 +10,8 @@ type Rule struct {
 	additionalData map[string]any
 	// The config property
 	config *string
-	// The type property
-	typeEscaped *RuleType
+	// The ruleType property
+	ruleType *RuleType
 }
 
 // NewRule instantiates a new Rule and sets the default values.
@@ -49,22 +49,22 @@ func (m *Rule) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a
 		}
 		return nil
 	}
-	res["type"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+	res["ruleType"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetEnumValue(ParseRuleType)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetTypeEscaped(val.(*RuleType))
+			m.SetRuleType(val.(*RuleType))
 		}
 		return nil
 	}
 	return res
 }
 
-// GetTypeEscaped gets the type property value. The type property
-func (m *Rule) GetTypeEscaped() *RuleType {
-	return m.typeEscaped
+// GetRuleType gets the ruleType property value. The ruleType property
+func (m *Rule) GetRuleType() *RuleType {
+	return m.ruleType
 }
 
 // Serialize serializes information the current object
@@ -75,9 +75,9 @@ func (m *Rule) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c49
 			return err
 		}
 	}
-	if m.GetTypeEscaped() != nil {
-		cast := (*m.GetTypeEscaped()).String()
-		err := writer.WriteStringValue("type", &cast)
+	if m.GetRuleType() != nil {
+		cast := (*m.GetRuleType()).String()
+		err := writer.WriteStringValue("ruleType", &cast)
 		if err != nil {
 			return err
 		}
@@ -101,9 +101,9 @@ func (m *Rule) SetConfig(value *string) {
 	m.config = value
 }
 
-// SetTypeEscaped sets the type property value. The type property
-func (m *Rule) SetTypeEscaped(value *RuleType) {
-	m.typeEscaped = value
+// SetRuleType sets the ruleType property value. The ruleType property
+func (m *Rule) SetRuleType(value *RuleType) {
+	m.ruleType = value
 }
 
 // Ruleable
@@ -111,7 +111,7 @@ type Ruleable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetConfig() *string
-	GetTypeEscaped() *RuleType
+	GetRuleType() *RuleType
 	SetConfig(value *string)
-	SetTypeEscaped(value *RuleType)
+	SetRuleType(value *RuleType)
 }

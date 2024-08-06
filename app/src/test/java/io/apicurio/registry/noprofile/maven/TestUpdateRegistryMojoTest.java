@@ -3,6 +3,7 @@ package io.apicurio.registry.noprofile.maven;
 import io.apicurio.registry.maven.TestArtifact;
 import io.apicurio.registry.maven.TestUpdateRegistryMojo;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
@@ -35,38 +36,33 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
         String groupId = TestUpdateRegistryMojoTest.class.getName();
         String artifactId = generateArtifactId();
 
-        Schema schema = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +
-                                                  " \"type\": \"record\"," +
-                                                  " \"name\": \"user\"," +
-                                                  " \"fields\": [" +
-                                                  "     {\"name\": \"name\", \"type\": \"string\"}," +
-                                                  "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" +
-                                                  " ]" +
-                                                  "}");
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, schema.toString(), ContentTypes.APPLICATION_JSON);
+        Schema schema = new Schema.Parser()
+                .parse("{\"namespace\": \"example.avro\"," + " \"type\": \"record\"," + " \"name\": \"user\","
+                        + " \"fields\": [" + "     {\"name\": \"name\", \"type\": \"string\"},"
+                        + "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" + " ]" + "}");
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                schema.toString(), ContentTypes.APPLICATION_JSON);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-        Rule rule = new Rule();
-        rule.setType(RuleType.COMPATIBILITY);
-        rule.setConfig("BACKWARD");
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(rule);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
 
         // Wait for the rule configuration to be set.
         TestUtils.retry(() -> {
-            Rule rconfig = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRule(RuleType.COMPATIBILITY.getValue()).get();
+            Rule rconfig = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
+                    .byRuleType(RuleType.COMPATIBILITY.getValue()).get();
             Assertions.assertEquals("BACKWARD", rconfig.getConfig());
         });
 
         // add new field
-        Schema schema2 = new Schema.Parser().parse("{\"namespace\": \"example.avro\"," +
-                                                   " \"type\": \"record\"," +
-                                                   " \"name\": \"user\"," +
-                                                   " \"fields\": [" +
-                                                   "     {\"name\": \"name\", \"type\": \"string\"}," +
-                                                   "     {\"name\": \"favorite_number\",  \"type\": \"string\"}," +
-                                                   "     {\"name\": \"favorite_color\", \"type\": \"string\", \"default\": \"green\"}" +
-                                                   " ]" +
-                                                   "}");
+        Schema schema2 = new Schema.Parser()
+                .parse("{\"namespace\": \"example.avro\"," + " \"type\": \"record\"," + " \"name\": \"user\","
+                        + " \"fields\": [" + "     {\"name\": \"name\", \"type\": \"string\"},"
+                        + "     {\"name\": \"favorite_number\",  \"type\": \"string\"},"
+                        + "     {\"name\": \"favorite_color\", \"type\": \"string\", \"default\": \"green\"}"
+                        + " ]" + "}");
         File file = new File(tempDirectory, artifactId + ".avsc");
         writeContent(file, schema2.toString().getBytes(StandardCharsets.UTF_8));
 

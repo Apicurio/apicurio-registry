@@ -2,10 +2,11 @@ import React, { FunctionComponent } from "react";
 import { If } from "@apicurio/common-ui-components";
 import { useUserService } from "@services/useUserService.ts";
 import { useConfigService } from "@services/useConfigService.ts";
+import { RuleListType } from "@app/components";
 
 
 export type RuleValueProps = {
-    isGlobalRule: boolean;
+    type: RuleListType;
     actions: React.ReactElement;
     label: React.ReactElement;
 };
@@ -17,7 +18,7 @@ export const RuleValue: FunctionComponent<RuleValueProps> = (props: RuleValuePro
     const userIsAdmin: boolean = user.isUserAdmin();
     const userIsDev: boolean = user.isUserDeveloper();
 
-    const isEditable: boolean = !readOnly && (props.isGlobalRule ? userIsAdmin : userIsDev);
+    const isEditable: boolean = !readOnly && (props.type === RuleListType.Global ? userIsAdmin : userIsDev);
 
     return (
         <>

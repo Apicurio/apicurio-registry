@@ -3,10 +3,8 @@ package io.apicurio.registry.metrics;
 /**
  * Metrics naming constants.
  * <p>
- * See:
- * - https://micrometer.io/docs/concepts#_naming_meters
- * - https://prometheus.io/docs/practices/naming/ (Micrometer abstracts some naming aspects.)
- *
+ * See: - https://micrometer.io/docs/concepts#_naming_meters - https://prometheus.io/docs/practices/naming/
+ * (Micrometer abstracts some naming aspects.)
  */
 public interface MetricsConstants {
 

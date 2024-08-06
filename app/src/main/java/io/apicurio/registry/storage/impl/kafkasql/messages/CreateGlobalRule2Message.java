@@ -21,8 +21,8 @@ import lombok.ToString;
 @ToString
 public class CreateGlobalRule2Message extends AbstractMessage {
 
-    RuleType rule;
-    RuleConfigurationDto config;
+    private RuleType rule;
+    private RuleConfigurationDto config;
 
     /**
      * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(io.apicurio.registry.storage.RegistryStorage)

@@ -1,7 +1,7 @@
 package io.apicurio.tests.smokeTests.confluent;
 
-import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ConfluentBaseIT;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -28,7 +28,8 @@ public class MetadataConfluentIT extends ConfluentBaseIT {
     @Test
     @Tag(ACCEPTANCE)
     void getAndUpdateMetadataOfSchema() throws IOException, RestClientException, TimeoutException {
-        ParsedSchema schema = new AvroSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
+        ParsedSchema schema = new AvroSchema(
+                "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
         String schemaSubject = TestUtils.generateArtifactId();
 
         int schemaId = createArtifactViaConfluentClient(schema, schemaSubject);
@@ -40,7 +41,10 @@ public class MetadataConfluentIT extends ConfluentBaseIT {
 
         assertThat(schemaMetadata.getId(), is(schemaId));
         assertThat(schemaMetadata.getVersion(), is(1));
-        assertThat("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}", is(schemaMetadata.getSchema()));
-        // IMPORTANT NOTE: we can not test schema metadata, because they are mapping on the same endpoint when we are creating the schema...
+        assertThat(
+                "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}",
+                is(schemaMetadata.getSchema()));
+        // IMPORTANT NOTE: we can not test schema metadata, because they are mapping on the same endpoint when
+        // we are creating the schema...
     }
 }

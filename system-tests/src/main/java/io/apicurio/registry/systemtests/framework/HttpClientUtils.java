@@ -18,8 +18,7 @@ public class HttpClientUtils {
 
     public static HttpResponse<String> processRequest(HttpRequest request) {
         try {
-            return HttpClient.newHttpClient()
-                    .send(request, HttpResponse.BodyHandlers.ofString());
+            return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }

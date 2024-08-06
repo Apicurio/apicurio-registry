@@ -56,7 +56,8 @@ public class OperatorManager {
         String kind = operatorType.getKind().toString();
         String name = operatorType.getDeploymentName();
         String namespace = operatorType.getNamespaceName();
-        String operatorInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
+        String operatorInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name,
+                namespace);
 
         if (Kubernetes.getNamespace(namespace) == null) {
             createOperatorNamespace(namespace);
@@ -73,10 +74,8 @@ public class OperatorManager {
         if (waitReady) {
             LOGGER.info("Waiting for operator {} to be ready...", operatorInfo);
 
-            Assertions.assertTrue(
-                    waitOperatorReady(operatorType),
-                    MessageFormat.format("Timed out waiting for operator {0} to be ready.", operatorInfo)
-            );
+            Assertions.assertTrue(waitOperatorReady(operatorType),
+                    MessageFormat.format("Timed out waiting for operator {0} to be ready.", operatorInfo));
 
             if (operatorType.isReady()) {
                 LOGGER.info("Operator {} is ready.", operatorInfo);
@@ -94,7 +93,8 @@ public class OperatorManager {
         String kind = operatorType.getKind().toString();
         String name = operatorType.getDeploymentName();
         String namespace = operatorType.getNamespaceName();
-        String operatorInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
+        String operatorInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name,
+                namespace);
 
         LOGGER.info("Uninstalling operator {}...", operatorInfo);
 
@@ -103,15 +103,13 @@ public class OperatorManager {
         if (waitRemoved) {
             LOGGER.info("Waiting for operator {} to be uninstalled...", operatorInfo);
 
-            Assertions.assertTrue(
-                    waitOperatorRemoved(operatorType),
-                    MessageFormat.format("Timed out waiting for operator {0} to be uninstalled.", operatorInfo)
-            );
+            Assertions.assertTrue(waitOperatorRemoved(operatorType), MessageFormat
+                    .format("Timed out waiting for operator {0} to be uninstalled.", operatorInfo));
 
             if (operatorType.doesNotExist()) {
                 LOGGER.info("Operator {} uninstalled.", operatorInfo);
             }
-        }  else {
+        } else {
             LOGGER.info("Do not wait for operator {} to be uninstalled.", operatorInfo);
         }
     }
@@ -162,10 +160,9 @@ public class OperatorManager {
         }
 
         if (!operatorType.isReady()) {
-            LOGGER.error(
-                    "Operator {} with name {} in namespace {} failed readiness check.",
-                    operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()
-            );
+            LOGGER.error("Operator {} with name {} in namespace {} failed readiness check.",
+                    operatorType.getKind(), operatorType.getDeploymentName(),
+                    operatorType.getNamespaceName());
 
             return false;
         }
@@ -193,10 +190,9 @@ public class OperatorManager {
         }
 
         if (!operatorType.doesNotExist()) {
-            LOGGER.error(
-                    "Operator {} with name {} in namespace {} failed removal check.",
-                    operatorType.getKind(), operatorType.getDeploymentName(), operatorType.getNamespaceName()
-            );
+            LOGGER.error("Operator {} with name {} in namespace {} failed removal check.",
+                    operatorType.getKind(), operatorType.getDeploymentName(),
+                    operatorType.getNamespaceName());
 
             return false;
         }

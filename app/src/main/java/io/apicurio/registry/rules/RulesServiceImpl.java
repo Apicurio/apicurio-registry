@@ -1,28 +1,26 @@
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.LazyContentList;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 /**
  * Implements the {@link RulesService} interface.
- *
  */
 @ApplicationScoped
 public class RulesServiceImpl implements RulesService {
@@ -41,104 +39,114 @@ public class RulesServiceImpl implements RulesService {
     ArtifactTypeUtilProviderFactory providerFactory;
 
     /**
-     * @see io.apicurio.registry.rules.RulesService#applyRules(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.rules.RuleApplicationType, java.util.List, java.util.Map)
+     * @see io.apicurio.registry.rules.RulesService#applyRules(String, String, String, TypedContent,
+     *      RuleApplicationType, List, Map)
      */
     @Override
-    public void applyRules(String groupId, String artifactId, String artifactType, ContentHandle artifactContent,
-                           RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
-                           Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
+    public void applyRules(String groupId, String artifactId, String artifactType, TypedContent content,
+            RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         @SuppressWarnings("unchecked")
-        List<RuleType> rules = Collections.EMPTY_LIST;
+        Set<RuleType> artifactRules = Collections.EMPTY_SET;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
-            rules = storage.getArtifactRules(groupId, artifactId);
+            artifactRules = new HashSet<>(storage.getArtifactRules(groupId, artifactId));
         }
         LazyContentList currentContent = null;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
-            currentContent = new LazyContentList(storage, storage.getEnabledArtifactContentIds(groupId, artifactId));
+            currentContent = new LazyContentList(storage,
+                    storage.getEnabledArtifactContentIds(groupId, artifactId));
         } else {
             currentContent = new LazyContentList(storage, Collections.emptyList());
         }
 
-        applyGlobalAndArtifactRules(groupId, artifactId, artifactType, currentContent, artifactContent, rules, references, resolvedReferences);
+        applyAllRules(groupId, artifactId, artifactType, currentContent, content, artifactRules, references,
+                resolvedReferences);
     }
 
-    private void applyGlobalAndArtifactRules(String groupId, String artifactId, String artifactType,
-                                             List<ContentHandle> currentArtifactContent, ContentHandle updatedArtifactContent,
-                                             List<RuleType> artifactRules, List<ArtifactReference> references, Map<String, ContentHandle> resolvedReferences) {
+    private void applyAllRules(String groupId, String artifactId, String artifactType,
+            List<TypedContent> currentContent, TypedContent updatedContent, Set<RuleType> artifactRules,
+            List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences) {
 
-        Map<RuleType, RuleConfigurationDto> globalOrArtifactRulesMap = artifactRules.stream()
-                .collect(Collectors.toMap(ruleType -> ruleType, ruleType -> storage.getArtifactRule(groupId, artifactId, ruleType)));
+        // TODO Getting the list of rules to apply results in several (admittedly fast) DB calls.
+        // Can we perhaps do a single DB call to get the map of rules to apply?
 
-        if (globalOrArtifactRulesMap.isEmpty()) {
-            List<RuleType> globalRules = storage.getGlobalRules();
-            globalOrArtifactRulesMap = globalRules.stream()
-                    .collect(Collectors.toMap(ruleType -> ruleType, storage::getGlobalRule));
+        Map<RuleType, RuleConfigurationDto> allRules = new HashMap<>();
 
-            // Add any default global rules to the map (after filtering out any global rules from artifactStore)
-            Map<RuleType, RuleConfigurationDto> filteredDefaultGlobalRulesMap = rulesProperties.getFilteredDefaultGlobalRules(globalRules).stream()
-                    .collect(Collectors.toMap(ruleType -> ruleType, rulesProperties::getDefaultGlobalRuleConfiguration));
-            globalOrArtifactRulesMap.putAll(filteredDefaultGlobalRulesMap);
-        }
+        // Get the group rules (we already have the artifact rules)
+        Set<RuleType> groupRules = storage.isGroupExists(groupId)
+            ? new HashSet<>(storage.getGroupRules(groupId)) : Set.of();
+        // Get the global rules
+        Set<RuleType> globalRules = new HashSet<>(storage.getGlobalRules());
+        // Get the configured default global rules
+        Set<RuleType> defaultGlobalRules = rulesProperties.getDefaultGlobalRules();
 
-        if (globalOrArtifactRulesMap.isEmpty()) {
-            return;
-        }
+        // Build the map of rules to apply (may be empty)
+        List.of(RuleType.values()).forEach(rt -> {
+            if (artifactRules.contains(rt)) {
+                allRules.put(rt, storage.getArtifactRule(groupId, artifactId, rt));
+            } else if (groupRules.contains(rt)) {
+                allRules.put(rt, storage.getGroupRule(groupId, rt));
+            } else if (globalRules.contains(rt)) {
+                allRules.put(rt, storage.getGlobalRule(rt));
+            } else if (defaultGlobalRules.contains(rt)) {
+                allRules.put(rt, rulesProperties.getDefaultGlobalRuleConfiguration(rt));
+            }
+        });
 
-        for (RuleType ruleType : globalOrArtifactRulesMap.keySet()) {
-            applyRule(groupId, artifactId, artifactType, currentArtifactContent, updatedArtifactContent, ruleType,
-                    globalOrArtifactRulesMap.get(ruleType).getConfiguration(), references, resolvedReferences);
+        // Apply rules
+        for (RuleType ruleType : allRules.keySet()) {
+            applyRule(groupId, artifactId, artifactType, currentContent, updatedContent, ruleType,
+                    allRules.get(ruleType).getConfiguration(), references, resolvedReferences);
         }
     }
 
     /**
-     * @see io.apicurio.registry.rules.RulesService#applyRule(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.types.RuleType, java.lang.String, io.apicurio.registry.rules.RuleApplicationType, java.util.List, java.util.Map)
+     * @see io.apicurio.registry.rules.RulesService#applyRule(String, String, String, TypedContent, RuleType,
+     *      String, RuleApplicationType, List, Map)
      */
     @Override
-    public void applyRule(String groupId, String artifactId, String artifactType, ContentHandle artifactContent,
-                          RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType,
-                          List<ArtifactReference> references, Map<String, ContentHandle> resolvedReferences)
+    public void applyRule(String groupId, String artifactId, String artifactType, TypedContent content,
+            RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType,
+            List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException {
         LazyContentList currentContent = null;
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
-            currentContent = new LazyContentList(storage, storage.getEnabledArtifactContentIds(groupId, artifactId));
+            currentContent = new LazyContentList(storage,
+                    storage.getEnabledArtifactContentIds(groupId, artifactId));
         }
-        applyRule(groupId, artifactId, artifactType, currentContent, artifactContent, ruleType, ruleConfiguration,
+        applyRule(groupId, artifactId, artifactType, currentContent, content, ruleType, ruleConfiguration,
                 references, resolvedReferences);
     }
 
     /**
-     * Applies a single rule.  Throws an exception if the rule is violated.
+     * Applies a single rule. Throws an exception if the rule is violated.
      */
-    private void applyRule(String groupId, String artifactId, String artifactType, List<ContentHandle> currentContent,
-                           ContentHandle updatedContent, RuleType ruleType, String ruleConfiguration,
-                           List<ArtifactReference> references, Map<String, ContentHandle> resolvedReferences) {
+    private void applyRule(String groupId, String artifactId, String artifactType,
+            List<TypedContent> currentContent, TypedContent updatedContent, RuleType ruleType,
+            String ruleConfiguration, List<ArtifactReference> references,
+            Map<String, TypedContent> resolvedReferences) {
         RuleExecutor executor = factory.createExecutor(ruleType);
-        RuleContext context = new RuleContext(groupId, artifactId, artifactType, ruleConfiguration, currentContent,
-                updatedContent, references, resolvedReferences);
+        RuleContext context = RuleContext.builder().groupId(groupId).artifactId(artifactId)
+                .artifactType(artifactType).currentContent(currentContent).updatedContent(updatedContent)
+                .configuration(ruleConfiguration).references(references)
+                .resolvedReferences(resolvedReferences).build();
         executor.execute(context);
     }
 
     /**
-     * @see io.apicurio.registry.rules.RulesService#applyRules(java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.content.ContentHandle, java.util.List, java.util.Map)
+     * @see io.apicurio.registry.rules.RulesService#applyRules(String, String, String, String, TypedContent,
+     *      List, Map)
      */
     @Override
     public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType,
-                           ContentHandle updatedContent, List<ArtifactReference> references,
-                           Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
-        StoredArtifactVersionDto versionContent = storage.getArtifactVersionContent(groupId, artifactId, artifactVersion);
-        applyGlobalAndArtifactRules(groupId, artifactId, artifactType, Collections.singletonList(versionContent.getContent()),
-                updatedContent, storage.getArtifactRules(groupId, artifactId), references, resolvedReferences);
-    }
-
-    @Override
-    public void applyRulesCompat(String groupId, String artifactId, String artifactVersion, String artifactType,
-                                 ContentHandle updatedContent, List<ArtifactReference> references,
-                                 Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
-        ArtifactTypeUtilProvider artifactTypeProvider = providerFactory.getArtifactTypeProvider(artifactType);
-        ContentCanonicalizer contentCanonicalizer = artifactTypeProvider.getContentCanonicalizer();
-        StoredArtifactVersionDto versionContent = storage.getArtifactVersionContent(groupId, artifactId, artifactVersion);
-        applyGlobalAndArtifactRules(groupId, artifactId, artifactType,
-                Collections.singletonList(contentCanonicalizer.canonicalize(versionContent.getContent(), Map.of())),
-                updatedContent, storage.getArtifactRules(groupId, artifactId), references, resolvedReferences);
+            TypedContent updatedContent, List<ArtifactReference> references,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+        StoredArtifactVersionDto versionContent = storage.getArtifactVersionContent(groupId, artifactId,
+                artifactVersion);
+        TypedContent typedVersionContent = TypedContent.create(versionContent.getContent(),
+                versionContent.getContentType());
+        Set<RuleType> artifactRules = new HashSet<>(storage.getArtifactRules(groupId, artifactId));
+        applyAllRules(groupId, artifactId, artifactType, Collections.singletonList(typedVersionContent),
+                updatedContent, artifactRules, references, resolvedReferences);
     }
 }

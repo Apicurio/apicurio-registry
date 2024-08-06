@@ -47,26 +47,24 @@ import java.util.Date;
 import java.util.Properties;
 
 /**
- * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe
- * scenario with JSON as the serialization type (and JSON Schema for validation).  Because JSON
- * Schema is only used for validation (not actual serialization), it can be enabled and disabled
- * without affecting the functionality of the serializers and deserializers.  However, if
- * validation is disabled, then incorrect data could be consumed incorrectly.
+ * This example demonstrates how to use the Apicurio Registry in a very simple publish/subscribe scenario with
+ * JSON as the serialization type (and JSON Schema for validation). Because JSON Schema is only used for
+ * validation (not actual serialization), it can be enabled and disabled without affecting the functionality
+ * of the serializers and deserializers. However, if validation is disabled, then incorrect data could be
+ * consumed incorrectly.
  * <p>
  * The following aspects are demonstrated:
- *
  * <ol>
- *   <li>Register the JSON Schema in the registry</li>
- *   <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
- *   <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
- *   <li>Data sent as a MessageBean</li>
+ * <li>Register the JSON Schema in the registry</li>
+ * <li>Configuring a Kafka Serializer for use with Apicurio Registry</li>
+ * <li>Configuring a Kafka Deserializer for use with Apicurio Registry</li>
+ * <li>Data sent as a MessageBean</li>
  * </ol>
  * <p>
  * Pre-requisites:
- *
  * <ul>
- *   <li>Kafka must be running on localhost:9092</li>
- *   <li>Apicurio Registry must be running on localhost:8080</li>
+ * <li>Kafka must be running on localhost:9092</li>
+ * <li>Apicurio Registry must be running on localhost:8080</li>
  * </ul>
  *
  * @author eric.wittmann@gmail.com
@@ -77,33 +75,21 @@ public class SimpleJsonSchemaExample {
     private static final String SERVERS = "localhost:9092";
     private static final String TOPIC_NAME = SimpleJsonSchemaExample.class.getSimpleName();
     private static final String SUBJECT_NAME = "Greeting";
-    public static final String SCHEMA = "{" +
-            "    \"$id\": \"https://example.com/message.schema.json\"," +
-            "    \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
-            "    \"required\": [" +
-            "        \"message\"," +
-            "        \"time\"" +
-            "    ]," +
-            "    \"type\": \"object\"," +
-            "    \"properties\": {" +
-            "        \"message\": {" +
-            "            \"description\": \"\"," +
-            "            \"type\": \"string\"" +
-            "        }," +
-            "        \"time\": {" +
-            "            \"description\": \"\"," +
-            "            \"type\": \"number\"" +
-            "        }" +
-            "    }" +
-            "}";
-
+    public static final String SCHEMA = "{" + "    \"$id\": \"https://example.com/message.schema.json\","
+            + "    \"$schema\": \"http://json-schema.org/draft-07/schema#\"," + "    \"required\": ["
+            + "        \"message\"," + "        \"time\"" + "    ]," + "    \"type\": \"object\","
+            + "    \"properties\": {" + "        \"message\": {" + "            \"description\": \"\","
+            + "            \"type\": \"string\"" + "        }," + "        \"time\": {"
+            + "            \"description\": \"\"," + "            \"type\": \"number\"" + "        }"
+            + "    }" + "}";
 
     public static void main(String[] args) throws Exception {
         System.out.println("Starting example " + SimpleJsonSchemaExample.class.getSimpleName());
         String topicName = TOPIC_NAME;
 
         // Register the schema with the registry (only if it is not already registered)
-        String artifactId = TOPIC_NAME + "-value"; // use the topic name as the artifactId because we're going to map topic name to artifactId later on.
+        String artifactId = TOPIC_NAME + "-value"; // use the topic name as the artifactId because we're going
+                                                   // to map topic name to artifactId later on.
 
         VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
@@ -112,17 +98,17 @@ public class SimpleJsonSchemaExample {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON);
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
-        createArtifact.getFirstVersion().getContent().setContent(
-                IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8))
-        );
+        createArtifact.getFirstVersion().getContent()
+                .setContent(IoUtil.toString(SCHEMA.getBytes(StandardCharsets.UTF_8)));
         createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-        final VersionMetaData created = client.groups().byGroupId("default").artifacts().post(createArtifact, config -> {
-            config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
-        }).getVersion();
+        final VersionMetaData created = client.groups().byGroupId("default").artifacts()
+                .post(createArtifact, config -> {
+                    config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+                }).getVersion();
 
         // Create the producer.
         Producer<Object, Object> producer = createKafkaProducer();
@@ -137,7 +123,8 @@ public class SimpleJsonSchemaExample {
                 message.setTime(System.currentTimeMillis());
 
                 // Send/produce the message on the Kafka Producer
-                ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, SUBJECT_NAME, message);
+                ProducerRecord<Object, Object> producedRecord = new ProducerRecord<>(topicName, SUBJECT_NAME,
+                        message);
                 producer.send(producedRecord);
 
                 Thread.sleep(100);
@@ -167,10 +154,12 @@ public class SimpleJsonSchemaExample {
                 if (records.count() == 0) {
                     // Do nothing - no messages waiting.
                     System.out.println("No messages waiting...");
-                } else records.forEach(record -> {
-                    MessageBean msg = record.value();
-                    System.out.println("Consumed a message: " + msg.getMessage() + " @ " + new Date(msg.getTime()));
-                });
+                } else
+                    records.forEach(record -> {
+                        MessageBean msg = record.value();
+                        System.out.println(
+                                "Consumed a message: " + msg.getMessage() + " @ " + new Date(msg.getTime()));
+                    });
             }
         } finally {
             consumer.close();
@@ -191,7 +180,8 @@ public class SimpleJsonSchemaExample {
         props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
         props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         // Use the Apicurio Registry provided Kafka Serializer for JSON Schema
-        props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSchemaKafkaSerializer.class.getName());
+        props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                JsonSchemaKafkaSerializer.class.getName());
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
@@ -199,7 +189,7 @@ public class SimpleJsonSchemaExample {
         props.putIfAbsent(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, "default");
         props.putIfAbsent(SerdeConfig.VALIDATION_ENABLED, Boolean.TRUE);
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka producer
@@ -221,7 +211,8 @@ public class SimpleJsonSchemaExample {
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         // Use the Apicurio Registry provided Kafka Deserializer for JSON Schema
-        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonSchemaKafkaDeserializer.class.getName());
+        props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                JsonSchemaKafkaDeserializer.class.getName());
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
@@ -229,10 +220,10 @@ public class SimpleJsonSchemaExample {
         props.putIfAbsent(SerdeConfig.VALIDATION_ENABLED, Boolean.TRUE);
 
         // No other configuration needed for the deserializer, because the globalId of the schema
-        // the deserializer should use is sent as part of the payload.  So the deserializer simply
+        // the deserializer should use is sent as part of the payload. So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.
 
-        //Just if security values are present, then we configure them.
+        // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
 
         // Create the Kafka Consumer
@@ -251,13 +242,16 @@ public class SimpleJsonSchemaExample {
             props.putIfAbsent(SerdeConfig.AUTH_CLIENT_ID, authClient);
             props.putIfAbsent(SerdeConfig.AUTH_TOKEN_ENDPOINT, tokenEndpoint);
             props.putIfAbsent(SaslConfigs.SASL_MECHANISM, "OAUTHBEARER");
-            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
+            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
+                    "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");
             props.putIfAbsent("security.protocol", "SASL_SSL");
 
-            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG, String.format("org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required " +
-                    "  oauth.client.id=\"%s\" " +
-                    "  oauth.client.secret=\"%s\" " +
-                    "  oauth.token.endpoint.uri=\"%s\" ;", authClient, authSecret, tokenEndpoint));
+            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG,
+                    String.format(
+                            "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
+                                    + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
+                                    + "  oauth.token.endpoint.uri=\"%s\" ;",
+                            authClient, authSecret, tokenEndpoint));
         }
     }
 }

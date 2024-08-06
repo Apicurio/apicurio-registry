@@ -12,7 +12,6 @@ public class RoleMappingAlreadyExistsException extends AlreadyExistsException {
     @Getter
     private String role;
 
-
     public RoleMappingAlreadyExistsException(String principalId, String role) {
         super("A mapping for principal '" + principalId + "' and role '" + role + "' already exists.");
         this.principalId = principalId;

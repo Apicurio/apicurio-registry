@@ -34,25 +34,22 @@ public class SubscriptionResourceType implements ResourceType<Subscription> {
 
     @Override
     public void delete(Subscription resource) throws Exception {
-        Kubernetes.deleteSubscription(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+        Kubernetes.deleteSubscription(resource.getMetadata().getNamespace(),
+                resource.getMetadata().getName());
     }
 
     @Override
     public boolean isReady(Subscription resource) {
-        Subscription subscription = get(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+        Subscription subscription = get(resource.getMetadata().getNamespace(),
+                resource.getMetadata().getName());
 
         if (subscription == null || subscription.getStatus() == null) {
             return false;
         }
 
-        return subscription
-                .getStatus()
-                .getConditions()
-                .stream()
+        return subscription.getStatus().getConditions().stream()
                 .filter(condition -> condition.getType().equals("CatalogSourcesUnhealthy"))
-                .map(condition -> condition.getStatus().equals("False"))
-                .findFirst()
-                .orElse(false);
+                .map(condition -> condition.getStatus().equals("False")).findFirst().orElse(false);
     }
 
     @Override
@@ -73,28 +70,11 @@ public class SubscriptionResourceType implements ResourceType<Subscription> {
 
     /** Get default instances **/
 
-    public static Subscription getDefault(
-            String name,
-            String namespace,
-            String packageName,
-            String sourceName,
-            String sourceNamespace,
-            String startingCSV,
-            String channel
-    ) {
-        return new SubscriptionBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                .endMetadata()
-                .withNewSpec()
-                    .withName(packageName)
-                    .withSource(sourceName)
-                    .withSourceNamespace(sourceNamespace)
-                    .withStartingCSV(startingCSV)
-                    .withChannel(channel)
-                    .withInstallPlanApproval("Automatic")
-                .endSpec()
-                .build();
+    public static Subscription getDefault(String name, String namespace, String packageName,
+            String sourceName, String sourceNamespace, String startingCSV, String channel) {
+        return new SubscriptionBuilder().withNewMetadata().withName(name).withNamespace(namespace)
+                .endMetadata().withNewSpec().withName(packageName).withSource(sourceName)
+                .withSourceNamespace(sourceNamespace).withStartingCSV(startingCSV).withChannel(channel)
+                .withInstallPlanApproval("Automatic").endSpec().build();
     }
 }

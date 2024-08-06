@@ -21,30 +21,30 @@ public class ReflectAvroDatumProvider<T> implements AvroDatumProvider<T> {
     }
 
     public ReflectAvroDatumProvider(Class<T> clazz) {
-        this(ReflectData.get(),clazz);
+        this(ReflectData.get(), clazz);
     }
 
-    public ReflectAvroDatumProvider(ReflectData reflectData,Class<T> clazz) {
+    public ReflectAvroDatumProvider(ReflectData reflectData, Class<T> clazz) {
         this(reflectData);
-        this.readerSchema = AvroSchemaUtils.getReflectSchema(reflectData,clazz);
+        this.readerSchema = AvroSchemaUtils.getReflectSchema(reflectData, clazz);
     }
 
     @Override
     public DatumWriter<T> createDatumWriter(T data, Schema schema) {
-        return new ReflectDatumWriter<>(schema,reflectData);
+        return new ReflectDatumWriter<>(schema, reflectData);
     }
 
     @Override
     public DatumReader<T> createDatumReader(Schema schema) {
         if (readerSchema == null) {
-            return new ReflectDatumReader<>(schema,schema,reflectData);
+            return new ReflectDatumReader<>(schema, schema, reflectData);
         } else {
-            return new ReflectDatumReader<>(schema, readerSchema,reflectData);
+            return new ReflectDatumReader<>(schema, readerSchema, reflectData);
         }
     }
 
     @Override
     public Schema toSchema(T data) {
-        return AvroSchemaUtils.getReflectSchema(reflectData,data);
+        return AvroSchemaUtils.getReflectSchema(reflectData, data);
     }
 }

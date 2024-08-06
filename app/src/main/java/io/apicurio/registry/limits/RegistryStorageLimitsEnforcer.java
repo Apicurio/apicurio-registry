@@ -22,13 +22,14 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 /**
- * Decorator of {@link RegistryStorage} that applies limits enforcement, with this is possible to limit how many artifacts can be created in registry...
- * All of that is abstracted with the LimitsService and the LimitsConfigurationService
- *
+ * Decorator of {@link RegistryStorage} that applies limits enforcement, with this is possible to limit how
+ * many artifacts can be created in registry... All of that is abstracted with the LimitsService and the
+ * LimitsConfigurationService
  */
 @ApplicationScoped
 // TODO Importing is not covered under limits!
-public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase implements RegistryStorageDecorator {
+public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
+        implements RegistryStorageDecorator {
 
     @Inject
     ThreadContext threadContext;
@@ -55,54 +56,62 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase 
         return RegistryStorageDecoratorOrderConstants.LIMITS_ENFORCER_DECORATOR;
     }
 
-
     @Override
-    public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId, String artifactId,
-            String artifactType, EditableArtifactMetaDataDto artifactMetaData, String version, ContentWrapperDto versionContent,
-            EditableVersionMetaDataDto versionMetaData, List<String> versionBranches) throws RegistryStorageException {
-        Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> rval = withLimitsCheck(() -> limitsService.canCreateArtifact(artifactMetaData, versionContent, versionMetaData))
-                .execute(() -> super.createArtifact(groupId, artifactId, artifactType, artifactMetaData, version, versionContent, versionMetaData, versionBranches));
+    public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
+            String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
+            String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
+            List<String> versionBranches, boolean dryRun) throws RegistryStorageException {
+        Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> rval = withLimitsCheck(
+                () -> limitsService.canCreateArtifact(artifactMetaData, versionContent, versionMetaData))
+                .execute(() -> super.createArtifact(groupId, artifactId, artifactType, artifactMetaData,
+                        version, versionContent, versionMetaData, versionBranches, dryRun));
         limitsService.artifactCreated();
         return rval;
     }
 
     @Override
-    public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version, String artifactType,
-            ContentWrapperDto content, EditableVersionMetaDataDto metaData, List<String> branches) throws RegistryStorageException {
-        ArtifactVersionMetaDataDto dto = withLimitsCheck(() -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content.getContent()))
-                .execute(() -> super.createArtifactVersion(groupId, artifactId, version, artifactType, content, metaData, branches));
+    public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
+            String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
+            List<String> branches, boolean dryRun) throws RegistryStorageException {
+        ArtifactVersionMetaDataDto dto = withLimitsCheck(
+                () -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content.getContent()))
+                .execute(() -> super.createArtifactVersion(groupId, artifactId, version, artifactType,
+                        content, metaData, branches, dryRun));
         limitsService.artifactVersionCreated(groupId, artifactId);
         return dto;
     }
 
     /**
-     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#updateArtifactMetaData(java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
+     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#updateArtifactMetaData(java.lang.String,
+     *      java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
     @Override
-    public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
-        withLimitsCheck(() -> limitsService.checkMetaData(metaData))
-                .execute(() -> {
-                    super.updateArtifactMetaData(groupId, artifactId, metaData);
-                    return null;
-                });
+    public void updateArtifactMetaData(String groupId, String artifactId,
+            EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+        withLimitsCheck(() -> limitsService.checkMetaData(metaData)).execute(() -> {
+            super.updateArtifactMetaData(groupId, artifactId, metaData);
+            return null;
+        });
     }
 
     /**
-     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecoratorBase#updateArtifactVersionMetaData(java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableVersionMetaDataDto)
+     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecoratorBase#updateArtifactVersionMetaData(java.lang.String,
+     *      java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableVersionMetaDataDto)
      */
     @Override
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableVersionMetaDataDto metaData)
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
+            EditableVersionMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
 
-        withLimitsCheck(() -> limitsService.checkMetaData(metaData))
-                .execute(() -> {
-                    super.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
-                    return null;
-                });
+        withLimitsCheck(() -> limitsService.checkMetaData(metaData)).execute(() -> {
+            super.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
+            return null;
+        });
     }
 
     /**
-     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#deleteArtifact(java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#deleteArtifact(java.lang.String,
+     *      java.lang.String)
      */
     @Override
     public List<String> deleteArtifact(String groupId, String artifactId)
@@ -122,7 +131,8 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase 
     }
 
     /**
-     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#deleteArtifactVersion(java.lang.String, java.lang.String, java.lang.String)
+     * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#deleteArtifactVersion(java.lang.String,
+     *      java.lang.String, java.lang.String)
      */
     @Override
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
@@ -131,18 +141,17 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase 
         limitsService.artifactVersionDeleted(groupId, artifactId);
     }
 
-
     /**
-     * Notice the "threadContext.withContextCapture" because of using CompletionStage it's possible that certain operations may be executed in different threads.
-     * We need context propagation to move the ThreadLocale context
-     * from one thread to another, that's why we use withContextCapture
+     * Notice the "threadContext.withContextCapture" because of using CompletionStage it's possible that
+     * certain operations may be executed in different threads. We need context propagation to move the
+     * ThreadLocale context from one thread to another, that's why we use withContextCapture
      *
      * @param checker
      * @return
      */
     public LimitedActionExecutor withLimitsCheck(LimitsChecker checker) {
         return new LimitedActionExecutor() {
-            @SuppressWarnings({"unchecked", "rawtypes"})
+            @SuppressWarnings({ "unchecked", "rawtypes" })
             @Override
             public <T> T execute(LimitedAction<T> action) {
                 LimitsCheckResult r = checker.get();
@@ -159,16 +168,13 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase 
         };
     }
 
-
     @FunctionalInterface
     private interface LimitsChecker extends Supplier<LimitsCheckResult> {
     }
 
-
     @FunctionalInterface
     private interface LimitedAction<T> extends Supplier<T> {
     }
-
 
     @FunctionalInterface
     private interface LimitedActionExecutor {

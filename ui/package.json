@@ -1,7 +1,7 @@
 {
     "name": "@apicurio/registry-ui",
     "private": true,
-    "version": "3.0.0",
+    "version": "3.0.0-SNAPSHOT",
     "type": "module",
     "scripts": {
         "postinstall": "npm install --prefix ./ui-app && npm install --prefix ./ui-docs",
@@ -20,5 +20,8 @@
     "devDependencies": {
         "rimraf": "5.0.7",
         "shelljs": "0.8.5"
+    },
+    "dependencies": {
+        "@apicurio/apicurio-registry-client": "file:../typescript-sdk"
     }
 }

@@ -1,8 +1,8 @@
 package io.apicurio.tests.smokeTests.confluent;
 
-import io.apicurio.tests.ConfluentBaseIT;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ConfluentBaseIT;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.quarkus.test.junit.QuarkusIntegrationTest;

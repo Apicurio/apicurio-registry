@@ -42,7 +42,7 @@ public class DdlParser {
         String line;
         StringBuilder builder = new StringBuilder();
         boolean isInMultiLineStatement = false;
-        while ( (line = reader.readLine()) != null) {
+        while ((line = reader.readLine()) != null) {
             if (line.startsWith("--")) {
                 continue;
             }

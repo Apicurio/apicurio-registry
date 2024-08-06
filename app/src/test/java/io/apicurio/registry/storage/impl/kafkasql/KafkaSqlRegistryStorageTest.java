@@ -12,10 +12,10 @@ import jakarta.inject.Inject;
 @TestProfile(KafkasqlTestProfile.class)
 @Typed(KafkaSqlRegistryStorageTest.class)
 public class KafkaSqlRegistryStorageTest extends AbstractRegistryStorageTest {
-    
+
     @Inject
     KafkaSqlRegistryStorage storage;
-    
+
     /**
      * @see AbstractRegistryStorageTest#storage()
      */
@@ -23,5 +23,5 @@ public class KafkaSqlRegistryStorageTest extends AbstractRegistryStorageTest {
     protected RegistryStorage storage() {
         return storage;
     }
-    
+
 }

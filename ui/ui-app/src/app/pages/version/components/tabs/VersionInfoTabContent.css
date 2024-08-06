@@ -1,0 +1,53 @@
+.overview-tab-content {
+    padding: 22px;
+    display: flex;
+    flex-direction: row;
+    background-color: rgb(240,240,240);
+}
+
+.overview-tab-content .version-basics {
+    flex-grow: 1;
+    flex-basis: 40%;
+    margin-right: 15px;
+}
+
+.overview-tab-content .version-basics .title-and-type {
+}
+
+.overview-tab-content .version-basics .title-and-type .type {
+}
+
+.overview-tab-content .version-basics .title-and-type .title {
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 24px;
+    display: inline-block;
+}
+
+.overview-tab-content .version-basics .metaData {
+    margin-bottom: 20px;
+}
+
+.overview-tab-content .version-basics .actions {
+}
+
+.overview-tab-content .version-comments {
+    flex-grow: 1;
+    flex-basis: 60%;
+}
+
+.overview-tab-content .version-comments .comments-label {
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 29px;
+    padding-bottom: 7px;
+}
+
+
+.label-truncate, .label-truncate, .label-truncate > span, .label-truncate > span {
+    min-width: unset;
+}
+
+#generate-client-action {
+    margin-left: 10px;
+}

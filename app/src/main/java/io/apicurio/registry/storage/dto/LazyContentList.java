@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.dto;
 
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.RegistryStorage;
 import org.jetbrains.annotations.NotNull;
 
@@ -12,7 +12,7 @@ import java.util.NoSuchElementException;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 
-public class LazyContentList implements List<ContentHandle> {
+public class LazyContentList implements List<TypedContent> {
 
     private final RegistryStorage storage;
     private final List<Long> contentIds;
@@ -38,23 +38,23 @@ public class LazyContentList implements List<ContentHandle> {
     }
 
     @Override
-    public ContentHandle get(int index) {
-        //Not the best solution, works for now...
-        return storage.getContentById(contentIds.get(index)).getContent();
+    public TypedContent get(int index) {
+        // Not the best solution, works for now...
+        return toTypedContent(storage.getContentById(contentIds.get(index)));
     }
 
     @Override
-    public ContentHandle set(int index, ContentHandle element) {
+    public TypedContent set(int index, TypedContent element) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void add(int index, ContentHandle element) {
+    public void add(int index, TypedContent element) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public ContentHandle remove(int index) {
+    public TypedContent remove(int index) {
         throw new UnsupportedOperationException();
     }
 
@@ -70,25 +70,25 @@ public class LazyContentList implements List<ContentHandle> {
 
     @NotNull
     @Override
-    public ListIterator<ContentHandle> listIterator() {
+    public ListIterator<TypedContent> listIterator() {
         throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
-    public ListIterator<ContentHandle> listIterator(int index) {
+    public ListIterator<TypedContent> listIterator(int index) {
         throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
-    public List<ContentHandle> subList(int fromIndex, int toIndex) {
+    public List<TypedContent> subList(int fromIndex, int toIndex) {
         throw new UnsupportedOperationException();
     }
 
     @NotNull
     @Override
-    public Iterator<ContentHandle> iterator() {
+    public Iterator<TypedContent> iterator() {
         return new LazyContentListIterator(this, contentIds.iterator());
     }
 
@@ -105,7 +105,7 @@ public class LazyContentList implements List<ContentHandle> {
     }
 
     @Override
-    public boolean add(ContentHandle contentHandle) {
+    public boolean add(TypedContent contentHandle) {
         throw new UnsupportedOperationException();
     }
 
@@ -120,12 +120,12 @@ public class LazyContentList implements List<ContentHandle> {
     }
 
     @Override
-    public boolean addAll(@NotNull Collection<? extends ContentHandle> c) {
+    public boolean addAll(@NotNull Collection<? extends TypedContent> c) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean addAll(int index, @NotNull Collection<? extends ContentHandle> c) {
+    public boolean addAll(int index, @NotNull Collection<? extends TypedContent> c) {
         throw new UnsupportedOperationException();
     }
 
@@ -145,15 +145,15 @@ public class LazyContentList implements List<ContentHandle> {
     }
 
     @Override
-    public Spliterator<ContentHandle> spliterator() {
-        //prevent streaming on this list
+    public Spliterator<TypedContent> spliterator() {
+        // prevent streaming on this list
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void forEach(Consumer<? super ContentHandle> action) {
+    public void forEach(Consumer<? super TypedContent> action) {
         for (Long contentId : contentIds) {
-            ContentHandle retrievedContent = storage.getContentById(contentId).getContent();
+            TypedContent retrievedContent = toTypedContent(storage.getContentById(contentId));
             action.accept(retrievedContent);
         }
     }
@@ -162,15 +162,15 @@ public class LazyContentList implements List<ContentHandle> {
         return contentIds;
     }
 
-    public ContentHandle getContentById(long contentId) {
+    public TypedContent getContentById(long contentId) {
         if (contentIds.contains(contentId)) {
-            return storage.getContentById(contentId).getContent();
+            return toTypedContent(storage.getContentById(contentId));
         } else {
             throw new NoSuchElementException(String.format("No content found with id %d", contentId));
         }
     }
 
-    private static class LazyContentListIterator implements Iterator<ContentHandle> {
+    private static class LazyContentListIterator implements Iterator<TypedContent> {
 
         private final LazyContentList lazyContentList;
         private final Iterator<Long> contentIdsIterator;
@@ -186,7 +186,7 @@ public class LazyContentList implements List<ContentHandle> {
         }
 
         @Override
-        public ContentHandle next() {
+        public TypedContent next() {
             Long nextContentId = contentIdsIterator.next();
             return lazyContentList.getContentById(nextContentId);
         }
@@ -195,5 +195,9 @@ public class LazyContentList implements List<ContentHandle> {
         public void remove() {
             contentIdsIterator.remove();
         }
+    }
+
+    private static TypedContent toTypedContent(ContentWrapperDto dto) {
+        return TypedContent.create(dto.getContent(), dto.getContentType());
     }
 }

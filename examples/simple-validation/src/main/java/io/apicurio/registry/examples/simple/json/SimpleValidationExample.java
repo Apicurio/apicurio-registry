@@ -16,10 +16,10 @@
 
 package io.apicurio.registry.examples.simple.json;
 
+import org.everit.json.schema.ValidationException;
+
 import java.security.SecureRandom;
 import java.util.Optional;
-
-import org.everit.json.schema.ValidationException;
 
 /**
  * This example demonstrates how to integrate with Apicurio Registry when performing client-side validation of
@@ -45,7 +45,6 @@ public class SimpleValidationExample {
     private static final String GROUP = "Examples";
     private static final String ARTIFACT_ID = "MessageType";
     private static final SecureRandom rand = new SecureRandom();
-
 
     public static final void main(String[] args) throws Exception {
         System.out.println("Starting example " + SimpleValidationExample.class.getSimpleName());

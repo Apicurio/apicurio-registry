@@ -2,9 +2,82 @@ import axios, { AxiosRequestConfig } from "axios";
 import { ContentTypes } from "@models/contentTypes.model.ts";
 import { AuthService } from "@apicurio/common-ui-components";
 import { Buffer } from "buffer";
+import { AuthenticationProvider, Headers, RequestInformation } from "@microsoft/kiota-abstractions";
+import { ConfigService } from "@services/useConfigService";
+import { RegistryClientFactory } from "@sdk/lib/sdk";
+import { ApicurioRegistryClient } from "@sdk/lib/generated-client/apicurioRegistryClient.ts";
+import { Labels } from "@sdk/lib/generated-client/models";
+
+export const labelsToAny = (labels: Labels | undefined): any => {
+    const rval: any = {
+        ...(labels||{}),
+        ...(labels?.additionalData||{})
+    };
+    delete rval["additionalData"];
+    return rval;
+};
+
+/**
+ * An authentication provider for Kiota - used in the generated SDK client to provide
+ * auth information when making REST calls to the Registry backend.
+ *
+ * TODO: possibly move this to https://github.com/Apicurio/apicurio-common-ui-components
+ */
+export class TokenAuthenticationProvider implements AuthenticationProvider {
+    private readonly key: string;
+    private readonly accessTokenProvider: () => Promise<string>;
+    private static readonly authorizationHeaderKey = "Authorization";
+    public constructor(key: string, accessTokenProvider: () => Promise<string>) {
+        this.key = key;
+        this.accessTokenProvider = accessTokenProvider;
+    }
+
+    public authenticateRequest = async (request: RequestInformation, additionalAuthenticationContext?: Record<string, unknown>): Promise<void> => {
+        if (!request) {
+            throw new Error("request info cannot be null");
+        }
+        if (additionalAuthenticationContext?.claims && request.headers.has(TokenAuthenticationProvider.authorizationHeaderKey)) {
+            request.headers.delete(TokenAuthenticationProvider.authorizationHeaderKey);
+        }
+        if (!request.headers || !request.headers.has(TokenAuthenticationProvider.authorizationHeaderKey)) {
+            const token = await this.accessTokenProvider();
+            if (!request.headers) {
+                request.headers = new Headers();
+            }
+            if (token) {
+                request.headers.add(TokenAuthenticationProvider.authorizationHeaderKey, `${this.key} ${token}`);
+            }
+        }
+    };
+}
+
+export function createAuthProvider(auth: AuthService): AuthenticationProvider | undefined {
+    if (auth.isOidcAuthEnabled()) {
+        return new TokenAuthenticationProvider("Bearer", () => auth.getToken().then(v => v!));
+    } else if (auth.isBasicAuthEnabled()) {
+        const creds = auth.getUsernameAndPassword();
+        const base64Credentials = Buffer.from(`${creds?.username}:${creds?.password}`, "ascii").toString("base64");
+        return new TokenAuthenticationProvider("Basic", async () => base64Credentials);
+    }
+    return undefined;
+}
+
+function createRegistryClient(config: ConfigService, auth: AuthService): ApicurioRegistryClient {
+    const authProvider = createAuthProvider(auth);
+    return RegistryClientFactory.createRegistryClient(config.artifactsUrl(), authProvider);
+}
+
+let client: ApicurioRegistryClient;
+
+export const getRegistryClient = (config: ConfigService, auth: AuthService): ApicurioRegistryClient => {
+    if (client === undefined) {
+        client = createRegistryClient(config, auth);
+    }
+    return client;
+};
+
 
 const AXIOS = axios.create();
-
 
 function createAxiosConfig(method: string, url: string, options: any, data?: any): AxiosRequestConfig {
     if (typeof data === "string") {
@@ -182,133 +255,6 @@ export function httpPost<I>(url: string, body: I, options?: AxiosRequestConfig, 
         }).catch((error: any) => {
             return Promise.reject(unwrapErrorData(error));
         });
-}
-
-/**
- * Performs an HTTP POST operation to the given URL with the given body and options.  Returns
- * a Promise to the HTTP response data.
- * @param url
- * @param body
- * @param options
- * @param successCallback
- */
-export function httpPostWithReturn<I, O>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: (data: any) => O): Promise<O> {
-    console.info("[BaseService] Making a POST request to: ", url);
-
-    if (!options) {
-        options = createOptions({
-            "Accept": ContentTypes.APPLICATION_JSON,
-            "Content-Type": ContentTypes.APPLICATION_JSON
-        });
-    }
-
-    const config: AxiosRequestConfig = createAxiosConfig("post", url, options, body);
-    return AXIOS.request(config)
-        .then(response => {
-            const data: O = response.data;
-            if (successCallback) {
-                return successCallback(data);
-            } else {
-                return data;
-            }
-        }).catch((error: any) => {
-            return Promise.reject(unwrapErrorData(error));
-        });
-}
-
-/**
- * Performs an HTTP PUT operation to the given URL with the given body and options.  Returns
- * a Promise to null (no response data expected).
- * @param url
- * @param body
- * @param options
- * @param successCallback
- */
-export function httpPut<I>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: () => void): Promise<void> {
-    console.info("[BaseService] Making a PUT request to: ", url);
-
-    if (!options) {
-        options = createOptions({ "Content-Type": ContentTypes.APPLICATION_JSON });
-    }
-
-    const config: AxiosRequestConfig = createAxiosConfig("put", url, options, body);
-    return AXIOS.request(config)
-        .then(() => {
-            if (successCallback) {
-                return successCallback();
-            } else {
-                return;
-            }
-        }).catch((error: any) => {
-            return Promise.reject(unwrapErrorData(error));
-        });
-}
-
-/**
- * Performs an HTTP PUT operation to the given URL with the given body and options.  Returns
- * a Promise to the HTTP response data.
- * @param url
- * @param body
- * @param options
- * @param successCallback
- */
-export function httpPutWithReturn<I, O>(url: string, body: I, options?: AxiosRequestConfig, successCallback?: (data: O) => O): Promise<O> {
-    console.info("[BaseService] Making a PUT request to: ", url);
-
-    if (!options) {
-        options = createOptions({
-            "Accept": ContentTypes.APPLICATION_JSON,
-            "Content-Type": ContentTypes.APPLICATION_JSON
-        });
-    }
-
-    const config: AxiosRequestConfig = createAxiosConfig("put", url, options, body);
-    return AXIOS.request(config)
-        .then(response => {
-            const data: O = response.data;
-            if (successCallback) {
-                return successCallback(data);
-            } else {
-                return data;
-            }
-        }).catch((error: any) => {
-            return Promise.reject(unwrapErrorData(error));
-        });
-}
-
-/**
- * Performs an HTTP DELETE operation to the given URL with the given body and options.
- * @param url
- * @param options
- * @param successCallback
- */
-export function httpDelete<T>(url: string, options?: AxiosRequestConfig, successCallback?: () => T): Promise<T> {
-    console.info("[BaseService] Making a DELETE request to: ", url);
-
-    if (!options) {
-        options = {};
-    }
-
-    const config: AxiosRequestConfig = createAxiosConfig("delete", url, options);
-
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    return AXIOS.request(config)
-        .then(() => {
-            return successCallback ? successCallback() : null;
-        }).catch((error: any) => {
-            return Promise.reject(unwrapErrorData(error));
-        });
-}
-
-export function stripTrailingSlash(baseHref: string | undefined): string {
-    if (!baseHref) {
-        return "";
-    }
-    if (baseHref.endsWith("/")) {
-        return baseHref.substring(0, baseHref.length - 1);
-    }
-    return baseHref;
 }
 
 export function createHref(baseHref: string, path: string): string {

@@ -38,8 +38,8 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializerConfig;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaParseException;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
@@ -536,8 +536,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         try {
             new org.apache.avro.Schema.Parser().parse(badSchemaString);
-            fail("Parsing invalid schema string should fail with SchemaParseException");
-        } catch (SchemaParseException ignored) {
+            fail("Parsing invalid schema string should fail with AvroTypeException");
+        } catch (AvroTypeException ignored) {
         }
 
         try {

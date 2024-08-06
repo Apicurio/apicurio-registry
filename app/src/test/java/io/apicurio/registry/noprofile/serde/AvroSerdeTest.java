@@ -141,7 +141,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testAvro() throws Exception {
         testAvroAutoRegisterIdInBody(RecordIdStrategy.class, () -> {
-            return restClient.groups().byGroupId("test-group-avro").artifacts().byArtifactId("myrecord3")
+            return restClient.groups().byGroupId("test_group_avro").artifacts().byArtifactId("myrecord3")
                     .versions().byVersionExpression("branch=latest").get();
         });
     }
@@ -150,7 +150,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
     public void testAvroQualifiedRecordIdStrategy() throws Exception {
         testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> {
             return restClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
-                    .byArtifactId("test-group-avro.myrecord3").versions().byVersionExpression("branch=latest")
+                    .byArtifactId("test_group_avro.myrecord3").versions().byVersionExpression("branch=latest")
                     .get();
         });
     }
@@ -159,7 +159,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Class<? extends ArtifactReferenceResolverStrategy<?, ?>> strategy,
             Supplier<VersionMetaData> artifactFinder) throws Exception {
         Schema schema = new Schema.Parser().parse(
-                "{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test-group-avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+                "{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test_group_avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (
             AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(
                     restClient);

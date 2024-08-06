@@ -52,8 +52,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testConfiguration() throws Exception {
-        String groupId = TestUtils.generateGroupId();
-        String topic = TestUtils.generateArtifactId();
+        String groupId = "ns_" + TestUtils.generateGroupId().replace("-", "_");
+        String topic = "topic-" + TestUtils.generateArtifactId().replace("-", "_");
         String recordName = "myrecord4";
         AvroGenericRecordSchemaFactory schemaFactory = new AvroGenericRecordSchemaFactory(groupId, recordName,
                 List.of("bar"));
@@ -108,7 +108,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             Struct struct = new Struct(sc);
             struct.put("int16Test", (short) 3);
 
-            String subject = TestUtils.generateArtifactId();
+            String subject = "subj_" + TestUtils.generateArtifactId().replace("-", "_");
 
             byte[] bytes = converter.fromConnectData(subject, sc, struct);
 
@@ -153,7 +153,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
             struct.put("bytesTest", "testingBytes".getBytes());
 
-            String subject = TestUtils.generateArtifactId();
+            String subject = "subj_" + TestUtils.generateArtifactId().replace("-", "_");
 
             byte[] bytes = converter.fromConnectData(subject, sc, struct);
 
@@ -187,7 +187,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             Struct struct = new Struct(sc);
             struct.put("bar", "somebar");
 
-            String subject = TestUtils.generateArtifactId();
+            String subject = "subj_" + TestUtils.generateArtifactId().replace("-", "_");
 
             byte[] bytes = converter.fromConnectData(subject, sc, struct);
 
@@ -242,7 +242,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             envelopeStruct.put("ts_ms", 1638362438000L); // Replace with the actual timestamp
             envelopeStruct.put("transaction", buildTransactionStruct());
 
-            String subject = TestUtils.generateArtifactId();
+            String subject = "subj_" + TestUtils.generateArtifactId().replace("-", "_");
 
             byte[] bytes = converter.fromConnectData(subject, envelopeSchema, envelopeStruct);
 

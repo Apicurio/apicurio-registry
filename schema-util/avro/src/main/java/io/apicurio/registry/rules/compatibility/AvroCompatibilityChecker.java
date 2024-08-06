@@ -43,7 +43,7 @@ public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incom
                     throw new IllegalStateException(
                             "Got illegal compatibility result: " + result.getCompatibility());
             }
-        } catch (AvroRuntimeException ex) {
+        } catch (Exception ex) {
             throw new UnprocessableSchemaException(
                     "Could not execute compatibility rule on invalid Avro schema", ex);
         }

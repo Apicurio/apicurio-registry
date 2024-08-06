@@ -273,7 +273,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String topicName = TestUtils.generateTopic();
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        String recordNamespace = TestUtils.generateGroupId();
+        String recordNamespace = TestUtils.generateAvroNS();
         String recordName = TestUtils.generateSubject();
         String schemaKey = "key1";
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(recordNamespace,
@@ -683,7 +683,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         mock.start();
         try {
-            String topicName = TestUtils.generateSubject();
+            String topicName = TestUtils.generateTopic();
             kafkaCluster.createTopic(topicName, 1, 1);
 
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("mygroup",

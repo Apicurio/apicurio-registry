@@ -6,6 +6,7 @@ import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.RuleType;
+import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
 
 import java.util.Collections;
@@ -72,15 +73,17 @@ public class AvroContentValidator implements ContentValidator {
                 }
             });
             parser.parse(content.getContent().content());
-        } catch (Exception e) {
-            // This is terrible, but I don't know how else to detect if the reason for the parse failure
+        } catch (AvroTypeException e) {
+            // This isn't great, but I don't know how else to detect if the reason for the parse failure
             // is because of a missing defined type or some OTHER parse exception.
-            if (e.getMessage().contains("is not a defined name")) {
+            if (e.getMessage().startsWith("Undefined schema")) {
                 RuleViolation violation = new RuleViolation("Missing reference detected.", e.getMessage());
                 throw new RuleViolationException("Missing reference detected in Avro artifact.",
                         RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(),
                         Collections.singleton(violation));
             }
+        } catch (Exception e) {
+            // Ignore other errors
         }
     }
 

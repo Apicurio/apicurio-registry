@@ -254,7 +254,7 @@ public class TestUtils {
     }
 
     public static String generateTopic(String prefix) {
-        return prefix + UUID.randomUUID().toString();
+        return prefix + UUID.randomUUID().toString().replace("-", "_");
     }
 
     public static String generateSubject() {
@@ -267,6 +267,14 @@ public class TestUtils {
 
     public static String generateGroupId() {
         return UUID.randomUUID().toString();
+    }
+
+    public static String generateAvroName() {
+        return "n_" + generateArtifactId().replace("-", "_");
+    }
+
+    public static String generateAvroNS() {
+        return "ns_" + generateArtifactId().replace("-", "_");
     }
 
     public static CreateArtifact clientCreateArtifact(String artifactId, String artifactType, String content,

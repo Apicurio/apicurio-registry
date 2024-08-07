@@ -39,7 +39,7 @@ class RulesResourceConfluentIT extends ConfluentBaseIT {
 
         ParsedSchema schema = new AvroSchema(first);
 
-        String schemeSubject = TestUtils.generateArtifactId();
+        String schemeSubject = TestUtils.generateSubject();
         int schemaId = createArtifactViaConfluentClient(schema, schemeSubject);
 
         confluentService.getSchemaById(schemaId);

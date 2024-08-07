@@ -2,10 +2,13 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.HandleReferencesType;
 import io.apicurio.registry.utils.IoUtil;
 import io.quarkus.test.junit.QuarkusTest;
+import org.apache.avro.Schema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
@@ -30,6 +33,22 @@ public class DataUpgradeTest extends AbstractResourceTestBase {
         }
     }
 
+    @BeforeEach
+    public void beforeEach() {
+        setupRestAssured();
+    }
+
+    @Test
+    public void testCheckGlobalRules() throws Exception {
+        // Global rules are enabled in the export file, they must be activated.
+        Assertions.assertEquals(3, clientV3.admin().rules().get().size());
+        Assertions.assertEquals("SYNTAX_ONLY",
+                clientV3.admin().rules().byRuleType("VALIDITY").get().getConfig());
+        Assertions.assertEquals("FULL",
+                clientV3.admin().rules().byRuleType("COMPATIBILITY").get().getConfig());
+        Assertions.assertEquals("NONE", clientV3.admin().rules().byRuleType("INTEGRITY").get().getConfig());
+    }
+
     @Test
     public void testArtifactsCount() {
         Assertions.assertEquals(32, clientV3.search().artifacts().get().getCount());
@@ -37,13 +56,44 @@ public class DataUpgradeTest extends AbstractResourceTestBase {
 
     @Test
     public void testCheckAvroWithReferences() throws Exception {
-        String dereferencedContent = IoUtil.toString(clientV3.groups().byGroupId("default").artifacts()
-                .byArtifactId("AvroSerdeReferencesExample-value").versions().byVersionExpression("1")
-                .content().get());
+        String tradeRawDereferenced = IoUtil.toString(clientV3.groups()
+                .byGroupId("avro-maven-with-references-auto").artifacts().byArtifactId("TradeRaw").versions()
+                .byVersionExpression("2.0").content().get(configuration -> {
+                    configuration.queryParameters.references = HandleReferencesType.DEREFERENCE;
+                }));
 
         Assertions.assertEquals(
-                "{\"type\":\"record\",\"name\":\"TradeRaw\",\"namespace\":\"com.kubetrade.schema.trade\",\"fields\":[{\"name\":\"tradeKey\",\"type\":{\"type\":\"record\",\"name\":\"TradeKey\",\"fields\":[{\"name\":\"exchange\",\"type\":{\"type\":\"enum\",\"name\":\"Exchange\",\"namespace\":\"com.kubetrade.schema.common\",\"symbols\":[\"GEMINI\"]}},{\"name\":\"key\",\"type\":{\"type\":\"string\",\"avro.java.string\":\"String\"}}]}},{\"name\":\"symbol\",\"type\":{\"type\":\"string\",\"avro.java.string\":\"String\"}},{\"name\":\"payload\",\"type\":{\"type\":\"string\",\"avro.java.string\":\"String\"}}]}",
-                dereferencedContent);
+                "{\"type\":\"record\",\"name\":\"TradeRaw\",\"namespace\":\"com.kubetrade.schema.trade\",\"fields\":[{\"name\":\"tradeKey\",\"type\":{\"type\":\"record\",\"name\":\"TradeKey\",\"fields\":[{\"name\":\"exchange\",\"type\":{\"type\":\"enum\",\"name\":\"Exchange\",\"namespace\":\"com.kubetrade.schema.common\",\"symbols\":[\"GEMINI\"]}},{\"name\":\"key\",\"type\":\"string\"}]}},{\"name\":\"value\",\"type\":{\"type\":\"record\",\"name\":\"TradeValue\",\"fields\":[{\"name\":\"exchange\",\"type\":\"com.kubetrade.schema.common.Exchange\"},{\"name\":\"value\",\"type\":\"string\"}]}},{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"payload\",\"type\":\"string\"}]}",
+                tradeRawDereferenced);
+
+        // We try to parse the dereferenced schema to ensure it can be used.
+        new Schema.Parser().parse(tradeRawDereferenced);
+
+        List<String> tradeRawReferences = clientV3.groups().byGroupId("avro-maven-with-references-auto")
+                .artifacts().byArtifactId("TradeRaw").versions().byVersionExpression("2.0").references().get()
+                .stream().map(ArtifactReference::getArtifactId).toList();
+
+        Assertions.assertEquals(2, tradeRawReferences.size());
+        Assertions.assertTrue(tradeRawReferences.containsAll(
+                List.of("com.kubetrade.schema.trade.TradeKey", "com.kubetrade.schema.trade.TradeValue")));
+
+        List<String> tradeKeyReferences = clientV3.groups().byGroupId("avro-maven-with-references-auto")
+                .artifacts().byArtifactId("com.kubetrade.schema.trade.TradeKey").versions()
+                .byVersionExpression("1").references().get().stream().map(ArtifactReference::getArtifactId)
+                .toList();
+
+        Assertions.assertEquals(1, tradeKeyReferences.size());
+        Assertions
+                .assertTrue(tradeKeyReferences.containsAll(List.of("com.kubetrade.schema.common.Exchange")));
+
+        List<String> tradeValueReferences = clientV3.groups().byGroupId("avro-maven-with-references-auto")
+                .artifacts().byArtifactId("com.kubetrade.schema.trade.TradeValue").versions()
+                .byVersionExpression("1").references().get().stream().map(ArtifactReference::getArtifactId)
+                .toList();
+
+        Assertions.assertEquals(1, tradeValueReferences.size());
+        Assertions.assertTrue(
+                tradeValueReferences.containsAll(List.of("com.kubetrade.schema.common.Exchange")));
     }
 
     @Test

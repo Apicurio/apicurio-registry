@@ -529,6 +529,32 @@ The following {registry} configuration options are available for each component 
 |Enables group deletion
 |===
 
+== semver
+.semver configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.semver.branching.coerce`
+|`boolean [dynamic]`
+|`false`
+|`3.0.0`
+|If true, invalid versions will be coerced to Semantic Versioning 2 format (https://semver.org) if possible.
+|`apicurio.semver.branching.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.0`
+|Automatically create or update branches for major ('A.x') and minor ('A.B.x') artifact versions.
+|`apicurio.semver.validation.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.0`
+|Validate that all artifact versions conform to Semantic Versioning 2 format (https://semver.org).
+|===
+
 == storage
 .storage configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]

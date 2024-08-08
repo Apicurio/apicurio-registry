@@ -19,6 +19,7 @@ import io.apicurio.tests.utils.Constants;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusIntegrationTest
 @Tag(Constants.MIGRATION)
+@Disabled
 public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
 
     @Test

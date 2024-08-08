@@ -1,18 +1,15 @@
 package io.apicurio.tests.migration;
 
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
-import io.apicurio.registry.rest.client.models.CreateArtifact;
-import io.apicurio.registry.rest.client.models.CreateRule;
-import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.v2.models.ArtifactContent;
+import io.apicurio.registry.rest.client.v2.models.Rule;
+import io.apicurio.registry.rest.client.v2.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.impexp.v2.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
-import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.EntityWriter;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
@@ -43,7 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MigrationTestsDataInitializer {
 
-    public static void initializeMigrateTest(RegistryClient source, String registryBaseUrl) throws Exception {
+    public static void initializeMigrateTest(io.apicurio.registry.rest.client.v2.RegistryClient source,
+            String registryBaseUrl) throws Exception {
         migrateGlobalIds = new ArrayList<>();
         migrateReferencesMap = new HashMap<>();
 
@@ -51,58 +49,64 @@ public class MigrationTestsDataInitializer {
         for (int idx = 0; idx < 50; idx++) {
             String artifactId = idx + "-" + UUID.randomUUID().toString();
 
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
-                    new String(jsonSchema.getSchemaStream().readAllBytes(), StandardCharsets.UTF_8),
-                    ContentTypes.APPLICATION_JSON);
+            io.apicurio.registry.rest.client.v2.models.ArtifactContent createArtifact = TestUtils
+                    .clientCreateArtifactV2(artifactId, ArtifactType.JSON,
+                            new String(jsonSchema.getSchemaStream().readAllBytes(), StandardCharsets.UTF_8),
+                            ContentTypes.APPLICATION_JSON);
             var response = source.groups().byGroupId("default").artifacts().post(createArtifact);
-            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()));
-            migrateGlobalIds.add(response.getVersion().getGlobalId());
+            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(response.getGlobalId()));
+            migrateGlobalIds.add(response.getGlobalId());
         }
 
         for (int idx = 0; idx < 15; idx++) {
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
                     List.of("a" + idx));
             String artifactId = "avro-" + idx;
-            List<ArtifactReference> references = idx > 0
-                ? getSingletonRefList("migrateTest", "avro-" + (idx - 1), "1", "myRef" + idx)
+            List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> references = idx > 0
+                ? getSingletonRefListV2("migrateTest", "avro-" + (idx - 1), "1", "myRef" + idx)
                 : Collections.emptyList();
 
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
-                    new String(avroSchema.generateSchemaStream().readAllBytes(), StandardCharsets.UTF_8),
-                    ContentTypes.APPLICATION_JSON);
-            createArtifact.getFirstVersion().getContent().setReferences(references);
-            var response = source.groups().byGroupId("migrateTest").artifacts().post(createArtifact);
+            io.apicurio.registry.rest.client.v2.models.ArtifactContent createArtifact = TestUtils
+                    .clientCreateArtifactV2(artifactId, ArtifactType.AVRO,
+                            new String(avroSchema.generateSchemaStream().readAllBytes(),
+                                    StandardCharsets.UTF_8),
+                            ContentTypes.APPLICATION_JSON);
+            createArtifact.setReferences(references);
+            var response = source.groups().byGroupId("migrateTest").artifacts().post(createArtifact,
+                    configuration -> {
+                        configuration.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+                        configuration.headers.add("X-Registry-ArtifactId", artifactId);
+                    });
 
-            TestUtils.retry(
-                    () -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()).get());
-            assertTrue(matchesReferences(references, source.ids().globalIds()
-                    .byGlobalId(response.getVersion().getGlobalId()).references().get()));
-            migrateReferencesMap.put(response.getVersion().getGlobalId(), references);
-            migrateGlobalIds.add(response.getVersion().getGlobalId());
+            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(response.getGlobalId()).get());
+            assertTrue(matchesReferencesV2V2(references,
+                    source.ids().globalIds().byGlobalId(response.getGlobalId()).references().get()));
+            migrateReferencesMap.put(response.getGlobalId(), references);
+            migrateGlobalIds.add(response.getGlobalId());
 
             avroSchema = new AvroGenericRecordSchemaFactory(List.of("u" + idx));
-            List<ArtifactReference> updatedReferences = idx > 0
-                ? getSingletonRefList("migrateTest", "avro-" + (idx - 1), "2", "myRef" + idx)
+            List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> updatedReferences = idx > 0
+                ? getSingletonRefListV2("migrateTest", "avro-" + (idx - 1), "2", "myRef" + idx)
                 : Collections.emptyList();
-            CreateVersion createVersion = TestUtils.clientCreateVersion(
-                    new String(avroSchema.generateSchemaStream().readAllBytes(), StandardCharsets.UTF_8),
-                    ContentTypes.APPLICATION_JSON);
-            createVersion.getContent().setReferences(updatedReferences);
+            io.apicurio.registry.rest.client.v2.models.ArtifactContent createVersion = TestUtils
+                    .clientCreateVersionV2(new String(avroSchema.generateSchemaStream().readAllBytes(),
+                            StandardCharsets.UTF_8), ContentTypes.APPLICATION_JSON);
+            createVersion.setReferences(updatedReferences);
             var vmd = source.groups().byGroupId("migrateTest").artifacts().byArtifactId(artifactId).versions()
                     .post(createVersion);
             TestUtils.retry(() -> source.ids().globalIds().byGlobalId(vmd.getGlobalId()));
-            assertTrue(matchesReferences(updatedReferences,
+            assertTrue(matchesReferencesV2V2(updatedReferences,
                     source.ids().globalIds().byGlobalId(vmd.getGlobalId()).references().get()));
             migrateReferencesMap.put(vmd.getGlobalId(), updatedReferences);
             migrateGlobalIds.add(vmd.getGlobalId());
         }
 
-        CreateRule createRule = new CreateRule();
-        createRule.setRuleType(RuleType.VALIDITY);
+        io.apicurio.registry.rest.client.v2.models.Rule createRule = new Rule();
+        createRule.setType(io.apicurio.registry.rest.client.v2.models.RuleType.VALIDITY);
         createRule.setConfig("SYNTAX_ONLY");
         source.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0").rules().post(createRule);
 
-        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setType(RuleType.COMPATIBILITY);
         createRule.setConfig("BACKWARD");
         source.admin().rules().post(createRule);
 
@@ -113,7 +117,8 @@ public class MigrationTestsDataInitializer {
                 .byteStream();
     }
 
-    public static void initializeDoNotPreserveIdsImport(RegistryClient source, String registryBaseUrl)
+    public static void initializeDoNotPreserveIdsImport(
+            io.apicurio.registry.rest.client.v2.RegistryClient source, String registryBaseUrl)
             throws Exception {
         // Fill the source registry with data
         JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
@@ -121,12 +126,11 @@ public class MigrationTestsDataInitializer {
             String artifactId = idx + "-" + UUID.randomUUID().toString();
             String content = IoUtil.toString(jsonSchema.getSchemaStream());
 
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+            ArtifactContent createArtifact = TestUtils.clientCreateArtifactV2(artifactId, ArtifactType.JSON,
                     content, ContentTypes.APPLICATION_JSON);
             var response = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
                     .post(createArtifact);
-            TestUtils.retry(
-                    () -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()).get());
+            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(response.getGlobalId()).get());
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
         }
 
@@ -135,17 +139,17 @@ public class MigrationTestsDataInitializer {
                     List.of("a" + idx));
             String artifactId = "avro-" + idx + "-" + UUID.randomUUID().toString();
             String content = IoUtil.toString(avroSchema.generateSchemaStream());
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
-                    content, ContentTypes.APPLICATION_JSON);
+            io.apicurio.registry.rest.client.v2.models.ArtifactContent createArtifact = TestUtils
+                    .clientCreateArtifactV2(artifactId, ArtifactType.AVRO, content,
+                            ContentTypes.APPLICATION_JSON);
             var response = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
                     .post(createArtifact);
-            TestUtils.retry(
-                    () -> source.ids().globalIds().byGlobalId(response.getVersion().getGlobalId()).get());
+            TestUtils.retry(() -> source.ids().globalIds().byGlobalId(response.getGlobalId()).get());
             doNotPreserveIdsImportArtifacts.put("testDoNotPreserveIdsImport:" + artifactId, content);
 
             avroSchema = new AvroGenericRecordSchemaFactory(List.of("u" + idx));
             String content2 = IoUtil.toString(avroSchema.generateSchemaStream());
-            CreateVersion createVersion = TestUtils.clientCreateVersion(content2,
+            ArtifactContent createVersion = TestUtils.clientCreateVersionV2(content2,
                     ContentTypes.APPLICATION_JSON);
             var vmd = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
                     .byArtifactId(artifactId).versions().post(createVersion);
@@ -171,8 +175,40 @@ public class MigrationTestsDataInitializer {
         return Collections.singletonList(artifactReference);
     }
 
+    protected static List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> getSingletonRefListV2(
+            String groupId, String artifactId, String version, String name) {
+        io.apicurio.registry.rest.client.v2.models.ArtifactReference artifactReference = new io.apicurio.registry.rest.client.v2.models.ArtifactReference();
+        artifactReference.setGroupId(groupId);
+        artifactReference.setArtifactId(artifactId);
+        artifactReference.setVersion(version);
+        artifactReference.setName(name);
+        return Collections.singletonList(artifactReference);
+    }
+
     public static boolean matchesReferences(List<ArtifactReference> srcReferences,
             List<ArtifactReference> destReferences) {
+        return destReferences.size() == srcReferences.size() && destReferences.stream()
+                .allMatch(srcRef -> srcReferences.stream()
+                        .anyMatch(destRef -> Objects.equals(srcRef.getGroupId(), destRef.getGroupId())
+                                && Objects.equals(srcRef.getArtifactId(), destRef.getArtifactId())
+                                && Objects.equals(srcRef.getVersion(), destRef.getVersion())
+                                && Objects.equals(srcRef.getName(), destRef.getName())));
+    }
+
+    public static boolean matchesReferencesV2V3(
+            List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> srcReferences,
+            List<ArtifactReference> destReferences) {
+        return destReferences.size() == srcReferences.size() && destReferences.stream()
+                .allMatch(srcRef -> srcReferences.stream()
+                        .anyMatch(destRef -> Objects.equals(srcRef.getGroupId(), destRef.getGroupId())
+                                && Objects.equals(srcRef.getArtifactId(), destRef.getArtifactId())
+                                && Objects.equals(srcRef.getVersion(), destRef.getVersion())
+                                && Objects.equals(srcRef.getName(), destRef.getName())));
+    }
+
+    public static boolean matchesReferencesV2V2(
+            List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> srcReferences,
+            List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> destReferences) {
         return destReferences.size() == srcReferences.size() && destReferences.stream()
                 .allMatch(srcRef -> srcReferences.stream()
                         .anyMatch(destRef -> Objects.equals(srcRef.getGroupId(), destRef.getGroupId())
@@ -230,7 +266,7 @@ public class MigrationTestsDataInitializer {
 
                 writer.writeEntity(artifactEntity);
 
-                ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
+                io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity versionEntity = new io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity();
                 versionEntity.artifactId = artifactId;
                 versionEntity.contentId = contentId;
                 versionEntity.owner = "integration-tests";

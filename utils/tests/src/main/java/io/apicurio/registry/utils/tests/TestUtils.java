@@ -4,6 +4,7 @@ import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.v2.models.ArtifactContent;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -281,6 +282,13 @@ public class TestUtils {
         return createArtifact;
     }
 
+    public static ArtifactContent clientCreateArtifactV2(String artifactId, String artifactType,
+            String content, String contentType) {
+        ArtifactContent createArtifact = new io.apicurio.registry.rest.client.v2.models.ArtifactContent();
+        createArtifact.setContent(content);
+        return createArtifact;
+    }
+
     public static io.apicurio.registry.rest.v3.beans.CreateArtifact serverCreateArtifact(String artifactId,
             String artifactType, String content, String contentType) {
         return io.apicurio.registry.rest.v3.beans.CreateArtifact
@@ -298,6 +306,13 @@ public class TestUtils {
         createVersion.setContent(new VersionContent());
         createVersion.getContent().setContent(content);
         createVersion.getContent().setContentType(contentType);
+        return createVersion;
+    }
+
+    public static io.apicurio.registry.rest.client.v2.models.ArtifactContent clientCreateVersionV2(
+            String content, String contentType) {
+        io.apicurio.registry.rest.client.v2.models.ArtifactContent createVersion = new io.apicurio.registry.rest.client.v2.models.ArtifactContent();
+        createVersion.setContent(content);
         return createVersion;
     }
 

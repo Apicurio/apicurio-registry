@@ -87,6 +87,7 @@
     <module>distro</module>
     <module>docs</module>
     <module>java-sdk</module>
+    <module>java-sdk-v2</module>
     <module>go-sdk</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
@@ -259,6 +260,11 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-java-sdk</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-v2-java-sdk</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

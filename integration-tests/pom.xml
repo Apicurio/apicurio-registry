@@ -55,6 +55,10 @@
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-v2-java-sdk</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-utils-kafka</artifactId>
       <type>test-jar</type>
       <scope>test</scope>

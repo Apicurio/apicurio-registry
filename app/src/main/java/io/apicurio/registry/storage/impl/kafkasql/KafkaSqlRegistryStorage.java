@@ -27,18 +27,19 @@ import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.storage.importing.DataImporter;
-import io.apicurio.registry.storage.importing.SqlDataImporter;
+import io.apicurio.registry.storage.importing.v2.SqlDataUpgrader;
+import io.apicurio.registry.storage.importing.v3.SqlDataImporter;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.impexp.ArtifactEntity;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.BranchEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
-import io.apicurio.registry.utils.impexp.GroupRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import jakarta.annotation.PreDestroy;
@@ -620,6 +621,34 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId,
                 preserveContentId);
         dataImporter.importData(entities, () -> {
+            // TODO Re-visit this, since Apicurio Registry 3 all messages live in the same partition, so there
+            // should be no need to wait.
+            // Because importing just pushes a bunch of Kafka messages, we may need to
+            // wait for a few seconds before we send the reset messages. Due to partitioning,
+            // we can't guarantee ordering of these next two messages, and we NEED them to
+            // be consumed after all the import messages.
+            // TODO We can wait until the last message is read (a specific one),
+            // or create a new message type for this purpose (a sync message).
+            try {
+                Thread.sleep(2000);
+            } catch (Exception e) {
+                // Noop
+            }
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#upgradeData(io.apicurio.registry.storage.impexp.EntityInputStream,
+     *      boolean, boolean)
+     */
+    @Override
+    public void upgradeData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId)
+            throws RegistryStorageException {
+        DataImporter dataImporter = new SqlDataUpgrader(log, utils, this, preserveGlobalId,
+                preserveContentId);
+        dataImporter.importData(entities, () -> {
+            // TODO Re-visit this, since Apicurio Registry 3 all messages live in the same partition, so there
+            // should be no need to wait.
             // Because importing just pushes a bunch of Kafka messages, we may need to
             // wait for a few seconds before we send the reset messages. Due to partitioning,
             // we can't guarantee ordering of these next two messages, and we NEED them to
@@ -804,7 +833,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importComment(io.apicurio.registry.utils.impexp.CommentEntity)
+     * @see io.apicurio.registry.storage.RegistryStorage#importComment(CommentEntity)
      */
     @Override
     public void importComment(CommentEntity entity) {
@@ -814,7 +843,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importGroup(io.apicurio.registry.utils.impexp.GroupEntity)
+     * @see io.apicurio.registry.storage.RegistryStorage#importGroup(GroupEntity)
      */
     @Override
     public void importGroup(GroupEntity entity) {
@@ -824,7 +853,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importGlobalRule(io.apicurio.registry.utils.impexp.GlobalRuleEntity)
+     * @see io.apicurio.registry.storage.RegistryStorage#importGlobalRule(GlobalRuleEntity)
      */
     @Override
     public void importGlobalRule(GlobalRuleEntity entity) {
@@ -834,7 +863,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importContent(io.apicurio.registry.utils.impexp.ContentEntity)
+     * @see io.apicurio.registry.storage.RegistryStorage#importContent(ContentEntity)
      */
     @Override
     public void importContent(ContentEntity entity) {
@@ -845,7 +874,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importArtifactVersion(io.apicurio.registry.utils.impexp.ArtifactVersionEntity)
+     * @see io.apicurio.registry.storage.RegistryStorage#importArtifactVersion(ArtifactVersionEntity)
      */
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
@@ -862,7 +891,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importArtifactRule(io.apicurio.registry.utils.impexp.ArtifactRuleEntity)
+     * @see io.apicurio.registry.storage.RegistryStorage#importArtifactRule(ArtifactRuleEntity)
      */
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {

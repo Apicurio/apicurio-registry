@@ -1,6 +1,8 @@
-package io.apicurio.registry.utils.impexp;
+package io.apicurio.registry.utils.impexp.v3;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

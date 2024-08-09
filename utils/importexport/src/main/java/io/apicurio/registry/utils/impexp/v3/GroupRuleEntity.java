@@ -1,5 +1,8 @@
-package io.apicurio.registry.utils.impexp;
+package io.apicurio.registry.utils.impexp.v3;
 
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,19 +16,17 @@ import static lombok.AccessLevel.PRIVATE;
 @AllArgsConstructor(access = PRIVATE)
 @ToString
 @RegisterForReflection
-public class CommentEntity extends Entity {
+public class GroupRuleEntity extends Entity {
 
-    public long globalId;
-    public String commentId;
-    public String owner;
-    public long createdOn;
-    public String value;
+    public String groupId;
+    public RuleType type;
+    public String configuration;
 
     /**
-     * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()
+     * @see Entity#getEntityType()
      */
     @Override
     public EntityType getEntityType() {
-        return EntityType.Comment;
+        return EntityType.GroupRule;
     }
 }

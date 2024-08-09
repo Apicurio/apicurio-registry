@@ -1,9 +1,11 @@
-package io.apicurio.registry.utils.impexp;
+package io.apicurio.registry.utils.impexp.v2;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityType;
 
 import java.io.IOException;
 import java.util.zip.ZipEntry;
@@ -39,8 +41,6 @@ public class EntityReader {
             EntityType entityType = parseEntityType(path);
             if (entityType != null) {
                 switch (entityType) {
-                    case Artifact:
-                        return readArtifact(entry);
                     case ArtifactRule:
                         return readArtifactRule(entry);
                     case ArtifactVersion:
@@ -53,8 +53,6 @@ public class EntityReader {
                         return readGroup(entry);
                     case Comment:
                         return readComment(entry);
-                    case Branch:
-                        return readBranch(entry);
                     case Manifest:
                         return readManifest(entry);
                 }
@@ -64,9 +62,11 @@ public class EntityReader {
         return null;
     }
 
-    private ContentEntity readContent(ZipEntry entry) throws IOException {
+    private io.apicurio.registry.utils.impexp.v2.ContentEntity readContent(ZipEntry entry)
+            throws IOException {
         if (entry.getName().endsWith(".json")) {
-            ContentEntity entity = this.readEntry(entry, ContentEntity.class);
+            io.apicurio.registry.utils.impexp.v2.ContentEntity entity = this.readEntry(entry,
+                    ContentEntity.class);
 
             ZipEntry dataEntry = zip.getNextEntry();
             if (!dataEntry.getName().endsWith(".Content.data")) {
@@ -81,35 +81,32 @@ public class EntityReader {
         }
     }
 
-    private ManifestEntity readManifest(ZipEntry entry) throws IOException {
+    private io.apicurio.registry.utils.impexp.v2.ManifestEntity readManifest(ZipEntry entry)
+            throws IOException {
         return readEntry(entry, ManifestEntity.class);
     }
 
-    private GroupEntity readGroup(ZipEntry entry) throws IOException {
+    private io.apicurio.registry.utils.impexp.v2.GroupEntity readGroup(ZipEntry entry) throws IOException {
         return readEntry(entry, GroupEntity.class);
     }
 
-    private ArtifactEntity readArtifact(ZipEntry entry) throws IOException {
-        return this.readEntry(entry, ArtifactEntity.class);
-    }
-
-    private ArtifactVersionEntity readArtifactVersion(ZipEntry entry) throws IOException {
+    private io.apicurio.registry.utils.impexp.v2.ArtifactVersionEntity readArtifactVersion(ZipEntry entry)
+            throws IOException {
         return this.readEntry(entry, ArtifactVersionEntity.class);
     }
 
-    private ArtifactRuleEntity readArtifactRule(ZipEntry entry) throws IOException {
+    private io.apicurio.registry.utils.impexp.v2.ArtifactRuleEntity readArtifactRule(ZipEntry entry)
+            throws IOException {
         return this.readEntry(entry, ArtifactRuleEntity.class);
     }
 
-    private CommentEntity readComment(ZipEntry entry) throws IOException {
+    private io.apicurio.registry.utils.impexp.v2.CommentEntity readComment(ZipEntry entry)
+            throws IOException {
         return this.readEntry(entry, CommentEntity.class);
     }
 
-    private BranchEntity readBranch(ZipEntry entry) throws IOException {
-        return this.readEntry(entry, BranchEntity.class);
-    }
-
-    private GlobalRuleEntity readGlobalRule(ZipEntry entry) throws IOException {
+    private io.apicurio.registry.utils.impexp.v2.GlobalRuleEntity readGlobalRule(ZipEntry entry)
+            throws IOException {
         return this.readEntry(entry, GlobalRuleEntity.class);
     }
 

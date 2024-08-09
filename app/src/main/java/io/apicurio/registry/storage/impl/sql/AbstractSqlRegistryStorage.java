@@ -94,23 +94,24 @@ import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
 import io.apicurio.registry.storage.importing.DataImporter;
-import io.apicurio.registry.storage.importing.SqlDataImporter;
+import io.apicurio.registry.storage.importing.v2.SqlDataUpgrader;
+import io.apicurio.registry.storage.importing.v3.SqlDataImporter;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.StringUtil;
-import io.apicurio.registry.utils.impexp.ArtifactEntity;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.BranchEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
-import io.apicurio.registry.utils.impexp.GroupRuleEntity;
-import io.apicurio.registry.utils.impexp.ManifestEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
@@ -2263,6 +2264,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public void upgradeData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) {
+        DataImporter dataImporter = new SqlDataUpgrader(log, utils, this, preserveGlobalId,
+                preserveContentId);
+        dataImporter.importData(entities, () -> {
+        });
+    }
+
+    @Override
     public long countArtifacts() throws RegistryStorageException {
         return handles.withHandle(handle -> {
             return handle.createQuery(sqlStatements.selectAllArtifactCount()).mapTo(Long.class).one();
@@ -2547,7 +2556,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return true;
         } catch (VersionNotFoundException ignored) {
             return false; // TODO Similar exception is thrown in some method callers, do we need this? Or use
-                          // a different query.
+            // a different query.
         }
     }
 

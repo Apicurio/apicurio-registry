@@ -2,7 +2,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.utils.impexp.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

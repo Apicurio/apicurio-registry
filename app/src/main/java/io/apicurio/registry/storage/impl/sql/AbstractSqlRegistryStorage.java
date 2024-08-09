@@ -11,6 +11,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.semver.SemVerConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageBehaviorProperties;
 import io.apicurio.registry.storage.StorageEvent;
@@ -113,9 +114,11 @@ import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.semver4j.Semver;
 import org.slf4j.Logger;
 
 import java.sql.ResultSet;
@@ -186,6 +189,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     RegistryStorageContentUtils utils;
+
+    @Inject
+    SemVerConfigProperties semVerConfigProps;
 
     protected SqlStatements sqlStatements() {
         return sqlStatements;
@@ -554,7 +560,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .bind(12, contentId).execute();
 
             gav = new GAV(groupId, artifactId, finalVersion1);
-            createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
         } else {
             handle.createUpdate(sqlStatements.insertVersion(false)).bind(0, globalId)
                     .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version)
@@ -571,7 +576,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
 
             gav = getGAVByGlobalId(handle, globalId);
-            createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
         }
 
         // Insert labels into the "version_labels" table
@@ -583,6 +587,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             });
         }
 
+        // Update system generated branches
+        createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
+        createOrUpdateSemverBranches(handle, gav);
+
         // Create any user defined branches
         if (branches != null && !branches.isEmpty()) {
             branches.forEach(branch -> {
@@ -593,6 +601,54 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         return handle.createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId()).bind(0, globalId)
                 .map(ArtifactVersionMetaDataDtoMapper.instance).one();
+    }
+
+    /**
+     * If SemVer support is enabled, create (or update) the automatic system generated semantic versioning
+     * branches.
+     * 
+     * @param handle
+     * @param gav
+     */
+    private void createOrUpdateSemverBranches(Handle handle, GAV gav) {
+        boolean validationEnabled = semVerConfigProps.validationEnabled.get();
+        boolean branchingEnabled = semVerConfigProps.branchingEnabled.get();
+        boolean coerceInvalidVersions = semVerConfigProps.coerceInvalidVersions.get();
+
+        // Validate the version if validation is enabled.
+        if (validationEnabled) {
+            Semver semver = Semver.parse(gav.getRawVersionId());
+            if (semver == null) {
+                throw new ValidationException("Version '" + gav.getRawVersionId()
+                        + "' does not conform to Semantic Versioning 2 format.");
+            }
+        }
+
+        // Create branches if branching is enabled
+        if (!branchingEnabled) {
+            return;
+        }
+
+        Semver semver = null;
+        if (coerceInvalidVersions) {
+            semver = Semver.coerce(gav.getRawVersionId());
+            if (semver == null) {
+                throw new ValidationException("Version '" + gav.getRawVersionId()
+                        + "' cannot be coerced to Semantic Versioning 2 format.");
+            }
+        } else {
+            semver = Semver.parse(gav.getRawVersionId());
+            if (semver == null) {
+                throw new ValidationException("Version '" + gav.getRawVersionId()
+                        + "' does not conform to Semantic Versioning 2 format.");
+            }
+        }
+        if (semver == null) {
+            throw new UnreachableCodeException("Unexpectedly reached unreachable code!");
+        }
+        createOrUpdateBranchRaw(handle, gav, new BranchId(semver.getMajor() + ".x"), true);
+        createOrUpdateBranchRaw(handle, gav, new BranchId(semver.getMajor() + "." + semver.getMinor() + ".x"),
+                true);
     }
 
     /**
@@ -3031,6 +3087,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto) {
+        BranchMetaDataDto bmd = getBranchMetaData(ga, branchId);
+        if (bmd.isSystemDefined()) {
+            throw new NotAllowedException("System generated branches cannot be modified.");
+        }
+
         String modifiedBy = securityIdentity.getPrincipal().getName();
         Date modifiedOn = new Date();
         log.debug("Updating metadata for branch {} of {}/{}.", branchId, ga.getRawGroupIdWithNull(),
@@ -3220,6 +3281,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void appendVersionToBranch(GA ga, BranchId branchId, VersionId version) {
+        BranchMetaDataDto bmd = getBranchMetaData(ga, branchId);
+        if (bmd.isSystemDefined()) {
+            throw new NotAllowedException("System generated branches cannot be modified.");
+        }
+
         try {
             handles.withHandle(handle -> {
                 appendVersionToBranchRaw(handle, ga, branchId, version);
@@ -3257,6 +3323,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions) {
+        BranchMetaDataDto bmd = getBranchMetaData(ga, branchId);
+        if (bmd.isSystemDefined()) {
+            throw new NotAllowedException("System generated branches cannot be modified.");
+        }
+
         handles.withHandle(handle -> {
             // Delete all previous versions.
             handle.createUpdate(sqlStatements.deleteBranchVersions()).bind(0, ga.getRawGroupId())
@@ -3341,8 +3412,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void deleteBranch(GA ga, BranchId branchId) {
-        if (BranchId.LATEST.equals(branchId)) {
-            throw new NotAllowedException("Artifact branch 'latest' cannot be deleted.");
+        BranchMetaDataDto bmd = getBranchMetaData(ga, branchId);
+        if (bmd.isSystemDefined()) {
+            throw new NotAllowedException("System generated branches cannot be deleted.");
         }
 
         handles.withHandleNoException(handle -> {

@@ -32,11 +32,12 @@ public abstract class AbstractHandleFactory implements HandleFactory {
     public <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) throws X {
         LocalState state = state();
         try {
-            // Create a new handle, or throw if one already exists (only one handle allowed at a time)
+            // Create a new handle if necessary. Increment the "level" if a handle already exists.
             if (state.handle == null) {
                 state.handle = new HandleImpl(dataSource.getConnection());
+                state.level = 0;
             } else {
-                throw new RegistryStorageException("Attempt to acquire a nested DB Handle.");
+                state.level++;
             }
 
             // Invoke the callback with the handle. This will either return a value (success)
@@ -54,32 +55,39 @@ public abstract class AbstractHandleFactory implements HandleFactory {
             }
             throw e;
         } finally {
-            // Commit or rollback the transaction
-            try {
-                if (state.handle != null) {
-                    if (state.handle.isRollback()) {
-                        log.trace("Rollback: {} #{}", state.handle.getConnection(),
-                                state.handle.getConnection().hashCode());
-                        state.handle.getConnection().rollback();
-                    } else {
-                        log.trace("Commit: {} #{}", state.handle.getConnection(),
-                                state.handle.getConnection().hashCode());
-                        state().handle.getConnection().commit();
+            if (state.level > 0) {
+                log.trace("Exiting nested call (level {}): {} #{}", state().level,
+                        state().handle.getConnection(), state().handle.getConnection().hashCode());
+                state.level--;
+            } else {
+                // Commit or rollback the transaction
+                try {
+                    if (state.handle != null) {
+                        if (state.handle.isRollback()) {
+                            log.trace("Rollback: {} #{}", state.handle.getConnection(),
+                                    state.handle.getConnection().hashCode());
+                            state.handle.getConnection().rollback();
+                        } else {
+                            log.trace("Commit: {} #{}", state.handle.getConnection(),
+                                    state.handle.getConnection().hashCode());
+                            state().handle.getConnection().commit();
+                        }
                     }
+                } catch (Exception e) {
+                    log.error("Could not release database connection/transaction", e);
                 }
-            } catch (Exception e) {
-                log.error("Could not release database connection/transaction", e);
-            }
 
-            // Close the connection
-            try {
-                if (state.handle != null) {
-                    state.handle.close();
-                    state.handle = null;
+                // Close the connection
+                try {
+                    if (state.handle != null) {
+                        state.handle.close();
+                        state.handle = null;
+                        state.level = 0;
+                    }
+                } catch (Exception ex) {
+                    // Nothing we can do
+                    log.error("Could not close a database connection.", ex);
                 }
-            } catch (Exception ex) {
-                // Nothing we can do
-                log.error("Could not close a database connection.", ex);
             }
         }
     }
@@ -109,5 +117,6 @@ public abstract class AbstractHandleFactory implements HandleFactory {
 
     private static class LocalState {
         HandleImpl handle;
+        int level = 0;
     }
 }

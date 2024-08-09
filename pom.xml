@@ -198,6 +198,7 @@
     <woodstox-core.version>7.0.0</woodstox-core.version>
     <jgit.version>6.10.0.202406032230-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>
+    <semver4j.version>5.2.2</semver4j.version>
 
     <!-- Kafka Connect -->
     <connect.version>3.7.0</connect.version>
@@ -585,6 +586,11 @@
         <groupId>org.eclipse.jgit</groupId>
         <artifactId>org.eclipse.jgit</artifactId>
         <version>${jgit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.semver4j</groupId>
+        <artifactId>semver4j</artifactId>
+        <version>${semver4j.version}</version>
       </dependency>
 
       <!-- GraphQL -->

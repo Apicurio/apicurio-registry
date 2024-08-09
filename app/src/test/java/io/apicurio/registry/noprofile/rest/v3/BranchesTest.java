@@ -7,6 +7,7 @@ import io.apicurio.registry.rest.client.models.BranchSearchResults;
 import io.apicurio.registry.rest.client.models.CreateBranch;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableBranchMetaData;
+import io.apicurio.registry.rest.client.models.Error;
 import io.apicurio.registry.rest.client.models.ReplaceBranchVersions;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
@@ -39,6 +40,13 @@ public class BranchesTest extends AbstractResourceTestBase {
         VersionSearchResults versions = clientV3.groups().byGroupId(groupId).artifacts()
                 .byArtifactId(artifactId).branches().byBranchId("latest").versions().get();
         Assertions.assertEquals(2, versions.getCount());
+
+        // Not allowed to delete the latest branch.
+        var error = Assertions.assertThrows(Error.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                    .byBranchId("latest").delete();
+        });
+        Assertions.assertEquals("System generated branches cannot be deleted.", error.getMessageEscaped());
     }
 
     @Test

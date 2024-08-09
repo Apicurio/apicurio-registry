@@ -59,6 +59,15 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
             "apicurio.ui.features.read-only.enabled"
         ]
     },
+    {
+        id: "semver",
+        label: "Semantic versioning settings",
+        propertyNames: [
+            "apicurio.semver.validation.enabled",
+            "apicurio.semver.branching.enabled",
+            "apicurio.semver.branching.coerce"
+        ]
+    },
 ];
 
 

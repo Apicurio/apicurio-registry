@@ -1,6 +1,7 @@
 package io.apicurio.tests.serdes.apicurio;
 
 import com.google.protobuf.DynamicMessage;
+import io.apicurio.registry.rest.client.models.Error;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
@@ -285,12 +286,20 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer)
-                .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(schema::generateMessage)
-                .withDataValidator(schema::validateMessage)
-                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
-                .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, topicName).build().test();
+        try {
+            new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
+                    .withSerializer(serializer).withDeserializer(deserializer)
+                    .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(schema::generateMessage)
+                    .withDataValidator(schema::validateMessage)
+                    .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+                    .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, topicName).build().test();
+        } catch (Error e) {
+            java.lang.System.out.println("---------->>>");
+            java.lang.System.out.println("Code:   " + e.getResponseStatusCode());
+            java.lang.System.out.println("Msg:    " + e.getMessageEscaped());
+            java.lang.System.out.println("Detail: " + e.getDetail());
+            throw e;
+        }
 
     }
 

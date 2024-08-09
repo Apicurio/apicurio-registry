@@ -1,7 +1,9 @@
-package io.apicurio.registry.storage.importing;
+package io.apicurio.registry.storage.importing.v3;
 
 import io.apicurio.registry.storage.error.RegistryStorageException;
-import io.apicurio.registry.utils.impexp.*;
+import io.apicurio.registry.storage.importing.DataImporter;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.v3.*;
 import org.slf4j.Logger;
 
 public abstract class AbstractDataImporter implements DataImporter {

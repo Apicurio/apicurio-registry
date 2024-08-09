@@ -1,4 +1,4 @@
-package io.apicurio.registry.storage.importing;
+package io.apicurio.registry.storage.importing.v3;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -10,12 +10,25 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.RegistryException;
-import io.apicurio.registry.utils.impexp.*;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SqlDataImporter extends AbstractDataImporter {
@@ -24,9 +37,9 @@ public class SqlDataImporter extends AbstractDataImporter {
 
     protected final RegistryStorage storage;
 
-    private final boolean preserveGlobalId;
+    protected final boolean preserveGlobalId;
 
-    private final boolean preserveContentId;
+    protected final boolean preserveContentId;
 
     // To handle the case where we are trying to import a version before its content has been imported
     protected final List<ArtifactVersionEntity> waitingForContent = new ArrayList<>();

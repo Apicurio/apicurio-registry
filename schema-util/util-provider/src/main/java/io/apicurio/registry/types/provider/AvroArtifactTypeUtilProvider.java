@@ -37,22 +37,22 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
-            String contentType = content.getContentType();
-            if (contentType.toLowerCase().contains("json")
-                    && ContentTypeUtil.isParsableJson(content.getContent())) {
-                // Avro without quote
-                final Schema.Parser parser = new Schema.Parser();
-                final List<Schema> schemaRefs = new ArrayList<>();
-                for (Map.Entry<String, TypedContent> referencedContent : resolvedReferences.entrySet()) {
-                    if (!parser.getTypes().containsKey(referencedContent.getKey())) {
-                        Schema schemaRef = parser.parse(referencedContent.getValue().getContent().content());
-                        schemaRefs.add(schemaRef);
-                    }
-                }
-                final Schema schema = parser.parse(removeQuotedBrackets(content.getContent().content()));
-                schema.toString(schemaRefs, false);
-                return true;
+            if (content.getContentType() != null && content.getContentType().toLowerCase().contains("json")
+                    && !ContentTypeUtil.isParsableJson(content.getContent())) {
+                return false;
             }
+            // Avro without quote
+            final Schema.Parser parser = new Schema.Parser();
+            final List<Schema> schemaRefs = new ArrayList<>();
+            for (Map.Entry<String, TypedContent> referencedContent : resolvedReferences.entrySet()) {
+                if (!parser.getTypes().containsKey(referencedContent.getKey())) {
+                    Schema schemaRef = parser.parse(referencedContent.getValue().getContent().content());
+                    schemaRefs.add(schemaRef);
+                }
+            }
+            final Schema schema = parser.parse(removeQuotedBrackets(content.getContent().content()));
+            schema.toString(schemaRefs, false);
+            return true;
         } catch (Exception e) {
             // ignored
         }

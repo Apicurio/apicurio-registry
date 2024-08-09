@@ -22,13 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static io.apicurio.registry.utils.tests.TestUtils.getRegistryV2ApiUrl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -117,10 +117,11 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
         public Map<String, String> start() {
 
             String registryBaseUrl = startRegistryApplication(
-                    "quay.io/apicurio/apicurio-registry-mem:2.4.14.Final");
+                    "quay.io/apicurio/apicurio-registry-mem:latest-release");
             var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
-            adapter.setBaseUrl(registryBaseUrl);
-            RegistryClient source = new RegistryClient(adapter);
+            adapter.setBaseUrl(getRegistryV2ApiUrl());
+            io.apicurio.registry.rest.client.v2.RegistryClient source = new io.apicurio.registry.rest.client.v2.RegistryClient(
+                    adapter);
 
             try {
                 // Warm up until the source registry is ready.
@@ -128,13 +129,13 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
                     source.groups().byGroupId("default").artifacts().get();
                 });
 
-                MigrationTestsDataInitializer.initializeDoNotPreserveIdsImport(source, getRegistryUrl(8081));
+                MigrationTestsDataInitializer.initializeDoNotPreserveIdsImport(source, registryBaseUrl);
 
             } catch (Exception ex) {
                 log.error("Error filling origin registry with data:", ex);
             }
 
-            return Collections.emptyMap();
+            return Map.of("apicurio.rest.deletion.artifact.enabled", "true");
         }
     }
 }

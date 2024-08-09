@@ -8,7 +8,7 @@ import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.EntityReader;
+import io.apicurio.registry.utils.impexp.v3.EntityReader;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;

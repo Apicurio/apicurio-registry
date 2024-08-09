@@ -1,8 +1,10 @@
-package io.apicurio.registry.utils.impexp;
+package io.apicurio.registry.utils.impexp.v3;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,7 +42,7 @@ public class ArtifactVersionEntity extends Entity {
     public long contentId;
 
     /**
-     * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()
+     * @see Entity#getEntityType()
      */
     @Override
     public EntityType getEntityType() {

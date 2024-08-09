@@ -120,6 +120,11 @@ public class RegistryStorageContentUtils {
         return ArtifactTypeUtil.determineArtifactType(content, artifactTypeHint, null, factory);
     }
 
+    public String determineArtifactType(TypedContent content, String artifactTypeHint,
+            Map<String, TypedContent> resolvedReferences) {
+        return ArtifactTypeUtil.determineArtifactType(content, artifactTypeHint, resolvedReferences, factory);
+    }
+
     public static boolean notEmpty(Collection<?> collection) {
         return collection != null && !collection.isEmpty();
     }

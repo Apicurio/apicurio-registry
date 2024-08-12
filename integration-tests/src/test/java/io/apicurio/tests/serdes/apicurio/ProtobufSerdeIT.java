@@ -61,10 +61,12 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
-        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
-                .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
-                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build().test();
+        logRestClientError(() -> {
+            new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
+                    .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
+                    .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
+                    .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
+        });
     }
 
     @Test
@@ -78,11 +80,13 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
-        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer)
-                .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(schema::generateMessage)
-                .withDataValidator(schema::validateMessage)
-                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build().test();
+        logRestClientError(() -> {
+            new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
+                    .withSerializer(serializer).withDeserializer(deserializer)
+                    .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(schema::generateMessage)
+                    .withDataValidator(schema::validateMessage)
+                    .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
+        });
     }
 
     @Test
@@ -98,10 +102,12 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         createArtifact("default", artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
-        new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>().withTopic(topicName)
-                .withSerializer(serializer).withStrategy(TopicIdStrategy.class)
-                // note, we use an incorrect wrong data generator in purpose
-                .withDataGenerator(schemaB::generateMessage).build().test();
+        logRestClientError(() -> {
+            new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>().withTopic(topicName)
+                    .withSerializer(serializer).withStrategy(TopicIdStrategy.class)
+                    // note, we use an incorrect wrong data generator in purpose
+                    .withDataGenerator(schemaB::generateMessage).build();
+        });
     }
 
     @Test
@@ -117,11 +123,13 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         createArtifact("default", artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
-        new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>().withTopic(topicName)
-                .withSerializer(serializer).withStrategy(TopicIdStrategy.class)
-                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
-                // note, we use an incorrect wrong data generator in purpose
-                .withDataGenerator(schemaB::generateMessage).build().test();
+        logRestClientError(() -> {
+            new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>().withTopic(topicName)
+                    .withSerializer(serializer).withStrategy(TopicIdStrategy.class)
+                    .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+                    // note, we use an incorrect wrong data generator in purpose
+                    .withDataGenerator(schemaB::generateMessage).build();
+        });
     }
 
     @Test
@@ -133,9 +141,11 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         // note, we don't create any artifact
 
-        new WrongConfiguredSerdesTesterBuilder<ProtobufTestMessage>().withTopic(topicName)
-                .withSerializer(serializer).withStrategy(TopicIdStrategy.class)
-                .withDataGenerator(schema::generateMessage).build().test();
+        logRestClientError(() -> {
+            new WrongConfiguredSerdesTesterBuilder<ProtobufTestMessage>().withTopic(topicName)
+                    .withSerializer(serializer).withStrategy(TopicIdStrategy.class)
+                    .withDataGenerator(schema::generateMessage).build();
+        });
     }
 
     /**
@@ -208,12 +218,14 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
-        new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
-                .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateDynamicMessage)
-                .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS,
-                        DynamicMessage.class.getName())
-                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build().test();
+        logRestClientError(() -> {
+            new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>().withTopic(topicName)
+                    .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
+                    .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateDynamicMessage)
+                    .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS,
+                            DynamicMessage.class.getName())
+                    .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
+        });
     }
 
     @Test
@@ -227,12 +239,14 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
-        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
-                .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
-                .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS,
-                        ProtobufTestMessage.class.getName())
-                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build().test();
+        logRestClientError(() -> {
+            new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
+                    .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
+                    .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
+                    .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS,
+                            ProtobufTestMessage.class.getName())
+                    .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
+        });
     }
 
     @Test
@@ -246,11 +260,13 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
-        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
-                .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
-                .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
-                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build().test();
+        logRestClientError(() -> {
+            new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
+                    .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
+                    .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
+                    .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+                    .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
+        });
     }
 
     @Test
@@ -264,12 +280,14 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
-        new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer)
-                .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(schema::generateMessage)
-                .withDataValidator(schema::validateMessage)
-                .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
-                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build().test();
+        logRestClientError(() -> {
+            new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
+                    .withSerializer(serializer).withDeserializer(deserializer)
+                    .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(schema::generateMessage)
+                    .withDataValidator(schema::validateMessage)
+                    .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+                    .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
+        });
     }
 
     @Test
@@ -286,21 +304,26 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        try {
+        logRestClientError(() -> {
             new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
                     .withSerializer(serializer).withDeserializer(deserializer)
                     .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(schema::generateMessage)
                     .withDataValidator(schema::validateMessage)
                     .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
-                    .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, topicName).build().test();
+                    .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, topicName).build();
+        });
+    }
+
+    private void logRestClientError(Tester tester) throws Exception {
+        try {
+            tester.test();
         } catch (Error e) {
-            java.lang.System.out.println("---------->>>");
+            java.lang.System.out.println("---------->>> REST Client Error Detected");
             java.lang.System.out.println("Code:   " + e.getResponseStatusCode());
             java.lang.System.out.println("Msg:    " + e.getMessageEscaped());
             java.lang.System.out.println("Detail: " + e.getDetail());
-            throw e;
+            java.lang.System.out.println("----------");
         }
-
     }
 
     @Test

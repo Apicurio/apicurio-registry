@@ -31,6 +31,8 @@ import io.apicurio.registry.ccompat.rest.v7.SubjectsResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
+import io.apicurio.registry.storage.ArtifactNotFoundException;
+import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -38,13 +40,12 @@ import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.InvalidArtifactStateException;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.util.VersionUtil;
 import jakarta.interceptor.Interceptors;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -64,10 +65,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     public List<String> listSubjects(String subjectPrefix, Boolean deleted, String groupId) {
         //Since contexts are not supported, subjectPrefix is not used
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
-        Set<SearchFilter> filters = Set.of();
-        if (groupId != null) {
-            filters.add(SearchFilter.ofGroup(groupId));
-        }
+        Set<SearchFilter> filters = cconfig.groupConcatEnabled ? Set.of() : Set.of(SearchFilter.ofGroup(groupId));
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
                 OrderDirection.asc, 0, cconfig.maxSubjects.get());
         Function<SearchedArtifactDto, String> toSubject = SearchedArtifactDto::getId;

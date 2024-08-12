@@ -24,7 +24,6 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.CCompatWithGroupsTestProfile;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.restassured.response.ResponseBodyExtractionOptions;
 import io.restassured.response.ValidatableResponse;
 import jakarta.enterprise.inject.Typed;
 import org.hamcrest.Matchers;

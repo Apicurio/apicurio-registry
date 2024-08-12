@@ -18,7 +18,6 @@ package io.apicurio.registry.ccompat.rest.v7.impl;
 
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
-import io.apicurio.common.apps.util.Pair;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;

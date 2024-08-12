@@ -26,7 +26,6 @@ import io.apicurio.registry.ccompat.rest.v7.SchemasResource;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;

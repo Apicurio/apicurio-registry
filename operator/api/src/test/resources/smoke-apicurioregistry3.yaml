@@ -1,0 +1,24 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: test
+  namespace: test-namespace
+spec:
+  app:
+    env:
+      - name: foo1
+        value: bar1
+    podTemplate:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            resources:
+              requests:
+                cpu: 199m
+                memory: 499Mi
+    host: test-app.cluster.example
+  ui:
+    env:
+      - name: foo2
+        value: bar2
+    host: test-ui.cluster.example

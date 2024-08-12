@@ -1,0 +1,34 @@
+= Apicurio Registry Operator Distribution Bundle
+
+This directory contains installation files for the Apicurio Registry Operator, with example `ApicurioRegistry3` custom resource files.
+Docker images for the operator and the operand are distributed using a public registry.
+
+== Installation
+
+.Procedure
+. Choose a namespace where the operator will be deployed:
++
+[source,bash]
+----
+export NAMESPACE=apicurio-registry
+kubectl create namespace $NAMESPACE
+----
+
+. Kubernetes resources required for the installation are present inside `install.yaml` file.
+Apply the installation file:
++
+[source,bash]
+----
+cat install.yaml | sed "s/PLACEHOLDER_NAMESPACE/$NAMESPACE/g" | kubectl -n $NAMESPACE apply -f -
+----
+
+== Deploy Apicurio Registry
+
+After the Apicurio Registry Operator has been deployed, it can deploy an Apicurio Registry instance.
+
+To create a new Apicurio Registry deployment, the fastest way is to use one of the example `ApicurioRegistry3` custom resources:
+
+[source,bash]
+----
+kubectl -n $NAMESPACE apply -f examples/simple-apicurioregistry3.yaml
+----

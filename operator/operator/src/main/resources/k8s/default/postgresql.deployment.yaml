@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { }
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      { }
+  template:
+    metadata: { }
+    spec:
+      containers:
+        - env:
+            - name: POSTGRES_ADMIN_PASSWORD
+              value: admin
+            - name: POSTGRES_PASSWORD
+              value: password
+            - name: POSTGRES_DB
+              value: apicurio-registry
+            - name: POSTGRES_USER
+              value: apicurio-registry
+            - name: PGDATA
+              value: /postgresql/data
+          image: postgres
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+          name: postgresql
+          ports:
+            - containerPort: 5432
+              name: postgresql
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 5432
+          volumeMounts:
+            - mountPath: /postgresql
+              name: postgresql
+      volumes:
+        - emptyDir: { }
+          name: postgresql

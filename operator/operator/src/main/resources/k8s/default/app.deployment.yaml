@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { }
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      { }
+  template:
+    metadata: { }
+    spec:
+      containers:
+        - name: apicurio-registry-app
+          image: quay.io/apicurio/apicurio-registry:latest-snapshot
+          env: [ ]
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /apis/registry/v3/system/info
+              port: 8080
+              scheme: HTTP
+          livenessProbe:
+            httpGet:
+              path: /apis/registry/v3/system/info
+              port: 8080
+              scheme: HTTP
+          resources:
+            requests:
+              cpu: 200m
+              memory: 500Mi
+            limits:
+              cpu: 500m
+              memory: 1000Mi

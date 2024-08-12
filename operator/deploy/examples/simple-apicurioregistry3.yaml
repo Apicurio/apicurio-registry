@@ -1,0 +1,5 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple-apicurioregistry3
+spec: { }

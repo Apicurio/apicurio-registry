@@ -104,6 +104,10 @@
     <module>schema-util/xsd</module>
     <module>schema-util/util-provider</module>
 
+    <!-- Operator -->
+    <module>operator</module>
+    <module>operator/api</module>
+    <module>operator/operator</module>
   </modules>
 
   <scm>
@@ -1048,6 +1052,7 @@
               <file>${projectRoot}/ide-config/eclipse.importorder</file>
             </importOrder>
             <removeUnusedImports/>
+            <toggleOffOn/>
           </java>
           <pom>
             <includes>

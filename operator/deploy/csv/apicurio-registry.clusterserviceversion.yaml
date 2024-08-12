@@ -1,0 +1,97 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+    categories: Streaming & Messaging
+    certified: "false"
+    # DO NOT COMMIT AUTOMATIC MODIFICATIONS TO THIS FILE
+    containerImage: quay.io/apicurio/apicurio-registry-operator:latest-snapshot
+    createdAt: "0000-00-00"
+    description: Deploy and manage Apicurio Registry 3 on Kubernetes.
+    repository: https://github.com/Apicurio/apicurio-registry/tree/main/operator
+    support: Apicurio
+    operators.openshift.io/infrastructure-features: '[]'
+    features.operators.openshift.io/disconnected: "false" # TODO: Support disconnected install
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+  name: apicurio-registry.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: ApicurioRegistry3 represents an instance of Apicurio Registry version 3.
+        displayName: Apicurio Registry 3
+        kind: ApicurioRegistry3
+        name: apicurioregistries3.registry.apicur.io
+        version: v1
+  description: |
+    ## Apicurio Registry
+
+    TODO
+
+    ## Apicurio Registry Operator
+
+    TODO
+
+    ## Prerequisites
+
+    TODO
+
+    ## License
+
+    Apicurio Registry and Apicurio Registry Operator are licensed under the [Apache 2.0 license](https://github.com/Apicurio/apicurio-registry/blob/main/LICENSE)
+  displayName: Apicurio Registry 3
+  icon:
+    # TODO
+    - base64data: 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
+      mediatype: image/jpeg
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: true
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - integration
+    - streaming
+    - messaging
+    - api
+    - schemas
+    - registry
+    - apicurio
+    - apicurio-registry
+  links:
+    - name: Website
+      url: https://www.apicur.io/
+    - name: GitHub
+      url: https://github.com/Apicurio/apicurio-registry/
+    - name: Issues
+      url: https://github.com/Apicurio/apicurio-registry/issues
+    - name: Twitter
+      url: https://twitter.com/Apicurio
+  maintainers:
+    - email: apicurio@lists.jboss.org
+      name: Apicurio
+  maturity: alpha
+  provider:
+    name: Apicurio
+  selector: {}
+  version: 0.0.0
+  minKubeVersion: 1.25.0

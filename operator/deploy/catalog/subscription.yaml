@@ -1,0 +1,11 @@
+# DO NOT COMMIT AUTOMATIC MODIFICATIONS TO THIS FILE
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: apicurio-registry-operator-subscription
+  namespace: PLACEHOLDER_NAMESPACE
+spec:
+  sourceNamespace: PLACEHOLDER_CATALOG_NAMESPACE
+  source: apicurio-registry-operator-catalog
+  name: apicurio-registry
+  channel: 1.x

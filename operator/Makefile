@@ -123,8 +123,10 @@ endif
 	@echo "SKIP_TESTS=$(SKIP_TESTS)"
 	@echo "BUILD_OPTS=$(BUILDS_OPTS)"
 	@echo "IMAGE=$(IMAGE)"
+ifneq ($(ADDITIONAL_IMAGE),)
 ifneq ($(ADDITIONAL_IMAGE_TAG),)
 	@echo "ADDITIONAL_IMAGE=$(ADDITIONAL_IMAGE)"
+endif
 endif
 	@echo ""
 	@echo "$(CC_CYAN)Operand$(CC_END)"
@@ -136,14 +138,18 @@ endif
 	@echo "CHANNELS=$(CHANNELS)"
 	@echo "DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)"
 	@echo "BUNDLE_IMAGE=$(BUNDLE_IMAGE)"
+ifneq ($(ADDITIONAL_BUNDLE_IMAGE),)
 ifneq ($(ADDITIONAL_BUNDLE_IMAGE_TAG),)
 	@echo "ADDITIONAL_BUNDLE_IMAGE=$(ADDITIONAL_BUNDLE_IMAGE)"
+endif
 endif
 	@echo ""
 	@echo "$(CC_CYAN)Catalog$(CC_END)"
 	@echo "CATALOG_IMAGE=$(CATALOG_IMAGE)"
+ifneq ($(ADDITIONAL_CATALOG_IMAGE),)
 ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
 	@echo "ADDITIONAL_CATALOG_IMAGE=$(ADDITIONAL_CATALOG_IMAGE)"
+endif
 endif
 	@echo ""
 	@echo "$(CC_CYAN)Other$(CC_END)"
@@ -240,8 +246,12 @@ build: ## TODO
 
 .PHONY: image-buildx-build-push
 image-buildx-build-push: ## TODO
+ifneq ($(ADDITIONAL_IMAGE),)
 ifneq ($(ADDITIONAL_IMAGE_TAG),)
 	docker buildx build --push --platform $(BUILDX_PLATFORM) -f operator/src/main/docker/Dockerfile.jvm -t $(IMAGE) -t $(ADDITIONAL_IMAGE) operator/target
+else
+	docker buildx build --push --platform $(BUILDX_PLATFORM) -f operator/src/main/docker/Dockerfile.jvm -t $(IMAGE) operator/target
+endif
 else
 	docker buildx build --push --platform $(BUILDX_PLATFORM) -f operator/src/main/docker/Dockerfile.jvm -t $(IMAGE) operator/target
 endif
@@ -250,16 +260,20 @@ endif
 .PHONY: image-build
 image-build: ## TODO
 	docker build -f operator/src/main/docker/Dockerfile.jvm -t $(IMAGE) operator/target
+ifneq ($(ADDITIONAL_IMAGE),)
 ifneq ($(ADDITIONAL_IMAGE_TAG),)
 	docker tag $(IMAGE) $(ADDITIONAL_IMAGE)
+endif
 endif
 
 
 .PHONY: image-push
 image-push: ## TODO
 	docker push $(IMAGE)
+ifneq ($(ADDITIONAL_IMAGE),)
 ifneq ($(ADDITIONAL_IMAGE_TAG),)
 	docker push $(ADDITIONAL_IMAGE)
+endif
 endif
 
 
@@ -347,16 +361,20 @@ bundle-build: install-operator-sdk prepare-csv prepare-resources ## Generate bun
 .PHONY: bundle-image-build
 bundle-image-build: ## TODO
 	docker build -f $(BUNDLE_DIR)/bundle.Dockerfile -t $(BUNDLE_IMAGE) .
+ifneq ($(ADDITIONAL_BUNDLE_IMAGE),)
 ifneq ($(ADDITIONAL_BUNDLE_TAG),)
 	docker tag $(BUNDLE_IMAGE) $(ADDITIONAL_BUNDLE_IMAGE)
+endif
 endif
 
 
 .PHONY: bundle-image-push
 bundle-image-push: ## TODO
 	docker push $(BUNDLE_IMAGE)
+ifneq ($(ADDITIONAL_BUNDLE_IMAGE),)
 ifneq ($(ADDITIONAL_BUNDLE_TAG),)
 	docker push $(ADDITIONAL_BUNDLE_IMAGE)
+endif
 endif
 
 
@@ -380,16 +398,20 @@ catalog-build: install-opm ## TODO
 .PHONY: catalog-image-build
 catalog-image-build: ## TODO
 	cd $(CATALOG_DIR) && docker build -f configs.Dockerfile -t $(CATALOG_IMAGE) .
+ifneq ($(ADDITIONAL_CATALOG_IMAGE),)
 ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
 	docker tag $(CATALOG_IMAGE) $(ADDITIONAL_CATALOG_IMAGE)
+endif
 endif
 
 
 .PHONY: catalog-image-push
 catalog-image-push: ## TODO
 	docker push $(CATALOG_IMAGE)
+ifneq ($(ADDITIONAL_CATALOG_IMAGE),)
 ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
 	docker push $(ADDITIONAL_CATALOG_IMAGE)
+endif
 endif
 
 

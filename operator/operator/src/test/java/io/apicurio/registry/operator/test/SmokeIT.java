@@ -8,6 +8,7 @@ import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,10 +19,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
 
 import static io.apicurio.registry.operator.test.OperatorTestExtension.LONG_WAIT;
+import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
+@Order(1)
 class SmokeIT {
 
     private static final Logger log = LoggerFactory.getLogger(SmokeIT.class);
@@ -67,7 +70,7 @@ class SmokeIT {
         int appPort = ext.portForward(name + "-app-service", 8080);
         int uiPort = ext.portForward(name + "-ui-service", 8080);
 
-        var httpClient = HttpClient.newBuilder().build();
+        var httpClient = HttpClient.newBuilder().connectTimeout(ofSeconds(10)).build();
 
         await().atMost(LONG_WAIT).untilAsserted(() -> {
             var req = HttpRequest.newBuilder()

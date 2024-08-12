@@ -104,7 +104,6 @@
     <module>schema-util/xsd</module>
     <module>schema-util/util-provider</module>
 
-    <module>operator</module>
   </modules>
 
   <scm>
@@ -1189,8 +1188,8 @@
         </repository>
       </distributionManagement>
     </profile>
-    <!-- 
-            conditional repo to be excluded in productization 
+    <!--
+            conditional repo to be excluded in productization
             build in prod with:
             mvn ... -P '!external_repos'
         -->

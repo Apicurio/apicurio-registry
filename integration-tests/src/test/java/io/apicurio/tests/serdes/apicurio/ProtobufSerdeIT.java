@@ -63,8 +63,9 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         logRestClientError(() -> {
             new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                    .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
-                    .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
+                    .withSerializer(serializer).withDeserializer(deserializer)
+                    .withStrategy(TopicIdStrategy.class).withDataGenerator(schema::generateMessage)
+                    .withDataValidator(schema::validateMessage)
                     .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
         });
     }
@@ -220,8 +221,9 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         logRestClientError(() -> {
             new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>().withTopic(topicName)
-                    .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
-                    .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateDynamicMessage)
+                    .withSerializer(serializer).withDeserializer(deserializer)
+                    .withStrategy(TopicIdStrategy.class).withDataGenerator(schema::generateMessage)
+                    .withDataValidator(schema::validateDynamicMessage)
                     .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS,
                             DynamicMessage.class.getName())
                     .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
@@ -241,8 +243,9 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         logRestClientError(() -> {
             new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                    .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
-                    .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
+                    .withSerializer(serializer).withDeserializer(deserializer)
+                    .withStrategy(TopicIdStrategy.class).withDataGenerator(schema::generateMessage)
+                    .withDataValidator(schema::validateMessage)
                     .withConsumerProperty(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS,
                             ProtobufTestMessage.class.getName())
                     .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
@@ -262,8 +265,9 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         logRestClientError(() -> {
             new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                    .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
-                    .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
+                    .withSerializer(serializer).withDeserializer(deserializer)
+                    .withStrategy(TopicIdStrategy.class).withDataGenerator(schema::generateMessage)
+                    .withDataValidator(schema::validateMessage)
                     .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
                     .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
         });

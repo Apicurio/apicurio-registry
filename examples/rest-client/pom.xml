@@ -11,6 +11,10 @@
   <artifactId>apicurio-registry-examples-rest-client</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>

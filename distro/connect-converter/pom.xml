@@ -13,6 +13,7 @@
   <name>apicurio-registry-distro-connect-converter</name>
 
   <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
     <assembly.descriptor>converter-distribution</assembly.descriptor>
     <version.jersey>2.31</version.jersey>
     <version.geronimo.config>1.2.2</version.geronimo.config>

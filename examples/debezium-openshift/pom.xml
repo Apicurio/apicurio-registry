@@ -12,6 +12,7 @@
   <artifactId>apicurio-registry-examples-debezium-openshift</artifactId>
 
   <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
     <lombok.version>1.18.28</lombok.version>
   </properties>
 

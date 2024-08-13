@@ -11,6 +11,10 @@
   <artifactId>apicurio-registry-tools-kafkasql-topic-import</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
+  </properties>
+
   <dependencies>
 
     <dependency>

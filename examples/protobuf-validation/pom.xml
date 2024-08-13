@@ -10,6 +10,10 @@
 
   <artifactId>apicurio-registry-examples-protobuf-validation</artifactId>
 
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>

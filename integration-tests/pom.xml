@@ -9,6 +9,7 @@
   <artifactId>apicurio-registry-integration-tests</artifactId>
 
   <properties>
+    <projectRoot>${project.basedir}/..</projectRoot>
     <skipTests>true</skipTests>
     <quarkus.http.test-host>localhost</quarkus.http.test-host>
     <quarkus.http.test-port>0</quarkus.http.test-port>

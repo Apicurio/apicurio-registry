@@ -12,6 +12,10 @@
 
   <name>Apicurio Registry Operator :: Model</name>
 
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.fabric8</groupId>

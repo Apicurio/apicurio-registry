@@ -12,6 +12,10 @@
   <packaging>jar</packaging>
   <name>apicurio-registry-utils-exportConfluent</name>
 
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
   <dependencies>
 
     <dependency>

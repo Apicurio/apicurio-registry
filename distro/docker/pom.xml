@@ -14,6 +14,7 @@
   <name>apicurio-registry-distro-docker</name>
 
   <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
     <docker.app.file>app-files/apicurio-registry-app-${project.version}-all.tar.gz</docker.app.file>
   </properties>
 

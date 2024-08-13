@@ -74,6 +74,10 @@
     <url>https://github.com/apicurio/apicurio-registry/issues</url>
   </issueManagement>
 
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
   <build>
     <plugins>
 

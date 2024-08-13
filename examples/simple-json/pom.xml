@@ -11,6 +11,10 @@
   <artifactId>apicurio-registry-examples-simple-json</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>

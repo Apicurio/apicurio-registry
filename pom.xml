@@ -106,8 +106,6 @@
 
     <!-- Operator -->
     <module>operator</module>
-    <module>operator/api</module>
-    <module>operator/operator</module>
   </modules>
 
   <scm>

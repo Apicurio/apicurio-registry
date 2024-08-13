@@ -11,7 +11,7 @@
 
   <artifactId>apicurio-registry-operator-api</artifactId>
 
-  <name>apicurio-registry-operator-api-model</name>
+  <name>apicurio-registry-operator-api</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

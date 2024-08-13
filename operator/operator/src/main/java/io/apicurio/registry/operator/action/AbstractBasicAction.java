@@ -5,6 +5,9 @@ import io.apicurio.registry.operator.state.NoState;
 
 import static io.apicurio.registry.operator.state.NoState.INSTANCE;
 
+/**
+ * Default action without a state, intended for extension by subclassing.
+ */
 public abstract class AbstractBasicAction extends AbstractAction<NoState> {
 
     @Override

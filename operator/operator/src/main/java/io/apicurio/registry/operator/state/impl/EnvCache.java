@@ -13,6 +13,17 @@ import java.util.*;
 import static java.util.Objects.requireNonNull;
 import static lombok.AccessLevel.PRIVATE;
 
+/**
+ * This state class represents a collection of env. variables that should be applied to a deployment.
+ * <p>
+ * Why do we need this?
+ * <ul>
+ * <li>We can have multiple actions that need to update env. variables</li>
+ * <li>We need a functionality to decide which variables can be overridden {@link EnvCachePriority}, as they
+ * may come from multiple sources.</li>
+ * <li>We need to maintain an order because of unlikely, but possible interpolation.</li>
+ * </ul>
+ */
 public abstract class EnvCache implements State {
 
     private Map<String, EnvVarEntry> env = new HashMap<>();
@@ -65,14 +76,13 @@ public abstract class EnvCache implements State {
         return res;
     }
 
-    public List<EnvVar> getEnvAndReset() {
-        var res = getEnv();
-        reset();
-        return res;
-    }
-
     public void reset() {
         env.clear();
+    }
+
+    @Override
+    public void afterReconciliation() {
+        reset();
     }
 
     @Builder

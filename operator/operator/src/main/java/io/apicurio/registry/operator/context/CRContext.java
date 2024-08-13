@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -23,6 +24,13 @@ import static io.apicurio.registry.operator.utils.LogUtils.contextPrefix;
 import static io.apicurio.registry.operator.utils.ResourceUtils.duplicate;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * This class represents state and operations related to the CR context, i.e. tied to a specific instance of a
+ * primary resource.
+ * <p>
+ * Since state related to the CR context cannot be represented using CDI beans without implementing a custom
+ * CDI scope, this class contains state that is used by {@link Action}.
+ */
 public class CRContext {
 
     private static final Logger log = LoggerFactory.getLogger(CRContext.class);
@@ -50,8 +58,13 @@ public class CRContext {
     @Getter
     private Duration reschedule;
 
-    public void initialize(List<Action<?>> actions, ApicurioRegistry3 primary,
-            Context<ApicurioRegistry3> context) {
+    /**
+     * Initialize a new (this) CR context. This includes:
+     * <ul>
+     * <li>Initialize and store action states, by running {@link Action#initialize(CRContext)}</li>
+     * </ul>
+     */
+    void initialize(List<Action<?>> actions, ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
         log.info("{}Initializing new CR context", contextPrefix(primary));
         this.primary = primary;
         this.context = context;
@@ -64,29 +77,38 @@ public class CRContext {
                 if (existing == null) {
                     actionStateMap.put(key, state);
                 } else if (!NoState.class.equals(key)) {
-                    log.warn("{}State {} has already been initialized.", contextPrefix(primary), key);
+                    log.warn("{}State {} has already been initialized", contextPrefix(primary), key);
                 }
             } else {
                 if (existing == null) {
-                    throw new OperatorException("State " + key + " initialization returned null.");
+                    throw new OperatorException("State " + key + " initialization returned null");
                 }
             }
         }
     }
 
-    public <R> R runActions(List<Action<?>> actions, ApicurioRegistry3 primary,
-            Context<ApicurioRegistry3> context, ResourceKey<R> key) {
+    /**
+     * Run actions with this CR context. This includes:
+     * <ul>
+     * <li>Selecting which actions should be executed</li>
+     * <li>Providing {@link State} to each action</li>
+     * <li>Call the {@link State#afterReconciliation()} method</li>
+     * </ul>
+     */
+    <R> R runActions(List<Action<?>> actions, ApicurioRegistry3 primary, Context<ApicurioRegistry3> context,
+            ResourceKey<R> key) {
         this.primary = primary;
         this.context = context;
+        var activeStateClasses = new HashSet<Class<? extends State>>();
         for (Action<?> action : actions) {
             var stateClass = action.getStateClass();
-            var state = actionStateMap.get(stateClass);
-            requireNonNull(state);
+            var state = requireState(stateClass);
             var a = (Action) action;
             if (a.supports().contains(key)) {
                 if (a.shouldRun(state, this)) {
                     log.debug("{}Running action {}", contextPrefix(primary), a.getClass());
                     a.run(state, this);
+                    activeStateClasses.add(stateClass);
                 } else {
                     log.trace("{}Skipping action {}", contextPrefix(primary), a.getClass());
                 }
@@ -95,9 +117,32 @@ public class CRContext {
                         contextPrefix(primary), a.getClass(), key);
             }
         }
+        for (Class<? extends State> stateClass : activeStateClasses) {
+            log.trace("{}Running afterReconciliation for {}", contextPrefix(primary), stateClass);
+            requireState(stateClass).afterReconciliation();
+        }
         return getDesiredResource(key);
     }
 
+    /**
+     * Get an instance of a {@link State} stored in this CR context. If the state does not exist, throws an
+     * {@link OperatorException}.
+     */
+    public <STATE extends State> STATE requireState(Class<STATE> stateClass) {
+        requireNonNull(stateClass);
+        var state = actionStateMap.get(stateClass);
+        if (state == null) {
+            throw new OperatorException("State " + stateClass.getCanonicalName() + " not found");
+        } else {
+            return (STATE) state;
+        }
+    }
+
+    /**
+     * Execute code that requires given resource, if it exists. The code MUST NOT change the resource state.
+     * <p>
+     * This function MUST NOT be used for the primary resource, use {@link CRContext#getPrimary()} instead.
+     */
     public <R> void withExistingResource(ResourceKey<R> key, Consumer<R> action) {
         if (REGISTRY_KEY.equals(key)) {
             throw new OperatorException("Use CRContext::getPrimary() if you are not updating the CR.");
@@ -126,6 +171,11 @@ public class CRContext {
         return (R) r;
     }
 
+    /**
+     * Execute code that wants to change the desired state of a resource.
+     * <p>
+     * This function MAY be used to update the primary resource.
+     */
     public <R> void withDesiredResource(ResourceKey<R> key, Consumer<R> action) {
         action.accept(getDesiredResource(key));
         if (REGISTRY_KEY.equals(key)) {
@@ -133,6 +183,9 @@ public class CRContext {
         }
     }
 
+    /**
+     * Request to reschedule the reconciliation loop with the given timeout.
+     */
     public void rescheduleSeconds(int seconds) {
         var d = Duration.ofSeconds(seconds);
         if (reschedule == null || reschedule.compareTo(d) > 0) {
@@ -140,11 +193,14 @@ public class CRContext {
         }
     }
 
+    /**
+     * Request to reschedule the reconciliation loop soon.
+     */
     public void reschedule() {
         rescheduleSeconds(5);
     }
 
-    public void reset() {
+    void reset() {
         primary = null;
         updatePrimary = false;
         updateStatus = false;

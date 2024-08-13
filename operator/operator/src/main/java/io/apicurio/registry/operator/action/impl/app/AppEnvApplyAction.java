@@ -64,7 +64,7 @@ public class AppEnvApplyAction extends AbstractAction<AppEnvCache> {
         crContext.withDesiredResource(APP_DEPLOYMENT_KEY, d -> {
             where(d.getSpec().getTemplate().getSpec().getContainers(),
                     c -> APP_CONTAINER_NAME.equals(c.getName()), c -> {
-                        c.setEnv(state.getEnvAndReset());
+                        c.setEnv(state.getEnv());
                     });
         });
     }

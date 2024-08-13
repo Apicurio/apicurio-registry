@@ -9,6 +9,11 @@ import java.util.List;
 import static io.apicurio.registry.operator.action.ActionOrder.ORDERING_DEFAULT;
 import static io.apicurio.registry.operator.resource.ResourceKey.REGISTRY_KEY;
 
+/**
+ * Default action with a generic state, intended for extension by subclassing.
+ * <p>
+ * Supports the primary resource only, uses default ordering, and should always run.
+ */
 public abstract class AbstractAction<STATE extends State> implements Action<STATE> {
 
     @Override

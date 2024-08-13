@@ -10,7 +10,6 @@ import jakarta.inject.Inject;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_KEY;
-import static io.apicurio.registry.operator.utils.FunctionalUtils.returnSecondArg;
 
 @KubernetesDependent(labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component="
         + COMPONENT_UI, resourceDiscriminator = UIServiceDiscriminator.class)
@@ -25,6 +24,6 @@ public class UIServiceResource extends CRUDKubernetesDependentResource<Service, 
 
     @Override
     protected Service desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-        return globalContext.reconcileReturn(UI_SERVICE_KEY, primary, context, returnSecondArg());
+        return globalContext.reconcileReturn(UI_SERVICE_KEY, primary, context);
     }
 }

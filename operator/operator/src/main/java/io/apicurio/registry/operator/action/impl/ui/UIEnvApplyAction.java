@@ -43,8 +43,7 @@ public class UIEnvApplyAction extends AbstractAction<UIEnvCache> {
                 for (IngressRule rule : i.getSpec().getRules()) {
                     for (HTTPIngressPath path : rule.getHttp().getPaths()) {
                         if (s.getMetadata().getName().equals(path.getBackend().getService().getName())) {
-                            state.add("REGISTRY_API_URL", "http://%s/apis/registry/v3" // TODO: http
-                                                                                       // vs https?
+                            state.add("REGISTRY_API_URL", "http://%s/apis/registry/v3" // TODO: http vs https?
                                     .formatted(rule.getHost()), OPERATOR_LOW);
                             return;
                         }
@@ -56,7 +55,7 @@ public class UIEnvApplyAction extends AbstractAction<UIEnvCache> {
         crContext.withDesiredResource(UI_DEPLOYMENT_KEY, d -> {
             where(d.getSpec().getTemplate().getSpec().getContainers(),
                     c -> UI_CONTAINER_NAME.equals(c.getName()), c -> {
-                        c.setEnv(state.getEnvAndReset());
+                        c.setEnv(state.getEnv());
                     });
         });
     }

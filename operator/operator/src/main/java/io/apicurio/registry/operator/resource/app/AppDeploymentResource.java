@@ -10,7 +10,6 @@ import jakarta.inject.Inject;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
-import static io.apicurio.registry.operator.utils.FunctionalUtils.returnSecondArg;
 
 @KubernetesDependent(labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component="
         + COMPONENT_APP, resourceDiscriminator = AppDeploymentDiscriminator.class)
@@ -25,6 +24,6 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
 
     @Override
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-        return globalContext.reconcileReturn(APP_DEPLOYMENT_KEY, primary, context, returnSecondArg());
+        return globalContext.reconcileReturn(APP_DEPLOYMENT_KEY, primary, context);
     }
 }

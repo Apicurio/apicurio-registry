@@ -13,6 +13,7 @@
   <name>apicurio-registry-app</name>
 
   <properties>
+    <projectRoot>${project.basedir}/..</projectRoot>
     <groups/>
   </properties>
 

@@ -12,6 +12,10 @@
   <packaging>jar</packaging>
   <name>apicurio-registry-schema-util-json</name>
 
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
   <dependencies>
     <!-- Projects -->
     <dependency>

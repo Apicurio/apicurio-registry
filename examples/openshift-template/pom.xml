@@ -13,6 +13,10 @@
   <packaging>pom</packaging>
   <name>apicurio-registry-distro-openshift-template</name>
 
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
   <build>
     <plugins>
       <plugin>

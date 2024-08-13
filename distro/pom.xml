@@ -14,4 +14,7 @@
     <module>connect-converter</module>
     <module>docker</module>
   </modules>
+  <properties>
+    <projectRoot>${project.basedir}/..</projectRoot>
+  </properties>
 </project>

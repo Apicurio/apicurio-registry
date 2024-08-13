@@ -11,6 +11,9 @@
   <name>apicurio-registry-system-tests</name>
 
   <properties>
+
+    <projectRoot>${project.basedir}/../..</projectRoot>
+
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <version.junit.jupiter>5.8.2</version.junit.jupiter>

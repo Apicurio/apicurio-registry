@@ -11,6 +11,11 @@
   <artifactId>apicurio-registry-utils-tests</artifactId>
   <packaging>jar</packaging>
   <name>apicurio-registry-utils-tests</name>
+
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
   <dependencyManagement>
     <dependencies>
       <dependency>

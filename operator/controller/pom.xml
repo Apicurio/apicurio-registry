@@ -11,6 +11,11 @@
 
   <artifactId>apicurio-registry-operator-controller</artifactId>
   <name>Apicurio Registry Operator :: Controller</name>
+
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>

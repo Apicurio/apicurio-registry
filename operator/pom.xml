@@ -19,6 +19,7 @@
   </modules>
 
   <properties>
+    <projectRoot>${project.basedir}/..</projectRoot>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <maven.compiler.parameters>true</maven.compiler.parameters>
     <maven.compiler.release>17</maven.compiler.release>

@@ -78,6 +78,10 @@
     <url>https://github.com/apicurio/apicurio-registry/issues</url>
   </issueManagement>
 
+  <properties>
+    <projectRoot>${project.basedir}/..</projectRoot>
+  </properties>
+
   <dependencies>
     <!-- Fake dependency to ensure that the JAR is already available locally -->
     <dependency>

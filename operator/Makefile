@@ -483,39 +483,9 @@ clean: ## TODO
 	git checkout HEAD -- deploy/rbac/single-namespace/kustomization.yaml || true
 
 
-.PHONY: prepare-dev-openshift
-prepare-dev-openshift: install-kustomize
-	$(KUSTOMIZE) build deploy/crd | kubectl -n $(NAMESPACE) apply -f -
-	rm cluster.crt || true
-	rm cluster.truststore || true
-	kubectl -n openshift-kube-apiserver get secret external-loadbalancer-serving-certkey -o jsonpath='{.data.tls\.crt}' | base64 -d >cluster.crt
-	keytool -import -alias cluster -file cluster.crt -storetype JKS -keystore cluster.truststore -noprompt -storepass password
-	@echo "$(CC_YELLOW)==============================================$(CC_END)"
-	@echo "Run:"
-	@echo "$(CC_CYAN)java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Djavax.net.ssl.trustStore=cluster.truststore -Djavax.net.ssl.trustStorePassword=password -Dapicurio.log.level=debug -jar operator/target/quarkus-app/quarkus-run.jar$(CC_END)"
-	@echo "or"
-	@echo "$(CC_CYAN)mvn -Djavax.net.ssl.trustStore=\$$(pwd)/cluster.truststore -Djavax.net.ssl.trustStorePassword=password -Dapicurio.log.level=debug quarkus:dev$(CC_END)"
-	@echo "$(CC_YELLOW)==============================================$(CC_END)"
-
-
 .PHONY: dev
 dev: ## TODO
-	#mvn -Djavax.net.ssl.trustStore=$(shell pwd)/cluster.truststore -Djavax.net.ssl.trustStorePassword=password -Dapicurio.log.level=debug quarkus:dev
 	mvn quarkus:dev
-
-
-.PHONY: kind-start
-kind-start: install-kind ## TODO
-	@echo "TODO"
-	#$(KIND) create cluster --config deploy/kind/default-cluster.yaml
-	#kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-	#kubectl -n ingress-nginx wait --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
-
-
-.PHONY: kind-stop
-kind-stop: install-kind ## TODO
-	@echo "TODO"
-	#$(KIND) kind delete cluster --name default
 
 
 .PHONY: format

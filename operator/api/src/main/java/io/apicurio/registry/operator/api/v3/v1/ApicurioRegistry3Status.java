@@ -9,9 +9,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @Buildable(editableEnabled = false, builderPackage = "io.fabric8.kubernetes.api.builder")
@@ -23,9 +20,5 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 @ToString
 public class ApicurioRegistry3Status extends ObservedGenerationAwareStatus {
 
-    private AppStatus app;
-
-    private UIStatus ui;
-
-    private List<StatusConditions> conditions = new ArrayList<>();
+    // Nothing here either
 }

@@ -1,6 +1,5 @@
 package io.apicurio.registry.operator.test;
 
-import io.apicurio.registry.operator.api.v3.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v3.v1.ApicurioRegistry3Builder;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -61,11 +60,6 @@ class SmokeIT {
         ext.isPresent(Service.class, name + "-ui-service");
         ext.isPresent(Ingress.class, name + "-app-ingress");
         ext.isPresent(Ingress.class, name + "-ui-ingress");
-
-        ext.expect(ApicurioRegistry3.class, as1.getMetadata().getName(), r -> {
-            assertThat(r.getSpec().getApp().getHost()).startsWith(name + "-app." + ext.getNamespace() + ".");
-            assertThat(r.getSpec().getUi().getHost()).startsWith(name + "-ui." + ext.getNamespace() + ".");
-        });
 
         int appPort = ext.portForward(name + "-app-service", 8080);
         int uiPort = ext.portForward(name + "-ui-service", 8080);

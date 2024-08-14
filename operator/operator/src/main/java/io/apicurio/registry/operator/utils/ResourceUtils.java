@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.operator.OperatorException;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -16,7 +17,7 @@ public class ResourceUtils {
             var json = MAPPER.writeValueAsString(source);
             return MAPPER.readValue(json, type);
         } catch (IOException ex) {
-            throw new RuntimeException(ex); // TODO
+            throw new OperatorException(ex);
         }
     }
 }

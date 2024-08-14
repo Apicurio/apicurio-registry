@@ -72,49 +72,4 @@ public class TraverseUtils {
             action.accept(source.get(index));
         }
     }
-
-    public static <V> void mergeOverride(Map<String, V> target, Map<String, V> source) {
-        if (target != null && source != null) {
-            target.putAll(source);
-        }
-    }
-
-    public static <T, K> void mergeOverride(List<T> target, List<T> source, Function<T, K> extractKey) {
-        if (target != null && source != null) {
-            for (T sval : source) {
-                K skey = extractKey.apply(sval);
-                for (int ti = 0; ti < target.size(); ti++) {
-                    K tkey = extractKey.apply(target.get(ti));
-                    if (skey.equals(tkey)) {
-                        target.set(ti, sval);
-                    }
-                }
-            }
-        }
-    }
-
-    public static <V> void mergeNoOverride(Map<String, V> target, Map<String, V> source) {
-        if (target != null && source != null) {
-            source.forEach(target::putIfAbsent);
-        }
-    }
-
-    public static <T, K> void mergeNoOverride(List<T> target, List<T> source, Function<T, K> extractKey) {
-        if (target != null && source != null) {
-            for (T sval : source) {
-                K skey = extractKey.apply(sval);
-                boolean skip = false;
-                for (int ti = 0; ti < target.size(); ti++) {
-                    K tkey = extractKey.apply(target.get(ti));
-                    if (skey.equals(tkey)) {
-                        skip = true;
-                        break;
-                    }
-                }
-                if (!skip) {
-                    target.add(sval);
-                }
-            }
-        }
-    }
 }

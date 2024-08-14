@@ -6,9 +6,6 @@ import io.apicurio.registry.operator.api.v3.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v3.v1.ApicurioRegistry3Builder;
 import io.apicurio.registry.operator.api.v3.v1.ApicurioRegistry3List;
 import io.apicurio.registry.operator.api.v3.v1.ApicurioRegistry3ListBuilder;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.EnvVarBuilder;
-import io.fabric8.kubernetes.api.model.Quantity;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -40,34 +37,6 @@ class SmokeTest {
                     .withNamespace("test-namespace")
                 .endMetadata()
                 .withNewSpec()
-                    .withNewApp()
-                        .withEnv(new EnvVarBuilder()
-                            .withName("foo1")
-                            .withValue("bar1")
-                            .build()
-                        )
-                        .withNewPodTemplate()
-                            .withNewSpec()
-                                .withContainers(new ContainerBuilder()
-                                    .withName("apicurio-registry-app")
-                                    .withNewResources()
-                                        .addToRequests("cpu", Quantity.parse("199m"))
-                                        .addToRequests("memory", Quantity.parse("499Mi"))
-                                    .endResources()
-                                    .build()
-                                )
-                            .endSpec()
-                        .endPodTemplate()
-                        .withHost("test-app.cluster.example")
-                    .endApp()
-                    .withNewUi()
-                        .withEnv(new EnvVarBuilder()
-                            .withName("foo2")
-                            .withValue("bar2")
-                            .build()
-                        )
-                        .withHost("test-ui.cluster.example")
-                    .endUi()
                 .endSpec()
                 .build();
         // spotless:on
@@ -77,9 +46,6 @@ class SmokeTest {
                 ApicurioRegistry3.class);
 
         Assertions.assertEquals(as1, as2);
-        as1.getSpec().getApp().getEnv().get(0).setName("bad1");
-        Assertions.assertNotEquals(as1, as2);
-        as1.getSpec().getApp().getEnv().get(0).setName("foo1");
 
         // LIST
 

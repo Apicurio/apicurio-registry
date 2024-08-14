@@ -46,6 +46,13 @@ public class CCompatConfig {
     @Info(category = "ccompat", description = "Maximum number of Subjects returned (compatibility API)", availableSince = "2.4.2.Final")
     Supplier<Integer> maxSubjects;
 
+    @ConfigProperty(name = "registry.ccompat.group-concat.enabled", defaultValue = "false")
+    @Info(category = "ccompat", description = "Enable group support via concatenation in subject (compatibility API)", availableSince = "2.6.2.Final")
+    public boolean groupConcatEnabled;
+
+    @ConfigProperty(name = "registry.ccompat.group-concat.separator", defaultValue = ":")
+    @Info(category = "ccompat", description = "Separator to use when group concatenation is enabled (compatibility API)", availableSince = "2.6.2.Final")
+    public String groupConcatSeparator;
 
     public Supplier<Boolean> getCanonicalHashModeEnabled() {
         return canonicalHashModeEnabled;

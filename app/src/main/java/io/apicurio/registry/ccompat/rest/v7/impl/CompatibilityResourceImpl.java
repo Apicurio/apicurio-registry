@@ -27,6 +27,7 @@ import io.apicurio.registry.ccompat.rest.v7.CompatibilityResource;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -45,12 +46,15 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, SchemaContent request, Boolean verbose, String groupId) throws Exception {
+        final GA ga = getGA(groupId, subject);
+
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         try {
-            final List<String> versions = storage.getArtifactVersions(groupId, subject);
+            final List<String> versions = storage.getArtifactVersions(ga.getGroupId(), ga.getArtifactId());
             for (String version : versions) {
-                final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(groupId, subject, version);
-                rulesService.applyRules(groupId, subject, version, artifactVersionMetaData.getType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
+                final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(ga.getGroupId(), ga.getArtifactId(), version);
+                rulesService.applyRules(ga.getGroupId(), ga.getArtifactId(), version, artifactVersionMetaData.getType(),
+                        ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
             }
             return CompatibilityCheckResponse.IS_COMPATIBLE;
         } catch (RuleViolationException ex) {
@@ -68,11 +72,12 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String versionString, SchemaContent request, Boolean verbose, String groupId) throws Exception {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
+        final GA ga = getGA(groupId, subject);
 
-        return parseVersionString(subject, versionString, groupId, v -> {
+        return parseVersionString(ga.getArtifactId(), versionString, ga.getGroupId(), v -> {
             try {
-                final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(groupId, subject, v);
-                rulesService.applyRules(groupId, subject, v, artifact.getType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
+                final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(ga.getGroupId(), ga.getArtifactId(), v);
+                rulesService.applyRules(ga.getGroupId(), ga.getArtifactId(), v, artifact.getType(), ContentHandle.create(request.getSchema()), Collections.emptyList(), Collections.emptyMap());
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {
                 if (fverbose) {

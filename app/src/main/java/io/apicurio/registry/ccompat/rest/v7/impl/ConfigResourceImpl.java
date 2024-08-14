@@ -27,6 +27,7 @@ import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.ccompat.rest.v7.ConfigResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -102,17 +103,19 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityLevelDto updateSubjectCompatibilityLevel(String subject, CompatibilityLevelDto request, String groupId) {
+        final GA ga = getGA(groupId, subject);
+
         updateCompatibilityLevel(request.getCompatibility(),
                 dto -> {
-                    if (!doesArtifactRuleExist(subject, RuleType.COMPATIBILITY, groupId)) {
-                        storage.createArtifactRule(groupId, subject, RuleType.COMPATIBILITY, dto);
+                    if (!doesArtifactRuleExist(ga.getArtifactId(), RuleType.COMPATIBILITY, ga.getGroupId())) {
+                        storage.createArtifactRule(ga.getGroupId(), ga.getArtifactId(), RuleType.COMPATIBILITY, dto);
                     } else {
-                        storage.updateArtifactRule(groupId, subject, RuleType.COMPATIBILITY, dto);
+                        storage.updateArtifactRule(ga.getGroupId(), ga.getArtifactId(), RuleType.COMPATIBILITY, dto);
                     }
                 },
                 () -> {
                     try {
-                        storage.deleteArtifactRule(groupId, subject, RuleType.COMPATIBILITY);
+                        storage.deleteArtifactRule(ga.getGroupId(), ga.getArtifactId(), RuleType.COMPATIBILITY);
                     } catch (RuleNotFoundException e) {
                         //Ignore, fail only when the artifact is not found
                     }
@@ -123,17 +126,19 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject, String groupId) {
-        return getCompatibilityLevel(() -> storage.getArtifactRule(groupId, subject, RuleType.COMPATIBILITY).getConfiguration());
+        final GA ga = getGA(groupId, subject);
+        return getCompatibilityLevel(() -> storage.getArtifactRule(ga.getGroupId(), ga.getArtifactId(), RuleType.COMPATIBILITY).getConfiguration());
     }
 
     @Override
     @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID})
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityLevelParamDto deleteSubjectCompatibility(String subject, String groupId) {
+        final GA ga = getGA(groupId, subject);
         final CompatibilityLevelParamDto compatibilityLevel = getCompatibilityLevel(() ->
-                storage.getArtifactRule(groupId, subject, RuleType.COMPATIBILITY).getConfiguration());
+                storage.getArtifactRule(ga.getGroupId(), ga.getArtifactId(), RuleType.COMPATIBILITY).getConfiguration());
         if (!CompatibilityLevel.NONE.name().equals(compatibilityLevel.getCompatibilityLevel())) {
-            storage.deleteArtifactRule(groupId, subject, RuleType.COMPATIBILITY);
+            storage.deleteArtifactRule(ga.getGroupId(), ga.getArtifactId(), RuleType.COMPATIBILITY);
         }
         return compatibilityLevel;
     }

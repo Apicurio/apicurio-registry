@@ -16,10 +16,12 @@
 
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import io.apicurio.common.apps.util.Pair;
 import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -31,6 +33,7 @@ import io.apicurio.registry.storage.VersionNotFoundException;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactState;
@@ -40,6 +43,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.SchemaParseException;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -101,7 +105,36 @@ public abstract class AbstractResource {
         return cconfig;
     }
 
-    protected ArtifactMetaDataDto createOrUpdateArtifact(String subject, String schema, String artifactType, List<SchemaReference> references, String groupId) {
+    protected String toSubjectWithGroupConcat(String groupId, String artifactId) {
+        return (groupId == null ? "" : groupId) + cconfig.groupConcatSeparator + artifactId;
+    }
+
+    protected String toSubjectWithGroupConcat(SearchedArtifactDto dto) {
+        return toSubjectWithGroupConcat(dto.getGroupId(), dto.getId());
+    }
+
+    private Pair<String, String> toGAFromGroupConcatSubject(String subject) {
+        int sepIdx = subject.indexOf(cconfig.groupConcatSeparator);
+        if (sepIdx < 1) {
+            throw new BadRequestException("Invalid subject format.  Should be:  groupId" + cconfig.groupConcatSeparator + "artifactId");
+        }
+        String groupId = subject.substring(0, sepIdx);
+        String artifactId = subject.substring(sepIdx + cconfig.groupConcatSeparator.length());
+        return new Pair<>(groupId, artifactId);
+    }
+
+    protected GA getGA(String groupId, String subject) {
+        String gid = groupId;
+        String aid = subject;
+        if (cconfig.groupConcatEnabled) {
+            Pair<String, String> ga = toGAFromGroupConcatSubject(subject);
+            gid = ga.getLeft();
+            aid = ga.getRight();
+        }
+        return new GA(gid, aid);
+    }
+
+    protected ArtifactMetaDataDto createOrUpdateArtifact(String artifactId, String schema, String artifactType, List<SchemaReference> references, String groupId) {
         ArtifactMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
         final List<ArtifactReference> artifactReferences = parsedReferences.stream().map(dto -> ArtifactReference.builder().name(dto.getName()).groupId(dto.getGroupId()).artifactId(dto.getArtifactId()).version(dto.getVersion()).build()).collect(Collectors.toList());
@@ -110,12 +143,12 @@ public abstract class AbstractResource {
             ContentHandle schemaContent;
             schemaContent = ContentHandle.create(schema);
 
-            if (!doesArtifactExist(subject, groupId)) {
-                rulesService.applyRules(groupId, subject, artifactType, schemaContent, RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
-                res = storage.createArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences);
+            if (!doesArtifactExist(artifactId, groupId)) {
+                rulesService.applyRules(groupId, artifactId, artifactType, schemaContent, RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
+                res = storage.createArtifact(groupId, artifactId, null, artifactType, schemaContent, parsedReferences);
             } else {
-                rulesService.applyRules(groupId, subject, artifactType, schemaContent, RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
-                res = storage.updateArtifact(groupId, subject, null, artifactType, schemaContent, parsedReferences);
+                rulesService.applyRules(groupId, artifactId, artifactType, schemaContent, RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
+                res = storage.updateArtifact(groupId, artifactId, null, artifactType, schemaContent, parsedReferences);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {

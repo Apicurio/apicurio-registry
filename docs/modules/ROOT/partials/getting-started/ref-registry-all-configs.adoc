@@ -384,6 +384,11 @@ The following {registry} configuration options are available for each component 
 |
 |`2.1.0.Final`
 |The import URL
+|`apicurio.import.workDir`
+|`string`
+|
+|`3.0.0`
+|Temporary work directory to use when importing data.
 |===
 
 == limits

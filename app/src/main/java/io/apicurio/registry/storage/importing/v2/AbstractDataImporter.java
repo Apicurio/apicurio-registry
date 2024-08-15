@@ -3,13 +3,13 @@ package io.apicurio.registry.storage.importing.v2;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.ManifestEntity;
 import io.apicurio.registry.utils.impexp.v2.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.v2.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v2.CommentEntity;
 import io.apicurio.registry.utils.impexp.v2.ContentEntity;
 import io.apicurio.registry.utils.impexp.v2.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v2.GroupEntity;
-import io.apicurio.registry.utils.impexp.v2.ManifestEntity;
 import org.slf4j.Logger;
 
 public abstract class AbstractDataImporter implements DataImporter {

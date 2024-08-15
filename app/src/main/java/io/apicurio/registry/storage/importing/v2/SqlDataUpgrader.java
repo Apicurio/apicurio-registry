@@ -2,19 +2,20 @@ package io.apicurio.registry.storage.importing.v2;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
-import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v2.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.v2.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v2.CommentEntity;
@@ -26,7 +27,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,7 +35,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static io.apicurio.registry.types.ArtifactType.*;
+import static io.apicurio.registry.types.ArtifactType.ASYNCAPI;
+import static io.apicurio.registry.types.ArtifactType.AVRO;
+import static io.apicurio.registry.types.ArtifactType.GRAPHQL;
+import static io.apicurio.registry.types.ArtifactType.JSON;
+import static io.apicurio.registry.types.ArtifactType.OPENAPI;
+import static io.apicurio.registry.types.ArtifactType.PROTOBUF;
+import static io.apicurio.registry.types.ArtifactType.WSDL;
+import static io.apicurio.registry.types.ArtifactType.XML;
+import static io.apicurio.registry.types.ArtifactType.XSD;
 
 /**
  * This class takes a stream of Registry v2 entities and imports them into the application using
@@ -49,27 +57,15 @@ public class SqlDataUpgrader extends AbstractDataImporter {
     protected final RegistryStorage storage;
 
     protected final boolean preserveGlobalId;
-
     protected final boolean preserveContentId;
-
-    // To handle the case where we are trying to import a version before its content has been imported
-    protected final List<ArtifactVersionEntity> waitingForContent = new ArrayList<>();
-
-    // To handle the case where we are trying to import a comment before its version has been imported
-    private final List<CommentEntity> waitingForVersion = new ArrayList<>();
 
     // ID remapping
     protected final Map<Long, Long> globalIdMapping = new HashMap<>();
     protected final Map<Long, Long> contentIdMapping = new HashMap<>();
 
-    // Collection of content waiting for required references. A given content cannot be imported unless the
-    // expected reference is present.
-    // TODO do a second round to this, since this currently means enforcing the integrity rule. (Maybe try a
-    // first round and, if there are no artifacts remaining, just import the orphaned content).
-    protected final Map<ContentEntity, Set<GAV>> waitingForReference = new HashMap<>();
-
-    // To keep track of which versions have been imported
-    private final Set<GAV> gavDone = new HashSet<>();
+    // We may need to recalculate the canonical hash for some content after the
+    // import is complete.
+    private Set<Long> deferredCanonicalHashContentIds = new HashSet<>();
 
     public SqlDataUpgrader(Logger logger, RegistryStorageContentUtils utils, RegistryStorage storage,
             boolean preserveGlobalId, boolean preserveContentId) {
@@ -96,13 +92,6 @@ public class SqlDataUpgrader extends AbstractDataImporter {
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
         try {
-            // Content needs to be imported before artifact version
-            if (!contentIdMapping.containsKey(entity.contentId)) {
-                // Add to the queue waiting for content imported
-                waitingForContent.add(entity);
-                return;
-            }
-
             entity.contentId = contentIdMapping.get(entity.contentId);
 
             var oldGlobalId = entity.globalId;
@@ -153,33 +142,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             }
 
             storage.importArtifactVersion(newEntity);
-            log.debug("Artifact version imported successfully: {}", entity);
+            log.info("Artifact version imported successfully: {}", entity);
             globalIdMapping.put(oldGlobalId, entity.globalId);
-            var gav = new GAV(entity.groupId, entity.artifactId, entity.version);
-            gavDone.add(gav);
-
-            // Import comments that were waiting for this version
-            var commentsToImport = waitingForVersion.stream()
-                    .filter(comment -> comment.globalId == oldGlobalId).toList();
-            for (CommentEntity commentEntity : commentsToImport) {
-                importComment(commentEntity);
-            }
-            waitingForVersion.removeAll(commentsToImport);
-
-            // Once the artifact version is processed, check if there is some content waiting for this as it's
-            // reference
-            // For each content waiting for the version we just inserted, remove it from the list.
-            waitingForReference.values().forEach(waitingReferences -> waitingReferences.remove(gav));
-
-            // Finally, once the list of required deps is updated, if it was the last reference needed, import
-            // the content.
-            waitingForReference.keySet().stream()
-                    .filter(content -> waitingForReference.get(content).isEmpty())
-                    .forEach(contentToImport -> {
-                        if (!contentIdMapping.containsKey(contentToImport.contentId)) {
-                            importContent(contentToImport);
-                        }
-                    });
         } catch (VersionAlreadyExistsException ex) {
             if (ex.getGlobalId() != null) {
                 log.warn("Duplicate globalId {} detected, skipping import of artifact version: {}",
@@ -195,45 +159,46 @@ public class SqlDataUpgrader extends AbstractDataImporter {
     @Override
     public void importContent(ContentEntity entity) {
         try {
-            List<ArtifactReferenceDto> references = SqlUtil
-                    .deserializeReferences(entity.serializedReferences);
-
-            Set<GAV> referencesGavs = references
-                    .stream().map(referenceDto -> new GAV(referenceDto.getGroupId(),
-                            referenceDto.getArtifactId(), referenceDto.getVersion()))
-                    .collect(Collectors.toSet());
-
-            Set<ArtifactReferenceDto> requiredReferences = new HashSet<>();
-
-            // If there are references and they've not been imported yet, add them to the waiting collection
-            if (!references.isEmpty() && !gavDone.containsAll(referencesGavs)) {
-                waitingForReference.put(entity, referencesGavs);
-
-                // For each artifact reference, if it has not been imported yet, add it to the waiting list
-                // for this content.
-                referencesGavs.stream()
-                        .filter(artifactReference -> !referencesGavs.contains(artifactReference))
-                        .forEach(artifactReference -> waitingForReference.get(entity).add(artifactReference));
-
-                // This content cannot be imported until all the references are imported.
-                return;
-            }
-
-            TypedContent typedContent = TypedContent.create(ContentHandle.create(entity.contentBytes), null);
-            Map<String, TypedContent> resolvedReferences = storage.resolveReferences(references);
-            entity.artifactType = utils.determineArtifactType(typedContent, null, resolvedReferences);
-
-            // First we have to recalculate both the canonical hash and the contentHash
-            TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
-                    resolvedReferences);
-
-            entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
-            entity.contentHash = utils.getContentHash(typedContent, references);
-
-            // Then, based on the configuration, a new id is requested or the old one is used.
+            // Based on the configuration, a new id is requested or the old one is used.
             var oldContentId = entity.contentId;
             if (!preserveContentId) {
                 entity.contentId = storage.nextContentId();
+            }
+
+            List<ArtifactReferenceDto> references = SqlUtil
+                    .deserializeReferences(entity.serializedReferences);
+
+            // Recalculate the hash using the current algorithm
+            TypedContent typedContent = TypedContent.create(ContentHandle.create(entity.contentBytes), null);
+            entity.contentHash = utils.getContentHash(typedContent, references);
+
+            // Try to recalculate the canonical hash - this may fail if the content has references
+            try {
+                Map<String, TypedContent> resolvedReferences = storage.resolveReferences(references);
+                entity.artifactType = utils.determineArtifactType(typedContent, null, resolvedReferences);
+
+                // First we have to recalculate both the canonical hash and the contentHash
+                TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
+                        resolvedReferences);
+
+                entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
+            } catch (Exception ex) {
+                log.debug("Deferring canonical hash calculation: " + ex.getMessage());
+                deferredCanonicalHashContentIds.add(entity.contentId);
+                // Default to AVRO in the case of failure to determine a type (same default that v2 would have
+                // used).
+                // Note: the artifactType is not saved to the DB, but is used to determine the content-type.
+                // So a
+                // default of AVRO will result in a (sensible) default of application/json for the
+                // content-type.
+                // This works for the v2 -> v3 upgrader because only JSON based types will potentially fail
+                // when
+                // trying to canonicalize content without fully resolved references.
+                //
+                // If this assumption is wrong (e.g. for PROTOBUF) then we'll need an extra step here to
+                // figure
+                // out if the core content is JSON or PROTO.
+                entity.artifactType = AVRO;
             }
 
             // Finally, using the information from the old content, a V3 content entity is created.
@@ -247,17 +212,6 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             log.debug("Content imported successfully: {}", entity);
 
             contentIdMapping.put(oldContentId, entity.contentId);
-
-            // Import artifact versions that were waiting for this content
-            var artifactsToImport = waitingForContent.stream()
-                    .filter(artifactVersion -> artifactVersion.contentId == oldContentId).toList();
-
-            for (ArtifactVersionEntity artifactVersionEntity : artifactsToImport) {
-                artifactVersionEntity.contentId = entity.contentId;
-                importArtifactVersion(artifactVersionEntity);
-            }
-            waitingForContent.removeAll(artifactsToImport);
-
         } catch (Exception ex) {
             log.warn("Failed to import content {}: {}", entity, ex.getMessage());
         }
@@ -292,11 +246,6 @@ public class SqlDataUpgrader extends AbstractDataImporter {
     @Override
     public void importComment(CommentEntity entity) {
         try {
-            if (!globalIdMapping.containsKey(entity.globalId)) {
-                // The version hasn't been imported yet. Need to wait for it.
-                waitingForVersion.add(entity);
-                return;
-            }
             entity.globalId = globalIdMapping.get(entity.globalId);
 
             io.apicurio.registry.utils.impexp.v3.CommentEntity newEntity = io.apicurio.registry.utils.impexp.v3.CommentEntity
@@ -332,8 +281,39 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             // Make sure the commentId sequence is set high enough
             storage.resetCommentId();
 
+            // Recalculate any deferred content IDs
+            deferredCanonicalHashContentIds.forEach(id -> {
+                recalculateCanonicalHash(id);
+            });
+
         } catch (IOException ex) {
             throw new RegistryException("Could not read next entity to import", ex);
+        }
+    }
+
+    private void recalculateCanonicalHash(Long contentId) {
+        try {
+            ContentWrapperDto wrapperDto = storage.getContentById(contentId);
+            List<ArtifactReferenceDto> references = wrapperDto.getReferences();
+
+            List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(contentId);
+            if (versions.isEmpty()) {
+                // Orphaned content - who cares?
+                return;
+            }
+
+            TypedContent content = TypedContent.create(wrapperDto.getContent(), wrapperDto.getContentType());
+            String artifactType = versions.get(0).getArtifactType();
+            Map<String, TypedContent> resolvedReferences = storage.resolveReferences(references);
+            TypedContent canonicalContent = utils.canonicalizeContent(artifactType, content,
+                    resolvedReferences);
+            String canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
+            String contentHash = utils.getContentHash(content, references);
+
+            storage.updateContentCanonicalHash(canonicalHash, contentId, contentHash);
+        } catch (Exception ex) {
+            // Oh well, we did our best.
+            log.warn("Failed to recalculate canonical hash for: " + contentId, ex);
         }
     }
 

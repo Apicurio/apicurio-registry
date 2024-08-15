@@ -1,6 +1,6 @@
 package io.apicurio.registry.utils.export;
 
-import io.apicurio.registry.utils.impexp.v3.EntityWriter;
+import io.apicurio.registry.utils.impexp.EntityWriter;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
 

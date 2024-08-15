@@ -80,6 +80,12 @@ public class ImportExportTest extends AbstractResourceTestBase {
         createGroup.getLabels().setAdditionalData(Map.of("isPrimary", "false"));
         clientV3.groups().post(createGroup);
 
+        // Configure a group rule
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig(IntegrityLevel.ALL_REFS_MAPPED.name());
+        clientV3.groups().byGroupId("SecondaryTestGroup").rules().post(createRule);
+
         // Add an empty artifact
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId("EmptyArtifact");
@@ -147,7 +153,7 @@ public class ImportExportTest extends AbstractResourceTestBase {
                 .post(createBranch);
 
         // Configure some global rules
-        CreateRule createRule = new CreateRule();
+        createRule = new CreateRule();
         createRule.setRuleType(RuleType.VALIDITY);
         createRule.setConfig(ValidityLevel.FULL.name());
         clientV3.admin().rules().post(createRule);
@@ -216,6 +222,14 @@ public class ImportExportTest extends AbstractResourceTestBase {
                 groups.getGroups().get(1).getDescription());
 
         // TODO: check group labels (not returned by group search)
+
+        // Assert group rules
+        List<RuleType> groupRules = clientV3.groups().byGroupId("SecondaryTestGroup").rules().get();
+        Assertions.assertEquals(1, groupRules.size());
+        Assertions.assertEquals(List.of(RuleType.INTEGRITY), groupRules);
+        Rule groupRule = clientV3.groups().byGroupId("SecondaryTestGroup").rules()
+                .byRuleType(RuleType.INTEGRITY.name()).get();
+        Assertions.assertEquals(IntegrityLevel.ALL_REFS_MAPPED.name(), groupRule.getConfig());
 
         // Assert empty artifact
         ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("EmptyArtifact")

@@ -2,15 +2,14 @@ package io.apicurio.registry.storage.importing.v3;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
-import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
@@ -19,17 +18,14 @@ import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class SqlDataImporter extends AbstractDataImporter {
 
@@ -41,19 +37,9 @@ public class SqlDataImporter extends AbstractDataImporter {
 
     protected final boolean preserveContentId;
 
-    // To handle the case where we are trying to import a version before its content has been imported
-    protected final List<ArtifactVersionEntity> waitingForContent = new ArrayList<>();
-
-    // To handle the case where we are trying to import a comment before its version has been imported
-    private final List<CommentEntity> waitingForVersion = new ArrayList<>();
-
     // ID remapping
     protected final Map<Long, Long> globalIdMapping = new HashMap<>();
     protected final Map<Long, Long> contentIdMapping = new HashMap<>();
-
-    // To keep track of which versions have been imported
-    private final Set<GAV> gavDone = new HashSet<>();
-    private final Map<GAV, List<BranchEntity>> artifactBranchesWaitingForVersion = new HashMap<>();
 
     public SqlDataImporter(Logger logger, RegistryStorageContentUtils utils, RegistryStorage storage,
             boolean preserveGlobalId, boolean preserveContentId) {
@@ -88,13 +74,6 @@ public class SqlDataImporter extends AbstractDataImporter {
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
         try {
-            // Content needs to be imported before artifact version
-            if (!contentIdMapping.containsKey(entity.contentId)) {
-                // Add to the queue waiting for content imported
-                waitingForContent.add(entity);
-                return;
-            }
-
             entity.contentId = contentIdMapping.get(entity.contentId);
 
             var oldGlobalId = entity.globalId;
@@ -105,22 +84,6 @@ public class SqlDataImporter extends AbstractDataImporter {
             storage.importArtifactVersion(entity);
             log.debug("Artifact version imported successfully: {}", entity);
             globalIdMapping.put(oldGlobalId, entity.globalId);
-            var gav = new GAV(entity.groupId, entity.artifactId, entity.version);
-            gavDone.add(gav);
-
-            // Import comments that were waiting for this version
-            var commentsToImport = waitingForVersion.stream()
-                    .filter(comment -> comment.globalId == oldGlobalId).collect(Collectors.toList());
-            for (CommentEntity commentEntity : commentsToImport) {
-                importComment(commentEntity);
-            }
-            waitingForVersion.removeAll(commentsToImport);
-
-            // Import branches waiting for version
-            artifactBranchesWaitingForVersion.computeIfAbsent(gav, _ignored -> List.of())
-                    .forEach(this::importEntity);
-            artifactBranchesWaitingForVersion.remove(gav);
-
         } catch (VersionAlreadyExistsException ex) {
             if (ex.getGlobalId() != null) {
                 log.warn("Duplicate globalId {} detected, skipping import of artifact version: {}",
@@ -162,18 +125,6 @@ public class SqlDataImporter extends AbstractDataImporter {
             log.debug("Content imported successfully: {}", entity);
 
             contentIdMapping.put(oldContentId, entity.contentId);
-
-            // Import artifact versions that were waiting for this content
-            var artifactsToImport = waitingForContent.stream()
-                    .filter(artifactVersion -> artifactVersion.contentId == oldContentId)
-                    .collect(Collectors.toList());
-
-            for (ArtifactVersionEntity artifactVersionEntity : artifactsToImport) {
-                artifactVersionEntity.contentId = entity.contentId;
-                importArtifactVersion(artifactVersionEntity);
-            }
-            waitingForContent.removeAll(artifactsToImport);
-
         } catch (Exception ex) {
             log.warn("Failed to import content {}: {}", entity, ex.getMessage());
         }
@@ -200,13 +151,18 @@ public class SqlDataImporter extends AbstractDataImporter {
     }
 
     @Override
+    public void importGroupRule(GroupRuleEntity entity) {
+        try {
+            storage.importGroupRule(entity);
+            log.debug("Group rule imported successfully: {}", entity);
+        } catch (Exception ex) {
+            log.warn("Failed to import group rule {}: {}", entity, ex.getMessage());
+        }
+    }
+
+    @Override
     public void importComment(CommentEntity entity) {
         try {
-            if (!globalIdMapping.containsKey(entity.globalId)) {
-                // The version hasn't been imported yet. Need to wait for it.
-                waitingForVersion.add(entity);
-                return;
-            }
             entity.globalId = globalIdMapping.get(entity.globalId);
 
             storage.importComment(entity);

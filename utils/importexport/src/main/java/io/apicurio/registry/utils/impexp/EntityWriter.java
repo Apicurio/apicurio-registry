@@ -1,10 +1,17 @@
-package io.apicurio.registry.utils.impexp.v3;
+package io.apicurio.registry.utils.impexp;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.EntityType;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 
 import java.io.IOException;
 import java.util.zip.ZipEntry;
@@ -43,6 +50,9 @@ public class EntityWriter {
                 break;
             case Group:
                 writeEntity((GroupEntity) entity);
+                break;
+            case GroupRule:
+                writeEntity((GroupRuleEntity) entity);
                 break;
             case Artifact:
                 writeEntity((ArtifactEntity) entity);
@@ -94,6 +104,11 @@ public class EntityWriter {
         write(mdEntry, entity, GroupEntity.class);
     }
 
+    private void writeEntity(GroupRuleEntity entity) throws IOException {
+        ZipEntry mdEntry = createZipEntry(EntityType.GroupRule, entity.groupId, entity.type.name(), "json");
+        write(mdEntry, entity, GroupRuleEntity.class);
+    }
+
     private void writeEntity(ArtifactEntity entity) throws IOException {
         ZipEntry mdEntry = createZipEntry(EntityType.Artifact, entity.groupId, entity.artifactId, "MetaData",
                 "json");
@@ -133,6 +148,10 @@ public class EntityWriter {
         return createZipEntry(type, null, null, fileName, fileExt);
     }
 
+    private ZipEntry createZipEntry(EntityType type, String groupId, String fileName, String fileExt) {
+        return createZipEntry(type, groupId, null, fileName, fileExt);
+    }
+
     private ZipEntry createZipEntry(EntityType type, String groupId, String artifactId, String fileName,
             String fileExt) {
         // TODO encode groupId, artifactId, and filename as path elements
@@ -162,6 +181,10 @@ public class EntityWriter {
                 break;
             case Group:
                 path = String.format("groups/%s.%s.%s", fileName, type.name(), fileExt);
+                break;
+            case GroupRule:
+                path = String.format("groups/%s/rules/%s.%s.%s", groupOrDefault(groupId), fileName,
+                        type.name(), fileExt);
                 break;
             case Comment:
                 path = String.format("comments/%s.%s.%s", fileName, type.name(), fileExt);

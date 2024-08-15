@@ -1,14 +1,13 @@
 package io.apicurio.registry;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.rest.v3.AdminResourceImpl;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
-import io.apicurio.registry.storage.impexp.EntityInputStream;
+import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
 import io.apicurio.registry.types.Current;
-import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.v3.EntityReader;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
@@ -19,9 +18,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import java.util.zip.ZipInputStream;
 
 @ApplicationScoped
 public class ImportLifecycleBean {
@@ -33,9 +30,15 @@ public class ImportLifecycleBean {
     @Current
     RegistryStorage storage;
 
+    @Inject
+    ImportExportConfigProperties importExportProps;
+
     @ConfigProperty(name = "apicurio.import.url")
     @Info(category = "import", description = "The import URL", availableSince = "2.1.0.Final")
     Optional<URL> registryImportUrlProp;
+
+    @Inject
+    AdminResourceImpl v3Admin;
 
     void onStorageReady(@ObservesAsync StorageEvent ev) {
         if (StorageEventType.READY.equals(ev.getType()) && registryImportUrlProp.isPresent()) {
@@ -44,31 +47,14 @@ public class ImportLifecycleBean {
             try (final InputStream registryImportZip = new BufferedInputStream(
                     registryImportUrl.openStream())) {
                 log.info("Importing {} on startup.", registryImportUrl);
-                final ZipInputStream zip = new ZipInputStream(registryImportZip, StandardCharsets.UTF_8);
-                final EntityReader reader = new EntityReader(zip);
-                try (EntityInputStream stream = new EntityInputStream() {
-                    @Override
-                    public Entity nextEntity() {
-                        try {
-                            return reader.readEntity();
-                        } catch (Exception e) {
-                            log.error("Error reading data from import ZIP file {}.", registryImportUrl, e);
-                            return null;
-                        }
-                    }
-
-                    @Override
-                    public void close() throws IOException {
-                        zip.close();
-                    }
-                }) {
-                    storage.importData(stream, true, true);
-                    log.info("Registry successfully imported from {}", registryImportUrl);
-                } catch (ReadOnlyStorageException e) {
-                    log.error("Registry import failed, because the storage is in read-only mode.");
-                }
+                v3Admin.importData(false, false, registryImportZip);
+                log.info("Registry successfully imported from {}", registryImportUrl);
             } catch (IOException ioe) {
                 log.error("Registry import from {} failed", registryImportUrl, ioe);
+            } catch (ReadOnlyStorageException rose) {
+                log.error("Registry import failed, because the storage is in read-only mode.");
+            } catch (Exception e) {
+                log.error("Registry import failed", e);
             }
         }
     }

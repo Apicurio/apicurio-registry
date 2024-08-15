@@ -224,7 +224,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void importData(Boolean xRegistryPreserveGlobalId, Boolean xRegistryPreserveContentId,
             InputStream data) {
-        v3Admin.importData(xRegistryPreserveGlobalId, xRegistryPreserveContentId, data);
+        v3Admin.importData(xRegistryPreserveGlobalId, xRegistryPreserveContentId, false, data);
     }
 
     /**

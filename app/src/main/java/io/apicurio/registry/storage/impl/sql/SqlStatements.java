@@ -501,6 +501,8 @@ public interface SqlStatements {
 
     public String selectGlobalIdExists();
 
+    public String selectAllContentCount();
+
     /*
      * The next few statements support role mappings
      */
@@ -616,4 +618,5 @@ public interface SqlStatements {
     public String createDataSnapshot();
 
     public String restoreFromSnapshot();
+
 }

@@ -98,6 +98,11 @@ public interface RegistryStorage extends DynamicConfigStorage {
     boolean isReadOnly();
 
     /**
+     * Returns true if the storage is empty (and ready for data to be imported).
+     */
+    boolean isEmpty();
+
+    /**
      * Create a new artifact in the storage, with or without an initial/first version. Throws an exception if
      * the artifact already exists. The first version information can be null, in which case an empty artifact
      * (no versions) is created. Returns the metadata of the newly created artifact and (optionally) the

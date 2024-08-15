@@ -427,6 +427,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
+    public boolean isEmpty() {
+        return proxy(storage -> storage.isEmpty());
+    }
+
+    @Override
     public boolean isGroupExists(String groupId) {
         return proxy(storage -> storage.isGroupExists(groupId));
     }

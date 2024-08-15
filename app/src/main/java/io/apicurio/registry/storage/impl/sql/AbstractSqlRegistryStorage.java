@@ -2925,6 +2925,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
+    @Override
+    public boolean isEmpty() {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectAllContentCount()).mapTo(Long.class).one() == 0;
+        });
+    }
+
     private boolean isContentExists(Handle handle, long contentId) {
         return handle.createQuery(sqlStatements().selectContentExists()).bind(0, contentId)
                 .mapTo(Integer.class).one() > 0;

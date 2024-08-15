@@ -379,6 +379,21 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.import.preserveContentId`
+|`boolean`
+|`true`
+|`3.0.0`
+|When set to true, content IDs from the import file will be used (otherwise new IDs will be generated).  Defaults to 'true'.
+|`apicurio.import.preserveGlobalId`
+|`boolean`
+|`true`
+|`3.0.0`
+|When set to true, global IDs from the import file will be used (otherwise new IDs will be generated).  Defaults to 'true'.
+|`apicurio.import.requireEmptyRegistry`
+|`boolean`
+|`true`
+|`3.0.0`
+|When set to true, importing data will only work when the registry is empty.  Defaults to 'true'.
 |`apicurio.import.url`
 |`optional<url>`
 |

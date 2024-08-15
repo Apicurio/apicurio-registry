@@ -13,6 +13,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
@@ -263,13 +264,24 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#importData(Boolean, Boolean, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v3.AdminResource#importData(Boolean, Boolean, Boolean, InputStream)
      */
     @Override
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void importData(Boolean xRegistryPreserveGlobalId, Boolean xRegistryPreserveContentId,
-            InputStream data) {
+            Boolean requireEmptyRegistry, InputStream data) {
+        boolean preserveGlobalId = xRegistryPreserveGlobalId == null ? importExportProps.preserveGlobalId
+            : xRegistryPreserveGlobalId;
+        boolean preserveContentId = xRegistryPreserveContentId == null ? importExportProps.preserveContentId
+            : xRegistryPreserveContentId;
+        boolean requireEmpty = requireEmptyRegistry == null ? importExportProps.requireEmptyRegistry
+            : requireEmptyRegistry;
+
+        if (requireEmpty && !storage.isEmpty()) {
+            throw new ConflictException("Registry is not empty.");
+        }
+
         // The input should be a ZIP file
         final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
 
@@ -317,11 +329,9 @@ public class AdminResourceImpl implements AdminResource {
 
             // Import or upgrade the data into the storage
             if (upgrade) {
-                this.storage.upgradeData(stream, isNullOrTrue(xRegistryPreserveGlobalId),
-                        isNullOrTrue(xRegistryPreserveContentId));
+                this.storage.upgradeData(stream, preserveGlobalId, preserveContentId);
             } else {
-                this.storage.importData(stream, isNullOrTrue(xRegistryPreserveGlobalId),
-                        isNullOrTrue(xRegistryPreserveContentId));
+                this.storage.importData(stream, preserveGlobalId, preserveContentId);
             }
         } finally {
             try {

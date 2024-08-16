@@ -169,8 +169,8 @@ public class EntityReader {
         entities.addAll(groups);
         entities.addAll(groupRules);
         entities.addAll(artifacts);
-        entities.addAll(artifactRules);
         entities.addAll(versions);
+        entities.addAll(artifactRules);
         entities.addAll(branches);
         entities.addAll(comments);
     }

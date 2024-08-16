@@ -1,8 +1,8 @@
 package io.apicurio.registry.operator.unit;
 
-import io.apicur.registry.v1.ApicurioRegistry;
-import io.apicur.registry.v1.apicurioregistrystatus.Conditions;
 import io.apicurio.registry.operator.StatusUpdater;
+import io.apicurio.registry.operator.api.v3.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v3.status.Conditions;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import org.junit.jupiter.api.Test;
 
@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class StatusUpdaterTest {
 
-    private static final ApicurioRegistry defaultRegistry = new ApicurioRegistry();
+    private static final ApicurioRegistry3 defaultRegistry = new ApicurioRegistry3();
 
     static {
         var meta = new ObjectMeta();

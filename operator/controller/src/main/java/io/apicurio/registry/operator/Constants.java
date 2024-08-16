@@ -1,6 +1,6 @@
 package io.apicurio.registry.operator;
 
-import io.apicur.registry.v1.ApicurioRegistry;
+import io.apicurio.registry.operator.api.v3.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -39,7 +39,7 @@ public class Constants {
     public static final Map<String, String> BASIC_LABELS = Map.of(MANAGED_BY_LABEL, MANAGED_BY_VALUE,
             LABEL_SELECTOR_KEY, LABEL_SELECTOR_VALUE);
 
-    public static final Map<String, String> defaultLabels(ApicurioRegistry apicurioRegistry) {
+    public static final Map<String, String> defaultLabels(ApicurioRegistry3 apicurioRegistry) {
         var labels = new HashMap();
         labels.putAll(BASIC_LABELS);
         labels.put("app", apicurioRegistry.getMetadata().getName());

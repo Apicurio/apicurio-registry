@@ -1,6 +1,6 @@
 package io.apicurio.registry.operator.it;
 
-import io.apicur.registry.v1.ApicurioRegistry;
+import io.apicurio.registry.operator.api.v3.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -14,14 +14,14 @@ public class DeploymentITTest extends ITBase {
     @Test
     void demoDeployment() {
         // Arrange
-        var registry = new ApicurioRegistry();
+        var registry = new ApicurioRegistry3();
         var meta = new ObjectMeta();
         meta.setName("demo");
         meta.setNamespace(getNamespace());
         registry.setMetadata(meta);
 
         // Act
-        client.resources(ApicurioRegistry.class).inNamespace(getNamespace()).create(registry);
+        client.resources(ApicurioRegistry3.class).inNamespace(getNamespace()).create(registry);
 
         // Assert
         await().ignoreExceptions().until(() -> {

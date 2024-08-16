@@ -13,6 +13,7 @@ public class ManifestEntity extends Entity {
     public String exportVersion = "3.0";
     public Date exportedOn = new Date();
     public String exportedBy;
+    public String dbVersion;
 
     /**
      * @see Entity#getEntityType()

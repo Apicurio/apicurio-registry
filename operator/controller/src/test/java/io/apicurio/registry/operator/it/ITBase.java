@@ -1,7 +1,7 @@
 package io.apicurio.registry.operator.it;
 
-import io.apicur.registry.v1.ApicurioRegistry;
 import io.apicurio.registry.operator.Constants;
+import io.apicurio.registry.operator.api.v3.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesList;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -38,7 +38,7 @@ public class ITBase {
     public static final String OPERATOR_DEPLOYMENT_PROP = "test.operator.deployment";
     public static final String CLEANUP = "test.operator.cleanup";
     public static final String GENERATED_RESOURCES_FOLDER = "target/kubernetes/";
-    public static final String CRD_FILE = "../model/src/main/resources/kubernetes/crd.yml";
+    public static final String CRD_FILE = "../model/target/classes/META-INF/fabric8/apicurioregistries3.registry.apicur.io-v1.yml";
 
     public enum OperatorDeployment {
         local, remote
@@ -174,7 +174,7 @@ public class ITBase {
     public void cleanup() {
         if (cleanup) {
             Log.info("Deleting CRs");
-            client.resources(ApicurioRegistry.class).delete();
+            client.resources(ApicurioRegistry3.class).delete();
             Awaitility.await().untilAsserted(() -> {
                 var registryDeployments = client.apps().deployments().inNamespace(namespace)
                         .withLabels(Constants.BASIC_LABELS).list().getItems();

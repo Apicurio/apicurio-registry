@@ -1,6 +1,6 @@
 package io.apicurio.registry.operator;
 
-import io.apicur.registry.v1.ApicurioRegistry;
+import io.apicurio.registry.operator.api.v3.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
@@ -11,18 +11,18 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import static io.apicurio.registry.operator.Constants.*;
 
 @KubernetesDependent(labelSelector = LABEL_SELECTOR_KEY)
-public class ApicurioDeployment extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry> {
+public class ApicurioDeployment extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 
     public ApicurioDeployment() {
         super(Deployment.class);
     }
 
-    public static String name(ApicurioRegistry apicurioRegistry) {
+    public static String name(ApicurioRegistry3 apicurioRegistry) {
         return apicurioRegistry.getMetadata().getName();
     }
 
     @Override
-    protected Deployment desired(ApicurioRegistry apicurioRegistry, Context<ApicurioRegistry> context) {
+    protected Deployment desired(ApicurioRegistry3 apicurioRegistry, Context<ApicurioRegistry3> context) {
         var labels = apicurioRegistry.getMetadata().getLabels();
         labels.putAll(Constants.defaultLabels(apicurioRegistry));
         return new DeploymentBuilder().withNewMetadata().withName(ApicurioDeployment.name(apicurioRegistry))

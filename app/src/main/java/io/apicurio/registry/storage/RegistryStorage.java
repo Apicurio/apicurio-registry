@@ -40,9 +40,9 @@ import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
-import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
@@ -96,6 +96,11 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * Is the registry storage set to read-only mode?
      */
     boolean isReadOnly();
+
+    /**
+     * Returns true if the storage is empty (and ready for data to be imported).
+     */
+    boolean isEmpty();
 
     /**
      * Create a new artifact in the storage, with or without an initial/first version. Throws an exception if

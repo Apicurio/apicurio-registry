@@ -8,9 +8,9 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.impexp.EntityWriter;
 import io.apicurio.registry.utils.impexp.v2.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
-import io.apicurio.registry.utils.impexp.v3.EntityWriter;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
 import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
@@ -46,6 +46,7 @@ public class MigrationTestsDataInitializer {
         migrateReferencesMap = new HashMap<>();
 
         JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
+        // Create 50 artifacts in the default group.
         for (int idx = 0; idx < 50; idx++) {
             String artifactId = idx + "-" + UUID.randomUUID().toString();
 
@@ -58,6 +59,7 @@ public class MigrationTestsDataInitializer {
             migrateGlobalIds.add(response.getGlobalId());
         }
 
+        // Create 15 artifacts in the "migrateTest" group
         for (int idx = 0; idx < 15; idx++) {
             AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
                     List.of("a" + idx));
@@ -101,15 +103,18 @@ public class MigrationTestsDataInitializer {
             migrateGlobalIds.add(vmd.getGlobalId());
         }
 
+        // Set an artifact rule.
         io.apicurio.registry.rest.client.v2.models.Rule createRule = new Rule();
         createRule.setType(io.apicurio.registry.rest.client.v2.models.RuleType.VALIDITY);
         createRule.setConfig("SYNTAX_ONLY");
         source.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0").rules().post(createRule);
 
+        // Set a global compatibility rule.
         createRule.setType(RuleType.COMPATIBILITY);
         createRule.setConfig("BACKWARD");
         source.admin().rules().post(createRule);
 
+        // Export the data to a ZIP file.
         var downloadHref = source.admin().export().get().getHref();
         OkHttpClient client = new OkHttpClient();
         DataMigrationIT.migrateDataToImport = client

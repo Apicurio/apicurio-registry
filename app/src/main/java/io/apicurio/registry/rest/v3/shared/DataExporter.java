@@ -2,7 +2,7 @@ package io.apicurio.registry.rest.v3.shared;
 
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
-import io.apicurio.registry.utils.impexp.v3.EntityWriter;
+import io.apicurio.registry.utils.impexp.EntityWriter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
@@ -37,8 +37,7 @@ public class DataExporter {
                     try {
                         writer.writeEntity(entity);
                     } catch (Exception e) {
-                        // TODO do something interesting with this
-                        e.printStackTrace();
+                        log.error("Error writing entity", e);
                         errorCounter.incrementAndGet();
                     }
                     return null;

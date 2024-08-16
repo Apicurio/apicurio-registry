@@ -278,6 +278,11 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
+    public boolean isEmpty() {
+        return delegate.isEmpty();
+    }
+
+    @Override
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
         return delegate.isArtifactExists(groupId, artifactId);
     }

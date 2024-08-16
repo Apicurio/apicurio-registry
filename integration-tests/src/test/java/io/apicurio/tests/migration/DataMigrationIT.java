@@ -3,6 +3,7 @@ package io.apicurio.tests.migration;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.Error;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
@@ -56,22 +57,26 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
         given().when().contentType("application/zip").body(migrateDataToImport)
                 .post("/apis/registry/v2/admin/import").then().statusCode(204).body(anything());
 
-        retry(() -> {
-            for (long gid : migrateGlobalIds) {
-                dest.ids().globalIds().byGlobalId(gid).get();
-                if (migrateReferencesMap.containsKey(gid)) {
-                    List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> srcReferences = migrateReferencesMap
-                            .get(gid);
-                    List<ArtifactReference> destReferences = dest.ids().globalIds().byGlobalId(gid)
-                            .references().get();
-                    assertTrue(matchesReferencesV2V3(srcReferences, destReferences));
-                }
+        for (long gid : migrateGlobalIds) {
+            dest.ids().globalIds().byGlobalId(gid).get();
+            if (migrateReferencesMap.containsKey(gid)) {
+                List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> srcReferences = migrateReferencesMap
+                        .get(gid);
+                List<ArtifactReference> destReferences = dest.ids().globalIds().byGlobalId(gid).references()
+                        .get();
+                assertTrue(matchesReferencesV2V3(srcReferences, destReferences));
             }
+        }
+        try {
             assertEquals("SYNTAX_ONLY", dest.groups().byGroupId("migrateTest").artifacts()
                     .byArtifactId("avro-0").rules().byRuleType(RuleType.VALIDITY.name()).get().getConfig());
             assertEquals("BACKWARD",
                     dest.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get().getConfig());
-        });
+        } catch (Error e) {
+            log.error("REST Client error: " + e.getMessageEscaped());
+            log.error("                 : " + e.getDetail());
+            throw e;
+        }
     }
 
     public static class MigrateTestInitializer extends AbstractTestDataInitializer {

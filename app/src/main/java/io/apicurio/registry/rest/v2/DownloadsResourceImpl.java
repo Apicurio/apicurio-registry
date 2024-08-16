@@ -6,14 +6,8 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
-import io.apicurio.registry.rest.v2.shared.DataExporter;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.error.DownloadNotFoundException;
-import io.apicurio.registry.types.Current;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -27,25 +21,11 @@ import jakarta.ws.rs.core.Response;
 @Path("/apis/registry/v2/downloads")
 public class DownloadsResourceImpl {
 
-    @Inject
-    @Current
-    RegistryStorage storage;
-
-    @Inject
-    DataExporter exporter;
-
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     @GET
     @Path("{downloadId}")
     @Produces("*/*")
     public Response download(@PathParam("downloadId") String downloadId) {
-        DownloadContextDto downloadContext = storage.consumeDownload(downloadId);
-        if (downloadContext.getType() == DownloadContextType.EXPORT) {
-            return exporter.exportData();
-        }
-
-        // TODO support other types of downloads (e.g. download content by contentId)
-
         throw new DownloadNotFoundException();
     }
 

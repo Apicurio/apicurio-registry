@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.importing;
 
-import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityInputStream;
 
 public interface DataImporter {
 

@@ -13,6 +13,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
@@ -36,19 +37,26 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
-import io.apicurio.registry.storage.impexp.EntityInputStream;
+import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.v3.EntityReader;
+import io.apicurio.registry.utils.impexp.EntityInputStream;
+import io.apicurio.registry.utils.impexp.EntityInputStreamImpl;
+import io.apicurio.registry.utils.impexp.EntityReader;
+import io.apicurio.registry.utils.impexp.EntityType;
+import io.apicurio.registry.utils.impexp.ManifestEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.apache.commons.io.FileUtils;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -57,6 +65,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +113,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     DataExporter exporter;
+
+    @Inject
+    ImportExportConfigProperties importExportProps;
 
     @Context
     HttpServletRequest request;
@@ -250,33 +264,82 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#importData(Boolean, Boolean, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v3.AdminResource#importData(Boolean, Boolean, Boolean, InputStream)
      */
     @Override
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void importData(Boolean xRegistryPreserveGlobalId, Boolean xRegistryPreserveContentId,
-            InputStream data) {
+            Boolean requireEmptyRegistry, InputStream data) {
+        boolean preserveGlobalId = xRegistryPreserveGlobalId == null ? importExportProps.preserveGlobalId
+            : xRegistryPreserveGlobalId;
+        boolean preserveContentId = xRegistryPreserveContentId == null ? importExportProps.preserveContentId
+            : xRegistryPreserveContentId;
+        boolean requireEmpty = requireEmptyRegistry == null ? importExportProps.requireEmptyRegistry
+            : requireEmptyRegistry;
+
+        if (requireEmpty && !storage.isEmpty()) {
+            throw new ConflictException("Registry is not empty.");
+        }
+
+        // The input should be a ZIP file
         final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
-        final EntityReader reader = new EntityReader(zip);
-        EntityInputStream stream = new EntityInputStream() {
-            @Override
-            public Entity nextEntity() throws IOException {
-                try {
-                    return reader.readEntity();
-                } catch (Exception e) {
-                    log.error("Error reading data from import ZIP file.", e);
-                    return null;
+
+        // Unpack the ZIP file to the local file system (temp)
+        Path tempDirectory = null;
+        try {
+            tempDirectory = Files.createTempDirectory(Paths.get(importExportProps.workDir),
+                    "apicurio-import_");
+            IoUtil.unpackToDisk(zip, tempDirectory);
+            zip.close();
+        } catch (IOException e) {
+            throw new BadRequestException("Error importing data: " + e.getMessage(), e);
+        }
+
+        try {
+            // EntityReader reader reads all unpacked entities from the file system
+            final EntityReader reader = new EntityReader(tempDirectory);
+
+            // Check the manifest for the version of the ZIP. We either need to import
+            // or import with upgrade depending on the version.
+            boolean upgrade = false;
+            try {
+                Entity entity = reader.readNextEntity();
+                if (entity.getEntityType() != EntityType.Manifest) {
+                    throw new BadRequestException("Invalid import file: missing Manifest file");
                 }
+                ManifestEntity manifestEntity = (ManifestEntity) entity;
+
+                // Version 2 or 1 requires an upgrade to v3.
+                if (manifestEntity.exportVersion.startsWith("3")) {
+                    upgrade = false;
+                } else if (manifestEntity.exportVersion.startsWith("2")
+                        || manifestEntity.exportVersion.startsWith("1")) {
+                    upgrade = true;
+                } else {
+                    throw new BadRequestException(
+                            "Invalid import file, unknown manifest version: " + manifestEntity.systemVersion);
+                }
+            } catch (IOException e) {
+                throw new BadRequestException("Error importing data: " + e.getMessage(), e);
             }
 
-            @Override
-            public void close() throws IOException {
-                zip.close();
+            // Create an entity input stream to pass to the storage layer
+            EntityInputStream stream = new EntityInputStreamImpl(reader);
+
+            // Import or upgrade the data into the storage
+            if (upgrade) {
+                this.storage.upgradeData(stream, preserveGlobalId, preserveContentId);
+            } else {
+                this.storage.importData(stream, preserveGlobalId, preserveContentId);
             }
-        };
-        this.storage.importData(stream, isNullOrTrue(xRegistryPreserveGlobalId),
-                isNullOrTrue(xRegistryPreserveContentId));
+        } finally {
+            try {
+                FileUtils.deleteDirectory(tempDirectory.toFile());
+            } catch (IOException e) {
+                // Best effort
+            }
+        }
     }
 
     /**

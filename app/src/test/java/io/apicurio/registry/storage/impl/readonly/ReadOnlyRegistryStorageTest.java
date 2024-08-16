@@ -134,6 +134,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("importGroup1", new State(true, s -> s.importGroup(null))),
                 entry("initialize0", new State(false, RegistryStorage::initialize)),
                 entry("isAlive0", new State(false, RegistryStorage::isAlive)),
+                entry("isEmpty0", new State(false, RegistryStorage::isEmpty)),
                 entry("isArtifactExists2", new State(false, s -> s.isArtifactExists(null, null))),
                 entry("isArtifactRuleExists3",
                         new State(false, s -> s.isArtifactRuleExists(null, null, null))),

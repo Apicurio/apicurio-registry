@@ -520,6 +520,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see SqlStatements#selectAllContentCount()
+     */
+    @Override
+    public String selectAllContentCount() {
+        return "SELECT COUNT(c.contentId) FROM content c ";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllArtifactVersionsCount()
      */
     @Override

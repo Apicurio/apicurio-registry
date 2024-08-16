@@ -565,11 +565,23 @@
             },
             "in": "header",
             "required": false
+          },
+          {
+            "name": "requireEmptyRegistry",
+            "description": "Query parameter indicating whether the registry must be empty before allowing\ndata to be imported.  Defaults to `true` if omitted.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
           "201": {
             "description": "Indicates that the import was successful."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           },
           "500": {
             "$ref": "#/components/responses/ServerError"

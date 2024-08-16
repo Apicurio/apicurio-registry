@@ -3,7 +3,16 @@ package io.apicurio.registry.storage.importing.v3;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.v3.*;
+import io.apicurio.registry.utils.impexp.ManifestEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import org.slf4j.Logger;
 
 public abstract class AbstractDataImporter implements DataImporter {
@@ -37,6 +46,9 @@ public abstract class AbstractDataImporter implements DataImporter {
                 break;
             case Group:
                 importGroup((GroupEntity) entity);
+                break;
+            case GroupRule:
+                importGroupRule((GroupRuleEntity) entity);
                 break;
             case Comment:
                 importComment((CommentEntity) entity);
@@ -73,6 +85,8 @@ public abstract class AbstractDataImporter implements DataImporter {
     protected abstract void importGlobalRule(GlobalRuleEntity entity);
 
     protected abstract void importGroup(GroupEntity entity);
+
+    protected abstract void importGroupRule(GroupRuleEntity entity);
 
     protected abstract void importBranch(BranchEntity entity);
 }

@@ -11,18 +11,26 @@ type ImportRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
+// ImportRequestBuilderPostQueryParameters imports registry data that was previously exported using the `/admin/export` operation.
+type ImportRequestBuilderPostQueryParameters struct {
+	// Query parameter indicating whether the registry must be empty before allowingdata to be imported.  Defaults to `true` if omitted.
+	RequireEmptyRegistry *bool `uriparametername:"requireEmptyRegistry"`
+}
+
 // ImportRequestBuilderPostRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
 type ImportRequestBuilderPostRequestConfiguration struct {
 	// Request headers
 	Headers *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestHeaders
 	// Request options
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
+	// Request query parameters
+	QueryParameters *ImportRequestBuilderPostQueryParameters
 }
 
 // NewImportRequestBuilderInternal instantiates a new ImportRequestBuilder and sets the default values.
 func NewImportRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ImportRequestBuilder {
 	m := &ImportRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/admin/import", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/admin/import{?requireEmptyRegistry*}", pathParameters),
 	}
 	return m
 }
@@ -41,6 +49,7 @@ func (m *ImportRequestBuilder) Post(ctx context.Context, body []byte, requestCon
 		return err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"409": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateErrorFromDiscriminatorValue,
 		"500": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateErrorFromDiscriminatorValue,
 	}
 	err = m.BaseRequestBuilder.RequestAdapter.SendNoContent(ctx, requestInfo, errorMapping)
@@ -54,6 +63,9 @@ func (m *ImportRequestBuilder) Post(ctx context.Context, body []byte, requestCon
 func (m *ImportRequestBuilder) ToPostRequestInformation(ctx context.Context, body []byte, requestConfiguration *ImportRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
+		if requestConfiguration.QueryParameters != nil {
+			requestInfo.AddQueryParameters(*(requestConfiguration.QueryParameters))
+		}
 		requestInfo.Headers.AddAll(requestConfiguration.Headers)
 		requestInfo.AddRequestOptions(requestConfiguration.Options)
 	}

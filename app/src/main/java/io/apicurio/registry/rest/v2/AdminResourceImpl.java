@@ -1,10 +1,8 @@
 package io.apicurio.registry.rest.v2;
 
-import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigPropertyIndex;
-import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.logging.audit.Audited;
 import io.apicurio.registry.auth.Authorized;
@@ -16,51 +14,37 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
-import io.apicurio.registry.rest.v2.beans.DownloadRef;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
 import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.rest.v2.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.UpdateRole;
-import io.apicurio.registry.rest.v2.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
-import io.apicurio.registry.storage.impexp.EntityInputStream;
+import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.v2.EntityReader;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.zip.ZipInputStream;
 
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
@@ -97,17 +81,12 @@ public class AdminResourceImpl implements AdminResource {
     Config config;
 
     @Inject
-    DataExporter exporter;
+    ImportExportConfigProperties importExportProps;
 
-    @Context
-    HttpServletRequest request;
+    @Inject
+    io.apicurio.registry.rest.v3.AdminResourceImpl v3Admin;
 
-    @Dynamic(label = "Download link expiry", description = "The number of seconds that a generated link to a .zip download file is active before expiring.")
-    @ConfigProperty(name = "apicurio.download.href.ttl.seconds", defaultValue = "30")
-    @Info(category = "download", description = "Download link expiry", availableSince = "2.1.2.Final")
-    Supplier<Long> downloadHrefTtl;
-
-    private static final void requireParameter(String parameterName, Object parameterValue) {
+    private static void requireParameter(String parameterName, Object parameterValue) {
         if (parameterValue == null) {
             throw new MissingRequiredParameterException(parameterName);
         }
@@ -124,7 +103,6 @@ public class AdminResourceImpl implements AdminResource {
             ati.setName(t);
             return ati;
         }).collect(Collectors.toList());
-
     }
 
     /**
@@ -246,26 +224,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void importData(Boolean xRegistryPreserveGlobalId, Boolean xRegistryPreserveContentId,
             InputStream data) {
-        final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
-        final EntityReader reader = new EntityReader(zip);
-        EntityInputStream stream = new EntityInputStream() {
-            @Override
-            public Entity nextEntity() throws IOException {
-                try {
-                    return reader.readEntity();
-                } catch (Exception e) {
-                    log.error("Error reading data from import ZIP file.", e);
-                    return null;
-                }
-            }
-
-            @Override
-            public void close() throws IOException {
-                zip.close();
-            }
-        };
-        this.storage.upgradeData(stream, isNullOrTrue(xRegistryPreserveGlobalId),
-                isNullOrTrue(xRegistryPreserveContentId));
+        v3Admin.importData(xRegistryPreserveGlobalId, xRegistryPreserveContentId, false, data);
     }
 
     /**
@@ -275,20 +234,8 @@ public class AdminResourceImpl implements AdminResource {
     @Audited(extractParameters = { "0", KEY_FOR_BROWSER })
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public Response exportData(Boolean forBrowser) {
-        String acceptHeader = request.getHeader("Accept");
-        if (Boolean.TRUE.equals(forBrowser) || MediaType.APPLICATION_JSON.equals(acceptHeader)) {
-            long expires = System.currentTimeMillis() + (downloadHrefTtl.get() * 1000);
-            DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT)
-                    .expires(expires).build();
-            String downloadId = storage.createDownload(downloadCtx);
-            String downloadHref = createDownloadHref(downloadId);
-            DownloadRef downloadRef = new DownloadRef();
-            downloadRef.setDownloadId(downloadId);
-            downloadRef.setHref(downloadHref);
-            return Response.ok(downloadRef).type(MediaType.APPLICATION_JSON_TYPE).build();
-        } else {
-            return exporter.exportData();
-        }
+        throw new UnsupportedOperationException(
+                "Exporting data using the Registry Core v2 API is no longer supported.  Use the v3 API.");
     }
 
     /**
@@ -463,7 +410,7 @@ public class AdminResourceImpl implements AdminResource {
 
     /**
      * Lookup the dynamic configuration property being set. Ensure that it exists (throws a
-     * {@link NotFoundException} if it does not.
+     * {@link io.apicurio.registry.storage.error.NotFoundException} if it does not.
      * 
      * @param propertyName the name of the dynamic property
      * @return the dynamic config property definition

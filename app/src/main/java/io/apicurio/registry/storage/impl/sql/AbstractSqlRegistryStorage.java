@@ -2141,6 +2141,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         manifest.systemName = system.getName();
         manifest.systemDescription = system.getDescription();
         manifest.systemVersion = system.getVersion();
+        manifest.dbVersion = "" + DB_VERSION;
         handler.apply(manifest);
 
         // Export all content

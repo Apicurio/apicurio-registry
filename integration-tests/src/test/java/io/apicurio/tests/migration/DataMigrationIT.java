@@ -3,6 +3,7 @@ package io.apicurio.tests.migration;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.Error;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
@@ -66,10 +67,16 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
                 assertTrue(matchesReferencesV2V3(srcReferences, destReferences));
             }
         }
-        assertEquals("SYNTAX_ONLY", dest.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0")
-                .rules().byRuleType(RuleType.VALIDITY.name()).get().getConfig());
-        assertEquals("BACKWARD",
-                dest.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get().getConfig());
+        try {
+            assertEquals("SYNTAX_ONLY", dest.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0")
+                    .rules().byRuleType(RuleType.VALIDITY.name()).get().getConfig());
+            assertEquals("BACKWARD",
+                    dest.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get().getConfig());
+        } catch (Error e) {
+            log.error("REST Client error: " + e.getMessageEscaped());
+            log.error("                 : " + e.getDetail());
+            throw e;
+        }
     }
 
     public static class MigrateTestInitializer extends AbstractTestDataInitializer {

@@ -197,7 +197,7 @@
     <apicurio-common-app-components.version>1.2.0</apicurio-common-app-components.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
     <snakeyaml.version>2.2</snakeyaml.version>
-    <guava.version>33.2.1-jre</guava.version>
+    <guava.version>33.3.0-jre</guava.version>
     <woodstox-core.version>7.0.0</woodstox-core.version>
     <jgit.version>6.10.0.202406032230-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>

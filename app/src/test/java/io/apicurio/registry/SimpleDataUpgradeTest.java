@@ -7,7 +7,10 @@ import io.apicurio.registry.rest.client.models.GroupSearchResults;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,11 +25,16 @@ import java.util.Set;
 @QuarkusTest
 public class SimpleDataUpgradeTest extends AbstractResourceTestBase {
 
+    @Inject
+    @Current
+    RegistryStorage storage;
+
     @Override
     @BeforeAll
     protected void beforeAll() throws Exception {
         super.beforeAll();
 
+        storage.deleteAllUserData();
         try (InputStream data = resourceToInputStream("./upgrade/v2_export_simple.zip")) {
             clientV3.admin().importEscaped().post(data);
         }

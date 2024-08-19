@@ -2819,7 +2819,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     entity.labels.forEach((k, v) -> {
                         handle.createUpdate(sqlStatements.insertArtifactLabel())
                                 .bind(0, normalizeGroupId(entity.groupId)).bind(1, entity.artifactId)
-                                .bind(2, k.toLowerCase()).bind(3, v.toLowerCase()).execute();
+                                .bind(2, k.toLowerCase()).bind(3, v == null ? null : v.toLowerCase())
+                                .execute();
                     });
                 }
             } else {
@@ -2852,7 +2853,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 if (entity.labels != null && !entity.labels.isEmpty()) {
                     entity.labels.forEach((k, v) -> {
                         handle.createUpdate(sqlStatements.insertVersionLabel()).bind(0, entity.globalId)
-                                .bind(1, k.toLowerCase()).bind(2, v.toLowerCase()).execute();
+                                .bind(1, k.toLowerCase()).bind(2, v == null ? null : v.toLowerCase())
+                                .execute();
                     });
                 }
 

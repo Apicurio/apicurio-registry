@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static io.apicurio.registry.types.ArtifactType.ASYNCAPI;
 import static io.apicurio.registry.types.ArtifactType.AVRO;
@@ -102,8 +101,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             Map<String, String> artifactVersionLabels = new HashMap<>();
 
             if (entity.labels != null) {
-                artifactVersionLabels
-                        .putAll(entity.labels.stream().collect(Collectors.toMap(label -> label, s -> null)));
+                entity.labels.forEach(label -> artifactVersionLabels.put(label, null));
             }
 
             if (entity.properties != null) {
@@ -112,10 +110,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
 
             io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity newEntity = io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity
                     .builder().createdOn(entity.createdOn).description(entity.description)
-                    .labels(entity.labels != null
-                        ? entity.labels.stream().collect(Collectors.toMap(label -> label, label -> null))
-                        : Collections.emptyMap())
-                    .name(entity.name).owner(entity.createdBy)
+                    .labels(artifactVersionLabels).name(entity.name).owner(entity.createdBy)
                     .state(VersionState.fromValue(entity.state.value())).artifactId(entity.artifactId)
                     .versionOrder(entity.versionId).modifiedOn(entity.createdOn).modifiedBy(entity.createdBy)
                     .version(entity.version).globalId(entity.globalId).contentId(entity.contentId)
@@ -142,7 +137,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             }
 
             storage.importArtifactVersion(newEntity);
-            log.info("Artifact version imported successfully: {}", entity);
+            log.debug("Artifact version imported successfully: {}", entity);
             globalIdMapping.put(oldGlobalId, entity.globalId);
         } catch (VersionAlreadyExistsException ex) {
             if (ex.getGlobalId() != null) {
@@ -152,7 +147,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                 log.warn("Failed to import artifact version {}: {}", entity, ex.getMessage());
             }
         } catch (Exception ex) {
-            log.warn("Failed to import artifact version {}: {}", entity, ex.getMessage());
+            log.warn("Failed to import artifact version {}: {}", entity, ex.getMessage(), ex);
         }
     }
 

@@ -238,24 +238,26 @@ public class DiffUtil {
     }
 
     public static void diffSubSchemasRemoved(DiffContext ctx, List<SchemaWrapper> removedSchemas,
-                                             boolean updatedPermitsAdditional, SchemaWrapper updatedSchemaOfAdditional,
-                                             boolean originalPermitsAdditional, DiffType narrowedType,
-                                             DiffType extendedType, DiffType changedType) {
+            boolean updatedPermitsAdditional, SchemaWrapper updatedSchemaOfAdditional,
+            boolean originalPermitsAdditional, DiffType narrowedType,
+            DiffType narrowedTypeCompatibleWithAdditional, DiffType extendedType, DiffType changedType) {
         if (!updatedPermitsAdditional) {
-            // updated schema: additional = false
+            // Updated schema does not permit additional properties, by removing a property schema
+            // we are narrowing the property schemas (not backwards compatible).
             ctx.addDifference(narrowedType, removedSchemas, null);
         } else {
             if (updatedSchemaOfAdditional == null) {
-                // updated schema: additional = true
+                // Updated schema of additional properties accepts anything, removing the property
+                // is backwards compatible (we're extending the accepted properties).
                 ctx.addDifference(extendedType, removedSchemas, true);
             } else {
-                // updated schema: additional = schema
-                if (!originalPermitsAdditional &&
-                        areListOfSchemasCompatible(ctx, removedSchemas, updatedSchemaOfAdditional, false)) {
-                    ctx.addDifference(extendedType, removedSchemas, updatedSchemaOfAdditional);
-                } else if (originalPermitsAdditional &&
-                        areListOfSchemasCompatible(ctx, removedSchemas, updatedSchemaOfAdditional, true)) {
-                    ctx.addDifference(narrowedType, removedSchemas, updatedSchemaOfAdditional);
+                // We have a specific updated schema of additional properties,
+                // which is checked separately.
+                if (areListOfSchemasCompatible(ctx, removedSchemas, updatedSchemaOfAdditional, true)) {
+                    // Removed property is compatible with updated additional properties schema,
+                    // which is backwards compatible.
+                    ctx.addDifference(narrowedTypeCompatibleWithAdditional, removedSchemas,
+                            updatedSchemaOfAdditional);
                 } else {
                     ctx.addDifference(changedType, removedSchemas, updatedSchemaOfAdditional);
                 }
@@ -308,10 +310,10 @@ public class DiffUtil {
         }
     }
 
-    public static boolean areListOfSchemasCompatible(DiffContext ctx, List<SchemaWrapper> itemSchemas, SchemaWrapper additionalSchema,
-                                                     boolean notReverse) {
-        for (SchemaWrapper itemSchema: itemSchemas) {
-            if (!isSchemaCompatible(ctx, itemSchema.getWrapped(), additionalSchema.getWrapped(), notReverse)) {
+    public static boolean areListOfSchemasCompatible(DiffContext ctx, List<SchemaWrapper> itemSchemas,
+            SchemaWrapper additionalSchema, boolean backward) {
+        for (SchemaWrapper itemSchema : itemSchemas) {
+            if (!isSchemaCompatible(ctx, itemSchema.getWrapped(), additionalSchema.getWrapped(), backward)) {
                 return false;
             }
         }

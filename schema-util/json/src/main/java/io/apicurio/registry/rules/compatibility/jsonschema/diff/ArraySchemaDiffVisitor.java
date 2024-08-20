@@ -25,40 +25,8 @@ import org.everit.json.schema.Schema;
 import java.util.List;
 import java.util.Optional;
 
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_EXTENDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_FALSE_TO_TRUE;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_BOOLEAN_UNCHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_NARROWED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ADDITIONAL_ITEMS_TRUE_TO_FALSE;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ALL_ITEM_SCHEMA_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ALL_ITEM_SCHEMA_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_CONTAINED_ITEM_SCHEMA_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_CONTAINED_ITEM_SCHEMA_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEM_SCHEMA_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEM_SCHEMA_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEM_SCHEMAS_CHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEM_SCHEMAS_EXTENDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_ITEM_SCHEMAS_NARROWED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MAX_ITEMS_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MAX_ITEMS_DECREASED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MAX_ITEMS_INCREASED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MAX_ITEMS_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_ADDED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_DECREASED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_INCREASED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_MIN_ITEMS_REMOVED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_CHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_SCHEMA_OF_ADDITIONAL_ITEMS_UNCHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_FALSE_TO_TRUE;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_BOOLEAN_UNCHANGED;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.ARRAY_TYPE_UNIQUE_ITEMS_TRUE_TO_FALSE;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffBooleanTransition;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffInteger;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSchemaOrTrue;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubSchemasAdded;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubSchemasRemoved;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.diffSubschemaAddedRemoved;
-import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.getExceptionally;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.*;
+import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.*;
 import static io.apicurio.registry.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
 
 /**
@@ -162,10 +130,12 @@ public class ArraySchemaDiffVisitor extends JsonSchemaWrapperVisitor {
                 ARRAY_TYPE_ITEM_SCHEMAS_NARROWED, ARRAY_TYPE_ITEM_SCHEMAS_CHANGED);
         }
         if (originalSize > size) { // removing items
-            diffSubSchemasRemoved(ctx.sub("removeItemSchema"), wrap(original.getItemSchemas().subList(size, originalSize)),
-                schema.permitsAdditionalItems(), schema.getSchemaOfAdditionalItems(),
-                original.permitsAdditionalItems(), ARRAY_TYPE_ITEM_SCHEMAS_NARROWED,
-                ARRAY_TYPE_ITEM_SCHEMAS_EXTENDED, ARRAY_TYPE_ITEM_SCHEMAS_CHANGED);
+            diffSubSchemasRemoved(ctx.sub("removeItemSchema"),
+                    wrap(original.getItemSchemas().subList(size, originalSize)),
+                    schema.permitsAdditionalItems(), schema.getSchemaOfAdditionalItems(),
+                    original.permitsAdditionalItems(), ARRAY_TYPE_ITEM_SCHEMAS_NARROWED,
+                    ARRAY_TYPE_ITEM_SCHEMAS_NARROWED_COMPATIBLE_WITH_ADDITIONAL_PROPERTIES,
+                    ARRAY_TYPE_ITEM_SCHEMAS_EXTENDED, ARRAY_TYPE_ITEM_SCHEMAS_CHANGED);
         }
 
         super.visitItemSchemas(itemSchemas);

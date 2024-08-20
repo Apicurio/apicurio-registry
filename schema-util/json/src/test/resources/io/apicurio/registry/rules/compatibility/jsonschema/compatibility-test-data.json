@@ -3442,6 +3442,261 @@
           }
         }
       }
+    },
+    {
+      "enabled": true,
+      "id": "Issue 4965-O1",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "foo": { "type": "string" }
+        },
+        "required":["foo"],
+        "additionalProperties": { "type": "string" }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "foo": { "type": "string" },
+          "bar": { "type": "string" }
+        },
+        "required":["foo"],
+        "additionalProperties": { "type": "string" }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Issue 4965-O2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "foo": { "type": "string" },
+          "bar":{ "type": "string" }
+        },
+        "required":["foo"]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "foo": { "type": "string" }
+        },
+        "required":["foo"]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Issue 4965-O3",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "foo": { "type": "string" }
+        },
+        "additionalProperties": { "type": "number" }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "foo": { "type": "string" },
+          "bar": { "type": "number" }
+        },
+        "additionalProperties": true
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Issue 4965-O4",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "foo": { "type": "string" },
+          "bar": { "type": "number" }
+        },
+        "additionalProperties": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "foo": { "type": "string" }
+        },
+        "additionalProperties": { "type": "number" }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Issue 4965-O5",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "foo": { "type": "string" },
+          "bar": { "type": "number" }
+        },
+        "additionalProperties": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "foo": { "type": "string" }
+        },
+        "additionalProperties": {
+          "type": "number",
+          "maximum": 42
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Issue 4965-A1",
+      "compatibility": "both",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "additionalItems": { "type": "string" }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          }
+        ],
+        "additionalItems": { "type": "string" }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Issue 4965-A2",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Issue 4965-A3",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          }
+        ],
+        "additionalItems": { "type": "number" }
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "additionalItems": true
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Issue 4965-A4",
+      "compatibility": "backward",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "additionalItems": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          }
+        ],
+        "additionalItems": { "type": "number" }
+      }
+    },
+    {
+      "enabled": true,
+      "id": "Issue 4965-A5",
+      "compatibility": "none",
+      "original": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "additionalItems": false
+      },
+      "updated": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "items": [
+          {
+            "type": "string"
+          }
+        ],
+        "additionalItems": {
+          "type": "number",
+          "maximum": 42
+        }
+      }
     }
   ]
 }

@@ -1049,6 +1049,7 @@
               <file>${projectRoot}/ide-config/eclipse.importorder</file>
             </importOrder>
             <removeUnusedImports/>
+            <toggleOffOn/>
           </java>
           <pom>
             <includes>

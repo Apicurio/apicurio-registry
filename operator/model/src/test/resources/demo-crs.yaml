@@ -1,0 +1,15 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: test1
+  namespace: test-namespace1
+spec:
+  { }
+---
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: test2
+  namespace: test-namespace2
+spec:
+  { }

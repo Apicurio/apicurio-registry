@@ -1,11 +1,12 @@
 package io.apicurio.registry.operator;
 
-import io.apicurio.registry.operator.api.v3.ApicurioRegistry3;
-import io.apicurio.registry.operator.api.v3.ApicurioRegistry3Status;
-import io.apicurio.registry.operator.api.v3.status.Conditions;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Status;
+import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
+import io.apicurio.registry.operator.api.v1.status.Conditions;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,7 +22,7 @@ public class StatusUpdater {
     }
 
     public ApicurioRegistry3Status errorStatus(Exception e) {
-        ZonedDateTime lastTransitionTime = ZonedDateTime.now();
+        Instant lastTransitionTime = Instant.now();
         if (registry != null && registry.getStatus() != null
                 && registry.getStatus().getConditions().size() > 0 &&
                 // TODO: better `lastTransitionTime` handling
@@ -30,9 +31,9 @@ public class StatusUpdater {
         }
 
         var generation = registry.getMetadata() == null ? null : registry.getMetadata().getGeneration();
-        var newLastTransitionTime = ZonedDateTime.now();
+        var newLastTransitionTime = Instant.now();
         var errorCondition = new Conditions();
-        errorCondition.setStatus(Conditions.Status.TRUE);
+        errorCondition.setStatus(ConditionStatus.TRUE);
         errorCondition.setType(ERROR_TYPE);
         errorCondition.setObservedGeneration(generation);
         errorCondition.setLastTransitionTime(newLastTransitionTime);
@@ -47,7 +48,7 @@ public class StatusUpdater {
     }
 
     public ApicurioRegistry3Status next(Deployment deployment) {
-        var lastTransitionTime = ZonedDateTime.now();
+        var lastTransitionTime = Instant.now();
         if (registry != null && registry.getStatus() != null
                 && registry.getStatus().getConditions().size() > 0 &&
                 // TODO: should we sort the conditions before taking the first?
@@ -57,7 +58,7 @@ public class StatusUpdater {
 
         var generation = registry.getMetadata() == null ? null : registry.getMetadata().getGeneration();
         var nextCondition = new Conditions();
-        nextCondition.setStatus(Conditions.Status.TRUE);
+        nextCondition.setStatus(ConditionStatus.TRUE);
         nextCondition.setType(ERROR_TYPE);
         nextCondition.setObservedGeneration(generation);
         nextCondition.setLastTransitionTime(lastTransitionTime);

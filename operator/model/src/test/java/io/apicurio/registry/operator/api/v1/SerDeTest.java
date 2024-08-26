@@ -1,4 +1,4 @@
-package io.apicurio.registry.operator.api.v3;
+package io.apicurio.registry.operator.api.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;

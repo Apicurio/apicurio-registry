@@ -1,4 +1,4 @@
-package io.apicurio.registry.operator.api.v3.spec;
+package io.apicurio.registry.operator.api.v1.spec;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

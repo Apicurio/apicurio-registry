@@ -1,4 +1,4 @@
-package io.apicurio.registry.operator.api.v3;
+package io.apicurio.registry.operator.api.v1;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -8,16 +8,16 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.apicurio.registry.operator.api.v3.status.Conditions;
-import io.apicurio.registry.operator.api.v3.status.Info;
-import io.fabric8.kubernetes.api.model.KubernetesResource;
+import io.apicurio.registry.operator.api.v1.status.Conditions;
+import io.apicurio.registry.operator.api.v1.status.Info;
+import io.javaoperatorsdk.operator.api.ObservedGenerationAwareStatus;
 
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({ "conditions", "info" })
 @JsonDeserialize(using = JsonDeserializer.None.class)
-public class ApicurioRegistry3Status implements KubernetesResource {
+public class ApicurioRegistry3Status extends ObservedGenerationAwareStatus {
 
     /**
      * Conditions: Apicurio Registry application and Operator conditions.

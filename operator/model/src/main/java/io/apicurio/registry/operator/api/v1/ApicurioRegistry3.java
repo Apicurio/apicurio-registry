@@ -1,4 +1,4 @@
-package io.apicurio.registry.operator.api.v3;
+package io.apicurio.registry.operator.api.v1;
 
 import io.fabric8.kubernetes.api.model.Namespaced;
 import io.fabric8.kubernetes.client.CustomResource;

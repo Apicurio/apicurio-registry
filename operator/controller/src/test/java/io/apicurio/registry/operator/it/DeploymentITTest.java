@@ -1,6 +1,6 @@
 package io.apicurio.registry.operator.it;
 
-import io.apicurio.registry.operator.api.v3.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;

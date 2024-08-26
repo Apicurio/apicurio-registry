@@ -1,7 +1,7 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.Constants;
-import io.apicurio.registry.operator.api.v3.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesList;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;

@@ -13,12 +13,16 @@ import io.fabric8.generator.annotation.Min;
 import io.fabric8.generator.annotation.Pattern;
 import io.fabric8.generator.annotation.Required;
 import io.fabric8.kubernetes.api.model.KubernetesResource;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 
 @JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({ "lastTransitionTime", "message", "observedGeneration", "reason", "status", "type" })
 @JsonDeserialize(using = JsonDeserializer.None.class)
+@Getter
+@Setter
 public class Conditions implements KubernetesResource {
 
     /**
@@ -30,17 +34,8 @@ public class Conditions implements KubernetesResource {
     @Required()
     @JsonPropertyDescription("lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.")
     @JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
-    private Instant lastTransitionTime;
-
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssVV")
-    public Instant getLastTransitionTime() {
-        return lastTransitionTime;
-    }
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss[XXX][VV]")
-    public void setLastTransitionTime(Instant lastTransitionTime) {
-        this.lastTransitionTime = lastTransitionTime;
-    }
+    private Instant lastTransitionTime;
 
     /**
      * message is a human readable message indicating details about the transition. This may be an empty
@@ -52,14 +47,6 @@ public class Conditions implements KubernetesResource {
     @JsonSetter(nulls = Nulls.SKIP)
     private String message;
 
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
     /**
      * observedGeneration represents the .metadata.generation that the condition was set based upon. For
      * instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is
@@ -70,14 +57,6 @@ public class Conditions implements KubernetesResource {
     @JsonPropertyDescription("observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance.")
     @JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private Long observedGeneration;
-
-    public Long getObservedGeneration() {
-        return observedGeneration;
-    }
-
-    public void setObservedGeneration(Long observedGeneration) {
-        this.observedGeneration = observedGeneration;
-    }
 
     /**
      * reason contains a programmatic identifier indicating the reason for the condition's last transition.
@@ -92,14 +71,6 @@ public class Conditions implements KubernetesResource {
     @JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String reason;
 
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
-
     /**
      * status of the condition, one of True, False, Unknown.
      */
@@ -108,14 +79,6 @@ public class Conditions implements KubernetesResource {
     @JsonPropertyDescription("status of the condition, one of True, False, Unknown.")
     @JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private ConditionStatus status;
-
-    public ConditionStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(ConditionStatus status) {
-        this.status = status;
-    }
 
     /**
      * type of condition in CamelCase or in foo.example.com/CamelCase. --- Many .condition.type values are
@@ -130,11 +93,4 @@ public class Conditions implements KubernetesResource {
     @JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String type;
 
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
 }

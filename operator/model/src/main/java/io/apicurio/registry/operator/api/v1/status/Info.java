@@ -8,10 +8,14 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.fabric8.kubernetes.api.model.KubernetesResource;
+import lombok.Getter;
+import lombok.Setter;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({ "host" })
 @JsonDeserialize(using = JsonDeserializer.None.class)
+@Getter
+@Setter
 public class Info implements KubernetesResource {
 
     /**
@@ -22,11 +26,4 @@ public class Info implements KubernetesResource {
     @JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
     private String host;
 
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
 }

@@ -34,6 +34,11 @@
       <artifactId>crd-generator-apt</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
+    </dependency>
 
     <dependency>
       <groupId>io.quarkus</groupId>

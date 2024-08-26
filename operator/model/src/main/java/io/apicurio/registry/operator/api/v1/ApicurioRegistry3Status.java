@@ -11,12 +11,16 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.operator.api.v1.status.Conditions;
 import io.apicurio.registry.operator.api.v1.status.Info;
 import io.javaoperatorsdk.operator.api.ObservedGenerationAwareStatus;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({ "conditions", "info" })
 @JsonDeserialize(using = JsonDeserializer.None.class)
+@Getter
+@Setter
 public class ApicurioRegistry3Status extends ObservedGenerationAwareStatus {
 
     /**
@@ -27,14 +31,6 @@ public class ApicurioRegistry3Status extends ObservedGenerationAwareStatus {
     @JsonSetter(nulls = Nulls.SKIP)
     private List<Conditions> conditions;
 
-    public List<Conditions> getConditions() {
-        return conditions;
-    }
-
-    public void setConditions(List<Conditions> conditions) {
-        this.conditions = conditions;
-    }
-
     /**
      * Information about the Apicurio Registry application
      */
@@ -42,13 +38,4 @@ public class ApicurioRegistry3Status extends ObservedGenerationAwareStatus {
     @JsonPropertyDescription("Information about the Apicurio Registry application")
     @JsonSetter(nulls = Nulls.SKIP)
     private Info info;
-
-    public Info getInfo() {
-        return info;
-    }
-
-    public void setInfo(Info info) {
-        this.info = info;
-    }
-
 }

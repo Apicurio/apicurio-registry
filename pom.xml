@@ -581,15 +581,8 @@
             </dependency>
             <dependency>
                 <groupId>com.squareup.wire</groupId>
-                <artifactId>wire-compiler</artifactId>
-                <version>${wire-compiler.version}</version>
-                <!-- Excluding as the latest version is not present and this is not required -->
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.squareup.wire</groupId>
-                        <artifactId>wire-grpc-client</artifactId>
-                    </exclusion>
-                </exclusions>
+                <artifactId>wire-schema-jvm</artifactId>
+                <version>${wire-schema.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.ibm.icu</groupId>

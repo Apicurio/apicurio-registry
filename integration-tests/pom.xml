@@ -55,6 +55,13 @@
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-client</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-tenant-manager-client</artifactId>
@@ -96,7 +103,6 @@
             <artifactId>apicurio-registry-utils-converter</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Test Only -->
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-avro-serializer</artifactId>

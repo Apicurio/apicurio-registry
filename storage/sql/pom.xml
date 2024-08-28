@@ -232,7 +232,7 @@
                     <plugin>
                         <groupId>io.apicurio</groupId>
                         <artifactId>apicurio-common-app-components-maven-plugin</artifactId>
-                        <version>1.2.3</version>
+                        <version>${version.apicurio-common-app-components-maven-plugin}</version>
                         <executions>
                             <execution>
                                 <phase>package</phase>

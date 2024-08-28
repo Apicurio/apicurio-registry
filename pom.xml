@@ -245,6 +245,7 @@
         <version.clean.plugin>3.3.2</version.clean.plugin>
         <version.frontend-maven.plugin>1.15.0</version.frontend-maven.plugin>
         <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
+        <version.apicurio-common-app-components-maven-plugin>1.2.3</version.apicurio-common-app-components-maven-plugin>
 
         <!-- Plugin Deps -->
         <version.puppycrawl>10.15.0</version.puppycrawl>

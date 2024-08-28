@@ -135,7 +135,6 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
             //very important
             .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
-
             .withProducerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
             .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
             .withDeserializer(KafkaAvroDeserializer.class)

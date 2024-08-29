@@ -1,7 +1,7 @@
 package io.apicurio.registry.metrics.health.liveness;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.services.http.RegistryExceptionMapperService;
+import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -31,7 +31,7 @@ public class LivenessUtil {
     }
 
     private boolean isIgnored(Throwable ex) {
-        Set<Class<? extends Exception>> ignoredClasses = RegistryExceptionMapperService.getIgnored();
+        Set<Class<? extends Exception>> ignoredClasses = CoreRegistryExceptionMapperService.getIgnored();
         if (ignoredClasses.contains(ex.getClass())) {
             return true;
         }

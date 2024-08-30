@@ -129,4 +129,4 @@ ifdef::rh-openshift-sr[]
 ** {base-url}{manage-api-url-registry}[Managing Service Registry data using the Core Registry API].
 ** {base-url}{manage-maven-plugin-url-registry}[Managing schemas and APIs using the Service Registry Maven plug-in].
 endif::[]
-* For a Java example, see the https://github.com/Apicurio/apicurio-registry-examples/tree/main/serdes-with-references[Apicurio Registry SerDes with references demonstration].
+* For a Java example, see the https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/examples/serdes-with-references[Apicurio Registry SerDes with references demonstration].

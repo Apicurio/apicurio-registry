@@ -57,5 +57,5 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 [role="_additional-resources"]
 .Additional resources
 * For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
-* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry-examples[].
+* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/examples/[].
 * For more details on PostgreSQL, see the link:https://www.postgresql.org/docs/12/index.html[PostgreSQL documentation].

@@ -105,4 +105,4 @@ endif::[]
 
 [role="_additional-resources"]
 .Additional resources
-* For detailed configuration examples, see the link:https://github.com/Apicurio/apicurio-registry-examples[Apicurio Registry example applications].
+* For detailed configuration examples, see the link:https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/examples/[Apicurio Registry example applications].

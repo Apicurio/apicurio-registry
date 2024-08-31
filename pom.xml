@@ -187,6 +187,9 @@
     <jackson-datatype-json-org.version>2.17.2</jackson-datatype-json-org.version>
     <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
 
+    <!-- OpenAPI -->
+    <openapi-diff.version>2.0.1</openapi-diff.version>
+
     <!-- Dependency versions -->
     <lombok.version>1.18.34</lombok.version>
     <h2.version>1.4.199</h2.version>
@@ -608,6 +611,13 @@
         <groupId>com.graphql-java</groupId>
         <artifactId>graphql-java</artifactId>
         <version>${graphql.version}</version>
+      </dependency>
+
+      <!-- OpenAPI -->
+      <dependency>
+        <groupId>org.openapitools.openapidiff</groupId>
+        <artifactId>openapi-diff-core</artifactId>
+        <version>${openapi-diff.version}</version>
       </dependency>
 
       <dependency>

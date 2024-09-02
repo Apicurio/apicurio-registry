@@ -86,7 +86,7 @@ jobs:
       - name: Build Registry (All Variants)
         run: |
           cd registry
-          ./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw -T 4C clean package -pl app -am --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build the typescript-sdk
         run: |

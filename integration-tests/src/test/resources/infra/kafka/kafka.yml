@@ -42,7 +42,7 @@ spec:
     spec:
       containers:
         - name: kafka-service
-          image: quay.io/strimzi/kafka:latest-kafka-3.5.0-amd64
+          image: quay.io/strimzi/kafka:latest-kafka-3.5.0-arm64
           command:
             - /bin/sh
             - -c

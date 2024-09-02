@@ -68,7 +68,7 @@ jobs:
           run: cd registry && java -jar /home/runner/.m2/pom-manipulation-cli.jar -DgroovyScripts=${{ github.event.inputs.script-url }}
 
         - name: Build Registry
-          run: pwd && cd registry && ./mvnw clean install -P${{ github.event.inputs.maven-profiles }} -DskipTests=${{ github.event.inputs.skip-tests }} ${{ github.event.inputs.extra-params }}
+          run: pwd && cd registry && ./mvnw clean compile -P${{ github.event.inputs.maven-profiles }} -DskipTests=${{ github.event.inputs.skip-tests }} ${{ github.event.inputs.extra-params }}
 
         - name: Set test profile to all
           run: echo "test_profile=all" >> $GITHUB_ENV

@@ -59,7 +59,7 @@ jobs:
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build Application
-        run: ./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+        run: ./mvnw -T 4C clean package -pl app -am --no-transfer-progress -Pprod -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build and Push Application image
         run: |
@@ -352,7 +352,7 @@ jobs:
           echo "Starting Registry App (In Memory)"
           docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
           cd registry-v2
-          ./mvnw -T 1.5C -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true
+          ./mvnw -T 1.5C -Pintegration-tests clean compile -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true
           cd integration-tests
           ../mvnw -T 1.5C verify -Pregression -Dmaven.javadoc.skip=true -Dquarkus.http.test-host=localhost -Dquarkus.http.test-port=8181
 
@@ -388,4 +388,4 @@ jobs:
         run: docker run -d -p 8080:8080 -it ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
 
       - name: Build Apicurio Registry with Examples
-        run: cd apicurio-registry && mvn clean install -DskipTests -Pexamples
+        run: cd apicurio-registry && mvn -T 4C clean package -pl examples -am

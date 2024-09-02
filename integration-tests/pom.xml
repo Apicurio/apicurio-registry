@@ -158,6 +158,8 @@
             <maven.home>${maven.home}</maven.home>
             <groups>${groups}</groups>
           </systemPropertyVariables>
+          <forkCount>2C</forkCount>
+          <reuseForks>true</reuseForks>
         </configuration>
         <executions>
           <execution>

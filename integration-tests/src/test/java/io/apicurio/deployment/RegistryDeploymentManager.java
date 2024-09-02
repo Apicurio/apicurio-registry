@@ -10,6 +10,7 @@ import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import org.junit.platform.launcher.TestExecutionListener;
+import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,11 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     static KubernetesClient kubernetesClient;
 
     static List<LogWatch> logWatch;
+
+    @Override
+    public void executionStarted(TestIdentifier testIdentifier) {
+        TestExecutionListener.super.executionStarted(testIdentifier);
+    }
 
     @Override
     public void testPlanExecutionStarted(TestPlan testPlan) {

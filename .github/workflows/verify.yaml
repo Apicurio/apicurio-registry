@@ -69,7 +69,7 @@ jobs:
           fi
 
       - name: Build and Test Application
-        run: ./mvnw -T 4C clean package -pl app -am --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+        run: ./mvnw clean package -pl app,distro/docker -am --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -224,13 +224,13 @@ jobs:
           ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
 
       - name: Build Application
-        run: ./mvnw -T 4C clean package -pl app -am -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress
+        run: ./mvnw  clean package -pl app,distro/docker -am -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress
 
       - name: Build Native executables
         env:
           SKIP_TESTS: "true"
         run: |
-          ./mvnw -T 1.5C package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
+          ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
 
       - name: Build and Push Temporary image for testing
         env:
@@ -336,7 +336,7 @@ jobs:
         run: make lint-check
 
       - name: Build Registry
-        run: -T 4C clean package -pl app -am-Dskip.npm -DskipTests=true --no-transfer-progress
+        run: mvn clean package -pl app -am -Dskip.npm -DskipTests=true --no-transfer-progress
 
       - name: Run the tests
         working-directory: python-sdk
@@ -363,7 +363,7 @@ jobs:
           go-version: '1.20'
 
       - name: Build Registry
-        run: mvn -T 4C clean package -pl app -am -Dskip.npm -DskipTests=true --no-transfer-progress
+        run: mvn clean package -pl app -am -Dskip.npm -DskipTests=true --no-transfer-progress
 
       - name: Run the tests
         working-directory: go-sdk

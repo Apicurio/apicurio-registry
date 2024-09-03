@@ -69,7 +69,7 @@ jobs:
           fi
 
       - name: Build and Test Application
-        run: ./mvnw clean package -pl app,distro/docker -am --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+        run: ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'

@@ -28,9 +28,9 @@ updates:
 
   - package-ecosystem: maven
     directory: "/"
-    target-branch: 2.5.x
+    target-branch: 2.6.x
     schedule:
-      interval: daily
+      interval: weekly
     groups:
       backport-dependencies:
         patterns:

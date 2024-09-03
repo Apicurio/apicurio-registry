@@ -75,4 +75,4 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
 
 [role="_additional-resources"]
 .Additional resources
-* For an example application, see the link:https://github.com/Apicurio/apicurio-registry-examples[Simple Avro example]
+* For an example application, see the link:https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/examples/[Simple Avro example]

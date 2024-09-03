@@ -37,16 +37,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Tag(Constants.MIGRATION)
 @Disabled
 public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
-
     private static final Logger log = LoggerFactory.getLogger(DataMigrationIT.class);
     public static InputStream doNotPreserveIdsImportDataToImport;
     public static JsonSchemaMsgFactory jsonSchema;
     public static Map<String, String> doNotPreserveIdsImportArtifacts = new HashMap<>();
-
-    @Override
-    public void cleanArtifacts() throws Exception {
-        // Don't clean up
-    }
 
     @Test
     public void testDoNotPreserveIdsImport() throws Exception {

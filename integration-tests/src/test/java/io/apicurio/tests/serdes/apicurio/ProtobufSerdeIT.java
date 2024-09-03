@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
     private KafkaFacade kafkaCluster = KafkaFacade.getInstance();
-
     private Class<ProtobufKafkaSerializer> serializer = ProtobufKafkaSerializer.class;
     private Class<ProtobufKafkaDeserializer> deserializer = ProtobufKafkaDeserializer.class;
 
@@ -42,11 +41,6 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
     @AfterAll
     void teardownEnvironment() throws Exception {
         kafkaCluster.stopIfPossible();
-    }
-
-    @Override
-    public void cleanArtifacts() throws Exception {
-        // Don't clean up
     }
 
     @Test

@@ -48,11 +48,6 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
     private final Class<AvroKafkaSerializer> serializer = AvroKafkaSerializer.class;
     private final Class<AvroKafkaDeserializer> deserializer = AvroKafkaDeserializer.class;
 
-    @Override
-    public void cleanArtifacts() throws Exception {
-        // Don't clean up
-    }
-
     @BeforeAll
     void setupEnvironment() {
         kafkaCluster.startIfNeeded();
@@ -400,7 +395,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String topicName1 = TestUtils.generateTopic();
         String topicName2 = TestUtils.generateTopic();
         String topicName3 = TestUtils.generateTopic();
-        String subjectName = "myrecordconfluent6";
+        String subjectName = "myrecordconfluent" + System.currentTimeMillis();
         String schemaKey = "key1";
 
         kafkaCluster.createTopic(topicName1, 1, 1);

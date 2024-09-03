@@ -16,6 +16,7 @@ import io.apicurio.registry.rules.compatibility.OpenApiCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.OpenApiContentValidator;
 import io.apicurio.registry.types.ArtifactType;
+
 import java.util.Map;
 
 public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {

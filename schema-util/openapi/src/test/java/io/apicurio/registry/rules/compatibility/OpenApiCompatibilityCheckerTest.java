@@ -3,10 +3,10 @@ package io.apicurio.registry.rules.compatibility;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
-import java.util.Collections;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 
 class OpenApiCompatibilityCheckerTest {
     private TypedContent toTypedContent(String content) {
@@ -14,74 +14,74 @@ class OpenApiCompatibilityCheckerTest {
     }
 
     private static final String BEFORE = """
-        {
-            "openapi": "3.0.0",
-            "info": {
-                "title": "Test API",
-                "version": "1.0.0"
-            },
-            "paths": {
-                "/test": {
-                    "get": {
-                        "responses": {
-                            "200": {
-                                "description": "OK"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        """;
-    private static final String AFTER_VALID = """
-        {
-            "openapi": "3.0.0",
-            "info": {
-                "title": "Test API",
-                "version": "1.0.0"
-            },
-            "paths": {
-                "/test": {
-                    "get": {
-                        "responses": {
-                            "200": {
-                                "description": "OK"
-                            }
-                        }
-                    }
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "Test API",
+                    "version": "1.0.0"
                 },
-                "/test2": {
-                    "get": {
-                        "responses": {
-                            "200": {
-                                "description": "OK"
+                "paths": {
+                    "/test": {
+                        "get": {
+                            "responses": {
+                                "200": {
+                                    "description": "OK"
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-        """;
+            """;
+    private static final String AFTER_VALID = """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "Test API",
+                    "version": "1.0.0"
+                },
+                "paths": {
+                    "/test": {
+                        "get": {
+                            "responses": {
+                                "200": {
+                                    "description": "OK"
+                                }
+                            }
+                        }
+                    },
+                    "/test2": {
+                        "get": {
+                            "responses": {
+                                "200": {
+                                    "description": "OK"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            """;
     private static final String AFTER_INVALID = """
-        {
-            "openapi": "3.0.0",
-            "info": {
-                "title": "Test API",
-                "version": "1.0.0"
-            },
-            "paths": {}
-        }
-        """;
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "Test API",
+                    "version": "1.0.0"
+                },
+                "paths": {}
+            }
+            """;
 
     @Test
     void givenBackwardCompatibleChange_whenCheckingCompatibility_thenReturnCompatibleResult() {
         OpenApiCompatibilityChecker checker = new OpenApiCompatibilityChecker();
         TypedContent existing = toTypedContent(BEFORE);
         TypedContent proposed = toTypedContent(AFTER_VALID);
-        CompatibilityExecutionResult result = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(existing), proposed,
-                Collections.emptyMap());
+        CompatibilityExecutionResult result = checker.testCompatibility(CompatibilityLevel.BACKWARD,
+                Collections.singletonList(existing), proposed, Collections.emptyMap());
 
-       Assertions.assertTrue(result.isCompatible());
+        Assertions.assertTrue(result.isCompatible());
     }
 
     @Test
@@ -89,9 +89,9 @@ class OpenApiCompatibilityCheckerTest {
         OpenApiCompatibilityChecker checker = new OpenApiCompatibilityChecker();
         TypedContent existing = toTypedContent(BEFORE);
         TypedContent proposed = toTypedContent(AFTER_INVALID);
-        CompatibilityExecutionResult result = checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.singletonList(existing), proposed,
-                Collections.emptyMap());
+        CompatibilityExecutionResult result = checker.testCompatibility(CompatibilityLevel.BACKWARD,
+                Collections.singletonList(existing), proposed, Collections.emptyMap());
 
-       Assertions.assertFalse(result.isCompatible());
+        Assertions.assertFalse(result.isCompatible());
     }
 }

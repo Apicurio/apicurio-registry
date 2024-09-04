@@ -270,7 +270,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         String recordNamespace = TestUtils.generateAvroNS();
         String recordName = TestUtils.generateSubject();
-        String schemaKey = "key1";
+        String schemaKey = "key1" + System.currentTimeMillis();
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(recordNamespace,
                 recordName, List.of(schemaKey));
 

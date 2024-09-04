@@ -65,8 +65,9 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = topicName + "-value";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
-                List.of("key1"));
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
+                "myrecordapicurio1" + System.currentTimeMillis(),
+                List.of("key1" + System.currentTimeMillis()));
 
         createArtifact("default", artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
@@ -84,8 +85,9 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = topicName;
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
-                List.of("key1"));
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
+                "myrecordapicurio1" + System.currentTimeMillis(),
+                List.of("key1" + System.currentTimeMillis()));
 
         createArtifact(topicName, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
@@ -105,7 +107,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String groupId = TestUtils.generateSubject();
         String artifactId = TestUtils.generateSubject();
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(groupId, artifactId,
-                List.of("key1"));
+                List.of("key1" + System.currentTimeMillis()));
 
         createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
@@ -124,7 +126,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String groupId = TestUtils.generateSubject();
         String recordName = TestUtils.generateSubject();
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(groupId, recordName,
-                List.of("key1"));
+                List.of("key1" + System.currentTimeMillis()));
 
         String artifactId = topicName + "-" + recordName;
         createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
@@ -144,8 +146,9 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = topicName + "-value";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
-                List.of("key1"));
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
+                "myrecordapicurio1" + System.currentTimeMillis(),
+                List.of("key1" + System.currentTimeMillis()));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
@@ -385,7 +388,6 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         IoUtil.closeIgnore(producer);
         IoUtil.closeIgnore(consumer);
-
     }
 
     @Test
@@ -396,7 +398,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String topicName2 = TestUtils.generateTopic();
         String topicName3 = TestUtils.generateTopic();
         String subjectName = "myrecordconfluent" + System.currentTimeMillis();
-        String schemaKey = "key1";
+        String schemaKey = "key1" + System.currentTimeMillis();
 
         kafkaCluster.createTopic(topicName1, 1, 1);
         kafkaCluster.createTopic(topicName2, 1, 1);
@@ -503,8 +505,9 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = topicName + "-value";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
-                List.of("key1"));
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
+                "myrecordapicurio1" + System.currentTimeMillis(),
+                List.of("key1" + System.currentTimeMillis()));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
@@ -532,8 +535,9 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = topicName + "-value";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
-                List.of("key1"));
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
+                "myrecordapicurio1" + System.currentTimeMillis(),
+                List.of("key1" + System.currentTimeMillis()));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)

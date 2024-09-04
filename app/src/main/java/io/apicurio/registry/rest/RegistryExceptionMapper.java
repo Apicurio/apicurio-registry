@@ -3,7 +3,6 @@ package io.apicurio.registry.rest;
 import io.apicurio.registry.services.http.CCompatExceptionMapperService;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
 import io.apicurio.registry.services.http.CoreV2RegistryExceptionMapperService;
-import io.apicurio.registry.services.http.ErrorHttpResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,7 +39,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
      */
     @Override
     public Response toResponse(Throwable t) {
-        ErrorHttpResponse res = null;
+        Response res;
         if (isCompatEndpoint()) {
             res = ccompatMapper.mapException(t);
         } else if (isV2Endpoint()) {
@@ -49,14 +48,15 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             res = coreMapper.mapException(t);
         }
 
-        Response.ResponseBuilder builder;
-        if (res.getJaxrsResponse() != null) {
-            builder = Response.fromResponse(res.getJaxrsResponse());
-        } else {
-            builder = Response.status(res.getStatus()).entity(res.getError());
-        }
-
-        return builder.type(res.getContentType()).build();
+        // Response.ResponseBuilder builder;
+        // if (res.getJaxrsResponse() != null) {
+        // builder = Response.fromResponse(res.getJaxrsResponse());
+        // } else {
+        // builder = Response.status(res.getStatus()).entity(res.getError());
+        // }
+        //
+        // return builder.type(res.getContentType()).build();
+        return res;
     }
 
     /**

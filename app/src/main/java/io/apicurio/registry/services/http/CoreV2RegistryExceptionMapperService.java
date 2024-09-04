@@ -1,28 +1,15 @@
 package io.apicurio.registry.services.http;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.ccompat.rest.error.*;
-import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
-import io.apicurio.registry.limits.LimitExceededException;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
-import io.apicurio.registry.rest.MissingRequiredParameterException;
-import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.v3.beans.Error;
 import io.apicurio.registry.rest.v3.beans.RuleViolationCause;
 import io.apicurio.registry.rest.v3.beans.RuleViolationError;
-import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.rules.UnprocessableSchemaException;
-import io.apicurio.registry.storage.error.*;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
-import io.smallrye.mutiny.TimeoutException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.validation.ValidationException;
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -32,20 +19,17 @@ import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import static java.net.HttpURLConnection.*;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
 /**
  * @deprecated This exception mapper logic is used for legacy v2 API support only.
  */
 @ApplicationScoped
 public class CoreV2RegistryExceptionMapperService {
-
-    private static final int HTTP_UNPROCESSABLE_ENTITY = 422;
-
-    protected static final Map<Class<? extends Exception>, Integer> CODE_MAP;
 
     @Inject
     Logger log;
@@ -56,73 +40,14 @@ public class CoreV2RegistryExceptionMapperService {
     @Inject
     LivenessUtil livenessUtil;
 
+    @Inject
+    HttpStatusCodeMap codeMap;
+
     @ConfigProperty(name = "apicurio.api.errors.include-stack-in-response", defaultValue = "false")
     @Info(category = "api", description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
     boolean includeStackTrace;
 
-    static {
-        // TODO Merge this list with io.apicurio.registry.rest.RegistryExceptionMapper
-        // Keep alphabetical
-
-        Map<Class<? extends Exception>, Integer> map = new HashMap<>();
-        map.put(AlreadyExistsException.class, HTTP_CONFLICT);
-        map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
-        map.put(ArtifactNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(BadRequestException.class, HTTP_BAD_REQUEST);
-        map.put(BranchAlreadyExistsException.class, HTTP_CONFLICT);
-        map.put(BranchNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(ConflictException.class, HTTP_CONFLICT);
-        map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(DefaultRuleDeletionException.class, HTTP_CONFLICT);
-        map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(ForbiddenException.class, HTTP_FORBIDDEN);
-        map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(GroupAlreadyExistsException.class, HTTP_CONFLICT);
-        map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
-        map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
-        map.put(InvalidVersionStateException.class, HTTP_BAD_REQUEST);
-        map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
-        map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
-        map.put(InvalidPropertyValueException.class, HTTP_BAD_REQUEST);
-        map.put(io.apicurio.registry.rest.ConflictException.class, HTTP_CONFLICT);
-        map.put(LimitExceededException.class, HTTP_CONFLICT);
-        map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
-        map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the
-                                                           // latter for authx only.
-        map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
-        map.put(NotFoundException.class, HTTP_NOT_FOUND);
-        map.put(ParametersConflictException.class, HTTP_CONFLICT);
-        map.put(ReadOnlyStorageException.class, HTTP_CONFLICT);
-        map.put(ReferenceExistsException.class, HTTP_UNPROCESSABLE_ENTITY);
-        map.put(DereferencingNotSupportedException.class, HTTP_BAD_REQUEST);
-        map.put(RoleMappingAlreadyExistsException.class, HTTP_CONFLICT);
-        map.put(RoleMappingNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(RuleAlreadyExistsException.class, HTTP_CONFLICT);
-        map.put(RuleNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(RuleViolationException.class, HTTP_CONFLICT);
-        map.put(SchemaNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(SchemaNotSoftDeletedException.class, HTTP_CONFLICT);
-        map.put(SchemaSoftDeletedException.class, HTTP_CONFLICT);
-        map.put(SubjectNotSoftDeletedException.class, HTTP_CONFLICT);
-        map.put(SubjectSoftDeletedException.class, HTTP_NOT_FOUND);
-        map.put(TimeoutException.class, HTTP_UNAVAILABLE);
-        map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);
-        map.put(UnprocessableSchemaException.class, HTTP_UNPROCESSABLE_ENTITY);
-        map.put(ValidationException.class, HTTP_BAD_REQUEST);
-        map.put(VersionAlreadyExistsException.class, HTTP_CONFLICT);
-        map.put(VersionAlreadyExistsOnBranchException.class, HTTP_CONFLICT);
-        map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
-
-        CODE_MAP = Collections.unmodifiableMap(map);
-    }
-
-    public static Set<Class<? extends Exception>> getIgnored() {
-        return CODE_MAP.keySet();
-    }
-
-    public ErrorHttpResponse mapException(Throwable t) {
+    public Response mapException(Throwable t) {
         int code;
         Response response = null;
         if (t instanceof WebApplicationException) {
@@ -130,7 +55,7 @@ public class CoreV2RegistryExceptionMapperService {
             response = wae.getResponse();
             code = response.getStatus();
         } else {
-            code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
+            code = codeMap.getCode(t.getClass());
         }
 
         if (code == HTTP_INTERNAL_ERROR) {
@@ -142,14 +67,15 @@ public class CoreV2RegistryExceptionMapperService {
             log.error("[500 ERROR DETECTED] : " + t.getMessage(), t);
         }
 
-        Error error = toError(t, code);
-        return ErrorHttpResponse.builder()
-                .status(code)
-                .contentType(MediaType.APPLICATION_JSON)
-                .error(error)
-                .jaxrsResponse(response)
-                .build();
+        Response.ResponseBuilder builder;
+        if (response != null) {
+            builder = Response.fromResponse(response);
+        } else {
+            builder = Response.status(code);
+        }
 
+        Error error = toError(t, code);
+        return builder.entity(error).type(MediaType.APPLICATION_JSON).build();
     }
 
     private Error toError(Throwable t, int code) {

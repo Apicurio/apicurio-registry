@@ -71,7 +71,10 @@ public class CCompatExceptionMapperService {
     @Inject
     LivenessUtil livenessUtil;
 
-    public ErrorHttpResponse mapException(Throwable t) {
+    @Inject
+    HttpStatusCodeMap codeMap;
+
+    public Response mapException(Throwable t) {
         int code = 0;
         Response response = null;
         if (t instanceof WebApplicationException) {
@@ -79,7 +82,7 @@ public class CCompatExceptionMapperService {
             response = wae.getResponse();
             code = response.getStatus();
         } else {
-            code = CoreV2RegistryExceptionMapperService.CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
+            code = codeMap.getCode(t.getClass());
         }
 
         if (code == HTTP_INTERNAL_ERROR) {
@@ -91,14 +94,15 @@ public class CCompatExceptionMapperService {
             log.error("[500 ERROR DETECTED] : " + t.getMessage(), t);
         }
 
-        Error error = toError(t);
+        Response.ResponseBuilder builder;
+        if (response != null) {
+            builder = Response.fromResponse(response);
+        } else {
+            Error error = toError(t);
+            builder = Response.status(code).entity(error);
+        }
 
-        return ErrorHttpResponse.builder()
-                .status(error.getErrorCode())
-                .jaxrsResponse(response)
-                .error(error)
-                .contentType(MediaType.APPLICATION_JSON)
-                .build();
+        return builder.type(MediaType.APPLICATION_JSON).build();
     }
 
     private Error toError(Throwable t) {

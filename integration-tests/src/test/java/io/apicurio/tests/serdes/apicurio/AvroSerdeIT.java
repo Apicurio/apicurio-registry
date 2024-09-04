@@ -345,6 +345,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
             producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName,
                     strategy);
         }
+
         tester.produceMessages(producer, topicName, avroSchema3::generateRecord, messageCount);
 
         if (!reuseClients) {

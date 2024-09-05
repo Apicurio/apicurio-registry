@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 /**
  * Default implementation of {@link SchemaResolver}
@@ -35,6 +36,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private String autoCreateBehavior;
     private boolean findLatest;
     private boolean dereference;
+
+    private static final Logger logger = Logger.getLogger(DefaultSchemaResolver.class.getSimpleName());
 
     /**
      * @see io.apicurio.registry.resolver.AbstractSchemaResolver#reset()
@@ -264,6 +267,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
         return schemaCache.getByContent(rawSchemaString, contentKey -> {
+
+            logger.info(String.format("Retrieving schema content using string: %s", rawSchemaString));
+
             InputStream is = new ByteArrayInputStream(contentKey.getBytes(StandardCharsets.UTF_8));
             String at = schemaParser.artifactType();
             String ct = toContentType(at);

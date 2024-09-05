@@ -126,6 +126,9 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         ensureClusterSync(normalizeGroupId(response.getArtifact().getGroupId()),
                 response.getArtifact().getArtifactId(), String.valueOf(response.getVersion().getVersion()));
 
+        // make sure content is available
+        ensureClusterSyncContentId(response.getVersion().getContentId());
+
         return response;
     }
 
@@ -142,6 +145,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         ensureClusterSync(meta.getGlobalId());
         ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getArtifactId(),
                 String.valueOf(meta.getVersion()));
+        ensureClusterSyncContentId(meta.getContentId());
 
         return meta;
     }
@@ -162,6 +166,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     private void ensureClusterSync(Long globalId) throws Exception {
         retry(() -> registryClient.ids().globalIds().byGlobalId(globalId));
+    }
+
+    private void ensureClusterSyncContentId(Long contentId) throws Exception {
+        retry(() -> registryClient.ids().contentIds().byContentId(contentId));
     }
 
     private void ensureClusterSync(String groupId, String artifactId, String version) throws Exception {

@@ -106,9 +106,7 @@
                         </goals>
                         <configuration>
                             <protoSourceRoot>./src/main/resources/schema</protoSourceRoot>
-                            <protocArtifact>
-                                com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}
-                            </protocArtifact>
+                            <protocArtifact>${protoc-artifact-common}</protocArtifact>
                         </configuration>
                     </execution>
                 </executions>

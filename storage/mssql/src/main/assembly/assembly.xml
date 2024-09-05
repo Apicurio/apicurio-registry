@@ -16,6 +16,9 @@
         <include>lib</include>
         <include>lib/*</include>
       </includes>
+      <excludes>
+        <exclude>lib/org.projectlombok.lombok-*.jar</exclude>
+      </excludes>
     </fileSet>
   </fileSets>
 </assembly>

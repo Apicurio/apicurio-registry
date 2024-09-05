@@ -258,6 +258,8 @@
         <embedded-postgres.version>2.0.7</embedded-postgres.version>
         <strimzi.version>0.105.0</strimzi.version>
         <wiremock.version>3.7.0</wiremock.version>
+
+        <protoc-artifact-common>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protoc-artifact-common>
     </properties>
 
     <dependencyManagement>

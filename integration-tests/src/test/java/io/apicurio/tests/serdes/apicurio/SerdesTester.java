@@ -77,6 +77,7 @@ public class SerdesTester<K, P, C> {
             props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY,
                     artifactIdStrategy.getName());
         } else {
+            // props.putIfAbsent(SerdeConfig.FIND_LATEST_ARTIFACT, "true");
             props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
             props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, artifactIdStrategy.getName());
         }

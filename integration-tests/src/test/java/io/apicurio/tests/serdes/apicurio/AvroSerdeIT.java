@@ -65,15 +65,15 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = topicName + "-value";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
-                "myrecordapicurio1" + System.currentTimeMillis(),
-                List.of("key1" + System.currentTimeMillis()));
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
+                List.of("key1"));
 
         createArtifact("default", artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
+                .withSerializer(serializer).withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+                .withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(avroSchema::generateRecord).withDataValidator(avroSchema::validateRecord)
                 .build().test();
     }
@@ -85,17 +85,17 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = topicName;
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
-                "myrecordapicurio1" + System.currentTimeMillis(),
-                List.of("key1" + System.currentTimeMillis()));
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
+                List.of("key1"));
 
         createArtifact(topicName, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer)
-                .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(avroSchema::generateRecord)
-                .withDataValidator(avroSchema::validateRecord)
+                .withStrategy(SimpleTopicIdStrategy.class)
+                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+                .withDataGenerator(avroSchema::generateRecord).withDataValidator(avroSchema::validateRecord)
                 .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, topicName).build().test();
     }
 
@@ -107,15 +107,18 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String groupId = TestUtils.generateSubject();
         String artifactId = TestUtils.generateSubject();
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(groupId, artifactId,
-                List.of("key1" + System.currentTimeMillis()));
+                List.of("key1"));
 
         createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
-        new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer)
+        SimpleSerdesTesterBuilder<GenericRecord, GenericRecord> tester = new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
+                .withTopic(topicName).withSerializer(serializer)
+                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").withDeserializer(deserializer)
                 .withStrategy(RecordIdStrategy.class).withDataGenerator(avroSchema::generateRecord)
-                .withDataValidator(avroSchema::validateRecord).build().test();
+                .withDataValidator(avroSchema::validateRecord);
+
+        tester.build().test();
     }
 
     @Test
@@ -126,16 +129,17 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String groupId = TestUtils.generateSubject();
         String recordName = TestUtils.generateSubject();
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(groupId, recordName,
-                List.of("key1" + System.currentTimeMillis()));
+                List.of("key1"));
 
         String artifactId = topicName + "-" + recordName;
         createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer)
-                .withStrategy(TopicRecordIdStrategy.class).withDataGenerator(avroSchema::generateRecord)
-                .withDataValidator(avroSchema::validateRecord).build().test();
+                .withSerializer(serializer).withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
+                .withDeserializer(deserializer).withStrategy(TopicRecordIdStrategy.class)
+                .withDataGenerator(avroSchema::generateRecord).withDataValidator(avroSchema::validateRecord)
+                .build().test();
     }
 
     @Test
@@ -146,9 +150,8 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = topicName + "-value";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
-                "myrecordapicurio1" + System.currentTimeMillis(),
-                List.of("key1" + System.currentTimeMillis()));
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
+                List.of("key1"));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
@@ -233,6 +236,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         new WrongConfiguredSerdesTesterBuilder<GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withStrategy(TopicIdStrategy.class)
+                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
                 // note, we use an incorrect wrong data generator in purpose
                 .withDataGenerator(avroSchemaB::generateRecord).build().test();
     }
@@ -264,24 +268,28 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
     }
 
     void evolveSchemaTest(boolean reuseClients) throws Exception {
+        // Prepare the topic and the first schema
         // using TopicRecordIdStrategy
-
         Class<?> strategy = TopicRecordIdStrategy.class;
-
         String topicName = TestUtils.generateTopic();
         kafkaCluster.createTopic(topicName, 1, 1);
 
         String recordNamespace = TestUtils.generateAvroNS();
         String recordName = TestUtils.generateSubject();
-        String schemaKey = "key1" + System.currentTimeMillis();
+        String schemaKey = "key1";
+
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(recordNamespace,
                 recordName, List.of(schemaKey));
 
         String artifactId = topicName + "-" + recordName;
+
+        // Create the artifact that will evolve, including the first version
         createArtifact(recordNamespace, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
+        // Prepare tester and produce messages for the first schema
         SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
+
         if (reuseClients) {
             tester.setAutoClose(false);
         }
@@ -296,9 +304,11 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
         tester.consumeMessages(consumer, topicName, messageCount, avroSchema::validateRecord);
 
+        // ---------//
         String schemaKey2 = "key2";
         AvroGenericRecordSchemaFactory avroSchema2 = new AvroGenericRecordSchemaFactory(recordNamespace,
                 recordName, List.of(schemaKey, schemaKey2));
+
         createArtifactVersion(recordNamespace, artifactId, avroSchema2.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null);
 
@@ -306,6 +316,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
             producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName,
                     strategy);
         }
+
         tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount);
 
         if (!reuseClients) {
@@ -398,8 +409,8 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String topicName1 = TestUtils.generateTopic();
         String topicName2 = TestUtils.generateTopic();
         String topicName3 = TestUtils.generateTopic();
-        String subjectName = "myrecordconfluent" + System.currentTimeMillis();
-        String schemaKey = "key1" + System.currentTimeMillis();
+        String subjectName = "myrecordconfluent";
+        String schemaKey = "key1";
 
         kafkaCluster.createTopic(topicName1, 1, 1);
         kafkaCluster.createTopic(topicName2, 1, 1);
@@ -506,9 +517,8 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = topicName + "-value";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
-                "myrecordapicurio1" + System.currentTimeMillis(),
-                List.of("key1" + System.currentTimeMillis()));
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
+                List.of("key1"));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
@@ -536,9 +546,8 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = topicName + "-value";
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(
-                "myrecordapicurio1" + System.currentTimeMillis(),
-                List.of("key1" + System.currentTimeMillis()));
+        AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
+                List.of("key1"));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
@@ -693,7 +702,6 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
                     // mock url that will return 429 status always
                     .withProducerProperty(SerdeConfig.REGISTRY_URL, mock.getMockUrl())
-
                     .withSerializer(AvroKafkaSerializer.class).withStrategy(TopicIdStrategy.class)
                     .withDataGenerator(avroSchema::generateRecord).build().test();
         } finally {

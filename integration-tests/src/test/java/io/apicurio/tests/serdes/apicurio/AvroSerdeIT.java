@@ -307,7 +307,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         logger.info("Registering Avro Schema: {}", avroSchemaString);
 
-        // First we create a
+        // First we create the initial artifact
         createArtifact(recordNamespace, artifactId, ArtifactType.AVRO, avroSchemaString,
                 ContentTypes.APPLICATION_JSON, null, null);
 
@@ -330,8 +330,11 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         AvroGenericRecordSchemaFactory avroSchema2 = new AvroGenericRecordSchemaFactory(recordNamespace,
                 recordName, List.of(schemaKey, schemaKey2));
 
-        createArtifactVersion(recordNamespace, artifactId, avroSchema2.generateSchema().toString(),
-                ContentTypes.APPLICATION_JSON, null);
+        String avroSchemaString2 = avroSchema2.generateSchema().toString();
+        logger.info("Registering Avro Schema 2: {}", avroSchemaString2);
+
+        createArtifactVersion(recordNamespace, artifactId, avroSchemaString2, ContentTypes.APPLICATION_JSON,
+                null);
 
         // We produce messages for both, the old schema version, and the new one.
         produceForSchema(reuseClients, producer, tester, strategy, topicName, messageCount, avroSchema2);
@@ -362,8 +365,12 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String schemaKey3 = "key3";
         AvroGenericRecordSchemaFactory avroSchema3 = new AvroGenericRecordSchemaFactory(recordNamespace,
                 recordName, List.of(schemaKey, schemaKey2, schemaKey3));
-        createArtifactVersion(recordNamespace, artifactId, avroSchema3.generateSchema().toString(),
-                ContentTypes.APPLICATION_JSON, null);
+
+        String avroSchemaString3 = avroSchema3.generateSchema().toString();
+        logger.info("Registering Avro Schema 3: {}", avroSchemaString3);
+
+        createArtifactVersion(recordNamespace, artifactId, avroSchemaString3, ContentTypes.APPLICATION_JSON,
+                null);
 
         produceForSchema(reuseClients, producer, tester, strategy, topicName, messageCount, avroSchema3);
         produceForSchema(reuseClients, producer, tester, strategy, topicName, messageCount, avroSchema2);

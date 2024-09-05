@@ -132,6 +132,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 List.of("key1"));
 
         String artifactId = topicName + "-" + recordName;
+
         createArtifact(groupId, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
@@ -267,12 +268,19 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         evolveSchemaTest(true);
     }
 
+    /*
+     * This tests creates three different versions for the same schema, producing a few messages for each
+     * version and consuming them.
+     */
     void evolveSchemaTest(boolean reuseClients) throws Exception {
         // Prepare the topic and the first schema
         // using TopicRecordIdStrategy
         Class<?> strategy = TopicRecordIdStrategy.class;
         String topicName = TestUtils.generateTopic();
         kafkaCluster.createTopic(topicName, 1, 1);
+
+        SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
+        int messageCount = 10;
 
         String recordNamespace = TestUtils.generateAvroNS();
         String recordName = TestUtils.generateSubject();
@@ -283,28 +291,25 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         String artifactId = topicName + "-" + recordName;
 
-        // Create the artifact that will evolve, including the first version
+        // First we create a
         createArtifact(recordNamespace, artifactId, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
-
-        // Prepare tester and produce messages for the first schema
-        SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
 
         if (reuseClients) {
             tester.setAutoClose(false);
         }
 
-        int messageCount = 10;
-
+        // Create the initial producer and consumer.
         Producer<String, GenericRecord> producer = tester.createProducer(StringSerializer.class,
                 AvroKafkaSerializer.class, topicName, strategy);
         Consumer<String, GenericRecord> consumer = tester.createConsumer(StringDeserializer.class,
                 AvroKafkaDeserializer.class, topicName);
 
+        // Produce and consume messages for the first version of the schema.
         tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
         tester.consumeMessages(consumer, topicName, messageCount, avroSchema::validateRecord);
 
-        // ---------//
+        // Prepare the second version of the schema, for it to be different, a new field is added.
         String schemaKey2 = "key2";
         AvroGenericRecordSchemaFactory avroSchema2 = new AvroGenericRecordSchemaFactory(recordNamespace,
                 recordName, List.of(schemaKey, schemaKey2));
@@ -312,23 +317,15 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         createArtifactVersion(recordNamespace, artifactId, avroSchema2.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null);
 
-        if (!reuseClients) {
-            producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName,
-                    strategy);
-        }
-
-        tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount);
-
-        if (!reuseClients) {
-            producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName,
-                    strategy);
-        }
-        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
+        // We produce messages for both, the old schema version, and the new one.
+        produceForSchema(reuseClients, producer, tester, strategy, topicName, messageCount, avroSchema2);
+        produceForSchema(reuseClients, producer, tester, strategy, topicName, messageCount, avroSchema);
 
         if (!reuseClients) {
             consumer = tester.createConsumer(StringDeserializer.class, AvroKafkaDeserializer.class,
                     topicName);
         }
+        // Messages for both schemas are consumed, expecting the same number.
         {
             AtomicInteger schema1Counter = new AtomicInteger(0);
             AtomicInteger schema2Counter = new AtomicInteger(0);
@@ -352,29 +349,17 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         createArtifactVersion(recordNamespace, artifactId, avroSchema3.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null);
 
-        if (!reuseClients) {
-            producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName,
-                    strategy);
-        }
-
-        tester.produceMessages(producer, topicName, avroSchema3::generateRecord, messageCount);
-
-        if (!reuseClients) {
-            producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName,
-                    strategy);
-        }
-        tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount);
-
-        if (!reuseClients) {
-            producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName,
-                    strategy);
-        }
-        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
+        produceForSchema(reuseClients, producer, tester, strategy, topicName, messageCount, avroSchema3);
+        produceForSchema(reuseClients, producer, tester, strategy, topicName, messageCount, avroSchema2);
+        produceForSchema(reuseClients, producer, tester, strategy, topicName, messageCount, avroSchema);
 
         if (!reuseClients) {
             consumer = tester.createConsumer(StringDeserializer.class, AvroKafkaDeserializer.class,
                     topicName);
         }
+
+        // Consume messages from the topic, we must have the sam number of messages for each separate artifact
+        // version
         {
             AtomicInteger schema1Counter = new AtomicInteger(0);
             AtomicInteger schema2Counter = new AtomicInteger(0);
@@ -400,6 +385,30 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         IoUtil.closeIgnore(producer);
         IoUtil.closeIgnore(consumer);
+    }
+
+    /**
+     * @param reuseClients whether to reuse the producer
+     * @param producer the producer to be used
+     * @param tester the producer and consumer building
+     * @param strategy the class strategy to be used for resolving the schemas
+     * @param topicName the name of the topic to be used
+     * @param messageCount how many messages have to be created
+     * @param avroSchema the avro schema to use to serialize the messages
+     * @return
+     * @throws Exception
+     */
+    private Producer<String, GenericRecord> produceForSchema(boolean reuseClients,
+            Producer<String, GenericRecord> producer,
+            SerdesTester<String, GenericRecord, GenericRecord> tester, Class<?> strategy, String topicName,
+            int messageCount, AvroGenericRecordSchemaFactory avroSchema) throws Exception {
+        if (!reuseClients) {
+            producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName,
+                    strategy);
+        }
+        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
+
+        return producer;
     }
 
     @Test
@@ -644,7 +653,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
     /**
      * From issue https://github.com/Apicurio/apicurio-registry/issues/1479
-     * 
+     *
      * @throws Exception
      */
     @Test

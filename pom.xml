@@ -189,6 +189,8 @@
 
     <!-- OpenAPI -->
     <openapi-diff.version>2.0.1</openapi-diff.version>
+    <!-- We need to manually include the version because of dependency issues with snakeyaml -->
+    <swagger-parser-v3.version>2.1.22</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.34</lombok.version>
@@ -618,6 +620,11 @@
         <groupId>org.openapitools.openapidiff</groupId>
         <artifactId>openapi-diff-core</artifactId>
         <version>${openapi-diff.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.swagger.parser.v3</groupId>
+        <artifactId>swagger-parser-v3</artifactId>
+        <version>${swagger-parser-v3.version}</version>
       </dependency>
 
       <dependency>

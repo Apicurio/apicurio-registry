@@ -7,8 +7,8 @@ import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.Error;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
@@ -71,22 +71,22 @@ public class DryRunTest extends AbstractResourceTestBase {
         ArtifactSearchResults results = clientV3.groups().byGroupId(groupId).artifacts().get();
         Assertions.assertEquals(0, results.getCount());
         Assertions.assertEquals(0, results.getArtifacts().size());
-        Error error = Assertions.assertThrows(Error.class, () -> {
+        ProblemDetails error = Assertions.assertThrows(ProblemDetails.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("valid-artifact").get();
         });
         Assertions.assertEquals(
                 "No artifact with ID 'valid-artifact' in group 'testCreateArtifactDryRun' was found.",
-                error.getMessageEscaped());
+                error.getTitle());
 
         // Dry run: invalid artifact that should NOT be created.
-        error = Assertions.assertThrows(Error.class, () -> {
+        error = Assertions.assertThrows(ProblemDetails.class, () -> {
             CreateArtifact ca = TestUtils.clientCreateArtifact("invalid-artifact", ArtifactType.AVRO,
                     INVALID_SCHEMA, ContentTypes.APPLICATION_JSON);
             clientV3.groups().byGroupId(groupId).artifacts().post(ca, config -> {
                 config.queryParameters.dryRun = true;
             });
         });
-        Assertions.assertEquals("Syntax violation for Avro artifact.", error.getMessageEscaped());
+        Assertions.assertEquals("Syntax violation for Avro artifact.", error.getTitle());
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals("valid-artifact", car.getArtifact().getArtifactId());
@@ -96,12 +96,12 @@ public class DryRunTest extends AbstractResourceTestBase {
         results = clientV3.groups().byGroupId(groupId).artifacts().get();
         Assertions.assertEquals(0, results.getCount());
         Assertions.assertEquals(0, results.getArtifacts().size());
-        error = Assertions.assertThrows(Error.class, () -> {
+        error = Assertions.assertThrows(ProblemDetails.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("invalid-artifact").get();
         });
         Assertions.assertEquals(
                 "No artifact with ID 'invalid-artifact' in group 'testCreateArtifactDryRun' was found.",
-                error.getMessageEscaped());
+                error.getTitle());
 
         // Actually create an artifact in the group.
         createArtifact(groupId, "actual-artifact", ArtifactType.AVRO, SCHEMA_SIMPLE,
@@ -111,7 +111,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, results.getArtifacts().size());
 
         // DryRun: Try to create the *same* artifact (conflict)
-        error = Assertions.assertThrows(Error.class, () -> {
+        error = Assertions.assertThrows(ProblemDetails.class, () -> {
             CreateArtifact ca = TestUtils.clientCreateArtifact("actual-artifact", ArtifactType.AVRO,
                     SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
             clientV3.groups().byGroupId(groupId).artifacts().post(ca, config -> {
@@ -120,7 +120,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         });
         Assertions.assertEquals(
                 "An artifact with ID 'actual-artifact' in group 'testCreateArtifactDryRun' already exists.",
-                error.getMessageEscaped());
+                error.getTitle());
 
         // DryRun: Try to create the *same* artifact but with ifExists set (success)
         createArtifact = TestUtils.clientCreateArtifact("actual-artifact", ArtifactType.AVRO, SCHEMA_SIMPLE,
@@ -165,7 +165,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         createArtifact(groupId, artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
 
         // DryRun: try to create an invalid version
-        Error error = Assertions.assertThrows(Error.class, () -> {
+        ProblemDetails error = Assertions.assertThrows(ProblemDetails.class, () -> {
             CreateVersion createVersion = TestUtils.clientCreateVersion(INVALID_SCHEMA,
                     ContentTypes.APPLICATION_JSON);
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
@@ -173,7 +173,7 @@ public class DryRunTest extends AbstractResourceTestBase {
                         config.queryParameters.dryRun = true;
                     });
         });
-        Assertions.assertEquals("Syntax violation for Avro artifact.", error.getMessageEscaped());
+        Assertions.assertEquals("Syntax violation for Avro artifact.", error.getTitle());
 
         // DryRun: try to create a valid version (appears to work)
         {

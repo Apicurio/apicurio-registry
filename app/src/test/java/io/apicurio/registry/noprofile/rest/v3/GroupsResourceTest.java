@@ -260,7 +260,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Try to create a duplicate artifact ID (should fail)
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(409)
-                .body("error_code", equalTo(409)).body("message", equalTo(
+                .body("status", equalTo(409)).body("title", equalTo(
                         "An artifact with ID 'testCreateArtifact/EmptyAPI/2' in group 'GroupsResourceTest' already exists."));
 
         // Try to create an artifact with an invalid artifact type
@@ -367,7 +367,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Try to get artifact content for an artifact that doesn't exist.
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/MissingAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
-                .statusCode(404).body("error_code", equalTo(404)).body("message", equalTo(
+                .statusCode(404).body("status", equalTo(404)).body("title", equalTo(
                         "No version '<tip of the branch 'latest' that does not have disabled status>' found for artifact with ID 'testGetArtifact/MissingAPI' in group 'GroupsResourceTest'."));
     }
 
@@ -558,7 +558,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Try to get artifact for an artifact that doesn't exist.
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testDeleteArtifact/EmptyAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(404)
-                .body("error_code", equalTo(404)).body("message", equalTo(
+                .body("status", equalTo(404)).body("title", equalTo(
                         "No artifact with ID 'testDeleteArtifact/EmptyAPI' in group 'GroupsResourceTest' was found."));
 
         // Try to delete an artifact that doesn't exist.
@@ -606,7 +606,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI").pathParam("version", "1")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}").then()
-                .statusCode(404).body("error_code", equalTo(404)).body("message", equalTo(
+                .statusCode(404).body("status", equalTo(404)).body("title", equalTo(
                         "No version '1' found for artifact with ID 'testDeleteArtifactVersion/EmptyAPI' in group 'GroupsResourceTest'."));
 
         // Get the artifact version 2
@@ -626,7 +626,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI").pathParam("version", "2")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}").then()
-                .statusCode(404).body("error_code", equalTo(404)).body("message", equalTo(
+                .statusCode(404).body("status", equalTo(404)).body("title", equalTo(
                         "No version '2' found for artifact with ID 'testDeleteArtifactVersion/EmptyAPI' in group 'GroupsResourceTest'."));
 
         // Try to delete an artifact version 2 that doesn't exist.
@@ -883,8 +883,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .serverCreateVersion(artifactContentInvalidSyntax, ContentTypes.APPLICATION_JSON);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body(createVersion).post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
-                .then().statusCode(409).body("error_code", equalTo(409))
-                .body("message", startsWith("Syntax or semantic violation for JSON Schema artifact."));
+                .then().statusCode(409).body("status", equalTo(409))
+                .body("title", startsWith("Syntax or semantic violation for JSON Schema artifact."));
     }
 
     @Test
@@ -913,8 +913,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .serverCreateVersion(artifactContentInvalidSyntax, ContentTypes.APPLICATION_JSON);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body(createVersion).post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
-                .then().statusCode(409).body("error_code", equalTo(409))
-                .body("message", startsWith("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num"
+                .then().statusCode(409).body("status", equalTo(409))
+                .body("title", startsWith("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num"
                         + " of incompatible diffs: {1}, list of diff types: [SUBSCHEMA_TYPE_CHANGED at /properties/age]"))
                 .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
                 .body("causes[0].context", equalTo("/properties/age"));
@@ -993,8 +993,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Try to add the rule again - should get a 409
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body(createRule).post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules").then()
-                .statusCode(409).body("error_code", equalTo(409))
-                .body("message", equalTo("A rule named 'VALIDITY' already exists."));
+                .statusCode(409).body("status", equalTo(409))
+                .body("title", equalTo("A rule named 'VALIDITY' already exists."));
 
         // Add another rule
         createRule.setRuleType(RuleType.COMPATIBILITY);
@@ -1040,8 +1040,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Get a single (deleted) rule by name (should fail with a 404)
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/COMPATIBILITY").then()
-                .statusCode(404).contentType(ContentType.JSON).body("error_code", equalTo(404))
-                .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
+                .statusCode(404).contentType(ContentType.JSON).body("status", equalTo(404))
+                .body("title", equalTo("No rule named 'COMPATIBILITY' was found."));
 
         // Get the list of rules (should be 1 of them)
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
@@ -1118,12 +1118,12 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Make sure the rules were deleted
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/VALIDITY").then()
-                .statusCode(404).contentType(ContentType.JSON).body("error_code", equalTo(404))
-                .body("message", equalTo("No rule named 'VALIDITY' was found."));
+                .statusCode(404).contentType(ContentType.JSON).body("status", equalTo(404))
+                .body("title", equalTo("No rule named 'VALIDITY' was found."));
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/INTEGRITY").then()
-                .statusCode(404).contentType(ContentType.JSON).body("error_code", equalTo(404))
-                .body("message", equalTo("No rule named 'INTEGRITY' was found."));
+                .statusCode(404).contentType(ContentType.JSON).body("status", equalTo(404))
+                .body("title", equalTo("No rule named 'INTEGRITY' was found."));
 
         // Get the list of rules (no rules now)
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
@@ -1155,7 +1155,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testGetArtifactMetaData/MissingAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(404)
-                .body("error_code", equalTo(404)).body("message", equalTo(
+                .body("status", equalTo(404)).body("title", equalTo(
                         "No artifact with ID 'testGetArtifactMetaData/MissingAPI' in group 'GroupsResourceTest' was found."));
 
         // Update the artifact meta-data
@@ -1369,7 +1369,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(409)
-                .body("error_code", equalTo(409)).body("message", equalTo("An artifact with ID '" + artifactId
+                .body("status", equalTo(409)).body("title", equalTo("An artifact with ID '" + artifactId
                         + "' in group 'GroupsResourceTest' already exists."));
 
         // Try to create the same artifact ID with FIND_OR_CREATE_VERSION for if exists (should return same
@@ -1804,11 +1804,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(reference));
         CreateVersion f_createVersion = createVersion;
 
-        var exception_1 = assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
+        var exception_1 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
             clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
                     .post(f_createVersion);
         });
-        Assertions.assertEquals(409, exception_1.getErrorCode());
+        Assertions.assertEquals(409, exception_1.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_1.getName());
 
         // Now try registering an artifact with both a valid and invalid ref
@@ -1830,11 +1830,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(validRef, invalidRef));
         CreateVersion f_createVersion2 = createVersion;
 
-        var exception_2 = assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
+        var exception_2 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
             clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
                     .post(f_createVersion2);
         });
-        Assertions.assertEquals(409, exception_2.getErrorCode());
+        Assertions.assertEquals(409, exception_2.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_2.getName());
 
         // Now try registering an artifact with a duplicate ref
@@ -1843,11 +1843,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(validRef, validRef));
         CreateVersion f_createVersion3 = createVersion;
 
-        var exception_3 = assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
+        var exception_3 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
             clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
                     .post(f_createVersion3);
         });
-        Assertions.assertEquals(409, exception_3.getErrorCode());
+        Assertions.assertEquals(409, exception_3.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_3.getName());
     }
 

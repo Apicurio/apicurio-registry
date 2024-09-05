@@ -407,9 +407,10 @@ public class TestUtils {
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: "
                     + expectedCode);
         } catch (Exception ex) {
-            if (ex instanceof io.apicurio.registry.rest.client.models.Error) {
+            if (ex instanceof io.apicurio.registry.rest.client.models.ProblemDetails) {
                 Assertions.assertEquals(expectedErrorName,
-                        ((io.apicurio.registry.rest.client.models.Error) ex).getName(), () -> "ex: " + ex);
+                        ((io.apicurio.registry.rest.client.models.ProblemDetails) ex).getName(),
+                        () -> "ex: " + ex);
                 Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(ex));
             } else {
                 Assertions.assertEquals(expectedCode, ((ApiException) ex).getResponseStatusCode());

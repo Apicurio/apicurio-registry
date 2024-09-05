@@ -3,7 +3,7 @@ package io.apicurio.tests.migration;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.Error;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.VersionState;
@@ -78,7 +78,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                         .versions().byVersionExpression("1.0").content().get();
                 assertNotNull(registryContent);
                 assertEquals(content, IoUtil.toString(registryContent));
-            } catch (Error e) {
+            } catch (ProblemDetails e) {
                 System.out.println("---");
                 System.out.println("REST CLIENT ERROR>> " + e.getDetail());
                 System.out.println("---");

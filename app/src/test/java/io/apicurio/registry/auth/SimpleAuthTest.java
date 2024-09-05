@@ -70,11 +70,12 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     }
 
     protected void assertArtifactNotFound(Exception exception) {
-        Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, exception.getClass());
+        Assertions.assertEquals(io.apicurio.registry.rest.client.models.ProblemDetails.class,
+                exception.getClass());
         Assertions.assertEquals("ArtifactNotFoundException",
-                ((io.apicurio.registry.rest.client.models.Error) exception).getName());
+                ((io.apicurio.registry.rest.client.models.ProblemDetails) exception).getName());
         Assertions.assertEquals(404,
-                ((io.apicurio.registry.rest.client.models.Error) exception).getErrorCode());
+                ((io.apicurio.registry.rest.client.models.ProblemDetails) exception).getStatus());
     }
 
     @Test

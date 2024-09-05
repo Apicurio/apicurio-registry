@@ -3,9 +3,9 @@ package io.apicurio.registry.services.http;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
-import io.apicurio.registry.rest.v3.beans.Error;
+import io.apicurio.registry.rest.v3.beans.ProblemDetails;
 import io.apicurio.registry.rest.v3.beans.RuleViolationCause;
-import io.apicurio.registry.rest.v3.beans.RuleViolationError;
+import io.apicurio.registry.rest.v3.beans.RuleViolationProblemDetails;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -71,30 +71,30 @@ public class CoreRegistryExceptionMapperService {
             builder = Response.status(code);
         }
 
-        Error error = toError(t, code);
+        ProblemDetails error = toProblemDetails(t, code);
         return builder.entity(error).type(MediaType.APPLICATION_JSON).build();
     }
 
-    private Error toError(Throwable t, int code) {
-        Error error;
+    private ProblemDetails toProblemDetails(Throwable t, int code) {
+        ProblemDetails details;
 
         if (t instanceof RuleViolationException) {
             RuleViolationException rve = (RuleViolationException) t;
-            error = new RuleViolationError();
-            ((RuleViolationError) error).setCauses(toRestCauses(rve.getCauses()));
+            details = new RuleViolationProblemDetails();
+            ((RuleViolationProblemDetails) details).setCauses(toRestCauses(rve.getCauses()));
         } else {
-            error = new Error();
+            details = new ProblemDetails();
         }
 
-        error.setErrorCode(code);
-        error.setMessage(t.getLocalizedMessage());
+        details.setStatus(code);
+        details.setTitle(t.getLocalizedMessage());
+        details.setName(t.getClass().getSimpleName());
         if (includeStackTrace) {
-            error.setDetail(getStackTrace(t));
+            details.setDetail(getStackTrace(t));
         } else {
-            error.setDetail(getRootMessage(t));
+            details.setDetail(getRootMessage(t));
         }
-        error.setName(t.getClass().getSimpleName());
-        return error;
+        return details;
     }
 
     /**

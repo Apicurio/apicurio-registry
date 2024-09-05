@@ -56,11 +56,11 @@ public class VersionStateTest extends AbstractResourceTestBase {
 
         // cannot get a disabled artifact version *content*
 
-        var exception = assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
+        var exception = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                     .byVersionExpression("3").content().get();
         });
-        Assertions.assertEquals(404, exception.getErrorCode());
+        Assertions.assertEquals(404, exception.getStatus());
         Assertions.assertEquals("VersionNotFoundException", exception.getName());
 
         // can update and get metadata for a disabled artifact, but must specify version

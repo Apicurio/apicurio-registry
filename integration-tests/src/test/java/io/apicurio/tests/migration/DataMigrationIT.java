@@ -3,7 +3,7 @@ package io.apicurio.tests.migration;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
-import io.apicurio.registry.rest.client.models.Error;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
@@ -72,8 +72,8 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
                     .byArtifactId("avro-0").rules().byRuleType(RuleType.VALIDITY.name()).get().getConfig());
             assertEquals("BACKWARD",
                     dest.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get().getConfig());
-        } catch (Error e) {
-            log.error("REST Client error: " + e.getMessageEscaped());
+        } catch (ProblemDetails e) {
+            log.error("REST Client error: " + e.getTitle());
             log.error("                 : " + e.getDetail());
             throw e;
         }

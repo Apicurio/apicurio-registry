@@ -104,7 +104,7 @@ export const RolesPage: FunctionComponent<RolesPageProps> = () => {
                 pleaseWait(false, "");
                 setRoles([mapping, ...roles]);
             }).catch(error => {
-                if (error?.error_code === 409) {
+                if (error?.status === 409) {
                     // If we get a conflict when trying to create, that means the mapping already exists
                     // and we should instead update.
                     updateRoleMapping(principal, role);

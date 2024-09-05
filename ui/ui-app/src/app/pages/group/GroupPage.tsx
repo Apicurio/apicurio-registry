@@ -23,8 +23,14 @@ import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { ArtifactsTabContent } from "@app/pages/group/components/tabs/ArtifactsTabContent.tsx";
-import { ApiError } from "@models/apiError.model.ts";
-import { CreateArtifact, GroupMetaData, Rule, RuleType, SearchedArtifact } from "@sdk/lib/generated-client/models";
+import {
+    CreateArtifact,
+    GroupMetaData,
+    Rule,
+    RuleType,
+    RuleViolationProblemDetails,
+    SearchedArtifact
+} from "@sdk/lib/generated-client/models";
 
 
 export type GroupPageProps = {
@@ -45,7 +51,7 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [isCreateArtifactModalOpen, setCreateArtifactModalOpen] = useState<boolean>(false);
-    const [invalidContentError, setInvalidContentError] = useState<ApiError>();
+    const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isInvalidContentModalOpen, setInvalidContentModalOpen] = useState<boolean>(false);
     const [artifactToDelete, setArtifactToDelete] = useState<SearchedArtifact>();
     const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
@@ -134,7 +140,7 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
             appNavigation.navigateTo(artifactLocation);
         }).catch( error => {
             pleaseWait(false);
-            if (error && (error.error_code === 400 || error.error_code === 409)) {
+            if (error && (error.status === 400 || error.status === 409)) {
                 handleInvalidContentError(error);
             } else {
                 setPageError(toPageError(error, "Error creating artifact."));

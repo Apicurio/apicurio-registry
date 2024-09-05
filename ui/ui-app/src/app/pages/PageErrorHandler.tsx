@@ -30,13 +30,13 @@ export const PageErrorHandler: FunctionComponent<PageErrorHandlerProps> = (props
         return props.error !== undefined && props.error.error instanceof TypeError && (props.error.error as TypeError).message.includes("fetch");
     };
     const is404Error = (): boolean => {
-        return props.error && props.error.error.error_code && (props.error.error.error_code == 404);
+        return props.error && props.error.error.status && (props.error.error.status == 404);
     };
     const is403Error = (): boolean => {
-        return props.error && props.error.error.error_code && (props.error.error.error_code == 403);
+        return props.error && props.error.error.status && (props.error.error.status == 403);
     };
     const is419Error = (): boolean => {
-        return props.error && props.error.error.error_code && (props.error.error.error_code == 419);
+        return props.error && props.error.error.status && (props.error.error.status == 419);
     };
 
     console.debug("Showing page error: ", props.error);

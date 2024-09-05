@@ -62,7 +62,7 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
         if (typeof e === "string") {
             try {
                 const eo: any = JSON.parse(e);
-                if (eo && eo.error_code && eo.error_code === 404) {
+                if (eo && eo.status && eo.status === 404) {
                     return true;
                 }
             } catch (e) {

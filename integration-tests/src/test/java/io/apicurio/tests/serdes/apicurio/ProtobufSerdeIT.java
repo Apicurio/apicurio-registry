@@ -1,7 +1,7 @@
 package io.apicurio.tests.serdes.apicurio;
 
 import com.google.protobuf.DynamicMessage;
-import io.apicurio.registry.rest.client.models.Error;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
@@ -321,10 +321,10 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
     private void logRestClientError(Tester tester) throws Exception {
         try {
             tester.test();
-        } catch (Error e) {
+        } catch (ProblemDetails e) {
             java.lang.System.out.println("---------->>> REST Client Error Detected");
             java.lang.System.out.println("Code:   " + e.getResponseStatusCode());
-            java.lang.System.out.println("Msg:    " + e.getMessageEscaped());
+            java.lang.System.out.println("Msg:    " + e.getTitle());
             java.lang.System.out.println("Detail: " + e.getDetail());
             java.lang.System.out.println("----------");
         }

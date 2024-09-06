@@ -178,11 +178,12 @@ public class AdminClientTest extends AbstractResourceTestBase {
         }
 
         // Try to update a role mapping that doesn't exist
-        var exception1 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
-            UpdateRole ur2 = new UpdateRole();
-            ur2.setRole(mapping.getRole());
-            clientV3.admin().roleMappings().byPrincipalId("UnknownPrincipal").put(ur2);
-        });
+        var exception1 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
+                () -> {
+                    UpdateRole ur2 = new UpdateRole();
+                    ur2.setRole(mapping.getRole());
+                    clientV3.admin().roleMappings().byPrincipalId("UnknownPrincipal").put(ur2);
+                });
         assertEquals("RoleMappingNotFoundException", exception1.getName());
 
         // Delete a role mapping

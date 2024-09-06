@@ -1,17 +1,15 @@
 package io.apicurio.registry.rest;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.services.DisabledApisMatcherService;
-import io.apicurio.registry.services.http.ErrorHttpResponse;
-import io.apicurio.registry.services.http.RegistryExceptionMapperService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.servlet.*;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.ws.rs.core.MediaType;
-import org.slf4j.Logger;
 
 import java.io.IOException;
 
@@ -24,17 +22,8 @@ import java.io.IOException;
  */
 @ApplicationScoped
 public class RegistryApplicationServletFilter implements Filter {
-
-    private ObjectMapper mapper;
-
-    @Inject
-    Logger log;
-
     @Inject
     DisabledApisMatcherService disabledApisMatcherService;
-
-    @Inject
-    RegistryExceptionMapperService exceptionMapper;
 
     /**
      * @see jakarta.servlet.Filter#doFilter(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse,
@@ -60,25 +49,6 @@ public class RegistryApplicationServletFilter implements Filter {
         }
 
         chain.doFilter(request, response);
-    }
-
-    private void mapException(ServletResponse response, Throwable throwable) throws IOException {
-
-        ErrorHttpResponse res = exceptionMapper.mapException(throwable);
-        HttpServletResponse httpResponse = (HttpServletResponse) response;
-        httpResponse.reset();
-        httpResponse.setStatus(res.getStatus());
-        httpResponse.setContentType(MediaType.APPLICATION_JSON);
-
-        getMapper().writeValue(httpResponse.getOutputStream(), res.getError());
-    }
-
-    private synchronized ObjectMapper getMapper() {
-        if (mapper == null) {
-            mapper = new ObjectMapper();
-            mapper.setSerializationInclusion(Include.NON_NULL);
-        }
-        return mapper;
     }
 
 }

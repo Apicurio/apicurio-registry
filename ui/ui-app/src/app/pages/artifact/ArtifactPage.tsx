@@ -23,7 +23,6 @@ import {
     BranchesTabContent,
     VersionsTabContent
 } from "@app/pages/artifact/components";
-import { ApiError } from "@models/apiError.model.ts";
 import {
     AddVersionToBranch,
     ArtifactMetaData,
@@ -31,6 +30,7 @@ import {
     CreateVersion,
     Rule,
     RuleType,
+    RuleViolationProblemDetails,
     SearchedBranch,
     SearchedVersion
 } from "@sdk/lib/generated-client/models";
@@ -59,7 +59,7 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [rules, setRules] = useState<Rule[]>([]);
-    const [invalidContentError, setInvalidContentError] = useState<ApiError>();
+    const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState(false);
     const [versionToDelete, setVersionToDelete] = useState<SearchedVersion>();
     const [versionDeleteSuccessCallback, setVersionDeleteSuccessCallback] = useState<() => void>();
@@ -309,7 +309,7 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
             appNavigation.navigateTo(artifactVersionLocation);
         }).catch( error => {
             pleaseWait(false);
-            if (error && (error.error_code === 400 || error.error_code === 409)) {
+            if (error && (error.status === 400 || error.status === 409)) {
                 handleInvalidContentError(error);
             } else {
                 setPageError(toPageError(error, "Error creating artifact version."));
@@ -331,7 +331,7 @@ export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
             appNavigation.navigateTo(artifactBranchLocation);
         }).catch( error => {
             pleaseWait(false);
-            if (error && (error.error_code === 400 || error.error_code === 409)) {
+            if (error && (error.status === 400 || error.status === 409)) {
                 handleInvalidContentError(error);
             } else {
                 setPageError(toPageError(error, "Error creating artifact branch."));

@@ -14,7 +14,6 @@ import {
     toPageError
 } from "@app/pages";
 import { CreateArtifactModal, CreateGroupModal, InvalidContentModal, RootPageHeader } from "@app/components";
-import { ApiError } from "@models/apiError.model.ts";
 import { If, ListWithToolbar, PleaseWaitModal, ProgressModal } from "@apicurio/common-ui-components";
 import { useGroupsService } from "@services/useGroupsService.ts";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
@@ -25,7 +24,12 @@ import { Paging } from "@models/paging.model.ts";
 import { FilterBy, SearchFilter, useSearchService } from "@services/useSearchService.ts";
 import {
     ArtifactSearchResults,
-    ArtifactSortByObject, CreateArtifact, CreateGroup, GroupSearchResults, GroupSortByObject,
+    ArtifactSortByObject,
+    CreateArtifact,
+    CreateGroup,
+    GroupSearchResults,
+    GroupSortByObject,
+    RuleViolationProblemDetails,
     SortOrder,
     SortOrderObject
 } from "@sdk/lib/generated-client/models";
@@ -69,7 +73,7 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
     const [isImporting, setImporting] = useState(false);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
     const [results, setResults] = useState<ArtifactSearchResults | GroupSearchResults>(EMPTY_RESULTS);
-    const [invalidContentError, setInvalidContentError] = useState<ApiError>();
+    const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [importProgress, setImportProgress] = useState(0);
 
     const appNavigation: AppNavigation = useAppNavigation();
@@ -155,7 +159,7 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
                 appNavigation.navigateTo(artifactLocation);
             }).catch( error => {
                 pleaseWait(false);
-                if (error && (error.error_code === 400 || error.error_code === 409)) {
+                if (error && (error.status === 400 || error.status === 409)) {
                     handleInvalidContentError(error);
                 } else {
                     setPageError(toPageError(error, "Error creating artifact."));
@@ -175,7 +179,7 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
             appNavigation.navigateTo(groupLocation);
         }).catch( error => {
             pleaseWait(false);
-            if (error && (error.error_code === 400 || error.error_code === 409)) {
+            if (error && (error.status === 400 || error.status === 409)) {
                 handleInvalidContentError(error);
             } else {
                 setPageError(toPageError(error, "Error creating group."));

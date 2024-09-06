@@ -53,8 +53,8 @@ export const ErrorTabContent: FunctionComponent<ErrorTabContentProps> = (props: 
     const errorDetail = (): string => {
         if (props.error && props.error.error && props.error.error.detail) {
             return props.error.error.detail;
-        }else if (props.error && props.error.error && props.error.error.message) {
-            return props.error.error.message;
+        }else if (props.error && props.error.error && props.error.error.title) {
+            return props.error.error.title;
         } else if (props.error && props.error.error) {
             return JSON.stringify(props.error.error, null, 3);
         } else {

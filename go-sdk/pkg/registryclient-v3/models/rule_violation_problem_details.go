@@ -4,34 +4,34 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
-// RuleViolationError all error responses, whether `4xx` or `5xx` will include one of these as the responsebody.
-type RuleViolationError struct {
-	Error
+// RuleViolationProblemDetails all error responses, whether `4xx` or `5xx` will include one of these as the responsebody.
+type RuleViolationProblemDetails struct {
+	ProblemDetails
 	// List of rule violation causes.
 	causes []RuleViolationCauseable
 }
 
-// NewRuleViolationError instantiates a new RuleViolationError and sets the default values.
-func NewRuleViolationError() *RuleViolationError {
-	m := &RuleViolationError{
-		Error: *NewError(),
+// NewRuleViolationProblemDetails instantiates a new RuleViolationProblemDetails and sets the default values.
+func NewRuleViolationProblemDetails() *RuleViolationProblemDetails {
+	m := &RuleViolationProblemDetails{
+		ProblemDetails: *NewProblemDetails(),
 	}
 	return m
 }
 
-// CreateRuleViolationErrorFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
-func CreateRuleViolationErrorFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
-	return NewRuleViolationError(), nil
+// CreateRuleViolationProblemDetailsFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+func CreateRuleViolationProblemDetailsFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
+	return NewRuleViolationProblemDetails(), nil
 }
 
 // GetCauses gets the causes property value. List of rule violation causes.
-func (m *RuleViolationError) GetCauses() []RuleViolationCauseable {
+func (m *RuleViolationProblemDetails) GetCauses() []RuleViolationCauseable {
 	return m.causes
 }
 
 // GetFieldDeserializers the deserialization information for the current model
-func (m *RuleViolationError) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-	res := m.Error.GetFieldDeserializers()
+func (m *RuleViolationProblemDetails) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+	res := m.ProblemDetails.GetFieldDeserializers()
 	res["causes"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetCollectionOfObjectValues(CreateRuleViolationCauseFromDiscriminatorValue)
 		if err != nil {
@@ -52,8 +52,8 @@ func (m *RuleViolationError) GetFieldDeserializers() map[string]func(i878a80d233
 }
 
 // Serialize serializes information the current object
-func (m *RuleViolationError) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
-	err := m.Error.Serialize(writer)
+func (m *RuleViolationProblemDetails) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
+	err := m.ProblemDetails.Serialize(writer)
 	if err != nil {
 		return err
 	}
@@ -73,14 +73,14 @@ func (m *RuleViolationError) Serialize(writer i878a80d2330e89d26896388a3f487eef2
 }
 
 // SetCauses sets the causes property value. List of rule violation causes.
-func (m *RuleViolationError) SetCauses(value []RuleViolationCauseable) {
+func (m *RuleViolationProblemDetails) SetCauses(value []RuleViolationCauseable) {
 	m.causes = value
 }
 
-// RuleViolationErrorable
-type RuleViolationErrorable interface {
-	Errorable
+// RuleViolationProblemDetailsable
+type RuleViolationProblemDetailsable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
+	ProblemDetailsable
 	GetCauses() []RuleViolationCauseable
 	SetCauses(value []RuleViolationCauseable)
 }

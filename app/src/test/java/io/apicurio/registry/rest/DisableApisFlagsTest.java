@@ -81,7 +81,7 @@ public class DisableApisFlagsTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI").pathParam("version", "1")
                 .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}").then()
                 .statusCode(405)
-                .body("message", equalTo("Artifact version deletion operation is not enabled."));
+                .body("title", equalTo("Artifact version deletion operation is not enabled."));
     }
 
     private void doTestUIDisabled() {

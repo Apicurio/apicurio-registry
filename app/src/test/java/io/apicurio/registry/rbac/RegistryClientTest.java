@@ -182,10 +182,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertTrue(groupIds.containsAll(List.of(groupId, group1Id, group2Id, group3Id)));
         clientV3.groups().byGroupId(groupId).delete();
 
-        var exception = Assert.assertThrows(io.apicurio.registry.rest.client.models.Error.class,
+        var exception = Assert.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
                 () -> clientV3.groups().byGroupId(groupId).get());
         Assertions.assertEquals("GroupNotFoundException", exception.getName());
-        Assertions.assertEquals(404, exception.getErrorCode());
+        Assertions.assertEquals(404, exception.getStatus());
     }
 
     @Test
@@ -889,10 +889,10 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     @Test
     public void testArtifactNotFound() {
-        var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class,
+        var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
                 () -> clientV3.groups().byGroupId(UUID.randomUUID().toString()).artifacts()
                         .byArtifactId(UUID.randomUUID().toString()).get());
-        Assertions.assertEquals(404, exception.getErrorCode());
+        Assertions.assertEquals(404, exception.getStatus());
         Assertions.assertEquals("ArtifactNotFoundException", exception.getName());
     }
 
@@ -1422,25 +1422,27 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals(RoleType.READ_ONLY, tum.getRole());
 
         // Try to update a role mapping that doesn't exist
-        var error = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
-            UpdateRole updated2 = new UpdateRole();
-            updated2.setRole(RoleType.ADMIN);
-            clientV3.admin().roleMappings().byPrincipalId("UnknownPrincipal").put(updated2);
-        });
+        var error = Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
+                () -> {
+                    UpdateRole updated2 = new UpdateRole();
+                    updated2.setRole(RoleType.ADMIN);
+                    clientV3.admin().roleMappings().byPrincipalId("UnknownPrincipal").put(updated2);
+                });
 
         // RoleMappingNotFoundException
-        Assertions.assertEquals(404, error.getErrorCode());
+        Assertions.assertEquals(404, error.getStatus());
         Assertions.assertEquals("RoleMappingNotFoundException", error.getName());
 
         // Delete a role mapping
         clientV3.admin().roleMappings().byPrincipalId("TestUser2").delete();
 
         // Get the (deleted) mapping by name (should fail with a 404)
-        var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
-            clientV3.admin().roleMappings().byPrincipalId("TestUser2").get();
-        });
+        var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
+                () -> {
+                    clientV3.admin().roleMappings().byPrincipalId("TestUser2").get();
+                });
         // RoleMappingNotFoundException
-        Assertions.assertEquals(404, exception2.getErrorCode());
+        Assertions.assertEquals(404, exception2.getStatus());
         Assertions.assertEquals("RoleMappingNotFoundException", exception2.getName());
 
         // Get the list of mappings (should be 1 of them)
@@ -1524,12 +1526,14 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Assertions.assertEquals("false", prop.getValue());
 
         // Try to set a config property that doesn't exist.
-        var exception1 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
-            updateProp.setValue("foobar");
-            clientV3.admin().config().properties().byPropertyName("property-does-not-exist").put(updateProp);
-        });
+        var exception1 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
+                () -> {
+                    updateProp.setValue("foobar");
+                    clientV3.admin().config().properties().byPropertyName("property-does-not-exist")
+                            .put(updateProp);
+                });
         // ConfigPropertyNotFoundException
-        Assertions.assertEquals(404, exception1.getErrorCode());
+        Assertions.assertEquals(404, exception1.getStatus());
         Assertions.assertEquals("ConfigPropertyNotFoundException", exception1.getName());
 
         // Try to set a Long property to "foobar" (should be invalid type)
@@ -1562,7 +1566,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testClientRateLimitError() {
+    public void testClientRateLimitProblemDetails() {
         TooManyRequestsMock mock = new TooManyRequestsMock();
         mock.start();
         try {

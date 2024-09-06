@@ -87,21 +87,22 @@ public class LimitsTest extends AbstractResourceTestBase {
         Assertions.assertEquals(409, exception1.getResponseStatusCode());
 
         // schema number 3 , exceeds the max number of schemas
-        var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class, () -> {
-            CreateArtifact createArtifact = new CreateArtifact();
-            createArtifact.setArtifactId(artifactId);
-            createArtifact.setArtifactType(ArtifactType.JSON);
-            CreateVersion createVersion = new CreateVersion();
-            createArtifact.setFirstVersion(createVersion);
-            VersionContent versionContent = new VersionContent();
-            createVersion.setContent(versionContent);
-            versionContent.setContent("{}");
-            versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        var exception2 = Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
+                () -> {
+                    CreateArtifact createArtifact = new CreateArtifact();
+                    createArtifact.setArtifactId(artifactId);
+                    createArtifact.setArtifactType(ArtifactType.JSON);
+                    CreateVersion createVersion = new CreateVersion();
+                    createArtifact.setFirstVersion(createVersion);
+                    VersionContent versionContent = new VersionContent();
+                    createVersion.setContent(versionContent);
+                    versionContent.setContent("{}");
+                    versionContent.setContentType(ContentTypes.APPLICATION_JSON);
 
-            clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
-                    .post(createArtifact);
-        });
-        Assertions.assertEquals(409, exception2.getErrorCode());
+                    clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                            .post(createArtifact);
+                });
+        Assertions.assertEquals(409, exception2.getStatus());
     }
 
 }

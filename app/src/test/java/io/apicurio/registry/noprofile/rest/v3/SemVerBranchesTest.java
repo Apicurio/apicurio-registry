@@ -6,7 +6,7 @@ import io.apicurio.registry.rest.client.models.BranchSearchResults;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.Error;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -55,12 +55,12 @@ public class SemVerBranchesTest extends AbstractResourceTestBase {
         validateSemVerBranch(groupId, artifactId, "3.0.x", 1, "3.0.0");
 
         // 4.x does not exist.
-        Error error = Assertions.assertThrows(Error.class, () -> {
+        ProblemDetails error = Assertions.assertThrows(ProblemDetails.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
                     .byBranchId("4.x").versions().get();
         });
         Assertions.assertEquals("No branch '4.x' was found in SemVerBranchesTest/testSemVerBranches.",
-                error.getMessageEscaped());
+                error.getTitle());
     }
 
     private void validateSemVerBranch(String groupId, String artifactId, String branchId,
@@ -76,11 +76,11 @@ public class SemVerBranchesTest extends AbstractResourceTestBase {
         Assertions.assertEquals(expectedVersionCount, versions.getCount());
         Assertions.assertEquals(expectedLatestVersion, versions.getVersions().get(0).getVersion());
 
-        Error error = Assertions.assertThrows(Error.class, () -> {
+        ProblemDetails error = Assertions.assertThrows(ProblemDetails.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
                     .byBranchId(branchId).delete();
         });
-        Assertions.assertEquals("System generated branches cannot be deleted.", error.getMessageEscaped());
+        Assertions.assertEquals("System generated branches cannot be deleted.", error.getTitle());
     }
 
     private void createSemVerArtifact(String groupId, String artifactId) {

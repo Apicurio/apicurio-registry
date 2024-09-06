@@ -5,7 +5,7 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.Error;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
@@ -124,7 +124,7 @@ public class AllYamlTest extends AbstractResourceTestBase {
             CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
                     YAML_CONTENT, ContentTypes.APPLICATION_YAML);
             clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
-        } catch (Error e) {
+        } catch (ProblemDetails e) {
             System.out.println("ERROR: " + e.getDetail());
             e.getCause().printStackTrace();
             throw e;

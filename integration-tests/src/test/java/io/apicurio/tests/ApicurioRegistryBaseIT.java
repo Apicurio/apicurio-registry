@@ -473,11 +473,12 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             Assertions.fail("Expected (but didn't get) a registry client application exception with code: "
                     + expectedCode);
         } catch (Exception e) {
-            Assertions.assertEquals(io.apicurio.registry.rest.client.models.Error.class, e.getClass());
+            Assertions.assertEquals(io.apicurio.registry.rest.client.models.ProblemDetails.class,
+                    e.getClass());
             Assertions.assertEquals(expectedErrorName,
-                    ((io.apicurio.registry.rest.client.models.Error) e).getName());
+                    ((io.apicurio.registry.rest.client.models.ProblemDetails) e).getName());
             Assertions.assertEquals(expectedCode,
-                    ((io.apicurio.registry.rest.client.models.Error) e).getErrorCode());
+                    ((io.apicurio.registry.rest.client.models.ProblemDetails) e).getStatus());
         }
     }
 

@@ -100,8 +100,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Try to add the rule again - should get a 409
         {
             given().when().contentType(CT_JSON).body(createRule).post("/registry/v3/admin/rules").then()
-                    .statusCode(409).body("error_code", equalTo(409))
-                    .body("message", equalTo("A rule named 'VALIDITY' already exists."));
+                    .statusCode(409).body("status", equalTo(409))
+                    .body("title", equalTo("A rule named 'VALIDITY' already exists."));
         }
 
         // Add another global rule
@@ -146,8 +146,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Get a single (deleted) rule by name (should fail with a 404)
         {
             given().when().get("/registry/v3/admin/rules/COMPATIBILITY").then().statusCode(404)
-                    .contentType(ContentType.JSON).body("error_code", equalTo(404))
-                    .body("message", equalTo("No rule named 'COMPATIBILITY' was found."));
+                    .contentType(ContentType.JSON).body("status", equalTo(404))
+                    .body("title", equalTo("No rule named 'COMPATIBILITY' was found."));
         }
 
         // Get the list of rules (should be 1 of them)
@@ -167,8 +167,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
         // Get the other (deleted) rule by name (should fail with a 404)
         given().when().get("/registry/v3/admin/rules/VALIDITY").then().statusCode(404)
-                .contentType(ContentType.JSON).body("error_code", equalTo(404))
-                .body("message", equalTo("No rule named 'VALIDITY' was found."));
+                .contentType(ContentType.JSON).body("status", equalTo(404))
+                .body("title", equalTo("No rule named 'VALIDITY' was found."));
 
     }
 
@@ -228,8 +228,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Get the (deleted) rule by name (should fail with a 404)
         {
             given().when().get("/registry/v3/admin/rules/VALIDITY").then().statusCode(404)
-                    .contentType(ContentType.JSON).body("error_code", equalTo(404))
-                    .body("message", equalTo("No rule named 'VALIDITY' was found."));
+                    .contentType(ContentType.JSON).body("status", equalTo(404))
+                    .body("title", equalTo("No rule named 'VALIDITY' was found."));
         }
     }
 
@@ -409,11 +409,11 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         assertEquals("1.0.2", lastArtifactMeta.getVersion());
         assertEquals(1005L, lastArtifactMeta.getGlobalId());
 
-        var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.Error.class,
+        var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
                 () -> clientV3.ids().globalIds().byGlobalId(1006L).get());
         // ArtifactNotFoundException
         Assertions.assertEquals("ArtifactNotFoundException", exception.getName());
-        Assertions.assertEquals(404, exception.getErrorCode());
+        Assertions.assertEquals(404, exception.getStatus());
     }
 
     @Test
@@ -441,7 +441,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
         // Try to add the rule again - should get a 409
         given().when().contentType(CT_JSON).body(mapping).post("/registry/v3/admin/roleMappings").then()
-                .statusCode(409).body("error_code", equalTo(409)).body("message",
+                .statusCode(409).body("status", equalTo(409)).body("title",
                         equalTo("A mapping for principal 'TestUser' and role 'DEVELOPER' already exists."));
 
         // Add another mapping
@@ -476,7 +476,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         // Try to update a role mapping that doesn't exist
         given().when().contentType(CT_JSON).body(update)
                 .put("/registry/v3/admin/roleMappings/UnknownPrincipal").then().statusCode(404)
-                .contentType(ContentType.JSON).body("error_code", equalTo(404)).body("message", equalTo(
+                .contentType(ContentType.JSON).body("status", equalTo(404)).body("title", equalTo(
                         "No mapping for principal 'UnknownPrincipal' and role 'READ_ONLY' was found."));
 
         // Update a mapping with null RoleType
@@ -490,8 +490,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
         // Get the (deleted) mapping by name (should fail with a 404)
         given().when().get("/registry/v3/admin/roleMappings/TestUser2").then().statusCode(404)
-                .contentType(ContentType.JSON).body("error_code", equalTo(404))
-                .body("message", equalTo("No role mapping for principal 'TestUser2' was found."));
+                .contentType(ContentType.JSON).body("status", equalTo(404))
+                .body("title", equalTo("No role mapping for principal 'TestUser2' was found."));
 
         // Get the list of mappings (should be 1 of them)
         given().when().get("/registry/v3/admin/roleMappings").then().log().all().statusCode(200)

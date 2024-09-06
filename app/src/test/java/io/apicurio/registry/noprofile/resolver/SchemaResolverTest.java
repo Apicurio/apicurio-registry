@@ -97,10 +97,10 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
                 () -> resolver.resolveSchema(new CustomResolverRecord(avroRecord,
                         ArtifactReference.builder().groupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
                                 .artifactId("foo").build())));
-        io.apicurio.registry.rest.client.models.Error error = (io.apicurio.registry.rest.client.models.Error) runtimeException
+        io.apicurio.registry.rest.client.models.ProblemDetails error = (io.apicurio.registry.rest.client.models.ProblemDetails) runtimeException
                 .getCause();
         assertEquals("VersionNotFoundException", error.getName());
-        assertEquals(404, error.getErrorCode());
+        assertEquals(404, error.getStatus());
 
         resolver.close();
     }

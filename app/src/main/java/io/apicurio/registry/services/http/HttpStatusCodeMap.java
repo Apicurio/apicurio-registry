@@ -1,60 +1,76 @@
 package io.apicurio.registry.services.http;
 
-import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.ccompat.rest.error.*;
+import io.apicurio.registry.ccompat.rest.error.ConflictException;
+import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
+import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
+import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeletedException;
+import io.apicurio.registry.ccompat.rest.error.SchemaSoftDeletedException;
+import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
+import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.limits.LimitExceededException;
-import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
-import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
-import io.apicurio.registry.rest.v3.beans.Error;
-import io.apicurio.registry.rest.v3.beans.RuleViolationCause;
-import io.apicurio.registry.rest.v3.beans.RuleViolationError;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
-import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
-import io.apicurio.registry.storage.error.*;
+import io.apicurio.registry.storage.error.AlreadyExistsException;
+import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.BranchAlreadyExistsException;
+import io.apicurio.registry.storage.error.BranchNotFoundException;
+import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
+import io.apicurio.registry.storage.error.ContentNotFoundException;
+import io.apicurio.registry.storage.error.DownloadNotFoundException;
+import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.InvalidArtifactIdException;
+import io.apicurio.registry.storage.error.InvalidArtifactStateException;
+import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
+import io.apicurio.registry.storage.error.InvalidGroupIdException;
+import io.apicurio.registry.storage.error.InvalidPropertyValueException;
+import io.apicurio.registry.storage.error.InvalidVersionStateException;
+import io.apicurio.registry.storage.error.LogConfigurationNotFoundException;
+import io.apicurio.registry.storage.error.NotAllowedException;
+import io.apicurio.registry.storage.error.NotFoundException;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
+import io.apicurio.registry.storage.error.RoleMappingAlreadyExistsException;
+import io.apicurio.registry.storage.error.RoleMappingNotFoundException;
+import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsOnBranchException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.rest.client.auth.exception.ForbiddenException;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.smallrye.mutiny.TimeoutException;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import jakarta.validation.ValidationException;
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
-import static java.net.HttpURLConnection.*;
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
 
-@ApplicationScoped
-public class RegistryExceptionMapperService {
+@Singleton
+public class HttpStatusCodeMap {
 
     private static final int HTTP_UNPROCESSABLE_ENTITY = 422;
 
-    private static final Map<Class<? extends Exception>, Integer> CODE_MAP;
+    protected static final Map<Class<? extends Exception>, Integer> CODE_MAP;
 
-    @Inject
-    Logger log;
-
-    @Inject
-    ResponseErrorLivenessCheck liveness;
-
-    @Inject
-    LivenessUtil livenessUtil;
-
-    @ConfigProperty(name = "apicurio.api.errors.include-stack-in-response", defaultValue = "false")
-    @Info(category = "api", description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
-    boolean includeStackTrace;
+    private static Set<Class<? extends Exception>> getIgnored() {
+        return CODE_MAP.keySet();
+    }
 
     static {
         // TODO Merge this list with io.apicurio.registry.rest.RegistryExceptionMapper
@@ -86,7 +102,7 @@ public class RegistryExceptionMapperService {
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
         map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the
-                                                           // latter for authx only.
+        // latter for authx only.
         map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(NotFoundException.class, HTTP_NOT_FOUND);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
@@ -114,91 +130,11 @@ public class RegistryExceptionMapperService {
         CODE_MAP = Collections.unmodifiableMap(map);
     }
 
-    public static Set<Class<? extends Exception>> getIgnored() {
-        return CODE_MAP.keySet();
+    public int getCode(Class<?> exceptionClass) {
+        return CODE_MAP.getOrDefault(exceptionClass, HTTP_INTERNAL_ERROR);
     }
 
-    public ErrorHttpResponse mapException(Throwable t) {
-        int code;
-        Response response = null;
-        if (t instanceof WebApplicationException) {
-            WebApplicationException wae = (WebApplicationException) t;
-            response = wae.getResponse();
-            code = response.getStatus();
-        } else {
-            code = CODE_MAP.getOrDefault(t.getClass(), HTTP_INTERNAL_ERROR);
-        }
-
-        if (code == HTTP_INTERNAL_ERROR) {
-            // If the error is not something we should ignore, then we report it to the liveness object
-            // and log it. Otherwise we only log it if debug logging is enabled.
-            if (!livenessUtil.isIgnoreError(t)) {
-                liveness.suspectWithException(t);
-            }
-            log.error("[500 ERROR DETECTED] : " + t.getMessage(), t);
-        }
-
-        Error error = toError(t, code);
-
-        return new ErrorHttpResponse(code, error, response);
-
+    public boolean isIgnored(Class<? extends Throwable> aClass) {
+        return getIgnored().contains(aClass);
     }
-
-    private Error toError(Throwable t, int code) {
-        Error error;
-
-        if (t instanceof RuleViolationException) {
-            RuleViolationException rve = (RuleViolationException) t;
-            error = new RuleViolationError();
-            ((RuleViolationError) error).setCauses(toRestCauses(rve.getCauses()));
-        } else {
-            error = new Error();
-        }
-
-        error.setErrorCode(code);
-        error.setMessage(t.getLocalizedMessage());
-        if (includeStackTrace) {
-            error.setDetail(getStackTrace(t));
-        } else {
-            error.setDetail(getRootMessage(t));
-        }
-        error.setName(t.getClass().getSimpleName());
-        return error;
-    }
-
-    /**
-     * Converts rule violations to appropriate error beans.
-     *
-     * @param violations
-     */
-    private List<RuleViolationCause> toRestCauses(Set<RuleViolation> violations) {
-        if (violations == null) {
-            return null;
-        }
-        return violations.stream().map(violation -> {
-            RuleViolationCause cause = new RuleViolationCause();
-            cause.setContext(violation.getContext());
-            cause.setDescription(violation.getDescription());
-            return cause;
-        }).collect(Collectors.toList());
-    }
-
-    /**
-     * Gets the full stack trace for the given exception and returns it as a string.
-     *
-     * @param t
-     */
-    private static String getStackTrace(Throwable t) {
-        try (StringWriter writer = new StringWriter()) {
-            t.printStackTrace(new PrintWriter(writer));
-            return writer.toString();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static String getRootMessage(Throwable t) {
-        return ExceptionUtils.getRootCauseMessage(t);
-    }
-
 }

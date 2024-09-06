@@ -3373,32 +3373,45 @@
           "config": "FULL"
         }
       },
-      "Error": {
+      "ProblemDetails": {
         "title": "Root Type for Error",
         "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
+        "required": [
+          "title",
+          "status"
+        ],
         "type": "object",
         "properties": {
-          "message": {
-            "description": "The short error message.",
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
             "type": "string"
           },
-          "error_code": {
+          "type": {
+            "description": "A URI reference [RFC3986] that identifies the problem type.",
+            "type": "string"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type.",
+            "type": "string"
+          },
+          "status": {
             "format": "int32",
-            "description": "The server-side error code.",
+            "description": "The HTTP status code.",
             "type": "integer"
           },
-          "detail": {
-            "description": "Full details about the error.  This might contain a server stack trace, for example.",
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
             "type": "string"
           },
           "name": {
-            "description": "The error name - typically the classname of the exception thrown by the server.",
+            "description": "The name of the error (typically a server exception class name).",
             "type": "string"
           }
         },
         "example": {
-          "error_code": 500,
-          "message": "An error occurred somewhere."
+          "status": 500,
+          "name": "NullPointerException",
+          "title": "An error occurred somewhere."
         }
       },
       "RuleType": {
@@ -3935,7 +3948,7 @@
           "contentId": 62
         }
       },
-      "RuleViolationError": {
+      "RuleViolationProblemDetails": {
         "title": "Root Type for Error",
         "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response\nbody.",
         "type": "object",
@@ -3956,7 +3969,7 @@
             }
           },
           {
-            "$ref": "#/components/schemas/Error"
+            "$ref": "#/components/schemas/ProblemDetails"
           }
         ],
         "example": {
@@ -3973,7 +3986,7 @@
             }
           ]
         },
-        "x-codegen-extendsClass": "io.apicurio.registry.rest.v3.beans.Error"
+        "x-codegen-extendsClass": "io.apicurio.registry.rest.v3.beans.ProblemDetails"
       },
       "ArtifactReference": {
         "title": "Root Type for ArtifactReference",
@@ -5111,7 +5124,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/Error"
+              "$ref": "#/components/schemas/ProblemDetails"
             },
             "examples": {
               "NotFoundExample": {
@@ -5129,7 +5142,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/Error"
+              "$ref": "#/components/schemas/ProblemDetails"
             },
             "examples": {
               "MethodNotAllowedExample": {
@@ -5147,7 +5160,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/Error"
+              "$ref": "#/components/schemas/ProblemDetails"
             },
             "examples": {
               "ErrorExample": {
@@ -5165,7 +5178,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/Error"
+              "$ref": "#/components/schemas/ProblemDetails"
             }
           }
         },
@@ -5175,7 +5188,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/Error"
+              "$ref": "#/components/schemas/ProblemDetails"
             },
             "examples": {
               "ConflictExample": {
@@ -5193,7 +5206,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/RuleViolationError"
+              "$ref": "#/components/schemas/RuleViolationProblemDetails"
             },
             "examples": {
               "RuleViolationConflictExample": {

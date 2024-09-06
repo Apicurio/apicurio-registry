@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,7 +67,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.createTopic(topicName, 1, 1);
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
-                List.of("key1"));
+                List.of("key1" + UUID.randomUUID()));
 
         String avroSchemaString = avroSchema.generateSchema().toString();
         logger.info("Registering Avro Schema: {}", avroSchemaString);
@@ -89,7 +90,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.createTopic(topicName, 1, 1);
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
-                List.of("key1"));
+                List.of("key1" + UUID.randomUUID()));
 
         String avroSchemaString = avroSchema.generateSchema().toString();
         logger.info("Registering Avro Schema: {}", avroSchemaString);
@@ -113,7 +114,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String groupId = TestUtils.generateSubject();
         String artifactId = TestUtils.generateSubject();
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(groupId, artifactId,
-                List.of("key1"));
+                List.of("key1" + UUID.randomUUID()));
 
         String avroSchemaString = avroSchema.generateSchema().toString();
         logger.info("Registering Avro Schema: {}", avroSchemaString);
@@ -138,7 +139,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String groupId = TestUtils.generateSubject();
         String recordName = TestUtils.generateSubject();
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(groupId, recordName,
-                List.of("key1"));
+                List.of("key1" + UUID.randomUUID()));
 
         String artifactId = topicName + "-" + recordName;
 
@@ -164,7 +165,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.createTopic(topicName, 1, 1);
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
-                List.of("key1"));
+                List.of("key1" + UUID.randomUUID()));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
@@ -296,7 +297,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
         String recordNamespace = TestUtils.generateAvroNS();
         String recordName = TestUtils.generateSubject();
-        String schemaKey = "key1";
+        String schemaKey = "key1" + UUID.randomUUID();
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory(recordNamespace,
                 recordName, List.of(schemaKey));
@@ -326,7 +327,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         tester.consumeMessages(consumer, topicName, messageCount, avroSchema::validateRecord);
 
         // Prepare the second version of the schema, for it to be different, a new field is added.
-        String schemaKey2 = "key2";
+        String schemaKey2 = "key2" + UUID.randomUUID();
         AvroGenericRecordSchemaFactory avroSchema2 = new AvroGenericRecordSchemaFactory(recordNamespace,
                 recordName, List.of(schemaKey, schemaKey2));
 
@@ -362,7 +363,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
             assertEquals(schema1Counter.get(), schema2Counter.get());
         }
 
-        String schemaKey3 = "key3";
+        String schemaKey3 = "key3" + UUID.randomUUID();
         AvroGenericRecordSchemaFactory avroSchema3 = new AvroGenericRecordSchemaFactory(recordNamespace,
                 recordName, List.of(schemaKey, schemaKey2, schemaKey3));
 
@@ -442,7 +443,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String topicName2 = TestUtils.generateTopic();
         String topicName3 = TestUtils.generateTopic();
         String subjectName = "myrecordconfluent";
-        String schemaKey = "key1";
+        String schemaKey = "key1" + UUID.randomUUID();
 
         kafkaCluster.createTopic(topicName1, 1, 1);
         kafkaCluster.createTopic(topicName2, 1, 1);
@@ -555,7 +556,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.createTopic(topicName, 1, 1);
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
-                List.of("key1"));
+                List.of("key1" + UUID.randomUUID()));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
@@ -584,7 +585,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         kafkaCluster.createTopic(topicName, 1, 1);
 
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordapicurio1",
-                List.of("key1"));
+                List.of("key1" + UUID.randomUUID()));
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)

@@ -129,6 +129,9 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         // make sure content is available
         ensureClusterSyncContentId(response.getVersion().getContentId());
 
+        // Wait for the artifact version to be available across all replicas.
+        Thread.sleep(1000);
+
         return response;
     }
 
@@ -146,6 +149,9 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getArtifactId(),
                 String.valueOf(meta.getVersion()));
         ensureClusterSyncContentId(meta.getContentId());
+
+        // Wait for the artifact version to be available across all replicas.
+        Thread.sleep(1000);
 
         return meta;
     }

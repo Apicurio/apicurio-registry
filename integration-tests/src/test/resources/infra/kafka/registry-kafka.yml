@@ -7,7 +7,7 @@ metadata:
     app: apicurio-registry-kafka
   name: apicurio-registry-deployment
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: apicurio-registry-kafka

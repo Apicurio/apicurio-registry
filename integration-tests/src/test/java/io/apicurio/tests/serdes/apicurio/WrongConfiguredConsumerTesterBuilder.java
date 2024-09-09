@@ -40,7 +40,7 @@ public class WrongConfiguredConsumerTesterBuilder<P, C> extends SimpleSerdesTest
                     serializer, topic, artifactResolverStrategy);
 
             int messageCount = 10;
-            this.produceMessages(producer, topic, dataGenerator, messageCount);
+            this.produceMessages(producer, topic, dataGenerator, messageCount, false);
 
             if (afterProduceValidator != null) {
                 assertTrue(afterProduceValidator.validate(), "After produce validation failed");

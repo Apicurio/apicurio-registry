@@ -136,7 +136,7 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
 
             try {
                 for (int i = 0; i < batchCount; i++) {
-                    this.produceMessages(producer, topic, dataGenerator, batchSize);
+                    this.produceMessages(producer, topic, dataGenerator, batchSize, false);
                 }
             } finally {
                 if (!autoCloseByProduceOrConsume) {

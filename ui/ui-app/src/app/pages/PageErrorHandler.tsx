@@ -39,8 +39,6 @@ export const PageErrorHandler: FunctionComponent<PageErrorHandlerProps> = (props
         return props.error && props.error.error.status && (props.error.error.status == 419);
     };
 
-    console.debug("Showing page error: ", props.error);
-
     if (isError()) {
         if (is403Error()) {
             return (

@@ -208,7 +208,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         Consumer<String, GenericRecord> consumer = tester.createConsumer(StringDeserializer.class,
                 KafkaAvroDeserializer.class, topicName);
 
-        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
+        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount, true);
         tester.consumeMessages(consumer, topicName, messageCount, avroSchema::validateRecord);
 
         String schemaKey2 = "key2";
@@ -219,11 +219,11 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName,
                 strategy);
-        tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount);
+        tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount, true);
 
         producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName,
                 strategy);
-        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
+        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount, true);
 
         consumer = tester.createConsumer(StringDeserializer.class, KafkaAvroDeserializer.class, topicName);
         {
@@ -251,15 +251,15 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName,
                 strategy);
-        tester.produceMessages(producer, topicName, avroSchema3::generateRecord, messageCount);
+        tester.produceMessages(producer, topicName, avroSchema3::generateRecord, messageCount, true);
 
         producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName,
                 strategy);
-        tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount);
+        tester.produceMessages(producer, topicName, avroSchema2::generateRecord, messageCount, true);
 
         producer = tester.createProducer(StringSerializer.class, KafkaAvroSerializer.class, topicName,
                 strategy);
-        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount);
+        tester.produceMessages(producer, topicName, avroSchema::generateRecord, messageCount, true);
 
         consumer = tester.createConsumer(StringDeserializer.class, KafkaAvroDeserializer.class, topicName);
         {
@@ -325,9 +325,9 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         Consumer<String, GenericRecord> consumer3 = tester.createConsumer(StringDeserializer.class,
                 AvroKafkaDeserializer.class, topicName3);
 
-        tester.produceMessages(producer1, topicName1, avroSchema::generateRecord, messageCount);
-        tester.produceMessages(producer2, topicName2, avroSchema::generateRecord, messageCount);
-        tester.produceMessages(producer3, topicName3, avroSchema::generateRecord, messageCount);
+        tester.produceMessages(producer1, topicName1, avroSchema::generateRecord, messageCount, true);
+        tester.produceMessages(producer2, topicName2, avroSchema::generateRecord, messageCount, true);
+        tester.produceMessages(producer3, topicName3, avroSchema::generateRecord, messageCount, true);
 
         tester.consumeMessages(consumer1, topicName1, messageCount, avroSchema::validateRecord);
         tester.consumeMessages(consumer2, topicName2, messageCount, avroSchema::validateRecord);

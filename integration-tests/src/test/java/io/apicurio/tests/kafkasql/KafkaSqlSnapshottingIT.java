@@ -4,7 +4,6 @@ import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.Constants;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -13,11 +12,6 @@ import org.junit.jupiter.api.Test;
 public class KafkaSqlSnapshottingIT extends ApicurioRegistryBaseIT {
 
     private static final String NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID = "SNAPSHOT_TEST_GROUP_ID";
-
-    @Override
-    @BeforeEach
-    public void cleanArtifacts() throws Exception {
-    }
 
     @Test
     public void testRecoverFromSnapshot() throws InterruptedException {

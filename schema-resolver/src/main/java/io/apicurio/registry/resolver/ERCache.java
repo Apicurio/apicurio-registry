@@ -244,8 +244,10 @@ public class ERCache<V> {
                 // && e.getCause().getCause() != null && e.getCause().getCause() instanceof ApiException
                 // && (((ApiException) e.getCause().getCause()).getResponseStatusCode() == 429)))
                 if (i == retries || !(e.getCause() != null && e.getCause() instanceof ApiException
-                        && (((ApiException) e.getCause()).getResponseStatusCode() == 429)))
+                        && (((ApiException) e.getCause()).getResponseStatusCode() == 429))) {
+                    e.printStackTrace();
                     return Result.error(new RuntimeException(e));
+                }
             }
             try {
                 Thread.sleep(backoff.toMillis());

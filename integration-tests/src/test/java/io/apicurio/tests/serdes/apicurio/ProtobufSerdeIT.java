@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
     private KafkaFacade kafkaCluster = KafkaFacade.getInstance();
-
     private Class<ProtobufKafkaSerializer> serializer = ProtobufKafkaSerializer.class;
     private Class<ProtobufKafkaDeserializer> deserializer = ProtobufKafkaDeserializer.class;
 
@@ -42,11 +41,6 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
     @AfterAll
     void teardownEnvironment() throws Exception {
         kafkaCluster.stopIfPossible();
-    }
-
-    @Override
-    public void cleanArtifacts() throws Exception {
-        // Don't clean up
     }
 
     @Test
@@ -175,11 +169,13 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         // artifact
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
+                .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "false")
                 .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_VERSION, "1")
                 .withDataGenerator(schemaV1::generateMessage).withDataValidator(schemaV1::validateMessage)
                 .build().test();
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
+                .withSerializer(serializer).withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "false")
+                .withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(schemaV1::generateMessage).withDataValidator(schemaV1::validateMessage)
                 .build().test();
         new SimpleSerdesTesterBuilder<TestCmmn.UUID, TestCmmn.UUID>().withTopic(topicName)

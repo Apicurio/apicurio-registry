@@ -3,14 +3,11 @@ package io.apicurio.tests;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.deployment.PortForwardManager;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
-import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
-import io.apicurio.registry.rest.client.models.SearchedArtifact;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
@@ -25,7 +22,6 @@ import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -64,7 +60,6 @@ import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Base class for all base classes for integration tests or for integration tests directly. This class must
@@ -107,33 +102,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         RestAssured.urlEncodingEnabled = false;
     }
 
-    @AfterEach
-    public void cleanArtifacts() throws Exception {
-        logger.info("Removing all artifacts");
-        // Retrying to delete artifacts can solve the problem with bad order caused by artifacts references
-        // TODO: Solve problem with artifact references circle - maybe use of deleteAllUserData for cleaning
-        // artifacts after IT
-        retry(() -> {
-            ArtifactSearchResults artifacts = registryClient.search().artifacts().get();
-            for (SearchedArtifact artifact : artifacts.getArtifacts()) {
-                try {
-                    registryClient.groups().byGroupId(normalizeGroupId(artifact.getGroupId())).artifacts()
-                            .byArtifactId(artifact.getArtifactId()).delete();
-                    registryClient.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
-                            .artifacts().delete();
-                } catch (ApiException e) {
-                    // because of async storage artifact may be already deleted but listed anyway
-                    logger.info(e.getMessage());
-                } catch (Exception e) {
-                    logger.error("", e);
-                }
-            }
-            ensureClusterSync(client -> {
-                assertTrue(client.search().artifacts().get().getCount() == 0);
-            });
-        }, "CleanArtifacts", 5);
-    }
-
     private static String normalizeGroupId(String groupId) {
         return groupId != null ? groupId : "default"; // TODO
     }
@@ -158,6 +126,12 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         ensureClusterSync(normalizeGroupId(response.getArtifact().getGroupId()),
                 response.getArtifact().getArtifactId(), String.valueOf(response.getVersion().getVersion()));
 
+        // make sure content is available
+        ensureClusterSyncContentId(response.getVersion().getContentId());
+
+        // Wait for the artifact version to be available across all replicas.
+        Thread.sleep(1000);
+
         return response;
     }
 
@@ -174,6 +148,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         ensureClusterSync(meta.getGlobalId());
         ensureClusterSync(normalizeGroupId(meta.getGroupId()), meta.getArtifactId(),
                 String.valueOf(meta.getVersion()));
+        ensureClusterSyncContentId(meta.getContentId());
+
+        // Wait for the artifact version to be available across all replicas.
+        Thread.sleep(1000);
 
         return meta;
     }
@@ -194,6 +172,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     private void ensureClusterSync(Long globalId) throws Exception {
         retry(() -> registryClient.ids().globalIds().byGlobalId(globalId));
+    }
+
+    private void ensureClusterSyncContentId(Long contentId) throws Exception {
+        retry(() -> registryClient.ids().contentIds().byContentId(contentId));
     }
 
     private void ensureClusterSync(String groupId, String artifactId, String version) throws Exception {

@@ -9,7 +9,9 @@ import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
+import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.launcher.TestExecutionListener;
+import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,23 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     static KubernetesClient kubernetesClient;
 
     static List<LogWatch> logWatch;
+
+    static String testLogsIdentifier;
+
+    @Override
+    public void executionStarted(TestIdentifier testIdentifier) {
+        TestExecutionListener.super.executionStarted(testIdentifier);
+        logWatch = streamPodLogs(testLogsIdentifier);
+    }
+
+    @Override
+    public void executionFinished(TestIdentifier testIdentifier, TestExecutionResult testExecutionResult) {
+        TestExecutionListener.super.executionFinished(testIdentifier, testExecutionResult);
+
+        if (logWatch != null && !logWatch.isEmpty()) {
+            logWatch.forEach(LogWatch::close);
+        }
+    }
 
     @Override
     public void testPlanExecutionStarted(TestPlan testPlan) {
@@ -81,7 +100,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
     private void handleInfraDeployment() throws Exception {
         // First, create the namespace used for the test.
-        kubernetesClient.load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE)).create();
+        kubernetesClient.load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE)).serverSideApply();
 
         // Based on the configuration, deploy the appropriate variant
         if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
@@ -89,19 +108,19 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                     "Deploying In Memory Registry Variant with image: {} ##################################################",
                     System.getProperty("registry-in-memory-image"));
             InMemoryDeploymentManager.deployInMemoryApp(System.getProperty("registry-in-memory-image"));
-            logWatch = streamPodLogs("apicurio-registry-memory");
+            testLogsIdentifier = "apicurio-registry-memory";
         } else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
             LOGGER.info(
                     "Deploying SQL Registry Variant with image: {} ##################################################",
                     System.getProperty("registry-sql-image"));
             SqlDeploymentManager.deploySqlApp(System.getProperty("registry-sql-image"));
-            logWatch = streamPodLogs("apicurio-registry-sql");
+            testLogsIdentifier = "apicurio-registry-sql";
         } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
             LOGGER.info(
                     "Deploying Kafka SQL Registry Variant with image: {} ##################################################",
                     System.getProperty("registry-kafkasql-image"));
             KafkaSqlDeploymentManager.deployKafkaApp(System.getProperty("registry-kafkasql-image"));
-            logWatch = streamPodLogs("apicurio-registry-kafka");
+            testLogsIdentifier = "apicurio-registry-kafka";
         }
     }
 
@@ -133,7 +152,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             // Deploy all the resources associated to the registry variant
             kubernetesClient
                     .load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
-                    .create();
+                    .serverSideApply();
         } catch (Exception ex) {
             LOGGER.debug("Error creating registry resources:", ex);
         }
@@ -153,7 +172,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             try {
                 final Route registryRoute = openShiftClient.routes()
                         .load(RegistryDeploymentManager.class.getResourceAsStream(REGISTRY_OPENSHIFT_ROUTE))
-                        .create();
+                        .serverSideApply();
 
                 System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
                 System.setProperty("quarkus.http.test-port", "80");
@@ -176,7 +195,8 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
     private static void deployResource(String resource) {
         // Deploy all the resources associated to the external requirements
-        kubernetesClient.load(RegistryDeploymentManager.class.getResourceAsStream(resource)).create();
+        kubernetesClient.load(RegistryDeploymentManager.class.getResourceAsStream(resource))
+                .serverSideApply();
 
         // Wait for all the external resources pods to be ready
         kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);

@@ -78,7 +78,7 @@ public class WrongConfiguredSerdesTesterBuilder<P> implements TesterBuilder {
                     serializer, topic, artifactResolverStrategy);
 
             assertThrows(ExecutionException.class,
-                    () -> this.produceMessages(producer, topic, dataGenerator, 10));
+                    () -> this.produceMessages(producer, topic, dataGenerator, 10, false));
 
         }
 

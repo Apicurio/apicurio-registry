@@ -1,6 +1,7 @@
 package io.apicurio.tests.serdes.apicurio;
 
 import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.KafkaFacade;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
@@ -77,6 +78,7 @@ public class SerdesTester<K, P, C> {
             props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY,
                     artifactIdStrategy.getName());
         } else {
+            // props.putIfAbsent(SerdeConfig.FIND_LATEST_ARTIFACT, "true");
             props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
             props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, artifactIdStrategy.getName());
         }
@@ -113,7 +115,17 @@ public class SerdesTester<K, P, C> {
     }
 
     public void produceMessages(Producer<K, P> producer, String topicName, DataGenerator<P> dataGenerator,
-            int messageCount) throws Exception {
+            int messageCount, boolean retry) throws Exception {
+
+        if (retry) {
+            TestUtils.retry(() -> produceMessages(producer, topicName, dataGenerator, messageCount));
+        } else {
+            produceMessages(producer, topicName, dataGenerator, messageCount);
+        }
+    }
+
+    private void produceMessages(Producer<K, P> producer, String topicName, DataGenerator<P> dataGenerator,
+            int messageCount) throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
 
             int producedMessages = 0;
@@ -151,6 +163,7 @@ public class SerdesTester<K, P, C> {
         } catch (Exception e) {
             throw e;
         }
+
     }
 
     public void consumeMessages(Consumer<K, C> consumer, String topicName, int messageCount,

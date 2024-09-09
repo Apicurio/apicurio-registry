@@ -7,6 +7,8 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Properties;
@@ -116,6 +118,8 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
 
     private class SimpleSerdesTester extends SerdesTester<String, P, C> implements Tester {
 
+        private final Logger logger = LoggerFactory.getLogger(SimpleSerdesTester.class);
+
         /**
          * @see Tester#test()
          */
@@ -124,12 +128,15 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
             Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class,
                     serializer, topic, artifactResolverStrategy);
 
+            logger.info("Using producer configuration: {}", producerProperties);
+            logger.info("Using consumer configuration: {}", consumerProperties);
+
             boolean autoCloseByProduceOrConsume = batchCount == 1;
             setAutoClose(autoCloseByProduceOrConsume);
 
             try {
                 for (int i = 0; i < batchCount; i++) {
-                    this.produceMessages(producer, topic, dataGenerator, batchSize);
+                    this.produceMessages(producer, topic, dataGenerator, batchSize, false);
                 }
             } finally {
                 if (!autoCloseByProduceOrConsume) {

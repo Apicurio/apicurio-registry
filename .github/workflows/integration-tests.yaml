@@ -64,7 +64,149 @@ jobs:
       - name: Build and Push Application image
         run: |
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
-  
+
+  prepare-ui-tests:
+    name: Prepare for UI Integration Tests
+    runs-on: ubuntu-20.04
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Show Actor
+        run: echo ${{github.actor}}
+
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+          cache-dependency-path: 'ui/**/package-lock.json'
+
+      - name: Build and verify the typescript-sdk
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-registry-sdk
+          npm run lint
+          npm run build
+
+      - name: Install UI Dependencies
+        run: |
+          cd ui
+          npm install
+
+      - name: Lint UI Code
+        run: |
+          cd ui
+          npm run lint
+
+      - name: Build and Package UI
+        run: |
+          cd ui
+          npm run build
+          npm run package
+
+      - name: Build and Push UI image
+        env:
+          IMAGE_REPO: ttl.sh/${{ github.sha }}
+          # maximum allowed
+          IMAGE_TAG: 1d
+        run: |
+          cd ui
+          docker build -t $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG .
+          docker push $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG
+
+  integration-tests-h2:
+    name: Integration Tests H2
+    runs-on: ubuntu-20.04
+    needs: prepare-integration-tests
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.9.0
+        with:
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
+
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
+
+      - name: Run Integration Tests - H2
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - auth - H2
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - migration - H2
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Collect logs
+        if: failure()
+        run: sh ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4.0.0
+        with:
+          name: tests-logs-h2
+          path: artifacts
+
+  integration-tests-postgresql:
+    name: Integration Tests Postgresql
+    runs-on: ubuntu-20.04
+    needs: prepare-integration-tests
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.9.0
+        with:
+          minikube version: 'v1.31.1'
+          kubernetes version: 'v1.26.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
+
+      - name: Prepare minikube tunnel
+        run: minikube tunnel &> /dev/null &
+
+      - name: Run Integration Tests - Postgresql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - auth - Postgresql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - migration - Postgresql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Collect logs
+        if: failure()
+        run: sh ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4.0.0
+        with:
+          name: tests-logs-postgresql
+          path: artifacts
+
 
   integration-tests-kafkasql:
     name: Integration Tests KafkaSql
@@ -94,6 +236,15 @@ jobs:
       - name: Run Integration Tests - Kafkasql
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
 
+      - name: Run Integration Tests - auth - Kafkasql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - migration - Kafkasql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - snapshotting - Kafkasql
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pkafkasql-snapshotting -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+
       - name: Collect logs
         if: failure()
         run: sh ./.github/scripts/collect_logs.sh
@@ -105,13 +256,90 @@ jobs:
           name: tests-logs-kafkasql
           path: artifacts
 
-  integration-tests-kafkasql1:
-    name: Integration Tests KafkaSql
+  integration-tests-ui:
+    name: Integration Tests UI
     runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
+    needs: [prepare-ui-tests, prepare-integration-tests]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+          cache-dependency-path: 'ui/tests/package-lock.json'
+
+      - name: Run UI tests
+        run: |
+          echo "Starting Registry App (In Memory)"
+          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          echo "Starting Registry UI"
+          docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:1d
+
+          cd ui/tests
+          npm install
+          npx playwright install --with-deps
+
+          echo "App System Info:"
+          echo "--"
+          curl -s http://localhost:8080/apis/registry/v3/system/info
+          echo "--"
+          echo ""
+          echo "UI Config Info (Local):"
+          echo "--"
+          curl -s http://localhost:8888/config.js
+          echo "--"
+          echo ""
+          echo "UI Config Info (Remote):"
+          echo "--"
+          curl -s http://localhost:8080/apis/registry/v3/system/uiConfig
+          echo "--"
+          echo ""
+          echo "UI Version Info:"
+          curl -s http://localhost:8888/version.js
+          echo "--"
+          echo "UI index.html:"
+          echo "--"
+          curl -s http://localhost:8888
+          echo "--"
+          echo ""
+          echo "-------------------------"
+          echo "Running Playwright tests!"
+          echo "-------------------------"
+          npm run test
+
+      - name: Upload Test Report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: ui/tests/playwright-report/
+          retention-days: 30
+
+      - name: Collect logs
+        if: failure()
+        run: sh ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: tests-logs-ui
+          path: artifacts
+
+  integration-tests-legacy-v2:
+    name: Integration Tests Legacy V2
+    runs-on: ubuntu-20.04
+    needs: prepare-integration-tests
+    steps:
+      - name: Checkout Registry 2.5
+        uses: actions/checkout@v4
+        with:
+          ref: '2.5.x'
+          path: registry-v2
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -119,19 +347,14 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+      - name: Run Legacy Integration Tests (Core API v2)
+        run: |
+          echo "Starting Registry App (In Memory)"
+          docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          cd registry-v2
+          ./mvnw -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true
+          cd integration-tests
+          ../mvnw verify -Pregression -Dmaven.javadoc.skip=true -Dquarkus.http.test-host=localhost -Dquarkus.http.test-port=8181
 
       - name: Collect logs
         if: failure()
@@ -141,16 +364,19 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: tests-logs-kafkasql
+          name: tests-logs-legacy-v2
           path: artifacts
 
-  integration-tests-kafkasql2:
-    name: Integration Tests KafkaSql
+  build-examples:
+    name: Build and Run Application examples
     runs-on: ubuntu-20.04
     needs: prepare-integration-tests
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Checkout Code with Ref '${{ github.ref }}'
+        uses: actions/checkout@v2
+        with:
+          path: apicurio-registry
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -158,1545 +384,8 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql3:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-
-  integration-tests-kafkasql4:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql5:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql6:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql7:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-
-  integration-tests-kafkasql8:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql9:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql10:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql11:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-
-  integration-tests-kafkasql12:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql13:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql14:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql15:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-
-  integration-tests-kafkasql16:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql17:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql18:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql19:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-
-  integration-tests-kafkasql20:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql21:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql22:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql23:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-
-  integration-tests-kafkasql24:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql25:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql26:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql27:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-
-  integration-tests-kafkasql28:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql29:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql30:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql31:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-
-  integration-tests-kafkasql32:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql33:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql34:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql35:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-
-  integration-tests-kafkasql36:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql37:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-  integration-tests-kafkasql38:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-  integration-tests-kafkasql39:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
-
-
-
-  integration-tests-kafkasql40:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
-          path: artifacts
+      - name: Run Apicurio Registry application
+        run: docker run -d -p 8080:8080 -it ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+
+      - name: Build Apicurio Registry with Examples
+        run: cd apicurio-registry && mvn clean install -DskipTests -Pexamples

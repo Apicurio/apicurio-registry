@@ -62,12 +62,13 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
             byte[] bytes = serializer.serialize(topic, record);
 
-            waitForSchema(globalId -> {
+            waitForSchema(contentId -> {
                 try {
-                    if (restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0) {
+                    if (restClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0) {
                         VersionMetaData artifactMetadata = restClient.groups().byGroupId(groupId).artifacts()
                                 .byArtifactId(topic).versions().byVersionExpression("branch=latest").get();
-                        assertEquals(globalId, artifactMetadata.getGlobalId());
+                        assertEquals(contentId.longValue(), artifactMetadata.getContentId());
                         return true;
                     }
                 } catch (IOException e) {

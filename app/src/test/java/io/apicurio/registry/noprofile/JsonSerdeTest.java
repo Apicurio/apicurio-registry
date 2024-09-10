@@ -43,7 +43,8 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientV3,
                     true)) {
 
-            Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId,
+                    SerdeConfig.ENABLE_HEADERS, "true");
             serializer.configure(configs, false);
 
             deserializer.configure(configs, false);

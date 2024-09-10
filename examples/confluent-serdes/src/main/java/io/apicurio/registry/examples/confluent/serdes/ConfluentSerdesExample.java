@@ -201,9 +201,7 @@ public class ConfluentSerdesExample {
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
-        // Enable "Confluent Compatible API" mode in the Apicurio Registry deserializer
-        props.putIfAbsent(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, Boolean.TRUE);
-        // No other configuration needed for the deserializer, because the globalId of the schema
+        // No other configuration needed for the deserializer, because the contentId of the schema
         // the deserializer should use is sent as part of the payload. So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.
 

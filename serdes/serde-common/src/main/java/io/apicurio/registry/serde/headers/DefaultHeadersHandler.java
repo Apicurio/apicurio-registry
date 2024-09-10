@@ -50,21 +50,21 @@ public class DefaultHeadersHandler implements HeadersHandler {
      */
     @Override
     public void writeHeaders(Headers headers, ArtifactReference reference) {
-        if (idOption == IdOption.contentId) {
-            if (reference.getContentId() == null) {
+        if (idOption == IdOption.globalId) {
+            if (reference.getGlobalId() == null) {
                 throw new SerializationException(
-                        "Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
+                        "Missing globalId. IdOption is globalId but there is no contentId in the ArtifactReference");
             }
-            ByteBuffer buff = ByteBuffer.allocate(8);
-            buff.putLong(reference.getContentId());
-            headers.add(contentIdHeaderName, buff.array());
-            return;
-        }
-
-        if (reference.getGlobalId() != null) {
             ByteBuffer buff = ByteBuffer.allocate(8);
             buff.putLong(reference.getGlobalId());
             headers.add(globalIdHeaderName, buff.array());
+            return;
+        }
+
+        if (reference.getContentId() != null) {
+            ByteBuffer buff = ByteBuffer.allocate(8);
+            buff.putLong(reference.getContentId());
+            headers.add(contentIdHeaderName, buff.array());
         } else {
             if (reference.getContentHash() != null) {
                 headers.add(contentHashHeaderName, IoUtil.toBytes(reference.getContentHash()));

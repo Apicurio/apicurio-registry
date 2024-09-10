@@ -18,6 +18,7 @@ import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SchemaResolverConfigurer;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
+import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaParser;
@@ -87,12 +88,16 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
             serializer.configure(config, false);
 
-            deserializer.configure(Collections.emptyMap(), false);
+            deserializer.configure(Collections.singletonMap(SerdeConfig.ENABLE_HEADERS, "true"), false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, person);
+
+            Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_CONTENT_ID));
+            headers.lastHeader(SerdeHeaders.HEADER_VALUE_CONTENT_ID);
 
             person = deserializer.deserialize(artifactId, headers, bytes);
 
@@ -135,9 +140,10 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             config.put(SerdeConfig.SCHEMA_LOCATION, "/io/apicurio/registry/util/json-schema.json");
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, true);
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
             serializer.configure(config, false);
 
-            deserializer.configure(Collections.emptyMap(), false);
+            deserializer.configure(Collections.singletonMap(SerdeConfig.ENABLE_HEADERS, "true"), false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, person);
@@ -188,9 +194,14 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
+            config.put(SerdeConfig.USE_ID, IdOption.globalId.name());
+
             serializer.configure(config, false);
 
-            deserializer.configure(Collections.emptyMap(), false);
+            deserializer.configure(
+                    Map.of(SerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.USE_ID, IdOption.globalId.name()),
+                    false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, person);
@@ -223,8 +234,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        Long globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
-                ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
+        Long contentId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON).getVersion().getContentId();
 
         Person person = new Person("Ales", "Justin", 23);
 
@@ -234,14 +245,15 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
             serializer.configure(config, false);
 
-            deserializer.configure(Collections.emptyMap(), false);
+            deserializer.configure(Collections.singletonMap(SerdeConfig.ENABLE_HEADERS, "true"), false);
 
             byte[] bytes = serializer.serialize(artifactId, person);
 
-            TestUtils.waitForSchema(schemaGlobalId -> {
-                assertEquals(globalId.intValue(), schemaGlobalId.intValue());
+            TestUtils.waitForSchema(schemaContentId -> {
+                assertEquals(contentId.intValue(), schemaContentId.intValue());
                 return true;
             }, bytes);
 
@@ -330,9 +342,10 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            config.put(SerdeConfig.ENABLE_HEADERS, "true");
             serializer.configure(config, false);
 
-            deserializer.configure(Collections.emptyMap(), false);
+            deserializer.configure(Collections.singletonMap(SerdeConfig.ENABLE_HEADERS, "true"), false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, citizen);

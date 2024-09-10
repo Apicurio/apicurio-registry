@@ -77,9 +77,7 @@ and their respective registry configurations:
   "key.converter.apicurio.registry.url": "http://schema-registry:8080/apis/registry/v2",
   "value.converter": "io.apicurio.registry.utils.converter.AvroConverter",
   "key.converter.apicurio.registry.auto-register": "true",
-  "key.converter": "io.apicurio.registry.utils.converter.AvroConverter",
-  "value.converter.apicurio.registry.as-confluent": "true",
-  "value.converter.apicurio.registry.use-id": "contentId"
+  "key.converter": "io.apicurio.registry.utils.converter.AvroConverter"
 }
 ```
 

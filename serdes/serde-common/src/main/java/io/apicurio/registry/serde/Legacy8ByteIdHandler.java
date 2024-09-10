@@ -10,10 +10,10 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-public class DefaultIdHandler implements IdHandler {
+public class Legacy8ByteIdHandler implements IdHandler {
     static final int idSize = 8; // we use 8 / long
 
-    private IdOption idOption = IdOption.globalId;
+    private IdOption idOption = IdOption.contentId;
 
     @Override
     public void configure(Map<String, Object> configs, boolean isKey) {
@@ -24,14 +24,14 @@ public class DefaultIdHandler implements IdHandler {
     @Override
     public void writeId(ArtifactReference reference, OutputStream out) throws IOException {
         long id;
-        if (idOption == IdOption.contentId) {
-            if (reference.getContentId() == null) {
+        if (idOption == IdOption.globalId) {
+            if (reference.getGlobalId() == null) {
                 throw new SerializationException(
-                        "Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
+                        "Missing globalId. IdOption is globalId but there is no contentId in the ArtifactReference");
             }
-            id = reference.getContentId();
-        } else {
             id = reference.getGlobalId();
+        } else {
+            id = reference.getContentId();
         }
         out.write(ByteBuffer.allocate(idSize).putLong(id).array());
     }
@@ -39,24 +39,24 @@ public class DefaultIdHandler implements IdHandler {
     @Override
     public void writeId(ArtifactReference reference, ByteBuffer buffer) {
         long id;
-        if (idOption == IdOption.contentId) {
-            if (reference.getContentId() == null) {
+        if (idOption == IdOption.globalId) {
+            if (reference.getGlobalId() == null) {
                 throw new SerializationException(
-                        "Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
+                        "Missing globalId. IdOption is globalId but there is no globalId in the ArtifactReference");
             }
-            id = reference.getContentId();
-        } else {
             id = reference.getGlobalId();
+        } else {
+            id = reference.getContentId();
         }
         buffer.putLong(id);
     }
 
     @Override
     public ArtifactReference readId(ByteBuffer buffer) {
-        if (idOption == IdOption.contentId) {
-            return ArtifactReference.builder().contentId(buffer.getLong()).build();
-        } else {
+        if (idOption == IdOption.globalId) {
             return ArtifactReference.builder().globalId(buffer.getLong()).build();
+        } else {
+            return ArtifactReference.builder().contentId(buffer.getLong()).build();
         }
     }
 

@@ -13,10 +13,10 @@ import java.util.Map;
 /**
  * IdHandler that assumes 4 bytes for the magic number (the ID).
  */
-public class Legacy4ByteIdHandler implements IdHandler {
+public class Default4ByteIdHandler implements IdHandler {
     static final int idSize = 4; // e.g. Confluent uses 4 / int
 
-    private IdOption idOption;
+    private IdOption idOption = IdOption.contentId;
 
     /**
      * @see io.apicurio.registry.serde.IdHandler#configure(java.util.Map, boolean)
@@ -30,14 +30,14 @@ public class Legacy4ByteIdHandler implements IdHandler {
     @Override
     public void writeId(ArtifactReference reference, OutputStream out) throws IOException {
         long id;
-        if (idOption == IdOption.contentId) {
-            if (reference.getContentId() == null) {
+        if (idOption == IdOption.globalId) {
+            if (reference.getGlobalId() == null) {
                 throw new SerializationException(
-                        "Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
+                        "Missing globalId. IdOption is globalId but there is no contentId in the ArtifactReference");
             }
-            id = reference.getContentId();
-        } else {
             id = reference.getGlobalId();
+        } else {
+            id = reference.getContentId();
         }
         out.write(ByteBuffer.allocate(idSize).putInt((int) id).array());
     }
@@ -45,14 +45,14 @@ public class Legacy4ByteIdHandler implements IdHandler {
     @Override
     public void writeId(ArtifactReference reference, ByteBuffer buffer) {
         long id;
-        if (idOption == IdOption.contentId) {
-            if (reference.getContentId() == null) {
+        if (idOption == IdOption.globalId) {
+            if (reference.getGlobalId() == null) {
                 throw new SerializationException(
-                        "Missing contentId. IdOption is contentId but there is no contentId in the ArtifactReference");
+                        "Missing globalId. IdOption is globalId but there is no globalId in the ArtifactReference");
             }
-            id = reference.getContentId();
-        } else {
             id = reference.getGlobalId();
+        } else {
+            id = reference.getContentId();
         }
         buffer.putInt((int) id);
     }
@@ -62,10 +62,10 @@ public class Legacy4ByteIdHandler implements IdHandler {
      */
     @Override
     public ArtifactReference readId(ByteBuffer buffer) {
-        if (idOption == IdOption.contentId) {
-            return ArtifactReference.builder().contentId(Long.valueOf(buffer.getInt())).build();
-        } else {
+        if (idOption == IdOption.globalId) {
             return ArtifactReference.builder().globalId(Long.valueOf(buffer.getInt())).build();
+        } else {
+            return ArtifactReference.builder().contentId(Long.valueOf(buffer.getInt())).build();
         }
     }
 

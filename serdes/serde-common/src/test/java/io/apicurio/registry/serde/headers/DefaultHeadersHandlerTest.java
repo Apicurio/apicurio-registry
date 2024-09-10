@@ -126,8 +126,8 @@ public class DefaultHeadersHandlerTest {
     @Test
     void testWriteValueHeadersHandlesMissingContentHash() {
         String contentHashHeaderName = "another write key header name";
-        Map<String, Object> configs = Collections
-                .singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        Map<String, Object> configs = Map.of(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME,
+                contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, false);

@@ -51,14 +51,6 @@ public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<
         if (idHandler == null) {
             Object idh = config.getIdHandler();
             Utils.instantiate(IdHandler.class, idh, this::setIdHandler);
-
-            if (config.enableConfluentIdHandler()) {
-                if (idHandler != null && !(idHandler instanceof Legacy4ByteIdHandler)) {
-                    log.warn(String.format("Duplicate id-handler configuration: %s vs. %s", idh,
-                            "as-confluent"));
-                }
-                setIdHandler(new Legacy4ByteIdHandler());
-            }
         }
         idHandler.configure(config.originals(), isKey);
 
@@ -84,8 +76,8 @@ public abstract class AbstractKafkaSerDe<T, U> extends SchemaResolverConfigurer<
         this.idHandler = Objects.requireNonNull(idHandler);
     }
 
-    public void asLegacyId() {
-        setIdHandler(new Legacy4ByteIdHandler());
+    public void as4ByteId() {
+        setIdHandler(new Default4ByteIdHandler());
     }
 
     public void reset() {

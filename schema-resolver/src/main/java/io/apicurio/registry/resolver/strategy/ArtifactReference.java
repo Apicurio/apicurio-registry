@@ -62,6 +62,10 @@ public interface ArtifactReference {
         return builder().globalId(globalId).build();
     }
 
+    public static ArtifactReference fromContentId(Long contentId) {
+        return builder().contentId(contentId).build();
+    }
+
     public static ArtifactReferenceBuilder builder() {
         return new ArtifactReferenceBuilder();
     }

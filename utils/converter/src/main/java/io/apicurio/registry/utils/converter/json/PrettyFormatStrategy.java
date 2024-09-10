@@ -43,10 +43,10 @@ public class PrettyFormatStrategy implements FormatStrategy {
     public IdPayload toConnectData(byte[] bytes) {
         try {
             JsonNode root = mapper.readTree(bytes);
-            long globalId = root.get(idName).asLong();
+            long contentId = root.get(idName).asLong();
             String payload = root.get(payloadName).toString();
             byte[] payloadBytes = IoUtil.toBytes(payload);
-            return new IdPayload(globalId, payloadBytes);
+            return new IdPayload(contentId, payloadBytes);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

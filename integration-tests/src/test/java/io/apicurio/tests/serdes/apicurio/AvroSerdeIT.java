@@ -499,7 +499,6 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(avroSchema::generateRecord).withDataValidator(avroSchema::validateRecord)
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
                 .withProducerProperty(AvroKafkaSerdeConfig.AVRO_ENCODING,
                         AvroKafkaSerdeConfig.AVRO_ENCODING_JSON)
                 .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_ENCODING,
@@ -546,9 +545,9 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
 
     }
 
-    // test use contentId headers
+    // test use globalId headers
     @Test
-    void testContentIdInHeaders() throws Exception {
+    void testGlobalIdInHeaders() throws Exception {
         String topicName = TestUtils.generateTopic();
         // because of using TopicIdStrategy
         String artifactId = topicName + "-value";
@@ -561,23 +560,23 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(avroSchema::generateRecord).withDataValidator(avroSchema::validateRecord)
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-                .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
-                .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withProducerProperty(SerdeConfig.USE_ID, IdOption.globalId.name())
+                .withConsumerProperty(SerdeConfig.USE_ID, IdOption.globalId.name())
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
                         VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts()
                                 .byArtifactId(artifactId).versions().byVersionExpression("branch=latest")
                                 .get();
-                        registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
+                        registryClient.ids().contentIds().byContentId(meta.getContentId()).get();
                         return true;
                     });
                 }).build().test();
 
     }
 
-    // test use contentId magic byte
+    // test use globalId magic byte
     @Test
-    void testContentIdInBody() throws Exception {
+    void testGlobalIdInBody() throws Exception {
         String topicName = TestUtils.generateTopic();
         // because of using TopicIdStrategy
         String artifactId = topicName + "-value";
@@ -590,9 +589,8 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(avroSchema::generateRecord).withDataValidator(avroSchema::validateRecord)
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
-                .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
-                .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withProducerProperty(SerdeConfig.USE_ID, IdOption.globalId.name())
+                .withConsumerProperty(SerdeConfig.USE_ID, IdOption.globalId.name())
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
                         VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts()
@@ -608,9 +606,9 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
     // disabled because the setup process to have an artifact with different globalId/contentId is not
     // reliable
     @Disabled
-    // test producer use contentId, consumer default
+    // test producer use globalId, consumer default
     @Test
-    void testProducerUsesContentIdConsumerUsesDefault() throws Exception {
+    void testProducerUsesGlobalIdConsumerUsesDefault() throws Exception {
         String topicName = TestUtils.generateTopic();
         // because of using TopicIdStrategy
         String artifactId = topicName + "-value";
@@ -632,15 +630,14 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         new WrongConfiguredConsumerTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(avroSchema::generateRecord).withDataValidator(avroSchema::validateRecord)
-                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-                .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withProducerProperty(SerdeConfig.USE_ID, IdOption.globalId.name())
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
                         VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts()
                                 .byArtifactId(artifactId).versions().byVersionExpression("branch=latest")
                                 .get();
-                        registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
+                        registryClient.ids().contentIds().byContentId(meta.getContentId()).get();
                         return true;
                     });
                 }).build().test();
@@ -650,9 +647,9 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
     // disabled because the setup process to have an artifact with different globalId/contentId is not
     // reliable
     @Disabled
-    // test producer use default, consumer use contentId
+    // test producer use default, consumer use globalId
     @Test
-    void testProducerUsesDefaultConsumerUsesContentId() throws Exception {
+    void testProducerUsesDefaultConsumerUsesGlobalId() throws Exception {
         String topicName = TestUtils.generateTopic();
         // because of using TopicIdStrategy
         String artifactId = topicName + "-value";
@@ -673,15 +670,14 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         new WrongConfiguredConsumerTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(avroSchema::generateRecord).withDataValidator(avroSchema::validateRecord)
-                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-                .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
+                .withConsumerProperty(SerdeConfig.USE_ID, IdOption.globalId.name())
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
                         VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts()
                                 .byArtifactId(artifactId).versions().byVersionExpression("branch=latest")
                                 .get();
-                        registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
+                        registryClient.ids().contentIds().byContentId(meta.getContentId()).get();
                         return true;
                     });
                 }).build().test();

@@ -1,12 +1,10 @@
 [id="migration-table_{context}"]
-= {registry} V2 to V3 configuration migration
+= {registry} version 2 to version 3 configuration changes
 
-The following {registry} configuration options are available for each component category:
+{registry} v3 has simplified the configuration options, removing duplicates and improving consistency.
+For most options, the only change is ssrenaming of the prefix from `registry` to `apicurio`, for example, changing `registry.kafkasql.bootstrap.servers` to `apicurio.kafkasql.bootstrap.servers`.
 
-Starting with {registry} v3 we have simplified the different configuration options, removing duplicities and improved consistency.
-In the following table you can see a migration table for options that were present in {registry} 2.x and have changed in some fashion.
-For most options, the only change is the renaming of the prefix from `registry` to `apicurio`, like, for instance, changing `registry.kafkasql.bootstrap.servers` to `apicurio.kafkasql.bootstrap.servers`.
-Also note that, for every configuration property mentioned in the table, you also have the possibility of overriding the value by using the corresponding environment variable, in the case above, `APICURIO_KAFKA_SQL_BOOTSTRAP_SERVERS`.
+NOTE: For each configuration property you can override the value by using the corresponding environment variable, for example, `APICURIO_KAFKA_SQL_BOOTSTRAP_SERVERS`.s
 
 == api
 .api configuration options

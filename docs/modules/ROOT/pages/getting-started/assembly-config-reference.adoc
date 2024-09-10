@@ -24,3 +24,4 @@ endif::[]
 
 //INCLUDES
 include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-config-migration.adoc[leveloffset=+1]

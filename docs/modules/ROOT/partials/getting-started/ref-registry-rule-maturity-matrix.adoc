@@ -28,7 +28,7 @@ a| Full
 a| Mapping detection not supported
 |*OpenAPI*
 a| Full
-a| None
+a| Full
 a| Full
 |*AsyncAPI*
 a| Syntax Only

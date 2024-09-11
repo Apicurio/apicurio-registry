@@ -12,7 +12,7 @@ export type IfAuthProps = {
     isDeveloper?: boolean;
     isOwner?: boolean;
     isAdminOrOwner?: boolean;
-    owner?: string;
+    owner?: string | null;
     children?: React.ReactNode;
 };
 

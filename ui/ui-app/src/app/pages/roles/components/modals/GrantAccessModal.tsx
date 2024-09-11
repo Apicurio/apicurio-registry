@@ -46,9 +46,9 @@ export const GrantAccessModal: FunctionComponent<GrantAccessModalProps> = (props
     useEffect(() => {
         if (props.isOpen && props.defaultRole) {
             setAccountId(props.defaultRole.principalId!);
-            setAccountName(props.defaultRole.principalName);
-            setCurrentRole(props.defaultRole.role);
-            setRole(props.defaultRole.role);
+            setAccountName(props.defaultRole.principalName || "");
+            setCurrentRole(props.defaultRole.role || undefined);
+            setRole(props.defaultRole.role || undefined);
         }
     }, [props]);
 

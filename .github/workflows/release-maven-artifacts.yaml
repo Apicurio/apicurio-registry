@@ -64,13 +64,12 @@ jobs:
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Maven Deploy
-        if: github.event.inputs.skip-maven-deploy == 'false'
         run: |
           cd registry
           # Retry 3 times before the steps actually fails
-          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
+          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Prelease -DskipTests -Dspotless.check.skip=true --settings /home/runner/.m2/settings.xml) || \
+          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Prelease -DskipTests -Dspotless.check.skip=true --settings /home/runner/.m2/settings.xml) || \
+          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Prelease -DskipTests -Dspotless.check.skip=true --settings /home/runner/.m2/settings.xml) || \
           (echo "==== Maven Deploy Step Failed ====" && exit 1)
 
       - name: Google Chat Notification

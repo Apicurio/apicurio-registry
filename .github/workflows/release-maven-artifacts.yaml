@@ -64,7 +64,6 @@ jobs:
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Maven Deploy
-        if: github.event.inputs.skip-maven-deploy == 'false'
         run: |
           cd registry
           # Retry 3 times before the steps actually fails

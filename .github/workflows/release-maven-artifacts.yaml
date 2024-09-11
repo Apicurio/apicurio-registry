@@ -49,6 +49,12 @@ jobs:
               exit 1	  
           fi
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
       - name: Set up settings.xml
         run: |
           pwd
@@ -64,13 +70,15 @@ jobs:
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Maven Deploy
-        run: |
-          cd registry
-          # Retry 3 times before the steps actually fails
-          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Prelease -DskipTests -Dspotless.check.skip=true --settings /home/runner/.m2/settings.xml) || \
-          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Prelease -DskipTests -Dspotless.check.skip=true --settings /home/runner/.m2/settings.xml) || \
-          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Prelease -DskipTests -Dspotless.check.skip=true --settings /home/runner/.m2/settings.xml) || \
-          (echo "==== Maven Deploy Step Failed ====" && exit 1)
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 5
+          retry_on: error
+          retry_wait_seconds: 120
+          command: |
+            cd registry
+            mvn deploy --batch-mode -Pprod -Prelease -DskipTests -Dspotless.check.skip=true --settings /home/runner/.m2/settings.xml
 
       - name: Google Chat Notification
         if: ${{ failure() }}

@@ -1,4 +1,4 @@
-name: Validate OpenAPI schema with Spectral
+name: Validate Docs & Playbook
 on:
   workflow_call: { }
   pull_request:

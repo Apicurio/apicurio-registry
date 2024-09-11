@@ -140,8 +140,16 @@
     <!-- UI Build Tools -->
     <node.version>16.17.0</node.version>
 
-    <!-- Quarkus Version -->
+    <!--
+    WARNING: The following group of dependencies has to be aligned with the corresponding Quarkus version.
+    See notes for each entry.
+    -->
     <quarkus.version>3.11.1</quarkus.version>
+    <!-- Go to `io.quarkiverse.operatorsdk:quarkus-operator-sdk-bom` and then to the parent `io.quarkiverse.operatorsdk:quarkus-operator-sdk-parent`. -->
+    <!-- TODO: Fix: Currently, versions are not aligned exactly (3.11.1 vs 3.11.0), because there is no closer version supported by QOSDK. -->
+    <quarkus-operator-sdk.version>6.7.1</quarkus-operator-sdk.version>
+    <java-operator-sdk.version>4.9.0</java-operator-sdk.version>
+    <!-- /WARNING -->
 
     <!-- Jandex -->
     <jandex.version>3.1.8</jandex.version>

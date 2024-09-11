@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator.api.v1;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -13,14 +14,16 @@ import io.apicurio.registry.operator.api.v1.status.Info;
 import io.javaoperatorsdk.operator.api.ObservedGenerationAwareStatus;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.util.List;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({ "conditions", "info" })
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @Getter
 @Setter
+@ToString
 public class ApicurioRegistry3Status extends ObservedGenerationAwareStatus {
 
     /**

@@ -1,0 +1,23 @@
+name: Validate OpenAPI schema with Spectral
+on:
+  workflow_call: { }
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'docs-playbook/**'
+
+jobs:
+  validate:
+    name: Validate Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Generate Documentation
+        run: |
+          cd docs-playbook
+          ./_build-all.sh

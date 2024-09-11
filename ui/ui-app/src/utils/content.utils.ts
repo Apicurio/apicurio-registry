@@ -100,7 +100,7 @@ export function contentToString(content: any): string {
 }
 
 
-export function detectContentType(artifactType: string | undefined, content: string | undefined): string {
+export function detectContentType(artifactType: string | undefined | null, content: string | undefined): string {
     switch (artifactType) {
         case "PROTOBUF":
             return ContentTypes.APPLICATION_PROTOBUF;

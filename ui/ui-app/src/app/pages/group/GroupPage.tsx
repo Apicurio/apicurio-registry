@@ -323,7 +323,7 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
                 isOpen={isCreateArtifactModalOpen}
                 onClose={onCreateArtifactModalClose}
                 onCreate={doCreateArtifact}
-                groupId={group?.groupId} />
+                groupId={group?.groupId as string} />
             <InvalidContentModal
                 error={invalidContentError}
                 isOpen={isInvalidContentModalOpen}

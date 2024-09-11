@@ -6,7 +6,7 @@ import "./ArtifactDescription.css";
  * Properties
  */
 export type ArtifactDescriptionProps = {
-    description: string | undefined;
+    description: string | undefined | null;
     truncate?: boolean;
     className?: string;
     style?: CSSProperties | undefined;

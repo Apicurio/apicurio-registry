@@ -93,7 +93,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Node.js v16
+      - name: Set up Node.js
         uses: actions/setup-node@v1
         with:
           node-version: 18
@@ -101,7 +101,7 @@ jobs:
       - name: Build Registry
         run: |
           cd registry
-          ./mvnw  clean package -pl app,distro/docker -am --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw clean package -pl app,distro/docker -am --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 -Dspotless.check.skip=true
 
       - name: Build the typescript-sdk
         run: |

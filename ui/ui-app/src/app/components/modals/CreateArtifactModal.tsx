@@ -42,7 +42,7 @@ export type Validities = {
     versionDescription?: ValidType;
 };
 
-const checkIdValid = (id: string | undefined): boolean => {
+const checkIdValid = (id: string | undefined | null): boolean => {
     if (!id) {
         //id is optional, server can generate it
         return true;
@@ -60,7 +60,7 @@ const checkIdValid = (id: string | undefined): boolean => {
     }
 };
 
-const validateField = (value: string | undefined): ValidType => {
+const validateField = (value: string | undefined | null): ValidType => {
     const isValid: boolean = checkIdValid(value);
     if (!isValid) {
         return "error";

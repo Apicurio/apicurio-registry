@@ -43,7 +43,7 @@ export const BranchVersionsTabToolbar: FunctionComponent<BranchVersionsToolbarPr
                     <Pagination
                         variant="top"
                         dropDirection="down"
-                        itemCount={ props.results.count }
+                        itemCount={ props.results.count as number }
                         perPage={ props.paging.pageSize }
                         page={ props.paging.page }
                         onSetPage={ onSetPage }

@@ -8,7 +8,7 @@ import { RegistryClientFactory } from "@sdk/lib/sdk";
 import { ApicurioRegistryClient } from "@sdk/lib/generated-client/apicurioRegistryClient.ts";
 import { Labels } from "@sdk/lib/generated-client/models";
 
-export const labelsToAny = (labels: Labels | undefined): any => {
+export const labelsToAny = (labels: Labels | undefined | null): any => {
     const rval: any = {
         ...(labels||{}),
         ...(labels?.additionalData||{})

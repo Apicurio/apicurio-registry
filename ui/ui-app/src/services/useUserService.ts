@@ -74,7 +74,7 @@ export interface UserService {
     currentUser(): UserInfo;
     updateCurrentUser(): Promise<UserInfo>;
     isUserAdmin(): boolean;
-    isUserDeveloper(resourceOwner?: string): boolean;
+    isUserDeveloper(resourceOwner?: string | null): boolean;
     isUserId(userId: string): boolean;
 }
 

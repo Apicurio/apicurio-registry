@@ -60,7 +60,7 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ propert
                     <div className="property-description">{property.description}</div>
                 </FlexItem>
                 <FlexItem className="actions" align={{ default: "alignRight" }}>
-                    <Switch id={property.name} aria-label={property.label}
+                    <Switch id={property.name || undefined} aria-label={property.label || undefined}
                         className="action"
                         isChecked={property.value === "true"}
                         onChange={onCheckboxChange} />

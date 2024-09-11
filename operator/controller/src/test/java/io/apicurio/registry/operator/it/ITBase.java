@@ -62,7 +62,7 @@ public class ITBase {
                 .getOptionalValue(OPERATOR_DEPLOYMENT_PROP, OperatorDeployment.class)
                 .orElse(OperatorDeployment.local);
         deploymentTarget = ConfigProvider.getConfig().getOptionalValue(DEPLOYMENT_TARGET, String.class)
-                .orElse("kubernetes");
+                .orElse("k8s");
         cleanup = ConfigProvider.getConfig().getOptionalValue(CLEANUP, Boolean.class).orElse(true);
 
         setDefaultAwaitilityTimings();

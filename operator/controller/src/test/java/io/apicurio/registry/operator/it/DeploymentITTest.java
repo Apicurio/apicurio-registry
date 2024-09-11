@@ -25,8 +25,10 @@ public class DeploymentITTest extends ITBase {
 
         // Assert
         await().ignoreExceptions().until(() -> {
-            assertThat(client.apps().deployments().inNamespace(getNamespace()).withName("demo").get()
-                    .getStatus().getReadyReplicas()).isEqualTo(1);
+            assertThat(client.apps().deployments().inNamespace(getNamespace()).withName("demo-app-deployment")
+                    .get().getStatus().getReadyReplicas()).isEqualTo(1);
+            assertThat(client.apps().deployments().inNamespace(getNamespace()).withName("demo-ui-deployment")
+                    .get().getStatus().getReadyReplicas()).isEqualTo(1);
             return true;
         });
     }

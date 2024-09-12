@@ -69,7 +69,10 @@ jobs:
           fi
 
       - name: Build and Test Application
-        run: ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+        run: |
+          # TODO: this is a workaround, seems like the dependency is fetched from some cache other than rebuilt
+          ./mvnw install -DskipTests -f utils/protobuf-schema-utilities/pom.xml
+          ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'

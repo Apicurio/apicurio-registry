@@ -25,7 +25,6 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
 
     /**
      * Constructor.
-     * @param config
      */
     public PostgreSQLSqlStatements() {
     }
@@ -55,7 +54,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
@@ -67,7 +66,16 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (tenantId, contentHash) DO NOTHING";
+        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences)" +
+                " VALUES (?, ?, ?, ?, ?, ?)" +
+                " ON CONFLICT (tenantId, contentHash) DO NOTHING";
+    }
+
+    @Override
+    public String upsertGroup() {
+        return "INSERT INTO groups (tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)" +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)" +
+                " ON CONFLICT (tenantId, groupId) DO NOTHING";
     }
 
     /**

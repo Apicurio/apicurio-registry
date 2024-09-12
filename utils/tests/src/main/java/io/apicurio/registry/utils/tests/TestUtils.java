@@ -279,6 +279,10 @@ public class TestUtils {
         void run() throws Exception;
     }
 
+    public static void fork(Runnable runnable) {
+        new Thread(runnable).start();
+    }
+
     public static void retry(RunnableExc runnable) throws Exception {
         retry(() -> {
             runnable.run();

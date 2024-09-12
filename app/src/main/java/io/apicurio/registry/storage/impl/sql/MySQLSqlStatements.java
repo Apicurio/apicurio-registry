@@ -191,6 +191,12 @@ public class MySQLSqlStatements extends CommonSqlStatements {
         );
     }
 
+    @Override
+    public String upsertGroup() {
+        return "INSERT IGNORE INTO artifactgroups (tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)" +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroup()
      * In MySQL, 'groups' is a reserved keyword. We've changed it to artifactgroups,

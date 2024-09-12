@@ -501,6 +501,11 @@ public interface SqlStatements {
     public String insertGroup();
 
     /**
+     * A statement used to insert or update a row into the groups table.
+     */
+    public String upsertGroup();
+
+    /**
      * A statement used to update information about a group.
      */
     public String updateGroup();
@@ -652,5 +657,4 @@ public interface SqlStatements {
      * A statement used to select all version #s for a given artifactId.
      */
     public String selectArtifactVersionsSkipDisabled();
-
 }

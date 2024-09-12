@@ -76,6 +76,16 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                     "VALUES (source.tenantId, source.contentId, source.canonicalHash, source.contentHash, source.content, source.artifactreferences);");
     }
 
+    @Override
+    public String upsertGroup() {
+        return "MERGE INTO groups AS target" +
+                " USING (VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)) AS source (tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)" +
+                " ON (target.tenantId = source.tenantId AND target.groupId = source.groupId)" +
+                " WHEN NOT MATCHED THEN" +
+                " INSERT (tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)" +
+                " VALUES (source.tenantId, source.groupId, source.description, source.artifactsType, source.createdBy, source.createdOn, source.modifiedBy, source.modifiedOn, source.properties)";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertLogConfiguration()
      */

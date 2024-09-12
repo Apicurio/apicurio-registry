@@ -25,7 +25,7 @@
   <artifactId>apicurio-registry-v2-java-sdk</artifactId>
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
-    <kiota.libs.version>1.3.0</kiota.libs.version>
+    <kiota.libs.version>1.4.0</kiota.libs.version>
     <kiota.community.version>0.0.18</kiota.community.version>
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
   </properties>

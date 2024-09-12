@@ -46,7 +46,7 @@ public class DefaultHeadersHandler implements HeadersHandler {
 
     /**
      * @see io.apicurio.registry.serde.headers.HeadersHandler#writeHeaders(org.apache.kafka.common.header.Headers,
-     *      io.apicurio.registry.serde.SchemaLookupResult)
+     *      io.apicurio.registry.resolver.SchemaLookupResult)
      */
     @Override
     public void writeHeaders(Headers headers, ArtifactReference reference) {

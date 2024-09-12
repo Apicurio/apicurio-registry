@@ -1,7 +1,7 @@
 package io.apicurio.tests;
 
-import io.apicurio.tests.utils.Constants;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.utils.Constants;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -23,7 +23,8 @@ public abstract class ConfluentBaseIT extends ApicurioRegistryBaseIT {
 
     @BeforeAll
     void confluentBeforeAll(TestInfo info) throws Exception {
-        confluentService = new CachedSchemaRegistryClient(ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7", 3);
+        confluentService = new CachedSchemaRegistryClient(
+                ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7", 3);
         clearAllConfluentSubjects();
     }
 
@@ -32,23 +33,26 @@ public abstract class ConfluentBaseIT extends ApicurioRegistryBaseIT {
         clearAllConfluentSubjects();
     }
 
-    public int createArtifactViaConfluentClient(ParsedSchema schema, String artifactName) throws IOException, RestClientException, TimeoutException {
+    public int createArtifactViaConfluentClient(ParsedSchema schema, String artifactName)
+            throws IOException, RestClientException, TimeoutException {
         int idOfSchema = confluentService.register(artifactName, schema);
         confluentService.reset(); // clear cache
-        TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL, Constants.TIMEOUT_GLOBAL,
-            () -> {
-                try {
-                    ParsedSchema newSchema = confluentService.getSchemaBySubjectAndId(artifactName, idOfSchema);
-                    logger.info("Checking that created schema is equal to the get schema");
-                    assertThat(schema.toString(), is(newSchema.toString()));
-                    assertThat(confluentService.getVersion(artifactName, schema), is(confluentService.getVersion(artifactName, newSchema)));
-                    logger.info("Created schema with id:{} and name:{}", idOfSchema, newSchema.name());
-                    return true;
-                } catch (IOException | RestClientException e) {
-                    logger.debug("", e);
-                    return false;
-                }
-            });
+        TestUtils.waitFor("Wait until artifact globalID mapping is finished", Constants.POLL_INTERVAL,
+                Constants.TIMEOUT_GLOBAL, () -> {
+                    try {
+                        ParsedSchema newSchema = confluentService.getSchemaBySubjectAndId(artifactName,
+                                idOfSchema);
+                        logger.info("Checking that created schema is equal to the get schema");
+                        assertThat(schema.toString(), is(newSchema.toString()));
+                        assertThat(confluentService.getVersion(artifactName, schema),
+                                is(confluentService.getVersion(artifactName, newSchema)));
+                        logger.info("Created schema with id:{} and name:{}", idOfSchema, newSchema.name());
+                        return true;
+                    } catch (IOException | RestClientException e) {
+                        logger.debug("", e);
+                        return false;
+                    }
+                });
         return idOfSchema;
     }
 
@@ -61,7 +65,7 @@ public abstract class ConfluentBaseIT extends ApicurioRegistryBaseIT {
                         confluentService.deleteSubject(confluentSubject);
                     } catch (RestClientException e) {
                         if (e.getStatus() == 404) {
-                            //subjects may be already deleted
+                            // subjects may be already deleted
                             continue;
                         }
                         throw e;

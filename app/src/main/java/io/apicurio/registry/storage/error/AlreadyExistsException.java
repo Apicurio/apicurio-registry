@@ -4,7 +4,6 @@ public abstract class AlreadyExistsException extends RegistryStorageException {
 
     private static final long serialVersionUID = 5055445625652989500L;
 
-
     protected AlreadyExistsException(Throwable cause) {
         super(cause);
     }

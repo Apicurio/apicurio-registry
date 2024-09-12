@@ -14,9 +14,9 @@ The default Kafka topic name that {registry} uses to store data is `kafkasql-jou
 |Java system property
 |Default value
 | `REGISTRY_KAFKASQL_TOPIC`
-| `registry.kafkasql.topic`
+| `apicurio.kafkasql.topic`
 | `kafkasql-journal`
 | `REGISTRY_KAFKASQL_TOPIC_AUTO_CREATE`
-| `registry.kafkasql.topic.auto-create`
+| `apicurio.kafkasql.topic.auto-create`
 | `true`
 |===

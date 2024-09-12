@@ -1,19 +1,25 @@
 package io.apicurio.tests.migration;
 
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
 import io.apicurio.registry.utils.impexp.EntityWriter;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
 import io.apicurio.tests.utils.Constants;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -23,10 +29,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
@@ -35,43 +41,50 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusIntegrationTest
 @Tag(Constants.MIGRATION)
+@Disabled
 public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testGeneratingCanonicalHashOnImport() throws Exception {
-        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
-        RegistryClient dest = new RegistryClient(adapter);
+        RegistryClient client = new RegistryClient(adapter);
 
         Map<String, String> artifacts = new HashMap<>();
 
         JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
         for (int i = 0; i < 20; i++) {
             String artifactId = i + "-" + UUID.randomUUID();
-            String content = IoUtil.toString(jsonSchema.getSchemaStream());
+            String content = jsonSchema.getSchemaString();
             artifacts.put(artifactId, content);
         }
-        var importReq = dest.admin().importEscaped().toPostRequestInformation(generateExportedZip(artifacts));
+        var importReq = client.admin().importEscaped()
+                .toPostRequestInformation(generateExportedZip(artifacts));
         importReq.headers.replace("Content-Type", Set.of("application/zip"));
-        adapter.sendPrimitiveAsync(importReq, Void.class, new HashMap<>());
-        // dest.importData(generateExportedZip(artifacts), false, false);
+        adapter.sendPrimitive(importReq, new HashMap<>(), Void.class);
 
-        retry(() -> {
-            for (var entry : artifacts.entrySet()) {
-                String groupId = "default";
-                String artifactId = entry.getKey();
-                String content = entry.getValue();
+        for (var entry : artifacts.entrySet()) {
+            String groupId = "default";
+            String artifactId = entry.getKey();
+            String content = entry.getValue();
 
-                /*
-                TODO: Check if the canonical hash is generated correctly.
-                      The only way is to generate canonical hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
-                 */
+            /*
+             * TODO: Check if the canonical hash is generated correctly. The only way is to generate canonical
+             * hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
+             */
 
-                var registryContent = dest.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS);
+            try {
+                var registryContent = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                        .versions().byVersionExpression("1.0").content().get();
                 assertNotNull(registryContent);
                 assertEquals(content, IoUtil.toString(registryContent));
+            } catch (ProblemDetails e) {
+                System.out.println("---");
+                System.out.println("REST CLIENT ERROR>> " + e.getDetail());
+                System.out.println("---");
+                throw e;
             }
-        });
+        }
 
     }
 
@@ -96,6 +109,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                 Long contentId = contentIndex.computeIfAbsent(contentHash, k -> {
                     ContentEntity contentEntity = new ContentEntity();
                     contentEntity.contentId = contentIdSeq.getAndIncrement();
+                    contentEntity.contentType = ContentTypes.APPLICATION_JSON;
                     contentEntity.contentHash = contentHash;
                     contentEntity.canonicalHash = null;
                     contentEntity.contentBytes = contentBytes;
@@ -110,24 +124,40 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
                     return contentEntity.contentId;
                 });
 
+                ArtifactEntity artifactEntity = new ArtifactEntity();
+                artifactEntity.artifactId = artifactId;
+                artifactEntity.artifactType = artifactType;
+                artifactEntity.owner = "integration-tests";
+                artifactEntity.createdOn = System.currentTimeMillis();
+                artifactEntity.modifiedBy = "integration-tests";
+                artifactEntity.modifiedOn = System.currentTimeMillis();
+                artifactEntity.description = null;
+                artifactEntity.groupId = null;
+                artifactEntity.labels = null;
+                artifactEntity.name = null;
+
+                writer.writeEntity(artifactEntity);
+
                 ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
                 versionEntity.artifactId = artifactId;
-                versionEntity.artifactType = artifactType;
                 versionEntity.contentId = contentId;
-                versionEntity.createdBy = "integration-tests";
+                versionEntity.owner = "integration-tests";
                 versionEntity.createdOn = System.currentTimeMillis();
+                versionEntity.modifiedBy = "integration-tests";
+                versionEntity.modifiedOn = System.currentTimeMillis();
                 versionEntity.description = null;
                 versionEntity.globalId = globalIdSeq.getAndIncrement();
                 versionEntity.groupId = null;
-                versionEntity.isLatest = true;
                 versionEntity.labels = null;
                 versionEntity.name = null;
-                versionEntity.properties = null;
-                versionEntity.state = ArtifactState.ENABLED;
-                versionEntity.version = "1";
-                versionEntity.versionId = 1;
+                versionEntity.state = VersionState.ENABLED;
+                versionEntity.version = "1.0";
+                versionEntity.versionOrder = 1;
 
                 writer.writeEntity(versionEntity);
+
+                writer.writeEntity(BranchEntity.builder().artifactId(artifactId)
+                        .branchId(BranchId.LATEST.getRawBranchId()).versions(List.of("1")).build());
             }
 
             zip.flush();

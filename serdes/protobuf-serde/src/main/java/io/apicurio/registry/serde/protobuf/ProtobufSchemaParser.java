@@ -1,8 +1,10 @@
 package io.apicurio.registry.serde.protobuf;
 
+import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
@@ -36,10 +38,12 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
      * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
      */
     @Override
-    public ProtobufSchema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences) {
+    public ProtobufSchema parseSchema(byte[] rawSchema,
+            Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences) {
         try {
-            //textual .proto file
-            ProtoFileElement fileElem = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, IoUtil.toString(rawSchema));
+            // textual .proto file
+            ProtoFileElement fileElem = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                    IoUtil.toString(rawSchema));
             Map<String, ProtoFileElement> dependencies = new HashMap<>();
             resolvedReferences.forEach((key, value) -> {
                 dependencies.put(key, value.getParsedSchema().getProtoFileElement());
@@ -50,10 +54,11 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             MessageElement firstMessage = FileDescriptorUtils.firstMessage(fileElem);
             if (firstMessage != null) {
                 try {
-                    final Descriptors.Descriptor fileDescriptor = FileDescriptorUtils.toDescriptor(firstMessage.getName(), fileElem, dependencies);
+                    final Descriptors.Descriptor fileDescriptor = FileDescriptorUtils
+                            .toDescriptor(firstMessage.getName(), fileElem, dependencies);
                     return new ProtobufSchema(fileDescriptor.getFile(), fileElem);
                 } catch (IllegalStateException ise) {
-                    //If we fail to init the dynamic schema, try to get the descriptor from the proto element
+                    // If we fail to init the dynamic schema, try to get the descriptor from the proto element
                     return getFileDescriptorFromElement(fileElem);
                 }
             } else {
@@ -61,18 +66,37 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             }
         } catch (DescriptorValidationException pe) {
             throw new SerializationException("Error parsing protobuf schema ", pe);
+        } catch (IllegalStateException illegalStateException) {
+            // If qe get here the server likely returned the full descriptor, try to parse it.
+            return parseDescriptor(rawSchema);
         }
     }
 
-    private ProtobufSchema getFileDescriptorFromElement(ProtoFileElement fileElem) throws DescriptorValidationException {
+    private ProtobufSchema parseDescriptor(byte[] rawSchema) {
+        // Try to parse the binary format, in case the server has returned the descriptor format.
+        try {
+            DescriptorProtos.FileDescriptorProto fileDescriptorProto = DescriptorProtos.FileDescriptorProto
+                    .parseFrom(rawSchema);
+            ProtoFileElement protoFileElement = FileDescriptorUtils
+                    .fileDescriptorToProtoFile(fileDescriptorProto);
+            return new ProtobufSchema(FileDescriptorUtils.protoFileToFileDescriptor(fileDescriptorProto),
+                    protoFileElement);
+        } catch (InvalidProtocolBufferException | DescriptorValidationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private ProtobufSchema getFileDescriptorFromElement(ProtoFileElement fileElem)
+            throws DescriptorValidationException {
         FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
         return new ProtobufSchema(fileDescriptor, fileElem);
     }
 
-    private void addReferencesToDependencies
-            (List<ParsedSchema<ProtobufSchema>> schemaReferences, Map<String, ProtoFileElement> dependencies) {
+    private void addReferencesToDependencies(List<ParsedSchema<ProtobufSchema>> schemaReferences,
+            Map<String, ProtoFileElement> dependencies) {
         schemaReferences.forEach(parsedSchema -> {
-            dependencies.put(parsedSchema.referenceName(), parsedSchema.getParsedSchema().getProtoFileElement());
+            dependencies.put(parsedSchema.referenceName(),
+                    parsedSchema.getParsedSchema().getProtoFileElement());
             if (parsedSchema.hasReferences()) {
                 addReferencesToDependencies(parsedSchema.getSchemaReferences(), dependencies);
             }
@@ -90,16 +114,13 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
 
         byte[] rawSchema = IoUtil.toBytes(protoFileElement.toSchema());
 
-        return new ParsedSchemaImpl<ProtobufSchema>()
-                .setParsedSchema(protobufSchema)
+        return new ParsedSchemaImpl<ProtobufSchema>().setParsedSchema(protobufSchema)
                 .setReferenceName(protobufSchema.getFileDescriptor().getName())
-                .setSchemaReferences(handleDependencies(schemaFileDescriptor))
-                .setRawSchema(rawSchema);
+                .setSchemaReferences(handleDependencies(schemaFileDescriptor)).setRawSchema(rawSchema);
     }
 
     @Override
     public ParsedSchema<ProtobufSchema> getSchemaFromData(Record<U> data, boolean dereference) {
-        //dereferencing not supported, just extract with references
         return getSchemaFromData(data);
     }
 
@@ -108,15 +129,15 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
         fileDescriptor.getDependencies().forEach(referenceFileDescriptor -> {
 
             ProtoFileElement referenceProtoFileElement = toProtoFileElement(referenceFileDescriptor);
-            ProtobufSchema referenceProtobufSchema = new ProtobufSchema(referenceFileDescriptor, referenceProtoFileElement);
+            ProtobufSchema referenceProtobufSchema = new ProtobufSchema(referenceFileDescriptor,
+                    referenceProtoFileElement);
 
             byte[] rawSchema = IoUtil.toBytes(referenceProtoFileElement.toSchema());
 
             ParsedSchema<ProtobufSchema> referencedSchema = new ParsedSchemaImpl<ProtobufSchema>()
                     .setParsedSchema(referenceProtobufSchema)
                     .setReferenceName(referenceProtobufSchema.getFileDescriptor().getName())
-                    .setSchemaReferences(handleDependencies(referenceFileDescriptor))
-                    .setRawSchema(rawSchema);
+                    .setSchemaReferences(handleDependencies(referenceFileDescriptor)).setRawSchema(rawSchema);
             schemaReferences.add(referencedSchema);
         });
 
@@ -124,7 +145,8 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     }
 
     /**
-     * This method converts the Descriptor to a ProtoFileElement that allows to get a textual representation .proto file
+     * This method converts the Descriptor to a ProtoFileElement that allows to get a textual representation
+     * .proto file
      *
      * @param fileDescriptor
      * @return textual protobuf representation

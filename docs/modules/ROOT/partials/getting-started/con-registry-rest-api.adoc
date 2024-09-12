@@ -29,9 +29,8 @@ Get the current {registry} user.
 == Compatibility with other schema registry REST APIs
 {registry} also provides compatibility with the following schema registries by including implementations of their respective REST APIs:
 
-* {registry} Core Registry API v1 
+* {registry} Core Registry API v2
 * Confluent Schema Registry API v7
-* CNCF CloudEvents Schema Registry API v0
 
 Applications using Confluent client libraries can use {registry} as a drop-in replacement. 
 ifdef::rh-service-registry[]

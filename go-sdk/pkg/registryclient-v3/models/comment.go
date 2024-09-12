@@ -11,10 +11,10 @@ type Comment struct {
 	additionalData map[string]any
 	// The commentId property
 	commentId *string
-	// The createdBy property
-	createdBy *string
 	// The createdOn property
 	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
+	// The owner property
+	owner *string
 	// The value property
 	value *string
 }
@@ -41,11 +41,6 @@ func (m *Comment) GetCommentId() *string {
 	return m.commentId
 }
 
-// GetCreatedBy gets the createdBy property value. The createdBy property
-func (m *Comment) GetCreatedBy() *string {
-	return m.createdBy
-}
-
 // GetCreatedOn gets the createdOn property value. The createdOn property
 func (m *Comment) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
@@ -64,16 +59,6 @@ func (m *Comment) GetFieldDeserializers() map[string]func(i878a80d2330e89d268963
 		}
 		return nil
 	}
-	res["createdBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetCreatedBy(val)
-		}
-		return nil
-	}
 	res["createdOn"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetTimeValue()
 		if err != nil {
@@ -81,6 +66,16 @@ func (m *Comment) GetFieldDeserializers() map[string]func(i878a80d2330e89d268963
 		}
 		if val != nil {
 			m.SetCreatedOn(val)
+		}
+		return nil
+	}
+	res["owner"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetOwner(val)
 		}
 		return nil
 	}
@@ -97,6 +92,11 @@ func (m *Comment) GetFieldDeserializers() map[string]func(i878a80d2330e89d268963
 	return res
 }
 
+// GetOwner gets the owner property value. The owner property
+func (m *Comment) GetOwner() *string {
+	return m.owner
+}
+
 // GetValue gets the value property value. The value property
 func (m *Comment) GetValue() *string {
 	return m.value
@@ -111,13 +111,13 @@ func (m *Comment) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010
 		}
 	}
 	{
-		err := writer.WriteStringValue("createdBy", m.GetCreatedBy())
+		err := writer.WriteTimeValue("createdOn", m.GetCreatedOn())
 		if err != nil {
 			return err
 		}
 	}
 	{
-		err := writer.WriteTimeValue("createdOn", m.GetCreatedOn())
+		err := writer.WriteStringValue("owner", m.GetOwner())
 		if err != nil {
 			return err
 		}
@@ -147,14 +147,14 @@ func (m *Comment) SetCommentId(value *string) {
 	m.commentId = value
 }
 
-// SetCreatedBy sets the createdBy property value. The createdBy property
-func (m *Comment) SetCreatedBy(value *string) {
-	m.createdBy = value
-}
-
 // SetCreatedOn sets the createdOn property value. The createdOn property
 func (m *Comment) SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
 	m.createdOn = value
+}
+
+// SetOwner sets the owner property value. The owner property
+func (m *Comment) SetOwner(value *string) {
+	m.owner = value
 }
 
 // SetValue sets the value property value. The value property
@@ -167,11 +167,11 @@ type Commentable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetCommentId() *string
-	GetCreatedBy() *string
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
+	GetOwner() *string
 	GetValue() *string
 	SetCommentId(value *string)
-	SetCreatedBy(value *string)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
+	SetOwner(value *string)
 	SetValue(value *string)
 }

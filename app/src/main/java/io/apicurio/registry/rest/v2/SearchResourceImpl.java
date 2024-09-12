@@ -1,28 +1,13 @@
 package io.apicurio.registry.rest.v2;
 
-import java.io.InputStream;
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.interceptor.Interceptors;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.core.Context;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-
+import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
@@ -33,14 +18,29 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
-import io.apicurio.registry.util.ContentTypeUtil;
 import io.apicurio.registry.utils.StringUtil;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.interceptor.Interceptors;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.core.Context;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+
+import java.io.InputStream;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @ApplicationScoped
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class SearchResourceImpl implements SearchResource {
 
@@ -61,14 +61,14 @@ public class SearchResourceImpl implements SearchResource {
     HttpServletRequest request;
 
     /**
-     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(java.lang.String, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.util.List, java.util.List, java.lang.String, java.lang.String, java.lang.Long, java.lang.Long)
+     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifacts(String, BigInteger, BigInteger,
+     *      SortOrder, SortBy, List, List, String, String, Long, Long)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit, SortOrder order,
-            SortBy orderby, List<String> labels, List<String> properties, String description, String group,
-            Long globalId, Long contentId)
-    {
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit,
+            SortOrder order, SortBy orderby, List<String> labels, List<String> properties, String description,
+            String group, Long globalId, Long contentId) {
         if (orderby == null) {
             orderby = SortBy.name;
         }
@@ -80,7 +80,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc
+            : OrderDirection.desc;
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (!StringUtil.isEmpty(name)) {
@@ -90,34 +91,31 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofDescription(description));
         }
         if (!StringUtil.isEmpty(group)) {
-            filters.add(SearchFilter.ofGroup(gidOrNull(group)));
+            filters.add(SearchFilter.ofGroupId(gidOrNull(group)));
         }
 
-        if (labels != null && !labels.isEmpty()) {
-            labels.forEach(label -> filters.add(SearchFilter.ofLabel(label)));
-        }
         if (properties != null && !properties.isEmpty()) {
-            properties.stream()
-                .map(prop -> {
-                   int delimiterIndex = prop.indexOf(":");
-                   String propertyKey;
-                   String propertyValue;
-                   if (delimiterIndex == 0) {
-                       throw new BadRequestException("property search filter wrong formatted, missing left side of ':' delimiter");
-                   }
-                   if (delimiterIndex == (prop.length() - 1)) {
-                       throw new BadRequestException("property search filter wrong formatted, missing right side of ':' delimiter");
-                   }
-                   if (delimiterIndex < 0) {
-                       propertyKey = prop;
-                       propertyValue = null;
-                   } else{
-                       propertyKey = prop.substring(0, delimiterIndex);
-                       propertyValue = prop.substring(delimiterIndex + 1);
-                   }
-                   return SearchFilter.ofProperty(propertyKey, propertyValue);
-                })
-                .forEach(filters::add);
+            properties.stream().map(prop -> {
+                int delimiterIndex = prop.indexOf(":");
+                String propertyKey;
+                String propertyValue;
+                if (delimiterIndex == 0) {
+                    throw new BadRequestException(
+                            "property search filter wrong formatted, missing left side of ':' delimiter");
+                }
+                if (delimiterIndex == (prop.length() - 1)) {
+                    throw new BadRequestException(
+                            "property search filter wrong formatted, missing right side of ':' delimiter");
+                }
+                if (delimiterIndex < 0) {
+                    propertyKey = prop;
+                    propertyValue = null;
+                } else {
+                    propertyKey = prop.substring(0, delimiterIndex);
+                    propertyValue = prop.substring(delimiterIndex + 1);
+                }
+                return SearchFilter.ofLabel(propertyKey, propertyValue);
+            }).forEach(filters::add);
         }
         if (globalId != null && globalId > 0) {
             filters.add(SearchFilter.ofGlobalId(globalId));
@@ -126,16 +124,19 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofContentId(contentId));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(), limit.intValue());
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
+                limit.intValue());
         return V2ApiUtil.dtoToSearchResults(results);
     }
 
     /**
-     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifactsByContent(java.lang.Boolean, io.apicurio.registry.types.ArtifactType, java.lang.Integer, java.lang.Integer, io.apicurio.registry.rest.v2.beans.SortOrder, io.apicurio.registry.rest.v2.beans.SortBy, java.io.InputStream)
+     * @see io.apicurio.registry.rest.v2.SearchResource#searchArtifactsByContent(Boolean, String, BigInteger,
+     *      BigInteger, SortOrder, SortBy, InputStream)
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
-    public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType, BigInteger offset, BigInteger limit, SortOrder order, SortBy orderby, InputStream data) {
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType,
+            BigInteger offset, BigInteger limit, SortOrder order, SortBy orderby, InputStream data) {
 
         if (orderby == null) {
             orderby = SortBy.name;
@@ -147,22 +148,26 @@ public class SearchResourceImpl implements SearchResource {
             limit = BigInteger.valueOf(20);
         }
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc : OrderDirection.desc;
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc
+            : OrderDirection.desc;
 
         if (canonical == null) {
             canonical = Boolean.FALSE;
         }
         ContentHandle content = ContentHandle.create(data);
+        String contentType = getContentType();
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
-        if (ContentTypeUtil.isApplicationYaml(getContentType())) {
+        if (ContentTypeUtil.isApplicationYaml(contentType)) {
             content = ContentTypeUtil.yamlToJson(content);
+            contentType = ContentTypes.APPLICATION_JSON;
         }
+        TypedContent typedContent = TypedContent.create(content, contentType);
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (canonical && artifactType != null) {
-            String canonicalHash = sha256Hash(canonicalizeContent(artifactType, content));
+            String canonicalHash = sha256Hash(canonicalizeContent(artifactType, typedContent).getContent());
             filters.add(SearchFilter.ofCanonicalHash(canonicalHash));
         } else if (!canonical) {
             String contentHash = sha256Hash(content);
@@ -170,13 +175,13 @@ public class SearchResourceImpl implements SearchResource {
         } else {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(), limit.intValue());
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
+                limit.intValue());
         return V2ApiUtil.dtoToSearchResults(results);
     }
 
     /**
-     * Make sure this is ONLY used when request instance is active.
-     * e.g. in actual http request
+     * Make sure this is ONLY used when request instance is active. e.g. in actual http request
      */
     private String getContentType() {
         return request.getContentType();
@@ -193,11 +198,11 @@ public class SearchResourceImpl implements SearchResource {
         return groupId;
     }
 
-    protected ContentHandle canonicalizeContent(String artifactType, ContentHandle content) {
+    protected TypedContent canonicalizeContent(String artifactType, TypedContent content) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            ContentHandle canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
+            TypedContent canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
             return canonicalContent;
         } catch (Exception e) {
             log.debug("Failed to canonicalize content of type: {}", artifactType);

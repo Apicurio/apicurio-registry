@@ -11,14 +11,13 @@ public class MssqlTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Collections.singletonMap("registry.storage.db-kind", "mssql");
+        return Collections.singletonMap("apicurio.storage.sql.kind", "mssql");
     }
 
     @Override
     public List<TestResourceEntry> testResources() {
         if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            return List.of(
-                    new TestResourceEntry(MsSqlEmbeddedTestResource.class));
+            return List.of(new TestResourceEntry(MsSqlEmbeddedTestResource.class));
         } else {
             return Collections.emptyList();
         }

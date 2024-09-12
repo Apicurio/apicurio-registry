@@ -9,11 +9,12 @@ import {
     SearchInput,
     TextContent
 } from "@patternfly/react-core";
-import { Services } from "@services/services.ts";
 import { RootPageHeader } from "@app/components";
-import { ConfigurationProperty } from "@models/configurationProperty.model.ts";
 import { ConfigProperty, PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
 import { If, IfNotEmpty } from "@apicurio/common-ui-components";
+import { AdminService, useAdminService } from "@services/useAdminService.ts";
+import { AlertsService, useAlertsService } from "@services/useAlertsService.tsx";
+import { ConfigurationProperty } from "@sdk/lib/generated-client/models";
 
 
 interface PropertyGroup {
@@ -28,34 +29,43 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
         id: "authn",
         label: "Authentication settings",
         propertyNames: [
-            "registry.auth.basic-auth-client-credentials.enabled",
+            "apicurio.authn.basic-client-credentials.enabled",
         ]
     },
     {
         id: "authz",
         label: "Authorization settings",
         propertyNames: [
-            "registry.auth.owner-only-authorization",
-            "registry.auth.owner-only-authorization.limit-group-access",
-            "registry.auth.anonymous-read-access.enabled",
-            "registry.auth.authenticated-read-access.enabled",
+            "apicurio.auth.owner-only-authorization",
+            "apicurio.auth.owner-only-authorization.limit-group-access",
+            "apicurio.auth.anonymous-read-access.enabled",
+            "apicurio.auth.authenticated-read-access.enabled",
         ]
     },
     {
         id: "compatibility",
         label: "Compatibility settings",
         propertyNames: [
-            "registry.ccompat.legacy-id-mode.enabled",
-            "registry.ccompat.use-canonical-hash",
-            "registry.ccompat.max-subjects",
+            "apicurio.ccompat.legacy-id-mode.enabled",
+            "apicurio.ccompat.use-canonical-hash",
+            "apicurio.ccompat.max-subjects",
         ]
     },
     {
         id: "console",
         label: "Web console settings",
         propertyNames: [
-            "registry.download.href.ttl",
-            "registry.ui.features.readOnly"
+            "apicurio.download.href.ttl.seconds",
+            "apicurio.ui.features.read-only.enabled"
+        ]
+    },
+    {
+        id: "semver",
+        label: "Semantic versioning settings",
+        propertyNames: [
+            "apicurio.semver.validation.enabled",
+            "apicurio.semver.branching.enabled",
+            "apicurio.semver.branching.coerce"
         ]
     },
 ];
@@ -76,8 +86,11 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
     const [filterValue, setFilterValue] = useState("");
     const [searchCriteria, setSearchCriteria] = useState("");
 
+    const admin: AdminService = useAdminService();
+    const alerts: AlertsService = useAlertsService();
+
     const createLoaders = async (): Promise<any> => {
-        return Services.getAdminService().listConfigurationProperties().then( properties => {
+        return admin.listConfigurationProperties().then( properties => {
             setProperties(properties);
             filterProperties(properties);
         }).catch(error => {
@@ -87,7 +100,7 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
 
     const groupFor = (groups: PropertyGroup[], prop: ConfigurationProperty): PropertyGroup => {
         for (const group of groups) {
-            if (group.propertyNames.indexOf(prop.name) >= 0) {
+            if (group.propertyNames.indexOf(prop.name!) >= 0) {
                 return group;
             }
         }
@@ -110,7 +123,7 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
         });
         groups.forEach(group => {
             group.properties = group.properties?.sort(
-                (prop1, prop2) => prop1.label.localeCompare(prop2.label));
+                (prop1, prop2) => prop1.label!.localeCompare(prop2.label!));
         });
         return groups;
     };
@@ -120,8 +133,8 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
             return true;
         }
         const sc: string = searchCriteria.toLocaleLowerCase();
-        return property.label.toLocaleLowerCase().indexOf(sc) >= 0 ||
-            property.description.toLocaleLowerCase().indexOf(sc) >= 0;
+        return property.label!.toLocaleLowerCase().indexOf(sc) >= 0 ||
+            property.description!.toLocaleLowerCase().indexOf(sc) >= 0;
     };
 
     const filterProperties = (properties: ConfigurationProperty[]): void => {
@@ -131,11 +144,11 @@ export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
 
     const onPropertyChange = (property: ConfigurationProperty, newValue: string): void => {
         property.value = newValue;
-        Services.getAdminService().setConfigurationProperty(property.name, newValue).then(() => {
+        admin.setConfigurationProperty(property.name!, newValue).then(() => {
             // The property was updated successfully.  Update the UI to display all config
             // properties (the list may have changed by changing one of the values).
             createLoaders();
-            Services.getAlertsService().settingChanged(property, newValue);
+            alerts.settingChanged(property, newValue);
         }).catch(error => {
             // Failed to set the property... report the error somehow.
             setPageError(toPageError(error, "Error setting configuration property"));

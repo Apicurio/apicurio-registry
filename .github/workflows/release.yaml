@@ -12,14 +12,6 @@ on:
         description: 'Branch to release from'
         required: true
         default: 'main'
-      skip-maven-deploy:
-        description: 'Skip maven deploy'
-        required: true
-        default: 'false'
-      skip-python-sdk:
-        description: 'Skip python sdk deploy'
-        required: true
-        default: 'false'
 jobs:
   release:
     runs-on: ubuntu-20.04
@@ -38,21 +30,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Node.js v16
+      - name: Set up Node.js v18
         uses: actions/setup-node@v1
         with:
-          node-version: 16
-
-      - name: Set up settings.xml
-        run: |
-          pwd
-          mkdir -p /home/runner/.m2
-          chmod 755 /home/runner/.m2
-          echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
-          cat /home/runner/.m2/settings.xml
+          node-version: 18
 
       - name: Set up Gren
         run: npm install github-release-notes -g
+
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Apicurio Registry Checkout
         run: |
@@ -85,18 +75,26 @@ jobs:
           # take only the major, minor and patch
           UI_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
           cd ui
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ui-app
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ../ui-docs
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ../tests
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
 
       - name: Build Registry (All Variants)
         run: |
           cd registry
-          make SKIP_TESTS=true BUILD_FLAGS='-Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5' build-all
+          ./mvnw clean package -pl app -am --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Build the typescript-sdk
+        run: |
+          cd registry/typescript-sdk
+          npm install
+          npm run generate-registry-sdk
+          npm run lint
+          npm run build
 
       - name: Build Registry UI
         run: |
@@ -105,57 +103,6 @@ jobs:
           npm run lint
           npm run build
           npm run package
-
-      - name: Import GPG Key
-        uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: Maven Deploy
-        if: github.event.inputs.skip-maven-deploy == 'false'
-        run: |
-          cd registry
-          # Retry 3 times before the steps actually fails
-          (echo "===== Maven Deploy Attempt: 1 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "===== Maven Deploy Attempt: 2 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "===== Maven Deploy Attempt: 3 ====" && mvn deploy --batch-mode -Pprod -Psql -Pmssql -Pkafkasql -Prelease -DskipTests --settings /home/runner/.m2/settings.xml) || \
-          (echo "==== Maven Deploy Step Failed ====" && exit 1)
-
-      # Python SDK release
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: Install Poetry
-        uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
-        if: github.event.inputs.skip-python-sdk == 'false'
-
-      - name: Release Python SDK
-        run: |
-          cd registry
-          cd python-sdk
-          make publish
-        env:
-          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        if: github.event.inputs.skip-python-sdk == 'false'
-
-      - name: Go - Setup Go
-        uses: actions/setup-go@v5
-        if: github.event.inputs.skip-go-sdk == 'false'
-        with:
-          go-version: '1.20'
-
-      # Needs special tagging to use submodules: https://stackoverflow.com/a/64705638/7898052
-      - name: Release Go SDK
-        run: |
-          cd registry
-          git tag "v${{ github.event.inputs.release-version }}"
-          git tag "go-sdk/v${{ github.event.inputs.release-version }}"
-          git push origin "v${{ github.event.inputs.release-version }}"
-          git push origin "go-sdk/v${{ github.event.inputs.release-version }}"
-          GOPROXY=proxy.golang.org go list -m "github.com/apicurio/apicurio-registry@v${{ github.event.inputs.release-version }}"
-        if: github.event.inputs.skip-go-sdk == 'false'
 
       - name: Commit Release Version Change
         run: |
@@ -204,13 +151,13 @@ jobs:
           # take only the major, minor and patch
           UI_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2"."$3}')
           cd ui
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ui-app
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ../ui-docs
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
           cd ../tests
-          npm version $UI_VERSION
+          npm version $UI_VERSION --allow-same-version
 
       - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |

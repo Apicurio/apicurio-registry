@@ -17,13 +17,15 @@ from kiota_http.httpx_request_adapter import HttpxRequestAdapter
 from apicurioregistrysdk.client.groups.item.artifacts.artifacts_request_builder import (
     ArtifactsRequestBuilder,
 )
-from apicurioregistrysdk.client.models.artifact_meta_data import ArtifactMetaData
+from apicurioregistrysdk.client.models.create_version import CreateVersion
+from apicurioregistrysdk.client.models.if_artifact_exists import IfArtifactExists
+from apicurioregistrysdk.client.models.version_content import VersionContent
 from apicurioregistrysdk.client.registry_client import RegistryClient
-from apicurioregistrysdk.client.models.artifact_content import ArtifactContent
+from apicurioregistrysdk.client.models.create_artifact import CreateArtifact
 
 REGISTRY_HOST = "localhost"
 REGISTRY_PORT = 8080
-REGISTRY_URL = f"http://{REGISTRY_HOST}:{REGISTRY_PORT}/apis/registry/v2"
+REGISTRY_URL = f"http://{REGISTRY_HOST}:{REGISTRY_PORT}/apis/registry/v3"
 MAX_POLL_TIME = 120
 POLL_INTERVAL = 1
 start_time = time.time()
@@ -78,8 +80,11 @@ async def test_basic_upload_download():
     request_adapter.base_url = REGISTRY_URL
     client = RegistryClient(request_adapter)
 
-    payload = ArtifactContent()
-    payload.content = """{
+    payload = CreateArtifact()
+    payload.first_version = CreateVersion()
+    payload.first_version.content = VersionContent()
+    payload.first_version.content.content_type = "application/json"
+    payload.first_version.content.content = """{
         "openapi": "3.0.0",
         "info": {
             "title": "My API",
@@ -87,16 +92,19 @@ async def test_basic_upload_download():
         },
         "paths": {}
     }"""
-    create_artifact = await client.groups.by_group_id("default").artifacts.post(payload)
-    assert create_artifact.id is not None
+    caResponse = await client.groups.by_group_id("default").artifacts.post(payload)
+    assert caResponse.artifact.artifact_id is not None
 
     return_artifact = (
         await client.groups.by_group_id("default")
-        .artifacts.by_artifact_id(create_artifact.id)
-        .get()
+        .artifacts.by_artifact_id(caResponse.artifact.artifact_id)
+        .versions.by_version_expression("branch=latest")
+        .content.get()
     )
     print(str(return_artifact, "utf-8"))
-    assert json.loads(return_artifact) == json.loads(payload.content)
+    assert json.loads(return_artifact) == json.loads(
+        payload.first_version.content.content
+    )
 
 
 @pytest.mark.asyncio
@@ -106,8 +114,12 @@ async def test_issue_3465():
     request_adapter.base_url = REGISTRY_URL
     client = RegistryClient(request_adapter)
 
-    payload = ArtifactContent()
-    payload.content = """{
+    payload = CreateArtifact()
+    payload.artifact_id = "foo"
+    payload.first_version = CreateVersion()
+    payload.first_version.content = VersionContent()
+    payload.first_version.content.content_type = "application/json"
+    payload.first_version.content.content = """{
         "openapi": "3.0.0",
         "info": {
             "title": "My API",
@@ -117,24 +129,23 @@ async def test_issue_3465():
     }"""
 
     query_params = ArtifactsRequestBuilder.ArtifactsRequestBuilderPostQueryParameters(
-        canonical=True, if_exists="RETURN_OR_UPDATE"
+        canonical=True, if_exists=IfArtifactExists.FIND_OR_CREATE_VERSION
     )
 
     artifact_id_headers = HeadersCollection()
-    artifact_id_headers.add("X-Registry-ArtifactId", "foo")
     request_configuration = (
         ArtifactsRequestBuilder.ArtifactsRequestBuilderPostRequestConfiguration(
             headers=artifact_id_headers, query_parameters=query_params
         )
     )
 
-    create_artifact = await client.groups.by_group_id("default").artifacts.post(
+    caResponse = await client.groups.by_group_id("default").artifacts.post(
         payload, request_configuration=request_configuration
     )
-    assert create_artifact.id == "foo"
+    assert caResponse.artifact.artifact_id == "foo"
 
     # check the return or update functionality
-    create_artifact = await client.groups.by_group_id("default").artifacts.post(
+    meta_data = await client.groups.by_group_id("default").artifacts.post(
         payload, request_configuration=request_configuration
     )
-    assert create_artifact.id == "foo"
+    assert caResponse.artifact.artifact_id == "foo"

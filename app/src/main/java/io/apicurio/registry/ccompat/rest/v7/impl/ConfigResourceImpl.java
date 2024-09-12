@@ -22,7 +22,7 @@ import jakarta.interceptor.Interceptors;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
+@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class ConfigResourceImpl extends AbstractResource implements ConfigResource {
 
@@ -30,19 +30,15 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
         try {
             // We're assuming the configuration == compatibility level
             // TODO make it more explicit
-            return new CompatibilityLevelParamDto(Optional.of(
-                    CompatibilityLevel.valueOf(
-                            supplyLevel.get()
-                    )
-            ).get().name());
+            return new CompatibilityLevelParamDto(
+                    Optional.of(CompatibilityLevel.valueOf(supplyLevel.get())).get().name());
         } catch (RuleNotFoundException ex) {
             return new CompatibilityLevelParamDto(CompatibilityLevelDto.Level.NONE.name());
         }
     }
 
     private <X extends Exception> void updateCompatibilityLevel(CompatibilityLevelDto.Level level,
-                                                                Runnable1Ex<RuleConfigurationDto, X> updater,
-                                                                RunnableEx<X> deleter) throws X {
+            Runnable1Ex<RuleConfigurationDto, X> updater, RunnableEx<X> deleter) throws X {
         if (level == CompatibilityLevelDto.Level.NONE) {
             // delete the rule
             deleter.run();
@@ -53,67 +49,67 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             } catch (IllegalArgumentException ex) {
                 throw new IllegalArgumentException("Illegal compatibility level: " + levelString);
             }
-            updater.run(RuleConfigurationDto.builder()
-                    .configuration(levelString).build()); // TODO config should take CompatibilityLevel as param
+            updater.run(RuleConfigurationDto.builder().configuration(levelString).build()); // TODO config
+                                                                                            // should take
+                                                                                            // CompatibilityLevel
+                                                                                            // as param
         }
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public CompatibilityLevelParamDto getGlobalCompatibilityLevel() {
         return getCompatibilityLevel(() -> storage.getGlobalRule(RuleType.COMPATIBILITY).getConfiguration());
     }
 
     @Override
-    @Audited(extractParameters = {"0", AuditingConstants.KEY_RULE})
+    @Audited(extractParameters = { "0", AuditingConstants.KEY_RULE })
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public CompatibilityLevelDto updateGlobalCompatibilityLevel(CompatibilityLevelDto request) {
-        updateCompatibilityLevel(request.getCompatibility(),
-                dto -> {
-                    if (!doesGlobalRuleExist(RuleType.COMPATIBILITY)) {
-                        storage.createGlobalRule(RuleType.COMPATIBILITY, dto);
-                    } else {
-                        storage.updateGlobalRule(RuleType.COMPATIBILITY, dto);
-                    }
-                },
-                () -> storage.deleteGlobalRule(RuleType.COMPATIBILITY));
+        updateCompatibilityLevel(request.getCompatibility(), dto -> {
+            if (!doesGlobalRuleExist(RuleType.COMPATIBILITY)) {
+                storage.createGlobalRule(RuleType.COMPATIBILITY, dto);
+            } else {
+                storage.updateGlobalRule(RuleType.COMPATIBILITY, dto);
+            }
+        }, () -> storage.deleteGlobalRule(RuleType.COMPATIBILITY));
         return request;
     }
 
     @Override
-    @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE})
+    @Audited(extractParameters = { "0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE })
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityLevelDto updateSubjectCompatibilityLevel(String subject, CompatibilityLevelDto request, String groupId) {
-        updateCompatibilityLevel(request.getCompatibility(),
-                dto -> {
-                    if (!doesArtifactRuleExist(subject, RuleType.COMPATIBILITY, groupId)) {
-                        storage.createArtifactRule(groupId, subject, RuleType.COMPATIBILITY, dto);
-                    } else {
-                        storage.updateArtifactRule(groupId, subject, RuleType.COMPATIBILITY, dto);
-                    }
-                },
-                () -> {
-                    try {
-                        storage.deleteArtifactRule(groupId, subject, RuleType.COMPATIBILITY);
-                    } catch (RuleNotFoundException e) {
-                        //Ignore, fail only when the artifact is not found
-                    }
-                });
+    public CompatibilityLevelDto updateSubjectCompatibilityLevel(String subject,
+            CompatibilityLevelDto request, String groupId) {
+        updateCompatibilityLevel(request.getCompatibility(), dto -> {
+            if (!doesArtifactRuleExist(subject, RuleType.COMPATIBILITY, groupId)) {
+                storage.createArtifactRule(groupId, subject, RuleType.COMPATIBILITY, dto);
+            } else {
+                storage.updateArtifactRule(groupId, subject, RuleType.COMPATIBILITY, dto);
+            }
+        }, () -> {
+            try {
+                storage.deleteArtifactRule(groupId, subject, RuleType.COMPATIBILITY);
+            } catch (RuleNotFoundException e) {
+                // Ignore, fail only when the artifact is not found
+            }
+        });
         return request;
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject, String groupId) {
-        return getCompatibilityLevel(() -> storage.getArtifactRule(groupId, subject, RuleType.COMPATIBILITY).getConfiguration());
+        return getCompatibilityLevel(
+                () -> storage.getArtifactRule(groupId, subject, RuleType.COMPATIBILITY).getConfiguration());
     }
 
     @Override
-    @Audited(extractParameters = {"0", AuditingConstants.KEY_ARTIFACT_ID})
+    @Audited(extractParameters = { "0", AuditingConstants.KEY_ARTIFACT_ID })
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityLevelParamDto deleteSubjectCompatibility(String subject, String groupId) {
-        final CompatibilityLevelParamDto compatibilityLevel = getCompatibilityLevel(() ->
-                storage.getArtifactRule(groupId, subject, RuleType.COMPATIBILITY).getConfiguration());
+        final CompatibilityLevelParamDto compatibilityLevel = getCompatibilityLevel(
+                () -> storage.getArtifactRule(groupId, subject, RuleType.COMPATIBILITY).getConfiguration());
         if (!CompatibilityLevel.NONE.name().equals(compatibilityLevel.getCompatibilityLevel())) {
             storage.deleteArtifactRule(groupId, subject, RuleType.COMPATIBILITY);
         }

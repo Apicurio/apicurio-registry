@@ -37,8 +37,7 @@ public class DataExporter {
                     try {
                         writer.writeEntity(entity);
                     } catch (Exception e) {
-                        // TODO do something interesting with this
-                        e.printStackTrace();
+                        log.error("Error writing entity", e);
                         errorCounter.incrementAndGet();
                     }
                     return null;

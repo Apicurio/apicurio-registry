@@ -1,25 +1,22 @@
 package io.apicurio.registry.noprofile;
 
-import static io.apicurio.registry.utils.tests.TestUtils.retry;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import io.apicurio.registry.AbstractResourceTestBase;
-import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 @QuarkusTest
 public class JsonSerdeTest extends AbstractResourceTestBase {
@@ -27,27 +24,27 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
     @Test
     public void testSchema() throws Exception {
         String groupId = "JsonSerdeTest_testSchema";
-        String jsonSchema = new String(getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json").readAllBytes(), StandardCharsets.UTF_8);
+        String jsonSchema = new String(
+                getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json").readAllBytes(),
+                StandardCharsets.UTF_8);
         Assertions.assertNotNull(jsonSchema);
 
         String artifactId = generateArtifactId();
 
-        ArtifactContent content = new ArtifactContent();
-        content.setContent(jsonSchema);
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(content, config -> {
-            config.headers.add("X-Registry-ArtifactId", artifactId + "-value");
-            config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-        }).get(3, TimeUnit.SECONDS);
+        long globalId = createArtifact(groupId, artifactId + "-value", ArtifactType.JSON, jsonSchema,
+                ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
 
         // make sure we have schema registered
-        retry(() -> clientV3.ids().globalIds().byGlobalId(amd.getGlobalId()).get().get(3, TimeUnit.SECONDS));
+        retry(() -> clientV3.ids().globalIds().byGlobalId(globalId).get());
 
         Person person = new Person("Ales", "Justin", 23);
 
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientV3, true);
-             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientV3, true)) {
+            JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientV3,
+                    true)) {
 
-            Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId,
+                    SerdeConfig.ENABLE_HEADERS, "true");
             serializer.configure(configs, false);
 
             deserializer.configure(configs, false);

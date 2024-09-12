@@ -9,4 +9,4 @@ jobs:
   call-image-scan-registry:
     uses: Apicurio/apicurio-gh-workflows/.github/workflows/image-scan.yaml@main
     with:
-      image: quay.io/apicurio/apicurio-registry-mem:latest-snapshot
+      image: quay.io/apicurio/apicurio-registry:latest-snapshot

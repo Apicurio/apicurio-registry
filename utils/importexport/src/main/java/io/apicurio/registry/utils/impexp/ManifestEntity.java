@@ -1,8 +1,8 @@
 package io.apicurio.registry.utils.impexp;
 
-import java.util.Date;
-
 import io.quarkus.runtime.annotations.RegisterForReflection;
+
+import java.util.Date;
 
 @RegisterForReflection
 public class ManifestEntity extends Entity {
@@ -10,12 +10,13 @@ public class ManifestEntity extends Entity {
     public String systemVersion;
     public String systemName;
     public String systemDescription;
-    public String exportVersion = "1.0";
+    public String exportVersion = "3.0";
     public Date exportedOn = new Date();
     public String exportedBy;
+    public String dbVersion;
 
     /**
-     * @see io.apicurio.registry.utils.impexp.Entity#getEntityType()
+     * @see Entity#getEntityType()
      */
     @Override
     public EntityType getEntityType() {

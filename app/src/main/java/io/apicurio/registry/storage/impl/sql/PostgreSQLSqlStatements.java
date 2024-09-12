@@ -1,8 +1,8 @@
 package io.apicurio.registry.storage.impl.sql;
 
 /**
- * PostgreSQL implementation of the sql statements interface.  Provides sql statements that
- * are specific to PostgreSQL, where applicable.
+ * PostgreSQL implementation of the sql statements interface. Provides sql statements that are specific to
+ * PostgreSQL, where applicable.
  */
 public class PostgreSQLSqlStatements extends CommonSqlStatements {
 
@@ -37,7 +37,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
@@ -49,7 +49,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentHash) DO NOTHING";
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, contentType, content, refs) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (contentHash) DO NOTHING";
     }
 
     /**
@@ -57,7 +57,7 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return "INSERT INTO sequences (name, value) VALUES (?, 1) ON CONFLICT (name) DO UPDATE SET value = sequences.value + 1 RETURNING value";
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, 1) ON CONFLICT (seqName) DO UPDATE SET seqValue = sequences.seqValue + 1 RETURNING seqValue";
     }
 
     /**
@@ -65,14 +65,33 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return "INSERT INTO sequences (name, value) VALUES (?, ?) ON CONFLICT (name) DO UPDATE SET value = ?";
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?) ON CONFLICT (seqName) DO UPDATE SET seqValue = ?";
     }
 
     /**
-     * @see SqlStatements#upsertReference()
+     * @see SqlStatements#upsertContentReference()
      */
     @Override
-    public String upsertReference() {
-        return "INSERT INTO artifactreferences (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentId, name) DO NOTHING";
+    public String upsertContentReference() {
+        return "INSERT INTO content_references (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentId, name) DO NOTHING";
+    }
+
+    @Override
+    public String upsertBranch() {
+        return """
+                INSERT INTO branches (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (groupId, artifactId, branchId) DO NOTHING
+                """;
+    }
+
+    @Override
+    public String createDataSnapshot() {
+        throw new IllegalStateException("Snapshot creation is not supported for Postgresql storage");
+    }
+
+    @Override
+    public String restoreFromSnapshot() {
+        throw new IllegalStateException("Restoring from snapshot is not supported for Postgresql storage");
     }
 }

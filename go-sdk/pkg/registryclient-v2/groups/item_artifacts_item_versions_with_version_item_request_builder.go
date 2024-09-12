@@ -21,11 +21,8 @@ type ItemArtifactsItemVersionsWithVersionItemRequestBuilderDeleteRequestConfigur
 
 // ItemArtifactsItemVersionsWithVersionItemRequestBuilderGetQueryParameters retrieves a single version of the artifact content.  Both the `artifactId` and theunique `version` number must be provided.  The `Content-Type` of the response depends on the artifact type.  In most cases, this is `application/json`, but for some types it may be different (for example, `PROTOBUF`).This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 type ItemArtifactsItemVersionsWithVersionItemRequestBuilderGetQueryParameters struct {
-	// Allows the user to specify how references in the content should be treated.
-	// Deprecated: This property is deprecated, use referencesAsHandleReferencesType instead
-	References *string `uriparametername:"references"`
-	// Allows the user to specify how references in the content should be treated.
-	ReferencesAsHandleReferencesType *i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.HandleReferencesType `uriparametername:"references"`
+	// Allows the user to specify if the content should be dereferenced when being returned
+	Dereference *bool `uriparametername:"dereference"`
 }
 
 // ItemArtifactsItemVersionsWithVersionItemRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
@@ -46,7 +43,7 @@ func (m *ItemArtifactsItemVersionsWithVersionItemRequestBuilder) Comments() *Ite
 // NewItemArtifactsItemVersionsWithVersionItemRequestBuilderInternal instantiates a new WithVersionItemRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsWithVersionItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsWithVersionItemRequestBuilder {
 	m := &ItemArtifactsItemVersionsWithVersionItemRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/versions/{version}{?references*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/versions/{version}{?dereference*}", pathParameters),
 	}
 	return m
 }
@@ -58,7 +55,7 @@ func NewItemArtifactsItemVersionsWithVersionItemRequestBuilder(rawUrl string, re
 	return NewItemArtifactsItemVersionsWithVersionItemRequestBuilderInternal(urlParams, requestAdapter)
 }
 
-// Delete deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`are needed. If this is the only version of the artifact, this operation is the same as deleting the entire artifact.This feature is disabled by default and it's discouraged for normal usage. To enable it, set the `registry.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`) * Feature is disabled (HTTP error `405`) * A server error occurred (HTTP error `500`)
+// Delete deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`are needed. If this is the only version of the artifact, this operation is the same as deleting the entire artifact.This feature is disabled by default and it's discouraged for normal usage. To enable it, set the `apicurio.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`) * Feature is disabled (HTTP error `405`) * A server error occurred (HTTP error `500`)
 func (m *ItemArtifactsItemVersionsWithVersionItemRequestBuilder) Delete(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsWithVersionItemRequestBuilderDeleteRequestConfiguration) error {
 	requestInfo, err := m.ToDeleteRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -111,7 +108,7 @@ func (m *ItemArtifactsItemVersionsWithVersionItemRequestBuilder) State() *ItemAr
 	return NewItemArtifactsItemVersionsItemStateRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
-// ToDeleteRequestInformation deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`are needed. If this is the only version of the artifact, this operation is the same as deleting the entire artifact.This feature is disabled by default and it's discouraged for normal usage. To enable it, set the `registry.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`) * Feature is disabled (HTTP error `405`) * A server error occurred (HTTP error `500`)
+// ToDeleteRequestInformation deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`are needed. If this is the only version of the artifact, this operation is the same as deleting the entire artifact.This feature is disabled by default and it's discouraged for normal usage. To enable it, set the `apicurio.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`) * Feature is disabled (HTTP error `405`) * A server error occurred (HTTP error `500`)
 func (m *ItemArtifactsItemVersionsWithVersionItemRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsWithVersionItemRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {

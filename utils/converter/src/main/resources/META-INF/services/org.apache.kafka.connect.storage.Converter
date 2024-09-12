@@ -1,0 +1,3 @@
+io.apicurio.registry.utils.converter.AvroConverter
+io.apicurio.registry.utils.converter.ExtJsonConverter
+io.apicurio.registry.utils.converter.SerdeBasedConverter

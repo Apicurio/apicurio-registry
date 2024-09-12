@@ -2,8 +2,7 @@ name: Validate OpenAPI schema with Spectral
 on:
   workflow_call: { }
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
     paths:
       - common/src/main/resources/META-INF/openapi.json
 
@@ -17,7 +16,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
       - name: Install RHOAS Guidelines linter
         run: |
           npm i @rhoas/spectral-ruleset

@@ -9,6 +9,7 @@
 * Migration
 ** xref:getting-started/assembly-migrating-registry-v1-v2.adoc[]
 * Configuration
+** xref:getting-started/assembly-configuring-registry-security.adoc[]
 ** xref:getting-started/assembly-configuring-the-registry.adoc[]
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]

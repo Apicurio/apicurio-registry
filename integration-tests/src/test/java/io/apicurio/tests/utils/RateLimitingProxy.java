@@ -12,7 +12,8 @@ public class RateLimitingProxy extends LimitingProxy {
     public RateLimitingProxy(int failAfterRequests, String destinationHost, int destinationPort) {
         super(destinationHost, destinationPort);
         // this will rate limit just based on total requests
-        // that means that if buckets=3 the proxy will successfully redirect the first 3 requests and every request after that will be rejected with 429 status
+        // that means that if buckets=3 the proxy will successfully redirect the first 3 requests and every
+        // request after that will be rejected with 429 status
         this.buckets = failAfterRequests;
     }
 

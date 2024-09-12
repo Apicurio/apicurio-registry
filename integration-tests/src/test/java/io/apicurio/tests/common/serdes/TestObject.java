@@ -2,7 +2,6 @@ package io.apicurio.tests.common.serdes;
 
 import java.util.Objects;
 
-
 public class TestObject {
 
     private String name;

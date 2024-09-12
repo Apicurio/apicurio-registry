@@ -1,6 +1,7 @@
 import { FunctionComponent } from "react";
 import { Button, ButtonVariant } from "@patternfly/react-core";
-import { Services } from "../../../services";
+import { AdminService, useAdminService } from "@services/useAdminService.ts";
+import { DownloadRef } from "@sdk/lib/generated-client/models";
 
 
 export type DownloadArtifactsProps = {
@@ -10,6 +11,7 @@ export type DownloadArtifactsProps = {
 
 
 export const DownloadArtifacts: FunctionComponent<DownloadArtifactsProps> = (props: DownloadArtifactsProps) => {
+    const admin: AdminService = useAdminService();
 
     const generateDownloadLink = (fileName: string, href: string): void => {
         const link = document.createElement("a");
@@ -20,11 +22,9 @@ export const DownloadArtifacts: FunctionComponent<DownloadArtifactsProps> = (pro
 
     const downloadArtifacts = () => {
         const { fileName } = props;
-        Services.getAdminService()
-            .exportAs(fileName)
-            .then((response) => {
-                generateDownloadLink(fileName, response?.href);
-            });
+        admin.exportAs(fileName).then((response: DownloadRef) => {
+            generateDownloadLink(fileName, response?.href || "");
+        });
     };
 
     const { downloadLinkLabel = "Download artifacts (.zip)" } = props;

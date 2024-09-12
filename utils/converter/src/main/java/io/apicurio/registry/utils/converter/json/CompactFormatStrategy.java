@@ -1,19 +1,19 @@
 package io.apicurio.registry.utils.converter.json;
 
-import java.nio.ByteBuffer;
-import java.util.Objects;
-
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.serde.AbstractKafkaSerDe;
-import io.apicurio.registry.serde.DefaultIdHandler;
+import io.apicurio.registry.serde.Default4ByteIdHandler;
 import io.apicurio.registry.serde.IdHandler;
+
+import java.nio.ByteBuffer;
+import java.util.Objects;
 
 public class CompactFormatStrategy implements FormatStrategy {
 
     private IdHandler idHandler;
 
     public CompactFormatStrategy() {
-        this(new DefaultIdHandler());
+        this(new Default4ByteIdHandler());
     }
 
     public CompactFormatStrategy(IdHandler idHandler) {
@@ -25,10 +25,10 @@ public class CompactFormatStrategy implements FormatStrategy {
     }
 
     @Override
-    public byte[] fromConnectData(long globalId, byte[] bytes) {
+    public byte[] fromConnectData(long contentId, byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.allocate(1 + idHandler.idSize() + bytes.length);
         buffer.put(AbstractKafkaSerDe.MAGIC_BYTE);
-        idHandler.writeId(ArtifactReference.fromGlobalId(globalId), buffer);
+        idHandler.writeId(ArtifactReference.fromContentId(contentId), buffer);
         buffer.put(bytes);
         return buffer.array();
     }
@@ -37,9 +37,9 @@ public class CompactFormatStrategy implements FormatStrategy {
     public IdPayload toConnectData(byte[] bytes) {
         ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(bytes);
         ArtifactReference reference = idHandler.readId(buffer);
-        long globalId = reference.getGlobalId();
+        long contentId = reference.getContentId();
         byte[] payload = new byte[bytes.length - idHandler.idSize() - 1];
         buffer.get(payload);
-        return new IdPayload(globalId, payload);
+        return new IdPayload(contentId, payload);
     }
 }

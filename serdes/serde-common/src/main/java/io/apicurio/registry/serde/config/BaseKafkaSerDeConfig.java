@@ -1,20 +1,19 @@
 package io.apicurio.registry.serde.config;
 
-import static io.apicurio.registry.serde.SerdeConfig.*;
-
-import java.util.Map;
-
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
+
+import java.util.Map;
+
+import static io.apicurio.registry.serde.SerdeConfig.*;
 
 public class BaseKafkaSerDeConfig extends AbstractConfig {
 
     private static ConfigDef buildConfigDef(ConfigDef base) {
         ConfigDef configDef = new ConfigDef(base)
                 .define(ID_HANDLER, Type.CLASS, ID_HANDLER_DEFAULT, Importance.MEDIUM, "TODO docs")
-                .define(ENABLE_CONFLUENT_ID_HANDLER, Type.BOOLEAN, false, Importance.LOW, "TODO docs")
                 .define(ENABLE_HEADERS, Type.BOOLEAN, ENABLE_HEADERS_DEFAULT, Importance.MEDIUM, "TODO docs")
                 .define(HEADERS_HANDLER, Type.CLASS, HEADERS_HANDLER_DEFAULT, Importance.MEDIUM, "TODO docs")
                 .define(USE_ID, Type.STRING, USE_ID_DEFAULT, Importance.MEDIUM, "TODO docs");
@@ -31,10 +30,6 @@ public class BaseKafkaSerDeConfig extends AbstractConfig {
 
     public Object getIdHandler() {
         return this.get(ID_HANDLER);
-    }
-
-    public boolean enableConfluentIdHandler() {
-        return this.getBoolean(ENABLE_CONFLUENT_ID_HANDLER);
     }
 
     public boolean enableHeaders() {

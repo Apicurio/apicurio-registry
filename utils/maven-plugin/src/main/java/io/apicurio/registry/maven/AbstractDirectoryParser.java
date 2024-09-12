@@ -3,10 +3,14 @@ package io.apicurio.registry.maven;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 import org.slf4j.Logger;
@@ -35,7 +39,9 @@ public abstract class AbstractDirectoryParser<Schema> {
 
     public abstract ParsedDirectoryWrapper<Schema> parse(File rootSchema);
 
-    public abstract List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact, Schema schema, Map<String, ContentHandle> fileContents) throws FileNotFoundException, ExecutionException, InterruptedException;
+    public abstract List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact,
+            Schema schema, Map<String, TypedContent> fileContents)
+            throws FileNotFoundException, ExecutionException, InterruptedException;
 
     protected ContentHandle readSchemaContent(File schemaFile) {
         try {
@@ -51,29 +57,35 @@ public abstract class AbstractDirectoryParser<Schema> {
         nestedSchema.setArtifactId(artifactId);
         nestedSchema.setGroupId(rootArtifact.getGroupId());
         nestedSchema.setContentType(rootArtifact.getContentType());
-        nestedSchema.setType(rootArtifact.getType());
+        nestedSchema.setArtifactType(rootArtifact.getArtifactType());
         nestedSchema.setMinify(rootArtifact.getMinify());
         nestedSchema.setContentType(rootArtifact.getContentType());
         nestedSchema.setIfExists(rootArtifact.getIfExists());
         return nestedSchema;
     }
 
-    protected ArtifactReference registerNestedSchema(String referenceName, List<ArtifactReference> nestedArtifactReferences, RegisterArtifact nestedSchema, String artifactContent) throws FileNotFoundException, ExecutionException, InterruptedException {
-        ArtifactMetaData referencedArtifactMetadata = registerArtifact(nestedSchema, IoUtil.toStream(artifactContent), nestedArtifactReferences);
+    protected ArtifactReference registerNestedSchema(String referenceName,
+            List<ArtifactReference> nestedArtifactReferences, RegisterArtifact nestedSchema,
+            String artifactContent) throws FileNotFoundException, ExecutionException, InterruptedException {
+        CreateArtifactResponse car = registerArtifact(nestedSchema, IoUtil.toStream(artifactContent),
+                nestedArtifactReferences);
         ArtifactReference referencedArtifact = new ArtifactReference();
         referencedArtifact.setName(referenceName);
-        referencedArtifact.setArtifactId(referencedArtifactMetadata.getId());
-        referencedArtifact.setGroupId(referencedArtifactMetadata.getGroupId());
-        referencedArtifact.setVersion(referencedArtifactMetadata.getVersion());
+        referencedArtifact.setArtifactId(car.getArtifact().getArtifactId());
+        referencedArtifact.setGroupId(car.getArtifact().getGroupId());
+        referencedArtifact.setVersion(car.getVersion().getVersion());
         return referencedArtifact;
     }
 
-    private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) throws ExecutionException, InterruptedException {
+    private CreateArtifactResponse registerArtifact(RegisterArtifact artifact, InputStream artifactContent,
+            List<ArtifactReference> references) throws ExecutionException, InterruptedException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
-        String type = artifact.getType();
+        String type = artifact.getArtifactType();
         Boolean canonicalize = artifact.getCanonicalize();
+        String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON
+            : artifact.getContentType();
         String data = null;
         try {
             if (artifact.getMinify() != null && artifact.getMinify()) {
@@ -86,8 +98,18 @@ public abstract class AbstractDirectoryParser<Schema> {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        ArtifactContent content = new ArtifactContent();
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(type);
+
+        CreateVersion createVersion = new CreateVersion();
+        createVersion.setVersion(version);
+        createArtifact.setFirstVersion(createVersion);
+
+        VersionContent content = new VersionContent();
         content.setContent(data);
+        content.setContentType(ct);
         content.setReferences(references.stream().map(r -> {
             ArtifactReference ref = new ArtifactReference();
             ref.setArtifactId(r.getArtifactId());
@@ -96,28 +118,17 @@ public abstract class AbstractDirectoryParser<Schema> {
             ref.setName(r.getName());
             return ref;
         }).collect(Collectors.toList()));
-        ArtifactMetaData amd = client
-                .groups()
-                .byGroupId(groupId)
-                .artifacts()
-                .post(content, config -> {
-                    config.queryParameters.ifExists = artifact.getIfExists().value();
-                    config.queryParameters.canonical = canonicalize;
-                    config.headers.add("Content-Type", ContentTypes.APPLICATION_CREATE_EXTENDED);
-                    if (artifactId != null) {
-                        config.headers.add("X-Registry-ArtifactId", artifactId);
-                    }
-                    if (type != null) {
-                        config.headers.add("X-Registry-ArtifactType", type);
-                    }
-                    if (version != null) {
-                        config.headers.add("X-Registry-Version", version);
-                    }
-                })
-                .get();
+        createVersion.setContent(content);
 
-                // client.createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
-        log.info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
+        var amd = client.groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
+            config.queryParameters.ifExists = IfArtifactExists.forValue(artifact.getIfExists().value());
+            config.queryParameters.canonical = canonicalize;
+        });
+
+        // client.createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null,
+        // ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
+        log.info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId,
+                artifactId, amd.getVersion().getGlobalId()));
 
         return amd;
     }

@@ -2,7 +2,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -30,11 +30,11 @@ public class GroupEntityMapper implements RowMapper<GroupEntity> {
         entity.description = rs.getString("description");
         String type = rs.getString("artifactsType");
         entity.artifactsType = type;
-        entity.createdBy = rs.getString("createdBy");
+        entity.owner = rs.getString("owner");
         entity.createdOn = rs.getTimestamp("createdOn").getTime();
         entity.modifiedBy = rs.getString("modifiedBy");
         entity.modifiedOn = ofNullable(rs.getTimestamp("modifiedOn")).map(Timestamp::getTime).orElse(0L);
-        entity.properties = SqlUtil.deserializeProperties(rs.getString("properties"));
+        entity.labels = SqlUtil.deserializeLabels(rs.getString("labels"));
         return entity;
     }
 

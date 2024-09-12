@@ -1,158 +1,163 @@
 package io.apicurio.registry.util;
 
 import io.apicurio.registry.AbstractRegistryTestBase;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
 
-    static List<String> availableTypes = List.of(
-            ArtifactType.JSON,
-            ArtifactType.OPENAPI,
-            ArtifactType.ASYNCAPI,
-            ArtifactType.AVRO,
-            ArtifactType.PROTOBUF,
-            ArtifactType.WSDL,
-            ArtifactType.XML,
-            ArtifactType.XSD,
-            ArtifactType.GRAPHQL
-    );
+    static ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory;
+    static {
+        artifactTypeUtilProviderFactory = new DefaultArtifactTypeUtilProviderImpl();
+    }
+
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}
      */
     @Test
     void testDiscoverType_JSON() {
-        ContentHandle content = resourceToContentHandle("json-schema.json");
-        String type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        TypedContent content = resourceToTypedContentHandle("json-schema.json");
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.JSON, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Avro() {
-        ContentHandle content = resourceToContentHandle("avro.json");
-        String type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        TypedContent content = resourceToTypedContentHandle("avro.json");
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.AVRO, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Avro_Simple() {
-        ContentHandle content = resourceToContentHandle("avro-simple.avsc");
-        Schema s = new Schema.Parser().parse(content.content());
+        TypedContent content = resourceToTypedContentHandle("avro-simple.avsc");
+        Schema s = new Schema.Parser().parse(content.getContent().content());
         assertEquals(Type.STRING, s.getType());
 
-        String type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.AVRO, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Proto() {
-        ContentHandle content = resourceToContentHandle("protobuf.proto");
-        String type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        TypedContent content = resourceToTypedContentHandle("protobuf.proto");
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.PROTOBUF, type);
 
-        content = resourceToContentHandle("protobuf.proto");
-        type = ArtifactTypeUtil.determineArtifactType(content, null, "application/x-protobuf", availableTypes);
+        content = resourceToTypedContentHandle("protobuf.proto");
+        type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.PROTOBUF, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_OpenApi() {
-        ContentHandle content = resourceToContentHandle("openapi.json");
-        String type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        TypedContent content = resourceToTypedContentHandle("openapi.json");
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.OPENAPI, type);
 
-        content = resourceToContentHandle("swagger.json");
-        type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        content = resourceToTypedContentHandle("swagger.json");
+        type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.OPENAPI, type);
 
-        content = resourceToContentHandle("swagger.json");
-        type = ArtifactTypeUtil.determineArtifactType(content, null, "application/json", availableTypes);
+        content = resourceToTypedContentHandle("swagger.json");
+        type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.OPENAPI, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_AsyncApi() {
-        ContentHandle content = resourceToContentHandle("asyncapi.json");
-        String type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        TypedContent content = resourceToTypedContentHandle("asyncapi.json");
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.ASYNCAPI, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_GraphQL() {
-        ContentHandle content = resourceToContentHandle("example.graphql");
-        String type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        TypedContent content = resourceToTypedContentHandle("example.graphql");
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.GRAPHQL, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_DefaultNotFound() {
         Assertions.assertThrows(InvalidArtifactTypeException.class, () -> {
-            ContentHandle content = resourceToContentHandle("example.txt");
-            ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+            TypedContent content = resourceToTypedContentHandle("example.txt");
+            ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         });
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Xml() {
-        ContentHandle content = resourceToContentHandle("xml.xml");
-        String type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        TypedContent content = resourceToTypedContentHandle("xml.xml");
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.XML, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Xsd() {
-        ContentHandle content = resourceToContentHandle("xml-schema.xsd");
-        String type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        TypedContent content = resourceToTypedContentHandle("xml-schema.xsd");
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.XSD, type);
     }
 
     /**
-     * Test method for {@link io.apicurio.registry.util.ArtifactTypeUtil#discoverType(ContentHandle, java.lang.String)}.
+     * Test method for
+     * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.
      */
     @Test
     void testDiscoverType_Wsdl() {
-        ContentHandle content = resourceToContentHandle("wsdl.wsdl");
-        String type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        TypedContent content = resourceToTypedContentHandle("wsdl.wsdl");
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.WSDL, type);
 
-        content = resourceToContentHandle("wsdl-2.0.wsdl");
-        type = ArtifactTypeUtil.determineArtifactType(content, null, null, availableTypes);
+        content = resourceToTypedContentHandle("wsdl-2.0.wsdl");
+        type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.WSDL, type);
     }
 

@@ -1,6 +1,6 @@
-import React, { FunctionComponent } from "react";
-import { Services } from "@services/services.ts";
-import { AuthService } from "@services/auth";
+import React, { FunctionComponent, useEffect, useState } from "react";
+import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { useUserService } from "@services/useUserService.ts";
 
 /**
  * Properties
@@ -12,7 +12,7 @@ export type IfAuthProps = {
     isDeveloper?: boolean;
     isOwner?: boolean;
     isAdminOrOwner?: boolean;
-    owner?: string;
+    owner?: string | null;
     children?: React.ReactNode;
 };
 
@@ -21,31 +21,38 @@ export type IfAuthProps = {
  * indicated authentication parameters are true.
  */
 export const IfAuth: FunctionComponent<IfAuthProps> = (props: IfAuthProps) => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    const user = useUserService();
+    const auth: AuthService = useAuth();
+
+    useEffect(() => {
+        auth.isAuthenticated().then(setIsAuthenticated);
+    }, []);
 
     const accept = () => {
-        const auth: AuthService = Services.getAuthService();
         let rval: boolean = true;
         if (props.enabled !== undefined) {
-            rval = rval && (auth.isAuthenticationEnabled() === props.enabled);
+            rval = rval && (auth.isOidcAuthEnabled() === props.enabled || auth.isBasicAuthEnabled() === props.enabled);
         }
         if (props.isAuthenticated !== undefined) {
-            rval = rval && (auth.isAuthenticated() === props.isAuthenticated);
+            rval = rval && (isAuthenticated === props.isAuthenticated);
         }
         if (props.isAdmin !== undefined) {
-            rval = rval && (auth.isUserAdmin() === props.isAdmin);
+            rval = rval && (user.isUserAdmin() === props.isAdmin);
         }
         if (props.isDeveloper !== undefined) {
-            rval = rval && (auth.isUserDeveloper(props.owner) === props.isDeveloper);
+            rval = rval && (user.isUserDeveloper(props.owner) === props.isDeveloper);
         }
         if (props.isOwner !== undefined && props.owner) {
             if (props.isOwner) {
-                rval = rval && (auth.isUserId(props.owner));
+                rval = rval && (user.isUserId(props.owner));
             } else {
-                rval = rval && (!auth.isUserId(props.owner));
+                rval = rval && (!user.isUserId(props.owner));
             }
         }
         if (props.isAdminOrOwner === true && props.owner) {
-            rval = rval && (auth.isUserAdmin() || auth.isUserId(props.owner));
+            rval = rval && (user.isUserAdmin() || user.isUserId(props.owner));
         }
         return rval;
     };

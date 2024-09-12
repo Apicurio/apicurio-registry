@@ -1,8 +1,6 @@
 import { FunctionComponent, useState } from "react";
 import "./RoleToolbar.css";
 import { If, ObjectSelect } from "@apicurio/common-ui-components";
-import { RoleMapping, RoleTypes } from "@models/roleMapping.model.ts";
-import { Paging } from "@services/groups";
 import {
     Button,
     ButtonVariant,
@@ -15,7 +13,9 @@ import {
     ToolbarItem
 } from "@patternfly/react-core";
 import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
-import { Services } from "@services/services.ts";
+import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { Paging } from "@models/paging.model.ts";
+import { RoleMapping, RoleTypeObject } from "@sdk/lib/generated-client/models";
 
 
 type FilterType = {
@@ -44,15 +44,15 @@ const ROLE_TYPES: RoleType[] = [
         label: "All Roles"
     },
     {
-        type: RoleTypes.READ_ONLY,
+        type: RoleTypeObject.READ_ONLY,
         label: "Viewer"
     },
     {
-        type: RoleTypes.DEVELOPER,
+        type: RoleTypeObject.DEVELOPER,
         label: "Manager"
     },
     {
-        type: RoleTypes.ADMIN,
+        type: RoleTypeObject.ADMIN,
         label: "Administrator"
     }
 ];
@@ -88,6 +88,8 @@ export const RoleToolbar: FunctionComponent<RoleToolbarProps> = (props: RoleTool
         page: 1,
         pageSize: 10
     });
+
+    const logger: LoggerService = useLoggerService();
 
     const getCriteriaValue = (): string => {
         return filterType.type === "account" ? filterValue : roleType.type;
@@ -127,7 +129,7 @@ export const RoleToolbar: FunctionComponent<RoleToolbarProps> = (props: RoleTool
     };
 
     const onToggleAscending = (): void => {
-        Services.getLoggerService().debug("[ArtifactsPageToolbar] Toggle the ascending flag.");
+        logger.debug("[ArtifactsPageToolbar] Toggle the ascending flag.");
         const newAscending: boolean = !filterAscending;
         setFilterAscending(newAscending);
         fireChangeEvent(newAscending, filterType.type, getCriteriaValue(), paging);

@@ -11,6 +11,7 @@ target/
 
 # IntelliJ / IDEA
 .idea/
+.run/
 *.iml
 *.ipr
 *.iws
@@ -21,6 +22,7 @@ website
 *~
 .notes
 **/bin
+*.jar
 
 apicurio-codegen
 /docs/.jbang/
@@ -31,4 +33,4 @@ python-sdk/apicurioregistrysdk/client
 python-sdk/openapi.json
 __pycache__
 
-
+.env

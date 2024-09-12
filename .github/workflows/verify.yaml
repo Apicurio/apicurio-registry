@@ -7,27 +7,24 @@ on:
       - 'README*'
       - 'docs/**'
       - '.github/workflows/**'
-    branches: [ main, '[1-9].[0-9].x' ]
+    branches: [ main ]
   pull_request:
     paths-ignore:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [ main, '[1-9].[0-9].x' ]
+    branches: [ main ]
 
 concurrency:
   # Only run once for latest commit per ref and cancel other (previous) runs.
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  TESTCONTAINERS_RYUK_DISABLED: true
-
 jobs:
   build-verify:
     name: Verify Application Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -60,9 +57,6 @@ jobs:
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
-      - name: Install tools
-        run: .github/scripts/install-tools.sh
-
       - name: Run linter
         run: ./scripts/validate-files.sh
 
@@ -75,7 +69,7 @@ jobs:
           fi
 
       - name: Build and Test Application
-        run: ./mvnw -T 1.5C clean install --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+        run: ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -109,7 +103,7 @@ jobs:
 
   build-verify-ui:
     name: Verify UI Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -118,7 +112,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
       
@@ -141,6 +135,14 @@ jobs:
           echo "Status:    ${{ steps.buildx.outputs.status }}"
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+
+      - name: Build and verify the typescript-sdk
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-registry-sdk
+          npm run lint
+          npm run build
 
       - name: Install Dependencies
         run: |
@@ -201,7 +203,7 @@ jobs:
 
   build-native-images:
     name: Build and Test Native images
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -222,13 +224,13 @@ jobs:
           ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
 
       - name: Build Application
-        run: ./mvnw -T 1.5C clean install -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress
+        run: ./mvnw  clean package -pl app,distro/docker -am -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 --no-transfer-progress
 
       - name: Build Native executables
         env:
           SKIP_TESTS: "true"
         run: |
-          ./mvnw -T 1.5C package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
+          ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
 
       - name: Build and Push Temporary image for testing
         env:
@@ -260,7 +262,7 @@ jobs:
         run: ./.github/scripts/collect_logs.sh
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v4.0.0
         with:
           name: tests-logs
           path: artifacts
@@ -305,8 +307,8 @@ jobs:
 
   build-verify-python-sdk:
     name: Verify Python SDK
-    runs-on: ubuntu-20.04
-    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v3
@@ -334,7 +336,7 @@ jobs:
         run: make lint-check
 
       - name: Build Registry
-        run: mvn clean install -am -pl app -Dskip.npm -DskipTests=true --no-transfer-progress
+        run: mvn clean package -pl app -am -Dskip.npm -DskipTests=true --no-transfer-progress
 
       - name: Run the tests
         working-directory: python-sdk
@@ -342,8 +344,8 @@ jobs:
 
   build-verify-go-sdk:
     name: Verify Go SDK
-    runs-on: ubuntu-20.04
-    # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
         uses: actions/checkout@v3
@@ -361,7 +363,7 @@ jobs:
           go-version: '1.20'
 
       - name: Build Registry
-        run: mvn clean install -am -pl app -Dskip.npm -DskipTests=true --no-transfer-progress
+        run: mvn clean package -pl app -am -Dskip.npm -DskipTests=true --no-transfer-progress
 
       - name: Run the tests
         working-directory: go-sdk
@@ -369,7 +371,7 @@ jobs:
 
   notify-sdk:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         language: [ js ]

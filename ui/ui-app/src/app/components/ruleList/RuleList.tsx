@@ -1,9 +1,17 @@
 import React, { FunctionComponent } from "react";
 import "./RuleList.css";
-import { Button, Flex, FlexItem, Grid, GridItem, Tooltip } from "@patternfly/react-core";
+import { Button, Flex, FlexItem, Grid, GridItem, TextContent, Tooltip } from "@patternfly/react-core";
 import { CheckIcon, CodeBranchIcon, OkIcon, TrashIcon } from "@patternfly/react-icons";
-import { CompatibilitySelect, IfAuth, IfFeature, IntegritySelect, ValiditySelect } from "@app/components";
-import { Rule } from "@models/rule.model.ts";
+import {
+    CompatibilityLabel,
+    CompatibilitySelect,
+    IntegrityLabel,
+    IntegritySelect, RuleListType,
+    RuleValue,
+    ValidityLabel,
+    ValiditySelect
+} from "@app/components";
+import { Rule } from "@sdk/lib/generated-client/models";
 
 
 export type RuleListProps = {
@@ -11,6 +19,7 @@ export type RuleListProps = {
     onDisableRule: (ruleType: string) => void;
     onConfigureRule: (ruleType: string, config: string) => void;
     rules: Rule[];
+    type: RuleListType;
 };
 
 const NAME_COLUMN_WIDTH: string = "250px";
@@ -18,7 +27,7 @@ const NAME_COLUMN_WIDTH: string = "250px";
 export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps) => {
 
     const isRuleEnabled = (ruleType: string): boolean => {
-        return props.rules.filter(rule => rule.type === ruleType).length > 0;
+        return props.rules.filter(rule => rule.ruleType === ruleType).length > 0;
     };
 
     const getRuleRowClasses = (ruleType: string): string => {
@@ -37,9 +46,9 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
     };
 
     const getRuleConfig = (ruleType: string): string => {
-        const frules: Rule[] = props.rules.filter(r => r.type === ruleType);
+        const frules: Rule[] = props.rules.filter(r => r.ruleType === ruleType);
         if (frules.length === 1) {
-            return frules[0].config;
+            return frules[0].config as string;
         } else {
             return "UNKNOWN";
         }
@@ -63,6 +72,12 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
         };
     };
 
+    const validityRuleLabel: React.ReactElement = (
+        <TextContent>
+            <ValidityLabel value={getRuleConfig("VALIDITY")} />
+        </TextContent>
+    );
+
     let validityRuleActions: React.ReactElement = (
         <Button variant="secondary"
             key="enable-action"
@@ -82,6 +97,13 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
             </React.Fragment>
         );
     }
+
+    const compatibilityRuleLabel: React.ReactElement = (
+        <TextContent>
+            <CompatibilityLabel value={getRuleConfig("COMPATIBILITY")} />
+        </TextContent>
+    );
+
     let compatibilityRuleActions: React.ReactElement = (
         <Button variant="secondary"
             key="enable-action"
@@ -101,6 +123,13 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
             </React.Fragment>
         );
     }
+
+    const integrityRuleLabel: React.ReactElement = (
+        <TextContent>
+            <IntegrityLabel value={getRuleConfig("INTEGRITY")} />
+        </TextContent>
+    );
+
     let integrityRuleActions: React.ReactElement = (
         <Button variant="secondary"
             key="enable-action"
@@ -122,13 +151,13 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
     }
 
     const validityDescription = (
-        <span>Ensure that content is <em>valid</em> when updating this artifact.</span>
+        <span>Ensure that content is <em>valid</em> when creating an artifact or artifact version.</span>
     );
     const compatibilityDescription = (
-        <span>Enforce a compatibility level when updating this artifact (for example, select Backward for backwards compatibility).</span>
+        <span>Enforce a compatibility level when creating a new artifact version (for example, select Backward for backwards compatibility).</span>
     );
     const integrityDescription = (
-        <span>Enforce artifact reference integrity when creating or updating artifacts.  Enable and configure this rule to ensure that artifact references provided are correct.</span>
+        <span>Enforce artifact reference integrity when creating an artifact or artifact version.  Enable and configure this rule to ensure that provided artifact references are correct.</span>
     );
 
     return (
@@ -147,11 +176,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <IfAuth isDeveloper={true}>
-                            <IfFeature feature="readOnly" isNot={true}>
-                                { validityRuleActions}
-                            </IfFeature>
-                        </IfAuth>
+                        <RuleValue type={props.type} actions={validityRuleActions} label={validityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>
@@ -169,11 +194,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <IfAuth isDeveloper={true}>
-                            <IfFeature feature="readOnly" isNot={true}>
-                                { compatibilityRuleActions }
-                            </IfFeature>
-                        </IfAuth>
+                        <RuleValue type={props.type} actions={compatibilityRuleActions} label={compatibilityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>
@@ -191,11 +212,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <IfAuth isDeveloper={true}>
-                            <IfFeature feature="readOnly" isNot={true}>
-                                { integrityRuleActions }
-                            </IfFeature>
-                        </IfAuth>
+                        <RuleValue type={props.type} actions={integrityRuleActions} label={integrityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>

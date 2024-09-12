@@ -2,7 +2,6 @@ package io.apicurio.registry.resolver.strategy;
 
 public class ArtifactCoordinates {
 
-
     private String groupId;
 
     private String artifactId;
@@ -10,7 +9,7 @@ public class ArtifactCoordinates {
     private String version;
 
     protected ArtifactCoordinates() {
-        //empty initialize using setters
+        // empty initialize using setters
     }
 
     public String getGroupId() {
@@ -91,14 +90,13 @@ public class ArtifactCoordinates {
      */
     @Override
     public String toString() {
-        return "ArtifactCoordinates [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version + "]";
+        return "ArtifactCoordinates [groupId=" + groupId + ", artifactId=" + artifactId + ", version="
+                + version + "]";
     }
 
     public static ArtifactCoordinates fromArtifactReference(ArtifactReference artifactReference) {
-        return builder().artifactId(artifactReference.getArtifactId())
-                .groupId(artifactReference.getGroupId())
-                .version(artifactReference.getVersion())
-                .build();
+        return builder().artifactId(artifactReference.getArtifactId()).groupId(artifactReference.getGroupId())
+                .version(artifactReference.getVersion()).build();
     }
 
     public static ArtifactCoordinatesBuilder builder() {

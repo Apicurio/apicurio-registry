@@ -46,7 +46,8 @@ public class ResourceUtils {
         return waitPackageManifestExists(catalog, name, TimeoutBudget.ofDuration(Duration.ofMinutes(5)));
     }
 
-    public static boolean waitPackageManifestExists(String catalog, String name, TimeoutBudget timeoutBudget) {
+    public static boolean waitPackageManifestExists(String catalog, String name,
+            TimeoutBudget timeoutBudget) {
         while (!timeoutBudget.timeoutExpired()) {
             if (Kubernetes.getPackageManifest(catalog, name) != null) {
                 return true;
@@ -76,7 +77,7 @@ public class ResourceUtils {
             // If resource is RoleBinding
             if (resource.getKind().equals("RoleBinding")) {
                 // Iterate over all subjects in this RoleBinding
-                for (Subject s: ((RoleBinding) resource).getSubjects()) {
+                for (Subject s : ((RoleBinding) resource).getSubjects()) {
                     // Change namespace of subject to operator namespace
                     s.setNamespace(namespace);
                 }

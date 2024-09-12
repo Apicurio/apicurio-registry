@@ -6,9 +6,8 @@ import java.util.Set;
 /**
  * Created by aohana
  * <p>
- * Holds the result for a compatibility check
- * incompatibleDifferences - will contain values in case the schema type has difference type information in case the
- * new schema is not compatible (only JSON schema as of now)
+ * Holds the result for a compatibility check incompatibleDifferences - will contain values in case the schema
+ * type has difference type information in case the new schema is not compatible (only JSON schema as of now)
  */
 public class CompatibilityExecutionResult {
 
@@ -31,18 +30,19 @@ public class CompatibilityExecutionResult {
     }
 
     /**
-     * Creates an instance of {@link CompatibilityExecutionResult} that represents "incompatible" results.  This
-     * variant takes the set of {@link CompatibilityDifference}s as the basis of the result.  A non-zero number
-     * of differences indicates incompatibility.
+     * Creates an instance of {@link CompatibilityExecutionResult} that represents "incompatible" results.
+     * This variant takes the set of {@link CompatibilityDifference}s as the basis of the result. A non-zero
+     * number of differences indicates incompatibility.
      */
-    public static CompatibilityExecutionResult incompatibleOrEmpty(Set<CompatibilityDifference> incompatibleDifferences) {
+    public static CompatibilityExecutionResult incompatibleOrEmpty(
+            Set<CompatibilityDifference> incompatibleDifferences) {
         return new CompatibilityExecutionResult(incompatibleDifferences);
     }
 
     /**
-     * Creates an instance of {@link CompatibilityExecutionResult} that represents "incompatible" results.  This
-     * variant takes an Exception and converts that into a set of differences.  Ideally this would never be used,
-     * but some artifact types do not have the level of granularity to report individual differences.
+     * Creates an instance of {@link CompatibilityExecutionResult} that represents "incompatible" results.
+     * This variant takes an Exception and converts that into a set of differences. Ideally this would never
+     * be used, but some artifact types do not have the level of granularity to report individual differences.
      */
     public static CompatibilityExecutionResult incompatible(Exception e) {
         CompatibilityDifference diff = new SimpleCompatibilityDifference(e.getMessage());
@@ -50,8 +50,8 @@ public class CompatibilityExecutionResult {
     }
 
     /**
-     * Creates an instance of {@link CompatibilityExecutionResult} that represents "incompatible" results.  This
-     * variant takes a message.
+     * Creates an instance of {@link CompatibilityExecutionResult} that represents "incompatible" results.
+     * This variant takes a message.
      */
     public static CompatibilityExecutionResult incompatible(String message) {
         CompatibilityDifference diff = new SimpleCompatibilityDifference(message);

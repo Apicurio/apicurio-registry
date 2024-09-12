@@ -86,7 +86,8 @@ public abstract class TestBase {
     @BeforeEach
     protected void beforeEachTest(TestInfo testInfo) {
         LoggerUtils.logDelimiter("#");
-        LOGGER.info("[TEST-START] {}.{}-STARTED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
+        LOGGER.info("[TEST-START] {}.{}-STARTED", testInfo.getTestClass().get().getName(),
+                testInfo.getDisplayName());
         LoggerUtils.logDelimiter("#");
         LOGGER.info("");
     }
@@ -95,17 +96,13 @@ public abstract class TestBase {
     protected void afterEachTest(TestInfo testInfo) {
         LOGGER.info("");
         LoggerUtils.logDelimiter("#");
-        LOGGER.info("[TEST-END] {}.{}-FINISHED", testInfo.getTestClass().get().getName(), testInfo.getDisplayName());
+        LOGGER.info("[TEST-END] {}.{}-FINISHED", testInfo.getTestClass().get().getName(),
+                testInfo.getDisplayName());
         LoggerUtils.logDelimiter("#");
     }
 
-    protected void runTest(
-            ExtensionContext testContext,
-            PersistenceKind persistenceKind,
-            KafkaKind kafkaKind,
-            boolean useKeycloak,
-            boolean testAPI
-    ) throws InterruptedException {
+    protected void runTest(ExtensionContext testContext, PersistenceKind persistenceKind, KafkaKind kafkaKind,
+            boolean useKeycloak, boolean testAPI) throws InterruptedException {
         ApicurioRegistry registry = null;
 
         if (persistenceKind.equals(PersistenceKind.SQL)) {
@@ -121,28 +118,20 @@ public abstract class TestBase {
                 // Deploy noAuthKafka
                 KafkaUtils.deployDefaultKafkaNoAuth(testContext);
 
-                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(
-                        testContext,
-                        useKeycloak
-                );
+                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlNoAuth(testContext,
+                        useKeycloak);
             } else if (kafkaKind.equals(KafkaKind.TLS)) {
                 // Deploy tlsKafka
                 kafka = KafkaUtils.deployDefaultKafkaTls(testContext);
 
-                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(
-                        testContext,
-                        kafka,
-                        useKeycloak
-                );
+                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlTLS(testContext, kafka,
+                        useKeycloak);
             } else if (kafkaKind.equals(KafkaKind.SCRAM)) {
                 // Deploy scramKafka
                 kafka = KafkaUtils.deployDefaultKafkaScram(testContext);
 
-                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(
-                        testContext,
-                        kafka,
-                        useKeycloak
-                );
+                registry = ApicurioRegistryUtils.deployDefaultApicurioRegistryKafkasqlSCRAM(testContext,
+                        kafka, useKeycloak);
             } else {
                 LOGGER.error("Unrecognized KafkaKind: {}.", kafkaKind);
             }

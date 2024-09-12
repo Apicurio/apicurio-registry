@@ -13,7 +13,7 @@ public class Artifact {
     private String name;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
     private Date createdOn;
-    private String createdBy;
+    private String owner;
     private String type;
     private ArtifactState state;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC")
@@ -52,12 +52,12 @@ public class Artifact {
         this.createdOn = createdOn;
     }
 
-    public String getCreatedBy() {
-        return createdBy;
+    public String getOwner() {
+        return owner;
     }
 
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 
     public String getType() {

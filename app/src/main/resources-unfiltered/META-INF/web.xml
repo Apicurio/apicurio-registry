@@ -60,8 +60,6 @@
         <url-pattern>/apis/registry/v2/</url-pattern>
         <url-pattern>/apis/ccompat/v7</url-pattern>
         <url-pattern>/apis/ccompat/v7/</url-pattern>
-        <url-pattern>/apis/cncf/v0</url-pattern>
-        <url-pattern>/apis/cncf/v0/</url-pattern>
         <dispatcher>REQUEST</dispatcher>
         <dispatcher>FORWARD</dispatcher>
     </filter-mapping>
@@ -80,8 +78,6 @@
         <url-pattern>/apis/registry/v2/</url-pattern>
         <url-pattern>/apis/ccompat/v7</url-pattern>
         <url-pattern>/apis/ccompat/v7/</url-pattern>
-        <url-pattern>/apis/cncf/v0</url-pattern>
-        <url-pattern>/apis/cncf/v0/</url-pattern>
     </servlet-mapping>
 
 </web-app>

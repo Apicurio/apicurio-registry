@@ -21,8 +21,7 @@ public class ApicurioRegistryBundleOperatorType extends BundleOperator implement
 
         if (getSource().startsWith("http://") || getSource().startsWith("https://")) {
             Path tmpPath = Environment.getTmpPath(
-                    "apicurio-registry-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml"
-            );
+                    "apicurio-registry-bundle-operator-install-" + Instant.now().getEpochSecond() + ".yaml");
 
             LOGGER.info("Downloading file " + getSource() + " to " + tmpPath + "...");
 

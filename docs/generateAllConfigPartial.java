@@ -1,5 +1,5 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//DEPS org.jboss:jandex:2.4.3.Final
+//DEPS org.jboss:jandex:3.1.7
 
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.DotName;
@@ -20,6 +20,7 @@ import static java.lang.System.*;
 public class generateAllConfigPartial {
 
     private static Map<String, Option> allConfiguration = new HashMap();
+    private static Set<String> skipProperties = Set.of("quarkus.oidc.auth-server-url");
 
     static class Option {
         final String name;
@@ -152,9 +153,12 @@ public class generateAllConfigPartial {
             if (allConfiguration.containsKey(configName)) {
                 continue;
             }
+            if (skipProperties.contains(configName)) {
+                continue;
+            }
             switch (annotation.target().kind()) {
                 case FIELD:
-                    configName = configName.replace("app.authn.", "registry.auth.");
+                    configName = configName.replace("app.authn.", "apicurio.auth.");
 
 
                     var defaultValue = Optional.ofNullable(annotation.value("defaultValue")).map(v -> v.value().toString()).orElse("");
@@ -243,7 +247,7 @@ public class generateAllConfigPartial {
                                 opt.getAvailableFrom()
                         ));
             } else {
-                if (key.startsWith("registry.")) {
+                if (key.startsWith("apicurio.")) {
                     allConfiguration.put(key,
                             new Option(
                                     key,

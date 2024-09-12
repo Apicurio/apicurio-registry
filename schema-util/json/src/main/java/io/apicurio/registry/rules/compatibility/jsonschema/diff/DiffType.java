@@ -2,6 +2,7 @@ package io.apicurio.registry.rules.compatibility.jsonschema.diff;
 
 public enum DiffType {
 
+    // spotless:off
     SUBSCHEMA_TYPE_CHANGED(false),
     SUBSCHEMA_TYPE_CHANGED_TO_EMPTY_OR_TRUE(true),
 
@@ -58,13 +59,13 @@ public enum DiffType {
     OBJECT_TYPE_PROPERTY_SCHEMAS_MEMBER_REMOVED(true),
     OBJECT_TYPE_PROPERTY_SCHEMAS_EXTENDED(true),
     OBJECT_TYPE_PROPERTY_SCHEMAS_NARROWED(false),
+    OBJECT_TYPE_PROPERTY_SCHEMAS_NARROWED_COMPATIBLE_WITH_ADDITIONAL_PROPERTIES(true),
 
     OBJECT_TYPE_PATTERN_PROPERTY_KEYS_ADDED(false),
     OBJECT_TYPE_PATTERN_PROPERTY_KEYS_REMOVED(true),
     OBJECT_TYPE_PATTERN_PROPERTY_KEYS_CHANGED(true),
     OBJECT_TYPE_PATTERN_PROPERTY_KEYS_MEMBER_ADDED(false),
     OBJECT_TYPE_PATTERN_PROPERTY_KEYS_MEMBER_REMOVED(true),
-
 
     ARRAY_TYPE_MIN_ITEMS_ADDED(false),
     ARRAY_TYPE_MIN_ITEMS_REMOVED(true),
@@ -105,6 +106,7 @@ public enum DiffType {
 
     ARRAY_TYPE_ITEM_SCHEMAS_EXTENDED(true),
     ARRAY_TYPE_ITEM_SCHEMAS_NARROWED(false),
+    ARRAY_TYPE_ITEM_SCHEMAS_NARROWED_COMPATIBLE_WITH_ADDITIONAL_PROPERTIES(true),
     ARRAY_TYPE_ITEM_SCHEMAS_CHANGED(false),
 
     STRING_TYPE_MIN_LENGTH_ADDED(false),
@@ -133,14 +135,11 @@ public enum DiffType {
     STRING_TYPE_CONTENT_MEDIA_TYPE_REMOVED(true),
     STRING_TYPE_CONTENT_MEDIA_TYPE_CHANGED(false),
 
-
     CONST_TYPE_VALUE_CHANGED(false),
-
 
     ENUM_TYPE_VALUES_CHANGED(true),
     ENUM_TYPE_VALUES_MEMBER_ADDED(true),
     ENUM_TYPE_VALUES_MEMBER_REMOVED(false),
-
 
     NUMBER_TYPE_MINIMUM_ADDED(false),
     NUMBER_TYPE_MINIMUM_REMOVED(true),
@@ -183,17 +182,16 @@ public enum DiffType {
     COMBINED_TYPE_CRITERION_NARROWED(false),
     COMBINED_TYPE_CRITERION_CHANGED(false),
 
-    COMBINED_TYPE_ONE_OF_SIZE_INCREASED(true), // As long as the existing subschemas maintain compatibility, checked separately.
+    COMBINED_TYPE_ONE_OF_SIZE_INCREASED(true), // As long as the existing sub-schemas maintain compatibility, checked separately.
     COMBINED_TYPE_ONE_OF_SIZE_DECREASED(false),
 
     COMBINED_TYPE_ALL_OF_SIZE_INCREASED(false),
     COMBINED_TYPE_ALL_OF_SIZE_DECREASED(true),
 
-    COMBINED_TYPE_ANY_OF_SIZE_INCREASED(true), // As long as the existing subschemas maintain compatibility, checked separately.
+    COMBINED_TYPE_ANY_OF_SIZE_INCREASED(true), // As long as the existing sub-schemas maintain compatibility, checked separately.
     COMBINED_TYPE_ANY_OF_SIZE_DECREASED(false),
 
     COMBINED_TYPE_SUBSCHEMA_NOT_COMPATIBLE(false),
-
 
     CONDITIONAL_TYPE_IF_SCHEMA_ADDED(false),
     CONDITIONAL_TYPE_IF_SCHEMA_REMOVED(false),
@@ -219,15 +217,13 @@ public enum DiffType {
     REFERENCE_TYPE_TARGET_SCHEMA_ADDED(false),
     REFERENCE_TYPE_TARGET_SCHEMA_REMOVED(false), // TODO Would this cause validation error?
 
-
     NOT_TYPE_SCHEMA_COMPATIBLE_BOTH(true),
     NOT_TYPE_SCHEMA_COMPATIBLE_BACKWARD_NOT_FORWARD(false),
     NOT_TYPE_SCHEMA_COMPATIBLE_FORWARD_NOT_BACKWARD(true),
     NOT_TYPE_SCHEMA_COMPATIBLE_NONE(false),
 
-
     UNDEFINED_UNUSED(false); // Should not be used.
-
+    // spotless:on
 
     private String description;
 

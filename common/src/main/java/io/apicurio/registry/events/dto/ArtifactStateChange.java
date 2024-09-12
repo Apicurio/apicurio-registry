@@ -3,23 +3,14 @@ package io.apicurio.registry.events.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-
 import io.quarkus.runtime.annotations.RegisterForReflection;
-
 
 /**
  * Root Type for ArtifactStateChange
  * <p>
- *
- *
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "groupId",
-    "artifactId",
-    "state",
-    "version"
-})
+@JsonPropertyOrder({ "groupId", "artifactId", "state", "version" })
 @RegisterForReflection
 public class ArtifactStateChange {
 
@@ -27,16 +18,12 @@ public class ArtifactStateChange {
     private String groupId;
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("artifactId")
     private String artifactId;
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("state")
     private String state;
@@ -54,9 +41,7 @@ public class ArtifactStateChange {
     }
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("artifactId")
     public String getArtifactId() {
@@ -64,9 +49,7 @@ public class ArtifactStateChange {
     }
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("artifactId")
     public void setArtifactId(String artifactId) {
@@ -74,9 +57,7 @@ public class ArtifactStateChange {
     }
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("state")
     public String getState() {
@@ -84,9 +65,7 @@ public class ArtifactStateChange {
     }
 
     /**
-     *
      * (Required)
-     *
      */
     @JsonProperty("state")
     public void setState(String state) {

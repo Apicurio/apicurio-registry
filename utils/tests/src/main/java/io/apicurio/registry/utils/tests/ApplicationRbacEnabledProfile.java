@@ -12,8 +12,11 @@ public class ApplicationRbacEnabledProfile implements QuarkusTestProfile {
         Map<String, String> props = new HashMap<>();
         // Note: we need to enable these properties so that we can access the role mapping REST API
         // If these are not set, then the role mapping REST API will fail with a 403
-        props.put("registry.auth.role-based-authorization", "true");
-        props.put("registry.auth.role-source", "application");
+        props.put("apicurio.auth.role-based-authorization", "true");
+        props.put("apicurio.auth.role-source", "application");
+        props.put("apicurio.rest.deletion.group.enabled", "true");
+        props.put("apicurio.rest.deletion.artifact.enabled", "true");
+        props.put("apicurio.rest.deletion.artifactVersion.enabled", "true");
         return props;
     }
 }

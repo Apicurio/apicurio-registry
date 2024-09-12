@@ -16,5 +16,6 @@ public interface Sql<Q> {
 
     public Q bind(int position, byte[] value);
 
+    public Q bind(int position, Boolean value);
 
 }

@@ -1,4 +1,5 @@
 package io.apicurio.registry.systemtests.executor;
+
 import io.apicurio.registry.systemtests.framework.LoggerUtils;
 import org.slf4j.Logger;
 
@@ -111,19 +112,19 @@ public class Exec {
      * Method executes external command
      *
      * @param commands arguments for command
-     * @param timeout  timeout in ms for kill
+     * @param timeout timeout in ms for kill
      * @return returns ecode of execution
      * @throws IOException
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public int exec(List<String> commands, int timeout) throws IOException, InterruptedException, ExecutionException {
+    public int exec(List<String> commands, int timeout)
+            throws IOException, InterruptedException, ExecutionException {
         return exec(null, commands, timeout);
     }
 
     private ProcessBuilder getProcessBuilder(List<String> commands) {
-        ProcessBuilder builder = new ProcessBuilder()
-                .command(commands)
+        ProcessBuilder builder = new ProcessBuilder().command(commands)
                 .directory(new File(System.getProperty("user.dir")));
 
         if (this.env != null) {
@@ -164,17 +165,16 @@ public class Exec {
     /**
      * Method executes external command
      *
-     * @param input    execute commands during execution
+     * @param input execute commands during execution
      * @param commands arguments for command
-     * @param timeout  timeout in ms for kill
+     * @param timeout timeout in ms for kill
      * @return returns ecode of execution
      * @throws IOException
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public int exec(
-            String input, List<String> commands, int timeout
-    ) throws IOException, InterruptedException, ExecutionException {
+    public int exec(String input, List<String> commands, int timeout)
+            throws IOException, InterruptedException, ExecutionException {
         LOGGER.debug("Running command - " + String.join(" ", commands.toArray(new String[0])));
 
         process = getProcessBuilder(commands).start();
@@ -279,14 +279,7 @@ public class Exec {
     }
 
     public static ExecutionResultData executeAndCheck(String input, int timeout, String... commands) {
-        ExecutionResultData results = execute(
-                Arrays.asList(commands),
-                timeout,
-                true,
-                true,
-                null,
-                input
-        );
+        ExecutionResultData results = execute(Arrays.asList(commands), timeout, true, true, null, input);
 
         if (!results.getRetCode()) {
             throw new IllegalStateException(results.getStdErr());
@@ -295,9 +288,8 @@ public class Exec {
         return results;
     }
 
-    public static ExecutionResultData executeAndCheck(
-            List<String> command, int timeout, boolean logToOutput, boolean appendLineSeparator, Map<String, String> env
-    ) {
+    public static ExecutionResultData executeAndCheck(List<String> command, int timeout, boolean logToOutput,
+            boolean appendLineSeparator, Map<String, String> env) {
         ExecutionResultData results = execute(command, timeout, logToOutput, appendLineSeparator, env, null);
         if (!results.getRetCode()) {
             throw new IllegalStateException(results.getStdErr());
@@ -325,26 +317,18 @@ public class Exec {
         return execute(command, timeout, logToOutput, true);
     }
 
-    public static ExecutionResultData execute(
-            List<String> command, int timeout, boolean logToOutput, boolean appendLineSeparator
-    ) {
+    public static ExecutionResultData execute(List<String> command, int timeout, boolean logToOutput,
+            boolean appendLineSeparator) {
         return execute(command, timeout, logToOutput, appendLineSeparator, null);
     }
 
-    public static ExecutionResultData execute(
-            List<String> command, int timeout, boolean logToOutput, boolean appendLineSeparator, Map<String, String> env
-    ) {
+    public static ExecutionResultData execute(List<String> command, int timeout, boolean logToOutput,
+            boolean appendLineSeparator, Map<String, String> env) {
         return execute(command, timeout, logToOutput, appendLineSeparator, env, null);
     }
 
-    public static ExecutionResultData execute(
-            List<String> command,
-            int timeout,
-            boolean logToOutput,
-            boolean appendLineSeparator,
-            Map<String, String> env,
-            String input
-    ) {
+    public static ExecutionResultData execute(List<String> command, int timeout, boolean logToOutput,
+            boolean appendLineSeparator, Map<String, String> env, String input) {
         Exec executor = new Exec(appendLineSeparator);
         try {
             executor.setEnv(env);

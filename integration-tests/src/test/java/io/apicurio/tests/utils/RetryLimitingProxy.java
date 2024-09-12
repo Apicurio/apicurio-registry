@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Block `n` first requests, then allow the rest through.
- * 
  */
 public class RetryLimitingProxy extends LimitingProxy {
 

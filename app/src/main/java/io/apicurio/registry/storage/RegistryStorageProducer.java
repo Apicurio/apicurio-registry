@@ -28,8 +28,8 @@ public class RegistryStorageProducer {
     @Inject
     Instance<RegistryStorageDecorator> decorators;
 
-    @ConfigProperty(name = "registry.storage.kind")
-    @Info
+    @ConfigProperty(name = "apicurio.storage.kind")
+    @Info(category = "storage", description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0.Final")
     String registryStorageType;
 
     private RegistryStorage cachedCurrent;
@@ -54,13 +54,13 @@ public class RegistryStorageProducer {
                     .comparing(RegistryStorageDecorator::order);
 
             List<RegistryStorageDecorator> activeDecorators = decorators.stream()
-                    .filter(RegistryStorageDecorator::isEnabled)
-                    .sorted(decoratorComparator)
+                    .filter(RegistryStorageDecorator::isEnabled).sorted(decoratorComparator)
                     .collect(Collectors.toList());
 
             if (!activeDecorators.isEmpty()) {
                 log.debug("Following RegistryStorage decorators have been enabled (in order): {}",
-                        activeDecorators.stream().map(d -> d.getClass().getName()).collect(Collectors.toList()));
+                        activeDecorators.stream().map(d -> d.getClass().getName())
+                                .collect(Collectors.toList()));
 
                 for (int i = activeDecorators.size() - 1; i >= 0; i--) {
                     RegistryStorageDecorator decorator = activeDecorators.get(i);
@@ -75,7 +75,6 @@ public class RegistryStorageProducer {
         return cachedCurrent;
     }
 
-
     @Produces
     @ApplicationScoped
     @Raw
@@ -88,15 +87,16 @@ public class RegistryStorageProducer {
             } else if ("sql".equals(registryStorageType)) {
                 cachedRaw = sqlRegistryStorage;
             } else {
-                throw new IllegalStateException(String.format("No Registry storage variant defined for value %s", registryStorageType));
+                throw new IllegalStateException(String
+                        .format("No Registry storage variant defined for value %s", registryStorageType));
             }
 
             cachedRaw.initialize();
-            log.info("Using the following RegistryStorage implementation: {}", cachedRaw.getClass().getName());
+            log.info("Using the following RegistryStorage implementation: {}",
+                    cachedRaw.getClass().getName());
         }
         return cachedRaw;
     }
-
 
     @Produces
     @ApplicationScoped

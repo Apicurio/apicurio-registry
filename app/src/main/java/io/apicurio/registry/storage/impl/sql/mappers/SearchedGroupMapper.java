@@ -23,7 +23,7 @@ public class SearchedGroupMapper implements RowMapper<SearchedGroupDto> {
     public SearchedGroupDto map(ResultSet rs) throws SQLException {
         SearchedGroupDto dto = new SearchedGroupDto();
         dto.setId(rs.getString("groupId"));
-        dto.setCreatedBy(rs.getString("createdBy"));
+        dto.setOwner(rs.getString("owner"));
         dto.setCreatedOn(rs.getTimestamp("createdOn"));
         dto.setDescription(rs.getString("description"));
         dto.setModifiedBy(rs.getString("modifiedBy"));

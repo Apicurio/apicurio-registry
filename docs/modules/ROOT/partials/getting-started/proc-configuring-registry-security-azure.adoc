@@ -1,0 +1,97 @@
+// Metadata created by nebel
+
+[id="registry-security-azure_{context}"]
+
+= Configuring {registry} authentication and authorization with Microsoft Azure Active Directory
+
+[role="_abstract"]
+This section explains how to manually configure authentication and authorization options for {registry} and Microsoft Azure Active Directory (Azure AD). 
+
+The {registry} web console and core REST API support authentication in Azure AD based on OpenID Connect (OIDC) and the OAuth Authorization Code Flow. {registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} authentication and authorization settings are disabled by default. 
+
+To secure {registry} with Azure AD, you require a valid directory in Azure AD with specific configuration. This involves registering the {registry} application in the Azure AD portal with recommended settings and configuring environment variables in {registry}.  
+
+.Prerequisites
+* Azure AD is installed and running. For more details, see the link:https://learn.microsoft.com/en-us/azure[Microsoft Azure AD user documentation]. 
+* {registry} is installed and running.
+
+.Procedure
+
+. Log in to the Azure AD portal using your email address or GitHub account. 
+
+. In the navigation menu, select *Manage > App registrations > New registration*, and complete the following settings: 
++
+** *Name*: Enter your application name. For example: `apicurio-registry-example` 
+** *Supported account types*: Click *Accounts in any organizational directory*.
+** *Redirect URI*: Select *Single-page application* from the list, and enter your {registry} web console application host. For example: `\https://test-registry.com/ui/`
++
+IMPORTANT: You must register your {registry} application host as a *Redirect URI*. When logging in, users are redirected from {registry} to Azure AD for authentication, and you want to send them back to your application afterwards. Azure AD does not allow any redirect URLs that are not registered. 
+
+. Click *Register*. You can view your app registration details by selecting *Manage > App registrations* > *apicurio-registry-example*.
+
+. Select *Manage > Authentication* and ensure that the application is configured with your redirect URLs and tokens as follows:
+** *Redirect URIs*: For example: `\https://test-registry.com/ui/`
+** *Implicit grant and hybrid flows*: Click *ID tokens (used for implicit and hybrid flows)*
+
+. Select *Azure AD > Admin > App registrations > Your app > Application (client) ID*. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
+
+. Select *Azure AD > Admin > App registrations > Your app > Directory (tenant) ID*. For example: `\https://login.microsoftonline.com/1a2bc34d-567e-89f1-g0hi-1j2kl3m4no56/v2.0`
+
+. In {registry}, configure the following environment variables with your Azure AD settings:
++
+.Configuration for Azure AD settings in {registry}
+[.table-expandable,width="100%",cols="6,4,6",options="header"]
+|===
+|Environment variable
+|Description
+|Setting
+|`KEYCLOAK_API_CLIENT_ID`
+|The client application ID for the {registry} REST API
+|Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
+|`REGISTRY_OIDC_UI_CLIENT_ID`
+|The client application ID for the {registry} web console.
+|Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
+|`REGISTRY_AUTH_URL_CONFIGURED`
+|The URL for authentication in Azure AD.
+|Your Azure AD Application (tenant) ID obtained in step 6. For example: `\https://login.microsoftonline.com/1a2bc34d-567e-89f1-g0hi-1j2kl3m4no56/v2.0`.
+|===
+
+. In {registry}, configure the following environment variables for {registry}-specific settings:
++
+.Configuration for {registry}-specific settings
+[.table-expandable,width="100%",cols="6,5,4",options="header"]
+|===
+|Environment variable
+|Description
+|Setting
+|`REGISTRY_AUTH_ENABLED`
+|Enables authentication for {registry}.
+|`true`
+|`REGISTRY_UI_AUTH_TYPE`
+|The {registry} authentication type.
+|`oidc`
+|`CORS_ALLOWED_ORIGINS`
+|The host for your {registry} deployment for cross-origin resource sharing (CORS).
+|For example: `\https://test-registry.com`
+|`REGISTRY_OIDC_UI_REDIRECT_URL`
+|The host for your {registry} web console.
+|For example: `\https://test-registry.com/ui`
+|`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
+|Enables role-based authorization in {registry}.
+|`true`
+|`QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH`
+|The name of the claim in which Azure AD stores roles.
+|`roles`
+|===
++
+NOTE: When you enable roles in {registry}, you must also create the same roles in Azure AD as application roles. The default roles expected by {registry} are `sr-admin`, `sr-developer`, and `sr-readonly`.
+
+
+[role="_additional-resources"]
+.Additional resources
+* For details on configuring non-default user role names, see xref:registry-security-settings_{context}[].
+* For more details on using Azure AD, see the link:https://learn.microsoft.com/en-us/azure[Microsoft Azure AD user documentation]. 
+
+
+
+

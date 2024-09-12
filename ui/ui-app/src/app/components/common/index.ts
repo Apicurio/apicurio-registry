@@ -1,2 +1,3 @@
-export * from "./ArtifactTypeIcon.tsx";
-export * from "./IfFeature.tsx";
+export * from "./ArtifactTypeIcon";
+export * from "./ArtifactDescription";
+export * from "./IfFeature";

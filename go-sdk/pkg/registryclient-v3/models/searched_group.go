@@ -9,18 +9,18 @@ import (
 type SearchedGroup struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
-	// The createdBy property
-	createdBy *string
 	// The createdOn property
 	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The description property
 	description *string
 	// An ID of a single artifact group.
-	id *string
+	groupId *string
 	// The modifiedBy property
 	modifiedBy *string
 	// The modifiedOn property
 	modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
+	// The owner property
+	owner *string
 }
 
 // NewSearchedGroup instantiates a new SearchedGroup and sets the default values.
@@ -40,11 +40,6 @@ func (m *SearchedGroup) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
-// GetCreatedBy gets the createdBy property value. The createdBy property
-func (m *SearchedGroup) GetCreatedBy() *string {
-	return m.createdBy
-}
-
 // GetCreatedOn gets the createdOn property value. The createdOn property
 func (m *SearchedGroup) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
@@ -58,16 +53,6 @@ func (m *SearchedGroup) GetDescription() *string {
 // GetFieldDeserializers the deserialization information for the current model
 func (m *SearchedGroup) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
-	res["createdBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetCreatedBy(val)
-		}
-		return nil
-	}
 	res["createdOn"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetTimeValue()
 		if err != nil {
@@ -88,13 +73,13 @@ func (m *SearchedGroup) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 		}
 		return nil
 	}
-	res["id"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+	res["groupId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetId(val)
+			m.SetGroupId(val)
 		}
 		return nil
 	}
@@ -118,12 +103,22 @@ func (m *SearchedGroup) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 		}
 		return nil
 	}
+	res["owner"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetOwner(val)
+		}
+		return nil
+	}
 	return res
 }
 
-// GetId gets the id property value. An ID of a single artifact group.
-func (m *SearchedGroup) GetId() *string {
-	return m.id
+// GetGroupId gets the groupId property value. An ID of a single artifact group.
+func (m *SearchedGroup) GetGroupId() *string {
+	return m.groupId
 }
 
 // GetModifiedBy gets the modifiedBy property value. The modifiedBy property
@@ -136,14 +131,13 @@ func (m *SearchedGroup) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f307
 	return m.modifiedOn
 }
 
+// GetOwner gets the owner property value. The owner property
+func (m *SearchedGroup) GetOwner() *string {
+	return m.owner
+}
+
 // Serialize serializes information the current object
 func (m *SearchedGroup) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
-	{
-		err := writer.WriteStringValue("createdBy", m.GetCreatedBy())
-		if err != nil {
-			return err
-		}
-	}
 	{
 		err := writer.WriteTimeValue("createdOn", m.GetCreatedOn())
 		if err != nil {
@@ -157,7 +151,7 @@ func (m *SearchedGroup) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0
 		}
 	}
 	{
-		err := writer.WriteStringValue("id", m.GetId())
+		err := writer.WriteStringValue("groupId", m.GetGroupId())
 		if err != nil {
 			return err
 		}
@@ -170,6 +164,12 @@ func (m *SearchedGroup) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0
 	}
 	{
 		err := writer.WriteTimeValue("modifiedOn", m.GetModifiedOn())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteStringValue("owner", m.GetOwner())
 		if err != nil {
 			return err
 		}
@@ -188,11 +188,6 @@ func (m *SearchedGroup) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
-// SetCreatedBy sets the createdBy property value. The createdBy property
-func (m *SearchedGroup) SetCreatedBy(value *string) {
-	m.createdBy = value
-}
-
 // SetCreatedOn sets the createdOn property value. The createdOn property
 func (m *SearchedGroup) SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
 	m.createdOn = value
@@ -203,9 +198,9 @@ func (m *SearchedGroup) SetDescription(value *string) {
 	m.description = value
 }
 
-// SetId sets the id property value. An ID of a single artifact group.
-func (m *SearchedGroup) SetId(value *string) {
-	m.id = value
+// SetGroupId sets the groupId property value. An ID of a single artifact group.
+func (m *SearchedGroup) SetGroupId(value *string) {
+	m.groupId = value
 }
 
 // SetModifiedBy sets the modifiedBy property value. The modifiedBy property
@@ -218,20 +213,25 @@ func (m *SearchedGroup) SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6
 	m.modifiedOn = value
 }
 
+// SetOwner sets the owner property value. The owner property
+func (m *SearchedGroup) SetOwner(value *string) {
+	m.owner = value
+}
+
 // SearchedGroupable
 type SearchedGroupable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
-	GetCreatedBy() *string
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
-	GetId() *string
+	GetGroupId() *string
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
-	SetCreatedBy(value *string)
+	GetOwner() *string
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
-	SetId(value *string)
+	SetGroupId(value *string)
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
+	SetOwner(value *string)
 }

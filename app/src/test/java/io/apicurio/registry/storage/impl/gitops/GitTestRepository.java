@@ -24,22 +24,14 @@ public class GitTestRepository implements AutoCloseable {
     @Getter
     private String gitRepoBranch;
 
-
     public void initialize() {
         try {
             var gitDir = Files.createTempDirectory(null);
             gitRepoBranch = "main";
-            git = Git.init()
-                    .setDirectory(gitDir.toFile())
-                    .setInitialBranch(gitRepoBranch)
-                    .call();
+            git = Git.init().setDirectory(gitDir.toFile()).setInitialBranch(gitRepoBranch).call();
             Files.write(gitDir.resolve(".init"), "init".getBytes(StandardCharsets.UTF_8));
-            git.add()
-                    .addFilepattern(".")
-                    .call();
-            git.commit()
-                    .setMessage("Initial commit")
-                    .call();
+            git.add().addFilepattern(".").call();
+            git.commit().setMessage("Initial commit").call();
             gitRepoUrl = "file://" + git.getRepository().getWorkTree().getAbsolutePath();
 
         } catch (IOException | GitAPIException e) {
@@ -47,10 +39,11 @@ public class GitTestRepository implements AutoCloseable {
         }
     }
 
-
     public void load(String sourceDir) {
         try {
-            var sourcePath = Path.of(requireNonNull(Thread.currentThread().getContextClassLoader().getResource(sourceDir)).toURI());
+            var sourcePath = Path
+                    .of(requireNonNull(Thread.currentThread().getContextClassLoader().getResource(sourceDir))
+                            .toURI());
             var files = FileUtils.listFiles(git.getRepository().getWorkTree(), null, true);
             for (File f : files) {
                 var prefix = Path.of(git.getRepository().getWorkTree().getPath(), ".git");
@@ -59,22 +52,14 @@ public class GitTestRepository implements AutoCloseable {
                 }
             }
             FileUtils.copyDirectory(sourcePath.toFile(), git.getRepository().getWorkTree());
-            git.add()
-                    .setUpdate(true)
-                    .addFilepattern(".")
-                    .call();
-            git.add()
-                    .addFilepattern(".")
-                    .call();
-            git.commit()
-                    .setMessage("test")
-                    .call();
+            git.add().setUpdate(true).addFilepattern(".").call();
+            git.add().addFilepattern(".").call();
+            git.commit().setMessage("test").call();
         } catch (IOException | GitAPIException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
     }
-
 
     @Override
     public void close() throws Exception {

@@ -1,0 +1,48 @@
+{
+  "name": "@apicurio/apicurio-registry-sdk",
+  "private": false,
+  "version": "3.0.0-SNAPSHOT",
+  "type": "module",
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rimraf dist lib/generated-client .kiota",
+    "kiota-info": "cross-env KIOTA_VERSION=v1.18.0 kiota info -l typescript",
+    "generate-registry-sdk": "cross-env KIOTA_VERSION=v1.18.0 kiota generate --serializer none --deserializer none -l typescript -d ../common/src/main/resources/META-INF/openapi.json -c ApicurioRegistryClient -o ./lib/generated-client",
+    "dev": "vite",
+    "build": "tsc --p ./tsconfig-build.json && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+  },
+  "peerDependencies": {
+    "@microsoft/kiota-abstractions": "1.0.0-preview.66",
+    "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.65",
+    "@microsoft/kiota-serialization-form": "1.0.0-preview.54",
+    "@microsoft/kiota-serialization-json": "1.0.0-preview.66",
+    "@microsoft/kiota-serialization-multipart": "1.0.0-preview.44",
+    "@microsoft/kiota-serialization-text": "1.0.0-preview.63"
+  },
+  "devDependencies": {
+    "@apicurio/eslint-config": "0.2.0",
+    "@kiota-community/kiota-gen": "1.0.1",
+    "@types/node": "20.14.6",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "@typescript-eslint/eslint-plugin": "6.21.0",
+    "@typescript-eslint/parser": "6.21.0",
+    "@vitejs/plugin-react": "4.3.1",
+    "cross-env": "7.0.3",
+    "eslint": "8.57.0",
+    "eslint-plugin-react-hooks": "4.6.2",
+    "eslint-plugin-react-refresh": "0.4.7",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.23.1",
+    "rimraf": "5.0.7",
+    "typescript": "5.5.2",
+    "vite": "5.4.0",
+    "vite-plugin-dts": "4.0.2"
+  }
+}

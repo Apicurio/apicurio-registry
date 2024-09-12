@@ -1,6 +1,5 @@
 package io.apicurio.tests.serdes.apicurio;
 
-
 import io.apicurio.tests.serdes.apicurio.SerdesTester.DataGenerator;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -34,7 +33,8 @@ public class WrongConfiguredSerdesTesterBuilder<P> implements TesterBuilder {
         return this;
     }
 
-    public <U extends Serializer<?>> WrongConfiguredSerdesTesterBuilder<P> withSerializer(Class<U> serializer) {
+    public <U extends Serializer<?>> WrongConfiguredSerdesTesterBuilder<P> withSerializer(
+            Class<U> serializer) {
         this.serializer = serializer;
         return this;
     }
@@ -67,7 +67,6 @@ public class WrongConfiguredSerdesTesterBuilder<P> implements TesterBuilder {
         return new WrongConfiguredSerdesTester();
     }
 
-
     private class WrongConfiguredSerdesTester extends SerdesTester<String, P, Object> implements Tester {
 
         /**
@@ -75,9 +74,11 @@ public class WrongConfiguredSerdesTesterBuilder<P> implements TesterBuilder {
          */
         @Override
         public void test() throws Exception {
-            Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class, serializer, topic, artifactResolverStrategy);
+            Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class,
+                    serializer, topic, artifactResolverStrategy);
 
-            assertThrows(ExecutionException.class, () -> this.produceMessages(producer, topic, dataGenerator, 10));
+            assertThrows(ExecutionException.class,
+                    () -> this.produceMessages(producer, topic, dataGenerator, 10, false));
 
         }
 

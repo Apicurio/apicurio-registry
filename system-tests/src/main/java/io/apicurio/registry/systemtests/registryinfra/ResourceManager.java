@@ -49,23 +49,12 @@ public class ResourceManager {
         return instance;
     }
 
-    private final ResourceType<?>[] resourceTypes = new ResourceType[]{
-            new ApicurioRegistryResourceType(),
-            new NamespaceResourceType(),
-            new ServiceResourceType(),
-            new DeploymentResourceType(),
-            new PersistentVolumeClaimResourceType(),
-            new KafkaResourceType(),
-            new KafkaTopicResourceType(),
-            new KafkaUserResourceType(),
-            new KafkaConnectResourceType(),
-            new RouteResourceType(),
-            new SecretResourceType(),
-            new OperatorGroupResourceType(),
-            new SubscriptionResourceType(),
-            new CatalogSourceResourceType(),
-            new IngressResourceType()
-    };
+    private final ResourceType<?>[] resourceTypes = new ResourceType[] { new ApicurioRegistryResourceType(),
+            new NamespaceResourceType(), new ServiceResourceType(), new DeploymentResourceType(),
+            new PersistentVolumeClaimResourceType(), new KafkaResourceType(), new KafkaTopicResourceType(),
+            new KafkaUserResourceType(), new KafkaConnectResourceType(), new RouteResourceType(),
+            new SecretResourceType(), new OperatorGroupResourceType(), new SubscriptionResourceType(),
+            new CatalogSourceResourceType(), new IngressResourceType() };
 
     public <T extends HasMetadata> ResourceType<T> findResourceType(T resource) {
         ResourceType<T> result = null;
@@ -81,13 +70,13 @@ public class ResourceManager {
         return result;
     }
 
-    public final <T extends HasMetadata> void createResource(
-            boolean waitReady, T resource
-    ) throws InterruptedException {
+    public final <T extends HasMetadata> void createResource(boolean waitReady, T resource)
+            throws InterruptedException {
         String kind = resource.getKind();
         String name = resource.getMetadata().getName();
         String namespace = resource.getMetadata().getNamespace();
-        String resourceInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
+        String resourceInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name,
+                namespace);
 
         LOGGER.info("Creating resource {}...", resourceInfo);
 
@@ -111,10 +100,8 @@ public class ResourceManager {
             Thread.sleep(Duration.ofMinutes(1).toMillis());
         }
         if (waitReady) {
-            Assertions.assertTrue(
-                    waitResourceCondition(resource, type::isReady),
-                    MessageFormat.format("Timed out waiting for resource {0} to be ready.", resourceInfo)
-            );
+            Assertions.assertTrue(waitResourceCondition(resource, type::isReady),
+                    MessageFormat.format("Timed out waiting for resource {0} to be ready.", resourceInfo));
 
             LOGGER.info("Resource {} is ready.", resourceInfo);
 
@@ -125,13 +112,13 @@ public class ResourceManager {
         }
     }
 
-    public final <T extends HasMetadata> void createSharedResource(
-            boolean waitReady, T resource
-    ) throws InterruptedException {
+    public final <T extends HasMetadata> void createSharedResource(boolean waitReady, T resource)
+            throws InterruptedException {
         String kind = resource.getKind();
         String name = resource.getMetadata().getName();
         String namespace = resource.getMetadata().getNamespace();
-        String resourceInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name, namespace);
+        String resourceInfo = MessageFormat.format("{0} with name {1} in namespace {2}", kind, name,
+                namespace);
 
         LOGGER.info("Creating shared resource {}...", resourceInfo);
 
@@ -152,10 +139,8 @@ public class ResourceManager {
         LOGGER.info("Shared resource {} created.", resourceInfo);
 
         if (waitReady) {
-            Assertions.assertTrue(
-                    waitResourceCondition(resource, type::isReady),
-                    MessageFormat.format("Timed out waiting for shared resource {0} to be ready.", resourceInfo)
-            );
+            Assertions.assertTrue(waitResourceCondition(resource, type::isReady), MessageFormat
+                    .format("Timed out waiting for shared resource {0} to be ready.", resourceInfo));
 
             LOGGER.info("Shared resource {} is ready.", resourceInfo);
 
@@ -167,16 +152,12 @@ public class ResourceManager {
     }
 
     public final <T extends HasMetadata> boolean waitResourceCondition(T resource, Predicate<T> condition) {
-        return waitResourceCondition(
-                resource,
-                condition,
-                TimeoutBudget.ofDuration(findResourceType(resource).getTimeout())
-        );
+        return waitResourceCondition(resource, condition,
+                TimeoutBudget.ofDuration(findResourceType(resource).getTimeout()));
     }
 
-    public final <T extends HasMetadata> boolean waitResourceCondition(
-            T resource, Predicate<T> condition, TimeoutBudget timeout
-    ) {
+    public final <T extends HasMetadata> boolean waitResourceCondition(T resource, Predicate<T> condition,
+            TimeoutBudget timeout) {
         Assertions.assertNotNull(resource);
         Assertions.assertNotNull(resource.getMetadata());
         Assertions.assertNotNull(resource.getMetadata().getName());
@@ -229,17 +210,17 @@ public class ResourceManager {
     }
 
     public final <T extends HasMetadata> void deleteResource(T resource) {
-        String resourceInfo = MessageFormat.format(
-                "{0} with name {1} in namespace {2}",
-                resource.getKind(), resource.getMetadata().getName(), resource.getMetadata().getNamespace()
-        );
+        String resourceInfo = MessageFormat.format("{0} with name {1} in namespace {2}", resource.getKind(),
+                resource.getMetadata().getName(), resource.getMetadata().getNamespace());
 
         LOGGER.info("Deleting resource {}...", resourceInfo);
 
         ResourceType<T> type = findResourceType(resource);
-        /*if (resourceInfo.contains("Subscription") && (resourceInfo.contains("sso") || resourceInfo.contains("keycloak"))) {
-            KeycloakUtils.removeKeycloak(resource.getMetadata().getNamespace());
-        }*/
+        /*
+         * if (resourceInfo.contains("Subscription") && (resourceInfo.contains("sso") ||
+         * resourceInfo.contains("keycloak"))) {
+         * KeycloakUtils.removeKeycloak(resource.getMetadata().getNamespace()); }
+         */
 
         try {
             type.delete(resource);
@@ -248,19 +229,21 @@ public class ResourceManager {
         }
 
         Assertions.assertTrue(
-                waitResourceCondition(resource, type::doesNotExist, TimeoutBudget.ofDuration(Duration.ofMinutes(10))),
-                MessageFormat.format("Timed out waiting for resource {0} to be deleted.", resourceInfo)
-        );
+                waitResourceCondition(resource, type::doesNotExist,
+                        TimeoutBudget.ofDuration(Duration.ofMinutes(10))),
+                MessageFormat.format("Timed out waiting for resource {0} to be deleted.", resourceInfo));
 
         LOGGER.info("Resource {} is deleted.", resourceInfo);
     }
 
     public void deleteKafka() {
-        Kafka kafka = KafkaResourceType.getOperation().inNamespace(Environment.NAMESPACE).withName(Constants.KAFKA).get();
+        Kafka kafka = KafkaResourceType.getOperation().inNamespace(Environment.NAMESPACE)
+                .withName(Constants.KAFKA).get();
         if (kafka != null) {
             deleteResource(kafka);
         }
     }
+
     public void deleteSharedResources() {
         LOGGER.info("----------------------------------------------");
         LOGGER.info("Going to clear shared resources.");
@@ -273,6 +256,7 @@ public class ResourceManager {
         LOGGER.info("----------------------------------------------");
         LOGGER.info("");
     }
+
     public void deleteResources() {
         LOGGER.info("----------------------------------------------");
         LOGGER.info("Going to clear test resources.");

@@ -14,10 +14,8 @@ import java.util.Optional;
 @ToString(onlyExplicitlyIncluded = true)
 public enum Type {
 
-    REGISTRY("registry-v0", Registry.class),
-    GROUP("group-v0", Group.class),
-    ARTIFACT("artifact-v0", Artifact.class),
-    CONTENT("content-v0", Content.class);
+    REGISTRY("registry-v0", Registry.class), GROUP("group-v0", Group.class), ARTIFACT("artifact-v0",
+            Artifact.class), CONTENT("content-v0", Content.class);
 
     @ToString.Include
     private final String type;
@@ -25,9 +23,7 @@ public enum Type {
     private final Class<?> klass;
 
     public static Optional<Type> from(String type) {
-        return Arrays.stream(values())
-                .filter(t -> t.type != null && t.type.equals(type))
-                .findAny();
+        return Arrays.stream(values()).filter(t -> t.type != null && t.type.equals(type)).findAny();
     }
 
     Type(String type, Class<?> klass) {

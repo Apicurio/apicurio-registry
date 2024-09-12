@@ -1,11 +1,11 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class GlobalRuleEntityMapper implements RowMapper<GlobalRuleEntity> {
 

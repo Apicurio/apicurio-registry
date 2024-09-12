@@ -10,14 +10,14 @@ import {
     ModalVariant
 } from "@patternfly/react-core";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
-import { ApiError } from "@models/apiError.model.ts";
+import { RuleViolationProblemDetails } from "@sdk/lib/generated-client/models";
 
 
 /**
  * Properties
  */
 export type InvalidContentModalProps = {
-    error: ApiError|undefined;
+    error: RuleViolationProblemDetails|undefined;
     isOpen: boolean;
     onClose: () => void;
 };
@@ -30,7 +30,7 @@ export const InvalidContentModal: FunctionComponent<InvalidContentModalProps> = 
 
     const errorDetail = (): React.ReactElement => {
         if (props.error) {
-            if (props.error.name === "RuleViolationException" && props.error.causes != null && props.error.causes.length > 0 ) {
+            if (props.error.nameEscaped === "RuleViolationException" && props.error.causes != null && props.error.causes.length > 0 ) {
                 return (
                     <DataList aria-label="Error causes" className="error-causes" >
                         {

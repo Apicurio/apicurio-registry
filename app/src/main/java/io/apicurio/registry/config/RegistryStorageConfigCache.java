@@ -20,14 +20,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
 @ApplicationScoped
-public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase implements RegistryStorageDecorator {
+public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase
+        implements RegistryStorageDecorator {
 
     private static final DynamicConfigPropertyDto NULL_DTO = new DynamicConfigPropertyDto();
 
     @Inject
     Logger log;
 
-    @ConfigProperty(name = "registry.config.cache.enabled", defaultValue = "true")
+    @ConfigProperty(name = "apicurio.config.cache.enabled", defaultValue = "true")
     @Info(category = "cache", description = "Registry cache enabled", availableSince = "2.2.2.Final")
     boolean enabled;
 
@@ -49,7 +50,6 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase imp
     public int order() {
         return RegistryStorageDecoratorOrderConstants.CONFIG_CACHE_DECORATOR;
     }
-
 
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#setConfigProperty(io.apicurio.common.apps.config.DynamicConfigPropertyDto)
@@ -79,7 +79,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase imp
         configCache.clear();
     }
 
-    @Scheduled(concurrentExecution = SKIP, every = "{registry.config.refresh.every}")
+    @Scheduled(concurrentExecution = SKIP, every = "{apicurio.config.refresh.every}")
     void run() {
         if (!enabled) {
             return;
@@ -95,7 +95,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase imp
 
     private void refresh() {
         Instant now = Instant.now();
-        if (lastRefresh != null) {
+        if (lastRefresh != null && this.delegate != null && this.delegate.isReady()) {
             List<DynamicConfigPropertyDto> staleConfigProperties = this.getStaleConfigProperties(lastRefresh);
             if (!staleConfigProperties.isEmpty()) {
                 invalidateCache();

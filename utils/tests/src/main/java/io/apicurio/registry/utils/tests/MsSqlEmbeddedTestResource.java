@@ -10,14 +10,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleManager {
-    
+
     private static final String DB_PASSWORD = "P4ssw0rd!#";
 
-    private static final DockerImageName IMAGE = DockerImageName.parse("mcr.microsoft.com/mssql/server").withTag("2022-latest");
-    private MSSQLServerContainer<?> database = new MSSQLServerContainer<>(IMAGE)
-            .withPassword(DB_PASSWORD)
+    private static final DockerImageName IMAGE = DockerImageName.parse("mcr.microsoft.com/mssql/server")
+            .withTag("2022-latest");
+    private MSSQLServerContainer<?> database = new MSSQLServerContainer<>(IMAGE).withPassword(DB_PASSWORD)
             .acceptLicense();
-    
+
     /**
      * Constructor.
      */
@@ -38,10 +38,10 @@ public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
 
             if ("mas".equals(currentEnv)) {
                 Map<String, String> props = new HashMap<>();
-                props.put("registry.storage.db-kind", "mssql");
-                props.put("registry.datasource.url", "jdbc:sqlserver://mssql;");
-                props.put("registry.datasource.username", "test");
-                props.put("registry.datasource.password", "test");
+                props.put("apicurio.storage.sql.kind", "mssql");
+                props.put("apicurio.datasource.url", "jdbc:sqlserver://mssql;");
+                props.put("apicurio.datasource.username", "test");
+                props.put("apicurio.datasource.password", "test");
                 return props;
             } else {
                 return startMsSql();
@@ -51,7 +51,7 @@ public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
     }
 
     private static boolean isMssqlStorage() {
-        return ConfigProvider.getConfig().getValue("registry.storage.db-kind", String.class).equals("mssql");
+        return ConfigProvider.getConfig().getValue("apicurio.storage.sql.kind", String.class).equals("mssql");
     }
 
     private Map<String, String> startMsSql() {
@@ -60,10 +60,10 @@ public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
         String datasourceUrl = database.getJdbcUrl();
 
         Map<String, String> props = new HashMap<>();
-        props.put("registry.storage.db-kind", "mssql");
-        props.put("registry.datasource.url", datasourceUrl);
-        props.put("registry.datasource.username", "SA");
-        props.put("registry.datasource.password", DB_PASSWORD);
+        props.put("apicurio.storage.sql.kind", "mssql");
+        props.put("apicurio.datasource.url", datasourceUrl);
+        props.put("apicurio.datasource.username", "SA");
+        props.put("apicurio.datasource.password", DB_PASSWORD);
         return props;
     }
 

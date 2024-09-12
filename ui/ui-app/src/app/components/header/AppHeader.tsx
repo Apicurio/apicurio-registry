@@ -1,9 +1,9 @@
 import { FunctionComponent } from "react";
 import { Brand, Masthead, MastheadBrand, MastheadContent, MastheadMain } from "@patternfly/react-core";
-import { AppNavigation, useAppNavigation } from "@hooks/useAppNavigation.ts";
 import { Link } from "react-router-dom";
 import { AppHeaderToolbar } from "@app/components";
-import { Services } from "@services/services.ts";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
 export type AppHeaderProps = {
@@ -13,15 +13,16 @@ export type AppHeaderProps = {
 
 export const AppHeader: FunctionComponent<AppHeaderProps> = () => {
     const appNavigation: AppNavigation = useAppNavigation();
+    const config: ConfigService = useConfigService();
 
-    if (Services.getConfigService().features().showMasthead !== undefined && !Services.getConfigService().features().showMasthead) {
+    if (config.features().showMasthead !== undefined && !config.features().showMasthead) {
         return <></>;
     }
 
     return (
         <Masthead id="icon-router-link">
             <MastheadMain>
-                <MastheadBrand component={props => <Link {...props} to={ appNavigation.createLink("/artifacts") } />}>
+                <MastheadBrand component={props => <Link {...props} to={ appNavigation.createLink("/explore") } />}>
                     <Brand src="/apicurio_registry_logo_reverse.svg" alt="Apicurio Registry" heights={{ default: "36px" }} />
                 </MastheadBrand>
             </MastheadMain>

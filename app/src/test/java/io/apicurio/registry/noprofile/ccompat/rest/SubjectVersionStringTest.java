@@ -16,7 +16,6 @@ import java.util.List;
 
 import static io.restassured.RestAssured.given;
 
-
 @QuarkusTest
 public class SubjectVersionStringTest extends AbstractResourceTestBase {
 
@@ -33,49 +32,31 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         var schemaContent2 = new SchemaContent(schema2);
 
         // Create first
-        var cid1 = given()
-                .log().all()
-                .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+        var cid1 = given().log().all().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(objectMapper.writeValueAsString(schemaContent1))
-                .post("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
-                .then()
-                .statusCode(200)
-                .extract().as(Schema.class);
+                .post("/ccompat/v7/subjects/{subject}/versions", SUBJECT).then().statusCode(200).extract()
+                .as(Schema.class);
 
         Assertions.assertNotNull(cid1);
 
-        var versions1 = given()
-                .log().all()
-                .when()
-                .get("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
-                .then()
-                .statusCode(200)
-                .extract().as(new TypeRef<List<Integer>>() {});
+        var versions1 = given().log().all().when().get("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
+                .then().statusCode(200).extract().as(new TypeRef<List<Integer>>() {
+                });
 
         Assertions.assertEquals(1, versions1.size());
         var version1 = versions1.get(0);
 
         // Create second
-        var cid2 = given()
-                .log().all()
-                .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+        var cid2 = given().log().all().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(objectMapper.writeValueAsString(schemaContent2))
-                .post("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
-                .then()
-                .statusCode(200)
-                .extract().as(Schema.class);
+                .post("/ccompat/v7/subjects/{subject}/versions", SUBJECT).then().statusCode(200).extract()
+                .as(Schema.class);
 
         Assertions.assertNotNull(cid2);
 
-        var versions2 = given()
-                .log().all()
-                .when()
-                .get("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
-                .then()
-                .statusCode(200)
-                .extract().as(new TypeRef<List<Integer>>() {});
+        var versions2 = given().log().all().when().get("/ccompat/v7/subjects/{subject}/versions", SUBJECT)
+                .then().statusCode(200).extract().as(new TypeRef<List<Integer>>() {
+                });
 
         Assertions.assertEquals(2, versions2.size());
         versions2.removeAll(versions1);
@@ -91,29 +72,19 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
     }
 
     private Schema getSubjectVersion(String subject, String version) {
-        var response = given()
-                .log().all()
-                .when()
-                .get("/ccompat/v7/subjects/{subject}/versions/{version}", subject, version)
-                .then()
-                .extract().asString();
+        var response = given().log().all().when()
+                .get("/ccompat/v7/subjects/{subject}/versions/{version}", subject, version).then().extract()
+                .asString();
 
         log.info("Response to get version {} of subject {} is: {}", version, subject, response);
 
-        return given()
-                .log().all()
-                .when()
-                .get("/ccompat/v7/subjects/{subject}/versions/{version}", subject, version)
-                .then()
-                .statusCode(200)
-                .extract().as(Schema.class);
+        return given().log().all().when()
+                .get("/ccompat/v7/subjects/{subject}/versions/{version}", subject, version).then()
+                .statusCode(200).extract().as(Schema.class);
     }
 
     private void getSubjectVersionFail(String subject, String version, int expectedStatusCode) {
-        given()
-                .when()
-                .get("/ccompat/v7/subjects/{subject}/versions/{version}", subject, version)
-                .then()
+        given().when().get("/ccompat/v7/subjects/{subject}/versions/{version}", subject, version).then()
                 .statusCode(expectedStatusCode);
     }
 }

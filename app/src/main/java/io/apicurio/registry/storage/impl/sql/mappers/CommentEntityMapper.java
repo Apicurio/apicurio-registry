@@ -1,10 +1,10 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.utils.impexp.CommentEntity;
 
 public class CommentEntityMapper implements RowMapper<CommentEntity> {
 
@@ -24,7 +24,7 @@ public class CommentEntityMapper implements RowMapper<CommentEntity> {
         CommentEntity entity = new CommentEntity();
         entity.globalId = rs.getLong("globalId");
         entity.commentId = rs.getString("commentId");
-        entity.createdBy = rs.getString("createdBy");
+        entity.owner = rs.getString("owner");
         entity.createdOn = rs.getTimestamp("createdOn").getTime();
         entity.value = rs.getString("cvalue");
         return entity;

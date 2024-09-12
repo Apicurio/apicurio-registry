@@ -54,7 +54,8 @@ public class ServiceResourceType implements ResourceType<Service> {
             return true;
         }
 
-        return Kubernetes.isServiceReady(service.getMetadata().getNamespace(), service.getSpec().getSelector());
+        return Kubernetes.isServiceReady(service.getMetadata().getNamespace(),
+                service.getSpec().getSelector());
     }
 
     @Override
@@ -76,27 +77,22 @@ public class ServiceResourceType implements ResourceType<Service> {
     /** Get default instances **/
 
     public static Service getDefaultPostgresql(String name, String namespace) {
-        return new ServiceBuilder()
-                .withNewMetadata()
-                    .withLabels(new HashMap<>() {{
-                        put("app", name);
-                    }})
-                    .withName(name)
-                    .withNamespace(namespace)
-                .endMetadata()
-                .withNewSpec()
-                    .withPorts(new ServicePort() {{
-                        setName("postgresql");
-                        setPort(5432);
-                        setProtocol("TCP");
-                        setTargetPort(new IntOrString(5432));
-                    }})
-                    .withSelector(new HashMap<>() {{
-                        put("app", name);
-                    }})
-                    .withType("ClusterIP")
-                .endSpec()
-                .build();
+        return new ServiceBuilder().withNewMetadata().withLabels(new HashMap<>() {
+            {
+                put("app", name);
+            }
+        }).withName(name).withNamespace(namespace).endMetadata().withNewSpec().withPorts(new ServicePort() {
+            {
+                setName("postgresql");
+                setPort(5432);
+                setProtocol("TCP");
+                setTargetPort(new IntOrString(5432));
+            }
+        }).withSelector(new HashMap<>() {
+            {
+                put("app", name);
+            }
+        }).withType("ClusterIP").endSpec().build();
     }
 
     public static Service getDefaultPostgresql() {
@@ -104,42 +100,31 @@ public class ServiceResourceType implements ResourceType<Service> {
     }
 
     public static Service getDefaultKeycloakHttp(String namespace) {
-        return new ServiceBuilder()
-                .withNewMetadata()
-                    .withName(Constants.SSO_HTTP_SERVICE)
-                    .withNamespace(namespace)
-                .endMetadata()
-                .withNewSpec()
-                    .withPorts(new ServicePort() {{
+        return new ServiceBuilder().withNewMetadata().withName(Constants.SSO_HTTP_SERVICE)
+                .withNamespace(namespace).endMetadata().withNewSpec().withPorts(new ServicePort() {
+                    {
                         setPort(8080);
                         setProtocol("TCP");
                         setTargetPort(new IntOrString(8080));
-                    }})
-                    .withSelector(new HashMap<>() {{
+                    }
+                }).withSelector(new HashMap<>() {
+                    {
                         put("app", "keycloak");
                         put("component", "keycloak");
-                    }})
-                    .withType("ClusterIP")
-                .endSpec()
-                .build();
+                    }
+                }).withType("ClusterIP").endSpec().build();
     }
 
     public static Service getDefaultSelenium(String name, String namespace) {
-        return new ServiceBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                    .withLabels(Collections.singletonMap("app", name))
-                .endMetadata()
-                .withNewSpec()
-                    .withPorts(new ServicePort() {{
+        return new ServiceBuilder().withNewMetadata().withName(name).withNamespace(namespace)
+                .withLabels(Collections.singletonMap("app", name)).endMetadata().withNewSpec()
+                .withPorts(new ServicePort() {
+                    {
                         setPort(4444);
                         setProtocol("TCP");
                         setName("http");
-                    }})
-                    .withSelector(Collections.singletonMap("app", name))
-                    .withType("ClusterIP")
-                .endSpec()
+                    }
+                }).withSelector(Collections.singletonMap("app", name)).withType("ClusterIP").endSpec()
                 .build();
     }
 

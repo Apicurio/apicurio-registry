@@ -28,18 +28,15 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType.
  * </pre>
  * <p>
  * "True" and "Empty" schemas are equivalent, each are not equivalent with "False" schema.
- *
  */
 public class PrimitiveSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
-
 
     private final DiffContext ctx;
     private final Schema original;
 
     /**
-     * This visitor accepts any schema, so the checks
-     * that would be otherwise done by the caller,
-     * are made by this visitor.
+     * This visitor accepts any schema, so the checks that would be otherwise done by the caller, are made by
+     * this visitor.
      */
     public PrimitiveSchemaDiffVisitor(DiffContext ctx, Schema original) {
         this.ctx = ctx;
@@ -49,7 +46,7 @@ public class PrimitiveSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
     private void emptyTrueSchema(SchemaWrapper wrapper) {
         // This is spelled explicitly for clarity, and in case the library changes.
         if (!(EmptySchema.INSTANCE.equals(original) // ||
-            // TrueSchema.INSTANCE.equals(original)
+        // TrueSchema.INSTANCE.equals(original)
         )) {
             ctx.addDifference(SUBSCHEMA_TYPE_CHANGED_TO_EMPTY_OR_TRUE, original, wrapper);
             // Change to empty schema is backwards compatible

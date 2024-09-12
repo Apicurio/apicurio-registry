@@ -1,0 +1,5 @@
+node_modules
+dist
+.kiota
+.vite
+generated-client

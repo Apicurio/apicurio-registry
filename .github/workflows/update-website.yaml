@@ -6,7 +6,7 @@ on:
 
 jobs:
   update-website:
-    if: github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
     runs-on: ubuntu-20.04
     steps:
 
@@ -23,28 +23,6 @@ jobs:
           git branch --set-upstream-to=origin/main
           git pull
 
-      - name: Apicurio Playbook Checkout
-        run: |
-          mkdir docs-playbook
-          cd docs-playbook
-          git init
-          git config --global user.name "apicurio-ci"
-          git config --global user.email "apicurio.ci@gmail.com"
-          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-docs-playbook.git"
-          git fetch
-          git checkout main
-          git branch --set-upstream-to=origin/main
-          git pull
-
-      - name: Generate Project Documentation for Website
-        run: |
-          echo "********** Building Registry Documentation using Antora **********"
-          cd docs-playbook
-          docker pull apicurio/apicurio-docs-builder:latest
-          docker run -v $(pwd):/apicurio-docs-playbook apicurio/apicurio-docs-builder:latest
-          rm -rf ../website/registry/docs/*
-          cp -rf target/dist/* ../website/registry/docs/.
-
       - name: Fetch required Details
         run: echo "RELEASE_VERSION=$(curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
 
@@ -56,7 +34,7 @@ jobs:
           rm latestRelease.json
           touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
 
-          echo "********** Saving a copy in the archieve **********"
+          echo "********** Saving a copy in the archive **********"
           cp latestRelease.json releases/${RELEASE_VERSION}.json
 
       - name: Commit Project Website Changes

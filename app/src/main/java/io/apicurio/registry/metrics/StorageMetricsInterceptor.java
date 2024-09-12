@@ -2,12 +2,12 @@ package io.apicurio.registry.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import org.eclipse.microprofile.context.ThreadContext;
-
 import jakarta.inject.Inject;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
+import org.eclipse.microprofile.context.ThreadContext;
+
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletionStage;
 
@@ -18,7 +18,6 @@ import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_METHOD_CALL_
 
 /**
  * Fail readiness check if the duration of processing a artifactStore operation is too high.
- *
  */
 @Interceptor
 @StorageMetricsApply
@@ -51,8 +50,8 @@ public class StorageMetricsInterceptor {
 
         if (result instanceof CompletionStage) {
             CompletionStage<?> r = (CompletionStage<?>) result;
-            threadContext.withContextCapture(r).whenComplete((ok, ex) ->
-                this.record(sample, context.getMethod(), ex == null)); // TODO
+            threadContext.withContextCapture(r)
+                    .whenComplete((ok, ex) -> this.record(sample, context.getMethod(), ex == null)); // TODO
             return r;
         }
 
@@ -61,12 +60,9 @@ public class StorageMetricsInterceptor {
     }
 
     private void record(Timer.Sample sample, Method method, boolean success) {
-        Timer timer = Timer
-            .builder(STORAGE_METHOD_CALL)
-            .description(STORAGE_METHOD_CALL_DESCRIPTION)
-            .tag(STORAGE_METHOD_CALL_TAG_METHOD, getMethodString(method))
-            .tag(STORAGE_METHOD_CALL_TAG_SUCCESS, String.valueOf(success))
-            .register(registry);
+        Timer timer = Timer.builder(STORAGE_METHOD_CALL).description(STORAGE_METHOD_CALL_DESCRIPTION)
+                .tag(STORAGE_METHOD_CALL_TAG_METHOD, getMethodString(method))
+                .tag(STORAGE_METHOD_CALL_TAG_SUCCESS, String.valueOf(success)).register(registry);
         sample.stop(timer);
     }
 

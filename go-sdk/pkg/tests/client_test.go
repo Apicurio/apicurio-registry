@@ -13,8 +13,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	registryclientv2 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v2"
-	"github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v2/models"
+	registryclientv3 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3"
+	"github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/models"
 	auth "github.com/microsoft/kiota-abstractions-go/authentication"
 	kiotaHttp "github.com/microsoft/kiota-http-go"
 )
@@ -22,7 +22,7 @@ import (
 const RegistryHost = "localhost"
 const RegistryPort = "8080"
 
-var RegistryUrl = fmt.Sprintf("http://%s:%s/apis/registry/v2", RegistryHost, RegistryPort)
+var RegistryUrl = fmt.Sprintf("http://%s:%s/apis/registry/v3", RegistryHost, RegistryPort)
 
 func setupSuite(t *testing.T) func(t *testing.T) {
 	t.Log("Starting Registry")
@@ -85,12 +85,12 @@ func TestAccessSystemInfo(t *testing.T) {
 	adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
 	adapter.SetBaseUrl(RegistryUrl)
 	assert.Nil(t, err)
-	client := registryclientv2.NewApiClient(adapter)
+	client := registryclientv3.NewApiClient(adapter)
 
 	info, err := client.System().Info().Get(context.Background(), nil)
 	assert.Nil(t, err)
 
-	assert.Equal(t, "apicurio-registry", *info.GetName())
+	assert.Equal(t, "Apicurio Registry (In Memory)", *info.GetName())
 }
 
 func TestCreateAnArtifact(t *testing.T) {
@@ -113,15 +113,19 @@ func TestCreateAnArtifact(t *testing.T) {
 	// adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
 	adapter.SetBaseUrl(RegistryUrl)
 	assert.Nil(t, err)
-	client := registryclientv2.NewApiClient(adapter)
+	client := registryclientv3.NewApiClient(adapter)
 	contentStr := `{ "openapi": "3.0.0", "info": { "title": "My API", "version": "1.0.0" }, "paths": {} }`
-	content := models.NewArtifactContent()
-	content.SetContent(&contentStr)
+	contentType := "application/json"
+	createArtifactReq := models.NewCreateArtifact()
+	createArtifactReq.SetFirstVersion(models.NewCreateVersion())
+	createArtifactReq.GetFirstVersion().SetContent(models.NewVersionContent())
+	createArtifactReq.GetFirstVersion().GetContent().SetContent(&contentStr)
+	createArtifactReq.GetFirstVersion().GetContent().SetContentType(&contentType)
 
-	artifact, err := client.Groups().ByGroupId("default").Artifacts().Post(context.Background(), content, nil)
+	createArtifactResp, err := client.Groups().ByGroupId("default").Artifacts().Post(context.Background(), createArtifactReq, nil)
 	assert.Nil(t, err)
 
-	resultArtifact, err := client.Groups().ByGroupId("default").Artifacts().ByArtifactId(*artifact.GetId()).Get(context.Background(), nil)
+	resultArtifact, err := client.Groups().ByGroupId("default").Artifacts().ByArtifactId(*createArtifactResp.GetArtifact().GetArtifactId()).Versions().ByVersionExpression("branch=latest").Content().Get(context.Background(), nil)
 	assert.Nil(t, err)
 
 	assert.Equal(t, contentStr, string(resultArtifact[:]))

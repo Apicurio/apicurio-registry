@@ -9,10 +9,12 @@ import (
 type VersionMetaData struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
+	// The ID of a single artifact.
+	artifactId *string
+	// The artifactType property
+	artifactType *string
 	// The contentId property
 	contentId *int64
-	// The createdBy property
-	createdBy *string
 	// The createdOn property
 	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The description property
@@ -21,19 +23,15 @@ type VersionMetaData struct {
 	globalId *int64
 	// An ID of a single artifact group.
 	groupId *string
-	// The ID of a single artifact.
-	id *string
-	// The labels property
-	labels []string
+	// User-defined name-value pairs. Name and value must be strings.
+	labels Labelsable
 	// The name property
 	name *string
-	// User-defined name-value pairs. Name and value must be strings.
-	properties Propertiesable
+	// The owner property
+	owner *string
 	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
-	state *ArtifactState
-	// The type property
-	typeEscaped *string
-	// The version property
+	state *VersionState
+	// A single version of an artifact.  Can be provided by the client when creating a new version,or it can be server-generated.  The value can be any string unique to the artifact, but it isrecommended to use a simple integer or a semver value.
 	version *string
 }
 
@@ -54,14 +52,19 @@ func (m *VersionMetaData) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
+// GetArtifactId gets the artifactId property value. The ID of a single artifact.
+func (m *VersionMetaData) GetArtifactId() *string {
+	return m.artifactId
+}
+
+// GetArtifactType gets the artifactType property value. The artifactType property
+func (m *VersionMetaData) GetArtifactType() *string {
+	return m.artifactType
+}
+
 // GetContentId gets the contentId property value. The contentId property
 func (m *VersionMetaData) GetContentId() *int64 {
 	return m.contentId
-}
-
-// GetCreatedBy gets the createdBy property value. The createdBy property
-func (m *VersionMetaData) GetCreatedBy() *string {
-	return m.createdBy
 }
 
 // GetCreatedOn gets the createdOn property value. The createdOn property
@@ -77,6 +80,26 @@ func (m *VersionMetaData) GetDescription() *string {
 // GetFieldDeserializers the deserialization information for the current model
 func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
+	res["artifactId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetArtifactId(val)
+		}
+		return nil
+	}
+	res["artifactType"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetArtifactType(val)
+		}
+		return nil
+	}
 	res["contentId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetInt64Value()
 		if err != nil {
@@ -84,16 +107,6 @@ func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		if val != nil {
 			m.SetContentId(val)
-		}
-		return nil
-	}
-	res["createdBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetCreatedBy(val)
 		}
 		return nil
 	}
@@ -137,29 +150,13 @@ func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		return nil
 	}
-	res["id"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetId(val)
-		}
-		return nil
-	}
 	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetCollectionOfPrimitiveValues("string")
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			res := make([]string, len(val))
-			for i, v := range val {
-				if v != nil {
-					res[i] = *(v.(*string))
-				}
-			}
-			m.SetLabels(res)
+			m.SetLabels(val.(Labelsable))
 		}
 		return nil
 	}
@@ -173,33 +170,23 @@ func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		return nil
 	}
-	res["properties"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreatePropertiesFromDiscriminatorValue)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetProperties(val.(Propertiesable))
-		}
-		return nil
-	}
-	res["state"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetEnumValue(ParseArtifactState)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetState(val.(*ArtifactState))
-		}
-		return nil
-	}
-	res["type"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+	res["owner"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetTypeEscaped(val)
+			m.SetOwner(val)
+		}
+		return nil
+	}
+	res["state"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetEnumValue(ParseVersionState)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetState(val.(*VersionState))
 		}
 		return nil
 	}
@@ -226,13 +213,8 @@ func (m *VersionMetaData) GetGroupId() *string {
 	return m.groupId
 }
 
-// GetId gets the id property value. The ID of a single artifact.
-func (m *VersionMetaData) GetId() *string {
-	return m.id
-}
-
-// GetLabels gets the labels property value. The labels property
-func (m *VersionMetaData) GetLabels() []string {
+// GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *VersionMetaData) GetLabels() Labelsable {
 	return m.labels
 }
 
@@ -241,22 +223,17 @@ func (m *VersionMetaData) GetName() *string {
 	return m.name
 }
 
-// GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *VersionMetaData) GetProperties() Propertiesable {
-	return m.properties
+// GetOwner gets the owner property value. The owner property
+func (m *VersionMetaData) GetOwner() *string {
+	return m.owner
 }
 
 // GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
-func (m *VersionMetaData) GetState() *ArtifactState {
+func (m *VersionMetaData) GetState() *VersionState {
 	return m.state
 }
 
-// GetTypeEscaped gets the type property value. The type property
-func (m *VersionMetaData) GetTypeEscaped() *string {
-	return m.typeEscaped
-}
-
-// GetVersion gets the version property value. The version property
+// GetVersion gets the version property value. A single version of an artifact.  Can be provided by the client when creating a new version,or it can be server-generated.  The value can be any string unique to the artifact, but it isrecommended to use a simple integer or a semver value.
 func (m *VersionMetaData) GetVersion() *string {
 	return m.version
 }
@@ -264,13 +241,19 @@ func (m *VersionMetaData) GetVersion() *string {
 // Serialize serializes information the current object
 func (m *VersionMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
 	{
-		err := writer.WriteInt64Value("contentId", m.GetContentId())
+		err := writer.WriteStringValue("artifactId", m.GetArtifactId())
 		if err != nil {
 			return err
 		}
 	}
 	{
-		err := writer.WriteStringValue("createdBy", m.GetCreatedBy())
+		err := writer.WriteStringValue("artifactType", m.GetArtifactType())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteInt64Value("contentId", m.GetContentId())
 		if err != nil {
 			return err
 		}
@@ -300,13 +283,7 @@ func (m *VersionMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 		}
 	}
 	{
-		err := writer.WriteStringValue("id", m.GetId())
-		if err != nil {
-			return err
-		}
-	}
-	if m.GetLabels() != nil {
-		err := writer.WriteCollectionOfStringValues("labels", m.GetLabels())
+		err := writer.WriteObjectValue("labels", m.GetLabels())
 		if err != nil {
 			return err
 		}
@@ -318,7 +295,7 @@ func (m *VersionMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 		}
 	}
 	{
-		err := writer.WriteObjectValue("properties", m.GetProperties())
+		err := writer.WriteStringValue("owner", m.GetOwner())
 		if err != nil {
 			return err
 		}
@@ -326,12 +303,6 @@ func (m *VersionMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 	if m.GetState() != nil {
 		cast := (*m.GetState()).String()
 		err := writer.WriteStringValue("state", &cast)
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("type", m.GetTypeEscaped())
 		if err != nil {
 			return err
 		}
@@ -356,14 +327,19 @@ func (m *VersionMetaData) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
+// SetArtifactId sets the artifactId property value. The ID of a single artifact.
+func (m *VersionMetaData) SetArtifactId(value *string) {
+	m.artifactId = value
+}
+
+// SetArtifactType sets the artifactType property value. The artifactType property
+func (m *VersionMetaData) SetArtifactType(value *string) {
+	m.artifactType = value
+}
+
 // SetContentId sets the contentId property value. The contentId property
 func (m *VersionMetaData) SetContentId(value *int64) {
 	m.contentId = value
-}
-
-// SetCreatedBy sets the createdBy property value. The createdBy property
-func (m *VersionMetaData) SetCreatedBy(value *string) {
-	m.createdBy = value
 }
 
 // SetCreatedOn sets the createdOn property value. The createdOn property
@@ -386,13 +362,8 @@ func (m *VersionMetaData) SetGroupId(value *string) {
 	m.groupId = value
 }
 
-// SetId sets the id property value. The ID of a single artifact.
-func (m *VersionMetaData) SetId(value *string) {
-	m.id = value
-}
-
-// SetLabels sets the labels property value. The labels property
-func (m *VersionMetaData) SetLabels(value []string) {
+// SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *VersionMetaData) SetLabels(value Labelsable) {
 	m.labels = value
 }
 
@@ -401,22 +372,17 @@ func (m *VersionMetaData) SetName(value *string) {
 	m.name = value
 }
 
-// SetProperties sets the properties property value. User-defined name-value pairs. Name and value must be strings.
-func (m *VersionMetaData) SetProperties(value Propertiesable) {
-	m.properties = value
+// SetOwner sets the owner property value. The owner property
+func (m *VersionMetaData) SetOwner(value *string) {
+	m.owner = value
 }
 
 // SetState sets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
-func (m *VersionMetaData) SetState(value *ArtifactState) {
+func (m *VersionMetaData) SetState(value *VersionState) {
 	m.state = value
 }
 
-// SetTypeEscaped sets the type property value. The type property
-func (m *VersionMetaData) SetTypeEscaped(value *string) {
-	m.typeEscaped = value
-}
-
-// SetVersion sets the version property value. The version property
+// SetVersion sets the version property value. A single version of an artifact.  Can be provided by the client when creating a new version,or it can be server-generated.  The value can be any string unique to the artifact, but it isrecommended to use a simple integer or a semver value.
 func (m *VersionMetaData) SetVersion(value *string) {
 	m.version = value
 }
@@ -425,30 +391,28 @@ func (m *VersionMetaData) SetVersion(value *string) {
 type VersionMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
+	GetArtifactId() *string
+	GetArtifactType() *string
 	GetContentId() *int64
-	GetCreatedBy() *string
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
 	GetGlobalId() *int64
 	GetGroupId() *string
-	GetId() *string
-	GetLabels() []string
+	GetLabels() Labelsable
 	GetName() *string
-	GetProperties() Propertiesable
-	GetState() *ArtifactState
-	GetTypeEscaped() *string
+	GetOwner() *string
+	GetState() *VersionState
 	GetVersion() *string
+	SetArtifactId(value *string)
+	SetArtifactType(value *string)
 	SetContentId(value *int64)
-	SetCreatedBy(value *string)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetGlobalId(value *int64)
 	SetGroupId(value *string)
-	SetId(value *string)
-	SetLabels(value []string)
+	SetLabels(value Labelsable)
 	SetName(value *string)
-	SetProperties(value Propertiesable)
-	SetState(value *ArtifactState)
-	SetTypeEscaped(value *string)
+	SetOwner(value *string)
+	SetState(value *VersionState)
 	SetVersion(value *string)
 }

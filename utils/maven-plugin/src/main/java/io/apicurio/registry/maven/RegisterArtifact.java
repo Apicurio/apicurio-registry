@@ -1,18 +1,18 @@
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
+
 import java.io.File;
 import java.util.List;
-
-import io.apicurio.registry.rest.v3.beans.IfExists;
 
 public class RegisterArtifact {
 
     private String groupId;
     private String artifactId;
     private String version;
-    private String type;
+    private String artifactType;
     private File file;
-    private IfExists ifExists;
+    private IfArtifactExists ifExists;
     private Boolean canonicalize;
     private Boolean minify;
     private Boolean analyzeDirectory;
@@ -72,14 +72,14 @@ public class RegisterArtifact {
     /**
      * @return the ifExists
      */
-    public IfExists getIfExists() {
+    public IfArtifactExists getIfExists() {
         return ifExists;
     }
 
     /**
      * @param ifExists the ifExists to set
      */
-    public void setIfExists(IfExists ifExists) {
+    public void setIfExists(IfArtifactExists ifExists) {
         this.ifExists = ifExists;
     }
 
@@ -112,17 +112,17 @@ public class RegisterArtifact {
     }
 
     /**
-     * @return the type
+     * @return the artifactType
      */
-    public String getType() {
-        return type;
+    public String getArtifactType() {
+        return artifactType;
     }
 
     /**
-     * @param type the type to set
+     * @param artifactType the artifact type to set
      */
-    public void setType(String type) {
-        this.type = type;
+    public void setArtifactType(String artifactType) {
+        this.artifactType = artifactType;
     }
 
     /**
@@ -149,7 +149,7 @@ public class RegisterArtifact {
     /**
      * @param contentType the contentType to set
      */
-    public void setContentType(String contentType){
+    public void setContentType(String contentType) {
         this.contentType = contentType;
     }
 
@@ -178,7 +178,7 @@ public class RegisterArtifact {
     public Boolean getAutoRefs() {
         return autoRefs;
     }
-    
+
     public void setAutoRefs(Boolean autoRefs) {
         this.autoRefs = autoRefs;
     }

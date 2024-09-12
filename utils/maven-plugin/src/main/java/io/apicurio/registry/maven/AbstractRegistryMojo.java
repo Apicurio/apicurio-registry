@@ -1,34 +1,30 @@
 package io.apicurio.registry.maven;
 
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.authentication.AuthenticationProvider;
-import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
-import io.apicurio.registry.auth.BasicAuthenticationProvider;
-import io.apicurio.registry.auth.OidcAccessTokenProvider;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.types.ContentTypes;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.ext.web.client.WebClient;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 
-import io.apicurio.registry.rest.client.RegistryClient;
-
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
+
 /**
- * Base class for all Registry Mojo's.
- * It handles RegistryService's (aka client) lifecycle.
- *
+ * Base class for all Registry Mojo's. It handles RegistryService's (aka client) lifecycle.
  */
 public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     /**
-     * The registry's url.
-     * e.g. http://localhost:8080/api/v3
+     * The registry's url. e.g. http://localhost:8080/api/v3
      */
-    @Parameter(required = true, property = "registry.url")
+    @Parameter(required = true, property = "apicurio.url")
     String registryUrl;
 
     @Parameter(property = "auth.server.url")
@@ -53,16 +49,16 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     protected RegistryClient getClient() {
         if (client == null) {
-            AuthenticationProvider provider = null;
+            WebClient provider = null;
             if (authServerUrl != null && clientId != null && clientSecret != null) {
-                provider = new BaseBearerTokenAuthenticationProvider(new OidcAccessTokenProvider(authServerUrl, clientId, clientSecret, null, clientScope));
+                provider = buildOIDCWebClient(authServerUrl, clientId, clientSecret, clientScope);
             } else if (username != null && password != null) {
-                provider = new BasicAuthenticationProvider(username, password);
+                provider = buildSimpleAuthWebClient(username, password);
             } else {
-                provider = new AnonymousAuthenticationProvider();
+                provider = WebClient.create(VertXAuthFactory.defaultVertx);
             }
 
-            var adapter = new OkHttpRequestAdapter(provider);
+            var adapter = new VertXRequestAdapter(provider);
             adapter.setBaseUrl(registryUrl);
             client = new RegistryClient(adapter);
         }
@@ -89,13 +85,15 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         // TODO: check there are no connection leaks etc...
     }
 
-    protected abstract void executeInternal() throws MojoExecutionException, MojoFailureException, ExecutionException, InterruptedException;
+    protected abstract void executeInternal()
+            throws MojoExecutionException, MojoFailureException, ExecutionException, InterruptedException;
 
-    protected String getContentTypeByExtension(String fileName){
-        if(fileName == null) return null;
+    protected String getContentTypeByExtension(String fileName) {
+        if (fileName == null)
+            return null;
         String[] temp = fileName.split("[.]");
         String extension = temp[temp.length - 1];
-        switch (extension.toLowerCase(Locale.ROOT)){
+        switch (extension.toLowerCase(Locale.ROOT)) {
             case "avro":
             case "avsc":
             case "json":
@@ -131,7 +129,9 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         this.clientSecret = clientSecret;
     }
 
-    public void setClientScope(String clientScope) { this.clientScope = clientScope; }
+    public void setClientScope(String clientScope) {
+        this.clientScope = clientScope;
+    }
 
     public void setUsername(String username) {
         this.username = username;

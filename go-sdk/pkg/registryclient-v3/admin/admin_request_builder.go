@@ -9,11 +9,6 @@ type AdminRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
-// ArtifactTypes the list of artifact types supported by this instance of Registry.
-func (m *AdminRequestBuilder) ArtifactTypes() *ArtifactTypesRequestBuilder {
-	return NewArtifactTypesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
-}
-
 // Config the config property
 func (m *AdminRequestBuilder) Config() *ConfigRequestBuilder {
 	return NewConfigRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
@@ -52,4 +47,9 @@ func (m *AdminRequestBuilder) RoleMappings() *RoleMappingsRequestBuilder {
 // Rules manage the global rules that apply to all artifacts if not otherwise configured.
 func (m *AdminRequestBuilder) Rules() *RulesRequestBuilder {
 	return NewRulesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Snapshots triggers a snapshot of the Registry storage. Only supported in KafkaSQL storage
+func (m *AdminRequestBuilder) Snapshots() *SnapshotsRequestBuilder {
+	return NewSnapshotsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

@@ -8,6 +8,7 @@ public class UpdateImpl extends SqlImpl<Update> implements Update {
 
     /**
      * Constructor.
+     * 
      * @param connection
      * @param sql
      */

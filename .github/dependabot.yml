@@ -28,10 +28,11 @@ updates:
 
   - package-ecosystem: maven
     directory: "/"
+    target-branch: 2.6.x
     schedule:
-      interval: daily
+      interval: weekly
     groups:
-      backport-dependencies:
+      backport-dependencies-2.6.x:
         patterns:
           - "*"
 
@@ -51,9 +52,17 @@ updates:
     schedule:
       interval: daily
     groups:
-      ui-dependencies:
+      ui-app-dependencies:
         patterns:
           - "*"
+        exclude-patterns:
+          - "eslint"
+      eslint:
+        patterns:
+          - "eslint"
+        update-types:
+          - "patch"
+          - "minor"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
@@ -62,9 +71,17 @@ updates:
     schedule:
       interval: daily
     groups:
-      ui-dependencies:
+      ui-docs-dependencies:
         patterns:
           - "*"
+        exclude-patterns:
+          - "eslint"
+      eslint:
+        patterns:
+          - "eslint"
+        update-types:
+          - "patch"
+          - "minor"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
@@ -73,8 +90,28 @@ updates:
     schedule:
       interval: daily
     groups:
-      ui-dependencies:
+      ui-test-dependencies:
         patterns:
           - "*"
+        exclude-patterns:
+          - "eslint"
+      eslint:
+        patterns:
+          - "eslint"
+        update-types:
+          - "patch"
+          - "minor"
     open-pull-requests-limit: 10
     versioning-strategy: increase
+
+  - package-ecosystem: npm
+    directory: "/docs-playbook"
+    schedule:
+      interval: weekly
+    versioning-strategy: increase
+    groups:
+      docs-playbook-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"

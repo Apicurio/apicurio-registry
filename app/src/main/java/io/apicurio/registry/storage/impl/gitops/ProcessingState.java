@@ -38,7 +38,6 @@ public class ProcessingState {
 
     private final Map<Type, Set<GitFile>> typeIndex = new HashMap<>();
 
-
     public ProcessingState(RegistryStorage storage) {
         this.storage = storage;
     }

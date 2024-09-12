@@ -1,17 +1,16 @@
 package io.apicurio.registry.serde.headers;
 
-import java.util.Map;
-
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.Headers;
-
 import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.SerdeHeaders;
 import io.apicurio.registry.utils.IoUtil;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+
+import java.util.Map;
 
 /**
- * Common utility class for serializers and deserializers that use config properties such as {@link SerdeConfig#HEADER_VALUE_MESSAGE_TYPE_OVERRIDE_NAME}
- *
+ * Common utility class for serializers and deserializers that use config properties such as
+ * {@link SerdeConfig#HEADER_VALUE_MESSAGE_TYPE_OVERRIDE_NAME}
  */
 public class MessageTypeSerdeHeaders {
 
@@ -19,9 +18,12 @@ public class MessageTypeSerdeHeaders {
 
     public MessageTypeSerdeHeaders(Map<String, Object> configs, boolean isKey) {
         if (isKey) {
-            messageTypeHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_KEY_MESSAGE_TYPE_OVERRIDE_NAME, SerdeHeaders.HEADER_KEY_MESSAGE_TYPE);
+            messageTypeHeaderName = (String) configs.getOrDefault(
+                    SerdeConfig.HEADER_KEY_MESSAGE_TYPE_OVERRIDE_NAME, SerdeHeaders.HEADER_KEY_MESSAGE_TYPE);
         } else {
-            messageTypeHeaderName = (String) configs.getOrDefault(SerdeConfig.HEADER_VALUE_MESSAGE_TYPE_OVERRIDE_NAME, SerdeHeaders.HEADER_VALUE_MESSAGE_TYPE);
+            messageTypeHeaderName = (String) configs.getOrDefault(
+                    SerdeConfig.HEADER_VALUE_MESSAGE_TYPE_OVERRIDE_NAME,
+                    SerdeHeaders.HEADER_VALUE_MESSAGE_TYPE);
         }
     }
 

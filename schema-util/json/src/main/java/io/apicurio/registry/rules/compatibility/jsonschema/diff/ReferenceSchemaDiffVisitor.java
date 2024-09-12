@@ -12,7 +12,6 @@ import static io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil.
 
 public class ReferenceSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
-
     private DiffContext ctx;
     private final Schema referredOriginal;
 
@@ -27,7 +26,8 @@ public class ReferenceSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitReferenceSchema(ReferenceSchemaWrapper referenceSchema) {
-        // TODO Can't use the schema itself, hashCode & equals would cause StackOverflowError, report a bug to te library
+        // TODO Can't use the schema itself, hashCode & equals would cause StackOverflowError, report a bug to
+        // te library
         if (!ctx.visited.contains(referenceSchema.getLocation())) {
             ctx.visited.add(referenceSchema.getLocation());
             ctx = ctx.sub("[ref " + referenceSchema.getLocation() + "]");
@@ -39,9 +39,8 @@ public class ReferenceSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitReferredSchema(SchemaWrapper schema) {
-        if (diffSubschemaAddedRemoved(ctx, referredOriginal, schema,
-            REFERENCE_TYPE_TARGET_SCHEMA_ADDED,
-            REFERENCE_TYPE_TARGET_SCHEMA_REMOVED)) {
+        if (diffSubschemaAddedRemoved(ctx, referredOriginal, schema, REFERENCE_TYPE_TARGET_SCHEMA_ADDED,
+                REFERENCE_TYPE_TARGET_SCHEMA_REMOVED)) {
             schema.accept(new SchemaDiffVisitor(ctx, referredOriginal));
         }
         super.visitReferredSchema(schema);

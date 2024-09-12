@@ -8,7 +8,6 @@ import java.util.Map;
 import static io.apicurio.registry.resolver.SchemaResolverConfig.*;
 import static java.util.Map.entry;
 
-
 public class DefaultSchemaResolverConfig {
 
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(
@@ -18,11 +17,10 @@ public class DefaultSchemaResolverConfig {
             entry(CACHE_LATEST, CACHE_LATEST_DEFAULT),
             entry(FAULT_TOLERANT_REFRESH, FAULT_TOLERANT_REFRESH_DEFAULT),
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
-            entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT),
-            entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
+            entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
-            entry(DEREFERENCE_SCHEMA, DEREFERENCE_SCHEMA_DEFAULT)
-    );
+            entry(DEREFERENCE_SCHEMA, DEREFERENCE_SCHEMA_DEFAULT),
+            entry(DESERIALIZER_DEREFERENCE_SCHEMA, DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT));
 
     private Map<String, ?> originals;
 
@@ -76,7 +74,8 @@ public class DefaultSchemaResolverConfig {
     }
 
     public String autoRegisterArtifactIfExists() {
-        return getStringOneOf(AUTO_REGISTER_ARTIFACT_IF_EXISTS, "FAIL", "UPDATE", "RETURN", "RETURN_OR_UPDATE");
+        return getStringOneOf(AUTO_REGISTER_ARTIFACT_IF_EXISTS, "FAIL", "CREATE_VERSION",
+                "FIND_OR_CREATE_VERSION");
     }
 
     public boolean getCacheLatest() {
@@ -134,8 +133,12 @@ public class DefaultSchemaResolverConfig {
         return originals.get(key);
     }
 
-    public boolean dereference() {
+    public boolean serializerDereference() {
         return getBooleanOrFalse(DEREFERENCE_SCHEMA);
+    }
+
+    public boolean deserializerDereference() {
+        return getBooleanOrFalse(DESERIALIZER_DEREFERENCE_SCHEMA);
     }
 
     private Duration getDurationNonNegativeMillis(String key) {
@@ -180,7 +183,6 @@ public class DefaultSchemaResolverConfig {
         }
         return result;
     }
-
 
     private String getString(String key) {
         Object value = getObject(key);
@@ -232,7 +234,7 @@ public class DefaultSchemaResolverConfig {
     }
 
     private void reportError(String key, String expectedText, Object value) {
-        throw new IllegalArgumentException("Invalid configuration property value for '" + key + "'. " +
-                "Expected " + expectedText + ", but got a '" + value + "'.");
+        throw new IllegalArgumentException("Invalid configuration property value for '" + key + "'. "
+                + "Expected " + expectedText + ", but got a '" + value + "'.");
     }
 }

@@ -25,7 +25,7 @@ public class DisabledApisMatcherService {
     private final List<Pattern> disabledPatternsList = new ArrayList<>();
 
     @Inject
-    @ConfigProperty(name = "registry.disable.apis")
+    @ConfigProperty(name = "apicurio.disable.apis")
     @Info(category = "api", description = "Disable APIs", availableSince = "2.0.0.Final")
     Optional<List<String>> disableRegexps;
 
@@ -47,7 +47,8 @@ public class DisabledApisMatcherService {
     public boolean isDisabled(String requestPath) {
         for (Pattern pattern : disabledPatternsList) {
             if (pattern.matcher(requestPath).matches()) {
-                log.warn("Request {} is rejected because it's disabled by pattern {}", requestPath, pattern.pattern());
+                log.warn("Request {} is rejected because it's disabled by pattern {}", requestPath,
+                        pattern.pattern());
                 return true;
             }
         }

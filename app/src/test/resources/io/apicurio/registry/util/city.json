@@ -1,5 +1,5 @@
 {
-  "$id": "https://example.com/city.schema.json",
+  "$id": "https://example.com/city.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "City",
   "type": "object",

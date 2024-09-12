@@ -1,0 +1,22 @@
+{
+  "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+  "database.user": "postgres",
+  "database.dbname": "apicuriodb",
+  "tasks.max": "1",
+  "database.history.kafka.bootstrap.servers": "kafka:29092",
+  "database.history.kafka.topic": "schema-changes.inventory",
+  "database.server.name": "apicuriodb",
+  "schema.include.list": "public",
+  "value.converter.apicurio.registry.auto-register": "true",
+  "database.port": "5432",
+  "plugin.name": "pgoutput",
+  "topic.prefix": "postgre-changes",
+  "database.hostname": "apicurio-db",
+  "database.password": "postgres",
+  "name": "Test",
+  "value.converter.apicurio.registry.url": "http://schema-registry:8080/apis/registry/v2",
+  "key.converter.apicurio.registry.url": "http://schema-registry:8080/apis/registry/v2",
+  "value.converter": "io.apicurio.registry.utils.converter.AvroConverter",
+  "key.converter.apicurio.registry.auto-register": "true",
+  "key.converter": "io.apicurio.registry.utils.converter.AvroConverter"
+}

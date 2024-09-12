@@ -1,7 +1,7 @@
 package io.apicurio.registry.rules.validity;
 
 import graphql.schema.idl.SchemaParser;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
@@ -21,25 +21,28 @@ public class GraphQLContentValidator implements ContentValidator {
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, ContentHandle, java.util.Map)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
-    public void validate(ValidityLevel level, ContentHandle content, Map<String, ContentHandle> resolvedReferences) throws RuleViolationException {
+    public void validate(ValidityLevel level, TypedContent content,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
-                new SchemaParser().parse(content.content());
+                new SchemaParser().parse(content.getContent().content());
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new RuleViolationException("Syntax violation for GraphQL artifact.", RuleType.VALIDITY, level.name(), e);
+                throw new RuleViolationException("Syntax violation for GraphQL artifact.", RuleType.VALIDITY,
+                        level.name(), e);
             }
         }
     }
 
     /**
-     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(io.apicurio.registry.content.ContentHandle, java.util.List)
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List)
      */
     @Override
-    public void validateReferences(ContentHandle artifactContent, List<ArtifactReference> references) throws RuleViolationException {
+    public void validateReferences(TypedContent content, List<ArtifactReference> references)
+            throws RuleViolationException {
         // Note: not yet implemented!
     }
 

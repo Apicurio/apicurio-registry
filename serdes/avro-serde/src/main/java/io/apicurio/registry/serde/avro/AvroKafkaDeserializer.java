@@ -1,5 +1,15 @@
 package io.apicurio.registry.serde.avro;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.utils.Utils;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.AbstractKafkaDeserializer;
+import org.apache.avro.Schema;
+import org.apache.avro.io.DatumReader;
+import org.apache.avro.io.DecoderFactory;
+import org.apache.kafka.common.header.Headers;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -7,17 +17,6 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
-
-import org.apache.avro.Schema;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DecoderFactory;
-import org.apache.kafka.common.header.Headers;
-
-import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaParser;
-import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.AbstractKafkaDeserializer;
 
 public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U> {
 
@@ -53,7 +52,7 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
 
         avroHeaders = new AvroSerdeHeaders(isKey);
 
-        //important to instantiate the SchemaParser before calling super.configure
+        // important to instantiate the SchemaParser before calling super.configure
         parser = new AvroSchemaParser<>(avroDatumProvider);
 
         super.configure(config, isKey);
@@ -73,9 +72,10 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
     }
 
     @Override
-    protected U readData(Headers headers, ParsedSchema<Schema> schema, ByteBuffer buffer, int start, int length) {
+    protected U readData(Headers headers, ParsedSchema<Schema> schema, ByteBuffer buffer, int start,
+            int length) {
         AvroEncoding encoding = null;
-        if (headers != null){
+        if (headers != null) {
             String encodingHeader = avroHeaders.getEncoding(headers);
             if (encodingHeader != null) {
                 encoding = AvroEncoding.valueOf(encodingHeader);
@@ -87,11 +87,12 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
         }
         try {
             DatumReader<U> reader = avroDatumProvider.createDatumReader(schema.getParsedSchema());
-            if( encoding == AvroEncoding.JSON) {
+            if (encoding == AvroEncoding.JSON) {
                 // copy the data into a new byte[]
                 byte[] msgData = new byte[length];
                 System.arraycopy(buffer.array(), start, msgData, 0, length);
-                return reader.read(null, decoderFactory.jsonDecoder(schema.getParsedSchema(), new ByteArrayInputStream(msgData)));
+                return reader.read(null, decoderFactory.jsonDecoder(schema.getParsedSchema(),
+                        new ByteArrayInputStream(msgData)));
             } else {
                 return reader.read(null, decoderFactory.binaryDecoder(buffer.array(), start, length, null));
             }

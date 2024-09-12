@@ -33,8 +33,8 @@ The property name is `apicurio.registry.headers.enabled`.
 .ID encoding
 You can customize how the schema ID is encoded when passing it in the Kafka message body. Set the `apicurio.registry.id-handler` configuration property to a class that implements the `io.apicurio.registry.serde.IdHandler` interface. {registry} provides the following implementations:
 
-* `io.apicurio.registry.serde.DefaultIdHandler`: Stores the ID as an 8-byte long
-* `io.apicurio.registry.serde.Legacy4ByteIdHandler`:  Stores the ID as an 4-byte integer
+* `io.apicurio.registry.serde.Default4ByteIdHandler`: Stores the ID as an 4-byte long
+* `io.apicurio.registry.serde.Legacy8ByteIdHandler`:  Stores the ID as an 8-byte integer
 
 {registry} represents the schema ID as a long, but for legacy reasons, or for compatibility with other registries or SerDe classes, you might want to use 4 bytes when sending the ID.
 

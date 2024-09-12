@@ -14,15 +14,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-
 @ApplicationScoped
 public class RedirectFilter implements Filter {
 
-    @ConfigProperty(name = "registry.enable-redirects")
+    @ConfigProperty(name = "apicurio.redirects.enabled")
     @Info(category = "redirects", description = "Enable redirects", availableSince = "2.1.2.Final")
     Boolean redirectsEnabled;
 
-    @ConfigProperty(name = "registry.redirects")
+    @ConfigProperty(name = "apicurio.redirects")
     @Info(category = "redirects", description = "Registry redirects", availableSince = "2.1.2.Final")
     Map<String, String> redirectsConfig;
     Map<String, String> redirects = new HashMap<>();
@@ -52,8 +51,8 @@ public class RedirectFilter implements Filter {
     }
 
     /**
-     * @see jakarta.servlet.Filter#doFilter(jakarta.servlet.ServletRequest,
-     *      jakarta.servlet.ServletResponse, jakarta.servlet.FilterChain)
+     * @see jakarta.servlet.Filter#doFilter(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse,
+     *      jakarta.servlet.FilterChain)
      */
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
@@ -69,7 +68,8 @@ public class RedirectFilter implements Filter {
             }
 
             if (redirects.containsKey(servletPath)) {
-                response.sendRedirect(urlUtil.getExternalAbsoluteURL(request, redirects.get(servletPath)).toString());
+                response.sendRedirect(
+                        urlUtil.getExternalAbsoluteURL(request, redirects.get(servletPath)).toString());
                 return;
             }
         }

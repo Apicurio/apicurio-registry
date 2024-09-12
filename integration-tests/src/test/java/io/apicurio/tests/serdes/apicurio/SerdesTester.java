@@ -1,8 +1,9 @@
 package io.apicurio.tests.serdes.apicurio;
 
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.KafkaFacade;
-import io.apicurio.registry.serde.SerdeConfig;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -40,11 +41,10 @@ public class SerdesTester<K, P, C> {
     private static final String BOOTSTRAP_SERVERS = "localhost:9092";
     private static final String MAC_OS_BOOTSTRAP_SERVERS = "docker.host.internal:9092";
 
-
     private boolean autoClose = true;
 
     public SerdesTester() {
-        //empty
+        // empty
     }
 
     /**
@@ -54,11 +54,14 @@ public class SerdesTester<K, P, C> {
         this.autoClose = autoClose;
     }
 
-    public Producer<K, P> createProducer(Class<?> keySerializer, Class<?> valueSerializer, String topicName, Class<?> artifactIdStrategy) {
-        return createProducer(new Properties(), keySerializer, valueSerializer, topicName, artifactIdStrategy);
+    public Producer<K, P> createProducer(Class<?> keySerializer, Class<?> valueSerializer, String topicName,
+            Class<?> artifactIdStrategy) {
+        return createProducer(new Properties(), keySerializer, valueSerializer, topicName,
+                artifactIdStrategy);
     }
 
-    public Producer<K, P> createProducer(Properties props, Class<?> keySerializerClass, Class<?> valueSerializerClass, String topicName, Class<?> artifactIdStrategy) {
+    public Producer<K, P> createProducer(Properties props, Class<?> keySerializerClass,
+            Class<?> valueSerializerClass, String topicName, Class<?> artifactIdStrategy) {
         connectionProperties().forEach((k, v) -> {
             props.putIfAbsent(k, v);
         });
@@ -69,10 +72,13 @@ public class SerdesTester<K, P, C> {
         props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializerClass.getName());
         // Schema Registry location.
         if (valueSerializerClass.getName().contains("confluent")) {
-            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7");
+            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG,
+                    ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7");
             props.putIfAbsent(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, "false");
-            props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY, artifactIdStrategy.getName());
+            props.putIfAbsent(KafkaAvroSerializerConfig.VALUE_SUBJECT_NAME_STRATEGY,
+                    artifactIdStrategy.getName());
         } else {
+            // props.putIfAbsent(SerdeConfig.FIND_LATEST_ARTIFACT, "true");
             props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
             props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, artifactIdStrategy.getName());
         }
@@ -80,11 +86,13 @@ public class SerdesTester<K, P, C> {
         return new KafkaProducer<>(props);
     }
 
-    public Consumer<K, C> createConsumer(Class<?> keyDeserializer, Class<?> valueDeserializer, String topicName) {
+    public Consumer<K, C> createConsumer(Class<?> keyDeserializer, Class<?> valueDeserializer,
+            String topicName) {
         return createConsumer(new Properties(), keyDeserializer, valueDeserializer, topicName);
     }
 
-    public Consumer<K, C> createConsumer(Properties props, Class<?> keyDeserializer, Class<?> valueDeserializer, String topicName) {
+    public Consumer<K, C> createConsumer(Properties props, Class<?> keyDeserializer,
+            Class<?> valueDeserializer, String topicName) {
         connectionProperties().forEach((k, v) -> {
             props.putIfAbsent(k, v);
         });
@@ -95,9 +103,10 @@ public class SerdesTester<K, P, C> {
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializer.getName());
         props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer.getName());
-        //Schema registry location.
+        // Schema registry location.
         if (valueDeserializer.getName().contains("confluent")) {
-            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7");
+            props.putIfAbsent(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG,
+                    ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7");
         } else {
             props.putIfAbsent(SerdeConfig.REGISTRY_URL, ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         }
@@ -105,7 +114,18 @@ public class SerdesTester<K, P, C> {
         return new KafkaConsumer<>(props);
     }
 
-    public void produceMessages(Producer<K, P> producer, String topicName, DataGenerator<P> dataGenerator, int messageCount) throws Exception {
+    public void produceMessages(Producer<K, P> producer, String topicName, DataGenerator<P> dataGenerator,
+            int messageCount, boolean retry) throws Exception {
+
+        if (retry) {
+            TestUtils.retry(() -> produceMessages(producer, topicName, dataGenerator, messageCount));
+        } else {
+            produceMessages(producer, topicName, dataGenerator, messageCount);
+        }
+    }
+
+    private void produceMessages(Producer<K, P> producer, String topicName, DataGenerator<P> dataGenerator,
+            int messageCount) throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
 
             int producedMessages = 0;
@@ -137,14 +157,17 @@ public class SerdesTester<K, P, C> {
         });
 
         try {
-            Integer messagesSent = resultPromise.get((MILLIS_PER_MESSAGE * messageCount) + 2000, TimeUnit.MILLISECONDS);
+            Integer messagesSent = resultPromise.get((MILLIS_PER_MESSAGE * messageCount) + 2000,
+                    TimeUnit.MILLISECONDS);
             assertEquals(messageCount, messagesSent.intValue());
         } catch (Exception e) {
             throw e;
         }
+
     }
 
-    public void consumeMessages(Consumer<K, C> consumer, String topicName, int messageCount, Predicate<C> dataValidator) throws Exception {
+    public void consumeMessages(Consumer<K, C> consumer, String topicName, int messageCount,
+            Predicate<C> dataValidator) throws Exception {
         CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
 
             consumer.subscribe(Collections.singletonList(topicName));
@@ -157,16 +180,18 @@ public class SerdesTester<K, P, C> {
                     final ConsumerRecords<K, C> records = consumer.poll(Duration.ofSeconds(1));
                     if (records.count() == 0) {
                         LOGGER.info("None found");
-                    } else records.forEach(record -> {
+                    } else
+                        records.forEach(record -> {
 
-                        if (dataValidator != null) {
-                            assertTrue(dataValidator.test(record.value()), "Consumed record validation failed");
-                        }
+                            if (dataValidator != null) {
+                                assertTrue(dataValidator.test(record.value()),
+                                        "Consumed record validation failed");
+                            }
 
-                        consumedMessages.getAndIncrement();
-                        LOGGER.info("{} {} {} {}", record.topic(),
-                                record.partition(), record.offset(), record.value());
-                    });
+                            consumedMessages.getAndIncrement();
+                            LOGGER.info("{} {} {} {}", record.topic(), record.partition(), record.offset(),
+                                    record.value());
+                        });
                 }
 
                 LOGGER.info("Consumed {} messages", consumedMessages.get());
@@ -180,7 +205,8 @@ public class SerdesTester<K, P, C> {
         });
 
         try {
-            Integer messagesConsumed = resultPromise.get((MILLIS_PER_MESSAGE * messageCount) + 2000, TimeUnit.MILLISECONDS);
+            Integer messagesConsumed = resultPromise.get((MILLIS_PER_MESSAGE * messageCount) + 2000,
+                    TimeUnit.MILLISECONDS);
             assertEquals(messageCount, messagesConsumed.intValue());
         } catch (Exception e) {
             throw e;

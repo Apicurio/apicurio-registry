@@ -1,10 +1,10 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.utils.impexp.ContentEntity;
 
 public class ContentEntityMapper implements RowMapper<ContentEntity> {
 
@@ -23,13 +23,14 @@ public class ContentEntityMapper implements RowMapper<ContentEntity> {
     public ContentEntity map(ResultSet rs) throws SQLException {
         ContentEntity entity = new ContentEntity();
         entity.contentId = rs.getLong("contentId");
+        entity.contentType = rs.getString("contentType");
         entity.canonicalHash = rs.getString("canonicalHash");
         entity.contentHash = rs.getString("contentHash");
         entity.contentBytes = rs.getBytes("content");
         try {
-            entity.serializedReferences = rs.getString("artifactreferences");
+            entity.serializedReferences = rs.getString("refs");
         } catch (Exception e) {
-            //The old database does not have te artifactreferences column, just ignore;
+            // The old database does not have te references column, just ignore;
         }
         return entity;
     }

@@ -1,0 +1,17 @@
+{
+  "$id": "https://example.com/city.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "City",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The city's name."
+    },
+    "zipCode": {
+      "type": "integer",
+      "description": "The zip code.",
+      "minimum": 0
+    }
+  }
+}

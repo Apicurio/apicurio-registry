@@ -5,67 +5,156 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.core.System;
-import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.exception.UnreachableCodeException;
-import io.apicurio.registry.storage.ArtifactStateExt;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.semver.SemVerConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageBehaviorProperties;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
-import io.apicurio.registry.storage.dto.*;
-import io.apicurio.registry.storage.error.*;
-import io.apicurio.registry.storage.impexp.EntityInputStream;
+import io.apicurio.registry.storage.VersionStateExt;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
+import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
+import io.apicurio.registry.storage.dto.SearchedBranchDto;
+import io.apicurio.registry.storage.dto.SearchedGroupDto;
+import io.apicurio.registry.storage.dto.SearchedVersionDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.BranchAlreadyExistsException;
+import io.apicurio.registry.storage.error.BranchNotFoundException;
+import io.apicurio.registry.storage.error.CommentNotFoundException;
+import io.apicurio.registry.storage.error.ContentAlreadyExistsException;
+import io.apicurio.registry.storage.error.ContentNotFoundException;
+import io.apicurio.registry.storage.error.DownloadNotFoundException;
+import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.NotAllowedException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.RoleMappingAlreadyExistsException;
+import io.apicurio.registry.storage.error.RoleMappingNotFoundException;
+import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsOnBranchException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.*;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactReferenceDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.BranchEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.BranchMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.CommentDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.CommentEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GroupEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GroupRuleEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.RoleMappingDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.RuleConfigurationDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedBranchMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
 import io.apicurio.registry.storage.importing.DataImporter;
-import io.apicurio.registry.storage.importing.SqlDataImporter;
+import io.apicurio.registry.storage.importing.v2.SqlDataUpgrader;
+import io.apicurio.registry.storage.importing.v3.SqlDataImporter;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.util.DtoUtil;
+import io.apicurio.registry.utils.DtoUtil;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
+import io.apicurio.registry.utils.StringUtil;
 import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
+import jakarta.validation.ValidationException;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.semver4j.Semver;
 import org.slf4j.Logger;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.convert;
 import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
+import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
-
+import static java.util.stream.Collectors.toList;
 
 /**
- * A SQL implementation of the {@link RegistryStorage} interface.  This impl does not
- * use any ORM technology - it simply uses native SQL for all operations.
- *
+ * A SQL implementation of the {@link RegistryStorage} interface. This impl does not use any ORM technology -
+ * it simply uses native SQL for all operations.
  */
 public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
-    private static int DB_VERSION = Integer.valueOf(
-            IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version"))).intValue();
+    private static int DB_VERSION = Integer
+            .valueOf(IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version")))
+            .intValue();
     private static final Object inmemorySequencesMutex = new Object();
 
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -92,7 +181,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     SecurityIdentity securityIdentity;
 
     @Inject
-    ArtifactStateExt artifactStateEx;
+    VersionStateExt artifactStateEx;
 
     HandleFactory handles;
 
@@ -102,11 +191,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Inject
     RegistryStorageContentUtils utils;
 
+    @Inject
+    SemVerConfigProperties semVerConfigProps;
+
     protected SqlStatements sqlStatements() {
         return sqlStatements;
     }
 
-    @ConfigProperty(name = "registry.sql.init", defaultValue = "true")
+    @ConfigProperty(name = "apicurio.sql.init", defaultValue = "true")
     @Info(category = "storage", description = "SQL init", availableSince = "2.0.0.Final")
     boolean initDB;
 
@@ -122,12 +214,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     /**
      * @param emitStorageReadyEvent The concrete implementation needs to tell AbstractSqlRegistryStorage
-     *                              whether it should fire {@see io.apicurio.registry.storage.StorageEvent} in addition to
-     *                              {@see io.apicurio.registry.storage.impl.sql.SqlStorageEvent}. Multiple storage implementations
-     *                              may be present at the same time (in particular when using KafkaSQL persistence),
-     *                              but only the single {@see io.apicurio.registry.types.Current} one may fire the former event.
+     *            whether it should fire {@see io.apicurio.registry.storage.StorageEvent} in addition to
+     *            {@see io.apicurio.registry.storage.impl.sql.SqlStorageEvent}. Multiple storage
+     *            implementations may be present at the same time (in particular when using KafkaSQL
+     *            persistence), but only the single {@see io.apicurio.registry.types.Current} one may fire the
+     *            former event.
      */
-    @Transactional
     protected void initialize(HandleFactory handleFactory, boolean emitStorageReadyEvent) {
         this.handles = handleFactory;
 
@@ -148,12 +240,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
             } else {
                 if (!isDatabaseInitialized(handle)) {
-                    log.error("Database not initialized.  Please use the DDL scripts to initialize the database before starting the application.");
+                    log.error(
+                            "Database not initialized.  Please use the DDL scripts to initialize the database before starting the application.");
                     throw new RuntimeException("Database not initialized.");
                 }
 
                 if (!isDatabaseCurrent(handle)) {
-                    log.error("Detected an old version of the database.  Please use the DDL upgrade scripts to bring your database up to date.");
+                    log.error(
+                            "Detected an old version of the database.  Please use the DDL upgrade scripts to bring your database up to date.");
                     throw new RuntimeException("Database not upgraded.");
                 }
             }
@@ -165,19 +259,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         initializeEvent.setType(SqlStorageEventType.READY);
         sqlStorageEvent.fire(initializeEvent);
         if (emitStorageReadyEvent) {
-            /* In cases where the observer of the event also injects the source bean,
-             * such as the io.apicurio.registry.ImportLifecycleBean,
-             * a kind of recursion may happen.
-             * This is because the event is fired in the @PostConstruct method,
-             * and is being processed in the same thread.
-             * We avoid this by processing the event asynchronously.
-             * Note that this requires the jakarta.enterprise.event.ObservesAsync
-             * annotation on the receiving side. If this becomes cumbersome,
-             * try using ManagedExecutor.
+            /*
+             * In cases where the observer of the event also injects the source bean, such as the
+             * io.apicurio.registry.ImportLifecycleBean, a kind of recursion may happen. This is because the
+             * event is fired in the @PostConstruct method, and is being processed in the same thread. We
+             * avoid this by processing the event asynchronously. Note that this requires the
+             * jakarta.enterprise.event.ObservesAsync annotation on the receiving side. If this becomes
+             * cumbersome, try using ManagedExecutor.
              */
-            storageEvent.fireAsync(StorageEvent.builder()
-                    .type(StorageEventType.READY)
-                    .build());
+            storageEvent.fireAsync(StorageEvent.builder().type(StorageEventType.READY).build());
         }
     }
 
@@ -197,6 +287,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         log.info("Checking to see if the DB is up-to-date.");
         log.info("Build's DB version is {}", DB_VERSION);
         int version = this.getDatabaseVersion(handle);
+
+        // Fast-fail if we try to run Registry v3 against a v2 DB.
+        if (version < 100) {
+            String message = "[Apicurio Registry 3.x] Detected legacy 2.x database.  Automatic upgrade from 2.x to 3.x is not supported.  Please see documentation for migration instructions.";
+            log.error("--------------------------");
+            log.error(message);
+            log.error("--------------------------");
+            throw new RuntimeException(message);
+        }
         return version == DB_VERSION;
     }
 
@@ -215,8 +314,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * Upgrades the database by executing a number of DDL statements found in DB-specific
-     * DDL upgrade scripts.
+     * Upgrades the database by executing a number of DDL statements found in DB-specific DDL upgrade scripts.
      */
     private void upgradeDatabase(Handle handle) {
         log.info("Upgrading the Apicurio Hub API database.");
@@ -244,9 +342,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * Instantiates an instance of the given upgrader class and then invokes it.  Used to perform
-     * advanced upgrade logic when upgrading the DB (logic that cannot be handled in simple SQL
-     * statements).
+     * Instantiates an instance of the given upgrader class and then invokes it. Used to perform advanced
+     * upgrade logic when upgrading the DB (logic that cannot be handled in simple SQL statements).
      *
      * @param handle
      * @param cname
@@ -267,10 +364,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private int getDatabaseVersion(Handle handle) {
         try {
-            int version = handle.createQuery(this.sqlStatements.getDatabaseVersion())
-                    .bind(0, "db_version")
-                    .mapTo(Integer.class)
-                    .one();
+            int version = handle.createQuery(this.sqlStatements.getDatabaseVersion()).bind(0, "db_version")
+                    .mapTo(Integer.class).one();
             return version;
         } catch (Exception e) {
             log.error("Error getting DB version.", e);
@@ -288,7 +383,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (!isReady) {
             return false;
         }
-        if (Instant.now().isAfter(isAliveLastCheck.plus(Duration.ofSeconds(2)))) { // Tradeoff between reducing load on the DB and responsiveness: 2s
+        if (Instant.now().isAfter(isAliveLastCheck.plus(Duration.ofSeconds(2)))) { // Tradeoff between
+                                                                                   // reducing load on the DB
+                                                                                   // and responsiveness: 2s
             isAliveLastCheck = Instant.now();
             try {
                 getGlobalRules();
@@ -300,53 +397,47 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return isAliveCached;
     }
 
-
     @Override
     public boolean isReadOnly() {
         return false;
     }
-
 
     @Override
     public String storageName() {
         return "sql";
     }
 
-
     @Override
-    @Transactional
-    public ContentWrapperDto getArtifactByContentId(long contentId) throws ContentNotFoundException, RegistryStorageException {
+    public ContentWrapperDto getContentById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException {
         return handles.withHandleNoException(handle -> {
-            Optional<ContentWrapperDto> res = handle.createQuery(sqlStatements().selectContentById())
-                    .bind(0, contentId)
-                    .map(ContentMapper.instance)
-                    .findFirst();
-            return res.orElseThrow(() -> new ContentNotFoundException(contentId));
+            return getContentByIdRaw(handle, contentId);
         });
     }
 
+    public ContentWrapperDto getContentByIdRaw(Handle handle, long contentId)
+            throws ContentNotFoundException, RegistryStorageException {
+        Optional<ContentWrapperDto> res = handle.createQuery(sqlStatements().selectContentById())
+                .bind(0, contentId).map(ContentMapper.instance).findFirst();
+        return res.orElseThrow(() -> new ContentNotFoundException(contentId));
+    }
 
     @Override
-    @Transactional
-    public ContentWrapperDto getArtifactByContentHash(String contentHash) throws ContentNotFoundException, RegistryStorageException {
+    public ContentWrapperDto getContentByHash(String contentHash)
+            throws ContentNotFoundException, RegistryStorageException {
         return handles.withHandleNoException(handle -> {
             Optional<ContentWrapperDto> res = handle.createQuery(sqlStatements().selectContentByContentHash())
-                    .bind(0, contentHash)
-                    .map(ContentMapper.instance)
-                    .findFirst();
+                    .bind(0, contentHash).map(ContentMapper.instance).findFirst();
             return res.orElseThrow(() -> new ContentNotFoundException(contentHash));
         });
     }
 
-
     @Override
-    @Transactional
-    public List<ArtifactMetaDataDto> getArtifactVersionsByContentId(long contentId) {
+    public List<ArtifactVersionMetaDataDto> getArtifactVersionsByContentId(long contentId) {
         return handles.withHandleNoException(handle -> {
-            List<ArtifactMetaDataDto> dtos = handle.createQuery(sqlStatements().selectArtifactVersionMetaDataByContentId())
-                    .bind(0, contentId)
-                    .map(ArtifactMetaDataDtoMapper.instance)
-                    .list();
+            List<ArtifactVersionMetaDataDto> dtos = handle
+                    .createQuery(sqlStatements().selectArtifactVersionMetaDataByContentId())
+                    .bind(0, contentId).map(ArtifactVersionMetaDataDtoMapper.instance).list();
             if (dtos.isEmpty()) {
                 throw new ContentNotFoundException(contentId);
             }
@@ -362,650 +453,397 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return handles.withHandleNoException(handle -> {
             String sql = sqlStatements().selectArtifactContentIds();
 
-            return handle.createQuery(sql)
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .mapTo(Long.class)
-                    .list();
+            return handle.createQuery(sql).bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
+                    .mapTo(Long.class).list();
         });
     }
 
-
     @Override
-    @Transactional
-    public List<Long> getArtifactContentIds(String groupId, String artifactId) {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectArtifactContentIds())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .mapTo(Long.class)
-                    .list();
-        });
-    }
+    public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
+            String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
+            String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
+            List<String> versionBranches, boolean dryRun) throws RegistryStorageException {
+        log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
 
+        String owner = securityIdentity.getPrincipal().getName();
+        Date createdOn = new Date();
 
-    @Override
-    @Transactional
-    public void updateArtifactState(String groupId, String artifactId, ArtifactState state) throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Updating the state of artifact {} {} to {}", groupId, artifactId, state.name());
-        // We're not skipping the latest artifact version even if it's disabled, so it can be enabled again
-        var metadata = getArtifactMetaData(groupId, artifactId, DEFAULT);
-        updateArtifactVersionStateRaw(metadata.getGlobalId(), metadata.getState(), state);
-    }
+        EditableArtifactMetaDataDto amd = artifactMetaData == null
+            ? EditableArtifactMetaDataDto.builder().build() : artifactMetaData;
 
-
-    @Override
-    @Transactional
-    public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.debug("Updating the state of artifact {} {}, version {} to {}", groupId, artifactId, version, state.name());
-        var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
-        updateArtifactVersionStateRaw(metadata.getGlobalId(), metadata.getState(), state);
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void updateArtifactVersionStateRaw(long globalId, ArtifactState oldState, ArtifactState newState) {
-        handles.withHandleNoException(handle -> {
-                artifactStateEx.applyState(s -> {
-                    handle.createUpdate(sqlStatements.updateArtifactVersionState())
-                            .bind(0, s.name())
-                            .bind(1, globalId)
-                            .execute();
-                }, oldState, newState);
-            return null;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public ArtifactMetaDataDto createArtifact(String groupId, String artifactId, String version, String artifactType,
-                                              ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactAlreadyExistsException, ArtifactNotFoundException, RegistryStorageException {
-        return createArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private ArtifactVersionMetaDataDto createArtifactVersionRaw(boolean firstVersion, String groupId, String artifactId, String version,
-                                                                String name, String description, List<String> labels,
-                                                                Map<String, String> properties, String createdBy, Date createdOn,
-                                                                Long contentId, IdGenerator globalIdGenerator) {
-
-        ArtifactState state = ArtifactState.ENABLED;
-        String labelsStr = SqlUtil.serializeLabels(labels);
-        String propertiesStr = SqlUtil.serializeProperties(properties);
-
-        if (globalIdGenerator == null) {
-            globalIdGenerator = this::nextGlobalId;
+        // Create the group if it doesn't exist yet.
+        if (groupId != null && !isGroupExists(groupId)) {
+            // Only create group metadata for non-default groups.
+            createGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(createdOn.getTime())
+                    .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
         }
 
-        Long globalId = globalIdGenerator.generate();
+        try {
+            return handles.withHandle(handle -> {
+                // Always roll back the transaction if this is a dryRun
+                if (dryRun) {
+                    handle.setRollback(true);
+                }
+
+                Map<String, String> labels = amd.getLabels();
+                String labelsStr = SqlUtil.serializeLabels(labels);
+
+                // Create a row in the artifacts table.
+                handle.createUpdate(sqlStatements.insertArtifact()).bind(0, normalizeGroupId(groupId))
+                        .bind(1, artifactId).bind(2, artifactType).bind(3, owner).bind(4, createdOn)
+                        .bind(5, owner) // modifiedBy
+                        .bind(6, createdOn) // modifiedOn
+                        .bind(7, limitStr(amd.getName(), 512))
+                        .bind(8, limitStr(amd.getDescription(), 1024, true)).bind(9, labelsStr).execute();
+
+                // Insert labels into the "artifact_labels" table
+                if (labels != null && !labels.isEmpty()) {
+                    labels.forEach((k, v) -> {
+                        handle.createUpdate(sqlStatements.insertArtifactLabel())
+                                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
+                                .bind(2, limitStr(k.toLowerCase(), 256))
+                                .bind(3, limitStr(v.toLowerCase(), 512)).execute();
+                    });
+                }
+
+                // Return an artifact metadata dto
+                ArtifactMetaDataDto amdDto = ArtifactMetaDataDto.builder().groupId(groupId)
+                        .artifactId(artifactId).name(amd.getName()).description(amd.getDescription())
+                        .createdOn(createdOn.getTime()).owner(owner).modifiedOn(createdOn.getTime())
+                        .modifiedBy(owner).artifactType(artifactType).labels(labels).build();
+
+                // The artifact was successfully created! Create the version as well, if one was included.
+                if (versionContent != null) {
+                    // Put the content in the DB and get the unique content ID back.
+                    long contentId = getOrCreateContent(handle, artifactType, versionContent);
+
+                    ArtifactVersionMetaDataDto vmdDto = createArtifactVersionRaw(handle, true, groupId,
+                            artifactId, version, versionMetaData, owner, createdOn, contentId,
+                            versionBranches);
+
+                    return ImmutablePair.of(amdDto, vmdDto);
+                } else {
+                    return ImmutablePair.left(amdDto);
+                }
+            });
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new ArtifactAlreadyExistsException(groupId, artifactId);
+            }
+            throw ex;
+        }
+    }
+
+    private ArtifactVersionMetaDataDto createArtifactVersionRaw(Handle handle, boolean firstVersion,
+            String groupId, String artifactId, String version, EditableVersionMetaDataDto metaData,
+            String owner, Date createdOn, Long contentId, List<String> branches) {
+        if (metaData == null) {
+            metaData = EditableVersionMetaDataDto.builder().build();
+        }
+
+        ArtifactState state = ArtifactState.ENABLED;
+        String labelsStr = SqlUtil.serializeLabels(metaData.getLabels());
+
+        Long globalId = nextGlobalId(handle);
+        GAV gav;
 
         // Create a row in the "versions" table
-
         if (firstVersion) {
             if (version == null) {
                 version = "1";
             }
             final String finalVersion1 = version; // Lambda requirement
-            handles.withHandleNoException(handle -> {
+            handle.createUpdate(sqlStatements.insertVersion(true)).bind(0, globalId)
+                    .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, finalVersion1)
+                    .bind(4, state).bind(5, limitStr(metaData.getName(), 512))
+                    .bind(6, limitStr(metaData.getDescription(), 1024, true)).bind(7, owner)
+                    .bind(8, createdOn).bind(9, owner).bind(10, createdOn).bind(11, labelsStr)
+                    .bind(12, contentId).execute();
 
-                handle.createUpdate(sqlStatements.insertVersion(true))
-                        .bind(0, globalId)
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId)
-                        .bind(3, finalVersion1)
-                        .bind(4, state)
-                        .bind(5, limitStr(name, 512))
-                        .bind(6, limitStr(description, 1024, true))
-                        .bind(7, createdBy)
-                        .bind(8, createdOn)
-                        .bind(9, labelsStr)
-                        .bind(10, propertiesStr)
-                        .bind(11, contentId)
-                        .execute();
-
-                return null;
-            });
+            gav = new GAV(groupId, artifactId, finalVersion1);
         } else {
-            final String finalVersion2 = version; // Lambda requirement
-            handles.withHandleNoException(handle -> {
+            handle.createUpdate(sqlStatements.insertVersion(false)).bind(0, globalId)
+                    .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version)
+                    .bind(4, normalizeGroupId(groupId)).bind(5, artifactId).bind(6, state)
+                    .bind(7, limitStr(metaData.getName(), 512))
+                    .bind(8, limitStr(metaData.getDescription(), 1024, true)).bind(9, owner)
+                    .bind(10, createdOn).bind(11, owner).bind(12, createdOn).bind(13, labelsStr)
+                    .bind(14, contentId).execute();
 
-                handle.createUpdate(sqlStatements.insertVersion(false))
-                        .bind(0, globalId)
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId)
-                        .bind(3, finalVersion2)
-                        .bind(4, normalizeGroupId(groupId))
-                        .bind(5, artifactId)
-                        .bind(6, state)
-                        .bind(7, limitStr(name, 512))
-                        .bind(8, limitStr(description, 1024, true))
-                        .bind(9, createdBy)
-                        .bind(10, createdOn)
-                        .bind(11, labelsStr)
-                        .bind(12, propertiesStr)
-                        .bind(13, contentId)
+            // If version is null, update the row we just inserted to set the version to the generated
+            // versionOrder
+            if (version == null) {
+                handle.createUpdate(sqlStatements.autoUpdateVersionForGlobalId()).bind(0, globalId).execute();
+            }
+
+            gav = getGAVByGlobalId(handle, globalId);
+        }
+
+        // Insert labels into the "version_labels" table
+        if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
+            metaData.getLabels().forEach((k, v) -> {
+                handle.createUpdate(sqlStatements.insertVersionLabel()).bind(0, globalId)
+                        .bind(1, limitStr(k.toLowerCase(), 256)).bind(2, limitStr(v.toLowerCase(), 512))
                         .execute();
-
-                // If version is null, update the row we just inserted to set the version to the generated versionId
-                if (finalVersion2 == null) {
-
-                    handle.createUpdate(sqlStatements.autoUpdateVersionForGlobalId())
-                            .bind(0, globalId)
-                            .execute();
-                }
-
-                return null;
             });
         }
 
-        return handles.withHandleNoException(handle -> {
+        // Update system generated branches
+        createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
+        createOrUpdateSemverBranches(handle, gav);
 
-            // Insert labels into the "labels" table
-            if (labels != null && !labels.isEmpty()) {
-                labels.forEach(label -> {
+        // Create any user defined branches
+        if (branches != null && !branches.isEmpty()) {
+            branches.forEach(branch -> {
+                BranchId branchId = new BranchId(branch);
+                createOrUpdateBranchRaw(handle, gav, branchId, false);
+            });
+        }
 
-                    handle.createUpdate(sqlStatements.insertLabel())
-                            .bind(0, globalId)
-                            .bind(1, limitStr(label.toLowerCase(), 256))
-                            .execute();
-                });
-            }
-
-            // Insert properties into the "properties" table
-            if (properties != null && !properties.isEmpty()) {
-                properties.forEach((k, v) -> {
-
-                    handle.createUpdate(sqlStatements.insertProperty())
-                            .bind(0, globalId)
-                            .bind(1, limitStr(k.toLowerCase(), 256))
-                            .bind(2, limitStr(v.toLowerCase(), 1024))
-                            .execute();
-                });
-            }
-
-            // Update the "latest" column in the artifacts table with the globalId of the new version
-            handle.createUpdate(sqlStatements.updateArtifactLatest())
-                    .bind(0, globalId)
-                    .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
-                    .execute();
-
-            return handle.createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId())
-                    .bind(0, globalId)
-                    .map(ArtifactVersionMetaDataDtoMapper.instance)
-                    .one();
-
-        });
+        return handle.createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId()).bind(0, globalId)
+                .map(ArtifactVersionMetaDataDtoMapper.instance).one();
     }
 
+    /**
+     * If SemVer support is enabled, create (or update) the automatic system generated semantic versioning
+     * branches.
+     * 
+     * @param handle
+     * @param gav
+     */
+    private void createOrUpdateSemverBranches(Handle handle, GAV gav) {
+        boolean validationEnabled = semVerConfigProps.validationEnabled.get();
+        boolean branchingEnabled = semVerConfigProps.branchingEnabled.get();
+        boolean coerceInvalidVersions = semVerConfigProps.coerceInvalidVersions.get();
+
+        // Validate the version if validation is enabled.
+        if (validationEnabled) {
+            Semver semver = Semver.parse(gav.getRawVersionId());
+            if (semver == null) {
+                throw new ValidationException("Version '" + gav.getRawVersionId()
+                        + "' does not conform to Semantic Versioning 2 format.");
+            }
+        }
+
+        // Create branches if branching is enabled
+        if (!branchingEnabled) {
+            return;
+        }
+
+        Semver semver = null;
+        if (coerceInvalidVersions) {
+            semver = Semver.coerce(gav.getRawVersionId());
+            if (semver == null) {
+                throw new ValidationException("Version '" + gav.getRawVersionId()
+                        + "' cannot be coerced to Semantic Versioning 2 format.");
+            }
+        } else {
+            semver = Semver.parse(gav.getRawVersionId());
+            if (semver == null) {
+                throw new ValidationException("Version '" + gav.getRawVersionId()
+                        + "' does not conform to Semantic Versioning 2 format.");
+            }
+        }
+        if (semver == null) {
+            throw new UnreachableCodeException("Unexpectedly reached unreachable code!");
+        }
+        createOrUpdateBranchRaw(handle, gav, new BranchId(semver.getMajor() + ".x"), true);
+        createOrUpdateBranchRaw(handle, gav, new BranchId(semver.getMajor() + "." + semver.getMinor() + ".x"),
+                true);
+    }
 
     /**
-     * Store the content in the database and return the content ID of the new row.
-     * If the content already exists, just return the content ID of the existing row.
-     * <p>
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     *
-     * @param references may be null
+     * Store the content in the database and return the content ID of the new row. If the content already
+     * exists, just return the content ID of the existing row.
      */
-    private Long getOrCreateContent(String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
+    private Long getOrCreateContent(Handle handle, String artifactType, ContentWrapperDto contentDto) {
+        List<ArtifactReferenceDto> references = contentDto.getReferences();
+        TypedContent content = TypedContent.create(contentDto.getContent(), contentDto.getContentType());
+
         if (notEmpty(references)) {
-            return getOrCreateContentRaw(content,
-                    utils.getContentHash(content, references),
-                    utils.getCanonicalContentHash(content, artifactType, references, this::resolveReferences),
+            Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver = (refs) -> {
+                return resolveReferencesRaw(handle, refs);
+            };
+            return getOrCreateContentRaw(handle, content, utils.getContentHash(content, references),
+                    utils.getCanonicalContentHash(content, artifactType, references, referenceResolver),
                     references, SqlUtil.serializeReferences(references));
         } else {
-            return getOrCreateContentRaw(content,
-                    utils.getContentHash(content, null),
-                    utils.getCanonicalContentHash(content, artifactType, null, null),
-                    null, null);
+            return getOrCreateContentRaw(handle, content, utils.getContentHash(content, null),
+                    utils.getCanonicalContentHash(content, artifactType, null, null), null, null);
         }
     }
 
-
     /**
-     * Store the content in the database and return the content ID of the new row.
-     * If the content already exists, just return the content ID of the existing row.
-     * <p>
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
+     * Store the content in the database and return the content ID of the new row. If the content already
+     * exists, just return the content ID of the existing row.
      */
-    private Long getOrCreateContentRaw(ContentHandle content, String contentHash, String canonicalContentHash, List<ArtifactReferenceDto> references, String referencesSerialized) {
-        return handles.withHandleNoException(handle -> {
-            byte[] contentBytes = content.bytes();
+    private Long getOrCreateContentRaw(Handle handle, TypedContent content, String contentHash,
+            String canonicalContentHash, List<ArtifactReferenceDto> references, String referencesSerialized) {
+        byte[] contentBytes = content.getContent().bytes();
 
-            // Upsert a row in the "content" table.  This will insert a row for the content
-            // if a row doesn't already exist.  We use the content hash to determine whether
-            // a row for this content already exists.  If we find a row we return its content ID.
-            // If we don't find a row, we insert one and then return its content ID.
-            Long contentId;
-            boolean insertReferences = true;
-            if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
+        // Upsert a row in the "content" table. This will insert a row for the content
+        // if a row doesn't already exist. We use the content hash to determine whether
+        // a row for this content already exists. If we find a row we return its content ID.
+        // If we don't find a row, we insert one and then return its content ID.
+        Long contentId;
+        boolean insertReferences = true;
+        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
+            handle.createUpdate(sqlStatements.upsertContent()).bind(0, nextContentId(handle))
+                    .bind(1, canonicalContentHash).bind(2, contentHash).bind(3, content.getContentType())
+                    .bind(4, contentBytes).bind(5, referencesSerialized).execute();
 
-                handle.createUpdate(sqlStatements.upsertContent())
-                        .bind(0, nextContentId())
-                        .bind(1, canonicalContentHash)
-                        .bind(2, contentHash)
-                        .bind(3, contentBytes)
-                        .bind(4, referencesSerialized)
-                        .execute();
+            contentId = contentIdFromHashRaw(handle, contentHash)
+                    .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
+        } else if ("h2".equals(sqlStatements.dbType())) {
+            Optional<Long> contentIdOptional = contentIdFromHashRaw(handle, contentHash);
 
-                contentId = contentIdFromHash(contentHash)
-                        .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
-
-            } else if ("h2".equals(sqlStatements.dbType())) {
-
-                Optional<Long> contentIdOptional = contentIdFromHash(contentHash);
-
-                if (contentIdOptional.isPresent()) {
-                    contentId = contentIdOptional.get();
-                    //If the content is already present there's no need to create the references.
-                    insertReferences = false;
-                } else {
-
-                    handle.createUpdate(sqlStatements.upsertContent())
-                            .bind(0, nextContentId())
-                            .bind(1, canonicalContentHash)
-                            .bind(2, contentHash)
-                            .bind(3, contentBytes)
-                            .bind(4, referencesSerialized)
-                            .execute();
-
-                    contentId = contentIdFromHash(contentHash)
-                            .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
-                }
+            if (contentIdOptional.isPresent()) {
+                contentId = contentIdOptional.get();
+                // If the content is already present there's no need to create the references.
+                insertReferences = false;
             } else {
-                throw new UnsupportedOperationException("Unsupported database type: " + sqlStatements.dbType());
-            }
+                handle.createUpdate(sqlStatements.upsertContent()).bind(0, nextContentId(handle))
+                        .bind(1, canonicalContentHash).bind(2, contentHash).bind(3, content.getContentType())
+                        .bind(4, contentBytes).bind(5, referencesSerialized).execute();
 
-            if (insertReferences) {
-                //Finally, insert references into the "artifactreferences" table if the content wasn't present yet.
-                insertReferences(contentId, references);
+                contentId = contentIdFromHashRaw(handle, contentHash)
+                        .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
             }
-            return contentId;
-        });
+        } else {
+            throw new UnsupportedOperationException("Unsupported database type: " + sqlStatements.dbType());
+        }
+
+        if (insertReferences) {
+            // Finally, insert references into the "content_references" table if the content wasn't present
+            // yet.
+            insertReferences(handle, contentId, references);
+        }
+        return contentId;
     }
 
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void insertReferences(Long contentId, List<ArtifactReferenceDto> references) {
+    private void insertReferences(Handle handle, Long contentId, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             references.forEach(reference -> {
-                handles.withHandleNoException(handle -> {
-                    try {
-                        handle.createUpdate(sqlStatements.upsertReference())
-                                .bind(0, contentId)
-                                .bind(1, normalizeGroupId(reference.getGroupId()))
-                                .bind(2, reference.getArtifactId())
-                                .bind(3, reference.getVersion())
-                                .bind(4, reference.getName())
-                                .execute();
-                    } catch (Exception e) {
-                        if (sqlStatements.isPrimaryKeyViolation(e)) {
-                            //Do nothing, the reference already exist, only needed for H2
-                        } else {
-                            throw e;
-                        }
+                try {
+                    handle.createUpdate(sqlStatements.upsertContentReference()).bind(0, contentId)
+                            .bind(1, normalizeGroupId(reference.getGroupId()))
+                            .bind(2, reference.getArtifactId()).bind(3, reference.getVersion())
+                            .bind(4, reference.getName()).execute();
+                } catch (Exception e) {
+                    if (sqlStatements.isPrimaryKeyViolation(e)) {
+                        // Do nothing, the reference already exist, only needed for H2
+                    } else {
+                        throw e;
                     }
-                    return null;
-                });
+                }
             });
         }
     }
 
-
     @Override
-    @Transactional
-    public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData,
-                                                          List<ArtifactReferenceDto> references)
-            throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
-
-        String createdBy = securityIdentity.getPrincipal().getName();
-        Date createdOn = new Date();
-
-        if (groupId != null && !isGroupExists(groupId)) {
-            //Only create group metadata for non-default groups.
-            createGroup(GroupMetaDataDto.builder()
-                    .groupId(groupId)
-                    .createdOn(createdOn.getTime())
-                    .modifiedOn(createdOn.getTime())
-                    .createdBy(createdBy)
-                    .modifiedBy(createdBy)
-                    .build());
-        }
-
-        // Put the content in the DB and get the unique content ID back.
-        long contentId = getOrCreateContent(artifactType, content, references);
-
-        // If the metaData provided is null, try to figure it out from the content.
-        EditableArtifactMetaDataDto md = metaData;
-        if (md == null) {
-            md = utils.extractEditableArtifactMetadata(artifactType, content);
-        }
-        // This current method is skipped in KafkaSQL, and the one below is called directly,
-        // so references must be added to the metadata there.
-        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn, md, null);
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private ArtifactMetaDataDto createArtifactWithMetadataRaw(String groupId, String artifactId, String version,
-                                                              String artifactType, long contentId, String createdBy,
-                                                              Date createdOn, EditableArtifactMetaDataDto metaData,
-                                                              IdGenerator globalIdGenerator) {
-        log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
-        try {
-            return handles.withHandle(handle -> {
-                // Create a row in the artifacts table.
-                handle.createUpdate(sqlStatements.insertArtifact())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, artifactType)
-                        .bind(3, createdBy)
-                        .bind(4, createdOn)
-                        .execute();
-
-                // Then create a row in the content and versions tables (for the content and version meta-data)
-                ArtifactVersionMetaDataDto vmdd = createArtifactVersionRaw(true, groupId, artifactId, version,
-                        metaData.getName(), metaData.getDescription(), metaData.getLabels(), metaData.getProperties(), createdBy, createdOn,
-                        contentId, globalIdGenerator);
-
-                // Get the content, so we can return references in the metadata
-                ContentWrapperDto contentDto = getArtifactByContentId(contentId);
-
-                // Return the new artifact meta-data
-                ArtifactMetaDataDto amdd = convert(groupId, artifactId, vmdd);
-                amdd.setCreatedBy(createdBy);
-                amdd.setCreatedOn(createdOn.getTime());
-                amdd.setLabels(metaData.getLabels());
-                amdd.setProperties(metaData.getProperties());
-                amdd.setReferences(contentDto.getReferences());
-                return amdd;
-            });
-        } catch (Exception e) {
-            if (sqlStatements.isPrimaryKeyViolation(e)) {
-                throw new ArtifactAlreadyExistsException(groupId, artifactId);
-            }
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
     public List<String> deleteArtifact(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Deleting an artifact: {} {}", groupId, artifactId);
-        try {
-            List<String> res = handles.withHandle(handle -> {
-                // Get the list of versions of the artifact (will be deleted)
+        return handles.withHandle(handle -> {
+            // Get the list of versions of the artifact (will be deleted)
+            List<String> versions = handle.createQuery(sqlStatements.selectArtifactVersions())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(String.class).list();
 
-                List<String> versions = handle.createQuery(sqlStatements.selectArtifactVersions())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .mapTo(String.class)
-                        .list();
+            // Note: delete artifact rules as well. Artifact rules are not set to cascade on delete
+            // because the Confluent API allows users to configure rules for artifacts that don't exist. :(
+            handle.createUpdate(sqlStatements.deleteArtifactRules()).bind(0, normalizeGroupId(groupId))
+                    .bind(1, artifactId).execute();
 
-                // TODO use CASCADE when deleting rows from the "versions" table
+            // Delete artifact row (should be just one)
+            int rowCount = handle.createUpdate(sqlStatements.deleteArtifact())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
 
-                // Delete labels
-                handle.createUpdate(sqlStatements.deleteLabels())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .execute();
+            if (rowCount == 0) {
+                throw new ArtifactNotFoundException(groupId, artifactId);
+            }
 
-                // Delete properties
-                handle.createUpdate(sqlStatements.deleteProperties())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .execute();
+            deleteAllOrphanedContent(handle);
 
-                // Delete versions
-                handle.createUpdate(sqlStatements.deleteVersions())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .execute();
-
-                // Delete artifact rules
-                handle.createUpdate(sqlStatements.deleteArtifactRules())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .execute();
-
-                // Delete artifact row (should be just one)
-                int rowCount = handle.createUpdate(sqlStatements.deleteArtifact())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .execute();
-
-                if (rowCount == 0) {
-                    throw new ArtifactNotFoundException(groupId, artifactId);
-                }
-                return versions;
-            });
-            deleteAllOrphanedContent();
-            return res;
-        } catch (ArtifactNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+            return versions;
+        });
     }
 
-
     @Override
-    @Transactional
     public void deleteArtifacts(String groupId) throws RegistryStorageException {
         log.debug("Deleting all artifacts in group: {}", groupId);
-        try {
-            handles.withHandle(handle -> {
+        handles.withHandle(handle -> {
+            // Note: delete artifact rules separately. Artifact rules are not set to cascade on delete
+            // because the Confluent API allows users to configure rules for artifacts that don't exist. :(
+            handle.createUpdate(sqlStatements.deleteArtifactRulesByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).execute();
 
-                // TODO use CASCADE when deleting rows from the "versions" table
+            // Delete all artifacts in the group
+            int rowCount = handle.createUpdate(sqlStatements.deleteArtifactsByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).execute();
 
-                // Delete labels
-                handle.createUpdate(sqlStatements.deleteLabelsByGroupId())
-                        .bind(0, normalizeGroupId(groupId))
-                        .execute();
-
-                // Delete properties
-                handle.createUpdate(sqlStatements.deletePropertiesByGroupId())
-                        .bind(0, normalizeGroupId(groupId))
-                        .execute();
-
-                // Delete versions
-                handle.createUpdate(sqlStatements.deleteVersionsByGroupId())
-                        .bind(0, normalizeGroupId(groupId))
-                        .execute();
-
-                // Delete artifact rules
-                handle.createUpdate(sqlStatements.deleteArtifactRulesByGroupId())
-                        .bind(0, normalizeGroupId(groupId))
-                        .execute();
-
-                // Delete artifact row (should be just one)
-                int rowCount = handle.createUpdate(sqlStatements.deleteArtifactsByGroupId())
-                        .bind(0, normalizeGroupId(groupId))
-                        .execute();
-
-                if (rowCount == 0) {
-                    throw new ArtifactNotFoundException(groupId, null);
-                }
-                return null;
-            });
-            deleteAllOrphanedContent();
-        } catch (ArtifactNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    public StoredArtifactDto getArtifact(String groupId, String artifactId)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        return getArtifact(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
-    }
-
-
-    @Override
-    @Transactional
-    public StoredArtifactDto getArtifact(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Selecting a single artifact (latest version) by artifactId: {} {} (behavior = {})", groupId, artifactId, behavior);
-        try {
-            switch (behavior) {
-                case DEFAULT: {
-                    return handles.withHandle(handle -> {
-                        Optional<StoredArtifactDto> res = handle.createQuery(sqlStatements.selectLatestArtifactContent())
-                                .bind(0, normalizeGroupId(groupId))
-                                .bind(1, artifactId)
-                                .map(StoredArtifactMapper.instance)
-                                .findOne();
-                        return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
-                    });
-                }
-                case SKIP_DISABLED_LATEST: {
-                    return handles.withHandle(handle -> {
-                        // Try the likely option first using a more lightweight query
-                        Optional<StoredArtifactDto> res = handle.createQuery(sqlStatements.selectLatestArtifactContentSkipDisabledState())
-                                .bind(0, normalizeGroupId(groupId))
-                                .bind(1, artifactId)
-                                .map(StoredArtifactMapper.instance)
-                                .findOne();
-                        if (res.isEmpty()) {
-                            // Unlikely, but the latest artifact version may be disabled
-                            res = handle.createQuery(sqlStatements.selectLatestArtifactContentWithMaxGlobalIDSkipDisabledState())
-                                    .bind(0, normalizeGroupId(groupId))
-                                    .bind(1, artifactId)
-                                    // INNER:
-                                    .bind(2, normalizeGroupId(groupId))
-                                    .bind(3, artifactId)
-                                    .map(StoredArtifactMapper.instance)
-                                    .findOne();
-                        }
-                        return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
-                    });
-                }
-                default:
-                    throw new UnreachableCodeException();
+            if (rowCount == 0) {
+                throw new ArtifactNotFoundException(groupId, null);
             }
-        } catch (ArtifactNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
 
+            deleteAllOrphanedContent(handle);
 
-    @Override
-    public ArtifactMetaDataDto updateArtifact(String groupId, String artifactId, String version, String artifactType,
-                                              ContentHandle content, List<ArtifactReferenceDto> references) throws ArtifactNotFoundException, RegistryStorageException {
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, null, references);
-    }
-
-
-    @Override
-    @Transactional
-    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, ContentHandle content,
-                                                          EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
-            throws ArtifactNotFoundException, RegistryStorageException {
-
-
-        return updateArtifactWithMetadata(groupId, artifactId, version, artifactType, content, metaData, references, null);
-    }
-
-    protected ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                             String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references,
-                                                             IdGenerator globalIdGenerator) throws ArtifactNotFoundException, RegistryStorageException {
-
-        String createdBy = securityIdentity.getPrincipal().getName();
-        Date createdOn = new Date();
-
-        // Put the content in the DB and get the unique content ID back.
-        long contentId = handles.withHandleNoException(handle -> {
-            return getOrCreateContent(artifactType, content, references);
+            return null;
         });
-
-        // Extract meta-data from the content if no metadata is provided
-        if (metaData == null) {
-            metaData = utils.extractEditableArtifactMetadata(artifactType, content);
-        }
-
-        return updateArtifactWithMetadataRaw(groupId, artifactId, version, contentId, createdBy, createdOn,
-                metaData, null);
     }
 
+    @Override
+    public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
+            String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
+            List<String> branches, boolean dryRun)
+            throws VersionAlreadyExistsException, RegistryStorageException {
+        log.debug("Creating new artifact version for {} {} (version {}).", groupId, artifactId, version);
 
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private ArtifactMetaDataDto updateArtifactWithMetadataRaw(String groupId, String artifactId, String version,
-                                                              long contentId, String createdBy, Date createdOn,
-                                                              EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Updating artifact {} {} with a new version (content).", groupId, artifactId);
-
-        //For the update we want to get meta-data from previous (latest) existing version, no matter the state.
-        ArtifactMetaDataDto latest = this.getArtifactMetaData(groupId, artifactId, DEFAULT);
+        String owner = securityIdentity.getPrincipal().getName();
+        Date createdOn = new Date();
 
         try {
             // Create version and return
             return handles.withHandle(handle -> {
-                // Metadata comes from the latest version
-                String name = latest.getName();
-                String description = latest.getDescription();
-                List<String> labels = latest.getLabels();
-                Map<String, String> properties = latest.getProperties();
+                // Always roll back the transaction if this is a dryRun
+                if (dryRun) {
+                    handle.setRollback(true);
+                }
 
-                // Provided metadata will override inherited values from latest version
-                if (metaData.getName() != null) {
-                    name = metaData.getName();
-                }
-                if (metaData.getDescription() != null) {
-                    description = metaData.getDescription();
-                }
-                if (metaData.getLabels() != null) {
-                    labels = metaData.getLabels();
-                }
-                if (metaData.getProperties() != null) {
-                    properties = metaData.getProperties();
-                }
+                // Put the content in the DB and get the unique content ID back.
+                long contentId = getOrCreateContent(handle, artifactType, content);
+
+                boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
 
                 // Now create the version and return the new version metadata.
-                ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(false, groupId, artifactId, version,
-                        name, description, labels, properties, createdBy, createdOn, contentId, globalIdGenerator);
-                ArtifactMetaDataDto dto = convert(groupId, artifactId, versionDto);
-                dto.setCreatedOn(latest.getCreatedOn());
-                dto.setCreatedBy(latest.getCreatedBy());
-                dto.setLabels(labels);
-                dto.setProperties(properties);
-                return dto;
+                ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(handle, isFirstVersion,
+                        groupId, artifactId, version,
+                        metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData, owner,
+                        createdOn, contentId, branches);
+                return versionDto;
             });
-        } catch (Exception e) {
-            if (sqlStatements.isPrimaryKeyViolation(e)) {
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
                 throw new VersionAlreadyExistsException(groupId, artifactId, version);
             }
-            throw new RegistryStorageException(e);
+            throw ex;
         }
     }
 
+    @Override
+    public long countActiveArtifactVersions(String groupId, String artifactId)
+            throws RegistryStorageException {
+        log.debug("Searching for versions of artifact {} {}", groupId, artifactId);
+        return handles.withHandleNoException(handle -> {
+            Integer count = handle.createQuery(sqlStatements.selectActiveArtifactVersionsCount())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Integer.class).one();
+            return count.longValue();
+        });
+
+    }
 
     @Override
-    @Transactional
     public Set<String> getArtifactIds(Integer limit) { // TODO Paging and order by
-        //Set limit to max integer in case limit is null (not allowed)
+        // Set limit to max integer in case limit is null (not allowed)
         final Integer adjustedLimit = limit == null ? Integer.MAX_VALUE : limit;
         log.debug("Getting the set of all artifact IDs");
         return handles.withHandleNoException(handle -> {
@@ -1015,97 +853,43 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     *
-     * @param groupId may be null to indicate the default group
-     */
-    private Set<String> getArtifactIds(String groupId, Integer limit) { // TODO Paging and order by
-        //Set limit to max integer in case limit is null (not allowed)
-        final Integer adjustedLimit = limit == null ? Integer.MAX_VALUE : limit;
-        return handles.withHandleNoException(handle -> {
-            Query query = handle.createQuery(sqlStatements.selectArtifactIdsInGroup());
-            query.bind(1, adjustedLimit).bind(0, normalizeGroupId(groupId));
-            return new HashSet<>(query.mapTo(String.class).list());
-        });
-    }
-
-
     @Override
-    @Transactional
-    public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection,
-                                                    int offset, int limit) {
+    public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) {
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
-            StringBuilder select = new StringBuilder();
+            StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
             StringBuilder limitOffset = new StringBuilder();
 
-            boolean joinContentTable = hasContentFilter(filters);
-
             // Formulate the SELECT clause for the artifacts query
-            select.append(
-                    "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, "
-                            + "v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
-                            + "FROM artifacts a "
-                            + "JOIN versions v ON a.latest = v.globalId ");
-            if (joinContentTable) {
-                select.append("JOIN content c ON v.contentId = c.contentId ");
-            }
+            selectTemplate.append("SELECT {{selectColumns}} FROM artifacts a ");
 
             // Formulate the WHERE clause for both queries
-
+            String op;
+            boolean first = true;
             for (SearchFilter filter : filters) {
-                where.append(" AND (");
+                if (first) {
+                    where.append(" WHERE (");
+                    first = false;
+                } else {
+                    where.append(" AND (");
+                }
                 switch (filter.getType()) {
                     case description:
-                        where.append("v.description LIKE ?");
+                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        where.append("a.description ");
+                        where.append(op);
+                        where.append(" ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        break;
-                    case everything:
-                        where.append("("
-                                + "v.name LIKE ? OR "
-                                + "v.groupId LIKE ? OR "
-                                + "a.artifactId LIKE ? OR "
-                                + "v.description LIKE ? OR "
-                                + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId) OR "
-                                + "EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId)"
-                                + ")");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
-                            query.bind(idx, filter.getStringValue().toLowerCase());
-                        });
-                        binders.add((query, idx) -> {
-                            //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
-                            query.bind(idx, filter.getStringValue().toLowerCase());
-                        });
-                        break;
-                    case labels:
-                        where.append("EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId)");
-                        binders.add((query, idx) -> {
-                            //    Note: convert search to lowercase when searching for labels (case-insensitivity support).
-                            query.bind(idx, filter.getStringValue().toLowerCase());
                         });
                         break;
                     case name:
-                        where.append("(v.name LIKE ?) OR (a.artifactId LIKE ?)");
+                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        where.append("a.name " + op + " ? OR a.artifactId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
@@ -1113,52 +897,82 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
                         break;
-                    case group:
-                        where.append("(v.groupId = ?)");
+                    case groupId:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("a.groupId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, normalizeGroupId(filter.getStringValue()));
                         });
                         break;
                     case contentHash:
-                        where.append("(c.contentHash = ?)");
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append(
+                                "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("c.contentHash " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getStringValue());
                         });
+                        where.append(")");
                         break;
                     case canonicalHash:
-                        where.append("(c.canonicalHash = ?)");
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append(
+                                "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("c.canonicalHash " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getStringValue());
                         });
+                        where.append(")");
                         break;
-                    case properties:
-                        Pair<String, String> property = filter.getPropertyFilterValue();
-                        //    Note: convert search to lowercase when searching for properties (case-insensitivity support).
-                        String propKey = property.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? ");
+                    case labels:
+                        op = filter.isNot() ? "!=" : "=";
+                        Pair<String, String> label = filter.getLabelFilterValue();
+                        // Note: convert search to lowercase when searching for labels (case-insensitivity
+                        // support).
+                        String labelKey = label.getKey().toLowerCase();
+                        where.append(
+                                "EXISTS(SELECT l.* FROM artifact_labels l WHERE l.labelKey " + op + " ?");
                         binders.add((query, idx) -> {
-                            query.bind(idx, propKey);
+                            query.bind(idx, labelKey);
                         });
-                        if (property.getValue() != null) {
-                            String propValue = property.getValue().toLowerCase();
-                            where.append("AND p.pvalue = ? ");
+                        if (label.getValue() != null) {
+                            String labelValue = label.getValue().toLowerCase();
+                            where.append(" AND l.labelValue " + op + " ?");
                             binders.add((query, idx) -> {
-                                query.bind(idx, propValue);
+                                query.bind(idx, labelValue);
                             });
                         }
-                        where.append("AND p.globalId = v.globalId)");
+                        where.append(" AND l.groupId = a.groupId AND l.artifactId = a.artifactId)");
                         break;
                     case globalId:
-                        where.append("(v.globalId = ?)");
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append(
+                                "EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("v.globalId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getNumberValue().longValue());
                         });
+                        where.append(")");
                         break;
                     case contentId:
-                        where.append("(v.contentId = ?)");
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append(
+                                "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("v.contentId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getNumberValue().longValue());
                         });
+                        where.append(")");
+                        break;
+                    case state:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append(
+                                "EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("v.state " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        where.append(")");
                         break;
                 }
                 where.append(")");
@@ -1167,16 +981,24 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // Add order by to artifact query
             switch (orderBy) {
                 case name:
-                    orderByQuery.append(" ORDER BY coalesce(v.name, a.artifactId) ");
+                    orderByQuery.append(" ORDER BY coalesce(a.name, a.artifactId)");
+                    break;
+                case artifactId:
+                    orderByQuery.append(" ORDER BY a.artifactId");
                     break;
                 case createdOn:
-                    orderByQuery.append(" ORDER BY v.createdOn ");
+                    orderByQuery.append(" ORDER BY a.createdOn");
                     break;
-                case globalId:
-                    orderByQuery.append(" ORDER BY v.globalId ");
+                case modifiedOn:
+                    orderByQuery.append(" ORDER BY a.modifiedOn");
                     break;
+                case artifactType:
+                    orderByQuery.append(" ORDER BY a.type");
+                    break;
+                default:
+                    throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
             }
-            orderByQuery.append(orderDirection.name());
+            orderByQuery.append(" ").append(orderDirection.name());
 
             // Add limit and offset to artifact query
             if ("mssql".equals(sqlStatements.dbType())) {
@@ -1186,16 +1008,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
 
             // Query for the artifacts
-            String artifactsQuerySql = select.toString() + where.toString() + orderByQuery.toString() + limitOffset.toString();
+            String artifactsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
+                    .append(limitOffset).toString().replace("{{selectColumns}}", "a.*");
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
-            // Query for the total row count
-            String countSelect = "SELECT count(a.artifactId) "
-                    + "FROM artifacts a "
-                    + "JOIN versions v ON a.latest = v.globalId ";
-            if (joinContentTable) {
-                countSelect += "JOIN content c ON v.contentId = c.contentId ";
-            }
-            Query countQuery = handle.createQuery(countSelect + where.toString());
+            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
+                    .replace("{{selectColumns}}", "count(a.artifactId)");
+            Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
             int idx = 0;
@@ -1225,1723 +1043,515 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return getArtifactMetaData(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
+        log.debug("Selecting artifact meta-data: {} {}", groupId, artifactId);
+
+        return handles.withHandle(handle -> getArtifactMetaDataRaw(handle, groupId, artifactId));
     }
 
-
-    @Override
-    @Transactional
-    public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+    private ArtifactMetaDataDto getArtifactMetaDataRaw(Handle handle, String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Selecting artifact (latest version) meta-data: {} {} (behavior = {})", groupId, artifactId, behavior);
-        try {
-            switch (behavior) {
-                case DEFAULT: {
-                    return handles.withHandle(handle -> {
-                        Optional<ArtifactMetaDataDto> res = handle.createQuery(sqlStatements.selectLatestArtifactMetaData())
-                                .bind(0, normalizeGroupId(groupId))
-                                .bind(1, artifactId)
-                                .map(ArtifactMetaDataDtoMapper.instance)
-                                .findOne();
-                        return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
-                    });
-                }
-                case SKIP_DISABLED_LATEST: {
-                    return handles.withHandle(handle -> {
-                        // Try the likely option first using a more lightweight query
-                        Optional<ArtifactMetaDataDto> res = handle.createQuery(sqlStatements.selectLatestArtifactMetaDataSkipDisabledState())
-                                .bind(0, normalizeGroupId(groupId))
-                                .bind(1, artifactId)
-                                .map(ArtifactMetaDataDtoMapper.instance)
-                                .findOne();
-                        if (res.isEmpty()) {
-                            // Unlikely, but the latest artifact version may be disabled
-                            res = handle.createQuery(sqlStatements.selectLatestArtifactMetaDataWithMaxGlobalIDSkipDisabledState())
-                                    .bind(0, normalizeGroupId(groupId))
-                                    .bind(1, artifactId)
-                                    // INNER:
-                                    .bind(2, normalizeGroupId(groupId))
-                                    .bind(3, artifactId)
-                                    .map(ArtifactMetaDataDtoMapper.instance)
-                                    .findOne();
-                        }
-                        return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
-                    });
-                }
-                default:
-                    throw new UnreachableCodeException();
-            }
-        } catch (ArtifactNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+        Optional<ArtifactMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactMetaData())
+                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
+                .map(ArtifactMetaDataDtoMapper.instance).findOne();
+        return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
     }
-
 
     /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     *
      * @param references may be null
      */
-    private String getContentHash(String groupId, String artifactId, boolean canonical,
-                                  ContentHandle content, List<ArtifactReferenceDto> references) {
+    private String getContentHash(Handle handle, String groupId, String artifactId, boolean canonical,
+            TypedContent content, List<ArtifactReferenceDto> references) {
         if (canonical) {
-            var artifactMetaData = getArtifactMetaData(groupId, artifactId);
-            return utils.getCanonicalContentHash(content, artifactMetaData.getType(),
-                    references, this::resolveReferences);
+            var artifactMetaData = getArtifactMetaDataRaw(handle, groupId, artifactId);
+            Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver = (refs) -> {
+                return resolveReferencesRaw(handle, refs);
+            };
+            return utils.getCanonicalContentHash(content, artifactMetaData.getArtifactType(), references,
+                    referenceResolver);
         } else {
             return utils.getContentHash(content, references);
         }
     }
 
-
     /**
      * @param references may be null
      */
     @Override
-    @Transactional
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, boolean canonical,
-                                                                 ContentHandle content, List<ArtifactReferenceDto> references)
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId,
+            boolean canonical, TypedContent content, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
 
-        String hash = getContentHash(groupId, artifactId, canonical, content, references);
+        return handles.withHandle(handle -> {
+            String hash = getContentHash(handle, groupId, artifactId, canonical, content, references);
 
-        try {
-            return handles.withHandle(handle -> {
-                String sql;
-                if (canonical) {
-                    sql = sqlStatements.selectArtifactVersionMetaDataByCanonicalHash();
-                } else {
-                    sql = sqlStatements.selectArtifactVersionMetaDataByContentHash();
-                }
-                Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sql)
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, hash)
-                        .map(ArtifactVersionMetaDataDtoMapper.instance)
-                        .findFirst();
-                return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
-            });
-        } catch (ArtifactNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+            String sql;
+            if (canonical) {
+                sql = sqlStatements.selectArtifactVersionMetaDataByCanonicalHash();
+            } else {
+                sql = sqlStatements.selectArtifactVersionMetaDataByContentHash();
+            }
+            Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sql)
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, hash)
+                    .map(ArtifactVersionMetaDataDtoMapper.instance).findFirst();
+            return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
+        });
     }
 
-
     @Override
-    @Transactional
-    public ArtifactMetaDataDto getArtifactMetaData(long globalId)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Getting meta-data for globalId: {}", globalId);
-        try {
-            return handles.withHandle(handle -> {
-                Optional<ArtifactMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactMetaDataByGlobalId())
-                        .bind(0, globalId)
-                        .map(ArtifactMetaDataDtoMapper.instance)
-                        .findOne();
-                return res.orElseThrow(() -> new ArtifactNotFoundException(null, String.valueOf(globalId)));
-            });
-        } catch (ArtifactNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto editableMetadata)
-            throws ArtifactNotFoundException, RegistryStorageException {
+    public void updateArtifactMetaData(String groupId, String artifactId,
+            EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Updating meta-data for an artifact: {} {}", groupId, artifactId);
 
-        var metadata = getArtifactMetaData(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
-        updateArtifactVersionMetadataRaw(metadata.getGlobalId(), groupId, artifactId, metadata.getVersion(), editableMetadata);
-    }
+        handles.withHandle(handle -> {
+            boolean modified = false;
 
-
-    @Override
-    @Transactional
-    public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwnerDto owner)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Updating ownership of an artifact: {} {}", groupId, artifactId);
-
-        try {
-            handles.withHandle(handle -> {
-                int rowCount = handle.createUpdate(sqlStatements.updateArtifactOwner())
-                        .bind(0, owner.getOwner())
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId)
-                        .execute();
+            // Update name
+            if (metaData.getName() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactName())
+                        .bind(0, limitStr(metaData.getName(), 512)).bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId).execute();
+                modified = true;
                 if (rowCount == 0) {
-                    if (!isArtifactExists(groupId, artifactId)) {
-                        throw new ArtifactNotFoundException(groupId, artifactId);
-                    }
-                    // Likely someone tried to set the owner to the same value.  That is
-                    // not an error.  No need to throw.
+                    throw new ArtifactNotFoundException(groupId, artifactId);
                 }
-                return null;
-            });
-        } catch (RegistryStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+            }
+
+            // Update description
+            if (metaData.getDescription() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactDescription())
+                        .bind(0, limitStr(metaData.getDescription(), 1024)).bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId).execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+            }
+
+            // TODO versions shouldn't have owners, only groups and artifacts?
+            if (metaData.getOwner() != null && !metaData.getOwner().trim().isEmpty()) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactOwner())
+                        .bind(0, metaData.getOwner()).bind(1, normalizeGroupId(groupId)).bind(2, artifactId)
+                        .execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+            }
+
+            // Update labels
+            if (metaData.getLabels() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactLabels())
+                        .bind(0, SqlUtil.serializeLabels(metaData.getLabels()))
+                        .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+
+                // Delete all appropriate rows in the "artifact_labels" table
+                handle.createUpdate(sqlStatements.deleteArtifactLabels()).bind(0, normalizeGroupId(groupId))
+                        .bind(1, artifactId).execute();
+
+                // Insert new labels into the "artifact_labels" table
+                Map<String, String> labels = metaData.getLabels();
+                if (labels != null && !labels.isEmpty()) {
+                    labels.forEach((k, v) -> {
+                        String sqli = sqlStatements.insertArtifactLabel();
+                        handle.createUpdate(sqli).bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
+                                .bind(2, limitStr(k.toLowerCase(), 256))
+                                .bind(3, limitStr(asLowerCase(v), 512)).execute();
+                    });
+                }
+            }
+
+            if (modified) {
+                String modifiedBy = securityIdentity.getPrincipal().getName();
+                Date modifiedOn = new Date();
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactModifiedByOn())
+                        .bind(0, modifiedBy).bind(1, modifiedOn).bind(2, normalizeGroupId(groupId))
+                        .bind(3, artifactId).execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+
+            }
+
+            return null;
+        });
     }
 
-
     @Override
-    @Transactional
     public List<RuleType> getArtifactRules(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting a list of all artifact rules for: {} {}", groupId, artifactId);
-        try {
-            return handles.withHandle(handle -> {
-                List<RuleType> rules = handle.createQuery(sqlStatements.selectArtifactRules())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .map(new RowMapper<RuleType>() {
-                            @Override
-                            public RuleType map(ResultSet rs) throws SQLException {
-                                return RuleType.fromValue(rs.getString("type"));
-                            }
-                        })
-                        .list();
-                if (rules.isEmpty()) {
-                    if (!isArtifactExists(groupId, artifactId)) {
-                        throw new ArtifactNotFoundException(groupId, artifactId);
-                    }
+        return handles.withHandle(handle -> {
+            List<RuleType> rules = handle.createQuery(sqlStatements.selectArtifactRules())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).map(new RowMapper<RuleType>() {
+                        @Override
+                        public RuleType map(ResultSet rs) throws SQLException {
+                            return RuleType.fromValue(rs.getString("type"));
+                        }
+                    }).list();
+            if (rules.isEmpty()) {
+                if (!isArtifactExists(handle, groupId, artifactId)) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
                 }
-                return rules;
-            });
-        } catch (ArtifactNotFoundException anfe) {
-            throw anfe;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+            }
+            return rules;
+        });
     }
 
+    @Override
+    public List<RuleType> getGroupRules(String groupId) throws RegistryStorageException {
+        log.debug("Getting a list of all group rules for: {}", groupId);
+        return handles.withHandle(handle -> {
+            List<RuleType> rules = handle.createQuery(sqlStatements.selectGroupRules())
+                    .bind(0, normalizeGroupId(groupId)).map(new RowMapper<RuleType>() {
+                        @Override
+                        public RuleType map(ResultSet rs) throws SQLException {
+                            return RuleType.fromValue(rs.getString("type"));
+                        }
+                    }).list();
+            if (rules.isEmpty()) {
+                if (!isGroupExists(handle, groupId)) {
+                    throw new GroupNotFoundException(groupId);
+                }
+            }
+            return rules;
+        });
+    }
 
     @Override
-    @Transactional
-    public void createArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
+    public void createArtifactRule(String groupId, String artifactId, RuleType rule,
+            RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
-        log.debug("Inserting an artifact rule row for artifact: {} {} rule: {}", groupId, artifactId, rule.name());
+        log.debug("Inserting an artifact rule row for artifact: {} {} rule: {}", groupId, artifactId,
+                rule.name());
         try {
             handles.withHandle(handle -> {
-                handle.createUpdate(sqlStatements.insertArtifactRule())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, rule.name())
-                        .bind(3, config.getConfiguration())
+                handle.createUpdate(sqlStatements.insertArtifactRule()).bind(0, normalizeGroupId(groupId))
+                        .bind(1, artifactId).bind(2, rule.name()).bind(3, config.getConfiguration())
                         .execute();
                 return null;
             });
-        } catch (Exception e) {
-            if (sqlStatements.isPrimaryKeyViolation(e)) {
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
                 throw new RuleAlreadyExistsException(rule);
             }
-            if (sqlStatements.isForeignKeyViolation(e)) {
-                throw new ArtifactNotFoundException(groupId, artifactId, e);
+            if (sqlStatements.isForeignKeyViolation(ex)) {
+                throw new ArtifactNotFoundException(groupId, artifactId, ex);
             }
-            throw new RegistryStorageException(e);
+            throw ex;
         }
         log.debug("Artifact rule row successfully inserted.");
     }
 
+    @Override
+    public void createGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws RegistryStorageException {
+        log.debug("Inserting a group rule row for group: {} rule: {}", groupId, rule.name());
+        try {
+            handles.withHandle(handle -> {
+                handle.createUpdate(sqlStatements.insertGroupRule()).bind(0, normalizeGroupId(groupId))
+                        .bind(1, rule.name()).bind(2, config.getConfiguration()).execute();
+                return null;
+            });
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new RuleAlreadyExistsException(rule);
+            }
+            if (sqlStatements.isForeignKeyViolation(ex)) {
+                throw new GroupNotFoundException(groupId, ex);
+            }
+            throw ex;
+        }
+        log.debug("Group rule row successfully inserted.");
+    }
 
     @Override
-    @Transactional
     public void deleteArtifactRules(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Deleting all artifact rules for artifact: {} {}", groupId, artifactId);
-        try {
-            handles.withHandle(handle -> {
-                int count = handle.createUpdate(sqlStatements.deleteArtifactRules())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .execute();
-                if (count == 0) {
-                    if (!isArtifactExists(groupId, artifactId)) {
-                        throw new ArtifactNotFoundException(groupId, artifactId);
-                    }
+        handles.withHandle(handle -> {
+            int count = handle.createUpdate(sqlStatements.deleteArtifactRules())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
+            if (count == 0) {
+                if (!isArtifactExists(handle, groupId, artifactId)) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
                 }
-                return null;
-            });
-        } catch (RegistryStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+            }
+            return null;
+        });
     }
 
+    @Override
+    public void deleteGroupRules(String groupId) throws RegistryStorageException {
+        log.debug("Deleting all group rules for group: {}", groupId);
+        handles.withHandle(handle -> {
+            int count = handle.createUpdate(sqlStatements.deleteGroupRules())
+                    .bind(0, normalizeGroupId(groupId)).execute();
+            if (count == 0) {
+                if (!isGroupExists(handle, groupId)) {
+                    throw new GroupNotFoundException(groupId);
+                }
+            }
+            return null;
+        });
+    }
 
     @Override
-    @Transactional
     public RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        log.debug("Selecting a single artifact rule for artifact: {} {} and rule: {}", groupId, artifactId, rule.name());
-        try {
-            return handles.withHandle(handle -> {
-                Optional<RuleConfigurationDto> res = handle.createQuery(sqlStatements.selectArtifactRuleByType())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, rule.name())
-                        .map(RuleConfigurationDtoMapper.instance)
-                        .findOne();
-                return res.orElseThrow(() -> {
-                    if (!isArtifactExists(groupId, artifactId)) {
-                        return new ArtifactNotFoundException(groupId, artifactId);
-                    }
-                    return new RuleNotFoundException(rule);
-                });
-            });
-        } catch (ArtifactNotFoundException | RuleNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void updateArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
-            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        log.debug("Updating an artifact rule for artifact: {} {} and rule: {}::{}", groupId, artifactId, rule.name(), config.getConfiguration());
-        try {
-            handles.withHandle(handle -> {
-                int rowCount = handle.createUpdate(sqlStatements.updateArtifactRule())
-                        .bind(0, config.getConfiguration())
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId)
-                        .bind(3, rule.name())
-                        .execute();
-                if (rowCount == 0) {
-                    if (!isArtifactExists(groupId, artifactId)) {
-                        throw new ArtifactNotFoundException(groupId, artifactId);
-                    }
-                    throw new RuleNotFoundException(rule);
+        log.debug("Selecting a single artifact rule for artifact: {} {} and rule: {}", groupId, artifactId,
+                rule.name());
+        return handles.withHandle(handle -> {
+            Optional<RuleConfigurationDto> res = handle.createQuery(sqlStatements.selectArtifactRuleByType())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, rule.name())
+                    .map(RuleConfigurationDtoMapper.instance).findOne();
+            return res.orElseThrow(() -> {
+                if (!isArtifactExists(handle, groupId, artifactId)) {
+                    return new ArtifactNotFoundException(groupId, artifactId);
                 }
-                return null;
+                return new RuleNotFoundException(rule);
             });
-        } catch (RegistryStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+        });
     }
 
+    @Override
+    public RuleConfigurationDto getGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        log.debug("Selecting a single group rule for group: {} and rule: {}", groupId, rule.name());
+        return handles.withHandle(handle -> {
+            Optional<RuleConfigurationDto> res = handle.createQuery(sqlStatements.selectGroupRuleByType())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, rule.name())
+                    .map(RuleConfigurationDtoMapper.instance).findOne();
+            return res.orElseThrow(() -> {
+                if (!isGroupExists(handle, groupId)) {
+                    return new GroupNotFoundException(groupId);
+                }
+                return new RuleNotFoundException(rule);
+            });
+        });
+    }
 
     @Override
-    @Transactional
+    public void updateArtifactRule(String groupId, String artifactId, RuleType rule,
+            RuleConfigurationDto config)
+            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        log.debug("Updating an artifact rule for artifact: {} {} and rule: {}::{}", groupId, artifactId,
+                rule.name(), config.getConfiguration());
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.updateArtifactRule())
+                    .bind(0, config.getConfiguration()).bind(1, normalizeGroupId(groupId)).bind(2, artifactId)
+                    .bind(3, rule.name()).execute();
+            if (rowCount == 0) {
+                if (!isArtifactExists(handle, groupId, artifactId)) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
+                }
+                throw new RuleNotFoundException(rule);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    public void updateGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws RegistryStorageException {
+        log.debug("Updating a group rule for group: {} and rule: {}::{}", groupId, rule.name(),
+                config.getConfiguration());
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.updateGroupRule())
+                    .bind(0, config.getConfiguration()).bind(1, normalizeGroupId(groupId))
+                    .bind(2, rule.name()).execute();
+            if (rowCount == 0) {
+                if (!isGroupExists(handle, groupId)) {
+                    throw new GroupNotFoundException(groupId);
+                }
+                throw new RuleNotFoundException(rule);
+            }
+            return null;
+        });
+    }
+
+    @Override
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
-        log.debug("Deleting an artifact rule for artifact: {} {} and rule: {}", groupId, artifactId, rule.name());
-        try {
-            handles.withHandle(handle -> {
-                int rowCount = handle.createUpdate(sqlStatements.deleteArtifactRule())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, rule.name())
-                        .execute();
-                if (rowCount == 0) {
-                    if (!isArtifactExists(groupId, artifactId)) {
-                        throw new ArtifactNotFoundException(groupId, artifactId);
-                    }
-                    throw new RuleNotFoundException(rule);
+        log.debug("Deleting an artifact rule for artifact: {} {} and rule: {}", groupId, artifactId,
+                rule.name());
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.deleteArtifactRule())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, rule.name()).execute();
+            if (rowCount == 0) {
+                if (!isArtifactExists(handle, groupId, artifactId)) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
                 }
-                return null;
-            });
-        } catch (RegistryStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
+                throw new RuleNotFoundException(rule);
+            }
+            return null;
+        });
     }
 
+    @Override
+    public void deleteGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        log.debug("Deleting an group rule for group: {} and rule: {}", groupId, rule.name());
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.deleteGroupRule())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, rule.name()).execute();
+            if (rowCount == 0) {
+                if (!isGroupExists(handle, groupId)) {
+                    throw new GroupNotFoundException(groupId);
+                }
+                throw new RuleNotFoundException(rule);
+            }
+            return null;
+        });
+    }
 
     @Override
-    @Transactional
     public List<String> getArtifactVersions(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        return getArtifactVersions(groupId, artifactId, storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
+        return getArtifactVersions(groupId, artifactId,
+                storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
     }
 
-    /**
-     * @see RegistryStorage#getArtifactVersions(java.lang.String, java.lang.String)
-     */
     @Override
-    public List<String> getArtifactVersions(String groupId, String artifactId, ArtifactRetrievalBehavior behavior)
+    public List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting a list of versions for artifact: {} {}", groupId, artifactId);
 
-        switch (behavior) {
-            case DEFAULT:
-                try {
-                    return this.handles.withHandle(handle -> {
-                        String sql = sqlStatements.selectArtifactVersions();
-                        List<String> versions = handle.createQuery(sql)
-                                .bind(0, normalizeGroupId(groupId))
-                                .bind(1, artifactId)
-                                .mapTo(String.class)
-                                .list();
-                        if (versions.isEmpty()) {
-                            throw new ArtifactNotFoundException(groupId, artifactId);
-                        }
-                        return versions;
-                    });
-                } catch (ArtifactNotFoundException anfe) {
-                    throw anfe;
-                } catch (Exception e) {
-                    throw new RegistryStorageException(e);
-                }
-            case SKIP_DISABLED_LATEST:
-                try {
-                    return this.handles.withHandle(handle -> {
-                        String sql = sqlStatements.selectArtifactVersionsSkipDisabled();
-                        List<String> versions = handle.createQuery(sql)
-                                .bind(0, normalizeGroupId(groupId))
-                                .bind(1, artifactId)
-                                .mapTo(String.class)
-                                .list();
-                        if (versions.isEmpty()) {
-                            throw new ArtifactNotFoundException(groupId, artifactId);
-                        }
-                        return versions;
-                    });
-                } catch (ArtifactNotFoundException anfe) {
-                    throw anfe;
-                } catch (Exception e) {
-                    throw new RegistryStorageException(e);
-                }
-            default:
-                throw new UnreachableCodeException();
-        }
-
-    }
-
-
-    @Override
-    @Transactional
-    public VersionSearchResultsDto searchVersions(String groupId, String artifactId, int offset, int limit) {
-        log.debug("Searching for versions of artifact {} {}", groupId, artifactId);
-        return handles.withHandleNoException(handle -> {
-            VersionSearchResultsDto rval = new VersionSearchResultsDto();
-
-            Integer count = handle.createQuery(sqlStatements.selectAllArtifactVersionsCount())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .mapTo(Integer.class)
-                    .one();
-            rval.setCount(count);
-
-            if (!isArtifactExists(groupId, artifactId)) {
-                throw new ArtifactNotFoundException(groupId, artifactId);
-            }
-
-            Query query = handle.createQuery(sqlStatements.selectAllArtifactVersions())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId);
-            if ("mssql".equals(sqlStatements.dbType())) {
-                query
-                        .bind(2, offset)
-                        .bind(3, limit);
-            } else {
-                query
-                        .bind(2, limit)
-                        .bind(3, offset);
-            }
-            List<SearchedVersionDto> versions = query
-                    .map(SearchedVersionMapper.instance)
-                    .list();
-            rval.setVersions(versions);
-
-            return rval;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public StoredArtifactDto getArtifactVersion(long globalId)
-            throws ArtifactNotFoundException, RegistryStorageException {
-        log.debug("Selecting a single artifact version by globalId: {}", globalId);
         try {
-            return handles.withHandle(handle -> {
-                Optional<StoredArtifactDto> res = handle.createQuery(sqlStatements.selectArtifactVersionContentByGlobalId())
-                        .bind(0, globalId)
-                        .map(StoredArtifactMapper.instance)
-                        .findOne();
-                return res.orElseThrow(() -> new ArtifactNotFoundException(null, "gid-" + globalId));
-            });
-        } catch (ArtifactNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public StoredArtifactDto getArtifactVersion(String groupId, String artifactId, String version)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.debug("Selecting a single artifact version by artifactId: {} {} and version {}", groupId, artifactId, version);
-        try {
-            return handles.withHandle(handle -> {
-                Optional<StoredArtifactDto> res = handle.createQuery(sqlStatements.selectArtifactVersionContent())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, version)
-                        .map(StoredArtifactMapper.instance)
-                        .findOne();
-                return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
-            });
-        } catch (ArtifactNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void deleteArtifactVersion(String groupId, String artifactId, String version)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.debug("Deleting version {} of artifact {} {}", version, groupId, artifactId);
-
-        //For deleting artifact versions we need to list always every single version, including disabled ones.
-        List<String> versions = getArtifactVersions(groupId, artifactId, DEFAULT);
-
-        // If the version we're deleting is the *only* version, then just delete the
-        // entire artifact.
-        if (versions.size() == 1 && versions.iterator().next().equals(version)) {
-            deleteArtifact(groupId, artifactId);
-            return;
-        }
-
-        // If there is only one version, but it's not the version being deleted, then
-        // we can't find the version to delete!  This is an optimization.
-        if (versions.size() == 1 && !versions.iterator().next().equals(version)) {
-            throw new VersionNotFoundException(groupId, artifactId, version);
-        }
-
-        // Otherwise, delete just the one version and then reset the "latest" column on the artifacts table.
-        try {
-            handles.withHandle(handle -> {
-                // Set the 'latest' version of an artifact to NULL
-                handle.createUpdate(sqlStatements.updateArtifactLatest())
-                        .bind(0, (Long) null)
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId)
-                        .execute();
-
-                // TODO use CASCADE when deleting rows from the "versions" table
-
-                // Delete labels
-                handle.createUpdate(sqlStatements.deleteVersionLabels())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, version)
-                        .execute();
-
-                // Delete properties
-                handle.createUpdate(sqlStatements.deleteVersionProperties())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, version)
-                        .execute();
-
-                // Delete comments
-                handle.createUpdate(sqlStatements.deleteVersionComments())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, version)
-                        .execute();
-
-                // Delete version
-                int rows = handle.createUpdate(sqlStatements.deleteVersion())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, version)
-                        .execute();
-
-                // If the row was deleted, update the "latest" column to the globalId of the highest remaining version
-                if (rows == 1) {
-                    versions.remove(version);
-
-                    // Update the 'latest' version of the artifact to the globalId of the highest remaining version
-                    String latestVersion = versions.get(versions.size() - 1);
-                    int latestUpdateRows = handle.createUpdate(sqlStatements.updateArtifactLatestGlobalId())
-                            .bind(0, normalizeGroupId(groupId))
-                            .bind(1, artifactId)
-                            .bind(2, latestVersion)
-                            .bind(3, normalizeGroupId(groupId))
-                            .bind(4, artifactId)
-                            .execute();
-                    if (latestUpdateRows == 0) {
-                        throw new RegistryStorageException("latest column was not updated");
+            List<String> versions = handles.withHandle(handle -> {
+                switch (behavior) {
+                    case DEFAULT -> {
+                        return getArtifactVersionsRaw(handle, groupId, artifactId,
+                                sqlStatements.selectArtifactVersions());
+                    }
+                    case SKIP_DISABLED_LATEST -> {
+                        return getArtifactVersionsRaw(handle, groupId, artifactId,
+                                sqlStatements.selectArtifactVersionsNotDisabled());
                     }
                 }
-
-                if (rows == 0) {
-                    throw new VersionNotFoundException(groupId, artifactId, version);
-                }
-
-                if (rows > 1) {
-                    throw new RegistryStorageException("Multiple versions deleted, artifact latest column left null");
-                }
-
                 return null;
             });
-            deleteAllOrphanedContent();
-        } catch (VersionNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, String version) {
-        try {
-            return handles.withHandle(handle -> {
-                Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactVersionMetaData())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, version)
-                        .map(ArtifactVersionMetaDataDtoMapper.instance)
-                        .findOne();
-                return res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
-            });
-        } catch (VersionNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version, EditableArtifactMetaDataDto editableMetadata)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.debug("Updating meta-data for an artifact version: {} {}", groupId, artifactId);
-
-        var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
-        updateArtifactVersionMetadataRaw(metadata.getGlobalId(), groupId, artifactId, version, editableMetadata);
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void updateArtifactVersionMetadataRaw(long globalId, String groupId, String artifactId, String version, EditableArtifactMetaDataDto metaData) {
-        try {
-            handles.withHandle(handle -> {
-                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionMetaData())
-                        .bind(0, limitStr(metaData.getName(), 512))
-                        .bind(1, limitStr(metaData.getDescription(), 1024, true))
-                        .bind(2, SqlUtil.serializeLabels(metaData.getLabels()))
-                        .bind(3, SqlUtil.serializeProperties(metaData.getProperties()))
-                        .bind(4, normalizeGroupId(groupId))
-                        .bind(5, artifactId)
-                        .bind(6, version)
-                        .execute();
-                if (rowCount == 0) {
-                    throw new VersionNotFoundException(groupId, artifactId, version);
-                }
-
-
-                // Delete all appropriate rows in the "labels" table
-                handle.createUpdate(sqlStatements.deleteLabelsByGlobalId())
-                        .bind(0, globalId)
-                        .execute();
-
-                // Delete all appropriate rows in the "properties" table
-                handle.createUpdate(sqlStatements.deletePropertiesByGlobalId())
-                        .bind(0, globalId)
-                        .execute();
-
-                // Insert new labels into the "labels" table
-                List<String> labels = metaData.getLabels();
-                if (labels != null && !labels.isEmpty()) {
-                    labels.forEach(label -> {
-                        String sqli = sqlStatements.insertLabel();
-                        handle.createUpdate(sqli)
-                                .bind(0, globalId)
-                                .bind(1, limitStr(label.toLowerCase(), 256))
-                                .execute();
-                    });
-                }
-
-                // Insert new properties into the "properties" table
-                Map<String, String> properties = metaData.getProperties();
-                if (properties != null && !properties.isEmpty()) {
-                    properties.forEach((k, v) -> {
-                        String sqli = sqlStatements.insertProperty();
-                        handle.createUpdate(sqli)
-                                .bind(0, globalId)
-                                .bind(1, limitStr(k.toLowerCase(), 256))
-                                .bind(2, limitStr(v.toLowerCase(), 1024))
-                                .execute();
-                    });
-                }
-
-                return null;
-            });
-        } catch (ArtifactNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version)
-            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        log.debug("Deleting user-defined meta-data for artifact {} {} version {}", groupId, artifactId, version);
-        try {
-            handles.withHandle(handle -> {
-                // NULL out the name, description, labels, and properties columns of the "versions" table.
-                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionMetaData())
-                        .bind(0, (String) null)
-                        .bind(1, (String) null)
-                        .bind(2, (String) null)
-                        .bind(3, (String) null)
-                        .bind(4, normalizeGroupId(groupId))
-                        .bind(5, artifactId)
-                        .bind(6, version)
-                        .execute();
-
-                // Delete labels
-                handle.createUpdate(sqlStatements.deleteVersionLabels())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, version)
-                        .execute();
-
-                // Delete properties
-                handle.createUpdate(sqlStatements.deleteVersionProperties())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, version)
-                        .execute();
-
-                if (rowCount == 0) {
-                    throw new VersionNotFoundException(groupId, artifactId, version);
-                }
-                return null;
-            });
-        } catch (VersionNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value) {
-        log.debug("Inserting an artifact comment row for artifact: {} {} version: {}", groupId, artifactId, version);
-
-        String theVersion = normalizeVersion(groupId, artifactId, version);
-        String createdBy = securityIdentity.getPrincipal().getName();
-        Date createdOn = new Date();
-
-        return createArtifactVersionCommentRaw(groupId, artifactId, theVersion, this::nextCommentId, createdBy, createdOn, value);
-    }
-
-
-    @Override
-    @Transactional
-    public CommentDto createArtifactVersionCommentRaw(String groupId, String artifactId, String version, IdGenerator commentId,
-                                                      String createdBy, Date createdOn, String value) {
-        try {
-            return handles.withHandle(handle -> {
-
-                var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
-
-                var entity = CommentEntity.builder()
-                        .commentId(String.valueOf(commentId.generate()))
-                        .globalId(metadata.getGlobalId())
-                        .createdBy(createdBy)
-                        .createdOn(createdOn.getTime())
-                        .value(value)
-                        .build();
-
-                importComment(entity);
-
-                log.debug("Comment row successfully inserted.");
-
-                return CommentDto.builder()
-                        .commentId(entity.commentId)
-                        .createdBy(createdBy)
-                        .createdOn(createdOn.getTime())
-                        .value(value)
-                        .build();
-            });
-        } catch (VersionNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            if (sqlStatements.isForeignKeyViolation(e)) {
-                throw new ArtifactNotFoundException(groupId, artifactId, e);
+            if (versions != null) {
+                return versions;
             }
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version) {
-        log.debug("Getting a list of all artifact version comments for: {} {} @ {}", groupId, artifactId, version);
-        String theVersion = normalizeVersion(groupId, artifactId, version);
-
-        try {
-            return handles.withHandle(handle -> {
-                return handle.createQuery(sqlStatements.selectComments())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, theVersion)
-                        .map(CommentDtoMapper.instance)
-                        .list();
-            });
-        } catch (ArtifactNotFoundException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            throw new RegistryStorageException(ex);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
-        log.debug("Deleting an artifact rule for artifact: {} {} @ {}", groupId, artifactId, version);
-        String theVersion = normalizeVersion(groupId, artifactId, version);
-        String deletedBy = securityIdentity.getPrincipal().getName();
-
-        try {
-            handles.withHandle(handle -> {
-                Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactVersionMetaData())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, theVersion)
-                        .map(ArtifactVersionMetaDataDtoMapper.instance)
-                        .findOne();
-                ArtifactVersionMetaDataDto avmdd = res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
-
-                int rowCount = handle.createUpdate(sqlStatements.deleteComment())
-                        .bind(0, avmdd.getGlobalId())
-                        .bind(1, commentId)
-                        .bind(2, deletedBy)
-                        .execute();
-                if (rowCount == 0) {
-                    throw new CommentNotFoundException(commentId);
-                }
-                return null;
-            });
-        } catch (RegistryStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, String value) {
-        log.debug("Updating a comment for artifact: {} {} @ {}", groupId, artifactId, version);
-        String theVersion = normalizeVersion(groupId, artifactId, version);
-        String modifiedBy = securityIdentity.getPrincipal().getName();
-
-        try {
-            handles.withHandle(handle -> {
-                Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactVersionMetaData())
-                        .bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId)
-                        .bind(2, theVersion)
-                        .map(ArtifactVersionMetaDataDtoMapper.instance)
-                        .findOne();
-                ArtifactVersionMetaDataDto avmdd = res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
-
-                int rowCount = handle.createUpdate(sqlStatements.updateComment())
-                        .bind(0, value)
-                        .bind(1, avmdd.getGlobalId())
-                        .bind(2, commentId)
-                        .bind(3, modifiedBy)
-                        .execute();
-                if (rowCount == 0) {
-                    throw new CommentNotFoundException(commentId);
-                }
-                return null;
-            });
-        } catch (RegistryStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public List<RuleType> getGlobalRules() throws RegistryStorageException {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements.selectGlobalRules())
-                    .map(rs -> RuleType.fromValue(rs.getString("type")))
-                    .list();
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
-            throws RuleAlreadyExistsException, RegistryStorageException {
-        log.debug("Inserting a global rule row for: {}", rule.name());
-        try {
-            handles.withHandle(handle -> {
-                handle.createUpdate(sqlStatements.insertGlobalRule())
-                        .bind(0, rule.name())
-                        .bind(1, config.getConfiguration())
-                        .execute();
-                return null;
-            });
-        } catch (Exception e) {
-            if (sqlStatements.isPrimaryKeyViolation(e)) {
-                throw new RuleAlreadyExistsException(rule);
-            }
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void deleteGlobalRules() throws RegistryStorageException {
-        log.debug("Deleting all Global Rules");
-        handles.withHandleNoException(handle -> {
-            handle.createUpdate(sqlStatements.deleteGlobalRules())
-                    .execute();
-            return null;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public RuleConfigurationDto getGlobalRule(RuleType rule)
-            throws RuleNotFoundException, RegistryStorageException {
-        log.debug("Selecting a single global rule: {}", rule.name());
-        try {
-            return handles.withHandle(handle -> {
-                Optional<RuleConfigurationDto> res = handle.createQuery(sqlStatements.selectGlobalRuleByType())
-                        .bind(0, rule.name())
-                        .map(RuleConfigurationDtoMapper.instance)
-                        .findOne();
-                return res.orElseThrow(() -> new RuleNotFoundException(rule));
-            });
-        } catch (RuleNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
-            throws RuleNotFoundException, RegistryStorageException {
-        log.debug("Updating a global rule: {}::{}", rule.name(), config.getConfiguration());
-        try {
-            handles.withHandle(handle -> {
-                int rowCount = handle.createUpdate(sqlStatements.updateGlobalRule())
-                        .bind(0, config.getConfiguration())
-                        .bind(1, rule.name())
-                        .execute();
-                if (rowCount == 0) {
-                    throw new RuleNotFoundException(rule);
-                }
-                return null;
-            });
-        } catch (RuleNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
-        log.debug("Deleting a global rule: {}", rule.name());
-        try {
-            handles.withHandle(handle -> {
-                int rowCount = handle.createUpdate(sqlStatements.deleteGlobalRule())
-                        .bind(0, rule.name())
-                        .execute();
-                if (rowCount == 0) {
-                    throw new RuleNotFoundException(rule);
-                }
-                return null;
-            });
-        } catch (RuleNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public List<DynamicConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
-        log.debug("Getting all config properties.");
-        return handles.withHandleNoException(handle -> {
-            String sql = sqlStatements.selectConfigProperties();
-            return handle.createQuery(sql)
-                    .map(DynamicConfigPropertyDtoMapper.instance)
-                    .list()
-                    .stream()
-                    // Filter out possible null values.
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-        });
-    }
-
-
-    @Override
-    public DynamicConfigPropertyDto getConfigProperty(String propertyName) throws RegistryStorageException {
-        return getRawConfigProperty(propertyName); // TODO Replace this?
-    }
-
-
-    @Override
-    @Transactional
-    public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
-        log.debug("Selecting a single config property: {}", propertyName);
-        try {
-            return handles.withHandle(handle -> {
-                final String normalizedPropertyName = DtoUtil.appAuthPropertyToRegistry(propertyName);
-                Optional<DynamicConfigPropertyDto> res = handle.createQuery(sqlStatements.selectConfigPropertyByName())
-                        .bind(0, normalizedPropertyName)
-                        .map(DynamicConfigPropertyDtoMapper.instance)
-                        .findOne();
-                return res.orElse(null);
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void setConfigProperty(DynamicConfigPropertyDto propertyDto) throws RegistryStorageException {
-        log.debug("Setting a config property with name: {}  and value: {}", propertyDto.getName(), propertyDto.getValue());
-        handles.withHandleNoException(handle -> {
-            String propertyName = propertyDto.getName();
-            String propertyValue = propertyDto.getValue();
-
-            // First delete the property row from the table
-            // TODO Use deleteConfigProperty
-            handle.createUpdate(sqlStatements.deleteConfigProperty())
-                    .bind(0, propertyName)
-                    .execute();
-
-            // Then create the row again with the new value
-            handle.createUpdate(sqlStatements.insertConfigProperty())
-                    .bind(0, propertyName)
-                    .bind(1, propertyValue)
-                    .bind(2, java.lang.System.currentTimeMillis())
-                    .execute();
-
-            return null;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public void deleteConfigProperty(String propertyName) throws RegistryStorageException {
-        handles.withHandle(handle -> {
-            handle.createUpdate(sqlStatements.deleteConfigProperty())
-                    .bind(0, propertyName)
-                    .execute();
-            return null;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public List<DynamicConfigPropertyDto> getStaleConfigProperties(Instant lastRefresh) throws RegistryStorageException {
-        log.debug("Getting all stale config properties.");
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements.selectStaleConfigProperties())
-                    .bind(0, lastRefresh.toEpochMilli())
-                    .map(DynamicConfigPropertyDtoMapper.instance)
-                    .list()
-                    .stream()
-                    // Filter out possible null values.
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-        });
-    }
-
-    /**
-     * @see RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
-     */
-    @Override
-    @Transactional
-    public void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException {
-        try {
-            handles.withHandle(handle -> {
-                handle.createUpdate(sqlStatements.insertGroup())
-                        .bind(0, group.getGroupId())
-                        .bind(1, group.getDescription())
-                        .bind(2, group.getArtifactsType())
-                        .bind(3, group.getCreatedBy())
-                        // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric timestamps
-                        .bind(4, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
-                        .bind(5, group.getModifiedBy())
-                        .bind(6, group.getModifiedOn() == 0 ? null : new Date(group.getModifiedOn()))
-                        .bind(7, SqlUtil.serializeProperties(group.getProperties()))
-                        .execute();
-                return null;
-            });
-        } catch (Exception e) {
-            if (sqlStatements.isPrimaryKeyViolation(e)) {
-                throw new GroupAlreadyExistsException(group.getGroupId());
-            }
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void updateGroupMetaData(GroupMetaDataDto group) throws GroupNotFoundException, RegistryStorageException {
-        handles.withHandleNoException(handle -> {
-            int rows = handle.createUpdate(sqlStatements.updateGroup())
-                    .bind(0, group.getDescription())
-                    .bind(1, group.getArtifactsType())
-                    .bind(2, group.getModifiedBy())
-                    .bind(3, group.getModifiedOn())
-                    .bind(4, SqlUtil.serializeProperties(group.getProperties()))
-                    .bind(5, group.getGroupId())
-                    .execute();
-            if (rows == 0) {
-                throw new GroupNotFoundException(group.getGroupId());
-            }
-            return null;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
-        handles.withHandleNoException(handle -> {
-            int rows = handle.createUpdate(sqlStatements.deleteGroup())
-                    .bind(0, groupId)
-                    .execute();
-            if (rows == 0) {
-                throw new GroupNotFoundException(groupId);
-            }
-            // We have to perform an explicit check, otherwise an unchecked exception
-            // would roll the transaction back.
-            if (!getArtifactIds(groupId, 1).isEmpty()) {
-                deleteArtifacts(groupId);
-            }
-            return null;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
-        return handles.withHandleNoException(handle -> {
-            Query query = handle.createQuery(sqlStatements.selectGroups());
-            query.bind(0, limit);
-            return query
-                    .map(rs -> rs.getString("groupId"))
-                    .list();
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException {
-        try {
-            return handles.withHandle(handle -> {
-                Optional<GroupMetaDataDto> res = handle.createQuery(sqlStatements.selectGroupByGroupId())
-                        .bind(0, groupId)
-                        .map(GroupMetaDataDtoMapper.instance)
-                        .findOne();
-                return res.orElseThrow(() -> new GroupNotFoundException(groupId));
-            });
-        } catch (GroupNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    /**
-     * NOTE: Does not export the manifest file TODO
-     */
-    @Override
-    @Transactional
-    public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
-        try {
-            // Export a simple manifest file
-            /////////////////////////////////
-            ManifestEntity manifest = new ManifestEntity();
-            if (securityIdentity != null && securityIdentity.getPrincipal() != null) {
-                manifest.exportedBy = securityIdentity.getPrincipal().getName();
-            }
-            manifest.systemName = system.getName();
-            manifest.systemDescription = system.getDescription();
-            manifest.systemVersion = system.getVersion();
-            handler.apply(manifest);
-
-            // Export all content
-            /////////////////////////////////
-            handles.withHandle(handle -> {
-                Stream<ContentEntity> stream = handle.createQuery(sqlStatements.exportContent())
-                        .setFetchSize(50)
-                        .map(ContentEntityMapper.instance)
-                        .stream();
-                // Process and then close the stream.
-                try (stream) {
-                    stream.forEach(handler::apply);
-                }
-                return null;
-            });
-
-            // Export all groups
-            /////////////////////////////////
-            handles.withHandle(handle -> {
-                Stream<GroupEntity> stream = handle.createQuery(sqlStatements.exportGroups())
-                        .setFetchSize(50)
-                        .map(GroupEntityMapper.instance)
-                        .stream();
-                // Process and then close the stream.
-                try (stream) {
-                    stream.forEach(handler::apply);
-                }
-                return null;
-            });
-
-            // Export all artifact versions
-            /////////////////////////////////
-            handles.withHandle(handle -> {
-                Stream<ArtifactVersionEntity> stream = handle.createQuery(sqlStatements.exportArtifactVersions())
-                        .setFetchSize(50)
-                        .map(ArtifactVersionEntityMapper.instance)
-                        .stream();
-                // Process and then close the stream.
-                try (stream) {
-                    stream.forEach(handler::apply);
-                }
-                return null;
-            });
-
-            // Export all artifact comments
-            /////////////////////////////////
-            handles.withHandle(handle -> {
-                Stream<CommentEntity> stream = handle.createQuery(sqlStatements.exportComments())
-                        .setFetchSize(50)
-                        .map(CommentEntityMapper.instance)
-                        .stream();
-                // Process and then close the stream.
-                try (stream) {
-                    stream.forEach(handler::apply);
-                }
-                return null;
-            });
-
-            // Export all artifact rules
-            /////////////////////////////////
-            handles.withHandle(handle -> {
-                Stream<ArtifactRuleEntity> stream = handle.createQuery(sqlStatements.exportArtifactRules())
-                        .setFetchSize(50)
-                        .map(ArtifactRuleEntityMapper.instance)
-                        .stream();
-                // Process and then close the stream.
-                try (stream) {
-                    stream.forEach(handler::apply);
-                }
-                return null;
-            });
-
-            // Export all global rules
-            /////////////////////////////////
-            handles.withHandle(handle -> {
-                Stream<GlobalRuleEntity> stream = handle.createQuery(sqlStatements.exportGlobalRules())
-                        .setFetchSize(50)
-                        .map(GlobalRuleEntityMapper.instance)
-                        .stream();
-                // Process and then close the stream.
-                try (stream) {
-                    stream.forEach(handler::apply);
-                }
-                return null;
-            });
-
-
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) {
-        DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId, preserveContentId);
-        dataImporter.importData(entities, () -> {
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public long countArtifacts() throws RegistryStorageException {
-        return handles.withHandle(handle -> {
-            return handle.createQuery(sqlStatements.selectAllArtifactCount())
-                    .mapTo(Long.class)
-                    .one();
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
-        if (!isArtifactExists(groupId, artifactId)) {
+        } catch (BranchNotFoundException ex) {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
-
-        return handles.withHandle(handle -> {
-            return handle.createQuery(sqlStatements.selectAllArtifactVersionsCount())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .mapTo(Long.class)
-                    .one();
-        });
+        throw new UnsupportedOperationException("Retrieval behavior not implemented: " + behavior.name());
     }
 
+    private List<String> getArtifactVersionsRaw(Handle handle, String groupId, String artifactId,
+            String sqlStatement) throws ArtifactNotFoundException, RegistryStorageException {
+        log.debug("Getting a list of versions for artifact: {} {}", groupId, artifactId);
+        List<String> versions = handle.createQuery(sqlStatement).bind(0, normalizeGroupId(groupId))
+                .bind(1, artifactId).map(StringMapper.instance).list();
 
-    @Override
-    @Transactional
-    public long countTotalArtifactVersions() throws RegistryStorageException {
-        return handles.withHandle(handle -> {
-            return handle.createQuery(sqlStatements.selectTotalArtifactVersionsCount())
-                    .mapTo(Long.class)
-                    .one();
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public void createRoleMapping(String principalId, String role, String principalName) throws RegistryStorageException {
-        log.debug("Inserting a role mapping row for: {}", principalId);
-        try {
-            handles.withHandle(handle -> {
-                handle.createUpdate(sqlStatements.insertRoleMapping())
-                        .bind(0, principalId)
-                        .bind(1, role)
-                        .bind(2, principalName)
-                        .execute();
-                return null;
-            });
-        } catch (Exception e) {
-            if (sqlStatements.isPrimaryKeyViolation(e)) {
-                throw new RoleMappingAlreadyExistsException(principalId, role);
+        // If there aren't any versions, it might be because the artifact does not exist
+        if (versions.isEmpty()) {
+            if (!isArtifactExists(handle, groupId, artifactId)) {
+                throw new ArtifactNotFoundException(groupId, artifactId);
             }
-            throw new RegistryStorageException(e);
         }
+        return versions;
     }
 
-
     @Override
-    @Transactional
-    public void deleteRoleMapping(String principalId) throws RegistryStorageException {
-        log.debug("Deleting a role mapping row for: {}", principalId);
-        try {
-            handles.withHandle(handle -> {
-                int rowCount = handle.createUpdate(sqlStatements.deleteRoleMapping())
-                        .bind(0, principalId)
-                        .execute();
-                if (rowCount == 0) {
-                    throw new RoleMappingNotFoundException(principalId);
-                }
-                return null;
-            });
-        } catch (RoleMappingNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
+    public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
 
-
-    @Override
-    @Transactional
-    public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException {
-        log.debug("Selecting a single role mapping for: {}", principalId);
-        try {
-            return handles.withHandle(handle -> {
-                Optional<RoleMappingDto> res = handle.createQuery(sqlStatements.selectRoleMappingByPrincipalId())
-                        .bind(0, principalId)
-                        .map(RoleMappingDtoMapper.instance)
-                        .findOne();
-                return res.orElseThrow(() -> new RoleMappingNotFoundException(principalId));
-            });
-        } catch (RoleMappingNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
-        log.debug("Selecting the role for: {}", principalId);
-        try {
-            return handles.withHandle(handle -> {
-                Optional<String> res = handle.createQuery(sqlStatements.selectRoleByPrincipalId())
-                        .bind(0, principalId)
-                        .mapTo(String.class)
-                        .findOne();
-                return res.orElse(null);
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException {
-        log.debug("Getting a list of all role mappings.");
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements.selectRoleMappings())
-                    .map(RoleMappingDtoMapper.instance)
-                    .list();
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
-        log.debug("Updating a role mapping: {}::{}", principalId, role);
-        try {
-            handles.withHandle(handle -> {
-                int rowCount = handle.createUpdate(sqlStatements.updateRoleMapping())
-                        .bind(0, role)
-                        .bind(1, principalId)
-                        .execute();
-                if (rowCount == 0) {
-                    throw new RoleMappingNotFoundException(principalId, role);
-                }
-                return null;
-            });
-        } catch (RoleMappingNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public String createDownload(DownloadContextDto context) throws RegistryStorageException {
-        log.debug("Inserting a download.");
-        try {
-            String downloadId = UUID.randomUUID().toString();
-            return handles.withHandle(handle -> {
-                handle.createUpdate(sqlStatements.insertDownload())
-                        .bind(0, downloadId)
-                        .bind(1, context.getExpires())
-                        .bind(2, mapper.writeValueAsString(context))
-                        .execute();
-                return downloadId;
-            });
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException {
-        log.debug("Consuming a download ID: {}", downloadId);
-
-        try {
-            return handles.withHandle(handle -> {
-                long now = java.lang.System.currentTimeMillis();
-
-                // Select the download context.
-                Optional<String> res = handle.createQuery(sqlStatements.selectDownloadContext())
-                        .bind(0, downloadId)
-                        .bind(1, now)
-                        .mapTo(String.class)
-                        .findOne();
-                String downloadContext = res.orElseThrow(DownloadNotFoundException::new);
-
-                // Attempt to delete the row.
-                int rowCount = handle.createUpdate(sqlStatements.deleteDownload())
-                        .bind(0, downloadId)
-                        .execute();
-                if (rowCount == 0) {
-                    throw new DownloadNotFoundException();
-                }
-
-                // Return what we consumed
-                return mapper.readValue(downloadContext, DownloadContextDto.class);
-            });
-        } catch (DownloadNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RegistryStorageException(e);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public void deleteAllExpiredDownloads() throws RegistryStorageException {
-        log.debug("Deleting all expired downloads");
-        long now = java.lang.System.currentTimeMillis();
-        handles.withHandleNoException(handle -> {
-            handle.createUpdate(sqlStatements.deleteExpiredDownloads())
-                    .bind(0, now)
-                    .execute();
-            return null;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public void deleteAllUserData() {
-        log.debug("Deleting all user data");
-
-        deleteGlobalRules();
-
-        handles.withHandleNoException(handle -> {
-            // Delete all artifacts and related data
-
-            handle.createUpdate(sqlStatements.deleteAllReferences())
-                    .execute();
-
-            handle.createUpdate(sqlStatements.deleteAllLabels())
-                    .execute();
-
-            handle.createUpdate(sqlStatements.deleteAllProperties())
-                    .execute();
-
-            handle.createUpdate(sqlStatements.deleteAllComments())
-                    .execute();
-
-            handle.createUpdate(sqlStatements.deleteAllVersions())
-                    .execute();
-
-            handle.createUpdate(sqlStatements.deleteAllArtifactRules())
-                    .execute();
-
-            handle.createUpdate(sqlStatements.deleteAllArtifacts())
-                    .execute();
-
-            // Delete all groups
-            handle.createUpdate(sqlStatements.deleteAllGroups())
-                    .execute();
-
-            // Delete all role mappings
-            handle.createUpdate(sqlStatements.deleteAllRoleMappings())
-                    .execute();
-
-            // Delete all content
-            handle.createUpdate(sqlStatements.deleteAllContent())
-                    .execute();
-
-            // Delete all config properties
-            handle.createUpdate(sqlStatements.deleteAllConfigProperties())
-                    .execute();
-
-            // TODO Do we need to delete comments?
-
-            return null;
-        });
-
-    }
-
-
-    @Override
-    @Transactional
-    public Map<String, ContentHandle> resolveReferences(List<ArtifactReferenceDto> references) {
-        if (references == null || references.isEmpty()) {
-            return Collections.emptyMap();
-        } else {
-            Map<String, ContentHandle> result = new LinkedHashMap<>();
-            resolveReferences(result, references);
-            return result;
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectArtifactCountById())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .mapTo(Integer.class)
-                    .one() > 0;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public boolean isGroupExists(String groupId) throws RegistryStorageException {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectGroupCountById())
-                    .bind(0, normalizeGroupId(groupId))
-                    .mapTo(Integer.class)
-                    .one() > 0;
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public List<Long> getContentIdsReferencingArtifact(String groupId, String artifactId, String version) {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectContentIdsReferencingArtifactBy())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .bind(2, version)
-                    .mapTo(Long.class)
-                    .list();
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectGlobalIdsReferencingArtifactBy())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .bind(2, version)
-                    .mapTo(Long.class)
-                    .list();
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId, String version) {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectInboundReferencesByGAV())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .bind(2, version)
-                    .map(ArtifactReferenceDtoMapper.instance)
-                    .list();
-        });
-    }
-
-
-    @Override
-    public boolean isArtifactVersionExists(String groupId, String artifactId, String version) throws RegistryStorageException {
-        try {
-            getArtifactVersionMetaData(groupId, artifactId, version);
-            return true;
-        } catch (VersionNotFoundException ignored) {
-            return false; // TODO Similar exception is thrown in some method callers, do we need this? Or use a different query.
-        }
-    }
-
-
-    @Override
-    @Transactional
-    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy, OrderDirection orderDirection, Integer offset, Integer limit) {
-
+        log.debug("Searching for versions");
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
+            String op;
 
-            StringBuilder select = new StringBuilder();
+            StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
             StringBuilder limitOffset = new StringBuilder();
 
-            // Formulate the SELECT clause for the artifacts query
-            select.append(
-                    "SELECT * FROM groups g ");
+            // Formulate the SELECT clause for the query
+            selectTemplate.append(
+                    "SELECT {{selectColumns}} FROM versions v JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId");
 
             // Formulate the WHERE clause for both queries
+            where.append(" WHERE (1 = 1)");
             for (SearchFilter filter : filters) {
-                where.append(" WHERE (");
+                where.append(" AND (");
                 switch (filter.getType()) {
-                    case description:
-                        where.append("g.description LIKE ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        break;
-                    case everything:
-                        where.append("("
-                                + "g.groupId LIKE ? OR "
-                                + "g.description LIKE ? "
-                                + ")");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        break;
-                    case group:
-                        where.append("(g.groupId = ?)");
+                    case groupId:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("a.groupId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, normalizeGroupId(filter.getStringValue()));
                         });
+                        break;
+                    case artifactId:
+                    case contentId:
+                    case globalId:
+                    case version:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("v.");
+                        where.append(filter.getType().name());
+                        where.append(" ");
+                        where.append(op);
+                        where.append(" ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        break;
+                    case name:
+                    case description:
+                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        where.append("v.");
+                        where.append(filter.getType().name());
+                        where.append(" ");
+                        where.append(op);
+                        where.append(" ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
+                        });
+                        break;
+                    case labels:
+                        op = filter.isNot() ? "!=" : "=";
+                        Pair<String, String> label = filter.getLabelFilterValue();
+                        // Note: convert search to lowercase when searching for labels (case-insensitivity
+                        // support).
+                        String labelKey = label.getKey().toLowerCase();
+                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE l.labelKey " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, labelKey);
+                        });
+                        if (label.getValue() != null) {
+                            String labelValue = label.getValue().toLowerCase();
+                            where.append(" AND l.labelValue " + op + " ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, labelValue);
+                            });
+                        }
+                        where.append(" AND l.globalId = v.globalId)");
+                        break;
+                    case contentHash:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ");
+                        where.append("c.contentHash " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        where.append(")");
+                        break;
+                    case canonicalHash:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ");
+                        where.append("c.canonicalHash " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        where.append(")");
                         break;
                     default:
                         break;
@@ -2951,28 +1561,1097 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Add order by to artifact query
             switch (orderBy) {
+                case globalId:
+                    orderByQuery.append(" ORDER BY v.globalId");
+                    break;
+                case version:
+                    orderByQuery.append(" ORDER BY v.version");
+                    break;
                 case name:
-                    orderByQuery.append(" ORDER BY g.groupId ");
+                    orderByQuery.append(" ORDER BY v.name");
                     break;
                 case createdOn:
-                    orderByQuery.append(" ORDER BY g." + orderBy.name() + " ");
+                    orderByQuery.append(" ORDER BY v.createdOn");
+                    break;
+                case modifiedOn:
+                    orderByQuery.append(" ORDER BY v.modifiedOn");
                     break;
                 default:
                     break;
             }
-            orderByQuery.append(orderDirection.name());
+            orderByQuery.append(" ").append(orderDirection.name());
 
             // Add limit and offset to artifact query
-            limitOffset.append(" LIMIT ? OFFSET ?");
+            if ("mssql".equals(sqlStatements.dbType())) {
+                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            } else {
+                limitOffset.append(" LIMIT ? OFFSET ?");
+            }
 
-            // Query for the artifacts
-            String groupsQuerySql = select + where.toString() + orderByQuery + limitOffset.toString();
+            // Query for the versions
+            String versionsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
+                    .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type");
+            Query versionsQuery = handle.createQuery(versionsQuerySql);
+            // Query for the total row count
+            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
+                    .replace("{{selectColumns}}", "count(v.globalId)");
+            Query countQuery = handle.createQuery(countQuerySql);
+
+            // Bind all query parameters
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : binders) {
+                binder.bind(versionsQuery, idx);
+                binder.bind(countQuery, idx);
+                idx++;
+            }
+
+            // TODO find a better way to swap arguments
+            if ("mssql".equals(sqlStatements.dbType())) {
+                versionsQuery.bind(idx++, offset);
+                versionsQuery.bind(idx++, limit);
+            } else {
+                versionsQuery.bind(idx++, limit);
+                versionsQuery.bind(idx++, offset);
+            }
+
+            // Execute query
+            List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
+
+            VersionSearchResultsDto results = new VersionSearchResultsDto();
+            results.setVersions(versions);
+            results.setCount(count);
+            return results;
+        });
+    }
+
+    @Override
+    public StoredArtifactVersionDto getArtifactVersionContent(long globalId)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        log.debug("Selecting a single artifact version by globalId: {}", globalId);
+        return handles.withHandle(handle -> {
+            Optional<StoredArtifactVersionDto> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionContentByGlobalId()).bind(0, globalId)
+                    .map(StoredArtifactMapper.instance).findOne();
+            return res.orElseThrow(() -> new ArtifactNotFoundException(null, "gid-" + globalId));
+        });
+    }
+
+    @Override
+    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId,
+            String version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        log.debug("Selecting a single artifact version by artifactId: {} {} and version {}", groupId,
+                artifactId, version);
+        return handles.withHandle(handle -> {
+            Optional<StoredArtifactVersionDto> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionContent())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                    .map(StoredArtifactMapper.instance).findOne();
+            return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
+        });
+    }
+
+    @Override
+    public void deleteArtifactVersion(String groupId, String artifactId, String version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        log.debug("Deleting version {} of artifact {} {}", version, groupId, artifactId);
+
+        handles.withHandle(handle -> {
+            // Delete version
+            int rows = handle.createUpdate(sqlStatements.deleteVersion()).bind(0, normalizeGroupId(groupId))
+                    .bind(1, artifactId).bind(2, version).execute();
+
+            if (rows == 0) {
+                throw new VersionNotFoundException(groupId, artifactId, version);
+            }
+
+            if (rows > 1) {
+                // How would this even happen?
+                throw new UnreachableCodeException();
+            }
+
+            deleteAllOrphanedContent(handle);
+
+            return null;
+        });
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return handles.withHandle(handle -> {
+            Optional<ArtifactVersionMetaDataDto> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId()).bind(0, globalId)
+                    .map(ArtifactVersionMetaDataDtoMapper.instance).findOne();
+            return res.orElseThrow(() -> new VersionNotFoundException(globalId));
+        });
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
+            String version) {
+        return handles.withHandle(handle -> {
+            return getArtifactVersionMetaDataRaw(handle, groupId, artifactId, version);
+        });
+    }
+
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataRaw(Handle handle, String groupId,
+            String artifactId, String version) {
+        Optional<ArtifactVersionMetaDataDto> res = handle
+                .createQuery(sqlStatements.selectArtifactVersionMetaData()).bind(0, normalizeGroupId(groupId))
+                .bind(1, artifactId).bind(2, version).map(ArtifactVersionMetaDataDtoMapper.instance)
+                .findOne();
+        return res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
+    }
+
+    @Override
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
+            EditableVersionMetaDataDto editableMetadata)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        log.debug("Updating meta-data for an artifact version: {} {}", groupId, artifactId);
+
+        var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
+        long globalId = metadata.getGlobalId();
+        handles.withHandle(handle -> {
+            if (editableMetadata.getName() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionNameByGAV())
+                        .bind(0, limitStr(editableMetadata.getName(), 512)).bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId).bind(3, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+            }
+
+            if (editableMetadata.getDescription() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionDescriptionByGAV())
+                        .bind(0, limitStr(editableMetadata.getDescription(), 1024))
+                        .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+            }
+
+            if (editableMetadata.getState() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionStateByGAV())
+                        .bind(0, editableMetadata.getState().name()).bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId).bind(3, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+            }
+
+            if (editableMetadata.getLabels() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionLabelsByGAV())
+                        .bind(0, SqlUtil.serializeLabels(editableMetadata.getLabels()))
+                        .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+
+                // Delete all appropriate rows in the "version_labels" table
+                handle.createUpdate(sqlStatements.deleteVersionLabelsByGlobalId()).bind(0, globalId)
+                        .execute();
+
+                // Insert new labels into the "version_labels" table
+                Map<String, String> labels = editableMetadata.getLabels();
+                if (labels != null && !labels.isEmpty()) {
+                    labels.forEach((k, v) -> {
+                        String sqli = sqlStatements.insertVersionLabel();
+                        handle.createUpdate(sqli).bind(0, globalId).bind(1, limitStr(k.toLowerCase(), 256))
+                                .bind(2, limitStr(asLowerCase(v), 512)).execute();
+                    });
+                }
+            }
+
+            return null;
+        });
+    }
+
+    @Override
+    public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version,
+            String value) {
+        log.debug("Inserting an artifact comment row for artifact: {} {} version: {}", groupId, artifactId,
+                version);
+
+        String owner = securityIdentity.getPrincipal().getName();
+        Date createdOn = new Date();
+
+        try {
+            var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
+
+            var entity = CommentEntity.builder().commentId(String.valueOf(nextCommentId()))
+                    .globalId(metadata.getGlobalId()).owner(owner).createdOn(createdOn.getTime()).value(value)
+                    .build();
+
+            importComment(entity);
+
+            log.debug("Comment row successfully inserted.");
+
+            return CommentDto.builder().commentId(entity.commentId).owner(owner)
+                    .createdOn(createdOn.getTime()).value(value).build();
+        } catch (VersionNotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            if (sqlStatements.isForeignKeyViolation(ex)) {
+                throw new ArtifactNotFoundException(groupId, artifactId, ex);
+            }
+            throw ex;
+        }
+    }
+
+    @Override
+    public List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version) {
+        log.debug("Getting a list of all artifact version comments for: {} {} @ {}", groupId, artifactId,
+                version);
+
+        try {
+            return handles.withHandle(handle -> {
+                return handle.createQuery(sqlStatements.selectVersionComments())
+                        .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                        .map(CommentDtoMapper.instance).list();
+            });
+        } catch (ArtifactNotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new RegistryStorageException(ex);
+        }
+    }
+
+    @Override
+    public void deleteArtifactVersionComment(String groupId, String artifactId, String version,
+            String commentId) {
+        log.debug("Deleting a version comment for artifact: {} {} @ {}", groupId, artifactId, version);
+        String deletedBy = securityIdentity.getPrincipal().getName();
+
+        handles.withHandle(handle -> {
+            Optional<ArtifactVersionMetaDataDto> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionMetaData())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                    .map(ArtifactVersionMetaDataDtoMapper.instance).findOne();
+            ArtifactVersionMetaDataDto avmdd = res
+                    .orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
+
+            int rowCount = handle.createUpdate(sqlStatements.deleteVersionComment())
+                    .bind(0, avmdd.getGlobalId()).bind(1, commentId).bind(2, deletedBy).execute();
+            if (rowCount == 0) {
+                throw new CommentNotFoundException(commentId);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    public void updateArtifactVersionComment(String groupId, String artifactId, String version,
+            String commentId, String value) {
+        log.debug("Updating a comment for artifact: {} {} @ {}", groupId, artifactId, version);
+        String modifiedBy = securityIdentity.getPrincipal().getName();
+
+        handles.withHandle(handle -> {
+            Optional<ArtifactVersionMetaDataDto> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionMetaData())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                    .map(ArtifactVersionMetaDataDtoMapper.instance).findOne();
+            ArtifactVersionMetaDataDto avmdd = res
+                    .orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
+
+            int rowCount = handle.createUpdate(sqlStatements.updateVersionComment()).bind(0, value)
+                    .bind(1, avmdd.getGlobalId()).bind(2, commentId).bind(3, modifiedBy).execute();
+            if (rowCount == 0) {
+                throw new CommentNotFoundException(commentId);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    public List<RuleType> getGlobalRules() throws RegistryStorageException {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements.selectGlobalRules())
+                    .map(rs -> RuleType.fromValue(rs.getString("type"))).list();
+        });
+    }
+
+    @Override
+    public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
+            throws RuleAlreadyExistsException, RegistryStorageException {
+        log.debug("Inserting a global rule row for: {}", rule.name());
+        try {
+            handles.withHandle(handle -> {
+                handle.createUpdate(sqlStatements.insertGlobalRule()).bind(0, rule.name())
+                        .bind(1, config.getConfiguration()).execute();
+                return null;
+            });
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new RuleAlreadyExistsException(rule);
+            }
+            throw ex;
+        }
+    }
+
+    @Override
+    public void deleteGlobalRules() throws RegistryStorageException {
+        log.debug("Deleting all Global Rules");
+        handles.withHandleNoException(handle -> {
+            handle.createUpdate(sqlStatements.deleteGlobalRules()).execute();
+            return null;
+        });
+    }
+
+    @Override
+    public RuleConfigurationDto getGlobalRule(RuleType rule)
+            throws RuleNotFoundException, RegistryStorageException {
+        log.debug("Selecting a single global rule: {}", rule.name());
+        return handles.withHandle(handle -> {
+            Optional<RuleConfigurationDto> res = handle.createQuery(sqlStatements.selectGlobalRuleByType())
+                    .bind(0, rule.name()).map(RuleConfigurationDtoMapper.instance).findOne();
+            return res.orElseThrow(() -> new RuleNotFoundException(rule));
+        });
+    }
+
+    @Override
+    public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
+            throws RuleNotFoundException, RegistryStorageException {
+        log.debug("Updating a global rule: {}::{}", rule.name(), config.getConfiguration());
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.updateGlobalRule())
+                    .bind(0, config.getConfiguration()).bind(1, rule.name()).execute();
+            if (rowCount == 0) {
+                throw new RuleNotFoundException(rule);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
+        log.debug("Deleting a global rule: {}", rule.name());
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.deleteGlobalRule()).bind(0, rule.name())
+                    .execute();
+            if (rowCount == 0) {
+                throw new RuleNotFoundException(rule);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    public List<DynamicConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
+        log.debug("Getting all config properties.");
+        return handles.withHandleNoException(handle -> {
+            String sql = sqlStatements.selectConfigProperties();
+            return handle.createQuery(sql).map(DynamicConfigPropertyDtoMapper.instance).list().stream()
+                    // Filter out possible null values.
+                    .filter(Objects::nonNull).collect(toList());
+        });
+    }
+
+    @Override
+    public DynamicConfigPropertyDto getConfigProperty(String propertyName) throws RegistryStorageException {
+        return getRawConfigProperty(propertyName); // TODO Replace this?
+    }
+
+    @Override
+    public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
+        log.debug("Selecting a single config property: {}", propertyName);
+        return handles.withHandle(handle -> {
+            final String normalizedPropertyName = DtoUtil.appAuthPropertyToRegistry(propertyName);
+            Optional<DynamicConfigPropertyDto> res = handle
+                    .createQuery(sqlStatements.selectConfigPropertyByName()).bind(0, normalizedPropertyName)
+                    .map(DynamicConfigPropertyDtoMapper.instance).findOne();
+            return res.orElse(null);
+        });
+    }
+
+    @Override
+    public void setConfigProperty(DynamicConfigPropertyDto propertyDto) throws RegistryStorageException {
+        log.debug("Setting a config property with name: {}  and value: {}", propertyDto.getName(),
+                propertyDto.getValue());
+        handles.withHandleNoException(handle -> {
+            String propertyName = propertyDto.getName();
+            String propertyValue = propertyDto.getValue();
+
+            // First delete the property row from the table
+            // TODO Use deleteConfigProperty
+            handle.createUpdate(sqlStatements.deleteConfigProperty()).bind(0, propertyName).execute();
+
+            // Then create the row again with the new value
+            handle.createUpdate(sqlStatements.insertConfigProperty()).bind(0, propertyName)
+                    .bind(1, propertyValue).bind(2, java.lang.System.currentTimeMillis()).execute();
+
+            return null;
+        });
+    }
+
+    @Override
+    public void deleteConfigProperty(String propertyName) throws RegistryStorageException {
+        handles.withHandle(handle -> {
+            handle.createUpdate(sqlStatements.deleteConfigProperty()).bind(0, propertyName).execute();
+            return null;
+        });
+    }
+
+    @Override
+    public List<DynamicConfigPropertyDto> getStaleConfigProperties(Instant lastRefresh)
+            throws RegistryStorageException {
+        log.debug("Getting all stale config properties.");
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements.selectStaleConfigProperties())
+                    .bind(0, lastRefresh.toEpochMilli()).map(DynamicConfigPropertyDtoMapper.instance).list()
+                    .stream()
+                    // Filter out possible null values.
+                    .filter(Objects::nonNull).collect(toList());
+        });
+    }
+
+    /**
+     * @see RegistryStorage#createGroup(io.apicurio.registry.storage.dto.GroupMetaDataDto)
+     */
+    @Override
+    public void createGroup(GroupMetaDataDto group)
+            throws GroupAlreadyExistsException, RegistryStorageException {
+        try {
+            handles.withHandle(handle -> {
+                // Insert a row into the groups table
+                handle.createUpdate(sqlStatements.insertGroup()).bind(0, group.getGroupId())
+                        .bind(1, group.getDescription()).bind(2, group.getArtifactsType())
+                        .bind(3, group.getOwner())
+                        // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric
+                        // timestamps
+                        .bind(4, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
+                        .bind(5, group.getModifiedBy())
+                        .bind(6, group.getModifiedOn() == 0 ? new Date() : new Date(group.getModifiedOn()))
+                        .bind(7, SqlUtil.serializeLabels(group.getLabels())).execute();
+
+                // Insert new labels into the "group_labels" table
+                Map<String, String> labels = group.getLabels();
+                if (labels != null && !labels.isEmpty()) {
+                    labels.forEach((k, v) -> {
+                        String sqli = sqlStatements.insertGroupLabel();
+                        handle.createUpdate(sqli).bind(0, group.getGroupId())
+                                .bind(1, limitStr(k.toLowerCase(), 256))
+                                .bind(2, limitStr(asLowerCase(v), 512)).execute();
+                    });
+                }
+
+                return null;
+            });
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new GroupAlreadyExistsException(group.getGroupId());
+            }
+            throw ex;
+        }
+    }
+
+    /**
+     * Deletes a group and all artifacts in that group.
+     * 
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
+     */
+    @Override
+    public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        handles.withHandleNoException(handle -> {
+            // Note: delete artifact rules separately. Artifact rules are not set to cascade on delete
+            // because the Confluent API allows users to configure rules for artifacts that don't exist. :(
+            handle.createUpdate(sqlStatements.deleteArtifactRulesByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).execute();
+
+            // Delete all artifacts in the group (TODO there is currently no FK from artifacts to groups)
+            handle.createUpdate(sqlStatements.deleteArtifactsByGroupId()).bind(0, normalizeGroupId(groupId))
+                    .execute();
+
+            // Now delete the group (labels and rules etc will cascade)
+            int rows = handle.createUpdate(sqlStatements.deleteGroup()).bind(0, groupId).execute();
+            if (rows == 0) {
+                throw new GroupNotFoundException(groupId);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateGroupMetaData(java.lang.String,
+     *      io.apicurio.registry.storage.dto.EditableGroupMetaDataDto)
+     */
+    @Override
+    public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto) {
+        String modifiedBy = securityIdentity.getPrincipal().getName();
+        Date modifiedOn = new Date();
+        log.debug("Updating metadata for group {}.", groupId);
+
+        handles.withHandleNoException(handle -> {
+            // Update the row in the groups table
+            int rows = handle.createUpdate(sqlStatements.updateGroup()).bind(0, dto.getDescription())
+                    .bind(1, modifiedBy).bind(2, modifiedOn).bind(3, SqlUtil.serializeLabels(dto.getLabels()))
+                    .bind(4, groupId).execute();
+            if (rows == 0) {
+                throw new GroupNotFoundException(groupId);
+            }
+
+            // Delete all appropriate rows in the "group_labels" table
+            handle.createUpdate(sqlStatements.deleteGroupLabelsByGroupId()).bind(0, groupId).execute();
+
+            // Insert new labels into the "group_labels" table
+            if (dto.getLabels() != null && !dto.getLabels().isEmpty()) {
+                dto.getLabels().forEach((k, v) -> {
+                    String sqli = sqlStatements.insertGroupLabel();
+                    handle.createUpdate(sqli).bind(0, groupId).bind(1, limitStr(k.toLowerCase(), 256))
+                            .bind(2, limitStr(asLowerCase(v), 512)).execute();
+                });
+            }
+
+            return null;
+        });
+    }
+
+    @Override
+    public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
+        return handles.withHandleNoException(handle -> {
+            Query query = handle.createQuery(sqlStatements.selectGroups());
+            query.bind(0, limit);
+            return query.map(rs -> rs.getString("groupId")).list();
+        });
+    }
+
+    @Override
+    public GroupMetaDataDto getGroupMetaData(String groupId)
+            throws GroupNotFoundException, RegistryStorageException {
+        return handles.withHandle(handle -> {
+            Optional<GroupMetaDataDto> res = handle.createQuery(sqlStatements.selectGroupByGroupId())
+                    .bind(0, groupId).map(GroupMetaDataDtoMapper.instance).findOne();
+            return res.orElseThrow(() -> new GroupNotFoundException(groupId));
+        });
+    }
+
+    /**
+     * NOTE: Does not export the manifest file TODO
+     */
+    @Override
+    public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
+        // Export a simple manifest file
+        /////////////////////////////////
+        ManifestEntity manifest = new ManifestEntity();
+        if (securityIdentity != null && securityIdentity.getPrincipal() != null) {
+            manifest.exportedBy = securityIdentity.getPrincipal().getName();
+        }
+        manifest.systemName = system.getName();
+        manifest.systemDescription = system.getDescription();
+        manifest.systemVersion = system.getVersion();
+        manifest.dbVersion = "" + DB_VERSION;
+        handler.apply(manifest);
+
+        // Export all content
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<ContentEntity> stream = handle.createQuery(sqlStatements.exportContent()).setFetchSize(50)
+                    .map(ContentEntityMapper.instance).stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
+        // Export all groups
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<GroupEntity> stream = handle.createQuery(sqlStatements.exportGroups()).setFetchSize(50)
+                    .map(GroupEntityMapper.instance).stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
+        // Export all group rules
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<GroupRuleEntity> stream = handle.createQuery(sqlStatements.exportGroupRules())
+                    .setFetchSize(50).map(GroupRuleEntityMapper.instance).stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
+        // Export all artifacts
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<ArtifactEntity> stream = handle.createQuery(sqlStatements.exportArtifacts())
+                    .setFetchSize(50).map(ArtifactEntityMapper.instance).stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
+        // Export all artifact versions
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<ArtifactVersionEntity> stream = handle.createQuery(sqlStatements.exportArtifactVersions())
+                    .setFetchSize(50).map(ArtifactVersionEntityMapper.instance).stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
+        // Export all artifact comments
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<CommentEntity> stream = handle.createQuery(sqlStatements.exportVersionComments())
+                    .setFetchSize(50).map(CommentEntityMapper.instance).stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
+        // Export all branches
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<BranchEntity> stream = handle.createQuery(sqlStatements.exportBranches()).setFetchSize(50)
+                    .map(BranchEntityMapper.instance).stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(branch -> {
+                    branch.versions = getBranchVersionNumbersRaw(handle, branch.toGA(), branch.toBranchId());
+                    handler.apply(branch);
+                });
+            }
+            return null;
+        });
+
+        // Export all artifact rules
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<ArtifactRuleEntity> stream = handle.createQuery(sqlStatements.exportArtifactRules())
+                    .setFetchSize(50).map(ArtifactRuleEntityMapper.instance).stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+
+        // Export all global rules
+        /////////////////////////////////
+        handles.withHandle(handle -> {
+            Stream<GlobalRuleEntity> stream = handle.createQuery(sqlStatements.exportGlobalRules())
+                    .setFetchSize(50).map(GlobalRuleEntityMapper.instance).stream();
+            // Process and then close the stream.
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) {
+        DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId,
+                preserveContentId);
+        dataImporter.importData(entities, () -> {
+        });
+    }
+
+    @Override
+    public void upgradeData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) {
+        DataImporter dataImporter = new SqlDataUpgrader(log, utils, this, preserveGlobalId,
+                preserveContentId);
+        dataImporter.importData(entities, () -> {
+        });
+    }
+
+    @Override
+    public long countArtifacts() throws RegistryStorageException {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectAllArtifactCount()).mapTo(Long.class).one();
+        });
+    }
+
+    @Override
+    public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
+        return handles.withHandle(handle -> {
+            if (!isArtifactExists(handle, groupId, artifactId)) {
+                throw new ArtifactNotFoundException(groupId, artifactId);
+            }
+            return countArtifactVersionsRaw(handle, groupId, artifactId);
+        });
+    }
+
+    private long countArtifactVersionsRaw(Handle handle, String groupId, String artifactId)
+            throws RegistryStorageException {
+        return handle.createQuery(sqlStatements.selectAllArtifactVersionsCount())
+                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Long.class).one();
+    }
+
+    @Override
+    public long countTotalArtifactVersions() throws RegistryStorageException {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectTotalArtifactVersionsCount()).mapTo(Long.class)
+                    .one();
+        });
+    }
+
+    @Override
+    public void createRoleMapping(String principalId, String role, String principalName)
+            throws RegistryStorageException {
+        log.debug("Inserting a role mapping row for: {}", principalId);
+        try {
+            handles.withHandle(handle -> {
+                handle.createUpdate(sqlStatements.insertRoleMapping()).bind(0, principalId).bind(1, role)
+                        .bind(2, principalName).execute();
+                return null;
+            });
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new RoleMappingAlreadyExistsException(principalId, role);
+            }
+            throw ex;
+        }
+    }
+
+    @Override
+    public void deleteRoleMapping(String principalId) throws RegistryStorageException {
+        log.debug("Deleting a role mapping row for: {}", principalId);
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.deleteRoleMapping()).bind(0, principalId)
+                    .execute();
+            if (rowCount == 0) {
+                throw new RoleMappingNotFoundException(principalId);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException {
+        log.debug("Selecting a single role mapping for: {}", principalId);
+        return handles.withHandle(handle -> {
+            Optional<RoleMappingDto> res = handle.createQuery(sqlStatements.selectRoleMappingByPrincipalId())
+                    .bind(0, principalId).map(RoleMappingDtoMapper.instance).findOne();
+            return res.orElseThrow(() -> new RoleMappingNotFoundException(principalId));
+        });
+    }
+
+    @Override
+    public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
+        log.debug("Selecting the role for: {}", principalId);
+        return handles.withHandle(handle -> {
+            Optional<String> res = handle.createQuery(sqlStatements.selectRoleByPrincipalId())
+                    .bind(0, principalId).mapTo(String.class).findOne();
+            return res.orElse(null);
+        });
+    }
+
+    @Override
+    public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException {
+        log.debug("Getting a list of all role mappings.");
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements.selectRoleMappings()).map(RoleMappingDtoMapper.instance)
+                    .list();
+        });
+    }
+
+    @Override
+    public RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit)
+            throws RegistryStorageException {
+        log.debug("Searching role mappings.");
+        return handles.withHandleNoException(handle -> {
+            String query = sqlStatements.selectRoleMappings() + " LIMIT ? OFFSET ?";
+            String countQuery = sqlStatements.countRoleMappings();
+            List<RoleMappingDto> mappings = handle.createQuery(query).bind(0, limit).bind(1, offset)
+                    .map(RoleMappingDtoMapper.instance).list();
+            Integer count = handle.createQuery(countQuery).mapTo(Integer.class).one();
+            return RoleMappingSearchResultsDto.builder().count(count).roleMappings(mappings).build();
+        });
+    }
+
+    @Override
+    public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
+        log.debug("Updating a role mapping: {}::{}", principalId, role);
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.updateRoleMapping()).bind(0, role)
+                    .bind(1, principalId).execute();
+            if (rowCount == 0) {
+                throw new RoleMappingNotFoundException(principalId, role);
+            }
+            return null;
+        });
+    }
+
+    @Override
+    public String createDownload(DownloadContextDto context) throws RegistryStorageException {
+        log.debug("Inserting a download.");
+        String downloadId = UUID.randomUUID().toString();
+        return handles.withHandleNoException(handle -> {
+            handle.createUpdate(sqlStatements.insertDownload()).bind(0, downloadId)
+                    .bind(1, context.getExpires()).bind(2, mapper.writeValueAsString(context)).execute();
+            return downloadId;
+        });
+    }
+
+    @Override
+    public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException {
+        log.debug("Consuming a download ID: {}", downloadId);
+
+        return handles.withHandleNoException(handle -> {
+            long now = java.lang.System.currentTimeMillis();
+
+            // Select the download context.
+            Optional<String> res = handle.createQuery(sqlStatements.selectDownloadContext())
+                    .bind(0, downloadId).bind(1, now).mapTo(String.class).findOne();
+            String downloadContext = res.orElseThrow(DownloadNotFoundException::new);
+
+            // Attempt to delete the row.
+            int rowCount = handle.createUpdate(sqlStatements.deleteDownload()).bind(0, downloadId).execute();
+            if (rowCount == 0) {
+                throw new DownloadNotFoundException();
+            }
+
+            // Return what we consumed
+            return mapper.readValue(downloadContext, DownloadContextDto.class);
+        });
+    }
+
+    @Override
+    public void deleteAllExpiredDownloads() throws RegistryStorageException {
+        log.debug("Deleting all expired downloads");
+        long now = java.lang.System.currentTimeMillis();
+        handles.withHandleNoException(handle -> {
+            handle.createUpdate(sqlStatements.deleteExpiredDownloads()).bind(0, now).execute();
+            return null;
+        });
+    }
+
+    @Override
+    public void deleteAllUserData() {
+        log.debug("Deleting all user data");
+
+        deleteGlobalRules();
+
+        handles.withHandleNoException(handle -> {
+            // Delete all artifacts and related data
+
+            handle.createUpdate(sqlStatements.deleteAllContentReferences()).execute();
+
+            handle.createUpdate(sqlStatements.deleteVersionLabelsByAll()).execute();
+
+            handle.createUpdate(sqlStatements.deleteAllVersionComments()).execute();
+
+            handle.createUpdate(sqlStatements.deleteAllBranches()).execute();
+
+            handle.createUpdate(sqlStatements.deleteAllVersions()).execute();
+
+            handle.createUpdate(sqlStatements.deleteAllArtifactRules()).execute();
+
+            handle.createUpdate(sqlStatements.deleteAllArtifacts()).execute();
+
+            // Delete all groups
+            handle.createUpdate(sqlStatements.deleteAllGroups()).execute();
+
+            // Delete all role mappings
+            handle.createUpdate(sqlStatements.deleteAllRoleMappings()).execute();
+
+            // Delete all content
+            handle.createUpdate(sqlStatements.deleteAllContent()).execute();
+
+            // Delete all config properties
+            handle.createUpdate(sqlStatements.deleteAllConfigProperties()).execute();
+
+            // TODO Do we need to delete comments?
+
+            return null;
+        });
+
+    }
+
+    @Override
+    public Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references) {
+        return handles.withHandleNoException(handle -> {
+            return resolveReferencesRaw(handle, references);
+        });
+    }
+
+    private Map<String, TypedContent> resolveReferencesRaw(Handle handle,
+            List<ArtifactReferenceDto> references) {
+        if (references == null || references.isEmpty()) {
+            return Collections.emptyMap();
+        } else {
+            Map<String, TypedContent> result = new LinkedHashMap<>();
+            resolveReferences(handle, result, references);
+            return result;
+        }
+    }
+
+    @Override
+    public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
+        return handles.withHandleNoException(handle -> {
+            return isArtifactExists(handle, groupId, artifactId);
+        });
+    }
+
+    private boolean isArtifactExists(Handle handle, String groupId, String artifactId)
+            throws RegistryStorageException {
+        return handle.createQuery(sqlStatements().selectArtifactCountById())
+                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Integer.class).one() > 0;
+    }
+
+    @Override
+    public boolean isGroupExists(String groupId) throws RegistryStorageException {
+        return handles.withHandleNoException(handle -> {
+            return isGroupExists(handle, groupId);
+        });
+    }
+
+    private boolean isGroupExists(Handle handle, String groupId) throws RegistryStorageException {
+        return handle.createQuery(sqlStatements().selectGroupCountById()).bind(0, normalizeGroupId(groupId))
+                .mapTo(Integer.class).one() > 0;
+    }
+
+    @Override
+    public List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId,
+            String version) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements().selectContentIdsReferencingArtifactBy())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version).mapTo(Long.class)
+                    .list();
+        });
+    }
+
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId,
+            String version) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements().selectGlobalIdsReferencingArtifactBy())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version).mapTo(Long.class)
+                    .list();
+        });
+    }
+
+    @Override
+    public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId,
+            String version) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements().selectInboundContentReferencesByGAV())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                    .map(ArtifactReferenceDtoMapper.instance).list();
+        });
+    }
+
+    @Override
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version)
+            throws RegistryStorageException {
+        try {
+            getArtifactVersionMetaData(groupId, artifactId, version);
+            return true;
+        } catch (VersionNotFoundException ignored) {
+            return false; // TODO Similar exception is thrown in some method callers, do we need this? Or use
+            // a different query.
+        }
+    }
+
+    @Override
+    public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, Integer offset, Integer limit) {
+        return handles.withHandleNoException(handle -> {
+            List<SqlStatementVariableBinder> binders = new LinkedList<>();
+            String op;
+
+            StringBuilder selectTemplate = new StringBuilder();
+            StringBuilder where = new StringBuilder();
+            StringBuilder orderByQuery = new StringBuilder();
+            StringBuilder limitOffset = new StringBuilder();
+
+            // Formulate the SELECT clause for the artifacts query
+            selectTemplate.append("SELECT {{selectColumns}} FROM groups g ");
+
+            // Formulate the WHERE clause for both queries
+            where.append(" WHERE (1 = 1)");
+            for (SearchFilter filter : filters) {
+                where.append(" AND (");
+                switch (filter.getType()) {
+                    case description:
+                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        where.append("g.description ");
+                        where.append(op);
+                        where.append(" ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, "%" + filter.getStringValue() + "%");
+                        });
+                        break;
+                    case groupId:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("g.groupId ");
+                        where.append(op);
+                        where.append(" ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        break;
+                    case labels:
+                        op = filter.isNot() ? "!=" : "=";
+                        Pair<String, String> label = filter.getLabelFilterValue();
+                        // Note: convert search to lowercase when searching for labels (case-insensitivity
+                        // support).
+                        String labelKey = label.getKey().toLowerCase();
+                        where.append("EXISTS(SELECT l.* FROM group_labels l WHERE l.labelKey " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, labelKey);
+                        });
+                        if (label.getValue() != null) {
+                            String labelValue = label.getValue().toLowerCase();
+                            where.append(" AND l.labelValue " + op + " ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, labelValue);
+                            });
+                        }
+                        where.append(" AND l.groupId = g.groupId)");
+                        break;
+                    default:
+                        break;
+                }
+                where.append(")");
+            }
+
+            // Add order by to artifact query
+            switch (orderBy) {
+                case groupId:
+                    orderByQuery.append(" ORDER BY g.groupId");
+                    break;
+                case createdOn:
+                    orderByQuery.append(" ORDER BY g.").append(orderBy.name());
+                    break;
+                default:
+                    break;
+            }
+            orderByQuery.append(" ").append(orderDirection.name());
+
+            // Add limit and offset to query
+            if ("mssql".equals(sqlStatements.dbType())) {
+                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            } else {
+                limitOffset.append(" LIMIT ? OFFSET ?");
+            }
+
+            // Query for the group
+            String groupsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
+                    .append(limitOffset).toString().replace("{{selectColumns}}", "*");
             Query groupsQuery = handle.createQuery(groupsQuerySql);
             // Query for the total row count
-            String countSelect = "SELECT count(g.groupId) "
-                    + "FROM groups g ";
-
-            Query countQuery = handle.createQuery(countSelect + where.toString());
+            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
+                    .replace("{{selectColumns}}", "count(g.groupId)");
+            Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
             int idx = 0;
@@ -2981,10 +2660,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 binder.bind(countQuery, idx);
                 idx++;
             }
-            groupsQuery.bind(idx++, limit);
-            groupsQuery.bind(idx++, offset);
+            // TODO find a better way to swap arguments
+            if ("mssql".equals(sqlStatements.dbType())) {
+                groupsQuery.bind(idx++, offset);
+                groupsQuery.bind(idx++, limit);
+            } else {
+                groupsQuery.bind(idx++, limit);
+                groupsQuery.bind(idx++, offset);
+            }
 
-            // Execute artifact query
+            // Execute query
             List<SearchedGroupDto> groups = groupsQuery.map(SearchedGroupMapper.instance).list();
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
@@ -2996,23 +2681,26 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void resolveReferences(Map<String, ContentHandle> resolvedReferences, List<ArtifactReferenceDto> references) {
+    private void resolveReferences(Handle handle, Map<String, TypedContent> resolvedReferences,
+            List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {
-                if (reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
+                if (reference.getArtifactId() == null || reference.getName() == null
+                        || reference.getVersion() == null) {
                     throw new IllegalStateException("Invalid reference: " + reference);
                 } else {
                     if (!resolvedReferences.containsKey(reference.getName())) {
-                        //TODO improve exception handling
+                        // TODO improve exception handling
                         try {
-                            final ArtifactVersionMetaDataDto referencedArtifactMetaData = getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
-                            final ContentWrapperDto referencedContent = getArtifactByContentId(referencedArtifactMetaData.getContentId());
-                            resolveReferences(resolvedReferences, referencedContent.getReferences());
-                            resolvedReferences.put(reference.getName(), referencedContent.getContent());
+                            final ArtifactVersionMetaDataDto referencedArtifactMetaData = getArtifactVersionMetaDataRaw(
+                                    handle, reference.getGroupId(), reference.getArtifactId(),
+                                    reference.getVersion());
+                            final ContentWrapperDto referencedContent = getContentByIdRaw(handle,
+                                    referencedArtifactMetaData.getContentId());
+                            resolveReferences(handle, resolvedReferences, referencedContent.getReferences());
+                            TypedContent typedContent = TypedContent.create(referencedContent.getContent(),
+                                    referencedContent.getContentType());
+                            resolvedReferences.put(reference.getName(), typedContent);
                         } catch (VersionNotFoundException ex) {
                             // Ignored
                         }
@@ -3022,113 +2710,92 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
     }
 
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void deleteAllOrphanedContent() {
+    // TODO call this in a cleanup cron job instead?
+    private void deleteAllOrphanedContent(Handle handle) {
         log.debug("Deleting all orphaned content");
+
+        // Delete orphaned references
+        handle.createUpdate(sqlStatements.deleteOrphanedContentReferences()).execute();
+
+        // Delete orphaned content
+        handle.createUpdate(sqlStatements.deleteAllOrphanedContent()).execute();
+    }
+
+    @Override
+    public void resetGlobalId() {
         handles.withHandleNoException(handle -> {
-
-            // Delete orphaned references
-            handle.createUpdate(sqlStatements.deleteOrphanedReferences())
-                    .execute();
-
-            // Delete orphaned content
-            handle.createUpdate(sqlStatements.deleteAllOrphanedContent())
-                    .execute();
-
-            return null;
+            resetSequence(handle, GLOBAL_ID_SEQUENCE, sqlStatements.selectMaxGlobalId());
         });
     }
 
-
     @Override
-    @Transactional
-    public void resetGlobalId() {
-        resetSequence(GLOBAL_ID_SEQUENCE, sqlStatements.selectMaxGlobalId());
-    }
-
-
-    @Override
-    @Transactional
     public void resetContentId() {
-        resetSequence(CONTENT_ID_SEQUENCE, sqlStatements.selectMaxContentId());
+        handles.withHandleNoException(handle -> {
+            resetSequence(handle, CONTENT_ID_SEQUENCE, sqlStatements.selectMaxContentId());
+        });
     }
-
 
     @Override
-    @Transactional
     public void resetCommentId() {
-        resetSequence(COMMENT_ID_SEQUENCE, sqlStatements.selectMaxCommentId());
+        handles.withHandleNoException(handle -> {
+            resetSequence(handle, COMMENT_ID_SEQUENCE, sqlStatements.selectMaxVersionCommentId());
+        });
     }
 
+    private void resetSequence(Handle handle, String sequenceName, String sqlMaxIdFromTable) {
+        Optional<Long> maxIdTable = handle.createQuery(sqlMaxIdFromTable).mapTo(Long.class).findOne();
 
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private void resetSequence(String sequenceName, String sqlMaxIdFromTable) {
-        handles.withHandleNoException(handle -> {
-            Optional<Long> maxIdTable = handle.createQuery(sqlMaxIdFromTable)
-                    .mapTo(Long.class)
-                    .findOne();
+        Optional<Long> currentIdSeq = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
+                .bind(0, sequenceName).mapTo(Long.class).findOne();
 
-            Optional<Long> currentIdSeq = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                    .bind(0, sequenceName)
-                    .mapTo(Long.class)
-                    .findOne();
-
-            //TODO maybe do this in one query
-            Optional<Long> maxId = maxIdTable
-                    .map(maxIdTableValue -> {
-                        if (currentIdSeq.isPresent()) {
-                            if (currentIdSeq.get() > maxIdTableValue) {
-                                //id in sequence is bigger than max value in table
-                                return currentIdSeq.get();
-                            }
-                        }
-                        //max value in table is bigger that id in sequence
-                        return maxIdTableValue;
-                    });
-
-
-            if (maxId.isPresent()) {
-                log.info("Resetting {} sequence", sequenceName);
-                long id = maxId.get();
-
-                if ("postgresql".equals(sqlStatements.dbType())) {
-                    handle.createUpdate(sqlStatements.resetSequenceValue())
-                            .bind(0, sequenceName)
-                            .bind(1, id)
-                            .bind(2, id)
-                            .execute();
-                } else {
-                    handle.createUpdate(sqlStatements.resetSequenceValue())
-                            .bind(0, sequenceName)
-                            .bind(1, id)
-                            .execute();
+        // TODO maybe do this in one query
+        Optional<Long> maxId = maxIdTable.map(maxIdTableValue -> {
+            if (currentIdSeq.isPresent()) {
+                if (currentIdSeq.get() > maxIdTableValue) {
+                    // id in sequence is bigger than max value in table
+                    return currentIdSeq.get();
                 }
+            }
+            // max value in table is bigger that id in sequence
+            return maxIdTableValue;
+        });
 
-                log.info("Successfully reset {} to {}", sequenceName, id);
+        if (maxId.isPresent()) {
+            log.info("Resetting {} sequence", sequenceName);
+            long id = maxId.get();
+
+            if ("postgresql".equals(sqlStatements.dbType())) {
+                handle.createUpdate(sqlStatements.resetSequenceValue()).bind(0, sequenceName).bind(1, id)
+                        .bind(2, id).execute();
+            } else {
+                handle.createUpdate(sqlStatements.resetSequenceValue()).bind(0, sequenceName).bind(1, id)
+                        .execute();
+            }
+
+            log.info("Successfully reset {} to {}", sequenceName, id);
+        }
+    }
+
+    @Override
+    public void importGroupRule(GroupRuleEntity entity) {
+        handles.withHandleNoException(handle -> {
+            if (isGroupExists(handle, entity.groupId)) {
+                handle.createUpdate(sqlStatements.importGroupRule()).bind(0, normalizeGroupId(entity.groupId))
+                        .bind(1, entity.type.name()).bind(2, entity.configuration).execute();
+            } else {
+                throw new GroupNotFoundException(entity.groupId);
             }
             return null;
         });
     }
 
-
     @Override
-    @Transactional
     public void importArtifactRule(ArtifactRuleEntity entity) {
-
         handles.withHandleNoException(handle -> {
-            if (isArtifactExists(entity.groupId, entity.artifactId)) {
-
+            if (isArtifactExists(handle, entity.groupId, entity.artifactId)) {
                 handle.createUpdate(sqlStatements.importArtifactRule())
-                        .bind(0, normalizeGroupId(entity.groupId))
-                        .bind(1, entity.artifactId)
-                        .bind(2, entity.type.name())
-                        .bind(3, entity.configuration)
-                        .execute();
+                        .bind(0, normalizeGroupId(entity.groupId)).bind(1, entity.artifactId)
+                        .bind(2, entity.type.name()).bind(3, entity.configuration).execute();
             } else {
                 throw new ArtifactNotFoundException(entity.groupId, entity.artifactId);
             }
@@ -3136,69 +2803,59 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
+    @Override
+    public void importArtifact(ArtifactEntity entity) {
+        handles.withHandleNoException(handle -> {
+            if (!isArtifactExists(handle, entity.groupId, entity.artifactId)) {
+                String labelsStr = SqlUtil.serializeLabels(entity.labels);
+                handle.createUpdate(sqlStatements.insertArtifact()).bind(0, normalizeGroupId(entity.groupId))
+                        .bind(1, entity.artifactId).bind(2, entity.artifactType).bind(3, entity.owner)
+                        .bind(4, new Date(entity.createdOn)).bind(5, entity.modifiedBy)
+                        .bind(6, new Date(entity.modifiedOn)).bind(7, entity.name).bind(8, entity.description)
+                        .bind(9, labelsStr).execute();
+
+                // Insert labels into the "artifact_labels" table
+                if (entity.labels != null && !entity.labels.isEmpty()) {
+                    entity.labels.forEach((k, v) -> {
+                        handle.createUpdate(sqlStatements.insertArtifactLabel())
+                                .bind(0, normalizeGroupId(entity.groupId)).bind(1, entity.artifactId)
+                                .bind(2, k.toLowerCase()).bind(3, v == null ? null : v.toLowerCase())
+                                .execute();
+                    });
+                }
+            } else {
+                throw new ArtifactAlreadyExistsException(entity.groupId, entity.artifactId);
+            }
+            return null;
+        });
+    }
 
     @Override
-    @Transactional
     public void importArtifactVersion(ArtifactVersionEntity entity) {
         handles.withHandleNoException(handle -> {
-
-            if (!isArtifactExists(entity.groupId, entity.artifactId)) {
-
-                handle.createUpdate(sqlStatements.insertArtifact())
-                        .bind(0, normalizeGroupId(entity.groupId))
-                        .bind(1, entity.artifactId)
-                        .bind(2, entity.artifactType)
-                        .bind(3, entity.createdBy)
-                        .bind(4, new Date(entity.createdOn))
-                        .execute();
+            if (!isArtifactExists(handle, entity.groupId, entity.artifactId)) {
+                throw new ArtifactNotFoundException(entity.groupId, entity.artifactId);
             }
-
-            if (!isGlobalIdExists(entity.globalId)) {
-
-                handle.createUpdate(sqlStatements.importArtifactVersion())
-                        .bind(0, entity.globalId)
-                        .bind(1, normalizeGroupId(entity.groupId))
-                        .bind(2, entity.artifactId)
-                        .bind(3, entity.version)
-                        .bind(4, entity.versionId)
-                        .bind(5, entity.state)
-                        .bind(6, entity.name)
-                        .bind(7, entity.description)
-                        .bind(8, entity.createdBy)
-                        .bind(9, new Date(entity.createdOn))
-                        .bind(10, SqlUtil.serializeLabels(entity.labels))
-                        .bind(11, SqlUtil.serializeProperties(entity.properties))
-                        .bind(12, entity.contentId)
+            if (isGlobalIdExists(handle, entity.globalId)) {
+                throw new VersionAlreadyExistsException(entity.globalId);
+            }
+            if (!isGlobalIdExists(handle, entity.globalId)) {
+                handle.createUpdate(sqlStatements.importArtifactVersion()).bind(0, entity.globalId)
+                        .bind(1, normalizeGroupId(entity.groupId)).bind(2, entity.artifactId)
+                        .bind(3, entity.version).bind(4, entity.versionOrder).bind(5, entity.state)
+                        .bind(6, entity.name).bind(7, entity.description).bind(8, entity.owner)
+                        .bind(9, new Date(entity.createdOn)).bind(10, entity.modifiedBy)
+                        .bind(11, new Date(entity.modifiedOn))
+                        .bind(12, SqlUtil.serializeLabels(entity.labels)).bind(13, entity.contentId)
                         .execute();
 
-                // Insert labels into the "labels" table
+                // Insert labels into the "version_labels" table
                 if (entity.labels != null && !entity.labels.isEmpty()) {
-                    entity.labels.forEach(label -> {
-                        handle.createUpdate(sqlStatements.insertLabel())
-                                .bind(0, entity.globalId)
-                                .bind(1, label.toLowerCase())
+                    entity.labels.forEach((k, v) -> {
+                        handle.createUpdate(sqlStatements.insertVersionLabel()).bind(0, entity.globalId)
+                                .bind(1, k.toLowerCase()).bind(2, v == null ? null : v.toLowerCase())
                                 .execute();
                     });
-                }
-
-                // Insert properties into the "properties" table
-                if (entity.properties != null && !entity.properties.isEmpty()) {
-                    entity.properties.forEach((k, v) -> {
-                        handle.createUpdate(sqlStatements.insertProperty())
-                                .bind(0, entity.globalId)
-                                .bind(1, k.toLowerCase())
-                                .bind(2, v.toLowerCase())
-                                .execute();
-                    });
-                }
-
-                if (entity.isLatest) {
-                    // Update the "latest" column in the artifacts table with the globalId of the new version
-                    handle.createUpdate(sqlStatements.updateArtifactLatest())
-                            .bind(0, entity.globalId)
-                            .bind(1, normalizeGroupId(entity.groupId))
-                            .bind(2, entity.artifactId)
-                            .execute();
                 }
 
             } else {
@@ -3209,24 +2866,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
     @Override
-    @Transactional
     public void importContent(ContentEntity entity) {
-
         handles.withHandleNoException(handle -> {
+            if (!isContentExists(handle, entity.contentId)) {
+                handle.createUpdate(sqlStatements.importContent()).bind(0, entity.contentId)
+                        .bind(1, entity.canonicalHash).bind(2, entity.contentHash).bind(3, entity.contentType)
+                        .bind(4, entity.contentBytes).bind(5, entity.serializedReferences).execute();
 
-            if (!isContentExists(entity.contentId)) {
-
-                handle.createUpdate(sqlStatements.importContent())
-                        .bind(0, entity.contentId)
-                        .bind(1, entity.canonicalHash)
-                        .bind(2, entity.contentHash)
-                        .bind(3, entity.contentBytes)
-                        .bind(4, entity.serializedReferences)
-                        .execute();
-
-                insertReferences(entity.contentId, SqlUtil.deserializeReferences(entity.serializedReferences));
+                insertReferences(handle, entity.contentId,
+                        SqlUtil.deserializeReferences(entity.serializedReferences));
             } else {
                 throw new ContentAlreadyExistsException(entity.contentId);
             }
@@ -3234,284 +2883,612 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-
     @Override
-    @Transactional
     public void importGlobalRule(GlobalRuleEntity entity) {
         handles.withHandleNoException(handle -> {
             handle.createUpdate(sqlStatements.importGlobalRule()) // TODO Duplicated SQL query
-                    .bind(0, entity.ruleType.name())
-                    .bind(1, entity.configuration)
-                    .execute();
+                    .bind(0, entity.ruleType.name()).bind(1, entity.configuration).execute();
             return null;
         });
     }
 
-
     @Override
-    @Transactional
     public void importGroup(GroupEntity entity) {
-        if (!isGroupExists(entity.groupId)) {
-            handles.withHandleNoException(handle -> {
-                handle.createUpdate(sqlStatements.importGroup())
-                        .bind(0, SqlUtil.normalizeGroupId(entity.groupId))
-                        .bind(1, entity.description)
-                        .bind(2, entity.artifactsType)
-                        .bind(3, entity.createdBy)
-                        .bind(4, new Date(entity.createdOn))
-                        .bind(5, entity.modifiedBy)
-                        .bind(6, new Date(entity.modifiedOn))
-                        .bind(7, SqlUtil.serializeProperties(entity.properties))
-                        .execute();
-                return null;
-            });
-        } else {
-            throw new GroupAlreadyExistsException(entity.groupId);
-        }
+        handles.withHandleNoException(handle -> {
+            if (isGroupExists(handle, entity.groupId)) {
+                throw new GroupAlreadyExistsException(entity.groupId);
+            }
+
+            handle.createUpdate(sqlStatements.importGroup()).bind(0, SqlUtil.normalizeGroupId(entity.groupId))
+                    .bind(1, entity.description).bind(2, entity.artifactsType).bind(3, entity.owner)
+                    .bind(4, new Date(entity.createdOn)).bind(5, entity.modifiedBy)
+                    .bind(6, new Date(entity.modifiedOn)).bind(7, SqlUtil.serializeLabels(entity.labels))
+                    .execute();
+
+            // Insert labels into the "group_labels" table
+            if (entity.labels != null && !entity.labels.isEmpty()) {
+                entity.labels.forEach((k, v) -> {
+                    handle.createUpdate(sqlStatements.insertGroupLabel())
+                            .bind(0, normalizeGroupId(entity.groupId)).bind(1, k.toLowerCase())
+                            .bind(2, v.toLowerCase()).execute();
+                });
+            }
+
+            return null;
+        });
     }
 
-
     @Override
-    @Transactional
     public void importComment(CommentEntity entity) {
         handles.withHandleNoException(handle -> {
-            handle.createUpdate(sqlStatements.insertComment())
-                    .bind(0, entity.commentId)
-                    .bind(1, entity.globalId)
-                    .bind(2, entity.createdBy)
-                    .bind(3, new Date(entity.createdOn))
-                    .bind(4, entity.value)
-                    .execute();
+            handle.createUpdate(sqlStatements.insertVersionComment()).bind(0, entity.commentId)
+                    .bind(1, entity.globalId).bind(2, entity.owner).bind(3, new Date(entity.createdOn))
+                    .bind(4, entity.value).execute();
             return null;
         });
     }
 
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private boolean isContentExists(long contentId) {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectContentExists())
-                    .bind(0, contentId)
-                    .mapTo(Integer.class)
-                    .one() > 0;
+    @Override
+    public boolean isEmpty() {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectAllContentCount()).mapTo(Long.class).one() == 0;
         });
     }
 
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private boolean isGlobalIdExists(long globalId) {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectGlobalIdExists())
-                    .bind(0, globalId)
-                    .mapTo(Integer.class)
-                    .one() > 0;
-        });
+    private boolean isContentExists(Handle handle, long contentId) {
+        return handle.createQuery(sqlStatements().selectContentExists()).bind(0, contentId)
+                .mapTo(Integer.class).one() > 0;
     }
 
+    private boolean isGlobalIdExists(Handle handle, long globalId) {
+        return handle.createQuery(sqlStatements().selectGlobalIdExists()).bind(0, globalId)
+                .mapTo(Integer.class).one() > 0;
+    }
 
     @Override
-    @Transactional
     public long nextContentId() {
-        return nextSequenceValue(CONTENT_ID_SEQUENCE);
-    }
-
-
-    @Override
-    @Transactional
-    public long nextGlobalId() {
-        return nextSequenceValue(GLOBAL_ID_SEQUENCE);
-    }
-
-
-    @Override
-    @Transactional
-    public long nextCommentId() {
-        return nextSequenceValue(COMMENT_ID_SEQUENCE);
-    }
-
-
-    /**
-     * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
-     */
-    private long nextSequenceValue(String sequenceName) {
         return handles.withHandleNoException(handle -> {
-            if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
-                return handle.createQuery(sqlStatements.getNextSequenceValue())
-                        .bind(0, sequenceName)
-                        .mapTo(Long.class)
-                        .one(); // TODO Handle non-existing sequence (see resetSequence)
-            } else {
-                // no way to automatically increment the sequence in h2 with just one query
-                // we are increasing the sequence value in a way that it's not safe for concurrent executions
-                // for kafkasql storage this method is not supposed to be executed concurrently
-                // but for inmemory storage that's not guaranteed
-                // that forces us to use an inmemory lock, should not cause any harm
-                // caveat emptor , consider yourself as warned
-                synchronized (inmemorySequencesMutex) { // TODO Use implementation from common app components
-                    Optional<Long> seqExists = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                            .bind(0, sequenceName)
-                            .mapTo(Long.class)
-                            .findOne();
+            return nextContentId(handle);
+        });
+    }
 
-                    if (seqExists.isPresent()) {
-                        //
-                        Long newValue = seqExists.get() + 1;
-                        handle.createUpdate(sqlStatements.resetSequenceValue())
-                                .bind(0, sequenceName)
-                                .bind(1, newValue)
-                                .execute();
-                        return newValue;
-                    } else {
-                        handle.createUpdate(sqlStatements.insertSequenceValue())
-                                .bind(0, sequenceName)
-                                .bind(1, 1)
-                                .execute();
-                        return 1L;
-                    }
+    private long nextContentId(Handle handle) {
+        return nextSequenceValue(handle, CONTENT_ID_SEQUENCE);
+    }
+
+    @Override
+    public long nextGlobalId() {
+        return handles.withHandleNoException(handle -> {
+            return nextGlobalId(handle);
+        });
+    }
+
+    private long nextGlobalId(Handle handle) {
+        return nextSequenceValue(handle, GLOBAL_ID_SEQUENCE);
+    }
+
+    @Override
+    public long nextCommentId() {
+        return handles.withHandleNoException(handle -> {
+            return nextCommentId(handle);
+        });
+    }
+
+    private long nextCommentId(Handle handle) {
+        return nextSequenceValue(handle, COMMENT_ID_SEQUENCE);
+    }
+
+    private long nextSequenceValue(Handle handle, String sequenceName) {
+        if (Set.of("mssql", "postgresql").contains(sqlStatements.dbType())) {
+            return handle.createQuery(sqlStatements.getNextSequenceValue()).bind(0, sequenceName)
+                    .mapTo(Long.class).one(); // TODO Handle non-existing sequence (see resetSequence)
+        } else {
+            // no way to automatically increment the sequence in h2 with just one query
+            // we are increasing the sequence value in a way that it's not safe for concurrent executions
+            // for kafkasql storage this method is not supposed to be executed concurrently
+            // but for inmemory storage that's not guaranteed
+            // that forces us to use an inmemory lock, should not cause any harm
+            // caveat emptor , consider yourself as warned
+            synchronized (inmemorySequencesMutex) { // TODO Use implementation from common app components
+                Optional<Long> seqExists = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
+                        .bind(0, sequenceName).mapTo(Long.class).findOne();
+
+                if (seqExists.isPresent()) {
+                    //
+                    Long newValue = seqExists.get() + 1;
+                    handle.createUpdate(sqlStatements.resetSequenceValue()).bind(0, sequenceName)
+                            .bind(1, newValue).execute();
+                    return newValue;
+                } else {
+                    handle.createUpdate(sqlStatements.insertSequenceValue()).bind(0, sequenceName).bind(1, 1)
+                            .execute();
+                    return 1L;
                 }
             }
-        });
-    }
-
-
-    @Override
-    @Transactional
-    public String normalizeVersion(String groupId, String artifactId, String version) {
-        if ("latest".equalsIgnoreCase(version)) {
-            return getArtifactMetaData(groupId, artifactId, ArtifactRetrievalBehavior.SKIP_DISABLED_LATEST).getVersion();
         }
-        return version;
     }
 
-
     @Override
-    @Transactional
     public boolean isContentExists(String contentHash) throws RegistryStorageException {
         return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectContentCountByHash())
-                    .bind(0, contentHash)
-                    .mapTo(Integer.class)
-                    .one() > 0;
+            return handle.createQuery(sqlStatements().selectContentCountByHash()).bind(0, contentHash)
+                    .mapTo(Integer.class).one() > 0;
         });
     }
 
-
     @Override
-    @Transactional
-    public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) throws RegistryStorageException {
+    public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule)
+            throws RegistryStorageException {
         return handles.withHandleNoException(handle -> {
             return handle.createQuery(sqlStatements().selectArtifactRuleCountByType())
-                    .bind(0, normalizeGroupId(groupId))
-                    .bind(1, artifactId)
-                    .bind(2, rule.name())
-                    .mapTo(Integer.class)
-                    .one() > 0;
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, rule.name())
+                    .mapTo(Integer.class).one() > 0;
         });
     }
 
-
     @Override
-    @Transactional
     public boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException {
         return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectGlobalRuleCountByType())
-                    .bind(0, rule.name())
-                    .mapTo(Integer.class)
-                    .one() > 0;
+            return handle.createQuery(sqlStatements().selectGlobalRuleCountByType()).bind(0, rule.name())
+                    .mapTo(Integer.class).one() > 0;
         });
     }
 
-
     @Override
-    @Transactional
     public boolean isRoleMappingExists(String principalId) {
         return handles.withHandleNoException(handle -> {
             return handle.createQuery(sqlStatements().selectRoleMappingCountByPrincipal())
-                    .bind(0, principalId)
-                    .mapTo(Integer.class)
-                    .one() > 0;
+                    .bind(0, principalId).mapTo(Integer.class).one() > 0;
         });
     }
 
-
     @Override
-    @Transactional
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
         handles.withHandleNoException(handle -> {
             int rowCount = handle.createUpdate(sqlStatements().updateContentCanonicalHash())
-                    .bind(0, newCanonicalHash)
-                    .bind(1, contentId)
-                    .bind(2, contentHash)
-                    .execute();
+                    .bind(0, newCanonicalHash).bind(1, contentId).bind(2, contentHash).execute();
             if (rowCount == 0) {
-                log.warn("update content canonicalHash, no row match contentId {} contentHash {}", contentId, contentHash);
+                log.warn("update content canonicalHash, no row match contentId {} contentHash {}", contentId,
+                        contentHash);
             }
             return null;
         });
     }
 
-
     @Override
-    @Transactional
     public Optional<Long> contentIdFromHash(String contentHash) {
         return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectContentIdByHash())
-                    .bind(0, contentHash)
-                    .mapTo(Long.class)
-                    .findOne();
+            return contentIdFromHashRaw(handle, contentHash);
         });
     }
 
-
-    @Override
-    @Transactional
-    public ArtifactMetaDataDto updateArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash, String createdBy, Date createdOn,
-                                                          EditableArtifactMetaDataDto metaData,
-                                                          IdGenerator globalIdGenerator)
-            throws ArtifactNotFoundException, RegistryStorageException {
-
-        long contentId = contentIdFromHash(contentHash)
-                .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
-
-        if (metaData == null) {
-            metaData = new EditableArtifactMetaDataDto();
-        }
-
-        return updateArtifactWithMetadataRaw(groupId, artifactId, version, contentId, createdBy, createdOn,
-                metaData, globalIdGenerator);
+    private Optional<Long> contentIdFromHashRaw(Handle handle, String contentHash) {
+        return handle.createQuery(sqlStatements().selectContentIdByHash()).bind(0, contentHash)
+                .mapTo(Long.class).findOne();
     }
 
-
     @Override
-    @Transactional
-    public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
-                                                          String artifactType, String contentHash, String createdBy,
-                                                          Date createdOn, EditableArtifactMetaDataDto metaData, IdGenerator globalIdGenerator)
-            throws ArtifactNotFoundException, RegistryStorageException {
+    public BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description,
+            List<String> versions) {
+        try {
+            String user = securityIdentity.getPrincipal().getName();
+            Date now = new Date();
 
-        long contentId = contentIdFromHash(contentHash)
-                .orElseThrow(() -> new RegistryStorageException("Content hash not found."));
+            handles.withHandle(handle -> {
+                // Insert a row into the branches table
+                handle.createUpdate(sqlStatements.insertBranch()).bind(0, ga.getRawGroupId())
+                        .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
+                        .bind(3, description).bind(4, false).bind(5, user).bind(6, now).bind(7, user)
+                        .bind(8, now).execute();
 
-        if (metaData == null) {
-            metaData = new EditableArtifactMetaDataDto();
+                // Append each of the versions onto the branch
+                if (versions != null) {
+                    versions.forEach(version -> {
+                        appendVersionToBranchRaw(handle, ga, branchId, new VersionId(version));
+                    });
+                }
+
+                return null;
+            });
+
+            return BranchMetaDataDto.builder().groupId(ga.getRawGroupIdWithNull())
+                    .artifactId(ga.getRawArtifactId()).branchId(branchId.getRawBranchId())
+                    .description(description).owner(user).createdOn(now.getTime()).modifiedBy(user)
+                    .modifiedOn(now.getTime()).build();
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new BranchAlreadyExistsException(ga.getRawGroupIdWithDefaultString(),
+                        ga.getRawArtifactId(), branchId.getRawBranchId());
+            }
+            throw ex;
         }
-
-        return createArtifactWithMetadataRaw(groupId, artifactId, version, artifactType, contentId, createdBy, createdOn,
-                metaData, globalIdGenerator);
     }
 
+    @Override
+    public void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto) {
+        BranchMetaDataDto bmd = getBranchMetaData(ga, branchId);
+        if (bmd.isSystemDefined()) {
+            throw new NotAllowedException("System generated branches cannot be modified.");
+        }
 
-    private static boolean hasContentFilter(Set<SearchFilter> filters) {
-        for (SearchFilter searchFilter : filters) {
-            if (searchFilter.getType() == SearchFilterType.contentHash || searchFilter.getType() == SearchFilterType.canonicalHash) {
-                return true;
+        String modifiedBy = securityIdentity.getPrincipal().getName();
+        Date modifiedOn = new Date();
+        log.debug("Updating metadata for branch {} of {}/{}.", branchId, ga.getRawGroupIdWithNull(),
+                ga.getRawArtifactId());
+
+        handles.withHandleNoException(handle -> {
+            // Update the row in the groups table
+            int rows = handle.createUpdate(sqlStatements.updateBranch()).bind(0, dto.getDescription())
+                    .bind(1, modifiedBy).bind(2, modifiedOn).bind(3, ga.getRawGroupId())
+                    .bind(4, ga.getRawArtifactId()).bind(5, branchId.getRawBranchId()).execute();
+            if (rows == 0) {
+                throw new BranchNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(),
+                        branchId.getRawBranchId());
+            }
+
+            updateBranchModifiedTimeRaw(handle, ga, branchId);
+
+            return null;
+        });
+    }
+
+    @Override
+    public BranchSearchResultsDto getBranches(GA ga, int offset, int limit) {
+        return handles.withHandleNoException(handle -> {
+            List<SqlStatementVariableBinder> binders = new LinkedList<>();
+
+            StringBuilder selectTemplate = new StringBuilder();
+            StringBuilder where = new StringBuilder();
+            StringBuilder orderByQuery = new StringBuilder();
+            StringBuilder limitOffset = new StringBuilder();
+
+            // Formulate the SELECT clause for the artifacts query
+            selectTemplate.append("SELECT {{selectColumns}} FROM branches b ");
+
+            // Formulate the WHERE clause for both queries
+            where.append(" WHERE b.groupId = ? AND b.artifactId = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, ga.getRawGroupId());
+            });
+            binders.add((query, idx) -> {
+                query.bind(idx, ga.getRawArtifactId());
+            });
+
+            // Add order by to artifact query
+            orderByQuery.append(" ORDER BY b.branchId ASC");
+
+            // Add limit and offset to query
+            if ("mssql".equals(sqlStatements.dbType())) {
+                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            } else {
+                limitOffset.append(" LIMIT ? OFFSET ?");
+            }
+
+            // Query for the branc
+            String branchesQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
+                    .append(limitOffset).toString().replace("{{selectColumns}}", "*");
+            Query branchesQuery = handle.createQuery(branchesQuerySql);
+            // Query for the total row count
+            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
+                    .replace("{{selectColumns}}", "count(b.branchId)");
+            Query countQuery = handle.createQuery(countQuerySql);
+
+            // Bind all query parameters
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : binders) {
+                binder.bind(branchesQuery, idx);
+                binder.bind(countQuery, idx);
+                idx++;
+            }
+            // TODO find a better way to swap arguments
+            if ("mssql".equals(sqlStatements.dbType())) {
+                branchesQuery.bind(idx++, offset);
+                branchesQuery.bind(idx++, limit);
+            } else {
+                branchesQuery.bind(idx++, limit);
+                branchesQuery.bind(idx++, offset);
+            }
+
+            // Execute query
+            List<SearchedBranchDto> branches = branchesQuery.map(SearchedBranchMapper.instance).list();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
+
+            // If no branches are found, it might be because the artifact does not exist. We
+            // need to check for that here.
+            getArtifactMetaDataRaw(handle, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+
+            BranchSearchResultsDto results = new BranchSearchResultsDto();
+            results.setBranches(branches);
+            results.setCount(count);
+            return results;
+        });
+    }
+
+    @Override
+    public BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId) {
+        return handles.withHandle(handle -> {
+            Optional<BranchMetaDataDto> res = handle.createQuery(sqlStatements.selectBranch())
+                    .bind(0, ga.getRawGroupId()).bind(1, ga.getRawArtifactId())
+                    .bind(2, branchId.getRawBranchId()).map(BranchMetaDataDtoMapper.instance).findOne();
+            return res.orElseThrow(() -> new BranchNotFoundException(ga.getRawGroupIdWithDefaultString(),
+                    ga.getRawArtifactId(), branchId.getRawBranchId()));
+        });
+    }
+
+    private List<String> getBranchVersionNumbersRaw(Handle handle, GA ga, BranchId branchId) {
+        return handle.createQuery(sqlStatements.selectBranchVersionNumbers()).bind(0, ga.getRawGroupId())
+                .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId()).map(StringMapper.instance)
+                .list();
+    }
+
+    @Override
+    public VersionSearchResultsDto getBranchVersions(GA ga, BranchId branchId, int offset, int limit) {
+        return handles.withHandleNoException(handle -> {
+            List<SqlStatementVariableBinder> binders = new LinkedList<>();
+
+            StringBuilder selectTemplate = new StringBuilder();
+            StringBuilder where = new StringBuilder();
+            StringBuilder orderByQuery = new StringBuilder();
+            StringBuilder limitOffset = new StringBuilder();
+
+            // Formulate the SELECT clause for the artifacts query
+            selectTemplate.append("SELECT {{selectColumns}} FROM branch_versions bv "
+                    + "JOIN versions v ON bv.groupId = v.groupId AND bv.artifactId = v.artifactId AND bv.version = v.version "
+                    + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId ");
+
+            // Formulate the WHERE clause for both queries
+            where.append(" WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, ga.getRawGroupId());
+            });
+            binders.add((query, idx) -> {
+                query.bind(idx, ga.getRawArtifactId());
+            });
+            binders.add((query, idx) -> {
+                query.bind(idx, branchId.getRawBranchId());
+            });
+
+            // Add order by to artifact query
+            orderByQuery.append(" ORDER BY bv.branchOrder DESC");
+
+            // Add limit and offset to artifact query
+            if ("mssql".equals(sqlStatements.dbType())) {
+                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+            } else {
+                limitOffset.append(" LIMIT ? OFFSET ?");
+            }
+
+            // Query for the versions
+            String versionsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
+                    .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type");
+            Query versionsQuery = handle.createQuery(versionsQuerySql);
+            // Query for the total row count
+            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
+                    .replace("{{selectColumns}}", "count(v.globalId)");
+            Query countQuery = handle.createQuery(countQuerySql);
+
+            // Bind all query parameters
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : binders) {
+                binder.bind(versionsQuery, idx);
+                binder.bind(countQuery, idx);
+                idx++;
+            }
+
+            // Bind the limit and offset
+            // TODO find a better way to swap arguments
+            if ("mssql".equals(sqlStatements.dbType())) {
+                versionsQuery.bind(idx++, offset);
+                versionsQuery.bind(idx, limit);
+            } else {
+                versionsQuery.bind(idx++, limit);
+                versionsQuery.bind(idx, offset);
+            }
+
+            // Execute query
+            List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
+
+            VersionSearchResultsDto results = new VersionSearchResultsDto();
+            results.setVersions(versions);
+            results.setCount(count);
+            return results;
+        });
+    }
+
+    @Override
+    public void appendVersionToBranch(GA ga, BranchId branchId, VersionId version) {
+        BranchMetaDataDto bmd = getBranchMetaData(ga, branchId);
+        if (bmd.isSystemDefined()) {
+            throw new NotAllowedException("System generated branches cannot be modified.");
+        }
+
+        try {
+            handles.withHandle(handle -> {
+                appendVersionToBranchRaw(handle, ga, branchId, version);
+                updateBranchModifiedTimeRaw(handle, ga, branchId);
+                return null;
+            });
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new VersionAlreadyExistsOnBranchException(ga.getRawGroupIdWithDefaultString(),
+                        ga.getRawArtifactId(), version.getRawVersionId(), branchId.getRawBranchId());
+            }
+            throw ex;
+        }
+    }
+
+    private void appendVersionToBranchRaw(Handle handle, GA ga, BranchId branchId, VersionId version) {
+        try {
+            // Insert a row into the branch_versions table
+            handle.createUpdate(sqlStatements.appendBranchVersion()).bind(0, ga.getRawGroupId())
+                    .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
+                    .bind(3, version.getRawVersionId()).bind(4, ga.getRawGroupId())
+                    .bind(5, ga.getRawArtifactId()).bind(6, branchId.getRawBranchId()).execute();
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new VersionAlreadyExistsOnBranchException(ga.getRawGroupIdWithDefaultString(),
+                        ga.getRawArtifactId(), version.getRawVersionId(), branchId.getRawBranchId());
+            }
+            if (sqlStatements.isForeignKeyViolation(ex)) {
+                throw new VersionNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(),
+                        version.getRawVersionId());
+            }
+            throw ex;
+        }
+    }
+
+    @Override
+    public void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions) {
+        BranchMetaDataDto bmd = getBranchMetaData(ga, branchId);
+        if (bmd.isSystemDefined()) {
+            throw new NotAllowedException("System generated branches cannot be modified.");
+        }
+
+        handles.withHandle(handle -> {
+            // Delete all previous versions.
+            handle.createUpdate(sqlStatements.deleteBranchVersions()).bind(0, ga.getRawGroupId())
+                    .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId()).execute();
+
+            // Insert each version new
+            int branchOrder = 0;
+            for (VersionId version : versions) {
+                handle.createUpdate(sqlStatements.insertBranchVersion()).bind(0, ga.getRawGroupId())
+                        .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
+                        .bind(3, branchOrder++).bind(4, version.getRawVersionId()).execute();
+            }
+
+            // Update branch modified time
+            updateBranchModifiedTimeRaw(handle, ga, branchId);
+
+            return null;
+        });
+    }
+
+    /**
+     * This method ensures that the named branch exists for the version *and* also adds the version to that
+     * branch.
+     */
+    private void createOrUpdateBranchRaw(Handle handle, GAV gav, BranchId branchId, boolean systemDefined) {
+        // First make sure the branch exists.
+        try {
+            String user = securityIdentity.getPrincipal().getName();
+            Date now = new Date();
+
+            handle.createUpdate(sqlStatements.upsertBranch()).bind(0, gav.getRawGroupId())
+                    .bind(1, gav.getRawArtifactId()).bind(2, branchId.getRawBranchId()).bind(3, (String) null)
+                    .bind(4, systemDefined).bind(5, user).bind(6, now).bind(7, user).bind(8, now).execute();
+        } catch (Exception ex) {
+            // Only needed for H2, which doesn't support upsert (check this, it might now)
+            if (!sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw ex;
             }
         }
-        return false;
+
+        // Now add the version to it.
+        appendVersionToBranchRaw(handle, gav, branchId, gav.getVersionId());
+    }
+
+    private void updateBranchModifiedTimeRaw(Handle handle, GA ga, BranchId branchId) {
+        String user = securityIdentity.getPrincipal().getName();
+        Date now = new Date();
+
+        handle.createUpdate(sqlStatements.updateBranchModifiedTime()).bind(0, user).bind(1, now)
+                .bind(2, ga.getRawGroupId()).bind(3, ga.getRawArtifactId()).bind(4, branchId.getRawBranchId())
+                .execute();
+    }
+
+    @Override
+    public GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior) {
+        return handles.withHandleNoException(handle -> {
+            switch (behavior) {
+                case DEFAULT:
+                    return handle.createQuery(sqlStatements.selectBranchTip()).bind(0, ga.getRawGroupId())
+                            .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
+                            .map(GAVMapper.instance).findOne()
+                            .orElseThrow(() -> new VersionNotFoundException(
+                                    ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(),
+                                    "<tip of the branch '" + branchId.getRawBranchId() + "'>"));
+                case SKIP_DISABLED_LATEST:
+                    return handle.createQuery(sqlStatements.selectBranchTipNotDisabled())
+                            .bind(0, ga.getRawGroupId()).bind(1, ga.getRawArtifactId())
+                            .bind(2, branchId.getRawBranchId()).map(GAVMapper.instance).findOne()
+                            .orElseThrow(() -> new VersionNotFoundException(
+                                    ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(),
+                                    "<tip of the branch '" + branchId.getRawBranchId()
+                                            + "' that does not have disabled status>"));
+            }
+            throw new UnreachableCodeException();
+        });
+    }
+
+    private GAV getGAVByGlobalId(Handle handle, long globalId) {
+        return handle.createQuery(sqlStatements.selectGAVByGlobalId()).bind(0, globalId)
+                .map(GAVMapper.instance).findOne().orElseThrow(() -> new VersionNotFoundException(globalId));
+    }
+
+    @Override
+    public void deleteBranch(GA ga, BranchId branchId) {
+        BranchMetaDataDto bmd = getBranchMetaData(ga, branchId);
+        if (bmd.isSystemDefined()) {
+            throw new NotAllowedException("System generated branches cannot be deleted.");
+        }
+
+        handles.withHandleNoException(handle -> {
+            var affected = handle.createUpdate(sqlStatements.deleteBranch()).bind(0, ga.getRawGroupId())
+                    .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId()).execute();
+
+            if (affected == 0) {
+                throw new BranchNotFoundException(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(),
+                        branchId.getRawBranchId());
+            }
+        });
+    }
+
+    @Override
+    public void importBranch(BranchEntity entity) {
+        var ga = entity.toGA();
+        var branchId = entity.toBranchId();
+        handles.withHandleNoException(handle -> {
+            if (!isArtifactExists(handle, entity.groupId, entity.artifactId)) {
+                throw new ArtifactNotFoundException(ga.getRawGroupIdWithDefaultString(),
+                        ga.getRawArtifactId());
+            }
+            handle.createUpdate(sqlStatements.importBranch()).bind(0, ga.getRawGroupId())
+                    .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
+                    .bind(3, entity.description).bind(4, entity.systemDefined).bind(5, entity.owner)
+                    .bind(6, new Date(entity.createdOn)).bind(7, entity.modifiedBy)
+                    .bind(8, new Date(entity.modifiedOn)).execute();
+
+            // Append each of the versions onto the branch
+            if (entity.versions != null) {
+                entity.versions.forEach(version -> {
+                    appendVersionToBranchRaw(handle, ga, branchId, new VersionId(version));
+                });
+            }
+        });
+    }
+
+    @Override
+    public String triggerSnapshotCreation() throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "Directly triggering the snapshot creation is not supported for sql storages.");
+    }
+
+    @Override
+    public String createSnapshot(String location) throws RegistryStorageException {
+        if (!StringUtil.isEmpty(location)) {
+            log.debug("Creating internal database snapshot to location {}.", location);
+            handles.withHandleNoException(handle -> {
+                handle.createQuery(sqlStatements.createDataSnapshot()).bind(0, location).mapTo(String.class)
+                        .first();
+            });
+            return location;
+        } else {
+            log.warn("Skipping database snapshot because no location has been provided");
+        }
+        return null;
     }
 }

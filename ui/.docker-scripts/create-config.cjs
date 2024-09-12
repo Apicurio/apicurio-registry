@@ -6,22 +6,27 @@ const CONFIG_OUTPUT_PATH=process.env["REGISTRY_CONFIG_OUTPUT_PATH"] || "/opt/app
 
 console.info("Generating application config at:", CONFIG_OUTPUT_PATH);
 
-const CONTEXT_PATH=process.env["REGISTRY_CONTEXT_PATH"] || "/";
-const NAV_PREFIX_PATH=process.env["REGISTRY_NAV_PREFIX_PATH"] || "/";
-const REGISTRY_API_URL=process.env["REGISTRY_API_URL"] || "http://localhost:8080/apis/registry/v2";
+const REGISTRY_API_URL=process.env["REGISTRY_API_URL"] || "http://localhost:8080/apis/registry/v3";
 
-const AUTH_TYPE=process.env["REGISTRY_AUTH_TYPE"] || "none";
-const AUTH_RBAC_ENABLED=process.env["REGISTRY_AUTH_RBAC_ENABLED"] || "false";
-const AUTH_OBAC_ENABLED=process.env["REGISTRY_AUTH_OBAC_ENABLED"] || "false";
-const AUTH_URL=process.env["REGISTRY_AUTH_URL"] || "";
-const AUTH_CLIENT_ID=process.env["REGISTRY_AUTH_CLIENT_ID"] || "registry-ui";
-const AUTH_CLIENT_SCOPES=process.env["REGISTRY_AUTH_CLIENT_SCOPES"] || "openid profile email";
-const AUTH_REDIRECT_URL=process.env["REGISTRY_AUTH_REDIRECT_URL"] || "http://localhost:8888";
+const CONTEXT_PATH=process.env["REGISTRY_CONTEXT_PATH"];
+const NAV_PREFIX_PATH=process.env["REGISTRY_NAV_PREFIX_PATH"];
+const DOCS_URL=process.env["REGISTRY_DOCS_URL"];
 
-const FEATURE_READ_ONLY=process.env["REGISTRY_FEATURE_READ_ONLY"] || "false";
-const FEATURE_BREADCRUMBS=process.env["REGISTRY_FEATURE_BREADCRUMBS"] || "true";
-const FEATURE_ROLE_MANAGEMENT=process.env["REGISTRY_FEATURE_ROLE_MANAGEMENT"] || "false";
-const FEATURE_SETTINGS=process.env["REGISTRY_FEATURE_SETTINGS"] || "true";
+const AUTH_TYPE=process.env["REGISTRY_AUTH_TYPE"];
+const AUTH_RBAC_ENABLED=process.env["REGISTRY_AUTH_RBAC_ENABLED"];
+const AUTH_OBAC_ENABLED=process.env["REGISTRY_AUTH_OBAC_ENABLED"];
+const AUTH_URL=process.env["REGISTRY_AUTH_URL"];
+const AUTH_CLIENT_ID=process.env["REGISTRY_AUTH_CLIENT_ID"];
+const AUTH_CLIENT_SCOPES=process.env["REGISTRY_AUTH_CLIENT_SCOPES"];
+const AUTH_REDIRECT_URL=process.env["REGISTRY_AUTH_REDIRECT_URL"];
+
+const FEATURE_READ_ONLY=process.env["REGISTRY_FEATURE_READ_ONLY"];
+const FEATURE_BREADCRUMBS=process.env["REGISTRY_FEATURE_BREADCRUMBS"];
+const FEATURE_ROLE_MANAGEMENT=process.env["REGISTRY_FEATURE_ROLE_MANAGEMENT"];
+const FEATURE_SETTINGS=process.env["REGISTRY_FEATURE_SETTINGS"];
+const FEATURE_DELETE_GROUP_ENABLED=process.env["REGISTRY_DELETE_GROUP_ENABLED"];
+const FEATURE_DELETE_ARTIFACT_ENABLED=process.env["REGISTRY_DELETE_ARTIFACT_ENABLED"];
+const FEATURE_DELETE_VERSION_ENABLED=process.env["REGISTRY_DELETE_VERSION_ENABLED"];
 
 
 // Create the config to output.
@@ -29,29 +34,74 @@ const CONFIG = {
     artifacts: {
         url: `${REGISTRY_API_URL}`
     },
-    ui: {
-        contextPath: CONTEXT_PATH,
-        navPrefixPath: NAV_PREFIX_PATH,
-        oaiDocsUrl: "/docs/"
-    },
-    auth: {
-        type: AUTH_TYPE,
-        rbacEnabled: AUTH_RBAC_ENABLED === "true",
-        obacEnabled: AUTH_OBAC_ENABLED === "true",
-        options: {
-            url: AUTH_URL,
-            redirectUri: AUTH_REDIRECT_URL,
-            clientId: AUTH_CLIENT_ID,
-            scopes: AUTH_CLIENT_SCOPES
-        }
-    },
-    features: {
-        readOnly: FEATURE_READ_ONLY === "true",
-        breadcrumbs: FEATURE_BREADCRUMBS === "true",
-        roleManagement: FEATURE_ROLE_MANAGEMENT === "true",
-        settings: FEATURE_SETTINGS === "true"
-    }
+    ui: {},
+    auth: {},
+    features: {}
 };
+
+
+// Configure UI elements
+if (CONTEXT_PATH) {
+    CONFIG.ui.contextPath = CONTEXT_PATH;
+}
+if (NAV_PREFIX_PATH) {
+    CONFIG.ui.navPrefixPath = NAV_PREFIX_PATH;
+}
+if (DOCS_URL) {
+    CONFIG.ui.oaiDocsUrl = DOCS_URL;
+}
+
+
+// Configure auth
+if (AUTH_TYPE) {
+    CONFIG.auth.type = AUTH_TYPE;
+}
+if (AUTH_RBAC_ENABLED) {
+    CONFIG.auth.rbacEnabled = AUTH_RBAC_ENABLED === "true";
+}
+if (AUTH_OBAC_ENABLED) {
+    CONFIG.auth.obacEnabled = AUTH_OBAC_ENABLED === "true";
+}
+
+if (AUTH_TYPE === "oidc") {
+    CONFIG.auth.options = {};
+    if (AUTH_URL) {
+        CONFIG.auth.options.url = AUTH_URL;
+    }
+    if (AUTH_REDIRECT_URL) {
+        CONFIG.auth.options.redirectUri = AUTH_REDIRECT_URL;
+    }
+    if (AUTH_CLIENT_ID) {
+        CONFIG.auth.options.clientId = AUTH_CLIENT_ID;
+    }
+    if (AUTH_CLIENT_SCOPES) {
+        CONFIG.auth.options.scope = AUTH_CLIENT_SCOPES;
+    }
+}
+
+// Configure features
+if (FEATURE_READ_ONLY) {
+    CONFIG.features.readOnly = FEATURE_READ_ONLY === "true";
+}
+if (FEATURE_BREADCRUMBS) {
+    CONFIG.features.breadcrumbs = FEATURE_BREADCRUMBS === "true";
+}
+if (FEATURE_ROLE_MANAGEMENT) {
+    CONFIG.features.roleManagement = FEATURE_ROLE_MANAGEMENT === "true";
+}
+if (FEATURE_SETTINGS) {
+    CONFIG.features.settings = FEATURE_SETTINGS === "true";
+}
+if (FEATURE_DELETE_GROUP_ENABLED) {
+    CONFIG.features.deleteGroupEnabled = FEATURE_DELETE_GROUP_ENABLED === "true";
+}
+if (FEATURE_DELETE_ARTIFACT_ENABLED) {
+    CONFIG.features.deleteArtifactEnabled = FEATURE_DELETE_ARTIFACT_ENABLED === "true";
+}
+if (FEATURE_DELETE_VERSION_ENABLED) {
+    CONFIG.features.deleteVersionEnabled = FEATURE_DELETE_VERSION_ENABLED === "true";
+}
+
 
 const FILE_CONTENT = `
 const ApicurioRegistryConfig = ${JSON.stringify(CONFIG, null, 4)};

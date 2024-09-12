@@ -34,7 +34,8 @@ public class CatalogSourceResourceType implements ResourceType<CatalogSource> {
 
     @Override
     public void delete(CatalogSource resource) throws Exception {
-        Kubernetes.deleteCatalogSource(resource.getMetadata().getNamespace(), resource.getMetadata().getName());
+        Kubernetes.deleteCatalogSource(resource.getMetadata().getNamespace(),
+                resource.getMetadata().getName());
     }
 
     @Override
@@ -65,17 +66,8 @@ public class CatalogSourceResourceType implements ResourceType<CatalogSource> {
     /** Get default instances **/
 
     public static CatalogSource getDefault(String name, String namespace, String image) {
-        return new CatalogSourceBuilder()
-                .withNewMetadata()
-                    .withName(name)
-                    .withNamespace(namespace)
-                .endMetadata()
-                .withNewSpec()
-                    .withDisplayName("Registry Operator Catalog Source")
-                    .withImage(image)
-                    .withPublisher("registry-qe")
-                    .withSourceType("grpc")
-                .endSpec()
-                .build();
+        return new CatalogSourceBuilder().withNewMetadata().withName(name).withNamespace(namespace)
+                .endMetadata().withNewSpec().withDisplayName("Registry Operator Catalog Source")
+                .withImage(image).withPublisher("registry-qe").withSourceType("grpc").endSpec().build();
     }
 }

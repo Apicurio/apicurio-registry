@@ -5,7 +5,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl.ArtifactRefe
 /**
  * This class holds the information that reference one Artifact in Apicurio Registry. It will always make
  * reference to an artifact in a group. Optionally it can reference to a specific version.
- *
  */
 public interface ArtifactReference {
 
@@ -48,8 +47,7 @@ public interface ArtifactReference {
     int hashCode();
 
     /**
-     * Logical equality. Two artifact references are equal, if they
-     * MUST refer to the same artifact.
+     * Logical equality. Two artifact references are equal, if they MUST refer to the same artifact.
      */
     @Override
     boolean equals(Object obj);
@@ -64,7 +62,11 @@ public interface ArtifactReference {
         return builder().globalId(globalId).build();
     }
 
-    public static ArtifactReferenceBuilder builder(){
+    public static ArtifactReference fromContentId(Long contentId) {
+        return builder().contentId(contentId).build();
+    }
+
+    public static ArtifactReferenceBuilder builder() {
         return new ArtifactReferenceBuilder();
     }
 

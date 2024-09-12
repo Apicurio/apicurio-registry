@@ -1,11 +1,5 @@
 package io.apicurio.registry.content.dereference;
 
-import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
-
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,9 +9,14 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.types.ContentTypes;
+
+import java.util.Iterator;
+import java.util.Map;
+
+import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 public class JsonSchemaDereferencer implements ContentDereferencer {
 
@@ -35,25 +34,22 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
     }
 
     @Override
-    public ContentHandle dereference(ContentHandle content, Map<String, ContentHandle> resolvedReferences) {
-        try {
-            //FIXME this code is not dereferencing references, only validating that all that references are resolvable
-            return ContentHandle.create(JsonUtil.readSchema(content.content(), resolvedReferences).toString());
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Invalid JSON " + content.content(), e);
-        }
+    public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+        throw new DereferencingNotSupportedException(
+                "Content dereferencing is not supported for JSON Schema");
     }
-    
+
     /**
-     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.ContentHandle, java.util.Map)
+     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.TypedContent,
+     *      java.util.Map)
      */
     @Override
-    public ContentHandle rewriteReferences(ContentHandle content, Map<String, String> resolvedReferenceUrls) {
+    public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {
         try {
-            JsonNode tree = objectMapper.readTree(content.content());
+            JsonNode tree = objectMapper.readTree(content.getContent().content());
             rewriteIn(tree, resolvedReferenceUrls);
             String converted = objectMapper.writeValueAsString(objectMapper.treeToValue(tree, Object.class));
-            return ContentHandle.create(converted);
+            return TypedContent.create(ContentHandle.create(converted), ContentTypes.APPLICATION_JSON);
         } catch (Exception e) {
             return content;
         }

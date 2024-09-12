@@ -2,9 +2,9 @@ package io.apicurio.tests.serdes.apicurio;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.tests.common.serdes.json.Msg;
 import io.apicurio.tests.common.serdes.json.ValidMessage;
-import io.apicurio.registry.utils.IoUtil;
 
 import java.io.InputStream;
 import java.util.Date;
@@ -12,25 +12,13 @@ import java.util.Map;
 
 public class JsonSchemaMsgFactory {
 
-    private String jsonSchema = "{" +
-            "    \"$id\": \"https://example.com/message.schema.json\"," +
-            "    \"$schema\": \"http://json-schema.org/draft-07/schema#\"," +
-            "    \"required\": [" +
-            "        \"message\"," +
-            "        \"time\"" +
-            "    ]," +
-            "    \"type\": \"object\"," +
-            "    \"properties\": {" +
-            "        \"message\": {" +
-            "            \"description\": \"\"," +
-            "            \"type\": \"string\"" +
-            "        }," +
-            "        \"time\": {" +
-            "            \"description\": \"\"," +
-            "            \"type\": \"number\"" +
-            "        }" +
-            "    }" +
-            "}";
+    private String jsonSchema = "{" + "    \"$id\": \"https://example.com/message.schema.json\","
+            + "    \"$schema\": \"http://json-schema.org/draft-07/schema#\"," + "    \"required\": ["
+            + "        \"message\"," + "        \"time\"" + "    ]," + "    \"type\": \"object\","
+            + "    \"properties\": {" + "        \"message\": {" + "            \"description\": \"\","
+            + "            \"type\": \"string\"" + "        }," + "        \"time\": {"
+            + "            \"description\": \"\"," + "            \"type\": \"number\"" + "        }"
+            + "    }" + "}";
 
     public ValidMessage generateMessage(int count) {
         ValidMessage msg = new ValidMessage();
@@ -62,6 +50,10 @@ public class JsonSchemaMsgFactory {
 
     public byte[] getSchemaBytes() {
         return IoUtil.toBytes(jsonSchema);
+    }
+
+    public String getSchemaString() {
+        return jsonSchema;
     }
 
 }

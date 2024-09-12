@@ -1,11 +1,11 @@
 package io.apicurio.registry.maven.refs;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
+
 import java.nio.file.Path;
 import java.util.Set;
-
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.types.ArtifactType;
 
 public class IndexedResource {
 
@@ -13,10 +13,11 @@ public class IndexedResource {
     private final String type;
     private final String resourceName;
     private final ContentHandle content;
-    private ArtifactMetaData registration;
+    private VersionMetaData registration;
 
     /**
      * Constructor.
+     * 
      * @param path
      * @param type
      * @param resourceName
@@ -29,21 +30,21 @@ public class IndexedResource {
         this.type = type;
         this.resourceName = resourceName;
     }
-    
+
     /**
      * @return the content
      */
     public ContentHandle getContent() {
         return content;
     }
-    
+
     /**
      * @return the type
      */
     public String getType() {
         return type;
     }
-    
+
     /**
      * @return the resourceName
      */
@@ -78,7 +79,8 @@ public class IndexedResource {
 
         // Protobuf can resolve relative to the "schema paths" (aka --proto-paths in protoc).
         if (!resolves && ArtifactType.PROTOBUF.equals(this.type)) {
-            resolves = schemaPaths.parallelStream().anyMatch(path -> this.path.normalize().equals(path.resolve(resourceName).normalize()));
+            resolves = schemaPaths.parallelStream()
+                    .anyMatch(path -> this.path.normalize().equals(path.resolve(resourceName).normalize()));
         }
         return resolves;
     }
@@ -86,14 +88,14 @@ public class IndexedResource {
     /**
      * @return the registration
      */
-    public ArtifactMetaData getRegistration() {
+    public VersionMetaData getRegistration() {
         return registration;
     }
 
     /**
      * @param registration the registration to set
      */
-    public void setRegistration(ArtifactMetaData registration) {
+    public void setRegistration(VersionMetaData registration) {
         this.registration = registration;
     }
 

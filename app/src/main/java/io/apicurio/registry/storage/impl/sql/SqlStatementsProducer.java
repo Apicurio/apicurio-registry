@@ -13,14 +13,15 @@ public class SqlStatementsProducer {
     @Inject
     Logger log;
 
-    @ConfigProperty(name = "registry.storage.db-kind", defaultValue = "h2")
+    @ConfigProperty(name = "apicurio.storage.sql.kind", defaultValue = "h2")
     @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
     String databaseType;
 
     /**
      * Produces an {@link SqlStatements} instance for injection.
      */
-    @Produces @ApplicationScoped
+    @Produces
+    @ApplicationScoped
     public SqlStatements createSqlStatements() {
         log.debug("Creating an instance of ISqlStatements for DB: " + databaseType);
         if ("h2".equals(databaseType)) {

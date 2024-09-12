@@ -3,7 +3,6 @@ package io.apicurio.registry.metrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Default;
 import jakarta.inject.Inject;
@@ -15,6 +14,7 @@ import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.container.ResourceInfo;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
+
 import java.io.IOException;
 import java.util.regex.Pattern;
 
@@ -27,9 +27,7 @@ import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_PA
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_STATUS_CODE_FAMILY;
 
 /**
- * Filters REST API requests and responses to report metrics
- * about them.
- *
+ * Filters REST API requests and responses to report metrics about them.
  */
 @Provider
 @Default
@@ -44,7 +42,8 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
     @Context
     private ResourceInfo resourceInfo;
 
-    // I couldn't figure out an easy way to use an annotation that can be applied on the whole REST resource class,
+    // I couldn't figure out an easy way to use an annotation that can be applied on the whole REST resource
+    // class,
     // instead of on each method (or jakarta.ws.rs.core.Application).
     // See https://docs.oracle.com/javaee/7/api/javax/ws/rs/NameBinding.html
     static final Pattern ENABLED_PATTERN = Pattern.compile("/apis/.*");
@@ -66,9 +65,7 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
             return;
         }
 
-        Timer timer = Timer
-                .builder(REST_REQUESTS)
-                .description(REST_REQUESTS_DESCRIPTION)
+        Timer timer = Timer.builder(REST_REQUESTS).description(REST_REQUESTS_DESCRIPTION)
                 .tag(REST_REQUESTS_TAG_PATH, this.getPath())
                 .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
                 .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))
@@ -77,13 +74,11 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
         Timer.Sample sample = (Timer.Sample) requestContext.getProperty(TIMER_SAMPLE_CONTEXT_PROPERTY_NAME);
         sample.stop(timer);
 
-        Counter.builder(REST_REQUESTS_COUNTER)
-                .description(REST_REQUESTS_COUNTER_DESCRIPTION)
+        Counter.builder(REST_REQUESTS_COUNTER).description(REST_REQUESTS_COUNTER_DESCRIPTION)
                 .tag(REST_REQUESTS_TAG_PATH, this.getPath())
                 .tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod())
                 .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, this.getStatusGroup(responseContext.getStatus()))
-                .register(registry)
-                .increment();
+                .register(registry).increment();
     }
 
     private String getStatusGroup(int statusCode) {

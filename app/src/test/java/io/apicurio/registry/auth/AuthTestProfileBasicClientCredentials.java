@@ -1,21 +1,23 @@
 package io.apicurio.registry.auth;
 
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.BasicAuthenticationProvider;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactContent;
-import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -23,9 +25,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
@@ -33,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Tag(ApicurioTestTags.SLOW)
 public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestBase {
 
-    @ConfigProperty(name = "registry.auth.token.endpoint")
+    @ConfigProperty(name = "quarkus.oidc.token-path")
     @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrl;
 
@@ -41,74 +42,69 @@ public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestB
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
+
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new OkHttpRequestAdapter(
-                new BasicAuthenticationProvider(JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
-        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
-            client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
+        var exception = Assertions.assertThrows(Exception.class, () -> {
+            client.groups().byGroupId(groupId).artifacts().get();
         });
-        assertNotAuthorized(executionException);
+        assertNotAuthorized(exception);
     }
 
     @Test
     public void testBasicAuthClientCredentials() throws Exception {
-        var adapter = new OkHttpRequestAdapter(
-                new BasicAuthenticationProvider(JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
         try {
-            client.groups().byGroupId("default").artifacts().get().get(3, TimeUnit.SECONDS);
-            ArtifactContent content = new ArtifactContent();
-            content.setContent("{}");
-            var res = client
-                    .groups()
-                    .byGroupId(groupId)
-                    .artifacts()
-                    .post(content, config -> {
-                        config.headers.add("X-Registry-ArtifactType", ArtifactType.JSON);
-                        config.headers.add("X-Registry-ArtifactId", artifactId);
-                    }).get(3, TimeUnit.SECONDS);
+            client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
 
-            TestUtils.retry(() ->
-                    client
-                            .groups()
-                            .byGroupId(groupId)
-                            .artifacts()
-                            .byArtifactId(artifactId)
-                            .meta()
-                            .get()
-                            .get(3, TimeUnit.SECONDS));
-            assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get().get(3, TimeUnit.SECONDS));
+            CreateArtifact createArtifact = new CreateArtifact();
+            createArtifact.setArtifactType(ArtifactType.JSON);
+            createArtifact.setArtifactId(artifactId);
+            CreateVersion createVersion = new CreateVersion();
+            createArtifact.setFirstVersion(createVersion);
+            VersionContent versionContent = new VersionContent();
+            createVersion.setContent(versionContent);
+            versionContent.setContent("{}");
+            versionContent.setContentType(ContentTypes.APPLICATION_JSON);
 
-            Rule ruleConfig = new Rule();
-            ruleConfig.setType(RuleType.VALIDITY);
-            ruleConfig.setConfig(ValidityLevel.NONE.name());
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(ruleConfig);
-            client.admin().rules().post(ruleConfig).get(3, TimeUnit.SECONDS);
+            TestUtils.retry(
+                    () -> client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
+            assertNotNull(client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
+
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig(ValidityLevel.NONE.name());
+
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
+            client.admin().rules().post(createRule);
         } finally {
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete().get(3, TimeUnit.SECONDS);
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
         }
     }
 
     @Test
     public void testNoCredentials() throws Exception {
-        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
-        var executionException = Assertions.assertThrows(ExecutionException.class, () -> {
-            client.groups().byGroupId(groupId).artifacts().get().get(3, TimeUnit.SECONDS);
+        var exception = Assertions.assertThrows(Exception.class, () -> {
+            client.groups().byGroupId(groupId).artifacts().get();
         });
-        assertNotAuthorized(executionException);
+        assertNotAuthorized(exception);
     }
 }

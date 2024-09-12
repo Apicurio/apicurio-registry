@@ -3,9 +3,8 @@ package io.apicurio.registry.storage.impl.sql;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.utils.StringUtil;
 
 import java.util.Collections;
@@ -16,14 +15,12 @@ public class SqlUtil {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private static final String NULL_GROUP_ID = "__$GROUPID$__";
-
     /**
      * Serializes the given collection of labels to a string for artifactStore in the DB.
      *
      * @param labels
      */
-    public static String serializeLabels(List<String> labels) {
+    public static String serializeLabels(Map<String, String> labels) {
         try {
             if (labels == null) {
                 return null;
@@ -38,53 +35,17 @@ public class SqlUtil {
     }
 
     /**
-     * Deserialize the labels from their string form to a <code>List&lt;String&gt;</code> form.
+     * Deserialize the labels from their string form to a Map<String, String> form.
      *
      * @param labelsStr
      */
     @SuppressWarnings("unchecked")
-    public static List<String> deserializeLabels(String labelsStr) {
+    public static Map<String, String> deserializeLabels(String labelsStr) {
         try {
             if (StringUtil.isEmpty(labelsStr)) {
                 return null;
             }
-            return mapper.readValue(labelsStr, List.class);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Serializes the given collection of properties to a string for artifactStore in the DB.
-     *
-     * @param properties
-     */
-    public static String serializeProperties(Map<String, String> properties) {
-        try {
-            if (properties == null) {
-                return null;
-            }
-            if (properties.isEmpty()) {
-                return null;
-            }
-            return mapper.writeValueAsString(properties);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Deserialize the properties from their string form to a Map<String, String> form.
-     *
-     * @param propertiesStr
-     */
-    @SuppressWarnings("unchecked")
-    public static Map<String, String> deserializeProperties(String propertiesStr) {
-        try {
-            if (StringUtil.isEmpty(propertiesStr)) {
-                return null;
-            }
-            return mapper.readValue(propertiesStr, Map.class);
+            return mapper.readValue(labelsStr, Map.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -124,36 +85,11 @@ public class SqlUtil {
     }
 
     public static String normalizeGroupId(String groupId) {
-        if (groupId == null) {
-            return NULL_GROUP_ID;
-        }
-        return groupId;
+        return new GroupId(groupId).getRawGroupId();
     }
 
     public static String denormalizeGroupId(String groupId) {
-        if (NULL_GROUP_ID.equals(groupId)) {
-            return null;
-        }
-        return groupId;
+        return new GroupId(groupId).getRawGroupIdWithNull();
     }
 
-
-    public static ArtifactMetaDataDto convert(String groupId, String artifactId, ArtifactVersionMetaDataDto versionMeta) {
-        ArtifactMetaDataDto artifactMeta = new ArtifactMetaDataDto();
-        artifactMeta.setGlobalId(versionMeta.getGlobalId());
-        artifactMeta.setContentId(versionMeta.getContentId());
-        artifactMeta.setGroupId(denormalizeGroupId(groupId));
-        artifactMeta.setId(artifactId);
-        artifactMeta.setModifiedBy(versionMeta.getCreatedBy());
-        artifactMeta.setModifiedOn(versionMeta.getCreatedOn());
-        artifactMeta.setState(versionMeta.getState());
-        artifactMeta.setName(versionMeta.getName());
-        artifactMeta.setDescription(versionMeta.getDescription());
-        artifactMeta.setLabels(versionMeta.getLabels());
-        artifactMeta.setProperties(versionMeta.getProperties());
-        artifactMeta.setType(versionMeta.getType());
-        artifactMeta.setVersion(versionMeta.getVersion());
-        artifactMeta.setVersionId(versionMeta.getVersionId());
-        return artifactMeta;
-    }
 }

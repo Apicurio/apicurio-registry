@@ -1,15 +1,14 @@
 package io.apicurio.registry.auth;
 
-import com.microsoft.kiota.authentication.BaseBearerTokenAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.noprofile.maven.RegistryMojoTestBase;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.JWKSMockServer;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -20,12 +19,14 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
+import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
 public class MojoAuthTest extends RegistryMojoTestBase {
 
-    @ConfigProperty(name = "registry.auth.token.endpoint")
+    @ConfigProperty(name = "quarkus.oidc.token-path")
     @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrlConfigured;
 
@@ -42,9 +43,8 @@ public class MojoAuthTest extends RegistryMojoTestBase {
 
     @Override
     protected RegistryClient createRestClientV3() {
-        var adapter = new OkHttpRequestAdapter(
-                new BaseBearerTokenAuthenticationProvider(
-                        new OidcAccessTokenProvider(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1")));
+        var adapter = new VertXRequestAdapter(
+                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }

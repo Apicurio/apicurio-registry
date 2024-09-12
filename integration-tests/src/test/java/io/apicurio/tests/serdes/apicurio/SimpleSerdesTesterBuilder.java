@@ -7,6 +7,8 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Properties;
@@ -15,7 +17,6 @@ import java.util.function.Predicate;
 import static io.apicurio.tests.serdes.apicurio.SerdesTester.*;
 import static io.apicurio.tests.serdes.apicurio.Tester.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 
 public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
 
@@ -68,7 +69,8 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
         return this;
     }
 
-    public <U extends Deserializer<?>> SimpleSerdesTesterBuilder<P, C> withDeserializer(Class<U> deserializer) {
+    public <U extends Deserializer<?>> SimpleSerdesTesterBuilder<P, C> withDeserializer(
+            Class<U> deserializer) {
         this.deserializer = deserializer;
         return this;
     }
@@ -114,22 +116,27 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
         return new SimpleSerdesTester();
     }
 
-
     private class SimpleSerdesTester extends SerdesTester<String, P, C> implements Tester {
+
+        private final Logger logger = LoggerFactory.getLogger(SimpleSerdesTester.class);
 
         /**
          * @see Tester#test()
          */
         @Override
         public void test() throws Exception {
-            Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class, serializer, topic, artifactResolverStrategy);
+            Producer<String, P> producer = this.createProducer(producerProperties, StringSerializer.class,
+                    serializer, topic, artifactResolverStrategy);
+
+            logger.info("Using producer configuration: {}", producerProperties);
+            logger.info("Using consumer configuration: {}", consumerProperties);
 
             boolean autoCloseByProduceOrConsume = batchCount == 1;
             setAutoClose(autoCloseByProduceOrConsume);
 
             try {
                 for (int i = 0; i < batchCount; i++) {
-                    this.produceMessages(producer, topic, dataGenerator, batchSize);
+                    this.produceMessages(producer, topic, dataGenerator, batchSize, false);
                 }
             } finally {
                 if (!autoCloseByProduceOrConsume) {
@@ -141,7 +148,8 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
                 assertTrue(afterProduceValidator.validate(), "After produce validation failed");
             }
 
-            Consumer<String, C> consumer = this.createConsumer(consumerProperties, StringDeserializer.class, deserializer, topic);
+            Consumer<String, C> consumer = this.createConsumer(consumerProperties, StringDeserializer.class,
+                    deserializer, topic);
 
             int messageCount = batchCount * batchSize;
             try {
@@ -155,6 +163,5 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
         }
 
     }
-
 
 }

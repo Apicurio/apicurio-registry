@@ -22,10 +22,12 @@ public class Constants {
     /**
      * Tag for sql db upgrade tests profile.
      */
+    static final String KAFKA_SQL_SNAPSHOTTING = "kafkasql-snapshotting";
+
+    /**
+     * Tag for sql db upgrade tests profile.
+     */
     static final String SQL = "sqlit";
 
-
-    public static final String TEST_PROFILE =
-            Optional.ofNullable(System.getProperty("groups"))
-                    .orElse("");
+    public static final String TEST_PROFILE = Optional.ofNullable(System.getProperty("groups")).orElse("");
 }

@@ -10,10 +10,9 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * Marks undecorated or otherwise unmodified bean.
- *
  */
 @Qualifier
 @Retention(RUNTIME)
-@Target({ElementType.METHOD, ElementType.FIELD, ElementType.TYPE, ElementType.PARAMETER})
+@Target({ ElementType.METHOD, ElementType.FIELD, ElementType.TYPE, ElementType.PARAMETER })
 public @interface Raw {
 }

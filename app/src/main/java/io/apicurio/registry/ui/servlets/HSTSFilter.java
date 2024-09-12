@@ -1,6 +1,5 @@
 package io.apicurio.registry.ui.servlets;
 
-import java.io.IOException;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -9,9 +8,10 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.io.IOException;
+
 /**
- * Add HSTS headers to all HTTP responses.  Browser will ignore the header if the connection
- * is not secure.
+ * Add HSTS headers to all HTTP responses. Browser will ignore the header if the connection is not secure.
  */
 public class HSTSFilter implements Filter {
 
@@ -36,10 +36,12 @@ public class HSTSFilter implements Filter {
     }
 
     /**
-     * @see jakarta.servlet.Filter#doFilter(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse, jakarta.servlet.FilterChain)
+     * @see jakarta.servlet.Filter#doFilter(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse,
+     *      jakarta.servlet.FilterChain)
      */
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
         addHstsHeaders(httpResponse);
         chain.doFilter(request, response);

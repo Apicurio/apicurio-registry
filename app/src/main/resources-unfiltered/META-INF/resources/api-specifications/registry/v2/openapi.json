@@ -2,7 +2,7 @@
     "openapi": "3.0.2",
     "info": {
         "title": "Apicurio Registry API [v2]",
-        "version": "2.4.x",
+        "version": "2.5.x",
         "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v2` by default. Therefore you must prefix all API operation paths with `../apis/registry/v2` in this case. For example: `../apis/registry/v2/ids/globalIds/{globalId}`.\n",
         "contact": {
             "name": "Apicurio",
@@ -23,10 +23,10 @@
                 ],
                 "parameters": [
                     {
-                        "name": "references",
-                        "description": "Allows the user to specify how references in the content should be treated.",
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
                         "schema": {
-                            "$ref": "#/components/schemas/HandleReferencesType"
+                            "type": "boolean"
                         },
                         "in": "query"
                     }
@@ -779,10 +779,10 @@
                 ],
                 "parameters": [
                     {
-                        "name": "references",
-                        "description": "Allows the user to specify how references in the content should be treated.",
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
                         "schema": {
-                            "$ref": "#/components/schemas/HandleReferencesType"
+                            "type": "boolean"
                         },
                         "in": "query"
                     }
@@ -822,7 +822,7 @@
                 },
                 "operationId": "deleteArtifactVersion",
                 "summary": "Delete artifact version",
-                "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `registry.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
+                "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `apicurio.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
             },
             "parameters": [
                 {
@@ -1647,10 +1647,10 @@
                 ],
                 "parameters": [
                     {
-                        "name": "references",
-                        "description": "Allows the user to specify how references in the content should be treated.",
+                        "name": "dereference",
+                        "description": "Allows the user to specify if the content should be dereferenced when being returned",
                         "schema": {
-                            "$ref": "#/components/schemas/HandleReferencesType"
+                            "type": "boolean"
                         },
                         "in": "query",
                         "required": false
@@ -3997,7 +3997,7 @@
                     }
                 },
                 "example": {
-                    "name": "registry.auth.owner-only-authorization",
+                    "name": "apicurio.auth.owner-only-authorization",
                     "value": "true",
                     "type": "boolean",
                     "label": "Owner Only Authorization",
@@ -4337,15 +4337,6 @@
                     "createdBy": "bwayne",
                     "createdOn": "2023-07-01T15:22:01Z"
                 }
-            },
-            "HandleReferencesType": {
-                "description": "How to handle references when retrieving content.  References can either be\nleft unchanged (`PRESERVE`), re-written so they are valid in the context of the\nregistry (`REWRITE`), or fully dereferenced such that all externally referenced\ncontent is internalized (`DEREFERENCE`).",
-                "enum": [
-                    "PRESERVE",
-                    "DEREFERENCE",
-                    "REWRITE"
-                ],
-                "type": "string"
             }
         },
         "responses": {

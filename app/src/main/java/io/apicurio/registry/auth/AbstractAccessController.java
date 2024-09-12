@@ -2,14 +2,13 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.NotFoundException;
 import io.apicurio.registry.types.Current;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.interceptor.InvocationContext;
-
-import static io.apicurio.registry.storage.RegistryStorage.ArtifactRetrievalBehavior.DEFAULT;
 
 public abstract class AbstractAccessController implements IAccessController {
 
@@ -30,37 +29,38 @@ public abstract class AbstractAccessController implements IAccessController {
         if (style == AuthorizedStyle.GroupAndArtifact) {
             String groupId = getStringParam(context, 0);
             String artifactId = getStringParam(context, 1);
-            return verifyArtifactCreatedBy(groupId, artifactId);
-        } else if (style == AuthorizedStyle.GroupOnly && authConfig.ownerOnlyAuthorizationLimitGroupAccess.get()) {
+            return verifyArtifactOwner(groupId, artifactId);
+        } else if (style == AuthorizedStyle.GroupOnly
+                && authConfig.ownerOnlyAuthorizationLimitGroupAccess.get()) {
             String groupId = getStringParam(context, 0);
-            return verifyGroupCreatedBy(groupId);
+            return verifyGroupOwner(groupId);
         } else if (style == AuthorizedStyle.ArtifactOnly) {
             String artifactId = getStringParam(context, 0);
-            return verifyArtifactCreatedBy(null, artifactId);
+            return verifyArtifactOwner(null, artifactId);
         } else if (style == AuthorizedStyle.GlobalId) {
             long globalId = getLongParam(context, 0);
-            return verifyArtifactCreatedBy(globalId);
+            return verifyArtifactOwner(globalId);
         } else {
             return true;
         }
     }
 
-    private boolean verifyGroupCreatedBy(String groupId) {
+    private boolean verifyGroupOwner(String groupId) {
         try {
             GroupMetaDataDto dto = storage.getGroupMetaData(groupId);
-            String createdBy = dto.getCreatedBy();
-            return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
+            String owner = dto.getOwner();
+            return owner == null || owner.equals(securityIdentity.getPrincipal().getName());
         } catch (NotFoundException nfe) {
             // If the group is not found, then return true and let the operation proceed.
             return true;
         }
     }
 
-    private boolean verifyArtifactCreatedBy(String groupId, String artifactId) {
+    private boolean verifyArtifactOwner(String groupId, String artifactId) {
         try {
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId, DEFAULT);
-            String createdBy = dto.getCreatedBy();
-            return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
+            ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId);
+            String owner = dto.getOwner();
+            return owner == null || owner.equals(securityIdentity.getPrincipal().getName());
         } catch (NotFoundException nfe) {
             // If the artifact is not found, then return true and let the operation proceed
             // as normal. The result of which will typically be a 404 response, but sometimes
@@ -69,11 +69,13 @@ public abstract class AbstractAccessController implements IAccessController {
         }
     }
 
-    private boolean verifyArtifactCreatedBy(long globalId) {
+    private boolean verifyArtifactOwner(long globalId) {
         try {
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(globalId);
-            String createdBy = dto.getCreatedBy();
-            return createdBy == null || createdBy.equals(securityIdentity.getPrincipal().getName());
+            ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(globalId);
+            ArtifactMetaDataDto dto = storage.getArtifactMetaData(versionMetaData.getGroupId(),
+                    versionMetaData.getArtifactId());
+            String owner = dto.getOwner();
+            return owner == null || owner.equals(securityIdentity.getPrincipal().getName());
         } catch (NotFoundException nfe) {
             // If the artifact is not found, then return true and let the operation proceed
             // as normal. The result of which will typically be a 404 response, but sometimes

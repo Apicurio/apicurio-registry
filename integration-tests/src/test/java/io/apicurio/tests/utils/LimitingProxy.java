@@ -1,5 +1,6 @@
 package io.apicurio.tests.utils;
 
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
@@ -30,7 +31,7 @@ public abstract class LimitingProxy {
 
     public LimitingProxy(String destinationHost, int destinationPort) {
 
-        vertx = Vertx.vertx();
+        vertx = VertXAuthFactory.defaultVertx;
         client = vertx.createHttpClient(new HttpClientOptions());
         if (destinationHost.endsWith("127.0.0.1.nip.io")) {
             logger.info("Changing proxy destination host to localhost");
@@ -49,19 +50,17 @@ public abstract class LimitingProxy {
 
         CompletableFuture<HttpServer> serverFuture = new CompletableFuture<>();
 
-        server = vertx.createHttpServer(new HttpServerOptions()
-                        .setPort(port))
-                .requestHandler(this::proxyRequest)
-            .listen(server -> {
-                if (server.succeeded()) {
-                    logger.info("Proxy server started on port {}", port);
-                    logger.info("Proxying server {}:{}", destinationHost, destinationPort);
-                    serverFuture.complete(server.result());
-                } else {
-                    logger.error("Error starting server", server.cause());
-                    serverFuture.completeExceptionally(server.cause());
-                }
-            });
+        server = vertx.createHttpServer(new HttpServerOptions().setPort(port))
+                .requestHandler(this::proxyRequest).listen(server -> {
+                    if (server.succeeded()) {
+                        logger.info("Proxy server started on port {}", port);
+                        logger.info("Proxying server {}:{}", destinationHost, destinationPort);
+                        serverFuture.complete(server.result());
+                    } else {
+                        logger.error("Error starting server", server.cause());
+                        serverFuture.completeExceptionally(server.cause());
+                    }
+                });
 
         return serverFuture;
     }
@@ -92,8 +91,8 @@ public abstract class LimitingProxy {
         req.pause();
 
         client.request(req.method(), destinationPort, destinationHost, req.uri())
-            .onSuccess(clientReq -> executeProxy(clientReq, req))
-            .onFailure(throwable -> logger.error("Error found creating request", throwable));
+                .onSuccess(clientReq -> executeProxy(clientReq, req))
+                .onFailure(throwable -> logger.error("Error found creating request", throwable));
     }
 
     private void executeProxy(HttpClientRequest clientReq, HttpServerRequest req) {
@@ -105,7 +104,8 @@ public abstract class LimitingProxy {
                 req.response().headers().setAll(clientRes.headers());
                 clientRes.handler(data -> req.response().write(data));
                 clientRes.endHandler((v) -> req.response().end());
-                clientRes.exceptionHandler(e -> logger.error("Error caught in response of request to serverless", e));
+                clientRes.exceptionHandler(
+                        e -> logger.error("Error caught in response of request to serverless", e));
                 req.response().exceptionHandler(e -> logger.error("Error caught in response to client", e));
             } else {
                 logger.error("Error in async result", reqResult.cause());

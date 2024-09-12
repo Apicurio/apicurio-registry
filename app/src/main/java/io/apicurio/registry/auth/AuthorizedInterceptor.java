@@ -13,12 +13,10 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 
 /**
- * This class implements authorization logic for the registry.  It is driven by a combination of the
- * security identity (authenticated user) and configured security level of the operation the user is
- * attempting to perform. This interceptor will be triggered
- * for any method that is annotated with the {@link Authorized} annotation. Please ensure that all
- * JAX-RS operations are propertly annotated.
- *
+ * This class implements authorization logic for the registry. It is driven by a combination of the security
+ * identity (authenticated user) and configured security level of the operation the user is attempting to
+ * perform. This interceptor will be triggered for any method that is annotated with the {@link Authorized}
+ * annotation. Please ensure that all JAX-RS operations are propertly annotated.
  */
 @Authorized
 @Interceptor
@@ -51,16 +49,18 @@ public class AuthorizedInterceptor {
 
         // If the user is trying to invoke a role-mapping operation, deny it if
         // database based RBAC is not enabled.
-        RoleBasedAccessApiOperation rbacOpAnnotation = context.getMethod().getAnnotation(RoleBasedAccessApiOperation.class);
+        RoleBasedAccessApiOperation rbacOpAnnotation = context.getMethod()
+                .getAnnotation(RoleBasedAccessApiOperation.class);
         if (rbacOpAnnotation != null) {
             if (!authConfig.isApplicationRbacEnabled()) {
-                log.warn("Access to /admin/roleMappings denied because application managed RBAC is not enabled.");
+                log.warn(
+                        "Access to /admin/roleMappings denied because application managed RBAC is not enabled.");
                 throw new ForbiddenException("Application RBAC not enabled.");
             }
         }
 
         // If authentication is not enabled, just do it.
-        if (!authConfig.authenticationEnabled) {
+        if (!authConfig.oidcAuthEnabled && !authConfig.basicAuthEnabled) {
             return context.proceed();
         }
 
@@ -71,27 +71,30 @@ public class AuthorizedInterceptor {
         // If the securityIdentity is not set (or is anonymous)...
         try {
             if (securityIdentity == null || securityIdentity.isAnonymous()) {
-                System.out.println("=====> Identity was null or anon: " + securityIdentity);
-    
+                log.debug("Identity was null or anonymous: " + securityIdentity);
+
                 // Anonymous users are allowed to perform "None" operations.
                 if (annotation.level() == AuthorizedLevel.None) {
                     log.trace("Anonymous user is being granted access to unprotected operation.");
                     return context.proceed();
                 }
-    
+
                 // Anonymous users are allowed to perform read-only operations, but only if
-                // registry.auth.anonymous-read-access.enabled is set to 'true'
-                if (authConfig.anonymousReadAccessEnabled.get() && annotation.level() == AuthorizedLevel.Read) {
+                // apicurio.auth.anonymous-read-access.enabled is set to 'true'
+                if (authConfig.anonymousReadAccessEnabled.get()
+                        && annotation.level() == AuthorizedLevel.Read) {
                     log.trace("Anonymous user is being granted access to read-only operation.");
                     return context.proceed();
                 }
-    
+
                 // Otherwise just fail - auth was enabled but no credentials provided.
                 log.warn("Authentication credentials missing and required for protected endpoint.");
                 throw new UnauthorizedException("User is not authenticated.");
             }
+        } catch (UnauthorizedException e) {
+            throw e;
         } catch (Throwable t) {
-            t.printStackTrace();
+            log.error("Error enforcing access.", t);
             throw t;
         }
 
@@ -118,13 +121,15 @@ public class AuthorizedInterceptor {
         // If RBAC is enabled, apply role based rules
         if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
             log.warn("RBAC enabled and required role missing.");
-            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
+            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
+                    + " is not authorized to perform the requested operation.");
         }
 
         // If Owner-only is enabled, apply ownership rules
         if (authConfig.ownerOnlyAuthorizationEnabled.get() && !obac.isAuthorized(context)) {
             log.warn("OBAC enabled and operation not permitted due to wrong owner.");
-            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
+            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
+                    + " is not authorized to perform the requested operation.");
         }
 
         return context.proceed();

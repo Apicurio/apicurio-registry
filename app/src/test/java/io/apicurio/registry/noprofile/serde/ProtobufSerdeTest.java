@@ -1,116 +1,52 @@
 package io.apicurio.registry.noprofile.serde;
 
-import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
-import com.microsoft.kiota.authentication.AnonymousAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
-import io.apicurio.registry.serde.SerdeConfig;
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
 import io.api.sample.TableNotification;
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.resolver.SchemaResolverConfig;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
+import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
+import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
+import io.apicurio.registry.support.TestCmmn;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.quarkus.test.junit.QuarkusTest;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.DynamicMessage;
-import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
-import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
-import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
-import io.apicurio.registry.support.TestCmmn;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.quarkus.test.junit.QuarkusTest;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
     private RegistryClient restClient;
-    // Isolating this test in it's own groupId:
-    // io.apicurio.registry.rest.client.exception.ArtifactAlreadyExistsException: An artifact with ID 'google/protobuf/timestamp.proto' in group 'default' already exists.
     private String groupId = "protobuf-serde-test";
 
     @BeforeEach
     public void createIsolatedClient() {
-        var adapter = new OkHttpRequestAdapter(new AnonymousAuthenticationProvider());
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }
-
-    //FIXME
-    //test not working because of getArtifactVersionMetaDataByContent does not find the schema for somereason
-//    @Test
-//    public void testConfiguration() throws Exception {
-//
-//        TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
-//        byte[] schema = toSchemaProto(record.getDescriptorForType().getFile()).toByteArray();
-////        String schema = IoUtil.toString(toSchemaProto(record));
-//
-//        String groupId = TestUtils.generateGroupId();
-//        String topic = generateArtifactId();
-//
-//        createArtifact(groupId, topic, ArtifactType.PROTOBUF_FD, IoUtil.toString(schema));
-//
-//        System.out.println("artifaaact " + clientV2.listArtifactsInGroup(groupId).getArtifacts().get(0).getId());
-//
-//        Map<String, Object> config = new HashMap<>();
-//        config.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
-//        config.put(SerdeConfigKeys.ARTIFACT_GROUP_ID, groupId);
-//        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, new SimpleTopicIdStrategy<>());
-//        Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>();
-//        serializer.configure(config, true);
-//
-//        byte[] bytes = serializer.serialize(topic, record);
-//
-//        Map<String, Object> deserializerConfig = new HashMap<>();
-//        deserializerConfig.put(SerdeConfigKeys.REGISTRY_URL, TestUtils.getRegistryV2ApiUrl());
-//        Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer();
-//        deserializer.configure(deserializerConfig, true);
-//
-//        DynamicMessage deserializedRecord = deserializer.deserialize(topic, bytes);
-//        assertProtobufEquals(record, deserializedRecord);
-//
-//        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, SimpleTopicIdStrategy.class);
-//        serializer.configure(config, true);
-//        bytes = serializer.serialize(topic, record);
-//
-//        deserializer.configure(deserializerConfig, true);
-//        deserializedRecord = deserializer.deserialize(topic, bytes);
-//        assertProtobufEquals(record, deserializedRecord);
-//
-//        config.put(SerdeConfigKeys.ARTIFACT_ID_STRATEGY, SimpleTopicIdStrategy.class.getName());
-//        serializer.configure(config, true);
-//        bytes = serializer.serialize(topic, record);
-//        deserializer.configure(deserializerConfig, true);
-//        deserializedRecord = deserializer.deserialize(topic, bytes);
-//        assertProtobufEquals(record, deserializedRecord);
-//
-//        serializer.close();
-//        deserializer.close();
-//    }
-//
-//    private Serde.Schema toSchemaProto(Descriptors.FileDescriptor file) {
-//        Serde.Schema.Builder b = Serde.Schema.newBuilder();
-//        b.setFile(file.toProto());
-//        for (Descriptors.FileDescriptor d : file.getDependencies()) {
-//            b.addImport(toSchemaProto(d));
-//        }
-//        return b.build();
-//    }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testProto() throws Exception {
         try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(restClient);
-             Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+            Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(restClient)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
@@ -126,18 +62,16 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
             byte[] bytes = serializer.serialize(topic, record);
 
-            waitForSchema(globalId -> {
+            waitForSchema(contentId -> {
                 try {
-                    if (restClient.ids().globalIds().byGlobalId(globalId).get().get().readAllBytes().length > 0) {
-                        ArtifactMetaData artifactMetadata = restClient.groups().byGroupId(groupId).artifacts().byArtifactId(topic).meta().get().get();
-                        assertEquals(globalId, artifactMetadata.getGlobalId());
+                    if (restClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0) {
+                        VersionMetaData artifactMetadata = restClient.groups().byGroupId(groupId).artifacts()
+                                .byArtifactId(topic).versions().byVersionExpression("branch=latest").get();
+                        assertEquals(contentId.longValue(), artifactMetadata.getContentId());
                         return true;
                     }
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
                     throw new RuntimeException(e);
                 }
                 return false;
@@ -151,9 +85,8 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testProtobufSchemaWithReferences() {
-
         try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(restClient);
-             Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+            Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
@@ -163,11 +96,30 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
             serializer.configure(config, false);
             deserializer.configure(config, false);
 
-            byte[] data = serializer.serialize("test",  TableNotification.newBuilder().build());
+            byte[] data = serializer.serialize("test", TableNotification.newBuilder().build());
             deserializer.deserialize("test", data);
 
         }
+    }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Test
+    public void testProtobufSchemaWithReferencesDereferenced() {
+        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(restClient);
+            Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.FALLBACK_ARTIFACT_GROUP_ID, groupId);
+            config.put(SchemaResolverConfig.DESERIALIZER_DEREFERENCE_SCHEMA, "true");
+            serializer.configure(config, false);
+            deserializer.configure(config, false);
+
+            byte[] data = serializer.serialize("test", TableNotification.newBuilder().build());
+            deserializer.deserialize("test", data);
+        }
     }
 
     private void assertProtobufEquals(TestCmmn.UUID record, DynamicMessage dm) {

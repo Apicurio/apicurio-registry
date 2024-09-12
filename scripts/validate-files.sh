@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DB_VERSION_BUILD=$(yq .project.properties."registry.sql.storage.db-version" app/pom.xml -r)
+# DB_VERSION_BUILD=$(yq .project.properties."apicurio.sql.storage.db-version" app/pom.xml -r)
 DB_VERSION_BUILD=$(cat app/src/main/resources/io/apicurio/registry/storage/impl/sql/db-version)
 echo "Build's DB version is $DB_VERSION_BUILD"
 
@@ -8,7 +8,7 @@ DDLS="app/src/main/resources/io/apicurio/registry/storage/impl/sql/postgresql.dd
 for ddl in $DDLS 
 do
     echo "Processing DDL $ddl"
-    DB_VERSION_INSERT=$(grep "INSERT INTO apicurio (prop_name, prop_value) VALUES ('db_version'" $ddl)
+    DB_VERSION_INSERT=$(grep "INSERT INTO apicurio (propName, propValue) VALUES ('db_version'" $ddl)
     DB_VERSION_IN_DDL=$(echo $DB_VERSION_INSERT | awk '{ print $8 }' - | awk -F ")" '{ print $1}' -)
     echo "DB version in DDL is $DB_VERSION_IN_DDL"
 
@@ -18,6 +18,3 @@ do
     fi
 done
 echo "DB version ok between build and DDLs"
-
-echo "Linting openshift templates"
-spectral lint distro/openshift-template/mt/apicurio-registry-mt-template.yaml --ruleset scripts/ocp-template-ruleset.js

@@ -20,8 +20,8 @@ class ConfigurationTest {
         var config = new DefaultSchemaResolverConfig(originals);
 
         var key = "apicurio.registry.auto-register.if-exists";
-        assertEquals("RETURN_OR_UPDATE", config.autoRegisterArtifactIfExists());
-        assertEquals("RETURN_OR_UPDATE", config.getObject(key));
+        assertEquals("FIND_OR_CREATE_VERSION", config.autoRegisterArtifactIfExists());
+        assertEquals("FIND_OR_CREATE_VERSION", config.getObject(key));
 
         originals.put(key, "foo");
         try {
@@ -83,9 +83,12 @@ class ConfigurationTest {
         assertEquals(false, config.findLatest());
         assertEquals(false, config.getObject("apicurio.registry.find-latest"));
 
-        // TODO: Does not match documentation, overridden in `io.apicurio.registry.serde.SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT`
-        assertEquals("io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy", config.getArtifactResolverStrategy());
-        assertEquals("io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy", config.getObject("apicurio.registry.artifact-resolver-strategy"));
+        // TODO: Does not match documentation, overridden in
+        // `io.apicurio.registry.serde.SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT`
+        assertEquals("io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy",
+                config.getArtifactResolverStrategy());
+        assertEquals("io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy",
+                config.getObject("apicurio.registry.artifact-resolver-strategy"));
 
         key = "apicurio.registry.check-period-ms";
         assertEquals(Duration.ofMillis(30000), config.getCheckPeriod());

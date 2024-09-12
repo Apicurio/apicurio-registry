@@ -1,14 +1,17 @@
 package io.apicurio.deployment;
 
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.LocalPortForward;
+import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
+import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.launcher.TestExecutionListener;
+import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,33 +20,43 @@ import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static io.apicurio.deployment.Constants.REGISTRY_IMAGE;
-import static io.apicurio.deployment.KubernetesTestResources.APPLICATION_SERVICE;
-import static io.apicurio.deployment.KubernetesTestResources.E2E_NAMESPACE_RESOURCE;
-import static io.apicurio.deployment.KubernetesTestResources.KEYCLOAK_RESOURCES;
-import static io.apicurio.deployment.KubernetesTestResources.REGISTRY_OPENSHIFT_ROUTE;
-import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
+import static io.apicurio.deployment.KubernetesTestResources.*;
 
 public class RegistryDeploymentManager implements TestExecutionListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
     static KubernetesClient kubernetesClient;
-    static LocalPortForward registryPortForward;
+
+    static List<LogWatch> logWatch;
+
+    static String testLogsIdentifier;
+
+    @Override
+    public void executionStarted(TestIdentifier testIdentifier) {
+        TestExecutionListener.super.executionStarted(testIdentifier);
+        logWatch = streamPodLogs(testLogsIdentifier);
+    }
+
+    @Override
+    public void executionFinished(TestIdentifier testIdentifier, TestExecutionResult testExecutionResult) {
+        TestExecutionListener.super.executionFinished(testIdentifier, testExecutionResult);
+
+        if (logWatch != null && !logWatch.isEmpty()) {
+            logWatch.forEach(LogWatch::close);
+        }
+    }
 
     @Override
     public void testPlanExecutionStarted(TestPlan testPlan) {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
-            kubernetesClient = new KubernetesClientBuilder()
-                    .build();
+            kubernetesClient = new KubernetesClientBuilder().build();
 
             try {
                 handleInfraDeployment();
@@ -59,68 +72,73 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     public void testPlanExecutionFinished(TestPlan testPlan) {
         LOGGER.info("Test suite ended ##################################################");
 
-        //Finally, once the testsuite is done, cleanup all the resources in the cluster
-        if (kubernetesClient != null && !(Boolean.parseBoolean(System.getProperty("preserveNamespace")))) {
-            LOGGER.info("Closing test resources ##################################################");
+        try {
 
-            if (registryPortForward != null) {
-                try {
-                    registryPortForward.close();
-                } catch (IOException e) {
-                    LOGGER.warn("Error closing registry port forward", e);
+            // Finally, once the testsuite is done, cleanup all the resources in the cluster
+            if (kubernetesClient != null
+                    && !(Boolean.parseBoolean(System.getProperty("preserveNamespace")))) {
+                LOGGER.info("Closing test resources ##################################################");
+
+                if (logWatch != null && !logWatch.isEmpty()) {
+                    logWatch.forEach(LogWatch::close);
                 }
+
+                final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
+                        .withName(TEST_NAMESPACE);
+
+                namespaceResource.delete();
+
             }
-
-            final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
-                    .withName(TEST_NAMESPACE);
-            namespaceResource.delete();
-
-            // wait the namespace to be deleted
-            CompletableFuture<List<Namespace>> namespace = namespaceResource
-                    .informOnCondition(Collection::isEmpty);
-
-            try {
-                namespace.get(60, TimeUnit.SECONDS);
-            } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                LOGGER.warn("Error waiting for namespace deletion", e);
-            } finally {
-                namespace.cancel(true);
+        } catch (Exception e) {
+            LOGGER.error("Exception closing test resources", e);
+        } finally {
+            if (kubernetesClient != null) {
+                kubernetesClient.close();
             }
-            kubernetesClient.close();
         }
     }
 
     private void handleInfraDeployment() throws Exception {
-        //First, create the namespace used for the test.
-        kubernetesClient.load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE))
-                .create();
+        // First, create the namespace used for the test.
+        kubernetesClient.load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE)).serverSideApply();
 
-        //Based on the configuration, deploy the appropriate variant
+        // Based on the configuration, deploy the appropriate variant
         if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
-            LOGGER.info("Deploying In Memory Registry Variant with image: {} ##################################################", System.getProperty("registry-in-memory-image"));
+            LOGGER.info(
+                    "Deploying In Memory Registry Variant with image: {} ##################################################",
+                    System.getProperty("registry-in-memory-image"));
             InMemoryDeploymentManager.deployInMemoryApp(System.getProperty("registry-in-memory-image"));
+            testLogsIdentifier = "apicurio-registry-memory";
         } else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
-            LOGGER.info("Deploying SQL Registry Variant with image: {} ##################################################", System.getProperty("registry-sql-image"));
+            LOGGER.info(
+                    "Deploying SQL Registry Variant with image: {} ##################################################",
+                    System.getProperty("registry-sql-image"));
             SqlDeploymentManager.deploySqlApp(System.getProperty("registry-sql-image"));
+            testLogsIdentifier = "apicurio-registry-sql";
         } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
-            LOGGER.info("Deploying Kafka SQL Registry Variant with image: {} ##################################################", System.getProperty("registry-kafkasql-image"));
+            LOGGER.info(
+                    "Deploying Kafka SQL Registry Variant with image: {} ##################################################",
+                    System.getProperty("registry-kafkasql-image"));
             KafkaSqlDeploymentManager.deployKafkaApp(System.getProperty("registry-kafkasql-image"));
+            testLogsIdentifier = "apicurio-registry-kafka";
         }
     }
 
-    static void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak, String
-            registryImage) throws IOException {
+    static void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak,
+            String registryImage) throws IOException {
         if (startKeycloak) {
             LOGGER.info("Deploying Keycloak resources ##################################################");
             deployResource(KEYCLOAK_RESOURCES);
         }
 
         if (externalResources != null) {
-            LOGGER.info("Deploying external dependencies for Registry ##################################################");
+            LOGGER.info(
+                    "Deploying external dependencies for Registry ##################################################");
             deployResource(externalResources);
         }
 
-        final InputStream resourceAsStream = RegistryDeploymentManager.class.getResourceAsStream(registryResources);
+        final InputStream resourceAsStream = RegistryDeploymentManager.class
+                .getResourceAsStream(registryResources);
 
         assert resourceAsStream != null;
 
@@ -131,22 +149,22 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         }
 
         try {
-            //Deploy all the resources associated to the registry variant
-            kubernetesClient.load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
-                    .create();
+            // Deploy all the resources associated to the registry variant
+            kubernetesClient
+                    .load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
+                    .serverSideApply();
         } catch (Exception ex) {
-            LOGGER.warn("Error creating registry resources:", ex);
+            LOGGER.debug("Error creating registry resources:", ex);
         }
 
-        //Wait for all the pods of the variant to be ready
-        kubernetesClient.pods()
-                .inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
+        // Wait for all the pods of the variant to be ready
+        kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
 
         setupTestNetworking();
     }
 
     private static void setupTestNetworking() {
-        //For openshift, a route to the application is created we use it to set up the networking needs.
+        // For openshift, a route to the application is created we use it to set up the networking needs.
         if (Boolean.parseBoolean(System.getProperty("openshift.resources"))) {
 
             OpenShiftClient openShiftClient = new DefaultOpenShiftClient();
@@ -154,7 +172,8 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             try {
                 final Route registryRoute = openShiftClient.routes()
                         .load(RegistryDeploymentManager.class.getResourceAsStream(REGISTRY_OPENSHIFT_ROUTE))
-                        .create();
+                        .serverSideApply();
+
                 System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
                 System.setProperty("quarkus.http.test-port", "80");
 
@@ -162,22 +181,38 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                 LOGGER.warn("The registry route already exists: ", ex);
             }
 
-
         } else {
-            //If we're running the cluster tests but no external endpoint has been provided, set the value of the load balancer.
-            if (System.getProperty("quarkus.http.test-host").equals("localhost") && !System.getProperty("os.name").contains("Mac OS")) {
-                System.setProperty("quarkus.http.test-host", kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE).get().getSpec().getClusterIP());
+            // If we're running the cluster tests but no external endpoint has been provided, set the value of
+            // the load balancer.
+            if (System.getProperty("quarkus.http.test-host").equals("localhost")
+                    && !System.getProperty("os.name").contains("Mac OS")) {
+                System.setProperty("quarkus.http.test-host",
+                        kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE)
+                                .get().getSpec().getClusterIP());
             }
         }
     }
 
     private static void deployResource(String resource) {
-        //Deploy all the resources associated to the external requirements
+        // Deploy all the resources associated to the external requirements
         kubernetesClient.load(RegistryDeploymentManager.class.getResourceAsStream(resource))
-                .create();
+                .serverSideApply();
 
-        //Wait for all the external resources pods to be ready
-        kubernetesClient.pods()
-                .inNamespace(TEST_NAMESPACE).waitUntilReady(60, TimeUnit.SECONDS);
+        // Wait for all the external resources pods to be ready
+        kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
+    }
+
+    private static List<LogWatch> streamPodLogs(String container) {
+        List<LogWatch> logWatchList = new ArrayList<>();
+
+        PodList podList = kubernetesClient.pods().inNamespace(TEST_NAMESPACE).withLabel("app", container)
+                .list();
+
+        podList.getItems()
+                .forEach(p -> logWatchList.add(kubernetesClient.pods().inNamespace(TEST_NAMESPACE)
+                        .withName(p.getMetadata().getName()).inContainer(container).tailingLines(10)
+                        .watchLog(System.out)));
+
+        return logWatchList;
     }
 }

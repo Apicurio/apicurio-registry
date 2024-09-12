@@ -1,11 +1,13 @@
 package io.apicurio.registry.storage.dto;
 
+import io.apicurio.registry.types.VersionState;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class SearchFilter {
 
     private SearchFilterType type;
     private Object value;
+    private boolean not;
 
     /**
      * Constructor.
@@ -15,6 +17,7 @@ public class SearchFilter {
 
     /**
      * Constructor.
+     * 
      * @param type
      * @param value object
      */
@@ -23,8 +26,12 @@ public class SearchFilter {
         this.value = value;
     }
 
-    public static SearchFilter ofProperty(String propertyKey, String propertyValue) {
-        return new SearchFilter(SearchFilterType.properties, Pair.<String, String>of(propertyKey, propertyValue));
+    public static SearchFilter ofLabel(String labelKey, String labelValue) {
+        return new SearchFilter(SearchFilterType.labels, Pair.<String, String> of(labelKey, labelValue));
+    }
+
+    public static SearchFilter ofLabel(String labelKey) {
+        return new SearchFilter(SearchFilterType.labels, Pair.<String, String> of(labelKey, null));
     }
 
     public static SearchFilter ofGlobalId(Long value) {
@@ -43,12 +50,16 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.description, value);
     }
 
-    public static SearchFilter ofGroup(String value) {
-        return new SearchFilter(SearchFilterType.group, value);
+    public static SearchFilter ofGroupId(String value) {
+        return new SearchFilter(SearchFilterType.groupId, value);
     }
 
-    public static SearchFilter ofLabel(String value) {
-        return new SearchFilter(SearchFilterType.labels, value);
+    public static SearchFilter ofArtifactId(String value) {
+        return new SearchFilter(SearchFilterType.artifactId, value);
+    }
+
+    public static SearchFilter ofVersion(String value) {
+        return new SearchFilter(SearchFilterType.version, value);
     }
 
     public static SearchFilter ofCanonicalHash(String value) {
@@ -59,12 +70,12 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.contentHash, value);
     }
 
-    public static SearchFilter ofEverything(String value) {
-        return new SearchFilter(SearchFilterType.everything, value);
+    public static SearchFilter ofState(VersionState state) {
+        return new SearchFilter(SearchFilterType.state, state.name());
     }
 
     @SuppressWarnings("unchecked")
-    public Pair<String, String> getPropertyFilterValue() {
+    public Pair<String, String> getLabelFilterValue() {
         if (value == null) {
             return null;
         }
@@ -100,7 +111,6 @@ public class SearchFilter {
         throw new IllegalStateException("value is not of type number");
     }
 
-
     /**
      * @param value the value to set
      */
@@ -127,7 +137,27 @@ public class SearchFilter {
      */
     @Override
     public String toString() {
-        return "SearchFilter [type=" + type + ", value=" + value + "]";
+        return "SearchFilter" + (isNot() ? " NOT" : "") + " [type=" + type + ", value=" + value + "]";
+    }
+
+    /**
+     * @return the not
+     */
+    public boolean isNot() {
+        return not;
+    }
+
+    /**
+     * @param not the not to set
+     */
+    public void setNot(boolean not) {
+        this.not = not;
+    }
+
+    public SearchFilter negated() {
+        SearchFilter filter = new SearchFilter(type, value);
+        filter.setNot(true);
+        return filter;
     }
 
 }

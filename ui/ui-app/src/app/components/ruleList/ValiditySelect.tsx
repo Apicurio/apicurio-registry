@@ -5,7 +5,7 @@ import { ObjectSelect } from "@apicurio/common-ui-components";
 /**
  * Properties
  */
-export type ValidityDropdownProps = {
+export type ValiditySelectProps = {
     value: string;
     onSelect: (newValue: string) => void;
 };
@@ -29,7 +29,7 @@ const valueToItem = (value: string): ConfigItem => {
 /**
  * Component.
  */
-export const ValiditySelect: FunctionComponent<ValidityDropdownProps> = (props: ValidityDropdownProps) => {
+export const ValiditySelect: FunctionComponent<ValiditySelectProps> = (props: ValiditySelectProps) => {
     const [currentValue, setCurrentValue] = useState(valueToItem(props.value));
 
     const onSelect = (item: any): void => {

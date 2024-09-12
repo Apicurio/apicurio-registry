@@ -1,5 +1,6 @@
 package io.apicurio.registry.types.provider;
 
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.KafkaConnectContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
@@ -13,7 +14,14 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.KafkaConnectContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
+import java.util.Map;
+
 public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
+    @Override
+    public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+        return false;
+    }
+
     @Override
     public String getArtifactType() {
         return ArtifactType.KCONNECT;
@@ -43,7 +51,7 @@ public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     public ContentDereferencer getContentDereferencer() {
         return null;
     }
-    
+
     /**
      * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
      */

@@ -3,6 +3,7 @@ package io.apicurio.registry.serde.jsonschema;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -22,9 +23,9 @@ import java.util.Map;
  * An implementation of the Kafka Serializer for JSON Schema use-cases. This serializer assumes that the
  * user's application needs to serialize a Java Bean to JSON data using Jackson. In addition to standard
  * serialization of the bean, this implementation can also optionally validate it against a JSON schema.
- *
  */
-public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T> implements Serializer<T> {
+public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T>
+        implements Serializer<T> {
 
     private ObjectMapper mapper;
     private final JsonSchemaParser<T> parser = new JsonSchemaParser<>();
@@ -37,8 +38,8 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
     }
 
     public JsonSchemaKafkaSerializer(RegistryClient client,
-                                     ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
-                                     SchemaResolver<JsonSchema, T> schemaResolver) {
+            ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
+            SchemaResolver<JsonSchema, T> schemaResolver) {
         super(client, artifactResolverStrategy, schemaResolver);
     }
 
@@ -70,7 +71,8 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
         serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
 
         if (null == mapper) {
-            this.mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            this.mapper = new ObjectMapper()
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                     .setSerializationInclusion(JsonInclude.Include.NON_NULL);
         }
     }
@@ -98,20 +100,23 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
         return parser;
     }
 
-
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.serde.ParsedSchema,
+     *      java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
+    protected void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out)
+            throws IOException {
         serializeData(null, schema, data, out);
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers, io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
+     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
+     *      io.apicurio.registry.serde.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
+    protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out)
+            throws IOException {
         final byte[] dataBytes = mapper.writeValueAsBytes(data);
         if (isValidationEnabled()) {
             JsonSchemaValidationUtil.validateDataWithSchema(schema, dataBytes, mapper);

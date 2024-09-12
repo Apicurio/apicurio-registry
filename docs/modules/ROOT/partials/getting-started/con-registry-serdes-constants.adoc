@@ -19,13 +19,10 @@ public class SerdeConfig {
 
    public static final String REGISTRY_URL = "apicurio.registry.url"; <1>
    public static final String ID_HANDLER = "apicurio.registry.id-handler"; <2>
-   public static final String ENABLE_CONFLUENT_ID_HANDLER = "apicurio.registry.as-confluent"; <3>
 ----
 . The required URL of {registry}.
 . Extends ID handling to support other ID formats and make them compatible with {registry} SerDes services.
-For example, changing the default ID format from `Long` to `Integer` supports the Confluent ID format.
-. Simplifies the handling of Confluent IDs. If set to `true`, an `Integer` is used for the global ID lookup.
-The setting should not be used with the `ID_HANDLER` option.
+For example, you may change it from the default ID format `Integer` that's also compatible with Confluent's ID format to `Long`.
 
 [role="_additional-resources"]
 .Additional resources

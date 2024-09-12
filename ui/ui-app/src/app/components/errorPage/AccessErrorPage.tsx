@@ -29,7 +29,7 @@ export const AccessErrorPage: FunctionComponent<ErrorPageProps> = () => {
                     <EmptyState>
                         <EmptyStateHeader titleText="Access permissions needed" headingLevel="h4" icon={<EmptyStateIcon icon={LockedIcon} />} />
                         <EmptyStateBody>
-                            To access this Registry instance, contact your organization administrators.
+                            To access this Registry instance, contact your organization administrator.
                         </EmptyStateBody>
                         <EmptyStateFooter>
                             <EmptyStateActions>

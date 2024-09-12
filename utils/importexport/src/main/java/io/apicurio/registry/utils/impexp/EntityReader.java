@@ -1,14 +1,26 @@
 package io.apicurio.registry.utils.impexp;
 
-import java.io.IOException;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
+import org.apache.commons.io.FileUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 
 public class EntityReader {
 
@@ -19,37 +31,48 @@ public class EntityReader {
         mapper = new ObjectMapper(jsonFactory);
     }
 
-    private final transient ZipInputStream zip;
+    private final transient Path importDirectory;
+    private List<EntityInfo> entities = null;
+    private int majorVersion = 3;
+    private int currentIndex = 0;
 
     /**
      * Constructor.
-     * @param zip
      */
-    public EntityReader(ZipInputStream zip) {
-        this.zip = zip;
+    public EntityReader(Path importDirectory) {
+        this.importDirectory = importDirectory;
     }
 
-    public Entity readEntity() throws IOException {
-        ZipEntry entry = zip.getNextEntry();
-        if (entry != null) {
-            String path = entry.getName();
-            EntityType entityType = parseEntityType(path);
+    public Entity readNextEntity() throws IOException {
+        if (entities == null) {
+            createEntityIndex();
+        }
+
+        EntityInfo entityInfo = getNextEntityInfo();
+        if (entityInfo != null) {
+            EntityType entityType = entityInfo.getType();
             if (entityType != null) {
                 switch (entityType) {
+                    case Artifact:
+                        return readArtifact(entityInfo);
                     case ArtifactRule:
-                        return readArtifactRule(entry);
+                        return readArtifactRule(entityInfo);
                     case ArtifactVersion:
-                        return readArtifactVersion(entry);
+                        return readArtifactVersion(entityInfo);
                     case Content:
-                        return readContent(entry);
+                        return readContent(entityInfo);
                     case GlobalRule:
-                        return readGlobalRule(entry);
+                        return readGlobalRule(entityInfo);
                     case Group:
-                        return readGroup(entry);
+                        return readGroup(entityInfo);
+                    case GroupRule:
+                        return readGroupRule(entityInfo);
                     case Comment:
-                        return readComment(entry);
+                        return readComment(entityInfo);
+                    case Branch:
+                        return readBranch(entityInfo);
                     case Manifest:
-                        return readManifest(entry);
+                        return readManifest(entityInfo);
                 }
             }
         }
@@ -57,45 +80,176 @@ public class EntityReader {
         return null;
     }
 
-    private ContentEntity readContent(ZipEntry entry) throws IOException {
-        if (entry.getName().endsWith(".json")) {
+    /**
+     * Return the next entity info object in the list.
+     */
+    private EntityInfo getNextEntityInfo() {
+        if (entities == null) {
+            return null;
+        }
+        if (currentIndex >= entities.size()) {
+            return null;
+        }
+        return entities.get(currentIndex++);
+    }
+
+    /**
+     * Create the index of entities found in the ZIP file. Make sure we read the entities in the following
+     * order: <br/>
+     * <ol>
+     * <li>Manifest</li>
+     * <li>Rules</li>
+     * <li>Content</li>
+     * <li>Groups</li>
+     * <li>Group Rules</li>
+     * <li>Artifact Rules</li>
+     * <li>Artifact Versions</li>
+     * <li>Artifact Branches</li>
+     * <li>Comments</li>
+     * </ol>
+     */
+    private void createEntityIndex() {
+        EntityInfo manifest = null;
+        List<EntityInfo> rules = new LinkedList<>();
+        List<EntityInfo> content = new LinkedList<>();
+        List<EntityInfo> groups = new LinkedList<>();
+        List<EntityInfo> groupRules = new LinkedList<>();
+        List<EntityInfo> artifacts = new LinkedList<>();
+        List<EntityInfo> artifactRules = new LinkedList<>();
+        List<EntityInfo> versions = new LinkedList<>();
+        List<EntityInfo> branches = new LinkedList<>();
+        List<EntityInfo> comments = new LinkedList<>();
+
+        Collection<File> allFiles = FileUtils.listFiles(this.importDirectory.toFile(),
+                new String[] { "json" }, true);
+        for (File file : allFiles) {
+            String path = file.getAbsolutePath();
+            EntityType type = parseEntityType(path);
+            EntityInfo entityInfo = new EntityInfo(path, type);
+            switch (type) {
+                case Artifact:
+                    artifacts.add(entityInfo);
+                    break;
+                case ArtifactRule:
+                    artifactRules.add(entityInfo);
+                    break;
+                case ArtifactVersion:
+                    versions.add(entityInfo);
+                    break;
+                case Content:
+                    content.add(entityInfo);
+                    break;
+                case GlobalRule:
+                    rules.add(entityInfo);
+                    break;
+                case Group:
+                    groups.add(entityInfo);
+                    break;
+                case GroupRule:
+                    groupRules.add(entityInfo);
+                    break;
+                case Comment:
+                    comments.add(entityInfo);
+                    break;
+                case Branch:
+                    branches.add(entityInfo);
+                    break;
+                case Manifest:
+                    manifest = entityInfo;
+            }
+        }
+
+        entities = new LinkedList<>();
+        if (manifest != null) {
+            entities.add(manifest);
+        }
+
+        entities.addAll(rules);
+        entities.addAll(content);
+        entities.addAll(groups);
+        entities.addAll(groupRules);
+        entities.addAll(artifacts);
+        entities.addAll(versions);
+        entities.addAll(artifactRules);
+        entities.addAll(branches);
+        entities.addAll(comments);
+    }
+
+    private Entity readContent(EntityInfo entry) throws IOException {
+        String path = entry.getPath();
+
+        if (majorVersion == 3) {
+            // Read the content entity from the *.Content.json file.
             ContentEntity entity = this.readEntry(entry, ContentEntity.class);
 
-            ZipEntry dataEntry = zip.getNextEntry();
-            if (!dataEntry.getName().endsWith(".Content.data")) {
-                // TODO what to do if this isn't the file we expect??
+            // Read the data for the content entity from the corresponding *.Content.data file.
+            String dataFilePath = path.replace(".json", ".data");
+            File dataFile = new File(dataFilePath);
+            if (dataFile.exists() && dataFile.isFile()) {
+                entity.contentBytes = IoUtil.toBytes(dataFile);
             }
-
-            entity.contentBytes = IoUtil.toBytes(zip, false);
-            zip.read(entity.contentBytes);
             return entity;
         } else {
-            throw new IOException("Not yet supported: found .Content.data file before .Content.json");
+            // Read the content entity from the *.Content.json file.
+            io.apicurio.registry.utils.impexp.v2.ContentEntity entity = this.readEntry(entry,
+                    io.apicurio.registry.utils.impexp.v2.ContentEntity.class);
+
+            // Read the data for the content entity from the corresponding *.Content.data file.
+            String dataFilePath = path.replace(".json", ".data");
+            File dataFile = new File(dataFilePath);
+            if (dataFile.exists() && dataFile.isFile()) {
+                entity.contentBytes = IoUtil.toBytes(dataFile);
+            }
+            return entity;
         }
     }
 
-    private ManifestEntity readManifest(ZipEntry entry) throws IOException {
-        return readEntry(entry, ManifestEntity.class);
+    private ManifestEntity readManifest(EntityInfo entry) throws IOException {
+        ManifestEntity manifestEntity = readEntry(entry, ManifestEntity.class);
+        if (manifestEntity.systemVersion.startsWith("1")) {
+            this.majorVersion = 1;
+        }
+        if (manifestEntity.systemVersion.startsWith("2")) {
+            this.majorVersion = 2;
+        }
+        return manifestEntity;
     }
 
-    private GroupEntity readGroup(ZipEntry entry) throws IOException {
-        return readEntry(entry, GroupEntity.class);
+    private Entity readGroup(EntityInfo entry) throws IOException {
+        return majorVersion == 3 ? readEntry(entry, GroupEntity.class)
+            : readEntry(entry, io.apicurio.registry.utils.impexp.v2.GroupEntity.class);
     }
 
-    private ArtifactVersionEntity readArtifactVersion(ZipEntry entry) throws IOException {
-        return this.readEntry(entry, ArtifactVersionEntity.class);
+    private Entity readGroupRule(EntityInfo entry) throws IOException {
+        return readEntry(entry, GroupRuleEntity.class);
     }
 
-    private ArtifactRuleEntity readArtifactRule(ZipEntry entry) throws IOException {
-        return this.readEntry(entry, ArtifactRuleEntity.class);
+    private Entity readArtifact(EntityInfo entry) throws IOException {
+        return readEntry(entry, ArtifactEntity.class);
     }
 
-    private CommentEntity readComment(ZipEntry entry) throws IOException {
-        return this.readEntry(entry, CommentEntity.class);
+    private Entity readArtifactVersion(EntityInfo entry) throws IOException {
+        return majorVersion == 3 ? readEntry(entry, ArtifactVersionEntity.class)
+            : readEntry(entry, io.apicurio.registry.utils.impexp.v2.ArtifactVersionEntity.class);
     }
 
-    private GlobalRuleEntity readGlobalRule(ZipEntry entry) throws IOException {
-        return this.readEntry(entry, GlobalRuleEntity.class);
+    private Entity readArtifactRule(EntityInfo entry) throws IOException {
+        return majorVersion == 3 ? readEntry(entry, ArtifactRuleEntity.class)
+            : readEntry(entry, io.apicurio.registry.utils.impexp.v2.ArtifactRuleEntity.class);
+    }
+
+    private Entity readComment(EntityInfo entry) throws IOException {
+        return majorVersion == 3 ? readEntry(entry, CommentEntity.class)
+            : readEntry(entry, io.apicurio.registry.utils.impexp.v2.CommentEntity.class);
+    }
+
+    private Entity readBranch(EntityInfo entry) throws IOException {
+        return readEntry(entry, BranchEntity.class);
+    }
+
+    private Entity readGlobalRule(EntityInfo entry) throws IOException {
+        return majorVersion == 3 ? readEntry(entry, GlobalRuleEntity.class)
+            : readEntry(entry, io.apicurio.registry.utils.impexp.v2.GlobalRuleEntity.class);
     }
 
     private EntityType parseEntityType(String path) {
@@ -108,8 +262,9 @@ public class EntityReader {
         return null;
     }
 
-    private <T> T readEntry(ZipEntry entry, Class<T> theClass) throws IOException {
-        byte [] bytes = IoUtil.toBytes(zip, false);
+    private <T> T readEntry(EntityInfo entry, Class<T> theClass) throws IOException {
+        File file = entry.toFile();
+        byte[] bytes = IoUtil.toBytes(file);
         T entity = mapper.readerFor(theClass).readValue(bytes);
         return entity;
     }

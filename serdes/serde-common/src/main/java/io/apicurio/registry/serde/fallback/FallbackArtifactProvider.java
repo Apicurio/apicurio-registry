@@ -1,7 +1,6 @@
 package io.apicurio.registry.serde.fallback;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import org.apache.kafka.common.header.Headers;
 
 import java.util.Map;
 
@@ -19,10 +18,10 @@ public interface FallbackArtifactProvider {
      * artifact that will be used to deserialize the kafka message
      * 
      * @param topic
-     * @param headers , can be null
+     * @param can be null
      * @param data
      * @return
      */
-    public ArtifactReference get(String topic, Headers headers, byte[] data);
+    public ArtifactReference get(String topic, byte[] data);
 
 }

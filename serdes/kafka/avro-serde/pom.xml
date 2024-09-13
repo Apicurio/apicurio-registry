@@ -8,9 +8,9 @@
     <relativePath>../../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
+  <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-serdes-avro-serde</name>
+  <name>apicurio-registry-avro-serde-kafka</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
@@ -19,13 +19,14 @@
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-serde-common</artifactId>
+      <artifactId>apicurio-registry-serde-kafka-common</artifactId>
     </dependency>
 
     <dependency>
-      <groupId>org.apache.avro</groupId>
-      <artifactId>avro</artifactId>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common-avro</artifactId>
     </dependency>
+
   </dependencies>
 
 </project>

@@ -1,9 +1,8 @@
 package io.apicurio.registry.serde;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.config.IdOption;
-import org.apache.kafka.common.errors.SerializationException;
+import io.apicurio.registry.serde.config.SerdeConfig;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -12,12 +11,11 @@ import java.util.Map;
 
 public class Legacy8ByteIdHandler implements IdHandler {
     static final int idSize = 8; // we use 8 / long
-
-    private IdOption idOption = IdOption.contentId;
+    private IdOption idOption = IdOption.globalId;
 
     @Override
     public void configure(Map<String, Object> configs, boolean isKey) {
-        BaseKafkaSerDeConfig config = new BaseKafkaSerDeConfig(configs);
+        SerdeConfig config = new SerdeConfig(configs);
         idOption = config.useIdOption();
     }
 
@@ -26,7 +24,7 @@ public class Legacy8ByteIdHandler implements IdHandler {
         long id;
         if (idOption == IdOption.globalId) {
             if (reference.getGlobalId() == null) {
-                throw new SerializationException(
+                throw new IllegalStateException(
                         "Missing globalId. IdOption is globalId but there is no contentId in the ArtifactReference");
             }
             id = reference.getGlobalId();
@@ -41,7 +39,7 @@ public class Legacy8ByteIdHandler implements IdHandler {
         long id;
         if (idOption == IdOption.globalId) {
             if (reference.getGlobalId() == null) {
-                throw new SerializationException(
+                throw new IllegalStateException(
                         "Missing globalId. IdOption is globalId but there is no globalId in the ArtifactReference");
             }
             id = reference.getGlobalId();

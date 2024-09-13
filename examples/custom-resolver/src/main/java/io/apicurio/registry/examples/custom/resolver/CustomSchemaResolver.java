@@ -72,22 +72,19 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
             createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(schemaContent));
             createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-            final VersionMetaData metaData = client.groups()
-                    .byGroupId("default").artifacts().post(createArtifact, config -> {
+            final VersionMetaData metaData = client.groups().byGroupId("default").artifacts()
+                    .post(createArtifact, config -> {
                         config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
                     }).getVersion();
 
             ParsedSchema<Schema> parsedSchema = this.schemaParser.getSchemaFromData(data);
 
-            SchemaLookupResult.SchemaLookupResultBuilder<Schema> lookupResultBuilder = SchemaLookupResult.builder();
+            SchemaLookupResult.SchemaLookupResultBuilder<Schema> lookupResultBuilder = SchemaLookupResult
+                    .builder();
 
-            SchemaLookupResult<Schema> result = lookupResultBuilder
-                    .groupId(groupId)
-                    .artifactId(artifactId)
-                    .version(String.valueOf(metaData.getVersion()))
-                    .globalId(metaData.getGlobalId())
-                    .parsedSchema(parsedSchema)
-                    .build();
+            SchemaLookupResult<Schema> result = lookupResultBuilder.groupId(groupId).artifactId(artifactId)
+                    .version(String.valueOf(metaData.getVersion())).globalId(metaData.getGlobalId())
+                    .parsedSchema(parsedSchema).build();
 
             // Also update the schemaCacheByGlobalId - useful if this resolver is used by both
             // the serializer and deserializer in the same Java application.
@@ -96,7 +93,8 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
     }
 
     @Override
-    public SchemaLookupResult<Schema> resolveSchemaByArtifactReference(io.apicurio.registry.resolver.strategy.ArtifactReference reference) {
+    public SchemaLookupResult<Schema> resolveSchemaByArtifactReference(
+            io.apicurio.registry.resolver.strategy.ArtifactReference reference) {
         throw new UnsupportedOperationException(
                 "resolveSchemaByArtifactReference() is not supported by this implementation.");
     }

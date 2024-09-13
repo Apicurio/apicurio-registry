@@ -5,13 +5,14 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.deser.AbstractDeserializer;
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.AbstractKafkaDeserializer;
+import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -22,7 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<JsonSchema, T>
+public class JsonSchemaKafkaDeserializer<T> extends AbstractDeserializer<JsonSchema, T>
         implements Deserializer<T> {
 
     private ObjectMapper mapper;
@@ -57,7 +58,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#configure(java.util.Map, boolean)
+     * @see AbstractDeserializer#configure(java.util.Map, boolean)
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -97,8 +98,8 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema,
-     *      java.nio.ByteBuffer, int, int)
+     * @see AbstractDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
+     *      int, int)
      */
     @Override
     protected T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
@@ -106,7 +107,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers,
+     * @see AbstractDeserializer#readData(org.apache.kafka.common.header.Headers,
      *      io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override

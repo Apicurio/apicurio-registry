@@ -19,7 +19,7 @@
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-serde-common</artifactId>
+      <artifactId>apicurio-registry-serde-kafka-common</artifactId>
     </dependency>
 
     <dependency>

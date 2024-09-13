@@ -1,7 +1,6 @@
 package io.apicurio.registry.serde.protobuf;
 
 import com.google.protobuf.Message;
-import io.apicurio.registry.serde.AbstractSerde;
 
 /****
  * Wraps the ProtobufKafkaSerializer and ProtobufKafkaDeserializer.

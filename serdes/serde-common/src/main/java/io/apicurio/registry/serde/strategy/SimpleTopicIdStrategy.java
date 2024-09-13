@@ -4,7 +4,7 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.serde.data.KafkaSerdeRecord;
+import io.apicurio.registry.serde.data.SerdeRecord;
 
 public class SimpleTopicIdStrategy<T> implements ArtifactReferenceResolverStrategy<T, Object> {
 
@@ -14,7 +14,7 @@ public class SimpleTopicIdStrategy<T> implements ArtifactReferenceResolverStrate
      */
     @Override
     public ArtifactReference artifactReference(Record<Object> data, ParsedSchema<T> parsedSchema) {
-        KafkaSerdeRecord<Object> kdata = (KafkaSerdeRecord<Object>) data;
+        SerdeRecord<Object> kdata = (SerdeRecord<Object>) data;
         return ArtifactReference.builder().groupId(null).artifactId(kdata.metadata().getTopic()).build();
     }
 

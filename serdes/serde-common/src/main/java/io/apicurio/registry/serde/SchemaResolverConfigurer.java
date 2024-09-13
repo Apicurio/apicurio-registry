@@ -4,8 +4,10 @@ import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.SchemaResolverConfig;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.config.SerdeConfig;
 
 import java.util.Map;
 import java.util.Objects;
@@ -36,6 +38,14 @@ public class SchemaResolverConfigurer<T, U> {
         this();
         setSchemaResolver(schemaResolver);
         getSchemaResolver().setClient(client);
+    }
+
+    public SchemaResolverConfigurer(RegistryClient client, ArtifactReferenceResolverStrategy strategy,
+            SchemaResolver<T, U> schemaResolver) {
+        this();
+        setSchemaResolver(schemaResolver);
+        getSchemaResolver().setClient(client);
+        getSchemaResolver().setArtifactResolverStrategy(strategy);
     }
 
     public SchemaResolver<T, U> getSchemaResolver() {

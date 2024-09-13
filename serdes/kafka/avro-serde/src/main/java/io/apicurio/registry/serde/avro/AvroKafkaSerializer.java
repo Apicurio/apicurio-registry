@@ -4,27 +4,19 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import org.apache.avro.Schema;
-import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.Encoder;
-import org.apache.avro.io.EncoderFactory;
 import org.apache.kafka.common.header.Headers;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
 
 public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
 
-    private final EncoderFactory encoderFactory = EncoderFactory.get();
-    private AvroSchemaParser<U> parser;
-    private AvroDatumProvider<U> avroDatumProvider;
-    private AvroEncoding encoding;
+    AvroSerializer<U> avroSerializer;
+
     private AvroSerdeHeaders avroHeaders;
 
     public AvroKafkaSerializer() {
@@ -45,28 +37,16 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
         super(client, artifactResolverStrategy, schemaResolver);
     }
 
-    private AvroKafkaSerializer<U> setAvroDatumProvider(AvroDatumProvider<U> avroDatumProvider) {
-        this.avroDatumProvider = Objects.requireNonNull(avroDatumProvider);
-        return this;
-    }
-
     @SuppressWarnings("rawtypes")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        AvroKafkaSerdeConfig config = new AvroKafkaSerdeConfig(configs);
-        encoding = config.getAvroEncoding();
-
-        Class<?> adp = config.getAvroDatumProvider();
-        Consumer<AvroDatumProvider> consumer = this::setAvroDatumProvider;
-        Utils.instantiate(AvroDatumProvider.class, adp, consumer);
-        avroDatumProvider.configure(config);
-
         avroHeaders = new AvroSerdeHeaders(isKey);
+        AvroSerdeConfig avroSerdeConfig = new AvroSerdeConfig(configs);
 
-        // important to instantiate the SchemaParser before calling super.configure
-        parser = new AvroSchemaParser<>(avroDatumProvider);
+        super.configure(configs, isKey);
 
-        super.configure(config, isKey);
+        this.avroSerializer = new AvroSerializer<>();
+        avroSerializer.configure(avroSerdeConfig, isKey);
     }
 
     /**
@@ -74,7 +54,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
      */
     @Override
     public SchemaParser<Schema, U> schemaParser() {
-        return parser;
+        return avroSerializer.schemaParser();
     }
 
     /**
@@ -84,17 +64,7 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     @SuppressWarnings("unchecked")
     @Override
     protected void serializeData(ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {
-        Encoder encoder = createEncoder(schema.getParsedSchema(), out);
-
-        // I guess this can happen if generics are lost with reflection ...
-        if (data instanceof NonRecordContainer) {
-            // noinspection unchecked
-            data = (U) NonRecordContainer.class.cast(data).getValue();
-        }
-
-        DatumWriter<U> writer = avroDatumProvider.createDatumWriter(data, schema.getParsedSchema());
-        writer.write(data, encoder);
-        encoder.flush();
+        avroSerializer.serializeData(schema, data, out);
     }
 
     /**
@@ -105,16 +75,8 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     protected void serializeData(Headers headers, ParsedSchema<Schema> schema, U data, OutputStream out)
             throws IOException {
         if (headers != null) {
-            avroHeaders.addEncodingHeader(headers, encoding.name());
+            avroHeaders.addEncodingHeader(headers, avroSerializer.getEncoding().name());
         }
         serializeData(schema, data, out);
-    }
-
-    private Encoder createEncoder(Schema schema, OutputStream os) throws IOException {
-        if (encoding == AvroEncoding.JSON) {
-            return encoderFactory.jsonEncoder(schema, os);
-        } else {
-            return encoderFactory.directBinaryEncoder(os, null);
-        }
     }
 }

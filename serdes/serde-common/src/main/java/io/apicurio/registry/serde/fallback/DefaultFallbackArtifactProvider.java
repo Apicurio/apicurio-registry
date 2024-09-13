@@ -1,8 +1,7 @@
 package io.apicurio.registry.serde.fallback;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.serde.SerdeConfig;
-import org.apache.kafka.common.header.Headers;
+import io.apicurio.registry.serde.config.SerdeConfig;
 
 import java.util.Map;
 
@@ -14,7 +13,7 @@ public class DefaultFallbackArtifactProvider implements FallbackArtifactProvider
     private ArtifactReference fallbackArtifactReference;
 
     /**
-     * @see io.apicurio.registry.serde.FallbackArtifactProvider#configure(java.util.Map, boolean)
+     * @see io.apicurio.registry.serde.fallback.FallbackArtifactProvider#configure(java.util.Map, boolean)
      */
     @Override
     public void configure(Map<String, Object> configs, boolean isKey) {
@@ -45,11 +44,10 @@ public class DefaultFallbackArtifactProvider implements FallbackArtifactProvider
     }
 
     /**
-     * @see io.apicurio.registry.serde.fallback.FallbackArtifactProvider#get(java.lang.String,
-     *      org.apache.kafka.common.header.Headers, byte[])
+     * @see io.apicurio.registry.serde.fallback.FallbackArtifactProvider#get(java.lang.String, byte[])
      */
     @Override
-    public ArtifactReference get(String topic, Headers headers, byte[] data) {
+    public ArtifactReference get(String topic, byte[] data) {
         return fallbackArtifactReference;
     }
 

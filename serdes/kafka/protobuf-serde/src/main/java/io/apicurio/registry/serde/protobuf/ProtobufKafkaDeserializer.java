@@ -10,7 +10,7 @@ import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.AbstractKafkaDeserializer;
+import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import org.apache.kafka.common.config.ConfigException;
@@ -28,8 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ProtobufKafkaDeserializer<U extends Message>
-        extends AbstractKafkaDeserializer<ProtobufSchema, U> {
+public class ProtobufKafkaDeserializer<U extends Message> extends AbstractDeserializer<ProtobufSchema, U> {
 
     private static final String PROTOBUF_PARSE_METHOD = "parseFrom";
 
@@ -98,7 +97,7 @@ public class ProtobufKafkaDeserializer<U extends Message>
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(org.apache.kafka.common.header.Headers,
+     * @see AbstractDeserializer#readData(org.apache.kafka.common.header.Headers,
      *      io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer, int, int)
      */
     @Override
@@ -108,8 +107,8 @@ public class ProtobufKafkaDeserializer<U extends Message>
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema,
-     *      java.nio.ByteBuffer, int, int)
+     * @see AbstractDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
+     *      int, int)
      */
     @Override
     protected U readData(ParsedSchema<ProtobufSchema> schema, ByteBuffer buffer, int start, int length) {

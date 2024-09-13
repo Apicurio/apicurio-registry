@@ -93,17 +93,15 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
     }
 
     /**
-     * @see AbstractDeserializer#readData(
-     *io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer, int, int)
+     * @see AbstractDeserializer#readData( io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
+     *      int, int)
      */
     @Override
-    protected T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start,
-                         int length) {
+    protected T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
         return internalReadData(schema, buffer, start, length);
     }
 
-    private T internalReadData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start,
-                               int length) {
+    private T internalReadData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
         byte[] data = new byte[length];
         System.arraycopy(buffer.array(), start, data, 0, length);
 
@@ -118,8 +116,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
             if (this.specificReturnClass != null) {
                 messageType = this.specificReturnClass;
-            }
-            else {
+            } else {
                 JsonNode jsonSchema = mapper.readTree(schema.getRawSchema());
 
                 String javaType = null;
@@ -136,12 +133,10 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
             if (messageType == null) {
                 // TODO maybe warn there is no message type and the deserializer will return a JsonNode
                 return mapper.readTree(parser);
-            }
-            else {
+            } else {
                 return mapper.readValue(parser, messageType);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }

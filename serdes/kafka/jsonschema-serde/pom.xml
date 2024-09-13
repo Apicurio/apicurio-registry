@@ -13,7 +13,7 @@
   <name>apicurio-registry-jsonschema-serde-kafka</name>
 
   <properties>
-    <projectRoot>${project.basedir}/../..</projectRoot>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
   </properties>
 
   <dependencies>
@@ -25,21 +25,6 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-serde-common-jsonschema</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-core</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.networknt</groupId>
-      <artifactId>json-schema-validator</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.json</groupId>
-      <artifactId>json</artifactId>
     </dependency>
 
   </dependencies>

@@ -19,6 +19,5 @@ public class JsonSchemaSerializerConfig extends SerdeConfig {
         return this.getBoolean(VALIDATION_ENABLED);
     }
 
-    private static final Map<String, ?> DEFAULTS = Map.of(VALIDATION_ENABLED,
-            VALIDATION_ENABLED_DEFAULT);
+    private static final Map<String, ?> DEFAULTS = Map.of(VALIDATION_ENABLED, VALIDATION_ENABLED_DEFAULT);
 }

@@ -80,9 +80,10 @@
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
     <module>schema-resolver</module>
-    <module>serdes/serde-common</module>
-    <module>serdes/serde-common-avro</module>
-    <module>serdes/serde-common-jsonschema</module>
+    <module>serdes/generic/serde-common</module>
+    <module>serdes/generic/serde-common-avro</module>
+    <module>serdes/generic/serde-common-jsonschema</module>
+    <module>serdes/generic/serde-common-protobuf</module>
     <module>serdes/kafka/serde-common</module>
     <module>serdes/kafka/avro-serde</module>
     <module>distro</module>
@@ -344,6 +345,11 @@
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-serde-common-protobuf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-serde-kafka-common</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -355,6 +361,11 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -25,8 +25,7 @@ public class JsonSchemaDeserializerConfig extends SerdeConfig {
     public Class<?> getSpecificReturnClass() {
         if (isKey) {
             return this.getClass(DESERIALIZER_SPECIFIC_KEY_RETURN_CLASS);
-        }
-        else {
+        } else {
             return this.getClass(DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS);
         }
     }
@@ -41,6 +40,5 @@ public class JsonSchemaDeserializerConfig extends SerdeConfig {
     }
 
     private static final Map<String, ?> DEFAULTS = Map.of(DESERIALIZER_SPECIFIC_KEY_RETURN_CLASS, null,
-            DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, null, VALIDATION_ENABLED,
-            VALIDATION_ENABLED_DEFAULT);
+            DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, null, VALIDATION_ENABLED, VALIDATION_ENABLED_DEFAULT);
 }

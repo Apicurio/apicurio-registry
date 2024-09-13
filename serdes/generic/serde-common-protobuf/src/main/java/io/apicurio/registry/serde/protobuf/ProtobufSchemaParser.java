@@ -17,7 +17,6 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
-import org.apache.kafka.common.errors.SerializationException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,7 +65,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
                 return getFileDescriptorFromElement(fileElem);
             }
         } catch (DescriptorValidationException pe) {
-            throw new SerializationException("Error parsing protobuf schema ", pe);
+            throw new IllegalStateException("Error parsing protobuf schema ", pe);
         } catch (IllegalStateException illegalStateException) {
             // If qe get here the server likely returned the full descriptor, try to parse it.
             return parseDescriptor(rawSchema);

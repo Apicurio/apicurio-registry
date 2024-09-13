@@ -38,8 +38,8 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
     }
 
     public JsonSchemaKafkaSerializer(RegistryClient client,
-                                     ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
-                                     SchemaResolver<JsonSchema, T> schemaResolver) {
+            ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
+            SchemaResolver<JsonSchema, T> schemaResolver) {
         super(client, artifactResolverStrategy, schemaResolver);
     }
 
@@ -102,7 +102,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.resolver.ParsedSchema,
-     *         java.lang.Object, java.io.OutputStream)
+     *      java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out)
@@ -112,7 +112,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
-     *         io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
+     *      io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out)

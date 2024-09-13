@@ -59,8 +59,8 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
     }
 
     /**
-     * @see AbstractKafkaDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
-     *         int, int)
+     * @see AbstractKafkaDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema,
+     *      java.nio.ByteBuffer, int, int)
      */
     @Override
     protected T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
@@ -71,7 +71,8 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
     public T deserialize(String topic, Headers headers, byte[] data) {
         if (headers != null) {
             String javaType = serdeHeaders.getMessageType(headers);
-            jsonSchemaDeserializer.setSpecificReturnClass(javaType == null ? null : Utils.loadClass(javaType));
+            jsonSchemaDeserializer
+                    .setSpecificReturnClass(javaType == null ? null : Utils.loadClass(javaType));
         }
 
         return jsonSchemaDeserializer.deserializeData(topic, data);

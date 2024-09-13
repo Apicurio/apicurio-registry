@@ -13,7 +13,7 @@
   <name>apicurio-registry-serde-kafka-common</name>
 
   <properties>
-    <projectRoot>${project.basedir}/../..</projectRoot>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
   </properties>
 
   <dependencies>

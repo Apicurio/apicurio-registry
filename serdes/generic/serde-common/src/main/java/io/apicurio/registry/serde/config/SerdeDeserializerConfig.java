@@ -11,9 +11,6 @@ public class SerdeDeserializerConfig extends SerdeConfig {
 
     public SerdeDeserializerConfig(Map<String, ?> originals) {
         super(originals);
-        Map<String, Object> joint = new HashMap<>(DEFAULTS);
-        joint.putAll(originals);
-        this.originals = joint;
     }
 
     private static final Map<String, Object> DEFAULTS = Map
@@ -25,6 +22,8 @@ public class SerdeDeserializerConfig extends SerdeConfig {
 
     @Override
     protected Map<String, ?> getDefaults() {
-        return DEFAULTS;
+        Map<String, Object> joint = new HashMap<>(super.getDefaults());
+        joint.putAll(DEFAULTS);
+        return joint;
     }
 }

@@ -2,7 +2,6 @@ package io.apicurio.registry.serde.headers;
 
 import io.apicurio.registry.serde.config.SerdeConfig;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,7 +11,7 @@ import static java.util.Map.entry;
 
 public class DefaultHeadersHandlerConfig extends SerdeConfig {
 
-    private final Map<String, ?> configDefs = Map.ofEntries(
+    private final Map<String, ?> DEFAULTS = Map.ofEntries(
             entry(HEADER_KEY_GLOBAL_ID_OVERRIDE_NAME, HEADER_KEY_GLOBAL_ID),
             entry(HEADER_KEY_CONTENT_ID_OVERRIDE_NAME, HEADER_KEY_CONTENT_ID),
             entry(HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, HEADER_KEY_CONTENT_HASH),
@@ -80,5 +79,12 @@ public class DefaultHeadersHandlerConfig extends SerdeConfig {
 
     public String getValueVersionHeader() {
         return this.getString(HEADER_VALUE_VERSION_OVERRIDE_NAME);
+    }
+
+    @Override
+    protected Map<String, ?> getDefaults() {
+        Map<String, Object> joint = new HashMap<>(super.getDefaults());
+        joint.putAll(DEFAULTS);
+        return joint;
     }
 }

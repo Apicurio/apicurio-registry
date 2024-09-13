@@ -2,6 +2,7 @@ package io.apicurio.registry.serde.avro;
 
 import io.apicurio.registry.serde.config.SerdeConfig;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class AvroSerdeConfig extends SerdeConfig {
@@ -43,6 +44,8 @@ public class AvroSerdeConfig extends SerdeConfig {
 
     @Override
     protected Map<String, ?> getDefaults() {
-        return DEFAULTS;
+        Map<String, Object> joint = new HashMap<>(super.getDefaults());
+        joint.putAll(DEFAULTS);
+        return joint;
     }
 }

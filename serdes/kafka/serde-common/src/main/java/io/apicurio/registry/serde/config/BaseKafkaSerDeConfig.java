@@ -1,5 +1,6 @@
 package io.apicurio.registry.serde.config;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static io.apicurio.registry.serde.config.KafkaSerdeConfig.ENABLE_HEADERS;
@@ -16,7 +17,7 @@ public class BaseKafkaSerDeConfig extends SerdeConfig {
     }
 
     public BaseKafkaSerDeConfig() {
-        this.originals = DEFAULTS;
+        this.originals = getDefaults();
     }
 
     public Object getIdHandler() {
@@ -33,6 +34,13 @@ public class BaseKafkaSerDeConfig extends SerdeConfig {
 
     public IdOption useIdOption() {
         return IdOption.valueOf(this.getString(USE_ID));
+    }
+
+    @Override
+    protected Map<String, ?> getDefaults() {
+        Map<String, Object> joint = new HashMap<>(super.getDefaults());
+        joint.putAll(DEFAULTS);
+        return joint;
     }
 
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(

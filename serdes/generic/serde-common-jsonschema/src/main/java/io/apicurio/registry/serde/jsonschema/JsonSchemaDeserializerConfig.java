@@ -2,6 +2,7 @@ package io.apicurio.registry.serde.jsonschema;
 
 import io.apicurio.registry.serde.config.SerdeConfig;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class JsonSchemaDeserializerConfig extends SerdeConfig {
@@ -36,7 +37,9 @@ public class JsonSchemaDeserializerConfig extends SerdeConfig {
 
     @Override
     protected Map<String, ?> getDefaults() {
-        return DEFAULTS;
+        Map<String, Object> joint = new HashMap<>(super.getDefaults());
+        joint.putAll(DEFAULTS);
+        return joint;
     }
 
     private static final Map<String, ?> DEFAULTS = Map.of(DESERIALIZER_SPECIFIC_KEY_RETURN_CLASS, null,

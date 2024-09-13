@@ -27,13 +27,11 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
     @Test
     public void testMultipleArtifacts() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        String groupId = "testMultipleArtifacts";// TestUtils.generateGroupId();
+        String groupId = TestUtils.generateGroupId();
 
         Set<String> created = new HashSet<>();
         Set<String> failed = new HashSet<>();
         CountDownLatch latch = new CountDownLatch(5);
-
-        clientV2.createArtifactGroup(GroupMetaData.builder().id(groupId).build());
 
         // Create artifacts
         for (int i = 0; i < 5; i++) {
@@ -44,25 +42,21 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
                 System.out.println("[Fork-" + forkId + "] Artifact ID: " + artifactId);
                 try {
                     InputStream data = new ByteArrayInputStream(oaiArtifactContent.getBytes());
+
+                    // Create the artifact
                     ArtifactMetaData amd = clientV2.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, data);
                     System.out.println("[Fork-" + forkId + "] Artifact created.");
-                    System.out.println("[Fork-" + forkId + "] Global ID  : " + amd.getGlobalId() + "\n" +
-                            "         Content ID : " + amd.getContentId() + "\n" +
-                            "         GroupId    : " + amd.getGroupId() + "\n" +
-                            "         ArtifactId : " + amd.getId() + "\n" +
-                            "         Version    : " + amd.getVersion()
-                    );
                     Assertions.assertNotNull(amd);
                     Assertions.assertEquals(groupId, amd.getGroupId());
-                    System.out.println("[Fork-" + forkId + "] " + artifactId + " vs " + amd.getId());
                     Assertions.assertEquals(artifactId, amd.getId());
-                    System.out.println("[Fork-" + forkId + "] Completed successfully.");
 
+                    // Fetch the artifact and make sure it really got created.
                     amd = clientV2.getArtifactMetaData(groupId, artifactId);
                     Assertions.assertNotNull(amd);
                     Assertions.assertEquals(groupId, amd.getGroupId());
                     Assertions.assertEquals(artifactId, amd.getId());
 
+                    System.out.println("[Fork-" + forkId + "] Completed successfully.");
                     created.add(artifactId);
                 } catch (Exception e) {
                     System.out.println("[Fork-" + forkId + "] FAILED: " + e.getMessage());
@@ -74,36 +68,17 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
 
         latch.await();
 
-        Assertions.assertEquals(5, created.size());
         Assertions.assertEquals(0, failed.size());
+        Assertions.assertEquals(5, created.size());
 
-        ArtifactSearchResults results = clientV2.searchArtifacts(null, null, null, null, null, SortBy.createdOn, SortOrder.asc, 0, 100);
-        System.out.println("===");
-        results.getArtifacts().forEach(artifact -> {
-            System.out.println("  - " + artifact.getId());
-        });
-        System.out.println("===");
+        ArtifactSearchResults results = clientV2.searchArtifacts(groupId, null, null, null, null, SortBy.createdOn, SortOrder.asc, 0, 100);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(5, results.getCount());
 
         results = clientV2.listArtifactsInGroup(groupId);
-        System.out.println("+++");
-        results.getArtifacts().forEach(artifact -> {
-            System.out.println("  - " + artifact.getId());
-        });
-        System.out.println("+++");
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(5, results.getCount());
 
-        // Search the groupId to ensure the correct # of artifacts.
-
-        // Note: we need to retry because creation of the artifacts is forked, so we can get
-        // here before the artifacts have actually been created.
-//        TestUtils.retry(() -> {
-            given()
-                    .when()
-                    .queryParam("groupId", groupId)
-                    .get("/registry/v2/search/artifacts")
-                    .then()
-                    .statusCode(200)
-                    .body("count", equalTo(5));
-//        });
     }
 
 }

@@ -62,26 +62,6 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
-     */
-    @Override
-    public String upsertContent() {
-        return "MERGE INTO content AS target" +
-                " USING (VALUES(?, ?, ?, ?, ?, ?)) AS source (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences)" +
-                " ON (target.tenantId = source.tenantId AND target.contentHash = source.contentHash)" +
-                " WHEN NOT MATCHED THEN" +
-                "     INSERT (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences)" +
-                "     VALUES (source.tenantId, source.contentId, source.canonicalHash, source.contentHash, source.content, source.artifactreferences)";
-    }
-
-    @Override
-    public String upsertGroup() {
-        return "MERGE INTO groups (tenantId, groupId, description, artifactsType, createdBy, createdOn, modifiedBy, modifiedOn, properties)" +
-                " KEY (tenantId, groupId)" +
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertLogConfiguration()
      */
     @Override

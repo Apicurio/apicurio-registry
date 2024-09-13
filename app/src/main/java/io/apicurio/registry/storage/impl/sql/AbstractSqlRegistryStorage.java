@@ -32,6 +32,7 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+import io.apicurio.registry.storage.impl.sql.jdb.RuntimeSqlException;
 import io.apicurio.registry.storage.impl.sql.jdb.Update;
 import io.apicurio.registry.storage.impl.sql.mappers.*;
 import io.apicurio.registry.types.ArtifactState;
@@ -460,7 +461,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         updateArtifactVersionStateRaw(metadata.getGlobalId(), metadata.getState(), state);
     }
 
-
     @Override
     @Transactional
     public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
@@ -469,7 +469,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
         updateArtifactVersionStateRaw(metadata.getGlobalId(), metadata.getState(), state);
     }
-
 
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
@@ -627,59 +626,62 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * Store the content in the database and return the ID of the new row.  If the content already exists,
-     * just return the content ID of the existing row.
-     *
-     * @param handle
-     * @param artifactType
-     * @param content
+     * Make sure the content exists in the database (try to insert it).  Regardless of whether it
+     * already existed or not, return the contentId of the content in the DB.
      */
-    protected Long createOrUpdateContent(Handle handle, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) throws IOException {
+    protected Long ensureContentAndGetId(String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         var car = ContentAndReferencesDto.builder().content(content).references(references).build();
         var contentHash = RegistryContentUtils.contentHash(car);
         var canonicalContentHash = RegistryContentUtils.canonicalContentHash(artifactType, car, this::getContentByReference);
-        return createOrUpdateContent(handle, content, contentHash, canonicalContentHash, references, RegistryContentUtils.serializeReferences(references));
+        var serializedReferences = RegistryContentUtils.serializeReferences(references);
+
+        ensureContent(content, contentHash, canonicalContentHash, references, serializedReferences);
+        var contentId = getContentIdByHash(contentHash);
+        return contentId;
     }
 
-    /**
-     * Store the content in the database and return the ID of the new row.  If the content already exists,
-     * just return the content ID of the existing row.
-     *
-     * @param handle
-     * @param content
-     * @param contentHash
-     * @param canonicalContentHash
-     */
-    protected Long createOrUpdateContent(Handle handle, ContentHandle content, String contentHash, String canonicalContentHash, List<ArtifactReferenceDto> references, String referencesSerialized) {
-        byte[] contentBytes = content.bytes();
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    protected void ensureContent(ContentHandle content, String contentHash, String canonicalContentHash,
+                               List<ArtifactReferenceDto> references, String referencesSerialized) {
+        this.handles.withHandle(handle -> {
+            byte[] contentBytes = content.bytes();
 
-        // Upsert a row in the "content" table.  This will insert a row for the content
-        // if a row doesn't already exist.  We use the content hash to determine whether
-        // a row for this content already exists.  If we find a row we return its globalId.
-        // If we don't find a row, we insert one and then return its globalId.
-        Long contentId;
-        boolean insertReferences = true;
-        String sql = sqlStatements.upsertContent();
-        handle.createUpdate(sql)
-                .bind(0, tenantContext.tenantId())
-                .bind(1, nextContentId(handle))
-                .bind(2, canonicalContentHash)
-                .bind(3, contentHash)
-                .bind(4, contentBytes)
-                .bind(5, referencesSerialized)
-                .execute();
-        sql = sqlStatements.selectContentIdByHash();
-        contentId = handle.createQuery(sql)
-                .bind(0, contentHash)
-                .bind(1, tenantContext.tenantId())
-                .mapTo(Long.class)
-                .one();
+            // Insert the content into the content table.
+            String sql = sqlStatements.insertContent();
+            long contentId = nextContentId(handle);
 
-        if (insertReferences) {
-            //Finally, insert references into the "artifactreferences" table if the content wasn't present yet.
+            try {
+                handle.createUpdate(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, contentId)
+                        .bind(2, canonicalContentHash)
+                        .bind(3, contentHash)
+                        .bind(4, contentBytes)
+                        .bind(5, referencesSerialized)
+                        .execute();
+            } catch (RuntimeSqlException e) {
+                // Assume this is a unique key violation: content already exists.  If so,
+                // the content already exists and we can just return.
+                return null;
+            }
+
+            // If we get here, then the content was inserted and we need to insert the references.
             createOrUpdateReferences(handle, contentId, references);
-        }
-        return contentId;
+            return null;
+        });
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    protected Long getContentIdByHash(String contentHash) {
+        return this.handles.withHandle(handle -> {
+            String sql = sqlStatements.selectContentIdByHash();
+            long contentId = handle.createQuery(sql)
+                    .bind(0, contentHash)
+                    .bind(1, tenantContext.tenantId())
+                    .mapTo(Long.class)
+                    .one();
+            return contentId;
+        });
     }
 
     protected void createOrUpdateReferences(Handle handle, Long contentId, List<ArtifactReferenceDto> references) {
@@ -710,7 +712,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * @see RegistryStorage#createArtifactWithMetadata (java.lang.String, java.lang.String, java.lang.String, io.apicurio.registry.types.ArtifactType, io.apicurio.registry.content.ContentHandle, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto, java.util.List)
      */
     @Override
-    @Transactional
+    @Transactional()
     public ArtifactMetaDataDto createArtifactWithMetadata(String groupId, String artifactId, String version,
                                                           String artifactType, ContentHandle content, EditableArtifactMetaDataDto metaData, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, ArtifactAlreadyExistsException, RegistryStorageException {
@@ -724,9 +726,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
-        //Only create group metadata for non-default groups.
+        // Only create group metadata for non-default groups.
         if (groupId != null && !isGroupExists(groupId)) {
-            upsertGroup(GroupMetaDataDto.builder()
+            ensureGroup(GroupMetaDataDto.builder()
                     .groupId(groupId)
                     .createdOn(createdOn.getTime())
                     .modifiedOn(createdOn.getTime())
@@ -736,9 +738,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
 
         // Put the content in the DB and get the unique content ID back.
-        long contentId = handles.withHandleNoException(handle -> {
-            return createOrUpdateContent(handle, artifactType, content, references);
-        });
+        long contentId = ensureContentAndGetId(artifactType, content, references);
 
         // If the metaData provided is null, try to figure it out from the content.
         EditableArtifactMetaDataDto md = metaData;
@@ -1020,9 +1020,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
-        long contentId = handles.withHandleNoException(handle -> {
-            return createOrUpdateContent(handle, artifactType, content, references);
-        });
+        long contentId = ensureContentAndGetId(artifactType, content, references);
 
         // Extract meta-data from the content if no metadata is provided
         if (metaData == null) {
@@ -2666,21 +2664,29 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
     }
 
-    private void upsertGroup(GroupMetaDataDto group) throws RegistryStorageException {
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    protected void ensureGroup(GroupMetaDataDto group) throws RegistryStorageException {
         this.handles.withHandle(handle -> {
-            String sql = sqlStatements.upsertGroup();
-            handle.createUpdate(sql)
-                    .bind(0, tenantContext.tenantId())
-                    .bind(1, group.getGroupId())
-                    .bind(2, group.getDescription())
-                    .bind(3, group.getArtifactsType())
-                    .bind(4, group.getCreatedBy())
-                    // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric timestamps
-                    .bind(5, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
-                    .bind(6, group.getModifiedBy())
-                    .bind(7, group.getModifiedOn() == 0 ? null : new Date(group.getModifiedOn()))
-                    .bind(8, RegistryContentUtils.serializeProperties(group.getProperties()))
-                    .execute();
+            try {
+                String sql = sqlStatements.insertGroup();
+                handle.createUpdate(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, group.getGroupId())
+                        .bind(2, group.getDescription())
+                        .bind(3, group.getArtifactsType())
+                        .bind(4, group.getCreatedBy())
+                        // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric timestamps
+                        .bind(5, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
+                        .bind(6, group.getModifiedBy())
+                        .bind(7, group.getModifiedOn() == 0 ? null : new Date(group.getModifiedOn()))
+                        .bind(8, RegistryContentUtils.serializeProperties(group.getProperties()))
+                        .execute();
+            } catch (Exception e) {
+                // Primary key violation is OK - that just means it already exists.
+                if (!sqlStatements.isPrimaryKeyViolation(e)) {
+                    throw new RegistryStorageException(e);
+                }
+            }
             return null;
         });
     }

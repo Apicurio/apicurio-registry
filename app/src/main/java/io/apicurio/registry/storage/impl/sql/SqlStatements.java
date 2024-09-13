@@ -33,15 +33,11 @@ public interface SqlStatements {
 
     /**
      * Returns true if the given exception represents a primary key violation.
-     *
-     * @param error
      */
     public boolean isPrimaryKeyViolation(Exception error);
 
     /**
      * Returns true if the given exception represents a foreign key violation.
-     *
-     * @param error
      */
     public boolean isForeignKeyViolation(Exception error);
 
@@ -57,9 +53,6 @@ public interface SqlStatements {
 
     /**
      * A sequence of statements needed to upgrade the DB from one version to another.
-     *
-     * @param fromVersion
-     * @param toVersion
      */
     public List<String> databaseUpgrade(int fromVersion, int toVersion);
 
@@ -188,11 +181,6 @@ public interface SqlStatements {
      * A statement to select the content ids of an artifact for all versions.
      */
     public String selectArtifactContentIds();
-
-    /**
-     * A statement to "upsert" a row in the "content" table.
-     */
-    public String upsertContent();
 
     /**
      * A statement to update canonicalHash value in a row in the "content" table
@@ -499,11 +487,6 @@ public interface SqlStatements {
      * A statement used to insert a row into the groups table.
      */
     public String insertGroup();
-
-    /**
-     * A statement used to insert or update a row into the groups table.
-     */
-    public String upsertGroup();
 
     /**
      * A statement used to update information about a group.

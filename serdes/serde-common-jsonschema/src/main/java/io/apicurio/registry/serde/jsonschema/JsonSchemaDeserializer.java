@@ -80,6 +80,10 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         this.mapper = objectMapper;
     }
 
+    public void setSpecificReturnClass(Class<T> specificReturnClass) {
+        this.specificReturnClass = specificReturnClass;
+    }
+
     /**
      * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
      */

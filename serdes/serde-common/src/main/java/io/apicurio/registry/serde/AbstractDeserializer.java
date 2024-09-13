@@ -32,7 +32,7 @@ public abstract class AbstractDeserializer<T, U> extends AbstractSerDe<T, U> {
         super(client, strategy, schemaResolver);
     }
 
-    protected U deserializeData(String topic, byte[] data) {
+    public U deserializeData(String topic, byte[] data) {
         if (data == null) {
             return null;
         }

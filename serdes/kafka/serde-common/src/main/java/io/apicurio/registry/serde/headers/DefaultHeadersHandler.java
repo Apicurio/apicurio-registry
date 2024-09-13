@@ -41,7 +41,9 @@ public class DefaultHeadersHandler implements HeadersHandler {
             artifactIdHeaderName = config.getValueArtifactIdHeader();
             versionHeaderName = config.getValueVersionHeader();
         }
-        idOption = config.useIdOption();
+        if (config.useIdOption() != null) {
+            idOption = config.useIdOption();
+        }
     }
 
     /**

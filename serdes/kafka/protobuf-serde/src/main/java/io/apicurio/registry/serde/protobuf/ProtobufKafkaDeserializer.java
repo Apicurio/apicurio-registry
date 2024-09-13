@@ -14,7 +14,8 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaDeserializer<ProtobufSchema, U> {
+public class ProtobufKafkaDeserializer<U extends Message>
+        extends AbstractKafkaDeserializer<ProtobufSchema, U> {
 
     private ProtobufSerdeHeaders serdeHeaders;
 
@@ -25,7 +26,7 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
     }
 
     public ProtobufKafkaDeserializer(RegistryClient client,
-                                     SchemaResolver<ProtobufSchema, U> schemaResolver) {
+            SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(client, schemaResolver);
     }
 
@@ -40,7 +41,8 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         serdeHeaders = new ProtobufSerdeHeaders(new HashMap<>(configs), isKey);
-        ProtobufDeserializerConfig protobufDeserializerConfig = new ProtobufDeserializerConfig(configs, isKey);
+        ProtobufDeserializerConfig protobufDeserializerConfig = new ProtobufDeserializerConfig(configs,
+                isKey);
         super.configure(configs, isKey);
         this.protobufDeserializer = new ProtobufDeserializer<>();
         protobufDeserializer.configure(protobufDeserializerConfig, isKey);
@@ -55,11 +57,11 @@ public class ProtobufKafkaDeserializer<U extends Message> extends AbstractKafkaD
     }
 
     /**
-     * @see AbstractDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer, int, int)
+     * @see AbstractDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
+     *      int, int)
      */
     @Override
-    protected U readData(ParsedSchema<ProtobufSchema> schema, ByteBuffer buffer, int start,
-                         int length) {
+    protected U readData(ParsedSchema<ProtobufSchema> schema, ByteBuffer buffer, int start, int length) {
         return protobufDeserializer.readData(schema, buffer, start, length);
     }
 

@@ -86,6 +86,8 @@
     <module>serdes/generic/serde-common-protobuf</module>
     <module>serdes/kafka/serde-common</module>
     <module>serdes/kafka/avro-serde</module>
+    <module>serdes/kafka/protobuf-serde</module>
+    <module>serdes/kafka/jsonschema-serde</module>
     <module>distro</module>
     <module>docs</module>
     <module>java-sdk</module>

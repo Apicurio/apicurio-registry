@@ -8,7 +8,6 @@ import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
-import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.serde.strategy.TopicIdStrategy;
 import io.apicurio.registry.types.ArtifactType;

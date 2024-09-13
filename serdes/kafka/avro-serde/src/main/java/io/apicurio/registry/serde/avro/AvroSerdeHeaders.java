@@ -1,6 +1,6 @@
 package io.apicurio.registry.serde.avro;
 
-import io.apicurio.registry.serde.headers.SerdeHeaders;
+import io.apicurio.registry.serde.headers.KafkaSerdeHeaders;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
@@ -12,9 +12,9 @@ public class AvroSerdeHeaders {
 
     public AvroSerdeHeaders(boolean isKey) {
         if (isKey) {
-            encodingHeaderName = SerdeHeaders.HEADER_KEY_ENCODING;
+            encodingHeaderName = KafkaSerdeHeaders.HEADER_KEY_ENCODING;
         } else {
-            encodingHeaderName = SerdeHeaders.HEADER_VALUE_ENCODING;
+            encodingHeaderName = KafkaSerdeHeaders.HEADER_VALUE_ENCODING;
         }
     }
 

@@ -57,7 +57,7 @@ public abstract class AbstractSerDe<T, U> extends SchemaResolverConfigurer<T, U>
         super(client, strategy, schemaResolver);
     }
 
-    protected void configure(SerdeConfig config, boolean isKey) {
+    public void configure(SerdeConfig config, boolean isKey) {
         super.configure(config.originals(), isKey, schemaParser());
 
         configureSerialization(config, isKey);
@@ -126,5 +126,9 @@ public abstract class AbstractSerDe<T, U> extends SchemaResolverConfigurer<T, U>
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public void as4ByteId() {
+        this.idHandler = new Default4ByteIdHandler();
     }
 }

@@ -4,6 +4,7 @@ import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -69,7 +70,7 @@ public class SerdeBasedConverter<S, T> implements Converter, Closeable {
             if (schemaResolver != null) {
                 des.setSchemaResolver(schemaResolver);
             }
-            des.configure(configs, isKey);
+            des.configure(new SerdeConfig(configs), isKey);
             if (schemaResolver != null && des.getSchemaResolver() != schemaResolver) {
                 throw new IllegalStateException("Schema resolver initialized multiple times");
             }

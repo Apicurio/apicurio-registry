@@ -1,6 +1,7 @@
 package io.apicurio.registry.serde.headers;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
@@ -20,7 +21,7 @@ public class DefaultHeadersHandlerTest {
         String contentHashHeaderName = "some key header name";
         String contentHashValue = "context hash value";
         Map<String, Object> configs = Collections
-                .singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+                .singletonMap(KafkaSerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders(new RecordHeader[] {
                 new RecordHeader(contentHashHeaderName, IoUtil.toBytes(contentHashValue)) });
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
@@ -35,7 +36,7 @@ public class DefaultHeadersHandlerTest {
     void testReadKeyHeadersHandlesMissingContentHash() {
         String contentHashHeaderName = "another key header name";
         Map<String, Object> configs = Collections
-                .singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+                .singletonMap(KafkaSerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders(new RecordHeader[] {});
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, true);
@@ -49,8 +50,8 @@ public class DefaultHeadersHandlerTest {
     void testReadValueHeadersHandlesPresentContentHash() {
         String contentHashHeaderName = "value header name";
         String contentHashValue = "some value";
-        Map<String, Object> configs = Collections
-                .singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        Map<String, Object> configs = Collections.singletonMap(
+                KafkaSerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders(new RecordHeader[] {
                 new RecordHeader(contentHashHeaderName, IoUtil.toBytes(contentHashValue)) });
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
@@ -64,8 +65,8 @@ public class DefaultHeadersHandlerTest {
     @Test
     void testReadValueHeadersHandlesMissingContentHash() {
         String contentHashHeaderName = "another value header name";
-        Map<String, Object> configs = Collections
-                .singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        Map<String, Object> configs = Collections.singletonMap(
+                KafkaSerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders(new RecordHeader[] {});
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, false);
@@ -80,7 +81,7 @@ public class DefaultHeadersHandlerTest {
         String contentHashHeaderName = "write key header name";
         String contentHashValue = "some write key value";
         Map<String, Object> configs = Collections
-                .singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+                .singletonMap(KafkaSerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, true);
@@ -95,7 +96,7 @@ public class DefaultHeadersHandlerTest {
     void testWriteKeyHeadersHandlesMissingContentHash() {
         String contentHashHeaderName = "another header name";
         Map<String, Object> configs = Collections
-                .singletonMap(SerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+                .singletonMap(KafkaSerdeConfig.HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, true);
@@ -110,8 +111,8 @@ public class DefaultHeadersHandlerTest {
     void testWriteValueHeadersHandlesPresentContentHash() {
         String contentHashHeaderName = "write value header name";
         String contentHashValue = "some write value";
-        Map<String, Object> configs = Collections
-                .singletonMap(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        Map<String, Object> configs = Collections.singletonMap(
+                KafkaSerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, false);
@@ -125,7 +126,7 @@ public class DefaultHeadersHandlerTest {
     @Test
     void testWriteValueHeadersHandlesMissingContentHash() {
         String contentHashHeaderName = "another write key header name";
-        Map<String, Object> configs = Map.of(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME,
+        Map<String, Object> configs = Map.of(KafkaSerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME,
                 contentHashHeaderName);
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
@@ -145,8 +146,8 @@ public class DefaultHeadersHandlerTest {
         String artifactIdValue = "a artifact ID";
 
         Map<String, Object> configs = new HashMap<>();
-        configs.put(SerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
-        configs.put(SerdeConfig.HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME, artifactIdHeaderName);
+        configs.put(KafkaSerdeConfig.HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, contentHashHeaderName);
+        configs.put(KafkaSerdeConfig.HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME, artifactIdHeaderName);
         RecordHeaders headers = new RecordHeaders();
         DefaultHeadersHandler handler = new DefaultHeadersHandler();
         handler.configure(configs, false);

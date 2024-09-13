@@ -1,5 +1,6 @@
 package io.apicurio.registry.serde.config;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static io.apicurio.registry.serde.config.SerdeConfig.FALLBACK_ARTIFACT_PROVIDER;
@@ -10,6 +11,9 @@ public class SerdeDeserializerConfig extends SerdeConfig {
 
     public SerdeDeserializerConfig(Map<String, ?> originals) {
         super(originals);
+        Map<String, Object> joint = new HashMap<>(DEFAULTS);
+        joint.putAll(originals);
+        this.originals = joint;
     }
 
     private static final Map<String, Object> DEFAULTS = Map

@@ -12,6 +12,7 @@ import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 import io.apicurio.registry.serde.strategy.ArtifactResolverStrategy;
 import io.apicurio.registry.serde.strategy.TopicIdStrategy;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -25,7 +26,9 @@ import static java.util.Map.entry;
 public class SerdeConfig extends AbstractConfig {
 
     public SerdeConfig(Map<String, ?> originals) {
-        this.originals = originals;
+        Map<String, Object> joint = new HashMap<>(DEFAULTS);
+        joint.putAll(originals);
+        this.originals = joint;
     }
 
     public SerdeConfig() {
@@ -75,11 +78,27 @@ public class SerdeConfig extends AbstractConfig {
     public static final boolean AUTO_REGISTER_ARTIFACT_DEFAULT = SchemaResolverConfig.AUTO_REGISTER_ARTIFACT_DEFAULT;
 
     /**
+     * Used to indicate the auto-register feature to try to dereference the schema before registering it in
+     * Registry. Only supported for Avro. Only applicable when
+     * {@link SchemaResolverConfig#AUTO_REGISTER_ARTIFACT} is enabled.
+     */
+
+    /**
      * Optional, one of {@link IfExists} to indicate the behavior of the client when there is a conflict
      * creating an artifact because the artifact already exists.
      */
     public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS = SchemaResolverConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS;
     public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT = SchemaResolverConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT;
+
+    public static final String DEREFERENCE_SCHEMA = SchemaResolverConfig.DEREFERENCE_SCHEMA;
+    public static final boolean DEREFERENCE_SCHEMA_DEFAULT = SchemaResolverConfig.DEREFERENCE_SCHEMA_DEFAULT;
+
+    /**
+     * Used to indicate the deserializer to ask Registry to return the schema dereferenced. This is useful to
+     * reduce the number of http requests to the server. Only applicable to Avro schemas.
+     */
+    public static final String DESERIALIZER_DEREFERENCE_SCHEMA = SchemaResolverConfig.DESERIALIZER_DEREFERENCE_SCHEMA;
+    public static final boolean DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT = SchemaResolverConfig.DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT;
 
     /**
      * Optional, boolean to indicate whether serializer classes should attempt to find the latest artifact in

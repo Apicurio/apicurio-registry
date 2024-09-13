@@ -51,11 +51,6 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
         super(schemaResolver);
     }
 
-    public JsonSchemaKafkaSerializer(RegistryClient client, Boolean validationEnabled) {
-        this(client);
-        this.validationEnabled = validationEnabled;
-    }
-
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#configure(java.util.Map, boolean)
      */

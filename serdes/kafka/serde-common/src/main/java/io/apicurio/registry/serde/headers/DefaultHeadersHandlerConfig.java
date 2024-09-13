@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.apicurio.registry.serde.config.KafkaSerdeConfig.*;
-import static io.apicurio.registry.serde.headers.SerdeHeaders.*;
+import static io.apicurio.registry.serde.headers.KafkaSerdeHeaders.*;
 import static java.util.Map.entry;
 
 public class DefaultHeadersHandlerConfig extends SerdeConfig {
@@ -29,7 +29,7 @@ public class DefaultHeadersHandlerConfig extends SerdeConfig {
     );
 
     public DefaultHeadersHandlerConfig(Map<String, Object> originals) {
-        Map<String, Object> joint = new HashMap<>(configDefs);
+        Map<String, Object> joint = new HashMap<>(getDefaults());
         joint.putAll(originals);
         this.originals = joint;
     }
@@ -80,10 +80,5 @@ public class DefaultHeadersHandlerConfig extends SerdeConfig {
 
     public String getValueVersionHeader() {
         return this.getString(HEADER_VALUE_VERSION_OVERRIDE_NAME);
-    }
-
-    @Override
-    protected Map<String, ?> getDefaults() {
-        return Collections.emptyMap();
     }
 }

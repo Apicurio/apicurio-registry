@@ -25,8 +25,8 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
     }
 
     public ProtobufKafkaSerializer(RegistryClient client,
-                                   ArtifactReferenceResolverStrategy<ProtobufSchema, U> artifactResolverStrategy,
-                                   SchemaResolver<ProtobufSchema, U> schemaResolver) {
+            ArtifactReferenceResolverStrategy<ProtobufSchema, U> artifactResolverStrategy,
+            SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(client, artifactResolverStrategy, schemaResolver);
     }
 
@@ -58,7 +58,7 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.resolver.ParsedSchema,
-     *         java.lang.Object, java.io.OutputStream)
+     *      java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out)
@@ -68,16 +68,15 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
 
     /**
      * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
-     *         io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
+     *      io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<ProtobufSchema> schema, U data,
-                                 OutputStream out) throws IOException {
+            OutputStream out) throws IOException {
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
             serdeHeaders.addProtobufTypeNameHeader(headers, data.getDescriptorForType().getName());
-        }
-        else {
+        } else {
             protobufSerializer.setWriteRef(false);
         }
 

@@ -4,7 +4,7 @@ package io.apicurio.registry.serde.headers;
  * Contains all of the header names used when serde classes are configured to pass information via headers
  * instead of via the message payload. Note that these header names can be overridden via configuration.
  */
-public class SerdeHeaders {
+public class KafkaSerdeHeaders {
 
     public static final String HEADER_KEY_ENCODING = "apicurio.key.encoding";
     public static final String HEADER_VALUE_ENCODING = "apicurio.value.encoding";

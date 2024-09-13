@@ -76,5 +76,4 @@ public class SchemaResolverConfigurer<T, U> {
         configs.put(SerdeConfig.IS_KEY, isKey);
         getSchemaResolver().configure(configs, schemaParser);
     }
-
 }

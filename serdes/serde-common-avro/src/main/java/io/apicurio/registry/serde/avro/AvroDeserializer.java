@@ -58,11 +58,6 @@ public class AvroDeserializer<U> extends AbstractDeserializer<Schema, U> {
     }
 
     @Override
-    protected U deserializeData(String topic, byte[] data) {
-        return super.deserializeData(topic, data);
-    }
-
-    @Override
     protected U readData(ParsedSchema<Schema> schema, ByteBuffer buffer, int start, int length) {
         AvroEncoding encoding = null;
         if (this.encoding == null) {

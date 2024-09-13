@@ -82,10 +82,9 @@
     <module>schema-resolver</module>
     <module>serdes/serde-common</module>
     <module>serdes/serde-common-avro</module>
+    <module>serdes/serde-common-jsonschema</module>
     <module>serdes/kafka/serde-common</module>
     <module>serdes/kafka/avro-serde</module>
-    <module>serdes/kafka/protobuf-serde</module>
-    <module>serdes/kafka/jsonschema-serde</module>
     <module>distro</module>
     <module>docs</module>
     <module>java-sdk</module>
@@ -335,27 +334,27 @@
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry-serde-kafka-common</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-serde-common-avro</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
+        <artifactId>apicurio-registry-serde-common-jsonschema</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry-serdes-protobuf-serde</artifactId>
+        <artifactId>apicurio-registry-serde-kafka-common</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
+        <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

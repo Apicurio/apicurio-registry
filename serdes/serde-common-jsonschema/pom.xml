@@ -5,12 +5,12 @@
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
     <version>3.0.0-SNAPSHOT</version>
-    <relativePath>../../../pom.xml</relativePath>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
+  <artifactId>apicurio-registry-serde-common-jsonschema</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-jsonschema-serde-kafka</name>
+  <name>apicurio-registry-serde-common-jsonschema</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
@@ -19,7 +19,7 @@
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-serde-kafka-common</artifactId>
+      <artifactId>apicurio-registry-serde-common</artifactId>
     </dependency>
 
     <dependency>

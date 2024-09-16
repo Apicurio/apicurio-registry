@@ -43,7 +43,9 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
         ProtobufSerializerConfig config = new ProtobufSerializerConfig(configs);
         serdeHeaders = new ProtobufSerdeHeaders(new HashMap<>(configs), isKey);
         this.protobufSerializer = new ProtobufSerializer<>();
-        this.protobufSerializer.setSchemaResolver(getSchemaResolver());
+        if (getSchemaResolver() != null) {
+            this.protobufSerializer.setSchemaResolver(getSchemaResolver());
+        }
         protobufSerializer.configure(config, isKey);
 
         super.configure(config, isKey);

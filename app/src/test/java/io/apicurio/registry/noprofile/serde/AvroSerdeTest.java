@@ -117,8 +117,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Assertions.assertEquals(record, deserializedRecord);
             Assertions.assertEquals("somebar", record.get("bar").toString());
 
-            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class);
-            config.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+            config.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
             serializer.configure(config, true);
             bytes = serializer.serialize(topic, record);
 
@@ -133,6 +133,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             deserializer.configure(deserializerConfig, true);
             record = deserializer.deserialize(topic, bytes);
             Assertions.assertEquals("somebar", record.get("bar").toString());
+
         });
 
         serializer.close();

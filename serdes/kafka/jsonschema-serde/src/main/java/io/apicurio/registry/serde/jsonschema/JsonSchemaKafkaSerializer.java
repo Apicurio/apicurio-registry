@@ -53,7 +53,9 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
     public void configure(Map<String, ?> configs, boolean isKey) {
         JsonSchemaSerializerConfig config = new JsonSchemaSerializerConfig(configs);
         this.jsonSchemaSerializer = new JsonSchemaSerializer<>();
-        this.jsonSchemaSerializer.setSchemaResolver(getSchemaResolver());
+        if (getSchemaResolver() != null) {
+            this.jsonSchemaSerializer.setSchemaResolver(getSchemaResolver());
+        }
         jsonSchemaSerializer.configure(config, isKey);
         serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
 

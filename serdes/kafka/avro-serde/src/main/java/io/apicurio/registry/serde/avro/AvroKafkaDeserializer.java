@@ -29,7 +29,9 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
         avroHeaders = new AvroSerdeHeaders(isKey);
         AvroSerdeConfig avroSerdeConfig = new AvroSerdeConfig(configs);
         this.avroDeserializer = new AvroDeserializer<>();
-        this.avroDeserializer.setSchemaResolver(getSchemaResolver());
+        if (getSchemaResolver() != null) {
+            this.avroDeserializer.setSchemaResolver(getSchemaResolver());
+        }
         avroDeserializer.configure(avroSerdeConfig, isKey);
 
         super.configure(configs, isKey);
@@ -61,6 +63,6 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
             avroDeserializer.setEncoding(encoding);
         }
 
-        return avroDeserializer.deserializeData(topic, data);
+        return super.deserialize(topic, headers, data);
     }
 }

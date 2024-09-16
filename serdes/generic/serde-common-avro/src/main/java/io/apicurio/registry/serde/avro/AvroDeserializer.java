@@ -75,7 +75,7 @@ public class AvroDeserializer<U> extends AbstractDeserializer<Schema, U> {
     @Override
     protected U readData(ParsedSchema<Schema> schema, ByteBuffer buffer, int start, int length) {
         AvroEncoding encoding = null;
-        if (this.encoding == null) {
+        if (this.encoding != null) {
             // no encoding in header or no headers so use config
             encoding = this.encoding;
         }

@@ -43,7 +43,9 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
         avroHeaders = new AvroSerdeHeaders(isKey);
         AvroSerdeConfig avroSerdeConfig = new AvroSerdeConfig(configs);
         this.avroSerializer = new AvroSerializer<>();
-        this.avroSerializer.setSchemaResolver(getSchemaResolver());
+        if (getSchemaResolver() != null) {
+            this.avroSerializer.setSchemaResolver(getSchemaResolver());
+        }
         avroSerializer.configure(avroSerdeConfig, isKey);
 
         super.configure(configs, isKey);

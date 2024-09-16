@@ -44,7 +44,9 @@ public class ProtobufKafkaDeserializer<U extends Message>
         ProtobufDeserializerConfig protobufDeserializerConfig = new ProtobufDeserializerConfig(configs,
                 isKey);
         this.protobufDeserializer = new ProtobufDeserializer<>();
-        this.protobufDeserializer.setSchemaResolver(getSchemaResolver());
+        if (getSchemaResolver() != null) {
+            this.protobufDeserializer.setSchemaResolver(getSchemaResolver());
+        }
         protobufDeserializer.configure(protobufDeserializerConfig, isKey);
 
         super.configure(configs, isKey);
@@ -75,6 +77,6 @@ public class ProtobufKafkaDeserializer<U extends Message>
             protobufDeserializer.setMessageTypeName(messageTypeHeader);
         }
 
-        return protobufDeserializer.deserializeData(topic, data);
+        return super.deserialize(topic, data);
     }
 }

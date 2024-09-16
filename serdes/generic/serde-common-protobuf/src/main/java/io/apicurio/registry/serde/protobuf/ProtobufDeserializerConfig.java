@@ -2,6 +2,7 @@ package io.apicurio.registry.serde.protobuf;
 
 import io.apicurio.registry.serde.config.SerdeConfig;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,6 +46,5 @@ public class ProtobufDeserializerConfig extends SerdeConfig {
         return joint;
     }
 
-    private static final Map<String, ?> DEFAULTS = Map.of(DESERIALIZER_SPECIFIC_KEY_RETURN_CLASS, null,
-            DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, null, DERIVE_CLASS_FROM_SCHEMA, null);
+    private static final Map<String, ?> DEFAULTS = Collections.emptyMap();
 }

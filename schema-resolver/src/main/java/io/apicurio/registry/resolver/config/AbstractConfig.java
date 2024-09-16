@@ -83,7 +83,7 @@ public abstract class AbstractConfig {
     protected Boolean getBoolean(String key) {
         Object value = getObject(key);
         if (value == null) {
-            return null;
+            return false;
         }
         if (value instanceof Boolean) {
             return (Boolean) value;

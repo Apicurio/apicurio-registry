@@ -48,7 +48,7 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
         }
         protobufSerializer.configure(config, isKey);
 
-        super.configure(config, isKey);
+        super.configure(configs, isKey);
     }
 
     /**

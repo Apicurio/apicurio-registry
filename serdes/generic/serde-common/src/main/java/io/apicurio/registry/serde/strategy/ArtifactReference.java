@@ -5,7 +5,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl;
 /**
  * There is a new implementation of this class that can be found here
  * {@link io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl} and here
- * {@linkio.apicurio.registry.resolver.strategy.ArtifactReference} We keep this class for compatibilty This
+ * {@link io.apicurio.registry.resolver.strategy.ArtifactReference} We keep this class for compatibilty This
  * class holds the information that reference one Artifact in Apicurio Registry. It will always make reference
  * to an artifact in a group. Optionally it can reference to a specific version.
  */

@@ -41,11 +41,12 @@ public class ProtobufKafkaSerializer<U extends Message> extends AbstractKafkaSer
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         ProtobufSerializerConfig config = new ProtobufSerializerConfig(configs);
-        super.configure(config, isKey);
-
         serdeHeaders = new ProtobufSerdeHeaders(new HashMap<>(configs), isKey);
         this.protobufSerializer = new ProtobufSerializer<>();
+        this.protobufSerializer.setSchemaResolver(getSchemaResolver());
         protobufSerializer.configure(config, isKey);
+
+        super.configure(config, isKey);
     }
 
     /**

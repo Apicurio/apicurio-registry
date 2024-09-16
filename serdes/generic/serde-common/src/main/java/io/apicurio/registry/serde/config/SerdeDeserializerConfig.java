@@ -10,7 +10,9 @@ import static java.util.Map.entry;
 public class SerdeDeserializerConfig extends SerdeConfig {
 
     public SerdeDeserializerConfig(Map<String, ?> originals) {
-        super(originals);
+        Map<String, Object> joint = new HashMap<>(getDefaults());
+        joint.putAll(originals);
+        this.originals = joint;
     }
 
     private static final Map<String, Object> DEFAULTS = Map

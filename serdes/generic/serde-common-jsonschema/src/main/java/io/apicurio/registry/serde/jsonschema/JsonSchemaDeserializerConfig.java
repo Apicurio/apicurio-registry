@@ -15,11 +15,15 @@ public class JsonSchemaDeserializerConfig extends SerdeConfig {
      * @param originals
      */
     public JsonSchemaDeserializerConfig(Map<String, ?> originals) {
-        super(originals);
+        Map<String, Object> joint = new HashMap<>(getDefaults());
+        joint.putAll(originals);
+        this.originals = joint;
     }
 
     public JsonSchemaDeserializerConfig(Map<String, ?> originals, boolean isKey) {
-        super(originals);
+        Map<String, Object> joint = new HashMap<>(getDefaults());
+        joint.putAll(originals);
+        this.originals = joint;
         this.isKey = isKey;
     }
 

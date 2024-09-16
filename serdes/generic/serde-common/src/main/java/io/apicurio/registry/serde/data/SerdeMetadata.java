@@ -8,8 +8,8 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
  */
 public class SerdeMetadata implements Metadata {
 
-    private String topic;
-    private boolean isKey;
+    private final String topic;
+    private final boolean isKey;
 
     public SerdeMetadata(String topic, boolean isKey) {
         this.topic = topic;

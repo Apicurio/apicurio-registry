@@ -20,9 +20,10 @@ public class ProtobufDeserializerConfig extends SerdeConfig {
      * @param originals
      */
     public ProtobufDeserializerConfig(Map<String, ?> originals, boolean isKey) {
-        super(originals);
+        Map<String, Object> joint = new HashMap<>(getDefaults());
+        joint.putAll(originals);
+        this.originals = joint;
         this.isKey = isKey;
-
     }
 
     public Class<?> getSpecificReturnClass() {

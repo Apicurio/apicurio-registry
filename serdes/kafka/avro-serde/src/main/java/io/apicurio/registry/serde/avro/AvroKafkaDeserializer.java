@@ -28,9 +28,11 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
     public void configure(Map<String, ?> configs, boolean isKey) {
         avroHeaders = new AvroSerdeHeaders(isKey);
         AvroSerdeConfig avroSerdeConfig = new AvroSerdeConfig(configs);
-        super.configure(configs, isKey);
         this.avroDeserializer = new AvroDeserializer<>();
+        this.avroDeserializer.setSchemaResolver(getSchemaResolver());
         avroDeserializer.configure(avroSerdeConfig, isKey);
+
+        super.configure(configs, isKey);
     }
 
     /**

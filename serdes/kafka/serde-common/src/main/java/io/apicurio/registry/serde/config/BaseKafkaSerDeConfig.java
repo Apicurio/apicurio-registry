@@ -13,7 +13,9 @@ import static java.util.Map.entry;
 public class BaseKafkaSerDeConfig extends SerdeConfig {
 
     public BaseKafkaSerDeConfig(Map<String, ?> originals) {
-        this.originals = originals;
+        Map<String, Object> joint = new HashMap<>(getDefaults());
+        joint.putAll(originals);
+        this.originals = joint;
     }
 
     public BaseKafkaSerDeConfig() {

@@ -25,6 +25,7 @@ import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
 import io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
+import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.headers.KafkaSerdeHeaders;

@@ -18,7 +18,6 @@ public interface FallbackArtifactProvider {
      * artifact that will be used to deserialize the kafka message
      * 
      * @param topic
-     * @param can be null
      * @param data
      * @return
      */

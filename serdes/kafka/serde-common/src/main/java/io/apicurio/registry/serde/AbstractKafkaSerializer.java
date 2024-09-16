@@ -49,7 +49,6 @@ public abstract class AbstractKafkaSerializer<T, U> extends AbstractSerializer<T
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         super.configure(new SerdeConfig(configs), isKey);
-
         this.configure(new BaseKafkaSerDeConfig(configs), isKey);
     }
 

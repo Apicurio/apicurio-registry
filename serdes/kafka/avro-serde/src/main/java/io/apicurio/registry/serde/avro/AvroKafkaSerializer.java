@@ -42,11 +42,11 @@ public class AvroKafkaSerializer<U> extends AbstractKafkaSerializer<Schema, U> {
     public void configure(Map<String, ?> configs, boolean isKey) {
         avroHeaders = new AvroSerdeHeaders(isKey);
         AvroSerdeConfig avroSerdeConfig = new AvroSerdeConfig(configs);
+        this.avroSerializer = new AvroSerializer<>();
+        this.avroSerializer.setSchemaResolver(getSchemaResolver());
+        avroSerializer.configure(avroSerdeConfig, isKey);
 
         super.configure(configs, isKey);
-
-        this.avroSerializer = new AvroSerializer<>();
-        avroSerializer.configure(avroSerdeConfig, isKey);
     }
 
     /**

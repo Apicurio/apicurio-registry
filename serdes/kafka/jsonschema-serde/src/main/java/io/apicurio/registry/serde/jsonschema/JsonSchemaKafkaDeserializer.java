@@ -43,7 +43,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
     public void configure(Map<String, ?> configs, boolean isKey) {
         JsonSchemaDeserializerConfig config = new JsonSchemaDeserializerConfig(configs, isKey);
         this.jsonSchemaDeserializer = new JsonSchemaDeserializer<>();
-
+        this.jsonSchemaDeserializer.setSchemaResolver(getSchemaResolver());
         jsonSchemaDeserializer.configure(config, isKey);
 
         this.serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);

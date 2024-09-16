@@ -26,7 +26,7 @@ import static java.util.Map.entry;
 public class SerdeConfig extends AbstractConfig {
 
     public SerdeConfig(Map<String, ?> originals) {
-        Map<String, Object> joint = new HashMap<>(DEFAULTS);
+        Map<String, Object> joint = new HashMap<>(getDefaults());
         joint.putAll(originals);
         this.originals = joint;
     }

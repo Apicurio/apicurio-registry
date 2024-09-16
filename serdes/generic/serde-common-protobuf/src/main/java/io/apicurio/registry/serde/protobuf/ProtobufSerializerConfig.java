@@ -13,7 +13,9 @@ public class ProtobufSerializerConfig extends SerdeConfig {
      * @param originals
      */
     public ProtobufSerializerConfig(Map<String, ?> originals) {
-        super(originals);
+        Map<String, Object> joint = new HashMap<>(getDefaults());
+        joint.putAll(originals);
+        this.originals = joint;
     }
 
     public boolean validationEnabled() {

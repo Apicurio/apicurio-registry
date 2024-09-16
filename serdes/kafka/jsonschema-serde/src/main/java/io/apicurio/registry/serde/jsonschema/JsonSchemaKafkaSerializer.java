@@ -1,8 +1,5 @@
 package io.apicurio.registry.serde.jsonschema;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
@@ -27,11 +24,9 @@ import java.util.Map;
 public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T>
         implements Serializer<T> {
 
-    private ObjectMapper mapper;
-    private final JsonSchemaParser<T> parser = new JsonSchemaParser<>();
-
-    private Boolean validationEnabled;
     private MessageTypeSerdeHeaders serdeHeaders;
+
+    private JsonSchemaSerializer<T> jsonSchemaSerializer;
 
     public JsonSchemaKafkaSerializer() {
         super();
@@ -57,34 +52,19 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         JsonSchemaSerializerConfig config = new JsonSchemaSerializerConfig(configs);
-        super.configure(config, isKey);
-
-        if (validationEnabled == null) {
-            this.validationEnabled = config.validationEnabled();
-        }
-
+        this.jsonSchemaSerializer = new JsonSchemaSerializer<>();
+        this.jsonSchemaSerializer.setSchemaResolver(getSchemaResolver());
+        jsonSchemaSerializer.configure(config, isKey);
         serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
 
-        if (null == mapper) {
-            this.mapper = new ObjectMapper()
-                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        }
-    }
-
-    public boolean isValidationEnabled() {
-        return validationEnabled != null && validationEnabled;
-    }
-
-    public void setObjectMapper(ObjectMapper objectMapper) {
-        this.mapper = objectMapper;
+        super.configure(config, isKey);
     }
 
     /**
      * @param validationEnabled the validationEnabled to set
      */
     public void setValidationEnabled(Boolean validationEnabled) {
-        this.validationEnabled = validationEnabled;
+        this.jsonSchemaSerializer.setValidationEnabled(validationEnabled);
     }
 
     /**
@@ -92,7 +72,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
      */
     @Override
     public SchemaParser<JsonSchema, T> schemaParser() {
-        return parser;
+        return jsonSchemaSerializer.schemaParser();
     }
 
     /**
@@ -112,13 +92,11 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
     @Override
     protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out)
             throws IOException {
-        final byte[] dataBytes = mapper.writeValueAsBytes(data);
-        if (isValidationEnabled()) {
-            JsonSchemaValidationUtil.validateDataWithSchema(schema, dataBytes, mapper);
-        }
+
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
         }
-        out.write(dataBytes);
+
+        serializeData(schema, data, out);
     }
 }

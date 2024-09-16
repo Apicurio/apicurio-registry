@@ -43,9 +43,11 @@ public class ProtobufKafkaDeserializer<U extends Message>
         serdeHeaders = new ProtobufSerdeHeaders(new HashMap<>(configs), isKey);
         ProtobufDeserializerConfig protobufDeserializerConfig = new ProtobufDeserializerConfig(configs,
                 isKey);
-        super.configure(configs, isKey);
         this.protobufDeserializer = new ProtobufDeserializer<>();
+        this.protobufDeserializer.setSchemaResolver(getSchemaResolver());
         protobufDeserializer.configure(protobufDeserializerConfig, isKey);
+
+        super.configure(configs, isKey);
     }
 
     /**

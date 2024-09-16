@@ -22,12 +22,10 @@ public class AvroSerdeConfig extends SerdeConfig {
     public static final String USE_SPECIFIC_AVRO_READER = "apicurio.registry.use-specific-avro-reader";
     public static final boolean USE_SPECIFIC_AVRO_READER_DEFAULT = false;
 
-    private static final Map<String, ?> DEFAULTS = Map.of(AVRO_ENCODING, AvroEncoding.BINARY.name(),
-            AVRO_DATUM_PROVIDER, AVRO_DATUM_PROVIDER_DEFAULT, USE_SPECIFIC_AVRO_READER,
-            USE_SPECIFIC_AVRO_READER_DEFAULT);
-
     public AvroSerdeConfig(Map<String, ?> originals) {
-        super(originals);
+        Map<String, Object> joint = new HashMap<>(getDefaults());
+        joint.putAll(originals);
+        this.originals = joint;
     }
 
     public AvroEncoding getAvroEncoding() {
@@ -48,4 +46,8 @@ public class AvroSerdeConfig extends SerdeConfig {
         joint.putAll(DEFAULTS);
         return joint;
     }
+
+    private static final Map<String, ?> DEFAULTS = Map.of(AVRO_ENCODING, AvroEncoding.BINARY.name(),
+            AVRO_DATUM_PROVIDER, AVRO_DATUM_PROVIDER_DEFAULT, USE_SPECIFIC_AVRO_READER,
+            USE_SPECIFIC_AVRO_READER_DEFAULT);
 }

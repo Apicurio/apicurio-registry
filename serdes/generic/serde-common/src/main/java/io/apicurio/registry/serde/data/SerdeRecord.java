@@ -4,8 +4,8 @@ import io.apicurio.registry.resolver.data.Record;
 
 public class SerdeRecord<T> implements Record<T> {
 
-    private SerdeMetadata metadata;
-    private T payload;
+    private final SerdeMetadata metadata;
+    private final T payload;
 
     public SerdeRecord(SerdeMetadata metadata, T payload) {
         this.metadata = metadata;

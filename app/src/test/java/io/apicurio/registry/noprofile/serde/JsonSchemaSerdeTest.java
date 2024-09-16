@@ -16,6 +16,7 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.SchemaResolverConfigurer;
+import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.headers.KafkaSerdeHeaders;

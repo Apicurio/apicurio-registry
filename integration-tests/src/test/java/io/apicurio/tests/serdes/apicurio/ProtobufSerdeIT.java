@@ -3,7 +3,9 @@ package io.apicurio.tests.serdes.apicurio;
 import com.google.protobuf.DynamicMessage;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.config.KafkaSerdeConfig;
+import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.protobuf.ProtobufDeserializerConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
@@ -56,7 +58,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         logRestClientError(() -> {
             new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                    .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
+                    .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
                     .withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                     .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
                     .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
@@ -76,7 +78,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         logRestClientError(() -> {
             new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                    .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
+                    .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
                     .withDeserializer(deserializer).withStrategy(SimpleTopicIdStrategy.class)
                     .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
                     .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
@@ -167,21 +169,21 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         // by default the artifact is found by content so this should work by finding the version 1 of the
         // artifact
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
+                .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
                 .withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "false")
                 .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_VERSION, "1")
                 .withDataGenerator(schemaV1::generateMessage).withDataValidator(schemaV1::validateMessage)
                 .build().test();
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
-                .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
+                .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
                 .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "false")
                 .withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(schemaV1::generateMessage).withDataValidator(schemaV1::validateMessage)
                 .build().test();
         new SimpleSerdesTesterBuilder<TestCmmn.UUID, TestCmmn.UUID>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
-                .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true")
+                .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true")
                 .withDataGenerator(schemaV2::generateMessage).withDataValidator(schemaV2::validateTypeMessage)
                 .build().test();
 
@@ -195,13 +197,13 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         // if find latest is enabled and we use the v2 schema it should work. Validation is enabled by default
         new SimpleSerdesTesterBuilder<TestCmmn.UUID, TestCmmn.UUID>().withTopic(topicName)
-                .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
+                .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
                 .withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
                 .withDataGenerator(schemaV2::generateMessage).withDataValidator(schemaV2::validateTypeMessage)
                 .build().test();
         new SimpleSerdesTesterBuilder<TestCmmn.UUID, TestCmmn.UUID>().withTopic(topicName)
-                .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
+                .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
                 .withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withProducerProperty(SerdeConfig.EXPLICIT_ARTIFACT_VERSION, "2")
                 .withDataGenerator(schemaV2::generateMessage).withDataValidator(schemaV2::validateTypeMessage)
@@ -268,7 +270,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
                     .withSerializer(serializer).withDeserializer(deserializer)
                     .withStrategy(TopicIdStrategy.class).withDataGenerator(schema::generateMessage)
                     .withDataValidator(schema::validateMessage)
-                    .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+                    .withConsumerProperty(ProtobufDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
                     .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
         });
     }
@@ -289,7 +291,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
                     .withSerializer(serializer).withDeserializer(deserializer)
                     .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(schema::generateMessage)
                     .withDataValidator(schema::validateMessage)
-                    .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+                    .withConsumerProperty(ProtobufDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
                     .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true").build();
         });
     }
@@ -311,7 +313,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         logRestClientError(() -> {
             new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
                     .withSerializer(serializer).withDeserializer(deserializer)
-                    .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true")
+                    .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true")
                     .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(schema::generateMessage)
                     .withDataValidator(schema::validateMessage)
                     .withProducerProperty(SerdeConfig.FIND_LATEST_ARTIFACT, "true")
@@ -368,7 +370,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
-                .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true")
+                .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true")
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
@@ -435,7 +437,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-                .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+                .withConsumerProperty(ProtobufDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
                         VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts()
@@ -467,7 +469,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage)
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-                .withConsumerProperty(ProtobufKafkaDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
+                .withConsumerProperty(ProtobufDeserializerConfig.DERIVE_CLASS_FROM_SCHEMA, "true")
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
                         VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts()

@@ -1,7 +1,8 @@
 package io.apicurio.tests.serdes.apicurio;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.config.KafkaSerdeConfig;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
@@ -54,7 +55,7 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<ValidMessage, ValidMessage>().withTopic(topicName)
-                .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
+                .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
                 .withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage).build()
                 .test();
@@ -72,7 +73,7 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<ValidMessage, ValidMessage>().withTopic(topicName)
-                .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
+                .withCommonProperty(KafkaSerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
                 .withDeserializer(deserializer).withStrategy(SimpleTopicIdStrategy.class)
                 .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage).build()
                 .test();

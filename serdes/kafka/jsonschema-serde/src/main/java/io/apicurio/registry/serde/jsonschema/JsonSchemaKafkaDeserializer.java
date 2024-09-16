@@ -71,7 +71,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
 
     @Override
     public T deserialize(String topic, Headers headers, byte[] data) {
-        if (headers != null) {
+        if (headers != null && jsonSchemaDeserializer.getSpecificReturnClass() == null) {
             String javaType = serdeHeaders.getMessageType(headers);
             jsonSchemaDeserializer
                     .setSpecificReturnClass(javaType == null ? null : Utils.loadClass(javaType));

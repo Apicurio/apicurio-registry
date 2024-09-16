@@ -77,6 +77,6 @@ public class ProtobufKafkaDeserializer<U extends Message>
             protobufDeserializer.setMessageTypeName(messageTypeHeader);
         }
 
-        return super.deserialize(topic, data);
+        return super.deserialize(topic, headers, data);
     }
 }

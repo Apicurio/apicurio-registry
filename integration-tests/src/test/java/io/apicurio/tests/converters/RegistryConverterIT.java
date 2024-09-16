@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerDe;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.AvroSerdeConfig;
 import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.serde.config.SerdeConfig;
@@ -67,17 +67,14 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         config.put(SerdeBasedConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM,
                 AvroKafkaDeserializer.class.getName());
         config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
-        config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
-        SerdeBasedConverter<Void, Record> converter = new SerdeBasedConverter<>();
+        config.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
 
-        byte[] bytes;
-        try {
+        try (SerdeBasedConverter<Void, Record> converter = new SerdeBasedConverter<>()) {
+            byte[] bytes;
             converter.configure(config, true);
             bytes = converter.fromConnectData(topic, null, record);
             record = (Record) converter.toConnectData(topic, bytes).value();
             Assertions.assertEquals("somebar", record.get("bar").toString());
-        } finally {
-            converter.close();
         }
 
     }

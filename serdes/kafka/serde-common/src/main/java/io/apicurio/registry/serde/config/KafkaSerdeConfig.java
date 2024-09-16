@@ -11,7 +11,7 @@ public class KafkaSerdeConfig {
      * of in the message payload.
      */
     public static final String ENABLE_HEADERS = "apicurio.registry.headers.enabled";
-    public static final boolean ENABLE_HEADERS_DEFAULT = true;
+    public static final boolean ENABLE_HEADERS_DEFAULT = false;
 
     /**
      * Fully qualified Java classname of a class that implements {@link HeadersHandler} and is responsible for

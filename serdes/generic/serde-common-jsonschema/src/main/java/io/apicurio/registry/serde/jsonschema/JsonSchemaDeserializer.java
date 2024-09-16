@@ -84,6 +84,10 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         this.specificReturnClass = specificReturnClass;
     }
 
+    public Class<T> getSpecificReturnClass() {
+        return specificReturnClass;
+    }
+
     /**
      * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
      */
@@ -93,7 +97,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
     }
 
     /**
-     * @see AbstractDeserializer#readData( io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
+     * @see AbstractDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
      *      int, int)
      */
     @Override

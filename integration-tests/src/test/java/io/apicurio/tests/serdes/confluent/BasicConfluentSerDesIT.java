@@ -105,7 +105,6 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(AvroKafkaSerializer.class)
-
                 // very important
                 .withDeserializer(KafkaAvroDeserializer.class)
                 .withStrategy(io.apicurio.registry.serde.strategy.TopicIdStrategy.class)

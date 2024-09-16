@@ -4,11 +4,11 @@ import com.kubetrade.schema.common.Exchange;
 import com.kubetrade.schema.trade.TradeKey;
 import com.kubetrade.schema.trade.TradeRaw;
 import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.AvroSerdeConfig;
 import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -26,7 +26,7 @@ import java.util.Properties;
 
 public class AvroSerdeReferencesExample {
 
-    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
+    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
     private static final String SERVERS = "localhost:9092";
     private static final String TOPIC_NAME = AvroSerdeReferencesExample.class.getSimpleName();
     private static final String SUBJECT_NAME = "Trade";
@@ -116,7 +116,7 @@ public class AvroSerdeReferencesExample {
         // Register the artifact if not found in the registry.
         props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT, Boolean.TRUE);
         props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS, IfExists.RETURN.name());
-        props.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
+        props.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
 
         // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
@@ -142,8 +142,8 @@ public class AvroSerdeReferencesExample {
         // Use the Apicurio Registry provided Kafka Deserializer for Avro
         props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 AvroKafkaDeserializer.class.getName());
-        props.putIfAbsent(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
-        props.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
+        props.putIfAbsent(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+        props.putIfAbsent(AvroSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);

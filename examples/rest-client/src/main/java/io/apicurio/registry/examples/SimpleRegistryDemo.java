@@ -23,7 +23,7 @@ public class SimpleRegistryDemo {
 
     static {
         // Create a Service Registry client
-        String registryUrl = "http://localhost:8080/apis/registry/v2";
+        String registryUrl = "http://localhost:8080/apis/registry/v3";
         vertx = Vertx.vertx();
         client = createProperClient(registryUrl);
     }

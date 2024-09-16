@@ -41,7 +41,7 @@ import java.util.Optional;
  */
 public class SimpleValidationExample {
 
-    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
+    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
     private static final String GROUP = "Examples";
     private static final String ARTIFACT_ID = "MessageType";
     private static final SecureRandom rand = new SecureRandom();

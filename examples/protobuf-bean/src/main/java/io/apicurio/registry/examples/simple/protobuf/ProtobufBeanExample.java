@@ -21,7 +21,7 @@ import io.apicurio.registry.examples.AddressBookProtos;
 import io.apicurio.registry.examples.AddressBookProtos.AddressBook;
 import io.apicurio.registry.examples.AddressBookProtos.Person;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.utils.IoUtil;
@@ -61,7 +61,7 @@ import java.util.Properties;
  */
 public class ProtobufBeanExample {
 
-    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
+    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
     private static final String SERVERS = "localhost:9092";
     private static final String TOPIC_NAME = ProtobufBeanExample.class.getSimpleName();
     private static final String SCHEMA_NAME = "AddressBook";

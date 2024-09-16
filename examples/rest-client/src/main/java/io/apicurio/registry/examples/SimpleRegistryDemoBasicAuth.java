@@ -22,7 +22,7 @@ public class SimpleRegistryDemoBasicAuth {
 
     static {
         // Create a Service Registry client
-        String registryUrl = "http://localhost:8080/apis/registry/v2";
+        String registryUrl = "http://localhost:8080/apis/registry/v3";
         client = createProperClient(registryUrl);
     }
 

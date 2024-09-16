@@ -10,6 +10,7 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
@@ -120,16 +121,21 @@ public abstract class AbstractDirectoryParser<Schema> {
         }).collect(Collectors.toList()));
         createVersion.setContent(content);
 
-        var amd = client.groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
-            config.queryParameters.ifExists = IfArtifactExists.forValue(artifact.getIfExists().value());
-            config.queryParameters.canonical = canonicalize;
-        });
+        try {
+            var amd = client.groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
+                config.queryParameters.ifExists = IfArtifactExists.forValue(artifact.getIfExists().value());
+                config.queryParameters.canonical = canonicalize;
+            });
 
-        // client.createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null,
-        // ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
-        log.info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId,
-                artifactId, amd.getVersion().getGlobalId()));
+            // client.createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null,
+            // ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
+            log.info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId,
+                    artifactId, amd.getVersion().getGlobalId()));
 
-        return amd;
+            return amd;
+
+        } catch (ProblemDetails e) {
+            throw new RuntimeException(e.getDetail());
+        }
     }
 }

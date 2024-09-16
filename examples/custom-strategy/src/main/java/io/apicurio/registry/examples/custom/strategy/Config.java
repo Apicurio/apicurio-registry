@@ -21,7 +21,7 @@ package io.apicurio.registry.examples.custom.strategy;
  */
 public class Config {
 
-    public static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
+    public static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
     public static final String SERVERS = "localhost:9092";
     public static final String TOPIC_NAME = CustomStrategyExample.class.getSimpleName();
     public static final String SUBJECT_NAME = "Greeting";

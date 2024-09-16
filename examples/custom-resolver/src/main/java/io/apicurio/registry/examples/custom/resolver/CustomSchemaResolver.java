@@ -83,12 +83,12 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
                     .builder();
 
             SchemaLookupResult<Schema> result = lookupResultBuilder.groupId(groupId).artifactId(artifactId)
-                    .version(String.valueOf(metaData.getVersion())).globalId(metaData.getGlobalId())
+                    .version(String.valueOf(metaData.getVersion())).contentId(metaData.getContentId())
                     .parsedSchema(parsedSchema).build();
 
-            // Also update the schemaCacheByGlobalId - useful if this resolver is used by both
+            // Also update the schemaCacheByContentId - useful if this resolver is used by both
             // the serializer and deserializer in the same Java application.
-            return schemaCache.getByGlobalId(metaData.getGlobalId(), (id) -> result);
+            return schemaCache.getByContentId(metaData.getContentId(), (id) -> result);
         });
     }
 

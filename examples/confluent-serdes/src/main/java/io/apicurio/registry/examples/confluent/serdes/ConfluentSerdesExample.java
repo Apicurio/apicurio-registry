@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.examples.confluent.serdes;
 
-import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
@@ -62,8 +62,8 @@ import java.util.Properties;
  */
 public class ConfluentSerdesExample {
 
-    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
-    private static final String CCOMPAT_API_URL = "http://localhost:8080/apis/ccompat/v6";
+    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
+    private static final String CCOMPAT_API_URL = "http://localhost:8080/apis/ccompat/v7";
 
     private static final String SERVERS = "localhost:9092";
     private static final String TOPIC_NAME = ConfluentSerdesExample.class.getSimpleName();

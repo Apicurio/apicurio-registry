@@ -20,9 +20,9 @@ import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -73,7 +73,7 @@ import java.util.Properties;
  */
 public class SimpleAvroMavenExample {
 
-    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
+    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
     private static final String SERVERS = "localhost:9092";
     private static final String TOPIC_NAME = SimpleAvroMavenExample.class.getSimpleName();
     private static final String SUBJECT_NAME = "Greeting";

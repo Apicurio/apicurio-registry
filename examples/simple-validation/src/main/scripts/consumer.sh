@@ -2,7 +2,7 @@
 
 DONE=false
 
-curl -s http://localhost:8080/apis/registry/v2/groups/Examples/artifacts/MessageType > _schema.json
+curl -s http://localhost:8080/apis/registry/v3/groups/Examples/artifacts/MessageType > _schema.json
 echo "Schema fetched from registry."
 cat _schema.json
 

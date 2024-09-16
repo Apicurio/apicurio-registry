@@ -25,7 +25,7 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.VersionContent;
-import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.types.ArtifactType;
@@ -71,7 +71,7 @@ import java.util.Properties;
  */
 public class ProtobufFindLatestExample {
 
-    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
+    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
     private static final String SERVERS = "localhost:9092";
     private static final String TOPIC_NAME = ProtobufFindLatestExample.class.getSimpleName();
     private static final String SCHEMA_NAME = "AddressBook";

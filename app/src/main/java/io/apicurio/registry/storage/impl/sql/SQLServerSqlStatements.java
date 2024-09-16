@@ -57,21 +57,6 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
-     */
-    @Override
-    public String upsertContent() {
-        return """
-                MERGE INTO content AS target
-                USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (contentId, canonicalHash, contentHash, contentType, content, refs)
-                ON (target.contentHash = source.contentHash)
-                WHEN NOT MATCHED THEN
-                INSERT (contentId, canonicalHash, contentHash, contentType, content, refs)
-                VALUES (source.contentId, source.canonicalHash, source.contentHash, source.contentType, source.content, source.refs)
-                """;
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */
     @Override
@@ -104,21 +89,6 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 INSERT (seqName, seqValue)
                 VALUES (source.seqName, source.seqValue)
                 OUTPUT INSERTED.seqValue
-                """;
-    }
-
-    /**
-     * @see SqlStatements#upsertContentReference()
-     */
-    @Override
-    public String upsertContentReference() {
-        return """
-                MERGE INTO content_references AS target
-                USING (VALUES (?, ?, ?, ?, ?)) AS source (contentId, groupId, artifactId, version, name)
-                ON (target.contentId = source.contentId AND target.name = source.name)
-                WHEN NOT MATCHED THEN
-                INSERT (contentId, groupId, artifactId, version, name)
-                VALUES (source.contentId, source.groupId, source.artifactId, source.version, source.name)
                 """;
     }
 

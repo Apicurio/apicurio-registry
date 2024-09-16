@@ -166,9 +166,9 @@ public interface SqlStatements {
     public String selectArtifactContentIds();
 
     /**
-     * A statement to "upsert" a row in the "content" table.
+     * A statement to insert a row in the "content" table.
      */
-    public String upsertContent();
+    public String insertContent();
 
     /**
      * A statement to update canonicalHash value in a row in the "content" table
@@ -347,7 +347,7 @@ public interface SqlStatements {
     /**
      * A statement to insert a row in the "references" table.
      */
-    public String upsertContentReference();
+    public String insertContentReference();
 
     /**
      * A statement to select ids of content referencing artifact

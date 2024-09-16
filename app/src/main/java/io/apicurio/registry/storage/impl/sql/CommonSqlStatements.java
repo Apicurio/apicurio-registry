@@ -630,6 +630,22 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertContent()
+     */
+    @Override
+    public String insertContent() {
+        return "INSERT INTO content (contentId, canonicalHash, contentHash, contentType, content, refs) VALUES (?, ?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see SqlStatements#insertContentReference()
+     */
+    @Override
+    public String insertContentReference() {
+        return "INSERT INTO content_references (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?)";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertGroup()
      */
     @Override

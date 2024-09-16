@@ -38,19 +38,11 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
         return "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_name = 'APICURIO'";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
-     */
-    @Override
-    public String upsertContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, contentType, content, refs) VALUES (?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -66,15 +58,17 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return "MERGE INTO sequences (seqName, seqValue) KEY (seqName) VALUES(?, ?)";
+        throw new RuntimeException("Not applicable when using H2 as the database kind.");
     }
 
-    /**
-     * @see SqlStatements#upsertContentReference()
-     */
     @Override
-    public String upsertContentReference() {
-        return "INSERT INTO content_references (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?)";
+    public String insertSequenceValue() {
+        throw new RuntimeException("Not applicable when using H2 as the database kind.");
+    }
+
+    @Override
+    public String selectCurrentSequenceValue() {
+        throw new RuntimeException("Not applicable when using H2 as the database kind.");
     }
 
     @Override

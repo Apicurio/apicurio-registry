@@ -46,6 +46,5 @@ public class JsonSchemaDeserializerConfig extends SerdeConfig {
         return joint;
     }
 
-    private static final Map<String, ?> DEFAULTS = Map.of(DESERIALIZER_SPECIFIC_KEY_RETURN_CLASS, null,
-            DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, null, VALIDATION_ENABLED, VALIDATION_ENABLED_DEFAULT);
+    private static final Map<String, ?> DEFAULTS = Map.of(VALIDATION_ENABLED, VALIDATION_ENABLED_DEFAULT);
 }

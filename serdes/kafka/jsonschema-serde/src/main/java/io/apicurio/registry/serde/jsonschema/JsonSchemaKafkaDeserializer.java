@@ -49,7 +49,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
         jsonSchemaDeserializer.configure(config, isKey);
 
         this.serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
-        super.configure(config, isKey);
+        super.configure(configs, isKey);
     }
 
     /**
@@ -77,6 +77,6 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
                     .setSpecificReturnClass(javaType == null ? null : Utils.loadClass(javaType));
         }
 
-        return super.deserializeData(topic, data);
+        return super.deserialize(topic, headers, data);
     }
 }

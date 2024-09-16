@@ -119,7 +119,7 @@ public abstract class AbstractConfig {
             if (originalsClassName != null) {
                 return this.getClass().getClassLoader().loadClass(originalsClassName);
             } else {
-                throw new IllegalStateException("Unreachable");
+                return null;
             }
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);

@@ -9,7 +9,6 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractKafkaSerializer;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -21,8 +20,7 @@ import java.util.Map;
  * user's application needs to serialize a Java Bean to JSON data using Jackson. In addition to standard
  * serialization of the bean, this implementation can also optionally validate it against a JSON schema.
  */
-public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T>
-        implements Serializer<T> {
+public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T> {
 
     private MessageTypeSerdeHeaders serdeHeaders;
 
@@ -59,7 +57,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
         jsonSchemaSerializer.configure(config, isKey);
         serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
 
-        super.configure(config, isKey);
+        super.configure(configs, isKey);
     }
 
     /**
@@ -84,7 +82,7 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
     @Override
     protected void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out)
             throws IOException {
-        serializeData(null, schema, data, out);
+        jsonSchemaSerializer.serializeData(schema, data, out);
     }
 
     /**

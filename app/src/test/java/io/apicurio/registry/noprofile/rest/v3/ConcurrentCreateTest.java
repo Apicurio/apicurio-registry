@@ -20,7 +20,7 @@ import java.util.concurrent.CountDownLatch;
 
 @QuarkusTest
 @TestProfile(DeletionEnabledProfile.class)
-public class ConcurrentCreateTest  extends AbstractResourceTestBase {
+public class ConcurrentCreateTest extends AbstractResourceTestBase {
 
     @Test
     public void testMultipleArtifacts() throws Exception {
@@ -52,14 +52,16 @@ public class ConcurrentCreateTest  extends AbstractResourceTestBase {
                     createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
                     // Create the artifact
-                    CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+                    CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts()
+                            .post(createArtifact);
                     System.out.println("[Fork-" + forkId + "] Artifact created.");
                     Assertions.assertEquals(groupId, car.getVersion().getGroupId());
                     Assertions.assertEquals(artifactId, car.getVersion().getArtifactId());
 
                     // Fetch the artifact and make sure it really got created.
                     clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
-                    clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1");
+                    clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                            .byVersionExpression("1");
 
                     created.add(artifactId);
                 } catch (Exception e) {
@@ -106,14 +108,16 @@ public class ConcurrentCreateTest  extends AbstractResourceTestBase {
                     createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
                     // Create the artifact
-                    CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+                    CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts()
+                            .post(createArtifact);
                     System.out.println("[Fork-" + forkId + "] Artifact created.");
                     Assertions.assertEquals(groupId, car.getVersion().getGroupId());
                     Assertions.assertEquals(artifactId, car.getVersion().getArtifactId());
 
                     // Fetch the artifact and make sure it really got created.
                     clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
-                    clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1");
+                    clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                            .byVersionExpression("1");
 
                     created.add("" + forkId);
                 } catch (Exception e) {

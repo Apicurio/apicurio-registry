@@ -499,8 +499,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
         }
 
-        // Ensure the content exists.  If this is a dryRun, or if the create fails, this
-        // could result in orphaned content.  That's OK because we have an async process
+        // Ensure the content exists. If this is a dryRun, or if the create fails, this
+        // could result in orphaned content. That's OK because we have an async process
         // that will later delete any orphaned content.
         long cid = -1;
         if (versionContent != null) {
@@ -681,8 +681,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * Make sure the content exists in the database (try to insert it).  Regardless of whether it
-     * already existed or not, return the contentId of the content in the DB.
+     * Make sure the content exists in the database (try to insert it). Regardless of whether it already
+     * existed or not, return the contentId of the content in the DB.
      */
     private Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto) {
         List<ArtifactReferenceDto> references = contentDto.getReferences();
@@ -698,7 +698,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 });
             };
             contentHash = utils.getContentHash(content, references);
-            canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, references, referenceResolver);
+            canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, references,
+                    referenceResolver);
             serializedReferences = SqlUtil.serializeReferences(references);
         } else {
             contentHash = utils.getContentHash(content, null);
@@ -718,8 +719,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * Store the content in the database and return the content ID of the new row. If the content already
      * exists, just return the content ID of the existing row.
      */
-    private void ensureContent(TypedContent content, String contentHash,
-            String canonicalContentHash, List<ArtifactReferenceDto> references, String referencesSerialized) {
+    private void ensureContent(TypedContent content, String contentHash, String canonicalContentHash,
+            List<ArtifactReferenceDto> references, String referencesSerialized) {
         handles.withHandleNoException(handle -> {
             byte[] contentBytes = content.getContent().bytes();
 
@@ -728,13 +729,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             long contentId = nextContentIdRaw(handle);
 
             try {
-                handle.createUpdate(sql)
-                        .bind(0, contentId)
-                        .bind(1, canonicalContentHash)
-                        .bind(2, contentHash)
-                        .bind(3, content.getContentType())
-                        .bind(4, contentBytes)
-                        .bind(5, referencesSerialized)
+                handle.createUpdate(sql).bind(0, contentId).bind(1, canonicalContentHash).bind(2, contentHash)
+                        .bind(3, content.getContentType()).bind(4, contentBytes).bind(5, referencesSerialized)
                         .execute();
             } catch (Exception e) {
                 if (sqlStatements.isPrimaryKeyViolation(e)) {
@@ -2733,7 +2729,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                     reference.getVersion());
                             final ContentWrapperDto referencedContent = getContentByIdRaw(handle,
                                     referencedArtifactMetaData.getContentId());
-                            resolveReferencesRaw(handle, resolvedReferences, referencedContent.getReferences());
+                            resolveReferencesRaw(handle, resolvedReferences,
+                                    referencedContent.getReferences());
                             TypedContent typedContent = TypedContent.create(referencedContent.getContent(),
                                     referencedContent.getContentType());
                             resolvedReferences.put(reference.getName(), typedContent);
@@ -2770,9 +2767,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     private long getMaxIdRaw(Handle handle, String sql) {
-        Optional<Long> maxIdTable = handle.createQuery(sql)
-                .mapTo(Long.class)
-                .findOne();
+        Optional<Long> maxIdTable = handle.createQuery(sql).mapTo(Long.class).findOne();
         return maxIdTable.orElse(1L);
     }
 
@@ -2804,10 +2799,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (isH2()) {
             current = Optional.of(sequenceCounters.get(sequenceName).get());
         } else {
-            current = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                    .bind(0, sequenceName)
-                    .mapTo(Long.class)
-                    .findOne();
+            current = handle.createQuery(sqlStatements.selectCurrentSequenceValue()).bind(0, sequenceName)
+                    .mapTo(Long.class).findOne();
         }
         final Optional<Long> currentIdSeq = current;
 

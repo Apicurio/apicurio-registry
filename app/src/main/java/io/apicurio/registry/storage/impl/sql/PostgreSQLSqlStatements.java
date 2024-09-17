@@ -45,14 +45,6 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
-     */
-    @Override
-    public String upsertContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, contentType, content, refs) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (contentHash) DO NOTHING";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */
     @Override
@@ -66,14 +58,6 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     @Override
     public String resetSequenceValue() {
         return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?) ON CONFLICT (seqName) DO UPDATE SET seqValue = ?";
-    }
-
-    /**
-     * @see SqlStatements#upsertContentReference()
-     */
-    @Override
-    public String upsertContentReference() {
-        return "INSERT INTO content_references (contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (contentId, name) DO NOTHING";
     }
 
     @Override

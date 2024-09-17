@@ -1,5 +1,6 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import io.apicurio.common.apps.util.Pair;
 import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -19,6 +20,7 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
@@ -31,6 +33,7 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.SchemaParseException;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -63,7 +66,37 @@ public abstract class AbstractResource {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
-    protected ArtifactVersionMetaDataDto createOrUpdateArtifact(String subject, String schema,
+    protected String toSubjectWithGroupConcat(String groupId, String artifactId) {
+        return (groupId == null ? "" : groupId) + cconfig.groupConcatSeparator + artifactId;
+    }
+
+    protected String toSubjectWithGroupConcat(SearchedArtifactDto dto) {
+        return toSubjectWithGroupConcat(dto.getGroupId(), dto.getArtifactId());
+    }
+
+    private Pair<String, String> toGAFromGroupConcatSubject(String subject) {
+        int sepIdx = subject.indexOf(cconfig.groupConcatSeparator);
+        if (sepIdx < 1) {
+            throw new BadRequestException("Invalid subject format.  Should be:  groupId"
+                    + cconfig.groupConcatSeparator + "artifactId");
+        }
+        String groupId = subject.substring(0, sepIdx);
+        String artifactId = subject.substring(sepIdx + cconfig.groupConcatSeparator.length());
+        return new Pair<>(groupId, artifactId);
+    }
+
+    protected GA getGA(String groupId, String artifactId) {
+        String gid = groupId;
+        String aid = artifactId;
+        if (cconfig.groupConcatEnabled) {
+            Pair<String, String> ga = toGAFromGroupConcatSubject(artifactId);
+            gid = ga.getLeft();
+            aid = ga.getRight();
+        }
+        return new GA(gid, aid);
+    }
+
+    protected ArtifactVersionMetaDataDto createOrUpdateArtifact(String artifactId, String schema,
             String artifactType, List<SchemaReference> references, String groupId) {
         ArtifactVersionMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
@@ -80,9 +113,9 @@ public abstract class AbstractResource {
                 contentType = ContentTypes.APPLICATION_PROTOBUF;
             }
 
-            if (!doesArtifactExist(subject, groupId)) {
+            if (!doesArtifactExist(artifactId, groupId)) {
                 TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
-                rulesService.applyRules(groupId, subject, artifactType, typedSchemaContent,
+                rulesService.applyRules(groupId, artifactId, artifactType, typedSchemaContent,
                         RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
 
                 EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder().build();
@@ -91,15 +124,15 @@ public abstract class AbstractResource {
                 ContentWrapperDto firstVersionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();
 
-                res = storage.createArtifact(groupId, subject, artifactType, artifactMetaData, null,
+                res = storage.createArtifact(groupId, artifactId, artifactType, artifactMetaData, null,
                         firstVersionContent, firstVersionMetaData, null, false).getValue();
             } else {
                 TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
-                rulesService.applyRules(groupId, subject, artifactType, typedSchemaContent,
+                rulesService.applyRules(groupId, artifactId, artifactType, typedSchemaContent,
                         RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
                 ContentWrapperDto versionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();
-                res = storage.createArtifactVersion(groupId, subject, null, artifactType, versionContent,
+                res = storage.createArtifactVersion(groupId, artifactId, null, artifactType, versionContent,
                         EditableVersionMetaDataDto.builder().build(), List.of(), false);
             }
         } catch (RuleViolationException ex) {
@@ -112,7 +145,7 @@ public abstract class AbstractResource {
         return res;
     }
 
-    protected ArtifactVersionMetaDataDto lookupSchema(String groupId, String subject, String schema,
+    protected ArtifactVersionMetaDataDto lookupSchema(String groupId, String artifactId, String schema,
             List<SchemaReference> schemaReferences, String schemaType, boolean normalize) {
         // FIXME simplify logic
         try {
@@ -126,7 +159,7 @@ public abstract class AbstractResource {
 
             if (cconfig.canonicalHashModeEnabled.get() || normalize) {
                 try {
-                    amd = storage.getArtifactVersionMetaDataByContent(groupId, subject, true,
+                    amd = storage.getArtifactVersionMetaDataByContent(groupId, artifactId, true,
                             typedSchemaContent, artifactReferences);
                 } catch (ArtifactNotFoundException ex) {
                     if (type.equals(ArtifactType.AVRO)) {
@@ -137,9 +170,9 @@ public abstract class AbstractResource {
                         // exception.
                         // This approach only works for schema types with dereference support (for now, only
                         // Avro in the ccompat API).
-                        amd = storage.getArtifactVersions(groupId, subject).stream().filter(version -> {
+                        amd = storage.getArtifactVersions(groupId, artifactId).stream().filter(version -> {
                             StoredArtifactVersionDto artifactVersion = storage
-                                    .getArtifactVersionContent(groupId, subject, version);
+                                    .getArtifactVersionContent(groupId, artifactId, version);
                             TypedContent typedArtifactVersion = TypedContent
                                     .create(artifactVersion.getContent(), artifactVersion.getContentType());
                             Map<String, TypedContent> artifactVersionReferences = storage
@@ -149,8 +182,8 @@ public abstract class AbstractResource {
                                             .dereference(typedArtifactVersion, artifactVersionReferences)
                                             .getContent().content());
                             return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
-                        }).findAny()
-                                .map(version -> storage.getArtifactVersionMetaData(groupId, subject, version))
+                        }).findAny().map(
+                                version -> storage.getArtifactVersionMetaData(groupId, artifactId, version))
                                 .orElseThrow(() -> ex);
                     } else {
                         throw ex;
@@ -158,8 +191,8 @@ public abstract class AbstractResource {
                 }
 
             } else {
-                amd = storage.getArtifactVersionMetaDataByContent(groupId, subject, false, typedSchemaContent,
-                        artifactReferences);
+                amd = storage.getArtifactVersionMetaDataByContent(groupId, artifactId, false,
+                        typedSchemaContent, artifactReferences);
             }
 
             return amd;
@@ -193,18 +226,18 @@ public abstract class AbstractResource {
         return resolvedReferences;
     }
 
-    protected boolean isArtifactActive(String subject, String groupId) {
-        long count = storage.countActiveArtifactVersions(groupId, subject);
+    protected boolean isArtifactActive(String artifactId, String groupId) {
+        long count = storage.countActiveArtifactVersions(groupId, artifactId);
         return count > 0;
     }
 
-    protected String getLatestArtifactVersionForSubject(String subject, String groupId) {
+    protected String getLatestArtifactVersionForSubject(String artifactId, String groupId) {
         try {
-            GAV latestGAV = storage.getBranchTip(new GA(groupId, subject), BranchId.LATEST,
+            GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
                     RetrievalBehavior.SKIP_DISABLED_LATEST);
             return latestGAV.getRawVersionId();
         } catch (ArtifactNotFoundException ex) {
-            throw new VersionNotFoundException(groupId, subject, "latest");
+            throw new VersionNotFoundException(groupId, artifactId, "latest");
         }
     }
 

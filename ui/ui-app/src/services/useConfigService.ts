@@ -309,7 +309,7 @@ export class ConfigServiceImpl implements ConfigService {
     }
 
     public featureSettings(): boolean {
-        return this.features().settings || true;
+        return this.features().settings || false;
     }
 
     public featureDeleteGroup(): boolean {

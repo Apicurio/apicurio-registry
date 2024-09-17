@@ -33,9 +33,9 @@ import java.util.function.Predicate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class SerdesTester<K, P, C> {
+public class KafkaSerdesTester<K, P, C> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SerdesTester.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSerdesTester.class);
 
     private static final int MILLIS_PER_MESSAGE = 700;
     private static final String BOOTSTRAP_SERVERS = "localhost:9092";
@@ -43,7 +43,7 @@ public class SerdesTester<K, P, C> {
 
     private boolean autoClose = true;
 
-    public SerdesTester() {
+    public KafkaSerdesTester() {
         // empty
     }
 
@@ -163,7 +163,6 @@ public class SerdesTester<K, P, C> {
         } catch (Exception e) {
             throw e;
         }
-
     }
 
     public void consumeMessages(Consumer<K, C> consumer, String topicName, int messageCount,

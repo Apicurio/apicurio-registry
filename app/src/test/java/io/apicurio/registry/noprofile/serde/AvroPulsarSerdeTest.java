@@ -57,7 +57,7 @@ public class AvroPulsarSerdeTest extends AbstractResourceTestBase {
                     restClient)) {
 
             AvroPulsarSerde<GenericData.Record> avroPulsarSerde = new AvroPulsarSerde<>(serializer,
-                    deserializer);
+                    deserializer, "myrecord3");
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, strategy);

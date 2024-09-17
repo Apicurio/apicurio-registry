@@ -1,6 +1,6 @@
 package io.apicurio.tests.serdes.apicurio;
 
-import io.apicurio.tests.serdes.apicurio.SerdesTester.DataGenerator;
+import io.apicurio.tests.serdes.apicurio.KafkaSerdesTester.DataGenerator;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Predicate;
 
-import static io.apicurio.tests.serdes.apicurio.SerdesTester.*;
+import static io.apicurio.tests.serdes.apicurio.KafkaSerdesTester.*;
 import static io.apicurio.tests.serdes.apicurio.Tester.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -116,7 +116,7 @@ public class SimpleSerdesTesterBuilder<P, C> implements TesterBuilder {
         return new SimpleSerdesTester();
     }
 
-    private class SimpleSerdesTester extends SerdesTester<String, P, C> implements Tester {
+    private class SimpleSerdesTester extends KafkaSerdesTester<String, P, C> implements Tester {
 
         private final Logger logger = LoggerFactory.getLogger(SimpleSerdesTester.class);
 

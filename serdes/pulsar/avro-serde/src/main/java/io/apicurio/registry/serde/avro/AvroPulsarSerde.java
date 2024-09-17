@@ -11,14 +11,19 @@ public class AvroPulsarSerde<T> implements SerDe<T>, AutoCloseable {
     final private AvroPulsarSerializer<T> serializer;
     final private AvroPulsarDeserializer<T> deserializer;
 
-    public AvroPulsarSerde() {
+    final private String topicName;
+
+    public AvroPulsarSerde(String topicName) {
         this.serializer = new AvroPulsarSerializer<>();
         this.deserializer = new AvroPulsarDeserializer<>();
+        this.topicName = topicName;
     }
 
-    public AvroPulsarSerde(AvroPulsarSerializer<T> serializer, AvroPulsarDeserializer<T> deserializer) {
+    public AvroPulsarSerde(AvroPulsarSerializer<T> serializer, AvroPulsarDeserializer<T> deserializer,
+            String topicName) {
         this.serializer = serializer;
         this.deserializer = deserializer;
+        this.topicName = topicName;
     }
 
     public void configure(SerdeConfig configs, boolean isKey) {
@@ -34,11 +39,11 @@ public class AvroPulsarSerde<T> implements SerDe<T>, AutoCloseable {
 
     @Override
     public T deserialize(byte[] input) {
-        return deserializer.deserializeData(null, input);
+        return deserializer.deserializeData(topicName, input);
     }
 
     @Override
     public byte[] serialize(T input) {
-        return serializer.serializeData(null, input);
+        return serializer.serializeData(topicName, input);
     }
 }

@@ -12,6 +12,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -30,12 +31,13 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, SchemaContent request,
             Boolean verbose, String groupId) throws Exception {
+        final GA ga = getGA(groupId, subject);
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         try {
-            final List<String> versions = storage.getArtifactVersions(groupId, subject);
+            final List<String> versions = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
             for (String version : versions) {
                 final ArtifactVersionMetaDataDto artifactVersionMetaData = storage
-                        .getArtifactVersionMetaData(groupId, subject, version);
+                        .getArtifactVersionMetaData(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
                 // Assume the content type of the SchemaContent is the same as the previous version.
                 String contentType = ContentTypes.APPLICATION_JSON;
                 if (artifactVersionMetaData.getArtifactType().equals(ArtifactType.PROTOBUF)) {
@@ -43,7 +45,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                 }
                 TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()),
                         contentType);
-                rulesService.applyRules(groupId, subject, version, artifactVersionMetaData.getArtifactType(),
+                rulesService.applyRules(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version, artifactVersionMetaData.getArtifactType(),
                         typedContent, Collections.emptyList(), Collections.emptyMap());
             }
             return CompatibilityCheckResponse.IS_COMPATIBLE;
@@ -63,11 +65,12 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String versionString,
             SchemaContent request, Boolean verbose, String groupId) throws Exception {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
+        final GA ga = getGA(groupId, subject);
 
-        return parseVersionString(subject, versionString, groupId, v -> {
+        return parseVersionString(ga.getRawArtifactId(), versionString, ga.getRawGroupIdWithNull(), version -> {
             try {
-                final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(groupId,
-                        subject, v);
+                final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(ga.getRawGroupIdWithNull(),
+                        ga.getRawArtifactId(), version);
                 // Assume the content type of the SchemaContent is correct based on the artifact type.
                 String contentType = ContentTypes.APPLICATION_JSON;
                 if (artifact.getArtifactType().equals(ArtifactType.PROTOBUF)) {
@@ -75,7 +78,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                 }
                 TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()),
                         contentType);
-                rulesService.applyRules(groupId, subject, v, artifact.getArtifactType(), typedContent,
+                rulesService.applyRules(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version, artifact.getArtifactType(), typedContent,
                         Collections.emptyList(), Collections.emptyMap());
                 return CompatibilityCheckResponse.IS_COMPATIBLE;
             } catch (RuleViolationException ex) {

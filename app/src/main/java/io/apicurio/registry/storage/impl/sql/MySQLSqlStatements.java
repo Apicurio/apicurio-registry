@@ -65,18 +65,6 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see SqlStatements#upsertContent()
-     */
-    @Override
-    public String upsertContent() {
-        return String.join(" ",
-                "INSERT IGNORE INTO content",
-                "(tenantId, contentId, canonicalHash, contentHash, content, artifactreferences)",
-                "VALUES (?, ?, ?, ?, ?, ?);"
-        );
-    }
-
-    /**
      * @see SqlStatements#upsertReference()
      */
     @Override

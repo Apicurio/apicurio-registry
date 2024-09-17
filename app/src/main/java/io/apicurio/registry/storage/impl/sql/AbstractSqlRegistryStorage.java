@@ -32,6 +32,7 @@ import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
+import io.apicurio.registry.storage.impl.sql.jdb.RuntimeSqlException;
 import io.apicurio.registry.storage.impl.sql.jdb.Update;
 import io.apicurio.registry.storage.impl.sql.mappers.*;
 import io.apicurio.registry.types.ArtifactState;
@@ -52,14 +53,12 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -79,7 +78,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     private static int DB_VERSION = Integer.valueOf(
             IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version"))).intValue();
-    private static final Object inmemorySequencesMutex = new Object();
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -91,6 +89,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     private static final String GLOBAL_ID_SEQUENCE = "globalId";
     private static final String CONTENT_ID_SEQUENCE = "contentId";
     private static final String COMMENT_ID_SEQUENCE = "commentId";
+
+    // Sequence counters ** Note: only used for H2 in-memory **
+    private static final Map<String, AtomicLong> sequenceCounters = new HashMap<>();
+    static {
+        sequenceCounters.put(GLOBAL_ID_SEQUENCE, new AtomicLong(0));
+        sequenceCounters.put(CONTENT_ID_SEQUENCE, new AtomicLong(0));
+        sequenceCounters.put(COMMENT_ID_SEQUENCE, new AtomicLong(0));
+    }
 
     @Inject
     Logger log;
@@ -189,6 +195,17 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             return null;
         });
+
+        // If using H2, we need to initialize the sequence counters by querying for
+        // the current max value of each in the DB.
+        if (isH2()) {
+            handles.withHandleNoException((handle) -> {
+                sequenceCounters.get(GLOBAL_ID_SEQUENCE).set(getMaxGlobalId(handle));
+                sequenceCounters.get(CONTENT_ID_SEQUENCE).set(getMaxContentId(handle));
+                sequenceCounters.get(COMMENT_ID_SEQUENCE).set(getMaxCommentId(handle));
+                return null;
+            });
+        }
 
         isReady = true;
         SqlStorageEvent initializeEvent = new SqlStorageEvent();
@@ -443,7 +460,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         updateArtifactVersionStateRaw(metadata.getGlobalId(), metadata.getState(), state);
     }
 
-
     @Override
     @Transactional
     public void updateArtifactState(String groupId, String artifactId, String version, ArtifactState state)
@@ -452,7 +468,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
         updateArtifactVersionStateRaw(metadata.getGlobalId(), metadata.getState(), state);
     }
-
 
     /**
      * IMPORTANT: Private methods can't be @Transactional. Callers MUST have started a transaction.
@@ -610,104 +625,62 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * Store the content in the database and return the ID of the new row.  If the content already exists,
-     * just return the content ID of the existing row.
-     *
-     * @param handle
-     * @param artifactType
-     * @param content
+     * Make sure the content exists in the database (try to insert it).  Regardless of whether it
+     * already existed or not, return the contentId of the content in the DB.
      */
-    protected Long createOrUpdateContent(Handle handle, String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) throws IOException {
+    protected Long ensureContentAndGetId(String artifactType, ContentHandle content, List<ArtifactReferenceDto> references) {
         var car = ContentAndReferencesDto.builder().content(content).references(references).build();
         var contentHash = RegistryContentUtils.contentHash(car);
         var canonicalContentHash = RegistryContentUtils.canonicalContentHash(artifactType, car, this::getContentByReference);
-        return createOrUpdateContent(handle, content, contentHash, canonicalContentHash, references, RegistryContentUtils.serializeReferences(references));
+        var serializedReferences = RegistryContentUtils.serializeReferences(references);
+
+        ensureContent(content, contentHash, canonicalContentHash, references, serializedReferences);
+        var contentId = getContentIdByHash(contentHash);
+        return contentId;
     }
 
-    private byte[] concatContentAndReferences(byte[] contentBytes, String references) throws IOException {
-        if (references != null) {
-            final byte[] referencesBytes = references.getBytes(StandardCharsets.UTF_8);
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(contentBytes.length + referencesBytes.length);
-            outputStream.write(contentBytes);
-            outputStream.write(referencesBytes);
-            return outputStream.toByteArray();
-        } else {
-            return contentBytes;
-        }
-    }
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    protected void ensureContent(ContentHandle content, String contentHash, String canonicalContentHash,
+                               List<ArtifactReferenceDto> references, String referencesSerialized) {
+        this.handles.withHandle(handle -> {
+            byte[] contentBytes = content.bytes();
 
-    /**
-     * Store the content in the database and return the ID of the new row.  If the content already exists,
-     * just return the content ID of the existing row.
-     *
-     * @param handle
-     * @param content
-     * @param contentHash
-     * @param canonicalContentHash
-     */
-    protected Long createOrUpdateContent(Handle handle, ContentHandle content, String contentHash, String canonicalContentHash, List<ArtifactReferenceDto> references, String referencesSerialized) {
-        byte[] contentBytes = content.bytes();
+            // Insert the content into the content table.
+            String sql = sqlStatements.insertContent();
+            long contentId = nextContentId(handle);
 
-        // Upsert a row in the "content" table.  This will insert a row for the content
-        // if a row doesn't already exist.  We use the content hash to determine whether
-        // a row for this content already exists.  If we find a row we return its globalId.
-        // If we don't find a row, we insert one and then return its globalId.
-        String sql;
-        Long contentId;
-        boolean insertReferences = true;
-        if (Set.of("mysql", "mssql", "postgresql").contains(sqlStatements.dbType())) {
-            sql = sqlStatements.upsertContent();
-            handle.createUpdate(sql)
-                    .bind(0, tenantContext.tenantId())
-                    .bind(1, nextContentId(handle))
-                    .bind(2, canonicalContentHash)
-                    .bind(3, contentHash)
-                    .bind(4, contentBytes)
-                    .bind(5, referencesSerialized)
-                    .execute();
-            sql = sqlStatements.selectContentIdByHash();
-            contentId = handle.createQuery(sql)
-                    .bind(0, contentHash)
-                    .bind(1, tenantContext.tenantId())
-                    .mapTo(Long.class)
-                    .one();
-        } else if ("h2".equals(sqlStatements.dbType())) {
-            sql = sqlStatements.selectContentIdByHash();
-            Optional<Long> contentIdOptional = handle.createQuery(sql)
-                    .bind(0, contentHash)
-                    .bind(1, tenantContext.tenantId())
-                    .mapTo(Long.class)
-                    .findOne();
-            if (contentIdOptional.isPresent()) {
-                contentId = contentIdOptional.get();
-                //If the content is already present there's no need to create the references.
-                insertReferences = false;
-            } else {
-                sql = sqlStatements.upsertContent();
+            try {
                 handle.createUpdate(sql)
                         .bind(0, tenantContext.tenantId())
-                        .bind(1, nextContentId(handle))
+                        .bind(1, contentId)
                         .bind(2, canonicalContentHash)
                         .bind(3, contentHash)
                         .bind(4, contentBytes)
                         .bind(5, referencesSerialized)
                         .execute();
-                sql = sqlStatements.selectContentIdByHash();
-                contentId = handle.createQuery(sql)
-                        .bind(0, contentHash)
-                        .bind(1, tenantContext.tenantId())
-                        .mapTo(Long.class)
-                        .one();
+            } catch (RuntimeSqlException e) {
+                // Assume this is a unique key violation: content already exists.  If so,
+                // the content already exists and we can just return.
+                return null;
             }
-        } else {
-            throw new UnsupportedOperationException("Unsupported database type: " + sqlStatements.dbType());
-        }
 
-        if (insertReferences) {
-            //Finally, insert references into the "artifactreferences" table if the content wasn't present yet.
+            // If we get here, then the content was inserted and we need to insert the references.
             createOrUpdateReferences(handle, contentId, references);
-        }
-        return contentId;
+            return null;
+        });
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    protected Long getContentIdByHash(String contentHash) {
+        return this.handles.withHandle(handle -> {
+            String sql = sqlStatements.selectContentIdByHash();
+            long contentId = handle.createQuery(sql)
+                    .bind(0, contentHash)
+                    .bind(1, tenantContext.tenantId())
+                    .mapTo(Long.class)
+                    .one();
+            return contentId;
+        });
     }
 
     protected void createOrUpdateReferences(Handle handle, Long contentId, List<ArtifactReferenceDto> references) {
@@ -752,9 +725,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         String createdBy = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
+        // Only create group metadata for non-default groups.
         if (groupId != null && !isGroupExists(groupId)) {
-            //Only create group metadata for non-default groups.
-            createGroup(GroupMetaDataDto.builder()
+            ensureGroup(GroupMetaDataDto.builder()
                     .groupId(groupId)
                     .createdOn(createdOn.getTime())
                     .modifiedOn(createdOn.getTime())
@@ -764,9 +737,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
 
         // Put the content in the DB and get the unique content ID back.
-        long contentId = handles.withHandleNoException(handle -> {
-            return createOrUpdateContent(handle, artifactType, content, references);
-        });
+        long contentId = ensureContentAndGetId(artifactType, content, references);
 
         // If the metaData provided is null, try to figure it out from the content.
         EditableArtifactMetaDataDto md = metaData;
@@ -1048,9 +1019,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
-        long contentId = handles.withHandleNoException(handle -> {
-            return createOrUpdateContent(handle, artifactType, content, references);
-        });
+        long contentId = ensureContentAndGetId(artifactType, content, references);
 
         // Extract meta-data from the content if no metadata is provided
         if (metaData == null) {
@@ -2694,6 +2663,34 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
     }
 
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    protected void ensureGroup(GroupMetaDataDto group) throws RegistryStorageException {
+        this.handles.withHandle(handle -> {
+            try {
+                String sql = sqlStatements.insertGroup();
+                handle.createUpdate(sql)
+                        .bind(0, tenantContext.tenantId())
+                        .bind(1, group.getGroupId())
+                        .bind(2, group.getDescription())
+                        .bind(3, group.getArtifactsType())
+                        .bind(4, group.getCreatedBy())
+                        // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric timestamps
+                        .bind(5, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
+                        .bind(6, group.getModifiedBy())
+                        .bind(7, group.getModifiedOn() == 0 ? null : new Date(group.getModifiedOn()))
+                        .bind(8, RegistryContentUtils.serializeProperties(group.getProperties()))
+                        .execute();
+            } catch (Exception e) {
+                // Primary key violation is OK - that just means it already exists.
+                if (!sqlStatements.isPrimaryKeyViolation(e)) {
+                    throw new RegistryStorageException(e);
+                }
+            }
+            return null;
+        });
+    }
+
+
     /**
      * @see RegistryStorage#updateGroupMetaData(io.apicurio.registry.storage.dto.GroupMetaDataDto)
      */
@@ -3563,17 +3560,45 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         resetSequence(handle, COMMENT_ID_SEQUENCE, sqlStatements.selectMaxCommentId());
     }
 
+    protected long getMaxGlobalId(Handle handle) {
+        return getMaxId(handle, sqlStatements.selectMaxGlobalId());
+    }
+
+    protected long getMaxContentId(Handle handle) {
+        return getMaxId(handle, sqlStatements.selectMaxContentId());
+    }
+
+    protected long getMaxCommentId(Handle handle) {
+        return getMaxId(handle, sqlStatements.selectMaxCommentId());
+    }
+
+    protected long getMaxId(Handle handle, String sql) {
+        Optional<Long> maxIdTable = handle.createQuery(sql)
+                .bind(0, tenantContext.tenantId())
+                .mapTo(Long.class)
+                .findOne();
+        return maxIdTable.orElseGet(() -> {
+            return 1L;
+        });
+    }
+
     private void resetSequence(Handle handle, String sequenceName, String sqlMaxIdFromTable) {
         Optional<Long> maxIdTable = handle.createQuery(sqlMaxIdFromTable)
                 .bind(0, tenantContext.tenantId())
                 .mapTo(Long.class)
                 .findOne();
 
-        Optional<Long> currentIdSeq = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                .bind(0, sequenceName)
-                .bind(1, tenantContext.tenantId())
-                .mapTo(Long.class)
-                .findOne();
+        Optional<Long> current;
+        if (isH2()) {
+            current = Optional.of(sequenceCounters.get(sequenceName).get());
+        } else {
+            current = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
+                    .bind(0, sequenceName)
+                    .bind(1, tenantContext.tenantId())
+                    .mapTo(Long.class)
+                    .findOne();
+        }
+        final Optional<Long> currentIdSeq = current;
 
         //TODO maybe do this in one query
         Optional<Long> maxId = maxIdTable
@@ -3588,7 +3613,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     return maxIdTableValue;
                 });
 
-
         if (maxId.isPresent()) {
             log.info("Resetting {} sequence", sequenceName);
             long id = maxId.get();
@@ -3600,6 +3624,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(2, id)
                         .bind(3, id)
                         .execute();
+            } else if (isH2()) {
+                // H2 uses atomic counters instead of the DB for sequences.
+                sequenceCounters.get(sequenceName).set(id);
             } else {
                 handle.createUpdate(sqlStatements.resetSequenceValue())
                         .bind(0, tenantContext.tenantId())
@@ -3885,37 +3912,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .mapTo(Long.class)
                     .one();
         } else {
-            // no way to automatically increment the sequence in h2 with just one query
-            // we are incresing the sequence value in a way that it's not safe for concurrent executions
-            // for kafkasql storage this method is not supposed to be executed concurrently
-            // but for inmemory storage that's not guaranteed
-            // that forces us to use an inmemory lock, should not cause any harm
-            // caveat emptor , consider yourself as warned
-            synchronized (inmemorySequencesMutex) {
-                Optional<Long> seqExists = handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                        .bind(0, sequenceName)
-                        .bind(1, tenantContext.tenantId())
-                        .mapTo(Long.class)
-                        .findOne();
-
-                if (seqExists.isPresent()) {
-                    //
-                    Long newValue = seqExists.get() + 1;
-                    handle.createUpdate(sqlStatements.resetSequenceValue())
-                            .bind(0, tenantContext.tenantId())
-                            .bind(1, sequenceName)
-                            .bind(2, newValue)
-                            .execute();
-                    return newValue;
-                } else {
-                    handle.createUpdate(sqlStatements.insertSequenceValue())
-                            .bind(0, tenantContext.tenantId())
-                            .bind(1, sequenceName)
-                            .bind(2, 1)
-                            .execute();
-                    return 1;
-                }
-            }
+            return sequenceCounters.get(sequenceName).incrementAndGet();
         }
     }
 
@@ -3953,4 +3950,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return version;
     }
 
+    private boolean isH2() {
+        return sqlStatements.dbType().equals("h2");
+    }
 }

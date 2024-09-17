@@ -25,7 +25,6 @@ public class H2SqlStatements extends CommonSqlStatements {
 
     /**
      * Constructor.
-     * @param config
      */
     public H2SqlStatements() {
     }
@@ -55,19 +54,11 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements.core.storage.jdbc.ISqlStatements#isDatabaseInitialized()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isDatabaseInitialized()
      */
     @Override
     public String isDatabaseInitialized() {
         return "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_name = 'APICURIO'";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertContent()
-     */
-    @Override
-    public String upsertContent() {
-        return "INSERT INTO content (tenantId, contentId, canonicalHash, contentHash, content, artifactreferences) VALUES (?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -83,7 +74,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String getNextSequenceValue() {
-        return "UPDATE sequences sa SET seq_value = (SELECT sb.seq_value + 1 FROM sequences sb WHERE sb.tenantId = sa.tenantId AND sb.name = sa.name) WHERE sa.tenantId = ? AND sa.name = ?";
+        throw new RuntimeException("Not supported for H2: getNextSequenceValue");
     }
 
     /**
@@ -91,7 +82,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String selectCurrentSequenceValue() {
-        return "SELECT seq_value FROM sequences WHERE name = ? AND tenantId = ? ";
+        throw new RuntimeException("Not supported for H2: selectCurrentSequenceValue");
     }
 
     /**
@@ -99,7 +90,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String resetSequenceValue() {
-        return "MERGE INTO sequences (tenantId, name, seq_value) KEY (tenantId, name) VALUES(?, ?, ?)";
+        throw new RuntimeException("Not supported for H2: resetSequenceValue");
     }
 
     /**
@@ -107,7 +98,7 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String insertSequenceValue() {
-        return "INSERT INTO sequences (tenantId, name, seq_value) VALUES (?, ?, ?)";
+        throw new RuntimeException("Not supported for H2: insertSequenceValue");
     }
 
     /**
@@ -115,6 +106,11 @@ public class H2SqlStatements extends CommonSqlStatements {
      */
     @Override
     public String upsertReference() {
-        return "INSERT INTO artifactreferences (tenantId, contentId, groupId, artifactId, version, name) VALUES (?, ?, ?, ?, ?, ?)";
+        return "MERGE INTO artifactreferences AS target" +
+                " USING (VALUES (?, ?, ?, ?, ?, ?)) AS source (tenantId, contentId, groupId, artifactId, version, name)" +
+                " ON (target.tenantId = source.tenantId AND target.contentId = source.contentId AND target.name = source.name)" +
+                " WHEN NOT MATCHED THEN" +
+                "     INSERT (tenantId, contentId, groupId, artifactId, version, name)" +
+                "     VALUES (source.tenantId, source.contentId, source.groupId, source.artifactId, source.version, source.name)";
     }
 }

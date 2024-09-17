@@ -42,7 +42,8 @@ public class ContentIdNotPreserveSqlDataImporter extends SqlDataImporter {
 
         // When we do not want to preserve contentId, the best solution to import content is create new one with the contentBytes
         // It makes sure there won't be any conflicts
-        long newContentId = getRegistryStorage().createOrUpdateContent(getHandle(), ContentHandle.create(entity.contentBytes), entity.contentHash, entity.canonicalHash, references, entity.serializedReferences);
+        getRegistryStorage().ensureContent(ContentHandle.create(entity.contentBytes), entity.contentHash, entity.canonicalHash, references, entity.serializedReferences);
+        long newContentId = getRegistryStorage().getContentIdByHash(entity.contentHash);
 
         getContentIdMapping().put(entity.contentId, newContentId);
 

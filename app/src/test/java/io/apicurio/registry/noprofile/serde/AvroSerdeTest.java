@@ -65,6 +65,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
+import static io.apicurio.registry.utils.tests.TestUtils.waitForSchemaLongId;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
@@ -168,7 +169,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, strategy);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
-            config.put(SerdeConfig.ENABLE_HEADERS, "false");
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -182,11 +182,12 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             byte[] bytes = serializer.serialize(topic, record);
 
             // some impl details ...
-            waitForSchema(globalId -> {
+            waitForSchema(contentId -> {
                 try {
-                    if (restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0) {
+                    if (restClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0) {
                         VersionMetaData artifactMetadata = artifactFinder.get();
-                        assertEquals(globalId, artifactMetadata.getGlobalId());
+                        assertEquals(contentId.longValue(), artifactMetadata.getContentId());
                         return true;
                     }
                 } catch (IOException e) {
@@ -214,7 +215,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Map<String, String> config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
-            config.put(SerdeConfig.ENABLE_HEADERS, "false");
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -228,14 +228,15 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             byte[] bytes = serializer.serialize(artifactId, record);
 
-            // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
-            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
+            // Test msg is stored as json, take 1st 5 bytes off (magic byte and long)
+            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 5, bytes.length)));
             Assertions.assertEquals("somebar", msgAsJson.getString("bar"));
 
             // some impl details ...
-            waitForSchema(globalId -> {
+            waitForSchema(contentId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
+                    return restClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -256,7 +257,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Map<String, String> config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
-            config.put(SerdeConfig.ENABLE_HEADERS, "false");
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -298,14 +298,15 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             byte[] bytes = serializer.serialize(artifactId, avroSchemaB);
 
-            // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
-            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
+            // Test msg is stored as json, take 1st 5 bytes off (magic byte and long)
+            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 5, bytes.length)));
             Assertions.assertEquals("CSymbol", msgAsJson.getJSONObject("schemaC").getString("symbol"));
 
             // some impl details ...
-            waitForSchema(globalId -> {
+            waitForSchema(contentId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
+                    return restClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -331,7 +332,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Map<String, String> config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
-            config.put(SerdeConfig.ENABLE_HEADERS, "false");
             config.put(SchemaResolverConfig.DEREFERENCE_SCHEMA, "true");
             serializer.configure(config, false);
 
@@ -375,14 +375,15 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             byte[] bytes = serializer.serialize(artifactId, avroSchemaB);
 
-            // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
-            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
+            // Test msg is stored as json, take 1st 5 bytes off (magic byte and long)
+            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 5, bytes.length)));
             Assertions.assertEquals("CSymbol", msgAsJson.getJSONObject("schemaC").getString("symbol"));
 
             // some impl details ...
-            waitForSchema(globalId -> {
+            waitForSchema(contentId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
+                    return restClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -408,7 +409,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Map<String, String> config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
-            config.put(SerdeConfig.ENABLE_HEADERS, "false");
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -452,13 +452,14 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             byte[] bytes = serializer.serialize(artifactId, avroSchemaB);
 
-            // Test msg is stored as json, take 1st 9 bytes off (magic byte and long)
-            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 9, bytes.length)));
+            // Test msg is stored as json, take 1st 5 bytes off (magic byte and long)
+            JSONObject msgAsJson = new JSONObject(new String(Arrays.copyOfRange(bytes, 5, bytes.length)));
             Assertions.assertEquals("CSymbol", msgAsJson.getJSONObject("schemaC").getString("symbol"));
 
-            waitForSchema(globalId -> {
+            waitForSchema(contentId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
+                    return restClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -481,7 +482,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Map<String, String> config = new HashMap<>();
             config.put(AvroKafkaSerdeConfig.AVRO_ENCODING, AvroKafkaSerdeConfig.AVRO_ENCODING_JSON);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
-            config.put(SerdeConfig.ENABLE_HEADERS, "false");
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -503,7 +503,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             waitForSchema(id -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(id).get().readAllBytes().length > 0;
+                    return restClient.ids().contentIds().byContentId(id.longValue()).get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -540,8 +541,8 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, record);
 
-            Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID));
-            headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
+            Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_CONTENT_ID));
+            headers.lastHeader(SerdeHeaders.HEADER_VALUE_CONTENT_ID);
 
             GenericData.Record ir = deserializer.deserialize(artifactId, headers, bytes);
 
@@ -578,17 +579,18 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, record);
 
-            Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID));
-            Header globalId = headers.lastHeader(SerdeHeaders.HEADER_VALUE_GLOBAL_ID);
-            long globalIdkey = ByteBuffer.wrap(globalId.value()).getLong();
+            Assertions.assertNotNull(headers.lastHeader(SerdeHeaders.HEADER_VALUE_CONTENT_ID));
+            Header contentId = headers.lastHeader(SerdeHeaders.HEADER_VALUE_CONTENT_ID);
+            long contentIdKey = ByteBuffer.wrap(contentId.value()).getLong();
 
-            waitForSchema(id -> {
+            waitForSchemaLongId(id -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(id).get().readAllBytes().length > 0;
+                    return restClient.ids().contentIds().byContentId(contentIdKey).get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            }, bytes, byteBuffer -> globalIdkey);
+            }, bytes, byteBuffer -> contentIdKey);
 
             GenericData.EnumSymbol ir = deserializer.deserialize(artifactId, headers, bytes);
 
@@ -623,7 +625,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             Map<String, String> config = new HashMap<>();
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
-            config.put(SerdeConfig.ENABLE_HEADERS, "false");
             config.put(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, datumProvider.getName());
             config.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY,
                     artifactResolverStrategyClass.getName());
@@ -638,9 +639,10 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Tester tester = testerFactory.get();
             byte[] bytes = serializer.serialize(artifactId, tester);
 
-            waitForSchema(globalId -> {
+            waitForSchema(contentId -> {
                 try {
-                    return restClient.ids().globalIds().byGlobalId(globalId).get().readAllBytes().length > 0;
+                    return restClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -677,14 +679,14 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             TestUtils.retry(() -> TestUtils.waitForSchema(contentId -> {
                 try {
-                    return restClient.ids().contentIds().byContentId(contentId).get()
+                    return restClient.ids().contentIds().byContentId(contentId.longValue()).get()
                             .readAllBytes().length > 0;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            }, bytes, bb -> (long) bb.getInt()));
+            }, bytes, ByteBuffer::getInt));
 
-            deserializer1.asLegacyId();
+            deserializer1.as4ByteId();
             Map<String, String> config = new HashMap<>();
             config.put(SerdeConfig.USE_ID, IdOption.contentId.name());
             deserializer1.configure(config, false);
@@ -699,7 +701,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Map<String, String> config = new HashMap<>();
             config.put(SerdeConfig.USE_ID, IdOption.contentId.name());
 
-            serializer2.asLegacyId();
+            serializer2.as4ByteId();
             serializer2.configure(config, false);
             byte[] bytes = serializer2.serialize(subject, record);
 

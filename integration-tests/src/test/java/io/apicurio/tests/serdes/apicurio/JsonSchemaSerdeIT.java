@@ -54,7 +54,8 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<ValidMessage, ValidMessage>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
+                .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
+                .withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage).build()
                 .test();
     }
@@ -71,9 +72,10 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<ValidMessage, ValidMessage>().withTopic(topicName)
-                .withSerializer(serializer).withDeserializer(deserializer)
-                .withStrategy(SimpleTopicIdStrategy.class).withDataGenerator(schema::generateMessage)
-                .withDataValidator(schema::validateMessage).build().test();
+                .withCommonProperty(SerdeConfig.ENABLE_HEADERS, "true").withSerializer(serializer)
+                .withDeserializer(deserializer).withStrategy(SimpleTopicIdStrategy.class)
+                .withDataGenerator(schema::generateMessage).withDataValidator(schema::validateMessage).build()
+                .test();
     }
 
     // there is no mechanism for json serdes to auto register a schema, yet

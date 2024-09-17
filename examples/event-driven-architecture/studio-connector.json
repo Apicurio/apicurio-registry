@@ -8,19 +8,15 @@
   "database.server.name": "apicuriodb",
   "schema.include.list": "public",
   "value.converter.apicurio.registry.auto-register": "true",
-  "key.converter.apicurio.registry.as-confluent": "true",
   "database.port": "5432",
   "plugin.name": "pgoutput",
   "topic.prefix": "postgre-changes",
   "database.hostname": "apicurio-db",
   "database.password": "postgres",
-  "key.converter.apicurio.registry.use-id": "contentId",
   "name": "Test",
   "value.converter.apicurio.registry.url": "http://schema-registry:8080/apis/registry/v2",
   "key.converter.apicurio.registry.url": "http://schema-registry:8080/apis/registry/v2",
   "value.converter": "io.apicurio.registry.utils.converter.AvroConverter",
   "key.converter.apicurio.registry.auto-register": "true",
-  "key.converter": "io.apicurio.registry.utils.converter.AvroConverter",
-  "value.converter.apicurio.registry.as-confluent": "true",
-  "value.converter.apicurio.registry.use-id": "contentId"
+  "key.converter": "io.apicurio.registry.utils.converter.AvroConverter"
 }

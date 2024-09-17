@@ -1,10 +1,8 @@
 package io.apicurio.tests.serdes.confluent;
 
-import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
-import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
@@ -89,8 +87,6 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
                 .withSerializer(KafkaAvroSerializer.class).withDeserializer(AvroKafkaDeserializer.class)
-                .withConsumerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
-                .withConsumerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
                 .withStrategy(TopicNameStrategy.class).withDataGenerator(avroSchema::generateRecord)
                 .withDataValidator(avroSchema::validateRecord).build().test();
     }
@@ -111,10 +107,6 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
                 .withSerializer(AvroKafkaSerializer.class)
 
                 // very important
-                .withProducerProperty(SerdeConfig.ENABLE_HEADERS, "false")
-
-                .withProducerProperty(SerdeConfig.ENABLE_CONFLUENT_ID_HANDLER, "true")
-                .withProducerProperty(SerdeConfig.USE_ID, IdOption.contentId.name())
                 .withDeserializer(KafkaAvroDeserializer.class)
                 .withStrategy(io.apicurio.registry.serde.strategy.TopicIdStrategy.class)
                 .withDataGenerator(avroSchema::generateRecord).withDataValidator(avroSchema::validateRecord)

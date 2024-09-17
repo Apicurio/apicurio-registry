@@ -92,7 +92,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
         byte[] payload = jsonConverter.fromConnectData(topic, schema, value);
 
-        return formatStrategy.fromConnectData(schemaLookupResult.getGlobalId(), payload);
+        return formatStrategy.fromConnectData(schemaLookupResult.getContentId(), payload);
 
     }
 
@@ -100,10 +100,10 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
     public SchemaAndValue toConnectData(String topic, byte[] value) {
         FormatStrategy.IdPayload ip = formatStrategy.toConnectData(value);
 
-        long globalId = ip.getGlobalId();
+        long contentId = ip.getContentId();
 
         SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver()
-                .resolveSchemaByArtifactReference(ArtifactReference.builder().globalId(globalId).build());
+                .resolveSchemaByArtifactReference(ArtifactReference.builder().contentId(contentId).build());
 
         JsonNode parsedSchema = schemaLookupResult.getParsedSchema().getParsedSchema();
         JsonNode dataDeserialized = jsonDeserializer.deserialize(topic, ip.getPayload());

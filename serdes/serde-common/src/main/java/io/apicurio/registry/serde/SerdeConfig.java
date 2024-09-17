@@ -137,20 +137,14 @@ public class SerdeConfig {
      * {@link SerdeConfig#ENABLE_HEADERS} is missing or 'false'.
      */
     public static final String ID_HANDLER = "apicurio.registry.id-handler";
-    public static final String ID_HANDLER_DEFAULT = DefaultIdHandler.class.getName();
-
-    /**
-     * Shortcut for enabling the Legacy (Confluent compatible) implementation of {@link IdHandler}. Should not
-     * be used with "ID_HANDLER". The value should be 'true' or 'false'.
-     */
-    public static final String ENABLE_CONFLUENT_ID_HANDLER = "apicurio.registry.as-confluent";
+    public static final String ID_HANDLER_DEFAULT = Default4ByteIdHandler.class.getName();
 
     /**
      * Boolean to indicate whether serde classes should pass Global Id information via message headers instead
      * of in the message payload.
      */
     public static final String ENABLE_HEADERS = "apicurio.registry.headers.enabled";
-    public static final boolean ENABLE_HEADERS_DEFAULT = true;
+    public static final boolean ENABLE_HEADERS_DEFAULT = false;
 
     /**
      * Fully qualified Java classname of a class that implements {@link HeadersHandler} and is responsible for
@@ -189,7 +183,7 @@ public class SerdeConfig {
      * deserializer to read and use the specified id from the kafka records (to find the schema).
      */
     public static final String USE_ID = "apicurio.registry.use-id";
-    public static final String USE_ID_DEFAULT = IdOption.globalId.name();
+    public static final String USE_ID_DEFAULT = IdOption.contentId.name();
 
     /**
      * Boolean used to enable or disable validation. Not applicable to all serde classes. For example, the

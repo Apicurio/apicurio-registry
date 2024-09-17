@@ -77,7 +77,8 @@ public abstract class AbstractResource {
     private Pair<String, String> toGAFromGroupConcatSubject(String subject) {
         int sepIdx = subject.indexOf(cconfig.groupConcatSeparator);
         if (sepIdx < 1) {
-            throw new BadRequestException("Invalid subject format.  Should be:  groupId" + cconfig.groupConcatSeparator + "artifactId");
+            throw new BadRequestException("Invalid subject format.  Should be:  groupId"
+                    + cconfig.groupConcatSeparator + "artifactId");
         }
         String groupId = subject.substring(0, sepIdx);
         String artifactId = subject.substring(sepIdx + cconfig.groupConcatSeparator.length());
@@ -95,8 +96,8 @@ public abstract class AbstractResource {
         return new GA(gid, aid);
     }
 
-    protected ArtifactVersionMetaDataDto createOrUpdateArtifact(String artifactId, String schema, String artifactType,
-                List<SchemaReference> references, String groupId) {
+    protected ArtifactVersionMetaDataDto createOrUpdateArtifact(String artifactId, String schema,
+            String artifactType, List<SchemaReference> references, String groupId) {
         ArtifactVersionMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
         final List<ArtifactReference> artifactReferences = parsedReferences.stream()
@@ -181,8 +182,8 @@ public abstract class AbstractResource {
                                             .dereference(typedArtifactVersion, artifactVersionReferences)
                                             .getContent().content());
                             return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
-                        }).findAny()
-                                .map(version -> storage.getArtifactVersionMetaData(groupId, artifactId, version))
+                        }).findAny().map(
+                                version -> storage.getArtifactVersionMetaData(groupId, artifactId, version))
                                 .orElseThrow(() -> ex);
                     } else {
                         throw ex;
@@ -190,8 +191,8 @@ public abstract class AbstractResource {
                 }
 
             } else {
-                amd = storage.getArtifactVersionMetaDataByContent(groupId, artifactId, false, typedSchemaContent,
-                        artifactReferences);
+                amd = storage.getArtifactVersionMetaDataByContent(groupId, artifactId, false,
+                        typedSchemaContent, artifactReferences);
             }
 
             return amd;

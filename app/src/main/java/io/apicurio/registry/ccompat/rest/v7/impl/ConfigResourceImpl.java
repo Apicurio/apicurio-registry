@@ -85,14 +85,18 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
         final GA ga = getGA(groupId, subject);
 
         updateCompatibilityLevel(request.getCompatibility(), dto -> {
-            if (!doesArtifactRuleExist(ga.getRawArtifactId(), RuleType.COMPATIBILITY, ga.getRawGroupIdWithNull())) {
-                storage.createArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY, dto);
+            if (!doesArtifactRuleExist(ga.getRawArtifactId(), RuleType.COMPATIBILITY,
+                    ga.getRawGroupIdWithNull())) {
+                storage.createArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                        RuleType.COMPATIBILITY, dto);
             } else {
-                storage.updateArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY, dto);
+                storage.updateArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                        RuleType.COMPATIBILITY, dto);
             }
         }, () -> {
             try {
-                storage.deleteArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY);
+                storage.deleteArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                        RuleType.COMPATIBILITY);
             } catch (RuleNotFoundException e) {
                 // Ignore, fail only when the artifact is not found
             }
@@ -104,8 +108,9 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject, String groupId) {
         final GA ga = getGA(groupId, subject);
-        return getCompatibilityLevel(
-                () -> storage.getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY).getConfiguration());
+        return getCompatibilityLevel(() -> storage
+                .getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY)
+                .getConfiguration());
     }
 
     @Override
@@ -113,10 +118,12 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityLevelParamDto deleteSubjectCompatibility(String subject, String groupId) {
         final GA ga = getGA(groupId, subject);
-        final CompatibilityLevelParamDto compatibilityLevel = getCompatibilityLevel(
-                () -> storage.getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY).getConfiguration());
+        final CompatibilityLevelParamDto compatibilityLevel = getCompatibilityLevel(() -> storage
+                .getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY)
+                .getConfiguration());
         if (!CompatibilityLevel.NONE.name().equals(compatibilityLevel.getCompatibilityLevel())) {
-            storage.deleteArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY);
+            storage.deleteArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                    RuleType.COMPATIBILITY);
         }
         return compatibilityLevel;
     }

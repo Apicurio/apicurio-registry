@@ -61,8 +61,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         }
 
         return searchResults.getArtifacts().stream()
-                .filter(saDto -> isCcompatManagedType(saDto.getArtifactType()))
-                .map(toSubject)
+                .filter(saDto -> isCcompatManagedType(saDto.getArtifactType())).map(toSubject)
                 .collect(Collectors.toList());
     }
 
@@ -78,19 +77,21 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
             try {
                 ArtifactVersionMetaDataDto amd;
-                amd = lookupSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), request.getSchema(), request.getReferences(),
-                        request.getSchemaType(), fnormalize);
+                amd = lookupSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), request.getSchema(),
+                        request.getReferences(), request.getSchemaType(), fnormalize);
                 if (amd.getState() != VersionState.DISABLED || fdeleted) {
-                    StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(ga.getRawGroupIdWithNull(),
-                            ga.getRawArtifactId(), amd.getVersion());
+                    StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
+                            ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), amd.getVersion());
                     return converter.convert(ga.getRawArtifactId(), storedArtifact);
                 } else {
-                    throw new SchemaNotFoundException(String.format(
-                            "The given schema does not match any schema under the subject %s", ga.getRawArtifactId()));
+                    throw new SchemaNotFoundException(
+                            String.format("The given schema does not match any schema under the subject %s",
+                                    ga.getRawArtifactId()));
                 }
             } catch (ArtifactNotFoundException anf) {
-                throw new SchemaNotFoundException(String
-                        .format("The given schema does not match any schema under the subject %s", ga.getRawArtifactId()));
+                throw new SchemaNotFoundException(
+                        String.format("The given schema does not match any schema under the subject %s",
+                                ga.getRawArtifactId()));
             }
         } else {
             // If the artifact does not exist there is no need for looking up the schema, just fail.

@@ -69,32 +69,24 @@ public class ConfluentCompatApiWithGroupsTest extends AbstractResourceTestBase {
         final String subject = toSubject(groupId, artifactId);
 
         // POST
-        ValidatableResponse res = given()
-                .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .body(SCHEMA_SIMPLE_WRAPPED)
-                .post(getBasePath() + "/subjects/{subject}/versions", subject)
-                .then()
-                .statusCode(200)
+        ValidatableResponse res = given().when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST).body(SCHEMA_SIMPLE_WRAPPED)
+                .post(getBasePath() + "/subjects/{subject}/versions", subject).then().statusCode(200)
                 .body("id", Matchers.allOf(Matchers.isA(Integer.class), Matchers.greaterThanOrEqualTo(0)));
-        /*int id = */
+        /* int id = */
         res.extract().jsonPath().getInt("id");
 
         // Verify with ccompat
-        given()
-                .when()
-                .get(getBasePath() + "/subjects/").then().body(Matchers.containsString(subject));
+        given().when().get(getBasePath() + "/subjects/").then().body(Matchers.containsString(subject));
         // Verify with core
-        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        ArtifactMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .get();
         Assertions.assertNotNull(amd);
 
         // Invalid subject format
-        given()
-                .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(SCHEMA_SIMPLE_WRAPPED)
-                .post(getBasePath() + "/subjects/{subject}/versions", "invalid-subject-format")
-                .then()
+                .post(getBasePath() + "/subjects/{subject}/versions", "invalid-subject-format").then()
                 .statusCode(400);
     }
 
@@ -105,29 +97,24 @@ public class ConfluentCompatApiWithGroupsTest extends AbstractResourceTestBase {
         final String subject = toSubject(groupId, artifactId);
 
         // Create using core API
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // Verify using ccompat
-        given()
-                .when()
-                .get(getBasePath() + "/subjects/").then().body(Matchers.containsString(subject));
+        given().when().get(getBasePath() + "/subjects/").then().body(Matchers.containsString(subject));
 
         // DELETE
-        given()
-                .when()
-                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
-                .delete(getBasePath() + "/subjects/{subject}", subject)
-                .then()
-                .statusCode(200)
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .delete(getBasePath() + "/subjects/{subject}", subject).then().statusCode(200)
                 .body(Matchers.anything());
 
         // Verify with ccompat
-        given()
-                .when()
-                .get(getBasePath() + "/subjects/").then().body(Matchers.not(Matchers.containsString(subject)));
+        given().when().get(getBasePath() + "/subjects/").then()
+                .body(Matchers.not(Matchers.containsString(subject)));
         // Verify with core
-        VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").get();
+        VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).versions().byVersionExpression("1").get();
         Assertions.assertNotNull(versionMetaData);
         Assertions.assertEquals(VersionState.DISABLED, versionMetaData.getState());
     }
@@ -147,30 +134,21 @@ public class ConfluentCompatApiWithGroupsTest extends AbstractResourceTestBase {
 
         // Create using core API
         // Group 1
-        clientV3.groups().byGroupId(groupId1).artifacts().post(
-                TestUtils.clientCreateArtifact(artifactId1, ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON)
-        );
-        clientV3.groups().byGroupId(groupId1).artifacts().post(
-                TestUtils.clientCreateArtifact(artifactId2, ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON)
-        );
-        clientV3.groups().byGroupId(groupId1).artifacts().post(
-                TestUtils.clientCreateArtifact(artifactId3, ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON)
-        );
+        clientV3.groups().byGroupId(groupId1).artifacts().post(TestUtils.clientCreateArtifact(artifactId1,
+                ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
+        clientV3.groups().byGroupId(groupId1).artifacts().post(TestUtils.clientCreateArtifact(artifactId2,
+                ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
+        clientV3.groups().byGroupId(groupId1).artifacts().post(TestUtils.clientCreateArtifact(artifactId3,
+                ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
         // Group 2
-        clientV3.groups().byGroupId(groupId2).artifacts().post(
-                TestUtils.clientCreateArtifact(artifactId1, ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON)
-        );
-        clientV3.groups().byGroupId(groupId2).artifacts().post(
-                TestUtils.clientCreateArtifact(artifactId2, ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON)
-        );
+        clientV3.groups().byGroupId(groupId2).artifacts().post(TestUtils.clientCreateArtifact(artifactId1,
+                ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
+        clientV3.groups().byGroupId(groupId2).artifacts().post(TestUtils.clientCreateArtifact(artifactId2,
+                ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
 
         // Verify with ccompat
-        List<?> subjects = given()
-                .when()
-                .get(getBasePath() + "/subjects/")
-                .then()
-                .statusCode(200)
-                .extract().body().as(List.class);
+        List<?> subjects = given().when().get(getBasePath() + "/subjects/").then().statusCode(200).extract()
+                .body().as(List.class);
 
         Assertions.assertTrue(subjects.contains(subject1_1));
         Assertions.assertTrue(subjects.contains(subject1_2));
@@ -179,34 +157,19 @@ public class ConfluentCompatApiWithGroupsTest extends AbstractResourceTestBase {
         Assertions.assertTrue(subjects.contains(subject2_2));
 
         // Get versions
-        List<?> versions = given()
-                .when()
-                .get(getBasePath() + "/subjects/{subject}/versions", subject1_1)
-                .then()
-                .statusCode(200)
-                .extract().body().as(List.class);
+        List<?> versions = given().when().get(getBasePath() + "/subjects/{subject}/versions", subject1_1)
+                .then().statusCode(200).extract().body().as(List.class);
         Assertions.assertEquals(1, versions.size());
         Assertions.assertTrue(versions.contains(1));
 
         // Get one version
-        given()
-                .when()
-                .get(getBasePath() + "/subjects/{subject}/versions/{version}", subject1_1, "1")
-                .then()
-                .statusCode(200)
-                .body(Matchers.anything());
-        given()
-                .when()
-                .get(getBasePath() + "/subjects/{subject}/versions/{version}/schema", subject1_1, "1")
-                .then()
-                .statusCode(200)
-                .body(Matchers.anything());
-        given()
-                .when()
+        given().when().get(getBasePath() + "/subjects/{subject}/versions/{version}", subject1_1, "1").then()
+                .statusCode(200).body(Matchers.anything());
+        given().when().get(getBasePath() + "/subjects/{subject}/versions/{version}/schema", subject1_1, "1")
+                .then().statusCode(200).body(Matchers.anything());
+        given().when()
                 .get(getBasePath() + "/subjects/{subject}/versions/{version}/referencedby", subject1_1, "1")
-                .then()
-                .statusCode(200)
-                .body(Matchers.anything());
+                .then().statusCode(200).body(Matchers.anything());
     }
 
 }

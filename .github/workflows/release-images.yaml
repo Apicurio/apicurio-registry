@@ -158,14 +158,13 @@ jobs:
 
       - name: Build and Push Native image for testing
         run: |
-          docker build --push -f ./distro/docker/target/docker/Dockerfile.native \
+          docker build --push -f ./distro/docker/target/docker/Dockerfile.native app/ \
               -t docker.io/apicurio/apicurio-registry-native:latest \
               -t docker.io/apicurio/apicurio-registry-native:latest-release \
               -t docker.io/apicurio/apicurio-registry-native:$RELEASE_VERSION \
               -t quay.io/apicurio/apicurio-registry-native:latest \
               -t quay.io/apicurio/apicurio-registry-native:latest-release \
-              -t quay.io/apicurio/apicurio-registry-native:$RELEASE_VERSION \
-              \ app/
+              -t quay.io/apicurio/apicurio-registry-native:$RELEASE_VERSION
 
       - name: Google Chat Notification
         if: ${{ failure() }}

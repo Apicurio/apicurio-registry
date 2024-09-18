@@ -63,17 +63,17 @@ jobs:
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           # take only the major and minor versions from release-version and then append .x.
-          DOCS_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2".x"}')
+          DOCS_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '[.-]' '{print $1"."$2".x"}')
           
           sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
           sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
 
           # take only the major, minor and patch
-          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
+          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
           sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
 
           # take only the major, minor and patch
-          UI_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '.' '{print $1"."$2"."$3}')
+          UI_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
           cd ui
           npm version $UI_VERSION --allow-same-version
           cd ui-app
@@ -137,19 +137,19 @@ jobs:
         run: |
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-          
+
           # take only the major and minor versions from snapshot-version and then append .x.
-          DOCS_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2".x"}')
-          
+          DOCS_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2".x"}')
+
           sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
           sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
 
           # take only the major, minor and patch
-          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2"."$3}')
+          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
           sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
 
           # take only the major, minor and patch
-          UI_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '.' '{print $1"."$2"."$3}')
+          UI_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
           cd ui
           npm version $UI_VERSION --allow-same-version
           cd ui-app

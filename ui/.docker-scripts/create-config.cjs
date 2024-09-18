@@ -19,6 +19,7 @@ const AUTH_URL=process.env["REGISTRY_AUTH_URL"];
 const AUTH_CLIENT_ID=process.env["REGISTRY_AUTH_CLIENT_ID"];
 const AUTH_CLIENT_SCOPES=process.env["REGISTRY_AUTH_CLIENT_SCOPES"];
 const AUTH_REDIRECT_URL=process.env["REGISTRY_AUTH_REDIRECT_URL"];
+const AUTH_LOGOUT_URL=process.env["REGISTRY_AUTH_LOGOUT_URL"];
 
 const FEATURE_READ_ONLY=process.env["REGISTRY_FEATURE_READ_ONLY"];
 const FEATURE_BREADCRUMBS=process.env["REGISTRY_FEATURE_BREADCRUMBS"];
@@ -76,6 +77,9 @@ if (AUTH_TYPE === "oidc") {
     }
     if (AUTH_CLIENT_SCOPES) {
         CONFIG.auth.options.scope = AUTH_CLIENT_SCOPES;
+    }
+    if (AUTH_LOGOUT_URL) {
+        CONFIG.auth.options.logoutUrl = AUTH_LOGOUT_URL;
     }
 }
 

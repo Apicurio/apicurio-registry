@@ -31,8 +31,13 @@ export const App: FunctionComponent<AppProps> = () => {
         type: config.authType() as "none" | "oidc",
         options: config.authOptions()
     };
-    if (authConfig.type === "oidc" && (authConfig.options.redirectUri && authConfig.options.redirectUri.startsWith("/"))) {
-        authConfig.options.redirectUri = window.location.origin + authConfig.options.redirectUri;
+    if (authConfig.type === "oidc") {
+        if (authConfig.options.redirectUri && authConfig.options.redirectUri.startsWith("/")) {
+            authConfig.options.redirectUri = window.location.origin + authConfig.options.redirectUri;
+        }
+        if (authConfig.options.logoutUrl && authConfig.options.logoutUrl.startsWith("/")) {
+            authConfig.options.logoutUrl = window.location.origin + authConfig.options.logoutUrl;
+        }
     }
 
     return (

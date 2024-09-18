@@ -114,6 +114,9 @@ public class SystemResourceImpl implements SystemResource {
             options.put("url", uiConfig.authOidcUrl);
             options.put("redirectUri", uiConfig.authOidcRedirectUri);
             options.put("clientId", uiConfig.authOidcClientId);
+            if (!"f5".equals(uiConfig.authOidcLogoutUrl)) {
+                options.put("logoutUrl", uiConfig.authOidcLogoutUrl);
+            }
             rval.setOptions(options);
         }
         return rval;

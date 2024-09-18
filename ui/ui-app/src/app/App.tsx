@@ -12,7 +12,7 @@ import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { ApplicationAuth, AuthConfig, AuthConfigContext } from "@apicurio/common-ui-components";
 import { ArtifactPage } from "@app/pages/artifact";
-import {AppNavigation, useAppNavigation} from "@services/useAppNavigation.ts";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 
 export type AppProps = {
     // No props

@@ -1,6 +1,6 @@
 package io.apicurio.tests.serdes.apicurio;
 
-import io.apicurio.tests.serdes.apicurio.SerdesTester.DataGenerator;
+import io.apicurio.tests.serdes.apicurio.KafkaSerdesTester.DataGenerator;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -49,7 +49,8 @@ public class WrongConfiguredSerdesTesterBuilder<P> implements TesterBuilder {
         return this;
     }
 
-    public WrongConfiguredSerdesTesterBuilder<P> withDataGenerator(SerdesTester.DataGenerator<P> generator) {
+    public WrongConfiguredSerdesTesterBuilder<P> withDataGenerator(
+            KafkaSerdesTester.DataGenerator<P> generator) {
         this.dataGenerator = generator;
         return this;
     }
@@ -67,7 +68,7 @@ public class WrongConfiguredSerdesTesterBuilder<P> implements TesterBuilder {
         return new WrongConfiguredSerdesTester();
     }
 
-    private class WrongConfiguredSerdesTester extends SerdesTester<String, P, Object> implements Tester {
+    private class WrongConfiguredSerdesTester extends KafkaSerdesTester<String, P, Object> implements Tester {
 
         /**
          * @see Tester#test()

@@ -291,7 +291,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         String topicName = TestUtils.generateTopic();
         kafkaCluster.createTopic(topicName, 1, 1);
 
-        SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
+        KafkaSerdesTester<String, GenericRecord, GenericRecord> tester = new KafkaSerdesTester<>();
         int messageCount = 10;
 
         String recordNamespace = TestUtils.generateAvroNS();
@@ -423,8 +423,8 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
      */
     private Producer<String, GenericRecord> produceForSchema(boolean reuseClients,
             Producer<String, GenericRecord> producer,
-            SerdesTester<String, GenericRecord, GenericRecord> tester, Class<?> strategy, String topicName,
-            int messageCount, AvroGenericRecordSchemaFactory avroSchema) throws Exception {
+            KafkaSerdesTester<String, GenericRecord, GenericRecord> tester, Class<?> strategy,
+            String topicName, int messageCount, AvroGenericRecordSchemaFactory avroSchema) throws Exception {
         if (!reuseClients) {
             producer = tester.createProducer(StringSerializer.class, AvroKafkaSerializer.class, topicName,
                     strategy);
@@ -458,7 +458,7 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         createArtifact("default", subjectName, ArtifactType.AVRO, avroSchemaString,
                 ContentTypes.APPLICATION_JSON, null, null);
 
-        SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
+        KafkaSerdesTester<String, GenericRecord, GenericRecord> tester = new KafkaSerdesTester<>();
 
         int messageCount = 10;
 

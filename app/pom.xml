@@ -273,6 +273,11 @@
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-pulsar</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-maven-plugin</artifactId>
       <type>maven-plugin</type>
       <scope>test</scope>

@@ -29,7 +29,7 @@ public class WrongConfiguredConsumerTesterBuilder<P, C> extends SimpleSerdesTest
         return new FailingConsumerTester();
     }
 
-    private class FailingConsumerTester extends SerdesTester<String, P, C> implements Tester {
+    private class FailingConsumerTester extends KafkaSerdesTester<String, P, C> implements Tester {
 
         /**
          * @see Tester#test()

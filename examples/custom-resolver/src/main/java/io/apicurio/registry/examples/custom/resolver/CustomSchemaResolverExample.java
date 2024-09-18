@@ -16,9 +16,9 @@
 
 package io.apicurio.registry.examples.custom.resolver;
 
-import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -170,9 +170,9 @@ public class CustomSchemaResolverExample {
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, Config.REGISTRY_URL);
-        // No other configuration needed for the deserializer, because the globalId of the schema
+        // No other configuration needed for the deserializer, because the contentId of the schema
         // the deserializer should use is sent as part of the payload. So the deserializer simply
-        // extracts that globalId and uses it to look up the Schema from the registry.
+        // extracts that contentId and uses it to look up the Schema from the registry.
 
         // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);

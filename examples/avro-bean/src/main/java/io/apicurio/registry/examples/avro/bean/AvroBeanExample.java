@@ -16,11 +16,11 @@
 
 package io.apicurio.registry.examples.avro.bean;
 
-import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.AvroSerdeConfig;
 import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -57,7 +57,7 @@ import java.util.Properties;
  */
 public class AvroBeanExample {
 
-    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
+    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
     private static final String SERVERS = "localhost:9092";
     private static final String TOPIC_NAME = AvroBeanExample.class.getSimpleName();
     private static final String SUBJECT_NAME = "Greeting";
@@ -143,7 +143,7 @@ public class AvroBeanExample {
         props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT, Boolean.TRUE);
         // Use Java reflection as the Avro Datum Provider - this also generates an Avro schema from the java
         // bean
-        props.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
+        props.putIfAbsent(AvroSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
 
         // Just if security values are present, then we configure them.
         configureSecurityIfPresent(props);
@@ -174,7 +174,7 @@ public class AvroBeanExample {
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
         // Use Java reflection as the Avro Datum Provider
-        props.putIfAbsent(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
+        props.putIfAbsent(AvroSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
         // No other configuration needed for the deserializer, because the globalId of the schema
         // the deserializer should use is sent as part of the payload. So the deserializer simply
         // extracts that globalId and uses it to look up the Schema from the registry.

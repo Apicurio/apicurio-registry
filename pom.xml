@@ -80,10 +80,14 @@
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
     <module>schema-resolver</module>
-    <module>serdes/serde-common</module>
-    <module>serdes/avro-serde</module>
-    <module>serdes/protobuf-serde</module>
-    <module>serdes/jsonschema-serde</module>
+    <module>serdes/generic/serde-common</module>
+    <module>serdes/generic/serde-common-avro</module>
+    <module>serdes/generic/serde-common-jsonschema</module>
+    <module>serdes/generic/serde-common-protobuf</module>
+    <module>serdes/kafka/serde-kafka-common</module>
+    <module>serdes/kafka/avro-serde</module>
+    <module>serdes/kafka/protobuf-serde</module>
+    <module>serdes/kafka/jsonschema-serde</module>
     <module>distro</module>
     <module>docs</module>
     <module>java-sdk</module>
@@ -333,17 +337,37 @@
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
+        <artifactId>apicurio-registry-serde-common-avro</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry-serdes-protobuf-serde</artifactId>
+        <artifactId>apicurio-registry-serde-common-jsonschema</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
+        <artifactId>apicurio-registry-serde-common-protobuf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-serde-kafka-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

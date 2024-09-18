@@ -1,8 +1,8 @@
 package io.apicurio.example.debezium.kafka;
 
-import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
+import io.apicurio.registry.serde.avro.AvroSerdeConfig;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -44,7 +44,7 @@ public class KafkaFactory {
         log.debug("Registry URL: {}", registryUrl);
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, registryUrl);
         // Deserialize into a specific class instead of GenericRecord
-        props.putIfAbsent(AvroKafkaSerdeConfig.USE_SPECIFIC_AVRO_READER, true);
+        props.putIfAbsent(AvroSerdeConfig.USE_SPECIFIC_AVRO_READER, true);
 
         return new KafkaConsumer<>(props);
     }

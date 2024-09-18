@@ -1,8 +1,8 @@
 package io.apicurio.registry.utils.converter.json;
 
-import io.apicurio.registry.serde.data.KafkaSerdeRecord;
+import io.apicurio.registry.serde.data.SerdeRecord;
 
-public class JsonConverterRecord<T> extends KafkaSerdeRecord<T> {
+public class JsonConverterRecord<T> extends SerdeRecord<T> {
 
     /**
      * Constructor.
@@ -15,7 +15,7 @@ public class JsonConverterRecord<T> extends KafkaSerdeRecord<T> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.data.KafkaSerdeRecord#metadata()
+     * @see io.apicurio.registry.serde.data.SerdeRecord#metadata()
      */
     @Override
     public JsonConverterMetadata metadata() {

@@ -40,7 +40,9 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     @Override
     public void executionStarted(TestIdentifier testIdentifier) {
         TestExecutionListener.super.executionStarted(testIdentifier);
-        logWatch = streamPodLogs(testLogsIdentifier);
+        if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
+            logWatch = streamPodLogs(testLogsIdentifier);
+        }
     }
 
     @Override

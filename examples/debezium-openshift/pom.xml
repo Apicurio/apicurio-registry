@@ -56,7 +56,7 @@
 
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
+      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
       <version>${project.version}</version>
     </dependency>
 

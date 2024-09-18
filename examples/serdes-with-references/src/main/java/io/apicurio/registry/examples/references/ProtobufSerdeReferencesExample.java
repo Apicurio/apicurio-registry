@@ -6,7 +6,7 @@ import io.api.sample.TableInfo;
 import io.api.sample.TableNotification;
 import io.api.sample.TableNotificationType;
 import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -28,7 +28,7 @@ import java.util.UUID;
 
 public class ProtobufSerdeReferencesExample {
 
-    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
+    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
     private static final String SERVERS = "localhost:9092";
     private static final String TOPIC_NAME = ProtobufSerdeReferencesExample.class.getSimpleName();
     private static final String SUBJECT_NAME = "TableNotification";

@@ -66,7 +66,7 @@ import static io.apicurio.schema.validation.protobuf.ref.MessageExample2OuterCla
  */
 public class ProtobufValidationExample {
 
-    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
+    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
 
     public static final String SCHEMA = "syntax = \"proto3\";\n"
             + "package io.apicurio.schema.validation.protobuf.ref;\n" + "\n" + "message MessageExample {\n"

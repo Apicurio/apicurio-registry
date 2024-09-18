@@ -63,7 +63,7 @@ import static io.apicurio.registry.client.auth.VertXAuthFactory.defaultVertx;
  */
 public class JsonSchemaValidationExample {
 
-    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v2";
+    private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
 
     public static final String SCHEMA = "{" + "    \"$id\": \"https://example.com/message.schema.json\","
             + "    \"$schema\": \"http://json-schema.org/draft-07/schema#\"," + "    \"required\": ["

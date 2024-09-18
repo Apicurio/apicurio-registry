@@ -1,14 +1,14 @@
 package io.apicurio.tests.serdes.apicurio;
 
 import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.serde.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.AvroSerdeConfig;
 import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.serde.config.IdOption;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.serde.strategy.TopicIdStrategy;
 import io.apicurio.registry.types.ArtifactType;
@@ -499,10 +499,8 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withSerializer(serializer).withDeserializer(deserializer).withStrategy(TopicIdStrategy.class)
                 .withDataGenerator(avroSchema::generateRecord).withDataValidator(avroSchema::validateRecord)
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-                .withProducerProperty(AvroKafkaSerdeConfig.AVRO_ENCODING,
-                        AvroKafkaSerdeConfig.AVRO_ENCODING_JSON)
-                .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_ENCODING,
-                        AvroKafkaSerdeConfig.AVRO_ENCODING_JSON)
+                .withProducerProperty(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON)
+                .withConsumerProperty(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON)
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {
                         VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts()
@@ -528,10 +526,10 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
                 .withStrategy(TopicIdStrategy.class).withSerializer(serializer).withDeserializer(deserializer)
                 .withDataGenerator(i -> new TestObject("Apicurio"))
                 .withDataValidator(o -> "Apicurio".equals(o.getName()))
-                .withProducerProperty(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER,
+                .withProducerProperty(AvroSerdeConfig.AVRO_DATUM_PROVIDER,
                         ReflectAvroDatumProvider.class.getName())
                 .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
-                .withConsumerProperty(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER,
+                .withConsumerProperty(AvroSerdeConfig.AVRO_DATUM_PROVIDER,
                         ReflectAvroDatumProvider.class.getName())
                 .withAfterProduceValidator(() -> {
                     return TestUtils.retry(() -> {

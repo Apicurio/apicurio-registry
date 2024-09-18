@@ -16,24 +16,23 @@
 
 package io.apicurio.registry.examples.custom.resolver;
 
+import io.apicurio.registry.resolver.AbstractSchemaResolver;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaLookupResult;
+import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.VersionContent;
-import io.apicurio.registry.serde.AbstractSchemaResolver;
-import io.apicurio.registry.serde.ParsedSchema;
-import io.apicurio.registry.serde.SchemaLookupResult;
-import io.apicurio.registry.serde.SchemaParser;
-import io.apicurio.registry.serde.avro.AvroSchemaUtils;
-import io.apicurio.registry.serde.strategy.ArtifactReference;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.avro.Schema;
-import org.apache.kafka.common.header.Headers;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -47,30 +46,19 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
 
     protected final Map<String, SchemaLookupResult<Schema>> schemaLookupCacheByContent = new ConcurrentHashMap<>();
 
-    /**
-     * @see io.apicurio.registry.serde.SchemaResolver#configure(java.util.Map, boolean,
-     *      io.apicurio.registry.serde.SchemaParser)
-     */
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey, SchemaParser<Schema> schemaMapper) {
-        super.configure(configs, isKey, schemaMapper);
+    public SchemaLookupResult<Schema> resolveSchemaByGlobalId(long globalId) {
+        return super.resolveSchemaByGlobalId(globalId);
     }
 
-    /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchema(java.lang.String,
-     *      org.apache.kafka.common.header.Headers, java.lang.Object, io.apicurio.registry.serde.ParsedSchema)
-     */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public SchemaLookupResult<Schema> resolveSchema(String topic, Headers headers, D data,
-            ParsedSchema<Schema> parsedSchema) {
-        System.out.println("[CustomSchemaResolver] Resolving a schema for topic: " + topic);
+    public SchemaLookupResult<Schema> resolveSchema(Record<D> data) {
+        System.out.println("[CustomSchemaResolver] Resolving a schema");
         String schema = Config.SCHEMA;
 
         return schemaLookupCacheByContent.computeIfAbsent(schema, (schemaData) -> {
             String groupId = "default";
-            String artifactId = topic + "-value";
-            Schema schemaObj = AvroSchemaUtils.parse(schema);
+            String artifactId = UUID.randomUUID() + "-value";
 
             ByteArrayInputStream schemaContent = new ByteArrayInputStream(
                     schema.getBytes(StandardCharsets.UTF_8));
@@ -84,33 +72,30 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
             createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(schemaContent));
             createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = client.groups()
-                    .byGroupId("default").artifacts().post(createArtifact, config -> {
+            final VersionMetaData metaData = client.groups().byGroupId("default").artifacts()
+                    .post(createArtifact, config -> {
                         config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
                     }).getVersion();
 
-            SchemaLookupResult result = SchemaLookupResult.builder().groupId(groupId).artifactId(artifactId)
-                    .version(String.valueOf(metaData.getVersion())).globalId(metaData.getGlobalId())
-                    .schema(schemaObj).rawSchema(schema.getBytes(StandardCharsets.UTF_8)).build();
+            ParsedSchema<Schema> parsedSchema = this.schemaParser.getSchemaFromData(data);
 
-            // Also update the schemaCacheByGlobalId - useful if this resolver is used by both
+            SchemaLookupResult.SchemaLookupResultBuilder<Schema> lookupResultBuilder = SchemaLookupResult
+                    .builder();
+
+            SchemaLookupResult<Schema> result = lookupResultBuilder.groupId(groupId).artifactId(artifactId)
+                    .version(String.valueOf(metaData.getVersion())).contentId(metaData.getContentId())
+                    .parsedSchema(parsedSchema).build();
+
+            // Also update the schemaCacheByContentId - useful if this resolver is used by both
             // the serializer and deserializer in the same Java application.
-            return schemaCache.getByGlobalId(metaData.getGlobalId(), (id) -> result);
+            return schemaCache.getByContentId(metaData.getContentId(), (id) -> result);
         });
     }
 
-    /**
-     * @see io.apicurio.registry.serde.SchemaResolver#resolveSchemaByArtifactReference(io.apicurio.registry.serde.strategy.ArtifactReference)
-     */
     @Override
-    public SchemaLookupResult<Schema> resolveSchemaByArtifactReference(ArtifactReference reference) {
+    public SchemaLookupResult<Schema> resolveSchemaByArtifactReference(
+            io.apicurio.registry.resolver.strategy.ArtifactReference reference) {
         throw new UnsupportedOperationException(
                 "resolveSchemaByArtifactReference() is not supported by this implementation.");
     }
-
-    @Override
-    public SchemaLookupResult<Schema> resolveSchemaByGlobalId(long globalId) {
-        return super.resolveSchemaByGlobalId(globalId);
-    }
-
 }

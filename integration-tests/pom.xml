@@ -76,17 +76,17 @@
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
+      <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-serdes-protobuf-serde</artifactId>
+      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
+      <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

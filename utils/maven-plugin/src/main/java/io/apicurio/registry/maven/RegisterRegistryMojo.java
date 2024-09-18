@@ -14,6 +14,7 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
@@ -137,21 +138,21 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
                         registerWithAutoRefs(artifact, index, registrationStack);
                     } else if (artifact.getAnalyzeDirectory() != null && artifact.getAnalyzeDirectory()) { // Auto
-                                                                                                           // register
-                                                                                                           // selected,
-                                                                                                           // we
-                                                                                                           // must
-                                                                                                           // figure
-                                                                                                           // out
-                                                                                                           // if
-                                                                                                           // the
-                                                                                                           // artifact
-                                                                                                           // has
-                                                                                                           // reference
-                                                                                                           // using
-                                                                                                           // the
-                                                                                                           // directory
-                                                                                                           // structure
+                        // register
+                        // selected,
+                        // we
+                        // must
+                        // figure
+                        // out
+                        // if
+                        // the
+                        // artifact
+                        // has
+                        // reference
+                        // using
+                        // the
+                        // directory
+                        // structure
                         registerDirectory(artifact);
                     } else {
 
@@ -321,17 +322,22 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }).collect(Collectors.toList()));
         createVersion.setContent(content);
 
-        var vmd = getClient().groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
-            if (artifact.getIfExists() != null) {
-                config.queryParameters.ifExists = IfArtifactExists.forValue(artifact.getIfExists().value());
-            }
-            config.queryParameters.canonical = canonicalize;
-        });
+        try {
+            var vmd = getClient().groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
+                if (artifact.getIfExists() != null) {
+                    config.queryParameters.ifExists = IfArtifactExists
+                            .forValue(artifact.getIfExists().value());
+                }
+                config.queryParameters.canonical = canonicalize;
+            });
 
-        getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]",
-                groupId, artifactId, vmd.getVersion().getGlobalId()));
+            getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]",
+                    groupId, artifactId, vmd.getVersion().getGlobalId()));
 
-        return vmd;
+            return vmd;
+        } catch (ProblemDetails e) {
+            throw new RuntimeException(e.getDetail());
+        }
     }
 
     private static boolean hasReferences(RegisterArtifact artifact) {
@@ -376,7 +382,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     /**
      * Create a local index relative to the given file location.
-     * 
+     *
      * @param file
      */
     private static ReferenceIndex createIndex(File file) {
@@ -437,7 +443,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     /**
      * Detects a loop by looking for the given artifact in the registration stack.
-     * 
+     *
      * @param artifact
      * @param registrationStack
      */

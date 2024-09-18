@@ -1,14 +1,12 @@
 package io.apicurio.registry.resolver.config;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 import static io.apicurio.registry.resolver.SchemaResolverConfig.*;
 import static java.util.Map.entry;
 
-public class DefaultSchemaResolverConfig {
+public class DefaultSchemaResolverConfig extends AbstractConfig {
 
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(
             entry(ARTIFACT_RESOLVER_STRATEGY, ARTIFACT_RESOLVER_STRATEGY_DEFAULT),
@@ -21,8 +19,6 @@ public class DefaultSchemaResolverConfig {
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
             entry(DEREFERENCE_SCHEMA, DEREFERENCE_SCHEMA_DEFAULT),
             entry(DESERIALIZER_DEREFERENCE_SCHEMA, DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT));
-
-    private Map<String, ?> originals;
 
     public DefaultSchemaResolverConfig(Map<String, ?> originals) {
         this.originals = originals;
@@ -119,20 +115,6 @@ public class DefaultSchemaResolverConfig {
         return getString(EXPLICIT_ARTIFACT_VERSION);
     }
 
-    public Map<String, Object> originals() {
-        return new HashMap<>(originals);
-    }
-
-    Object getObject(String key) {
-        if (key == null) {
-            throw new NullPointerException("Configuration property key is null.");
-        }
-        if (!originals.containsKey(key) && DEFAULTS.containsKey(key)) {
-            return DEFAULTS.get(key);
-        }
-        return originals.get(key);
-    }
-
     public boolean serializerDereference() {
         return getBooleanOrFalse(DEREFERENCE_SCHEMA);
     }
@@ -141,100 +123,8 @@ public class DefaultSchemaResolverConfig {
         return getBooleanOrFalse(DESERIALIZER_DEREFERENCE_SCHEMA);
     }
 
-    private Duration getDurationNonNegativeMillis(String key) {
-        Object value = getObject(key);
-        if (value == null) {
-            reportError(key, "a non-null value", value);
-        }
-        long millis;
-
-        if (value instanceof Number) {
-            millis = ((Number) value).longValue();
-        } else if (value instanceof String) {
-            millis = Long.parseLong((String) value);
-        } else if (value instanceof Duration) {
-            millis = ((Duration) value).toMillis();
-        } else {
-            reportError(key, "a duration-like value", value);
-            throw new IllegalStateException("Unreachable");
-        }
-        if (millis < 0) {
-            reportError(key, "a non-negative duration-like value", value);
-        }
-        return Duration.ofMillis(millis);
-    }
-
-    private long getLongNonNegative(String key) {
-        Object value = getObject(key);
-        if (value == null) {
-            reportError(key, "a non-null value", value);
-        }
-        long result;
-        if (value instanceof Number) {
-            result = ((Number) value).longValue();
-        } else if (value instanceof String) {
-            result = Long.parseLong((String) value);
-        } else {
-            reportError(key, "a number-like value", value);
-            throw new IllegalStateException("Unreachable");
-        }
-        if (result < 0) {
-            reportError(key, "a non-negative number-like value", value);
-        }
-        return result;
-    }
-
-    private String getString(String key) {
-        Object value = getObject(key);
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof String) {
-            return ((String) value).trim();
-        } else {
-            reportError(key, "a String", value.getClass().getName());
-            throw new IllegalStateException("Unreachable");
-        }
-    }
-
-    private String getStringOneOf(String key, String... possibilities) {
-        String result = getString(key);
-        if (!Arrays.asList(possibilities).contains(result)) {
-            reportError(key, "one of " + Arrays.toString(possibilities), result);
-        }
-        return result;
-    }
-
-    private Boolean getBooleanOrFalse(String key) {
-        var val = getBoolean(key);
-        return val != null && val;
-    }
-
-    private Boolean getBoolean(String key) {
-        Object value = getObject(key);
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        } else if (value instanceof String) {
-            String trimmed = ((String) value).trim();
-            if (trimmed.equalsIgnoreCase("true"))
-                return true;
-            else if (trimmed.equalsIgnoreCase("false"))
-                return false;
-            else {
-                reportError(key, "a boolean-like value", value);
-                throw new IllegalStateException("Unreachable");
-            }
-        } else {
-            reportError(key, "a boolean-like value", value);
-            throw new IllegalStateException("Unreachable");
-        }
-    }
-
-    private void reportError(String key, String expectedText, Object value) {
-        throw new IllegalArgumentException("Invalid configuration property value for '" + key + "'. "
-                + "Expected " + expectedText + ", but got a '" + value + "'.");
+    @Override
+    protected Map<String, ?> getDefaults() {
+        return DEFAULTS;
     }
 }

@@ -130,7 +130,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaParser#artifactType()
+     * @see io.apicurio.registry.resolver.SchemaParser#artifactType()
      */
     @Override
     public String artifactType() {
@@ -138,7 +138,8 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
     }
 
     /**
-     * @see io.apicurio.registry.serde.SchemaParser#parseSchema(byte[])
+     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map<String,
+     *      ParsedSchema<JsonNode>>)
      */
     @Override
     public JsonNode parseSchema(byte[] rawSchema, Map<String, ParsedSchema<JsonNode>> resolvedReferences) {

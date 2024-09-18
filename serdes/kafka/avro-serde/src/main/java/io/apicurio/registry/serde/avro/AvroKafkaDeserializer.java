@@ -3,7 +3,6 @@ package io.apicurio.registry.serde.avro;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.KafkaDeserializer;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.header.Headers;
@@ -33,10 +32,6 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
     public AvroKafkaDeserializer(RegistryClient client, ArtifactReferenceResolverStrategy<Schema, U> strategy,
             SchemaResolver<Schema, U> schemaResolver) {
         super(new AvroDeserializer<>(client, strategy, schemaResolver));
-    }
-
-    public AvroKafkaDeserializer(AbstractDeserializer<Schema, U> delegatedDeserializer) {
-        super(delegatedDeserializer);
     }
 
     @SuppressWarnings("rawtypes")

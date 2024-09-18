@@ -61,7 +61,7 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
+     * @see AbstractSerializer#schemaParser()
      */
     @Override
     public SchemaParser<ProtobufSchema, U> schemaParser() {

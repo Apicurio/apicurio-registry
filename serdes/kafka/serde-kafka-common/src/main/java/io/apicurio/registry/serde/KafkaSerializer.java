@@ -2,6 +2,7 @@ package io.apicurio.registry.serde;
 
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
+import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
@@ -23,7 +24,7 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
 
     protected HeadersHandler headersHandler;
 
-    public KafkaSerializer(AbstractSerializer<T, U> delegatedSerializer) {
+    protected KafkaSerializer(AbstractSerializer<T, U> delegatedSerializer) {
         this.delegatedSerializer = delegatedSerializer;
     }
 
@@ -65,8 +66,8 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
         try {
             if (headersHandler != null && headers != null) {
                 KafkaSerdeMetadata resolverMetadata = new KafkaSerdeMetadata(topic,
-                        delegatedSerializer.isKey(), headers);
-                SchemaLookupResult<T> schema = delegatedSerializer.getSchemaResolver()
+                        delegatedSerializer.getSerdeConfigurer().isKey(), headers);
+                SchemaLookupResult<T> schema = delegatedSerializer.getSerdeConfigurer().getSchemaResolver()
                         .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 headersHandler.writeHeaders(headers, schema.toArtifactReference());
@@ -82,10 +83,18 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
 
     @Override
     public void close() {
-        delegatedSerializer.close();
+        delegatedSerializer.getSerdeConfigurer().close();
     }
 
     public void as4ByteId() {
-        delegatedSerializer.as4ByteId();
+        delegatedSerializer.getSerdeConfigurer().setIdHandler(new Default4ByteIdHandler());
+    }
+
+    public SchemaResolver<T, U> getSchemaResolver() {
+        return delegatedSerializer.getSerdeConfigurer().getSchemaResolver();
+    }
+
+    public void setSchemaResolver(SchemaResolver<T, U> schemaResolver) {
+        delegatedSerializer.getSerdeConfigurer().setSchemaResolver(schemaResolver);
     }
 }

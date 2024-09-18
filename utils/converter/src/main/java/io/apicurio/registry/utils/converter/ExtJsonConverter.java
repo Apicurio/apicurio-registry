@@ -5,14 +5,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.SchemaResolverConfigurer;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
@@ -33,22 +34,23 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
-        implements Converter, SchemaParser<JsonNode, Object>, AutoCloseable {
+public class ExtJsonConverter implements Converter, SchemaParser<JsonNode, Object>, AutoCloseable {
     private final JsonConverter jsonConverter;
     private final JsonConverter deserializingConverter;
     private final ObjectMapper mapper;
+    private final SchemaResolver<JsonNode, Object> schemaResolver;
+    private final JsonDeserializer jsonDeserializer;
     private FormatStrategy formatStrategy;
     private boolean isKey;
 
-    private JsonDeserializer jsonDeserializer;
 
     public ExtJsonConverter() {
         this(null);
     }
 
     public ExtJsonConverter(RegistryClient client) {
-        super(client);
+        this.schemaResolver = new DefaultSchemaResolver<>();
+        this.schemaResolver.setClient(client);
         this.jsonConverter = new JsonConverter();
         this.deserializingConverter = new JsonConverter();
         this.mapper = new ObjectMapper();
@@ -63,7 +65,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure((Map<String, Object>) configs, isKey, this);
+        this.schemaResolver.configure(configs, this);
         this.isKey = isKey;
         Map<String, Object> wrapper = new HashMap<>(configs);
         wrapper.put(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false);
@@ -88,7 +90,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
         JsonConverterRecord<Object> record = new JsonConverterRecord<Object>(
                 new JsonConverterMetadata(topic, isKey, headers, schema), value);
-        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver().resolveSchema(record);
+        SchemaLookupResult<JsonNode> schemaLookupResult = this.schemaResolver.resolveSchema(record);
 
         byte[] payload = jsonConverter.fromConnectData(topic, schema, value);
 
@@ -102,7 +104,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
         long contentId = ip.getContentId();
 
-        SchemaLookupResult<JsonNode> schemaLookupResult = getSchemaResolver()
+        SchemaLookupResult<JsonNode> schemaLookupResult = this.schemaResolver
                 .resolveSchemaByArtifactReference(ArtifactReference.builder().contentId(contentId).build());
 
         JsonNode parsedSchema = schemaLookupResult.getParsedSchema().getParsedSchema();

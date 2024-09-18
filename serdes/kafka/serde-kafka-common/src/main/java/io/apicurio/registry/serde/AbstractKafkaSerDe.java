@@ -7,7 +7,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 /**
  * Common class for both serializer and deserializer.
  */
-public abstract class AbstractKafkaSerDe<T, U> extends AbstractSerDe<T, U> {
+public abstract class AbstractKafkaSerDe<T, U> extends SerdeConfigurer<T, U> {
 
     public AbstractKafkaSerDe() {
         super();
@@ -26,7 +26,7 @@ public abstract class AbstractKafkaSerDe<T, U> extends AbstractSerDe<T, U> {
     }
 
     public AbstractKafkaSerDe(RegistryClient client, ArtifactReferenceResolverStrategy<T, U> strategy,
-            SchemaResolver<T, U> schemaResolver) {
+                              SchemaResolver<T, U> schemaResolver) {
         super(client, strategy, schemaResolver);
     }
 }

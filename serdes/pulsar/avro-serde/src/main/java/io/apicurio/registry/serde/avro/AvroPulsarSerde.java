@@ -8,18 +8,18 @@ import org.apache.pulsar.functions.api.SerDe;
  */
 public class AvroPulsarSerde<T> implements SerDe<T>, AutoCloseable {
 
-    final private AvroPulsarSerializer<T> serializer;
-    final private AvroPulsarDeserializer<T> deserializer;
+    final private AvroSerializer<T> serializer;
+    final private AvroDeserializer<T> deserializer;
 
     final private String topicName;
 
     public AvroPulsarSerde(String topicName) {
-        this.serializer = new AvroPulsarSerializer<>();
-        this.deserializer = new AvroPulsarDeserializer<>();
+        this.serializer = new AvroSerializer<>();
+        this.deserializer = new AvroDeserializer<>();
         this.topicName = topicName;
     }
 
-    public AvroPulsarSerde(AvroPulsarSerializer<T> serializer, AvroPulsarDeserializer<T> deserializer,
+    public AvroPulsarSerde(AvroSerializer<T> serializer, AvroDeserializer<T> deserializer,
             String topicName) {
         this.serializer = serializer;
         this.deserializer = deserializer;

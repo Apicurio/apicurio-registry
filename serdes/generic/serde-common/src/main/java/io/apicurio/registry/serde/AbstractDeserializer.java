@@ -2,35 +2,51 @@ package io.apicurio.registry.serde;
 
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
+import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.config.SerdeConfig;
 
 import java.nio.ByteBuffer;
 
-public abstract class AbstractDeserializer<T, U> extends AbstractSerDe<T, U> {
+import static io.apicurio.registry.serde.SerdeConfigurer.getByteBuffer;
+
+public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
+
+    private final SerdeConfigurer<T, U> serdeConfigurer;
 
     public AbstractDeserializer() {
-        super();
+        this.serdeConfigurer = new SerdeConfigurer<>();
     }
 
     public AbstractDeserializer(RegistryClient client) {
-        super(client);
+        this.serdeConfigurer = new SerdeConfigurer<>(client);
     }
 
     public AbstractDeserializer(SchemaResolver<T, U> schemaResolver) {
-        super(schemaResolver);
+        this.serdeConfigurer = new SerdeConfigurer<>(schemaResolver);
     }
 
     public AbstractDeserializer(RegistryClient client, SchemaResolver<T, U> schemaResolver) {
-        super(client, schemaResolver);
+        this.serdeConfigurer = new SerdeConfigurer<>(client, schemaResolver);
     }
 
     public AbstractDeserializer(RegistryClient client, ArtifactReferenceResolverStrategy<T, U> strategy,
-            SchemaResolver<T, U> schemaResolver) {
-        super(client, strategy, schemaResolver);
+                                SchemaResolver<T, U> schemaResolver) {
+        this.serdeConfigurer = new SerdeConfigurer<>(client, strategy, schemaResolver);
     }
+
+    public SerdeConfigurer<T, U> getSerdeConfigurer() {
+        return serdeConfigurer;
+    }
+
+    public void configure(SerdeConfig config, boolean isKey) {
+        serdeConfigurer.configure(config, isKey, schemaParser());
+    }
+
+    public abstract SchemaParser<T, U> schemaParser();
 
     public U deserializeData(String topic, byte[] data) {
         if (data == null) {
@@ -38,11 +54,11 @@ public abstract class AbstractDeserializer<T, U> extends AbstractSerDe<T, U> {
         }
 
         ByteBuffer buffer = getByteBuffer(data);
-        ArtifactReference artifactReference = getIdHandler().readId(buffer);
+        ArtifactReference artifactReference = serdeConfigurer.getIdHandler().readId(buffer);
 
         SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
 
-        int length = buffer.limit() - 1 - getIdHandler().idSize();
+        int length = buffer.limit() - 1 - serdeConfigurer.getIdHandler().idSize();
         int start = buffer.position() + buffer.arrayOffset();
 
         return readData(schema.getParsedSchema(), buffer, start, length);
@@ -62,19 +78,27 @@ public abstract class AbstractDeserializer<T, U> extends AbstractSerDe<T, U> {
 
     protected SchemaLookupResult<T> resolve(String topic, byte[] data, ArtifactReference artifactReference) {
         try {
-            return getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
-        } catch (RuntimeException e) {
-            if (fallbackArtifactProvider == null) {
+            return serdeConfigurer.getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
+        }
+        catch (RuntimeException e) {
+            if (serdeConfigurer.getFallbackArtifactProvider() == null) {
                 throw e;
-            } else {
+            }
+            else {
                 try {
-                    ArtifactReference fallbackReference = fallbackArtifactProvider.get(topic, data);
-                    return getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference);
-                } catch (RuntimeException fe) {
+                    ArtifactReference fallbackReference = serdeConfigurer.getFallbackArtifactProvider().get(topic, data);
+                    return serdeConfigurer.getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference);
+                }
+                catch (RuntimeException fe) {
                     fe.addSuppressed(e);
                     throw fe;
                 }
             }
         }
+    }
+
+    @Override
+    public void close() {
+        this.serdeConfigurer.close();
     }
 }

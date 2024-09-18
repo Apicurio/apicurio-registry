@@ -5,7 +5,6 @@ import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.KafkaDeserializer;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import org.apache.kafka.common.header.Headers;
@@ -37,10 +36,6 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
             ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
             SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaDeserializer<>(client, schemaResolver, strategy));
-    }
-
-    public JsonSchemaKafkaDeserializer(AbstractDeserializer<JsonSchema, T> delegatedDeserializer) {
-        super(delegatedDeserializer);
     }
 
     @SuppressWarnings("unchecked")

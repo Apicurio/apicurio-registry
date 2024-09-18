@@ -5,10 +5,10 @@ import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.serde.avro.AvroPulsarDeserializer;
+import io.apicurio.registry.serde.avro.AvroDeserializer;
 import io.apicurio.registry.serde.avro.AvroPulsarSerde;
-import io.apicurio.registry.serde.avro.AvroPulsarSerializer;
 import io.apicurio.registry.serde.avro.AvroSerdeConfig;
+import io.apicurio.registry.serde.avro.AvroSerializer;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -52,8 +52,8 @@ public class AvroPulsarSerdeTest extends AbstractResourceTestBase {
             Supplier<VersionMetaData> artifactFinder) throws Exception {
         Schema schema = new Schema.Parser().parse(
                 "{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test_group_avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        try (AvroPulsarSerializer<GenericData.Record> serializer = new AvroPulsarSerializer<>(restClient);
-            AvroPulsarDeserializer<GenericData.Record> deserializer = new AvroPulsarDeserializer<>(
+        try (AvroSerializer<GenericData.Record> serializer = new AvroSerializer<>(restClient);
+            AvroDeserializer<GenericData.Record> deserializer = new AvroDeserializer<>(
                     restClient)) {
 
             AvroPulsarSerde<GenericData.Record> avroPulsarSerde = new AvroPulsarSerde<>(serializer,

@@ -47,7 +47,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
     }
 
     public JsonSchemaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
+                                  ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
         super(client, strategy, schemaResolver);
     }
 
@@ -56,11 +56,6 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         this.validationEnabled = validationEnabled;
     }
 
-    /**
-     * @see AbstractDeserializer#configure(SerdeConfig, boolean)
-     */
-    @SuppressWarnings("unchecked")
-    @Override
     public void configure(SerdeConfig configs, boolean isKey) {
         JsonSchemaDeserializerConfig config = new JsonSchemaDeserializerConfig(configs.originals(), isKey);
         super.configure(config, isKey);
@@ -76,6 +71,11 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
                     .setSerializationInclusion(JsonInclude.Include.NON_NULL);
             ;
         }
+    }
+
+    @Override
+    public SchemaParser<JsonSchema, T> schemaParser() {
+        return parser;
     }
 
     public boolean isValidationEnabled() {
@@ -95,16 +95,8 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
-     */
-    @Override
-    public SchemaParser<JsonSchema, T> schemaParser() {
-        return parser;
-    }
-
-    /**
      * @see AbstractDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
-     *      int, int)
+     *         int, int)
      */
     @Override
     public T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
@@ -126,7 +118,8 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
             if (this.specificReturnClass != null) {
                 messageType = this.specificReturnClass;
-            } else {
+            }
+            else {
                 JsonNode jsonSchema = mapper.readTree(schema.getRawSchema());
 
                 String javaType = null;
@@ -143,10 +136,12 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
             if (messageType == null) {
                 // TODO maybe warn there is no message type and the deserializer will return a JsonNode
                 return mapper.readTree(parser);
-            } else {
+            }
+            else {
                 return mapper.readValue(parser, messageType);
             }
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }

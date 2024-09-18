@@ -24,19 +24,22 @@ public class AvroPulsarSerdeSchema<T> implements Schema<T> {
 
     @Override
     public SchemaInfo getSchemaInfo() {
-        return SchemaInfo.builder().name("AvroPulsarSerdeSchema").type(SchemaType.BYTES).schema(new byte[0]) // Schema
-                                                                                                             // definition
-                                                                                                             // is
-                                                                                                             // not
-                                                                                                             // required
-                                                                                                             // for
-                                                                                                             // custom
-                                                                                                             // serde.
+        return SchemaInfo.builder()
+                .name("AvroPulsarSerdeSchema")
+                .type(SchemaType.BYTES)
+                .schema(new byte[0]) // Schema
+                // definition
+                // is
+                // not
+                // required
+                // for
+                // custom
+                // serde.
                 .build();
     }
 
     @Override
     public Schema<T> clone() {
-        return null;
+        return this.clone();
     }
 }

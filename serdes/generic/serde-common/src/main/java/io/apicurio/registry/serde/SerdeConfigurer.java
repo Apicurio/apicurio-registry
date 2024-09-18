@@ -1,7 +1,9 @@
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -15,53 +17,72 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.Objects;
 
 /**
- * Common class for both serializer and deserializer.
+ * Class that holds all the configuration options related to serialization.
  */
-public abstract class AbstractSerDe<T, U> extends SchemaResolverConfigurer<T, U> implements AutoCloseable {
+public class SerdeConfigurer<T, U> implements AutoCloseable {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
-
-    protected FallbackArtifactProvider fallbackArtifactProvider;
-
     public static final byte MAGIC_BYTE = 0x0;
 
-    protected boolean key; // do we handle key or value with this ser/de?
+    private boolean key; // do we handle key or value with this ser/de?
+    private FallbackArtifactProvider fallbackArtifactProvider;
+    private IdHandler idHandler;
+    private SchemaResolver<T, U> schemaResolver;
 
-    protected boolean isKey() {
-        return key;
-    }
-
-    protected IdHandler idHandler;
-
-    public AbstractSerDe() {
+    public SerdeConfigurer() {
         super();
     }
 
-    public AbstractSerDe(RegistryClient client) {
-        super(client);
+    public SerdeConfigurer(RegistryClient client) {
+        this.schemaResolver = new DefaultSchemaResolver<>();
+        this.schemaResolver.setClient(client);
     }
 
-    public AbstractSerDe(SchemaResolver<T, U> schemaResolver) {
-        super(schemaResolver);
+    public SerdeConfigurer(SchemaResolver<T, U> schemaResolver) {
+        this.schemaResolver = schemaResolver;
     }
 
-    public AbstractSerDe(RegistryClient client, SchemaResolver<T, U> schemaResolver) {
-        super(client, schemaResolver);
+    public SerdeConfigurer(RegistryClient client, SchemaResolver<T, U> schemaResolver) {
+        this.schemaResolver = schemaResolver;
+        this.schemaResolver.setClient(client);
     }
 
-    public AbstractSerDe(RegistryClient client, ArtifactReferenceResolverStrategy<T, U> strategy,
-            SchemaResolver<T, U> schemaResolver) {
-        super(client, strategy, schemaResolver);
+    public SerdeConfigurer(RegistryClient client, ArtifactReferenceResolverStrategy<T, U> strategy,
+                           SchemaResolver<T, U> schemaResolver) {
+        this.schemaResolver = schemaResolver;
+        this.schemaResolver.setClient(client);
+        this.schemaResolver.setArtifactResolverStrategy(strategy);
     }
 
-    public void configure(SerdeConfig config, boolean isKey) {
-        super.configure(config.originals(), isKey, schemaParser());
-
+    public void configure(SerdeConfig config, boolean isKey, SchemaParser<T, U> schemaParser) {
+        configureSchemaResolver(config.originals(), isKey, schemaParser);
         configureSerialization(config, isKey);
         configureDeserialization(config, isKey);
+    }
+
+    private void configureSchemaResolver(Map<String, Object> configs, boolean isKey, SchemaParser<T, U> schemaParser) {
+        Objects.requireNonNull(configs);
+        Objects.requireNonNull(schemaParser);
+        if (this.schemaResolver == null) {
+            Object sr = configs.get(SerdeConfig.SCHEMA_RESOLVER);
+            if (null == sr) {
+                this.schemaResolver = new DefaultSchemaResolver<>();
+            } else {
+                Utils.instantiate(SchemaResolver.class, sr, this::setSchemaResolver);
+            }
+        }
+        // enforce default artifactResolverStrategy for kafka apps
+        if (!configs.containsKey(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY)) {
+            configs.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY,
+                    SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT);
+        }
+        // isKey is passed via config property
+        configs.put(SerdeConfig.IS_KEY, isKey);
+        this.schemaResolver.configure(configs, schemaParser);
     }
 
     private void configureSerialization(SerdeConfig config, boolean isKey) {
@@ -90,7 +111,17 @@ public abstract class AbstractSerDe<T, U> extends SchemaResolverConfigurer<T, U>
         }
     }
 
-    public abstract SchemaParser<T, U> schemaParser();
+    public SchemaResolver<T, U> getSchemaResolver() {
+        return schemaResolver;
+    }
+
+    public void setSchemaResolver(SchemaResolver<T, U> schemaResolver) {
+        this.schemaResolver = Objects.requireNonNull(schemaResolver);
+    }
+
+    public boolean isKey() {
+        return key;
+    }
 
     public IdHandler getIdHandler() {
         return idHandler;
@@ -98,6 +129,10 @@ public abstract class AbstractSerDe<T, U> extends SchemaResolverConfigurer<T, U>
 
     public void setIdHandler(IdHandler idHandler) {
         this.idHandler = Objects.requireNonNull(idHandler);
+    }
+
+    public FallbackArtifactProvider getFallbackArtifactProvider() {
+        return this.fallbackArtifactProvider;
     }
 
     /**
@@ -108,7 +143,7 @@ public abstract class AbstractSerDe<T, U> extends SchemaResolverConfigurer<T, U>
     }
 
     public void reset() {
-        schemaResolver.reset();
+        this.schemaResolver.reset();
     }
 
     public static ByteBuffer getByteBuffer(byte[] payload) {
@@ -123,12 +158,9 @@ public abstract class AbstractSerDe<T, U> extends SchemaResolverConfigurer<T, U>
     public void close() {
         try {
             this.schemaResolver.close();
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    public void as4ByteId() {
-        this.idHandler = new Default4ByteIdHandler();
     }
 }

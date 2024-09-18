@@ -3,6 +3,7 @@ package io.apicurio.registry.resolver;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -31,6 +32,14 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean registerDereferenced;
 
     private static final Logger logger = Logger.getLogger(DefaultSchemaResolver.class.getSimpleName());
+
+    public DefaultSchemaResolver() {
+        super();
+    }
+
+    public DefaultSchemaResolver(RegistryClient client) {
+        this.client = client;
+    }
 
     /**
      * @see io.apicurio.registry.resolver.AbstractSchemaResolver#reset()

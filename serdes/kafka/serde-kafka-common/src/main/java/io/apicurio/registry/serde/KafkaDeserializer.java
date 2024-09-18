@@ -1,6 +1,6 @@
 package io.apicurio.registry.serde;
 
-import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
@@ -9,17 +9,16 @@ import io.apicurio.registry.serde.headers.HeadersHandler;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
-import java.nio.ByteBuffer;
 import java.util.Map;
 
-import static io.apicurio.registry.serde.AbstractSerDe.MAGIC_BYTE;
+import static io.apicurio.registry.serde.SerdeConfigurer.MAGIC_BYTE;
 
-public abstract class KafkaDeserializer<T, U> implements Deserializer<U> {
+public class KafkaDeserializer<T, U> implements Deserializer<U> {
 
     protected final AbstractDeserializer<T, U> delegatedDeserializer;
     protected HeadersHandler headersHandler;
 
-    public KafkaDeserializer(AbstractDeserializer<T, U> delegatedDeserializer) {
+    protected KafkaDeserializer(AbstractDeserializer<T, U> delegatedDeserializer) {
         this.delegatedDeserializer = delegatedDeserializer;
     }
 
@@ -32,10 +31,6 @@ public abstract class KafkaDeserializer<T, U> implements Deserializer<U> {
     @Override
     public U deserialize(String topic, byte[] data) {
         return delegatedDeserializer.deserializeData(topic, data);
-    }
-
-    protected U readData(ParsedSchema<T> schema, ByteBuffer buffer, int start, int length) {
-        return delegatedDeserializer.readData(schema, buffer, start, length);
     }
 
     @Override
@@ -53,9 +48,11 @@ public abstract class KafkaDeserializer<T, U> implements Deserializer<U> {
         }
         if (data[0] == MAGIC_BYTE) {
             return deserialize(topic, data);
-        } else if (headers == null) {
+        }
+        else if (headers == null) {
             throw new IllegalStateException("Headers cannot be null");
-        } else {
+        }
+        else {
             // try to read data even if artifactReference has no value, maybe there is a
             // fallbackArtifactProvider configured
             return delegatedDeserializer.readData(topic, data, artifactReference);
@@ -77,10 +74,18 @@ public abstract class KafkaDeserializer<T, U> implements Deserializer<U> {
 
     @Override
     public void close() {
-        delegatedDeserializer.close();
+        delegatedDeserializer.getSerdeConfigurer().close();
     }
 
     public void as4ByteId() {
-        delegatedDeserializer.as4ByteId();
+        delegatedDeserializer.getSerdeConfigurer().setIdHandler(new Default4ByteIdHandler());
+    }
+
+    public SchemaResolver<T, U> getSchemaResolver() {
+        return delegatedDeserializer.getSerdeConfigurer().getSchemaResolver();
+    }
+
+    public void setSchemaResolver(SchemaResolver<T, U> schemaResolver) {
+        delegatedDeserializer.getSerdeConfigurer().setSchemaResolver(schemaResolver);
     }
 }

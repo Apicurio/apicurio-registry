@@ -30,7 +30,7 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     private static final String PROTOBUF_PARSE_METHOD = "parseFrom";
 
-    private ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
+    private final ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
     private Class<?> specificReturnClass;
     private Method specificReturnClassParseMethod;
@@ -47,8 +47,9 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         super(client, schemaResolver);
     }
 
+
     public ProtobufDeserializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver,
-            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
+                                ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
         super(client, strategy, schemaResolver);
     }
 
@@ -60,7 +61,6 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         super(schemaResolver);
     }
 
-    @Override
     public void configure(SerdeConfig configs, boolean isKey) {
         ProtobufDeserializerConfig config = new ProtobufDeserializerConfig(configs.originals(), isKey);
         super.configure(config, isKey);
@@ -71,15 +71,18 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
                 if (specificReturnClass.equals(DynamicMessage.class)) {
                     this.specificReturnClassParseMethod = specificReturnClass
                             .getDeclaredMethod(PROTOBUF_PARSE_METHOD, Descriptor.class, InputStream.class);
-                } else if (!specificReturnClass.equals(Object.class)) {
+                }
+                else if (!specificReturnClass.equals(Object.class)) {
                     this.specificReturnClassParseMethod = specificReturnClass
                             .getDeclaredMethod(PROTOBUF_PARSE_METHOD, InputStream.class);
-                } else {
+                }
+                else {
                     throw new IllegalStateException("Class " + specificReturnClass.getCanonicalName()
                             + " is not a valid protobuf message class");
                 }
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new IllegalStateException("Class " + specificReturnClass.getCanonicalName()
                     + " is not a valid protobuf message class", e);
         }
@@ -88,9 +91,6 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     }
 
-    /**
-     * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
-     */
     @Override
     public SchemaParser<ProtobufSchema, U> schemaParser() {
         return parser;
@@ -98,7 +98,7 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     /**
      * @see AbstractDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
-     *      int, int)
+     *         int, int)
      */
     @Override
     protected U readData(ParsedSchema<ProtobufSchema> schema, ByteBuffer buffer, int start, int length) {
@@ -107,7 +107,7 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     @SuppressWarnings("unchecked")
     protected U internalReadData(ParsedSchema<ProtobufSchema> schema, ByteBuffer buff, int start,
-            int length) {
+                                 int length) {
         try {
             byte[] bytes = new byte[length];
             System.arraycopy(buff.array(), start, bytes, 0, length);
@@ -127,7 +127,8 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
                     Ref ref = Ref.parseDelimitedFrom(is);
                     descriptor = schema.getParsedSchema().getFileDescriptor()
                             .findMessageTypeByName(ref.getName());
-                } catch (IOException e) {
+                }
+                catch (IOException e) {
                     is = new ByteArrayInputStream(bytes);
                     // use the first message type found
                     descriptor = schema.getParsedSchema().getFileDescriptor().getMessageTypes().get(0);
@@ -140,21 +141,25 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
                         return (U) specificReturnClassParseMethod.invoke(null, descriptor, is);
                     }
                     return (U) specificReturnClassParseMethod.invoke(null, is);
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     throw new IllegalStateException("Not a valid protobuf builder", e);
                 }
-            } else if (deriveClass) {
+            }
+            else if (deriveClass) {
                 String className = deriveClassFromDescriptor(descriptor);
                 if (className != null) {
                     return invokeParseMethod(is, className);
                 }
-            } else if (messageTypeName != null) {
+            }
+            else if (messageTypeName != null) {
                 return invokeParseMethod(is, messageTypeName);
             }
 
             return (U) DynamicMessage.parseFrom(descriptor, is);
 
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
@@ -170,13 +175,15 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
                 Class<?> protobufClass = Utils.loadClass(className);
                 try {
                     return protobufClass.getDeclaredMethod(PROTOBUF_PARSE_METHOD, InputStream.class);
-                } catch (NoSuchMethodException | SecurityException e) {
+                }
+                catch (NoSuchMethodException | SecurityException e) {
                     throw new IllegalStateException(
                             "Class " + className + " is not a valid protobuf message class", e);
                 }
             });
             return (U) parseMethod.invoke(null, buffer);
-        } catch (IllegalAccessException | InvocationTargetException e) {
+        }
+        catch (IllegalAccessException | InvocationTargetException e) {
             parseMethodsCache.remove(className);
             throw new IllegalStateException("Not a valid protobuf builder", e);
         }
@@ -192,7 +199,8 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         if (!o.getJavaMultipleFiles()) {
             if (o.hasJavaOuterClassname()) {
                 outer = o.getJavaOuterClassname();
-            } else {
+            }
+            else {
                 // Can't determine full name without either java_outer_classname or java_multiple_files
                 return null;
             }
@@ -201,7 +209,8 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         while (descriptor != null) {
             if (inner.length() == 0) {
                 inner.insert(0, descriptor.getName());
-            } else {
+            }
+            else {
                 inner.insert(0, descriptor.getName() + "$");
             }
             descriptor = descriptor.getContainingType();

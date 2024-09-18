@@ -65,7 +65,7 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
      *      java.nio.ByteBuffer, int, int)
      */
     @Override
-    protected T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
+    public T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
         return jsonSchemaDeserializer.readData(schema, buffer, start, length);
     }
 

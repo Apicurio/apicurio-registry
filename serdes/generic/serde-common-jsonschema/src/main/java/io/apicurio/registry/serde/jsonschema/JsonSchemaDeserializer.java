@@ -101,7 +101,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
      *      int, int)
      */
     @Override
-    protected T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
+    public T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
         return internalReadData(schema, buffer, start, length);
     }
 

@@ -89,6 +89,7 @@
     <module>serdes/kafka/protobuf-serde</module>
     <module>serdes/kafka/jsonschema-serde</module>
     <module>serdes/pulsar/avro-serde</module>
+    <module>serdes/nats/avro-serde</module>
     <module>distro</module>
     <module>docs</module>
     <module>java-sdk</module>
@@ -208,6 +209,7 @@
     <kafka-clients.version>3.6.0</kafka-clients.version>
     <pulsar-clients.version>3.3.1</pulsar-clients.version>
 
+    <nats.version>2.17.1</nats.version>
     <snakeyaml.version>2.3</snakeyaml.version>
     <guava.version>33.3.0-jre</guava.version>
     <woodstox-core.version>7.0.0</woodstox-core.version>
@@ -380,6 +382,11 @@
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-avro-serde-nats</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-utils-import-export</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -525,6 +532,11 @@
         <groupId>org.apache.kafka</groupId>
         <artifactId>kafka-clients</artifactId>
         <version>${kafka-clients.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.nats</groupId>
+        <artifactId>jnats</artifactId>
+        <version>${nats.version}</version>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>

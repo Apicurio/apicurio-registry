@@ -37,6 +37,10 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
         super(schemaResolver);
     }
 
+    public AvroSerializer(RegistryClient client, SchemaResolver<Schema, U> schemaResolver) {
+        super(client, schemaResolver);
+    }
+
     public AvroSerializer(RegistryClient client,
             ArtifactReferenceResolverStrategy<Schema, U> artifactResolverStrategy,
             SchemaResolver<Schema, U> schemaResolver) {

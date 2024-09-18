@@ -9,6 +9,7 @@ import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractDeserializer;
@@ -43,6 +44,10 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
     public JsonSchemaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
+    }
+
+    public JsonSchemaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver, ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
+        super(client, strategy, schemaResolver);
     }
 
     public JsonSchemaDeserializer(RegistryClient client, Boolean validationEnabled) {
@@ -98,7 +103,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
     /**
      * @see AbstractDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
-     *      int, int)
+     *         int, int)
      */
     @Override
     public T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
@@ -120,7 +125,8 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
             if (this.specificReturnClass != null) {
                 messageType = this.specificReturnClass;
-            } else {
+            }
+            else {
                 JsonNode jsonSchema = mapper.readTree(schema.getRawSchema());
 
                 String javaType = null;
@@ -137,10 +143,12 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
             if (messageType == null) {
                 // TODO maybe warn there is no message type and the deserializer will return a JsonNode
                 return mapper.readTree(parser);
-            } else {
+            }
+            else {
                 return mapper.readValue(parser, messageType);
             }
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }

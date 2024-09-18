@@ -41,6 +41,10 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         super(client);
     }
 
+    public JsonSchemaSerializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(client, schemaResolver);
+    }
+
     public JsonSchemaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
     }

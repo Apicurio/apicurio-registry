@@ -2,6 +2,9 @@ package io.apicurio.registry.serde.protobuf;
 
 import com.google.protobuf.Message;
 import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.KafkaSerializer;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
@@ -16,6 +19,27 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
 
     private ProtobufSerdeHeaders serdeHeaders;
 
+    public ProtobufKafkaSerializer() {
+        super(new ProtobufSerializer<>());
+    }
+
+    public ProtobufKafkaSerializer(RegistryClient client) {
+        super(new ProtobufSerializer<>(client));
+    }
+
+    public ProtobufKafkaSerializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(new ProtobufSerializer<>(schemaResolver));
+    }
+
+    public ProtobufKafkaSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(new ProtobufSerializer<>(client, schemaResolver));
+    }
+
+    public ProtobufKafkaSerializer(RegistryClient client, ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
+                                   SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(new ProtobufSerializer<>(client, schemaResolver, strategy));
+    }
+
     public ProtobufKafkaSerializer(AbstractSerializer<ProtobufSchema, U> delegatedSerializer) {
         super(delegatedSerializer);
     }
@@ -28,15 +52,16 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
 
     /**
      * @see KafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
-     *      io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
+     *         io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<ProtobufSchema> schema, U data,
-            OutputStream out) throws IOException {
+                                 OutputStream out) throws IOException {
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
             serdeHeaders.addProtobufTypeNameHeader(headers, data.getDescriptorForType().getName());
-        } else {
+        }
+        else {
             ((ProtobufSerializer<U>) delegatedSerializer).setWriteRef(false);
         }
 

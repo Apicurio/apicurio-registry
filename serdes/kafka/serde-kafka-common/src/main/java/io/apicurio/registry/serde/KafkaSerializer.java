@@ -52,6 +52,11 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
     }
 
     @Override
+    public byte[] serialize(String topic, U data) {
+        return delegatedSerializer.serializeData(topic, data);
+    }
+
+    @Override
     public byte[] serialize(String topic, Headers headers, U data) {
         // just return null
         if (data == null) {
@@ -67,16 +72,22 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
                 headersHandler.writeHeaders(headers, schema.toArtifactReference());
                 this.serializeData(headers, schema.getParsedSchema(), data, out);
                 return out.toByteArray();
-            } else {
+            }
+            else {
                 return delegatedSerializer.serializeData(topic, data);
             }
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     @Override
-    public byte[] serialize(String topic, U data) {
-        return delegatedSerializer.serializeData(topic, data);
+    public void close() {
+        delegatedSerializer.close();
+    }
+
+    public void as4ByteId() {
+        delegatedSerializer.as4ByteId();
     }
 }

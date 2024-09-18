@@ -2,6 +2,9 @@ package io.apicurio.registry.serde.jsonschema;
 
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.KafkaSerializer;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
@@ -20,6 +23,27 @@ import java.util.Map;
 public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T> {
 
     private MessageTypeSerdeHeaders serdeHeaders;
+
+    public JsonSchemaKafkaSerializer() {
+        super(new JsonSchemaSerializer<>());
+    }
+
+    public JsonSchemaKafkaSerializer(RegistryClient client) {
+        super(new JsonSchemaSerializer<>(client));
+    }
+
+    public JsonSchemaKafkaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(new JsonSchemaSerializer<>(schemaResolver));
+    }
+
+    public JsonSchemaKafkaSerializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(new JsonSchemaSerializer<>(client, schemaResolver));
+    }
+
+    public JsonSchemaKafkaSerializer(RegistryClient client, ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
+                                     SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(new JsonSchemaSerializer<>(client, strategy, schemaResolver));
+    }
 
     public JsonSchemaKafkaSerializer(AbstractSerializer<JsonSchema, T> delegatedSerializer) {
         super(delegatedSerializer);
@@ -43,7 +67,7 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
 
     /**
      * @see KafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
-     *      io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
+     *         io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out)

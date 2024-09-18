@@ -1,11 +1,8 @@
 package io.apicurio.registry.serde;
 
 import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.headers.HeadersHandler;

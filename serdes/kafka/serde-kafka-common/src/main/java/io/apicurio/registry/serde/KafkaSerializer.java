@@ -72,12 +72,10 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
                 headersHandler.writeHeaders(headers, schema.toArtifactReference());
                 this.serializeData(headers, schema.getParsedSchema(), data, out);
                 return out.toByteArray();
-            }
-            else {
+            } else {
                 return delegatedSerializer.serializeData(topic, data);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }

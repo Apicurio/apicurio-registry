@@ -28,12 +28,14 @@ public class ProtobufKafkaDeserializer<U extends Message> extends KafkaDeseriali
         super(new ProtobufDeserializer<>(schemaResolver));
     }
 
-    public ProtobufKafkaDeserializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+    public ProtobufKafkaDeserializer(RegistryClient client,
+            SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(new ProtobufDeserializer<>(client, schemaResolver));
     }
 
-    public ProtobufKafkaDeserializer(RegistryClient client, ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
-                                     SchemaResolver<ProtobufSchema, U> schemaResolver) {
+    public ProtobufKafkaDeserializer(RegistryClient client,
+            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
+            SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(new ProtobufDeserializer<>(client, schemaResolver, strategy));
     }
 

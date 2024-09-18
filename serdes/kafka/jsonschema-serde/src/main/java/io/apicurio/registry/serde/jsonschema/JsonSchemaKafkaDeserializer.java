@@ -33,8 +33,9 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
         super(new JsonSchemaDeserializer<>(client, schemaResolver));
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClient client, ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
-                                       SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaKafkaDeserializer(RegistryClient client,
+            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
+            SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaDeserializer<>(client, schemaResolver, strategy));
     }
 
@@ -51,7 +52,8 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
 
     @Override
     public T deserialize(String topic, Headers headers, byte[] data) {
-        if (headers != null && ((JsonSchemaDeserializer<T>) delegatedDeserializer).getSpecificReturnClass() == null) {
+        if (headers != null
+                && ((JsonSchemaDeserializer<T>) delegatedDeserializer).getSpecificReturnClass() == null) {
             String javaType = serdeHeaders.getMessageType(headers);
             ((JsonSchemaDeserializer<T>) delegatedDeserializer)
                     .setSpecificReturnClass(javaType == null ? null : Utils.loadClass(javaType));

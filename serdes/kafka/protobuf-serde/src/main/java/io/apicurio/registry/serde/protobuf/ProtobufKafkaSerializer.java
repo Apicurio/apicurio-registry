@@ -35,8 +35,9 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
         super(new ProtobufSerializer<>(client, schemaResolver));
     }
 
-    public ProtobufKafkaSerializer(RegistryClient client, ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
-                                   SchemaResolver<ProtobufSchema, U> schemaResolver) {
+    public ProtobufKafkaSerializer(RegistryClient client,
+            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
+            SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(new ProtobufSerializer<>(client, schemaResolver, strategy));
     }
 
@@ -52,16 +53,15 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
 
     /**
      * @see KafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
-     *         io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
+     *      io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<ProtobufSchema> schema, U data,
-                                 OutputStream out) throws IOException {
+            OutputStream out) throws IOException {
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
             serdeHeaders.addProtobufTypeNameHeader(headers, data.getDescriptorForType().getName());
-        }
-        else {
+        } else {
             ((ProtobufSerializer<U>) delegatedSerializer).setWriteRef(false);
         }
 

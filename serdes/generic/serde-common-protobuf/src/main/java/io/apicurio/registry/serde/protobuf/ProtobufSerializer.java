@@ -43,12 +43,12 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
         super(schemaResolver);
     }
 
-
     public ProtobufSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(client, schemaResolver);
     }
 
-    public ProtobufSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver, ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
+    public ProtobufSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver,
+            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
         super(client, strategy, schemaResolver);
     }
 

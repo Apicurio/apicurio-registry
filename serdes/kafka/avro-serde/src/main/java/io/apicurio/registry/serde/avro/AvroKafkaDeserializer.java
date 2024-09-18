@@ -31,7 +31,7 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
     }
 
     public AvroKafkaDeserializer(RegistryClient client, ArtifactReferenceResolverStrategy<Schema, U> strategy,
-                                 SchemaResolver<Schema, U> schemaResolver) {
+            SchemaResolver<Schema, U> schemaResolver) {
         super(new AvroDeserializer<>(client, strategy, schemaResolver));
     }
 

@@ -47,7 +47,8 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         super(client, schemaResolver);
     }
 
-    public ProtobufDeserializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver, ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
+    public ProtobufDeserializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver,
+            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
         super(client, strategy, schemaResolver);
     }
 

@@ -205,6 +205,16 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.ccompat.group-concat.enabled`
+|`boolean`
+|`false`
+|`2.6.2.Final`
+|Enable group support via concatenation in subject (compatibility API)
+|`apicurio.ccompat.group-concat.separator`
+|`string`
+|`:`
+|`2.6.2.Final`
+|Separator to use when group concatenation is enabled (compatibility API)
 |`apicurio.ccompat.legacy-id-mode.enabled`
 |`boolean [dynamic]`
 |`false`

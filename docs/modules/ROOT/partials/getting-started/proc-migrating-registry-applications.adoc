@@ -5,36 +5,35 @@
 = Migrating {registry} client applications
 
 [role="_abstract"]
-You must review your existing {registry} client applications to ensure that the Maven dependencies and Java client configuration meet the new requirements for version 2.x. For example, this includes new Maven dependencies for the {registry} Java REST client libraries or Kafka client serializer/deserializer (Serdes) libraries. You must also update your Java application configuration with the new registry v2 API path. 
+You must review your existing {registry} client applications to ensure that the Maven dependencies and Java client configuration meet the new requirements for version 3.x. For example, this includes new Maven dependencies for the {registry} Java REST client libraries or Kafka client serializer/deserializer (Serdes) libraries. You must also update your Java application configuration with the new registry v3 API path.
 
 
 .Prerequisites 
-* Existing {registry} {registry-v1} Java client application or Kafka client producer and consumer Java applications with SerDes
+* Existing {registry} {registry-v2} Java client application or Kafka client producer and consumer Java applications with SerDes
 
 .Procedure
-. If you are using the {registry} Java REST client, you must change the Maven dependencies for the {registry} Java client libraries, which have been repackaged in version 2.x:
+. If you are using the {registry} Java REST client, you must change the Maven dependencies for the {registry} Java client libraries, which have been repackaged in version 3.x:
 +
 [source, xml, subs="attributes+"]
 ----
 <dependency>
     <groupId>io.apicurio</groupId>
-    <artifactId>apicurio-registry-client</artifactId>
+    <artifactId>apicurio-registry-java-sdk</artifactId>
     <version>{registry-release}</version>
 </dependency>
 ----
 
-. In your Java client application, you must change your registry URL configuration, from pointing to the existing v1 API path to the new v2 path. For example:
+. In your Java client application, you must change your registry URL configuration, from pointing to the existing v2 API path to the new v3 path. Starting with v3, we use Vertx as the default platform for our rest client, due to this change, a RequestAdapter is required when the client is create. For example:
 +
 [source,java, subs="attributes+"]
 ----
 public class ClientExample {
 
-    private static final RegistryRestClient client;
 
      public static void main(String[] args) throws Exception {
-        // Create a registry client
-        String registryUrl = "https://new-registry.my-company.com/apis/registry/v2"; 
-        RegistryClient client = RegistryClientFactory.create(registryUrl); 
+         VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
+         vertXRequestAdapter.setBaseUrl("https://new-registry.my-company.com/apis/registry/v3");
+         RegistryClient client = new RegistryClient(vertXRequestAdapter);
     }
 }
 ----
@@ -47,52 +46,44 @@ ifdef::rh-service-registry[]
 the link:{LinkServiceRegistryUser}#using-the-registry-client[{NameServiceRegistryUser}].
 endif::[]
 
-. If you are using the {registry} SerDes libraries, you must change the Maven dependencies, which have been repackaged in version 2.x. In {registry} {registry-v1}, the SerDes libraries were all provided with only one Maven dependency:
+. If you are using the {registry} SerDes libraries, you must change the Maven dependencies, which have been repackaged in version 3.x. In {registry} {registry-v2}, the SerDes libraries were provided into three separate Maven modules, while this is still true, the names have been changed:
 +
 [source, xml, subs="attributes+"]
 ----
 <dependency>
     <groupId>io.apicurio</groupId>
-    <artifactId>apicurio-registry-utils-serde</artifactId>
-    <version>{registry-v1-release}</version>
+    <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+    <version>{registry-release}</version>
 </dependency>
 ----
 +
-In {registry} 2.x, the SerDes libraries have been split into three Maven dependencies, one for each supported data format: `avro`, `protobuf`, and `json schema`, depending on your use cases:
+In {registry} 3.x, the SerDes libraries have been significantly refactored to make them re-usable for other messaging platforms like Apache Pulsar, that's why the Apache Kafka specific ones have been renamed.
 +
-[source, xml, subs="attributes+"]
-----
-<dependency>
-    <groupId>io.apicurio</groupId>
-    <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
-    <version>{registry-release}</version>
-</dependency>
-<dependency>
-    <groupId>io.apicurio</groupId>
-    <artifactId>apicurio-registry-serdes-protobuf-serde</artifactId>
-    <version>{registry-release}</version>
-</dependency>
-<dependency>
-    <groupId>io.apicurio</groupId>
-    <artifactId>apicurio-registry-serdes-jsonschema-serde</artifactId>
-    <version>{registry-release}</version>
-</dependency>
-----
 
-. In your Kafka producer and consumer Java applications, you must change your registry URL configuration from pointing to the existing v1 API path to the new v2 path. For example:
+. In your Kafka producer and consumer Java applications, you must change your registry URL configuration from pointing to the existing v2 API path to the new v3 path. For example:
 +
-_Existing registry v1 API path_:
+_Existing registry v2 API path_:
 +
 [source,java]
 ----
-props.putIfAbsent(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, "http://old-registry.my-company.com/api");
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v2");
 ----
 +
-_New registry v2 API path_:
+_New registry v3 API path_:
 +
 [source,java, subs="attributes+"]
 ----
-props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v2");
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v3");
 ----
 +
 The refactored SerDes libraries also include other important changes to configuration properties. For more details on SerDes configuration, see

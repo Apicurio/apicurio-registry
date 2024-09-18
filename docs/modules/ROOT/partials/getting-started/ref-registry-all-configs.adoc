@@ -847,7 +847,7 @@ The following {registry} configuration options are available for each component 
 |The OIDC clientId
 |`apicurio.ui.auth.oidc.logout-url`
 |`string`
-|
+|`f5`
 |`3.0.0`
 |The OIDC logout URL
 |`apicurio.ui.auth.oidc.redirect-uri`

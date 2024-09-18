@@ -88,6 +88,7 @@
     <module>serdes/kafka/avro-serde</module>
     <module>serdes/kafka/protobuf-serde</module>
     <module>serdes/kafka/jsonschema-serde</module>
+    <module>serdes/pulsar/avro-serde</module>
     <module>distro</module>
     <module>docs</module>
     <module>java-sdk</module>
@@ -205,6 +206,8 @@
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <apicurio-common-app-components.version>1.2.3</apicurio-common-app-components.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
+    <pulsar-clients.version>3.3.1</pulsar-clients.version>
+
     <snakeyaml.version>2.3</snakeyaml.version>
     <guava.version>33.3.0-jre</guava.version>
     <woodstox-core.version>7.0.0</woodstox-core.version>
@@ -368,6 +371,11 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-avro-serde-pulsar</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -743,6 +751,21 @@
             <artifactId>jersey-bean-validation</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.pulsar</groupId>
+        <artifactId>pulsar-functions-api</artifactId>
+        <version>${pulsar-clients.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.pulsar</groupId>
+        <artifactId>pulsar-client</artifactId>
+        <version>${pulsar-clients.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>pulsar</artifactId>
+        <version>${test-containers.version}</version>
       </dependency>
       <dependency>
         <groupId>io.strimzi</groupId>

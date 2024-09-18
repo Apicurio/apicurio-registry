@@ -8,7 +8,7 @@ import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
-import io.apicurio.tests.serdes.apicurio.SerdesTester;
+import io.apicurio.tests.serdes.apicurio.KafkaSerdesTester;
 import io.apicurio.tests.serdes.apicurio.SimpleSerdesTesterBuilder;
 import io.apicurio.tests.serdes.apicurio.WrongConfiguredSerdesTesterBuilder;
 import io.apicurio.tests.utils.AvroGenericRecordSchemaFactory;
@@ -190,7 +190,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
         createArtifactViaConfluentClient(pschema, subjectName);
 
-        SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
+        KafkaSerdesTester<String, GenericRecord, GenericRecord> tester = new KafkaSerdesTester<>();
 
         int messageCount = 10;
 
@@ -299,7 +299,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         ParsedSchema pschema = new AvroSchema(IoUtil.toString(avroSchema.generateSchemaBytes()));
         createArtifactViaConfluentClient(pschema, subjectName);
 
-        SerdesTester<String, GenericRecord, GenericRecord> tester = new SerdesTester<>();
+        KafkaSerdesTester<String, GenericRecord, GenericRecord> tester = new KafkaSerdesTester<>();
 
         int messageCount = 10;
 

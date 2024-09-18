@@ -6,44 +6,67 @@ import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.config.SerdeDeserializerConfig;
+import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
+import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 
 import java.nio.ByteBuffer;
 
-import static io.apicurio.registry.serde.SerdeConfigurer.getByteBuffer;
+import static io.apicurio.registry.serde.BaseSerde.getByteBuffer;
 
 public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
-    private final SerdeConfigurer<T, U> serdeConfigurer;
+    private FallbackArtifactProvider fallbackArtifactProvider;
+    private final BaseSerde<T, U> baseSerde;
 
     public AbstractDeserializer() {
-        this.serdeConfigurer = new SerdeConfigurer<>();
+        this.baseSerde = new BaseSerde<>();
     }
 
     public AbstractDeserializer(RegistryClient client) {
-        this.serdeConfigurer = new SerdeConfigurer<>(client);
+        this.baseSerde = new BaseSerde<>(client);
     }
 
     public AbstractDeserializer(SchemaResolver<T, U> schemaResolver) {
-        this.serdeConfigurer = new SerdeConfigurer<>(schemaResolver);
+        this.baseSerde = new BaseSerde<>(schemaResolver);
     }
 
     public AbstractDeserializer(RegistryClient client, SchemaResolver<T, U> schemaResolver) {
-        this.serdeConfigurer = new SerdeConfigurer<>(client, schemaResolver);
+        this.baseSerde = new BaseSerde<>(client, schemaResolver);
     }
 
     public AbstractDeserializer(RegistryClient client, ArtifactReferenceResolverStrategy<T, U> strategy,
-                                SchemaResolver<T, U> schemaResolver) {
-        this.serdeConfigurer = new SerdeConfigurer<>(client, strategy, schemaResolver);
+            SchemaResolver<T, U> schemaResolver) {
+        this.baseSerde = new BaseSerde<>(client, strategy, schemaResolver);
     }
 
-    public SerdeConfigurer<T, U> getSerdeConfigurer() {
-        return serdeConfigurer;
+    public BaseSerde<T, U> getSerdeConfigurer() {
+        return baseSerde;
     }
 
     public void configure(SerdeConfig config, boolean isKey) {
-        serdeConfigurer.configure(config, isKey, schemaParser());
+        baseSerde.configure(config, isKey, schemaParser());
+
+        configureDeserialization(config, isKey);
+    }
+
+    private void configureDeserialization(SerdeConfig config, boolean isKey) {
+        SerdeDeserializerConfig deserializerConfig = new SerdeDeserializerConfig(config.originals());
+
+        Object fallbackProvider = deserializerConfig.getFallbackArtifactProvider();
+        Utils.instantiate(FallbackArtifactProvider.class, fallbackProvider,
+                this::setFallbackArtifactProvider);
+        fallbackArtifactProvider.configure(config.originals(), isKey);
+
+        if (fallbackArtifactProvider instanceof DefaultFallbackArtifactProvider) {
+            if (!((DefaultFallbackArtifactProvider) fallbackArtifactProvider).isConfigured()) {
+                // it's not configured, just remove it so it's not executed
+                fallbackArtifactProvider = null;
+            }
+        }
     }
 
     public abstract SchemaParser<T, U> schemaParser();
@@ -54,11 +77,11 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         }
 
         ByteBuffer buffer = getByteBuffer(data);
-        ArtifactReference artifactReference = serdeConfigurer.getIdHandler().readId(buffer);
+        ArtifactReference artifactReference = baseSerde.getIdHandler().readId(buffer);
 
         SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
 
-        int length = buffer.limit() - 1 - serdeConfigurer.getIdHandler().idSize();
+        int length = buffer.limit() - 1 - baseSerde.getIdHandler().idSize();
         int start = buffer.position() + buffer.arrayOffset();
 
         return readData(schema.getParsedSchema(), buffer, start, length);
@@ -78,18 +101,15 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     protected SchemaLookupResult<T> resolve(String topic, byte[] data, ArtifactReference artifactReference) {
         try {
-            return serdeConfigurer.getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
-        }
-        catch (RuntimeException e) {
-            if (serdeConfigurer.getFallbackArtifactProvider() == null) {
+            return baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
+        } catch (RuntimeException e) {
+            if (getFallbackArtifactProvider() == null) {
                 throw e;
-            }
-            else {
+            } else {
                 try {
-                    ArtifactReference fallbackReference = serdeConfigurer.getFallbackArtifactProvider().get(topic, data);
-                    return serdeConfigurer.getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference);
-                }
-                catch (RuntimeException fe) {
+                    ArtifactReference fallbackReference = getFallbackArtifactProvider().get(topic, data);
+                    return baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference);
+                } catch (RuntimeException fe) {
                     fe.addSuppressed(e);
                     throw fe;
                 }
@@ -97,8 +117,16 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         }
     }
 
+    public FallbackArtifactProvider getFallbackArtifactProvider() {
+        return this.fallbackArtifactProvider;
+    }
+
+    public void setFallbackArtifactProvider(FallbackArtifactProvider fallbackArtifactProvider) {
+        this.fallbackArtifactProvider = fallbackArtifactProvider;
+    }
+
     @Override
     public void close() {
-        this.serdeConfigurer.close();
+        this.baseSerde.close();
     }
 }

@@ -11,7 +11,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.Map;
 
-import static io.apicurio.registry.serde.SerdeConfigurer.MAGIC_BYTE;
+import static io.apicurio.registry.serde.BaseSerde.MAGIC_BYTE;
 
 public class KafkaDeserializer<T, U> implements Deserializer<U> {
 
@@ -48,11 +48,9 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
         }
         if (data[0] == MAGIC_BYTE) {
             return deserialize(topic, data);
-        }
-        else if (headers == null) {
+        } else if (headers == null) {
             throw new IllegalStateException("Headers cannot be null");
-        }
-        else {
+        } else {
             // try to read data even if artifactReference has no value, maybe there is a
             // fallbackArtifactProvider configured
             return delegatedDeserializer.readData(topic, data, artifactReference);

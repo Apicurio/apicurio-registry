@@ -47,7 +47,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
     }
 
     public JsonSchemaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver,
-                                  ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
+            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
         super(client, strategy, schemaResolver);
     }
 
@@ -96,7 +96,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
     /**
      * @see AbstractDeserializer#readData(io.apicurio.registry.resolver.ParsedSchema, java.nio.ByteBuffer,
-     *         int, int)
+     *      int, int)
      */
     @Override
     public T readData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
@@ -118,8 +118,7 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
             if (this.specificReturnClass != null) {
                 messageType = this.specificReturnClass;
-            }
-            else {
+            } else {
                 JsonNode jsonSchema = mapper.readTree(schema.getRawSchema());
 
                 String javaType = null;
@@ -136,12 +135,10 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
             if (messageType == null) {
                 // TODO maybe warn there is no message type and the deserializer will return a JsonNode
                 return mapper.readTree(parser);
-            }
-            else {
+            } else {
                 return mapper.readValue(parser, messageType);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }

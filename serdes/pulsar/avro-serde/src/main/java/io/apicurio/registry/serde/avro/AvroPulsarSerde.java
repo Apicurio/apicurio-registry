@@ -19,8 +19,7 @@ public class AvroPulsarSerde<T> implements SerDe<T>, AutoCloseable {
         this.topicName = topicName;
     }
 
-    public AvroPulsarSerde(AvroSerializer<T> serializer, AvroDeserializer<T> deserializer,
-            String topicName) {
+    public AvroPulsarSerde(AvroSerializer<T> serializer, AvroDeserializer<T> deserializer, String topicName) {
         this.serializer = serializer;
         this.deserializer = deserializer;
         this.topicName = topicName;

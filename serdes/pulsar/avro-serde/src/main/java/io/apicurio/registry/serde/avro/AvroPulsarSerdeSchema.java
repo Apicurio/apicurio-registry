@@ -24,10 +24,7 @@ public class AvroPulsarSerdeSchema<T> implements Schema<T> {
 
     @Override
     public SchemaInfo getSchemaInfo() {
-        return SchemaInfo.builder()
-                .name("AvroPulsarSerdeSchema")
-                .type(SchemaType.BYTES)
-                .schema(new byte[0]) // Schema
+        return SchemaInfo.builder().name("AvroPulsarSerdeSchema").type(SchemaType.BYTES).schema(new byte[0]) // Schema
                 // definition
                 // is
                 // not

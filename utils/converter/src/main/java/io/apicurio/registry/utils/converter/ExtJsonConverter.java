@@ -43,7 +43,6 @@ public class ExtJsonConverter implements Converter, SchemaParser<JsonNode, Objec
     private FormatStrategy formatStrategy;
     private boolean isKey;
 
-
     public ExtJsonConverter() {
         this(null);
     }

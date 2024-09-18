@@ -7,7 +7,6 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractDeserializer;
-import io.apicurio.registry.serde.SerdeConfigurer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
@@ -66,7 +65,7 @@ public class AvroDeserializer<U> extends AbstractDeserializer<Schema, U> {
     }
 
     /**
-     * @see SerdeConfigurer#schemaParser()
+     * @see AbstractDeserializer#schemaParser()
      */
     @Override
     public SchemaParser<Schema, U> schemaParser() {

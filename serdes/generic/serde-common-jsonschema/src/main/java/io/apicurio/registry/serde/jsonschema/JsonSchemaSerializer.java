@@ -32,8 +32,8 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
     }
 
     public JsonSchemaSerializer(RegistryClient client,
-                                ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
-                                SchemaResolver<JsonSchema, T> schemaResolver) {
+            ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
+            SchemaResolver<JsonSchema, T> schemaResolver) {
         super(client, artifactResolverStrategy, schemaResolver);
     }
 
@@ -92,7 +92,7 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
 
     /**
      * @see io.apicurio.registry.serde.AbstractSerializer#serializeData(io.apicurio.registry.resolver.ParsedSchema,
-     *         java.lang.Object, java.io.OutputStream)
+     *      java.lang.Object, java.io.OutputStream)
      */
     @Override
     public void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {

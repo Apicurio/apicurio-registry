@@ -33,7 +33,7 @@ public class AvroKafkaSerializer<U> extends KafkaSerializer<Schema, U> {
     }
 
     public AvroKafkaSerializer(RegistryClient client, ArtifactReferenceResolverStrategy<Schema, U> strategy,
-                               SchemaResolver<Schema, U> schemaResolver) {
+            SchemaResolver<Schema, U> schemaResolver) {
         super(new AvroSerializer<>(client, strategy, schemaResolver));
     }
 
@@ -45,7 +45,7 @@ public class AvroKafkaSerializer<U> extends KafkaSerializer<Schema, U> {
 
     /**
      * @see KafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
-     *         io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
+     *      io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
     protected void serializeData(Headers headers, ParsedSchema<Schema> schema, U data, OutputStream out)

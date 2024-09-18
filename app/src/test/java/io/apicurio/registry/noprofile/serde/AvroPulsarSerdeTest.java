@@ -53,8 +53,7 @@ public class AvroPulsarSerdeTest extends AbstractResourceTestBase {
         Schema schema = new Schema.Parser().parse(
                 "{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test_group_avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (AvroSerializer<GenericData.Record> serializer = new AvroSerializer<>(restClient);
-            AvroDeserializer<GenericData.Record> deserializer = new AvroDeserializer<>(
-                    restClient)) {
+            AvroDeserializer<GenericData.Record> deserializer = new AvroDeserializer<>(restClient)) {
 
             AvroPulsarSerde<GenericData.Record> avroPulsarSerde = new AvroPulsarSerde<>(serializer,
                     deserializer, "myrecord3");

@@ -511,7 +511,6 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                 .builder().globalId(global.getGlobalId()).groupId("GLOBAL")// .version("4")
                 .artifactId("sample.account.json").build();
 
-
         SchemaResolver<JsonSchema, Object> sr = new DefaultSchemaResolver<>(client);
         Map<String, String> configs = new HashMap<>();
         configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT, DefaultSchemaResolver.class.getName());

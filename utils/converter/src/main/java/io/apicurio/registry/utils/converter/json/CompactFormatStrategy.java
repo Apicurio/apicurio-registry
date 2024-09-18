@@ -1,7 +1,7 @@
 package io.apicurio.registry.utils.converter.json;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.serde.SerdeConfigurer;
+import io.apicurio.registry.serde.BaseSerde;
 import io.apicurio.registry.serde.Default4ByteIdHandler;
 import io.apicurio.registry.serde.IdHandler;
 
@@ -27,7 +27,7 @@ public class CompactFormatStrategy implements FormatStrategy {
     @Override
     public byte[] fromConnectData(long contentId, byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.allocate(1 + idHandler.idSize() + bytes.length);
-        buffer.put(SerdeConfigurer.MAGIC_BYTE);
+        buffer.put(BaseSerde.MAGIC_BYTE);
         idHandler.writeId(ArtifactReference.fromContentId(contentId), buffer);
         buffer.put(bytes);
         return buffer.array();
@@ -35,7 +35,7 @@ public class CompactFormatStrategy implements FormatStrategy {
 
     @Override
     public IdPayload toConnectData(byte[] bytes) {
-        ByteBuffer buffer = SerdeConfigurer.getByteBuffer(bytes);
+        ByteBuffer buffer = BaseSerde.getByteBuffer(bytes);
         ArtifactReference reference = idHandler.readId(buffer);
         long contentId = reference.getContentId();
         byte[] payload = new byte[bytes.length - idHandler.idSize() - 1];

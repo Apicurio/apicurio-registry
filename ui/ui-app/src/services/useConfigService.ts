@@ -86,6 +86,7 @@ export interface OidcJsAuthOptions {
     redirectUri: string;
     clientId: string;
     scope: string;
+    logoutUrl?: string;
 }
 
 // Used when `type=keycloakjs`

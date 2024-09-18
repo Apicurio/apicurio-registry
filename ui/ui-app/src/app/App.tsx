@@ -12,6 +12,7 @@ import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { ApplicationAuth, AuthConfig, AuthConfigContext } from "@apicurio/common-ui-components";
 import { ArtifactPage } from "@app/pages/artifact";
+import {AppNavigation, useAppNavigation} from "@services/useAppNavigation.ts";
 
 export type AppProps = {
     // No props
@@ -23,6 +24,7 @@ export type AppProps = {
 export const App: FunctionComponent<AppProps> = () => {
     const config: ConfigService = useConfigService();
     const logger: LoggerService = useLoggerService();
+    const appNavigation: AppNavigation = useAppNavigation();
 
     const contextPath: string | undefined = config.uiContextPath();
     logger.info("[App] Using app contextPath: ", contextPath);
@@ -31,8 +33,13 @@ export const App: FunctionComponent<AppProps> = () => {
         type: config.authType() as "none" | "oidc",
         options: config.authOptions()
     };
-    if (authConfig.type === "oidc" && (authConfig.options.redirectUri && authConfig.options.redirectUri.startsWith("/"))) {
-        authConfig.options.redirectUri = window.location.origin + authConfig.options.redirectUri;
+    if (authConfig.type === "oidc") {
+        if (authConfig.options.redirectUri && authConfig.options.redirectUri.startsWith("/")) {
+            authConfig.options.redirectUri = window.location.origin + appNavigation.createLink(authConfig.options.redirectUri);
+        }
+        if (authConfig.options.logoutUrl && authConfig.options.logoutUrl.startsWith("/")) {
+            authConfig.options.logoutUrl = window.location.origin + appNavigation.createLink(authConfig.options.logoutUrl);
+        }
     }
 
     return (

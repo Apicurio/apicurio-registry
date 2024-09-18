@@ -36,8 +36,7 @@ public abstract class AbstractSerializer<T, U> extends AbstractSerDe<T, U> {
         super(client, strategy, schemaResolver);
     }
 
-    protected abstract void serializeData(ParsedSchema<T> schema, U data, OutputStream out)
-            throws IOException;
+    public abstract void serializeData(ParsedSchema<T> schema, U data, OutputStream out) throws IOException;
 
     public byte[] serializeData(String topic, U data) {
         // just return null
@@ -53,7 +52,7 @@ public abstract class AbstractSerializer<T, U> extends AbstractSerDe<T, U> {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             out.write(MAGIC_BYTE);
             getIdHandler().writeId(schema.toArtifactReference(), out);
-            serializeData(schema.getParsedSchema(), data, out);
+            this.serializeData(schema.getParsedSchema(), data, out);
 
             return out.toByteArray();
         } catch (IOException e) {

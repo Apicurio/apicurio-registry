@@ -3,7 +3,7 @@ package io.apicurio.registry.utils.converter;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractKafkaDeserializer;
-import io.apicurio.registry.serde.AbstractKafkaSerializer;
+import io.apicurio.registry.serde.KafkaSerializer;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -59,8 +59,8 @@ public class SerdeBasedConverter<S, T> implements Converter, Closeable {
             createdDeserializer = true;
         }
         SchemaResolver<S, T> schemaResolver = null;
-        if (AbstractKafkaSerializer.class.isAssignableFrom(serializer.getClass())) {
-            AbstractKafkaSerializer<S, T> ser = (AbstractKafkaSerializer<S, T>) serializer;
+        if (KafkaSerializer.class.isAssignableFrom(serializer.getClass())) {
+            KafkaSerializer<S, T> ser = (KafkaSerializer<S, T>) serializer;
             ser.configure(configs, isKey);
             schemaResolver = ser.getSchemaResolver();
         }

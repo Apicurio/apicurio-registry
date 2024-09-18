@@ -2,11 +2,8 @@ package io.apicurio.registry.serde.jsonschema;
 
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaParser;
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.AbstractKafkaSerializer;
+import io.apicurio.registry.serde.AbstractSerializer;
+import io.apicurio.registry.serde.KafkaSerializer;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import org.apache.kafka.common.header.Headers;
 
@@ -20,73 +17,32 @@ import java.util.Map;
  * user's application needs to serialize a Java Bean to JSON data using Jackson. In addition to standard
  * serialization of the bean, this implementation can also optionally validate it against a JSON schema.
  */
-public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSchema, T> {
+public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T> {
 
     private MessageTypeSerdeHeaders serdeHeaders;
 
-    private JsonSchemaSerializer<T> jsonSchemaSerializer;
-
-    public JsonSchemaKafkaSerializer() {
-        super();
-    }
-
-    public JsonSchemaKafkaSerializer(RegistryClient client,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
-            SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(client, artifactResolverStrategy, schemaResolver);
-    }
-
-    public JsonSchemaKafkaSerializer(RegistryClient client) {
-        super(client);
-    }
-
-    public JsonSchemaKafkaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(schemaResolver);
+    public JsonSchemaKafkaSerializer(AbstractSerializer<JsonSchema, T> delegatedSerializer) {
+        super(delegatedSerializer);
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#configure(java.util.Map, boolean)
+     * @see KafkaSerializer#configure(java.util.Map, boolean)
      */
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        JsonSchemaSerializerConfig config = new JsonSchemaSerializerConfig(configs);
-        this.jsonSchemaSerializer = new JsonSchemaSerializer<>();
-        if (getSchemaResolver() != null) {
-            this.jsonSchemaSerializer.setSchemaResolver(getSchemaResolver());
-        }
-        jsonSchemaSerializer.configure(config, isKey);
-        serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
-
         super.configure(configs, isKey);
+        serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
     }
 
     /**
      * @param validationEnabled the validationEnabled to set
      */
     public void setValidationEnabled(Boolean validationEnabled) {
-        this.jsonSchemaSerializer.setValidationEnabled(validationEnabled);
+        ((JsonSchemaSerializer<T>) delegatedSerializer).setValidationEnabled(validationEnabled);
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
-     */
-    @Override
-    public SchemaParser<JsonSchema, T> schemaParser() {
-        return jsonSchemaSerializer.schemaParser();
-    }
-
-    /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(io.apicurio.registry.resolver.ParsedSchema,
-     *      java.lang.Object, java.io.OutputStream)
-     */
-    @Override
-    protected void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out)
-            throws IOException {
-        jsonSchemaSerializer.serializeData(schema, data, out);
-    }
-
-    /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
+     * @see KafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
      *      io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
      */
     @Override
@@ -97,6 +53,6 @@ public class JsonSchemaKafkaSerializer<T> extends AbstractKafkaSerializer<JsonSc
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
         }
 
-        serializeData(schema, data, out);
+        delegatedSerializer.serializeData(schema, data, out);
     }
 }

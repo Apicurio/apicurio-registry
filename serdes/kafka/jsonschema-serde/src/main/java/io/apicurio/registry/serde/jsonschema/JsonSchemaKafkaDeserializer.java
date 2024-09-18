@@ -52,9 +52,6 @@ public class JsonSchemaKafkaDeserializer<T> extends AbstractKafkaDeserializer<Js
         super.configure(configs, isKey);
     }
 
-    /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
-     */
     @Override
     public SchemaParser<JsonSchema, T> schemaParser() {
         return jsonSchemaDeserializer.schemaParser();

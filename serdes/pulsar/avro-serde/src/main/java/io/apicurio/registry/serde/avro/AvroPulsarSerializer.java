@@ -61,7 +61,7 @@ public class AvroPulsarSerializer<U> extends AbstractSerializer<Schema, U> {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected void serializeData(ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {
+    public void serializeData(ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {
         avroSerializer.serializeData(schema, data, out);
     }
 }

@@ -52,9 +52,6 @@ public class ProtobufKafkaDeserializer<U extends Message>
         super.configure(configs, isKey);
     }
 
-    /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
-     */
     @Override
     public SchemaParser<ProtobufSchema, U> schemaParser() {
         return protobufDeserializer.schemaParser();

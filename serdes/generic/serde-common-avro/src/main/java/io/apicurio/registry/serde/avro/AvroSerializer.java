@@ -87,7 +87,7 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected void serializeData(ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {
+    public void serializeData(ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {
         Encoder encoder = createEncoder(schema.getParsedSchema(), out);
 
         if (data instanceof NonRecordContainer) {

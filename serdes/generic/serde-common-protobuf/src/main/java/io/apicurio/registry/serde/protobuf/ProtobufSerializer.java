@@ -64,7 +64,7 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
      *      java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out)
+    public void serializeData(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out)
             throws IOException {
         if (validationEnabled) {
 

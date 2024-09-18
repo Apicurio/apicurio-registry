@@ -98,8 +98,7 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
      *      java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out)
-            throws IOException {
+    public void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
         final byte[] dataBytes = mapper.writeValueAsBytes(data);
 
         if (isValidationEnabled()) {

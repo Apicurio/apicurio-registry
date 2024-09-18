@@ -37,9 +37,6 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
         super.configure(configs, isKey);
     }
 
-    /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
-     */
     @Override
     public SchemaParser<Schema, U> schemaParser() {
         return avroDeserializer.schemaParser();

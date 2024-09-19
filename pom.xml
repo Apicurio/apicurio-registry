@@ -209,7 +209,7 @@
     <kafka-clients.version>3.6.0</kafka-clients.version>
     <pulsar-clients.version>3.3.1</pulsar-clients.version>
 
-    <nats.version>2.17.1</nats.version>
+    <nats.version>2.20.2</nats.version>
     <snakeyaml.version>2.3</snakeyaml.version>
     <guava.version>33.3.0-jre</guava.version>
     <woodstox-core.version>7.0.0</woodstox-core.version>

@@ -94,6 +94,8 @@ public class SearchFilter {
         }
         if (value instanceof String) {
             return (String) value;
+        } else if (value instanceof Long) {
+            return value.toString();
         }
         throw new IllegalStateException("value is not of type string");
     }

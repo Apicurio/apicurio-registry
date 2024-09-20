@@ -13,7 +13,7 @@ You can set {registry} logging configuration at runtime. {registry} provides a R
 +
 [source,bash]
 ----
-$ curl -i localhost:8080/apis/registry/v2/admin/loggers/io.apicurio.registry.storage
+$ curl -i localhost:8080/apis/registry/v3/admin/loggers/io.apicurio.registry.storage
 HTTP/1.1 200 OK
 [...]
 Content-Type: application/json
@@ -24,7 +24,7 @@ Content-Type: application/json
 +
 [source,bash]
 ----
-$ curl -X PUT -i -H "Content-Type: application/json" --data '{"level":"DEBUG"}' localhost:8080/apis/registry/v2/admin/loggers/io.apicurio.registry.storage
+$ curl -X PUT -i -H "Content-Type: application/json" --data '{"level":"DEBUG"}' localhost:8080/apis/registry/v3/admin/loggers/io.apicurio.registry.storage
 HTTP/1.1 200 OK
 [...]
 Content-Type: application/json
@@ -35,7 +35,7 @@ Content-Type: application/json
 +
 [source,bash]
 ----
-$ curl -X DELETE -i localhost:8080/apis/registry/v2/admin/loggers/io.apicurio.registry.storage
+$ curl -X DELETE -i localhost:8080/apis/registry/v3/admin/loggers/io.apicurio.registry.storage
 HTTP/1.1 200 OK
 [...]
 Content-Type: application/json

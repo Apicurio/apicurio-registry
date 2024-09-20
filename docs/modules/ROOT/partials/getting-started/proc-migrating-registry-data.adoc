@@ -35,7 +35,7 @@ java -jar apicurio-registry-utils-exportV1-{registry-release}.jar http://old-reg
 +
 [source,bash, subs="attributes+"]
 ----
-curl -X POST "http://new-registry.my-company.com/apis/registry/v2/admin/import" \
+curl -X POST "http://new-registry.my-company.com/apis/registry/v3/admin/import" \
   -H "Accept: application/json" -H "Content-Type: application/zip" \
   --data-binary @registry-export.zip
 ----
@@ -49,7 +49,7 @@ curl "http://old-registry.my-company.com/api/search/artifacts"
 +
 [source,bash, subs="attributes+"]
 ----
-curl "http://new-registry.my-company.com/apis/registry/v2/search/artifacts"
+curl "http://new-registry.my-company.com/apis/registry/v3/search/artifacts"
 ----
 
 [role="_additional-resources"]

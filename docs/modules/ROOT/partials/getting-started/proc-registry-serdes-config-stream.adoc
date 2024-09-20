@@ -18,7 +18,7 @@ This procedure describes how to configure a Kafka Streams client written in Java
 +
 [source,java,subs="+quotes,attributes"]
 ----
-String registryUrl = "https://registry.example.com/apis/registry/v2";
+String registryUrl = "https://registry.example.com/apis/registry/v3";
 
 RegistryService client = RegistryClient.cached(registryUrl);
 ----

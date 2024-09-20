@@ -1,6 +1,6 @@
 {
   "name": "apicurio-docs-playbook",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "This folder contains the configuration and scripts used when building the Apicurio Registry  documentation for publishing to the Apicurio project web site.  We are using a tool called Antora to build the asciidoc based documentation into a publishable site.  However, due to some issues with building on various platforms (I'm looking at you, Windows) and also some conflicts between what Antora builds and what our GitHub Pages (jekyll) project site expects, we have created a non-trivial (but automated) process for building the docs.",
   "main": "index.js",
   "scripts": {

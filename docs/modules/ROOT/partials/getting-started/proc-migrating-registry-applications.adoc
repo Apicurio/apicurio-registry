@@ -76,7 +76,7 @@ _Existing registry v2 API path_:
 +
 [source,java]
 ----
-props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v2");
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v3");
 ----
 +
 _New registry v3 API path_:

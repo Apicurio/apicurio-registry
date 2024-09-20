@@ -18,7 +18,7 @@ This procedure describes how to configure a Kafka consumer client written in Jav
 +
 [source,java,subs="+quotes,attributes"]
 ----
-String registryUrl = "https://registry.example.com/apis/registry/v2";
+String registryUrl = "https://registry.example.com/apis/registry/v3";
 Properties props = new Properties();
 props.putIfAbsent(SerdeConfig.REGISTRY_URL, registryUrl);
 ----

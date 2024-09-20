@@ -70,7 +70,7 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
                 <goal>register</goal> <1>
             </goals>
             <configuration>
-                <registryUrl>MY-REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+                <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
                 <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
                 <clientId>MY-CLIENT-ID</clientId>
                 <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
@@ -109,7 +109,7 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
 ----
 +
 <1> Specify `register` as the execution goal to upload the schema artifacts to {registry}.
-<2> Specify the {registry} URL by using the `../apis/registry/v2` endpoint.
+<2> Specify the {registry} URL by using the `../apis/registry/v3` endpoint.
 ifdef::apicurio-registry,rh-service-registry[]
 <3> If authentication is required, you can specify your authentication server and client credentials.
 endif::[]

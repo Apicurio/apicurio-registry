@@ -74,7 +74,7 @@ endif::[]
 +
 [source,bash]
 ----
-$ curl -X POST MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts \
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
    -H "Content-Type: application/json; artifactType=AVRO" \
    -H "X-Registry-ArtifactId: ItemId" \
    -H "Authorization: Bearer $ACCESS_TOKEN" \
@@ -105,7 +105,7 @@ endif::[]
 +
 [source,bash]
 ----
-$ curl -X POST MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts \
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
 -H 'Content-Type: application/create.extended+json' \
 -H "X-Registry-ArtifactId: Item" \
 -H 'X-Registry-ArtifactType: AVRO' \
@@ -136,7 +136,7 @@ $ curl -X POST MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts \
 +
 [source,bash]
 ----
-$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v2/ids/globalIds/2/references  
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3/ids/globalIds/2/references
 ----
 
 . Verify that the response includes the expected JSON body for this artifact reference. For example:

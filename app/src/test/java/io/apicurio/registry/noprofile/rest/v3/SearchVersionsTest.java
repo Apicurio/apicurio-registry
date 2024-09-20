@@ -1,6 +1,7 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
@@ -194,6 +195,45 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
                     config.queryParameters.groupId = group;
                     config.queryParameters.artifactId = aid;
                 });
+        Assertions.assertEquals(1, results.getCount());
+    }
+
+    @Test
+    public void testSearchVersionsByIds() throws Exception {
+        String artifactContent = "testSearchVersionsByContentId-content";
+        String group1 = TestUtils.generateGroupId();
+        String group2 = TestUtils.generateGroupId();
+
+        // Create 5 artifacts in group 1 (two versions each)
+        for (int idx = 0; idx < 5; idx++) {
+            String artifactId = "testSearchVersionsByArtifactId_Group1_Artifact_" + idx;
+            createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+            createArtifactVersion(group1, artifactId, artifactContent, ContentTypes.APPLICATION_JSON);
+        }
+        // Create 3 artifacts in group 2
+        CreateArtifactResponse createArtifactResponse = null;
+        for (int idx = 0; idx < 3; idx++) {
+            String artifactId = "testSearchVersionsByArtifactId_Group2_Artifact_" + idx;
+            createArtifactResponse = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+        }
+
+        final Long contentId = createArtifactResponse.getVersion().getContentId();
+
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.contentId = contentId;
+        });
+
+        // 13 artifacts are sharing the same contentId, 10 created in group 1, and 3 created in group 2.
+        Assertions.assertEquals(13, results.getCount());
+
+        final Long globalId = createArtifactResponse.getVersion().getGlobalId();
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.globalId = globalId;
+        });
+
         Assertions.assertEquals(1, results.getCount());
     }
 

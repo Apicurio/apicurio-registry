@@ -200,13 +200,13 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
 
     @Test
     public void testSearchVersionsByIds() throws Exception {
-        String artifactContent = "testSearchVersionsByContentId-content";
+        String artifactContent = "testSearchVersionsByIds-content";
         String group1 = TestUtils.generateGroupId();
         String group2 = TestUtils.generateGroupId();
 
         // Create 5 artifacts in group 1 (two versions each)
         for (int idx = 0; idx < 5; idx++) {
-            String artifactId = "testSearchVersionsByArtifactId_Group1_Artifact_" + idx;
+            String artifactId = "testSearchVersionsByIds_Group1_Artifact_" + idx;
             createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent,
                     ContentTypes.APPLICATION_JSON);
             createArtifactVersion(group1, artifactId, artifactContent, ContentTypes.APPLICATION_JSON);
@@ -214,7 +214,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         // Create 3 artifacts in group 2
         CreateArtifactResponse createArtifactResponse = null;
         for (int idx = 0; idx < 3; idx++) {
-            String artifactId = "testSearchVersionsByArtifactId_Group2_Artifact_" + idx;
+            String artifactId = "testSearchVersionsByIds_Group2_Artifact_" + idx;
             createArtifactResponse = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent,
                     ContentTypes.APPLICATION_JSON);
         }

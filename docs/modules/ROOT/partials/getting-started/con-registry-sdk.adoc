@@ -1,7 +1,7 @@
 // Metadata created by nebel
 
 [id="registry-client-intro_{context}"]
-= {registry} Java client 
+= {registry} Java SDK
 
 [role="_abstract"]
 You can manage artifacts stored in {registry} by using a Java client application. You can create, read, update, or delete artifacts by using the {registry} Java client classes. You can also use the {registry} Java client to perform administrator functions, such as managing global rules or importing and exporting {registry} data.

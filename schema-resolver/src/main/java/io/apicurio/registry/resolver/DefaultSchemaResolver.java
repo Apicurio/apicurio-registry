@@ -284,21 +284,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             });
 
             if (results.getCount() == 0) {
-                results = client.search().versions().post(is, ct, config -> {
-                    config.queryParameters.groupId = artifactReference.getGroupId() == null ? "default"
-                        : artifactReference.getGroupId();
-                    config.queryParameters.artifactId = artifactReference.getArtifactId();
-                    config.queryParameters.canonical = false;
-                    config.queryParameters.artifactType = at;
-                    config.queryParameters.orderby = VersionSortBy.GlobalId;
-                    config.queryParameters.order = SortOrder.Desc;
-                });
-
-                if (results.getCount() == 0) {
-                    throw new RuntimeException(
-                            String.format("Could not resolve artifact reference by content: %s",
-                                    rawSchemaString) + "&" + artifactReference);
-                }
+                throw new RuntimeException(
+                        String.format("Could not resolve artifact reference by content: %s",
+                                rawSchemaString) + "&" + artifactReference);
             }
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();

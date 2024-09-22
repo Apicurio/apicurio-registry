@@ -43,12 +43,12 @@ public class AvroNatsSerdeIT extends ApicurioRegistryBaseIT {
 
     public static final Integer NATS_PORT = 4222;
 
-    public static final Integer NATS_MGMT_PORT = 8222;
+    public static final Integer NATS_MNTR_PORT = 8222;
 
     @BeforeAll
     void setupEnvironment() {
         if (nats == null || !nats.isRunning()) {
-            nats = new GenericContainer<>("nats:2.10.20").withExposedPorts(NATS_PORT, NATS_MGMT_PORT)
+            nats = new GenericContainer<>("nats:2.10.20").withExposedPorts(NATS_PORT, NATS_MNTR_PORT)
                     .withCommand("--jetstream");
             nats.start();
         }

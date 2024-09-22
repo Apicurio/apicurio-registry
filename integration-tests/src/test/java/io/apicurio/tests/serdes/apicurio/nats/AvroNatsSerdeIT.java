@@ -97,7 +97,7 @@ public class AvroNatsSerdeIT extends ApicurioRegistryBaseIT {
 
             producer.publish(record);
 
-            NatsConsumerRecord<GenericRecord> message = consumer.receive();
+            NatsConsumerRecord<GenericRecord> message = consumer.fetch();
 
             if (message.getPayload() != null) {
                 GenericRecord event1 = message.getPayload();

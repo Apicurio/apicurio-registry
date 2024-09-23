@@ -87,7 +87,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
 
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Admin)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public CompatibilityLevelParamDto getGlobalCompatibilityLevel() {
         logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         return getCompatibilityLevel(() -> getStorage().getGlobalRule(RuleType.COMPATIBILITY).getConfiguration());

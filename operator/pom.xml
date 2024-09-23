@@ -33,7 +33,7 @@
     <!-- ATTENTION! The Quarkus version needs to be aligned with the Quarkus Operator SDK -->
     <!-- TODO: possibly stabilize on something shared with the rest of the repo -->
     <quarkus.version>3.4.2</quarkus.version>
-    <quarkus.operator.sdk.version>6.3.3</quarkus.operator.sdk.version>
+    <quarkus.operator.sdk.version>6.8.0</quarkus.operator.sdk.version>
     <quarkus.container-image.group>apicurio</quarkus.container-image.group>
   </properties>
 

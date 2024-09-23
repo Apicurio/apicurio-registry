@@ -3,6 +3,7 @@ package io.apicurio.registry.utils.export;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.IoUtil;
@@ -211,12 +212,14 @@ public class Export implements QuarkusApplication {
         List<ArtifactReference> references = artifactReferenceMapper.map(metadata.getReferences());
 
         String artifactType = metadata.getSchemaType().toUpperCase(Locale.ROOT);
+        String contentType = getContentTypeFromArtifactType(artifactType);
 
         Long contentId = context.getContentIndex().computeIfAbsent(contentHash, k -> {
             ContentEntity contentEntity = new ContentEntity();
             contentEntity.contentId = metadata.getId();
             contentEntity.contentHash = contentHash;
             contentEntity.canonicalHash = null;
+            contentEntity.contentType = contentType;
             contentEntity.contentBytes = contentBytes;
             contentEntity.artifactType = artifactType;
             contentEntity.serializedReferences = serializeReferences(references);
@@ -248,9 +251,21 @@ public class Export implements QuarkusApplication {
         context.getWriter().writeEntity(versionEntity);
     }
 
+    private static String getContentTypeFromArtifactType(String artifactType) {
+        switch (artifactType) {
+            case "PROTOBUF":
+                return ContentTypes.APPLICATION_PROTOBUF;
+            case "AVRO":
+            case "JSON":
+                return ContentTypes.APPLICATION_JSON;
+            default:
+                throw new IllegalStateException(String.format("Unrecognized schema type %s", artifactType));
+        }
+    }
+
     /**
      * Serializes the given collection of references to a string
-     * 
+     *
      * @param references
      */
     private String serializeReferences(List<ArtifactReference> references) {

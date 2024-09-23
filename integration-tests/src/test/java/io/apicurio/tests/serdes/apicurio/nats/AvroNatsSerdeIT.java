@@ -16,6 +16,7 @@ import io.nats.client.Nats;
 import io.nats.client.Options;
 import io.nats.client.PullSubscribeOptions;
 import io.nats.client.api.ConsumerConfiguration;
+import io.nats.client.api.RetentionPolicy;
 import io.nats.client.api.StreamConfiguration;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.Schema;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
 
@@ -76,10 +78,11 @@ public class AvroNatsSerdeIT extends ApicurioRegistryBaseIT {
             jsm = connection.jetStreamManagement();
 
             StreamConfiguration stream = new StreamConfiguration.Builder().subjects(subjectId).name(subjectId)
+                    .retentionPolicy(RetentionPolicy.WorkQueue)
                     .build();
 
             ConsumerConfiguration consumerConfiguration = ConsumerConfiguration.builder().durable(subjectId)
-                    .durable(subjectId).filterSubject(subjectId).build();
+                    .durable(subjectId).filterSubject(subjectId).ackWait(2000).build();
 
             jsm.addStream(stream); // Create Stream in advance
             jsm.addOrUpdateConsumer(stream.getName(), consumerConfiguration); // Create Consumer in advance
@@ -105,6 +108,21 @@ public class AvroNatsSerdeIT extends ApicurioRegistryBaseIT {
             }
 
             message.ack();
+
+            producer.publish(record);
+            consumer.fetch().nak(); //Nak will redeliver the message until ack'd so message should be left in stream
+            Assertions.assertEquals(jsm.getStreamInfo(stream.getName()).getStreamState().getMsgCount() == 1, true);
+
+            jsm.purgeStream(stream.getName());
+            producer.publish(record);
+            consumer.fetch().term(); //this will terminate the message, since there was only one message in stream and after calling terminate we should not have any message left in stream
+            Assertions.assertEquals(jsm.getStreamInfo(stream.getName()).getStreamState().getMsgCount() == 0, true);
+            producer.publish(record);
+
+            NatsConsumerRecord<GenericRecord> newMessage = consumer.fetch();
+            Thread.sleep(1000); //Ack wait is set to 2second for consumer,after 2 second if ack is not received consumer will redeliver the message
+            newMessage.inProgress(); //with this we are resetting the ackwait to 2 second again so consumer do not redeliver the message. we should have a message in ack pending state
+            Assertions.assertTrue(jsm.getConsumerInfo(stream.getName(), consumerConfiguration.getDurable()).getNumAckPending() == 1);
         }
     }
 }

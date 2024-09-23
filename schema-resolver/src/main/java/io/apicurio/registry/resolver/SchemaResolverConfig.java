@@ -165,12 +165,19 @@ public class SchemaResolverConfig {
      * Registry. Only supported for Avro. Only applicable when
      * {@link SchemaResolverConfig#AUTO_REGISTER_ARTIFACT} is enabled.
      */
-    public static final String DEREFERENCE_SCHEMA = "apicurio.registry.dereference-schema";
-    public static final boolean DEREFERENCE_SCHEMA_DEFAULT = true;
+    public static final String REGISTER_DEREFERENCED = "apicurio.registry.dereference-schema";
+    public static final boolean REGISTER_DEREFERENCED_DEFAULT = true;
+
+    /**
+     * Used to indicate the serializer to ask Registry to return the schema dereferenced. This is useful to
+     * reduce the number of http requests to the server.
+     */
+    public static final String SERIALIZER_DEREFERENCE_SCHEMA = "apicurio.registry.serializer.dereference-schema";
+    public static final boolean SERIALIZER_DEREFERENCE_SCHEMA_DEFAULT = false;
 
     /**
      * Used to indicate the deserializer to ask Registry to return the schema dereferenced. This is useful to
-     * reduce the number of http requests to the server. Only applicable to Avro schemas.
+     * reduce the number of http requests to the server.
      */
     public static final String DESERIALIZER_DEREFERENCE_SCHEMA = "apicurio.registry.deserializer.dereference-schema";
     public static final boolean DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT = false;

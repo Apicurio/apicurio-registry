@@ -22,9 +22,7 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
@@ -110,16 +108,14 @@ public class AvroNatsSerdeIT extends ApicurioRegistryBaseIT {
             producer.publish(record);
             consumer.fetch().nak(); // Nak will redeliver the message until ack'd so message should be left in
                                     // stream
-            Assertions.assertEquals(jsm.getStreamInfo(stream.getName()).getStreamState().getMsgCount() == 1,
-                    true);
+            Assertions.assertTrue(jsm.getStreamInfo(stream.getName()).getStreamState().getMsgCount() == 1);
 
             jsm.purgeStream(stream.getName());
             producer.publish(record);
             consumer.fetch().term(); // this will terminate the message, since there was only one message in
                                      // stream and after calling terminate we should not have any message left
                                      // in stream
-            Assertions.assertEquals(jsm.getStreamInfo(stream.getName()).getStreamState().getMsgCount() == 0,
-                    true);
+            Assertions.assertTrue(jsm.getStreamInfo(stream.getName()).getStreamState().getMsgCount() == 0);
             producer.publish(record);
 
             NatsConsumerRecord<GenericRecord> newMessage = consumer.fetch();

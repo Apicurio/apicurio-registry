@@ -2,10 +2,12 @@
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="writing-registry-sdk_{context}"]
-= Writing {registry} SDK Java applications
+= Writing {registry} SDK applications
 
 [role="_abstract"]
-You can write a Java client application to manage artifacts stored in {registry} by using the {registry} Java SDK.
+You can write a client application to manage artifacts stored in {registry} by using one of the {registry} SDKs.
+
+== Using the {registry} Java SDK
 
 .Prerequisites
 ifdef::apicurio-registry,rh-service-registry[]
@@ -55,3 +57,15 @@ When the client is created, you can use all of the operations available in the {
 * For an open source example of how to use and customize the {registry} client, see the https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry REST client demonstration].
 
 * For details on how to use the {registry} Kafka client serializers/deserializers (SerDes) in producer and consumer applications, see {kafka-client-serdes}.
+
+== Using the {registry} Typescript SDK
+
+TBD
+
+== Using the {registry} Python SDK
+
+TBD
+
+== Using the {registry} Golang SDK
+
+TBD

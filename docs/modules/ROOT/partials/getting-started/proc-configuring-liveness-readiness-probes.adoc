@@ -3,7 +3,7 @@
 
 [id="configuring-liveness-readiness-probes_{context}"]
 
-= Configuring {registry} health checks on OpenShift
+== Configuring {registry} health checks on OpenShift
 
 [role="_abstract"]
 You can configure optional environment variables for liveness and readiness probes to monitor the health of the {registry} server on OpenShift:

@@ -5,13 +5,12 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Configuring your {registry} deployment
 
 [role="_abstract"]
-This chapter explains how to set important configuration options for your {registry} deployment. This includes features such as the {registry} web console, logging, events, and health checks: 
+This chapter explains how to set important configuration options for your {registry} deployment. This includes features such as the {registry} web console, logging, and health checks:
 
 ifdef::apicurio-registry[]
 * xref:configuring-registry-ui_{context}[]
 endif::[]
 * xref:registry-logging_{context}[]
-* xref:registry-cloud-events_{context}[]
 * xref:configuring-liveness-readiness-probes_{context}[]
 * xref:registry-liveness-env-vars_{context}[]
 
@@ -22,6 +21,5 @@ ifdef::apicurio-registry[]
 include::{mod-loc}getting-started/proc-configuring-registry-ui.adoc[leveloffset=+1]
 endif::[]
 include::{mod-loc}getting-started/proc-configuring-registry-logging.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-configuring-registry-events.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-configuring-liveness-readiness-probes.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/ref-registry-liveness-env-vars.adoc[leveloffset=+1]

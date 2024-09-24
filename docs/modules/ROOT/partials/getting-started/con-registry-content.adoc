@@ -4,7 +4,7 @@
 = Manage {registry} content using client tools
 
 [role="_abstract"]
-You can manage {registry} content using the {registry} web console, REST API, command line, Maven plug-in, or Java client.
+You can manage {registry} content using the {registry} web console, REST API, command line, Maven plug-in, or client SDKs.
  
 == {registry} web console
 You can use the {registry} web console to browse and search the schema and API artifacts, groups, and versions stored in {registry}, and to add new schema and API artifacts, groups, and versions. You can also configure optional validation or compatibility rules for {registry} content, both globally and for each schema and API artifact.  

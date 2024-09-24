@@ -1,0 +1,62 @@
+// Metadata created by nebel
+
+[id="registry-group-metadata_{context}"]
+= {registry} group metadata
+
+[role="_abstract"]
+When a group is created in {registry}, a set of metadata properties is created and stored. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the group is created.
+
+.{registry} system-generated metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`owner`
+|string
+|The name of the user who created the group.
+|`createdOn`
+|date
+|The date and time when the group was created, for example, `2023-10-11T14:15:28Z`.
+|`modifiedBy`
+|string
+|The name of the user who modified the group.
+|`modifiedOn`
+|date
+|The date and time at which the group was modified, for example, `2023-10-11T14:15:28Z`.
+|===
+
+
+.{registry} user-provided or system-generated metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`groupId`
+|string
+|Unique identifier of the artifact group in {registry}, for example, `development` or `production`.
+|===
+
+
+.{registry} editable metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`description`
+|string
+|Optional meaningful description of the group, for example, `This is a simple group for testing`.
+|`labels`
+| map
+|Optional list of user-defined name-value pairs associated with the group. The name and value must be strings, for example, `my-key` and `my-value`.
+|===
+
+.Updating group metadata
+* You can use the {registry} REST API or web console to update the set of editable metadata properties.
+* You can update the `state` property only by using the {registry} REST API.
+
+[role="_additional-resources"]
+.Additional resources
+For more details, see the `/groups/\{groupId\}` endpoint in the {registry-rest-api}.

@@ -36,6 +36,6 @@ asciidoc:
     managing-registry-artifacts-ui: link:assembly-managing-registry-artifacts-ui.html[Managing Apicurio Registry content using the web console]
     managing-registry-artifacts-api: link:assembly-managing-registry-artifacts-api.html[Managing Apicurio Registry content using the REST API]
     managing-registry-artifacts-maven: link:assembly-managing-registry-artifacts-maven.html[Managing Apicurio Registry content using the Maven plug-in]
-    rest-client:  link:assembly-using-the-registry-client.html[Managing Apicurio Registry content using a Java client]
+    sdk:  link:assembly-using-the-registry-sdk.html[Managing Apicurio Registry content using an SDK]
     kafka-client-serdes: link:assembly-using-kafka-client-serdes.html[Validating schemas using Kafka client serializers/deserializers in Java clients]
-    registry-client-serdes-config: link:assembly-configuring-kafka-client-serdes.html[Configuring Kafka serializers/deserializers in Java clients]
+    registry-client-serdes-config: link:assembly-configuring-kafka-client-serdes.html[Configuring Kafka serializers/deserializers in Java applications]

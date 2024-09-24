@@ -7,7 +7,7 @@
 ** xref:getting-started/assembly-installing-registry-storage-openshift.adoc[]
 ** link:https://www.apicur.io/registry/docs/apicurio-registry-operator/1.0.0/index.html[Apicurio Registry Operator documentation]
 * Migration
-** xref:getting-started/assembly-migrating-registry-v1-v2.adoc[]
+** xref:getting-started/assembly-migrating-registry-v2-v3.adoc[]
 * Configuration
 ** xref:getting-started/assembly-configuring-registry-security.adoc[]
 ** xref:getting-started/assembly-configuring-the-registry.adoc[]

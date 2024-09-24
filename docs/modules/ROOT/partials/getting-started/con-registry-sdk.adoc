@@ -1,23 +1,49 @@
 // Metadata created by nebel
 
-[id="registry-client-intro_{context}"]
-= {registry} Java SDK
+[id="registry-sdk-intro_{context}"]
+= {registry} SDK
 
 [role="_abstract"]
-You can manage artifacts stored in {registry} by using a Java client application. You can create, read, update, or delete artifacts by using the {registry} Java client classes. You can also use the {registry} Java client to perform administrator functions, such as managing global rules or importing and exporting {registry} data.
+You can manage artifacts stored in {registry} by using one of the provided SDKs. You can perform any desired operation supported by the REST API, including create, read, update, or delete of artifacts. You can even use the {registry} SDKs to perform administrator functions, such as managing global rules or importing and exporting {registry} data.
 
-You can access the {registry} Java client by adding the correct dependency to your Apache Maven project. 
+You can use any of the following SDKs provided as part of {registry}:
+
+- Java
+- Typescript
+- Python
+- Golang
+
+=== Java
+You can access the {registry} Java SDK by adding the correct dependency to your Apache Maven project.
 ifdef::apicurio-registry,rh-service-registry[]
-For more details, see xref:writing-registry-client_registry[].
+For more details, see xref:writing-registry-sdk_registry[].
 endif::[]
 ifdef::rh-openshift-sr[]
-For more details, see xref:writing-registry-client_java-client[Writing {registry} Java client applications].
+For more details, see xref:writing-registry-sdk_java-client[Writing {registry} Java client applications].
 endif::[]
 
 The {registry} client is implemented by using the HTTP client provided by the JDK, which you can customize as needed. For example, you can add custom headers or enable configuration options for Transport Layer Security (TLS) authentication. 
 ifdef::apicurio-registry,rh-service-registry[]
-For more details, see xref:registry-client-config_registry[].
+For more details, see xref:registry-sdk-config_registry[].
 endif::[]
 ifdef::rh-openshift-sr[]
-For more details, see xref:registry-client-config_java-client[{registry} Java client configuration].
+For more details, see xref:registry-sdk-config_java-client[{registry} Java client configuration].
 endif::[]
+
+=== Typescript
+You can access the {registry} Typescript SDK by adding the correct dependency to your application's `package.json`
+file (assumes a node.js application):
+
+https://www.npmjs.com/package/@apicurio/apicurio-registry-sdk
+
+=== Python
+You can access the {registry} Python SDK by adding the correct dependency to your python project (assumes you
+are using pypi):
+
+https://pypi.org/project/apicurioregistrysdk/
+
+=== Golang
+You can access the {registry} Golang SDK by adding the correct dependency to your project:
+
+https://github.com/Apicurio/apicurio-registry/tree/main/go-sdk
+

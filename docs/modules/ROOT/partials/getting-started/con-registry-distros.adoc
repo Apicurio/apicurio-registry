@@ -11,15 +11,13 @@ ifdef::apicurio-registry[]
 .{registry} images 
 [%header,cols="2,4"] 
 |===
-|Distribution option
+|Component
 |Container Image
-|In-memory
-|https://hub.docker.com/r/apicurio/apicurio-registry-mem
-|PostgreSQL database  
-|https://hub.docker.com/r/apicurio/apicurio-registry-sql 
-|Apache Kafka
-|https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql 
-|{registry} Operator 
+|Back-end
+|https://hub.docker.com/r/apicurio/apicurio-registry
+|User Interface
+|https://hub.docker.com/r/apicurio/apicurio-registry-ui
+|{registry} Operator
 |https://hub.docker.com/r/apicurio/apicurio-registry-operator
 |===
 

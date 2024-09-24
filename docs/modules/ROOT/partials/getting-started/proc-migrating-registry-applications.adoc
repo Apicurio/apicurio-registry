@@ -43,7 +43,7 @@ ifdef::apicurio-registry[]
 {rest-client}. 
 endif::[]
 ifdef::rh-service-registry[]
-the link:{LinkServiceRegistryUser}#using-the-registry-client[{NameServiceRegistryUser}].
+the link:{LinkServiceRegistryUser}#using-the-registry-sdk[{NameServiceRegistryUser}].
 endif::[]
 
 . If you are using the {registry} SerDes libraries, you must change the Maven dependencies, which have been repackaged in version 3.x. In {registry} {registry-v2}, the SerDes libraries were provided into three separate Maven modules, while this is still true, the names have been changed:

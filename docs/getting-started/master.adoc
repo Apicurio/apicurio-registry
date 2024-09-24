@@ -27,5 +27,5 @@ include::assemblies/getting-started/assembly-all-registry-configurations.adoc[le
 include::assemblies/getting-started/assembly-managing-registry-artifacts-ui.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-managing-registry-artifacts-api.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-using-kafka-client-serdes.adoc[leveloffset=+1]
-include::assemblies/getting-started/assembly-using-the-registry-client.adoc[leveloffset=+1]
+include::assemblies/getting-started/assembly-using-the-registry-sdk.adoc[leveloffset=+1]
 include::assemblies/getting-started/assembly-registry-reference.adoc[leveloffset=+1]

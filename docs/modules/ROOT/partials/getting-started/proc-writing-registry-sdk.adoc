@@ -1,11 +1,11 @@
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="writing-registry-client_{context}"]
-= Writing {registry} Java client applications
+[id="writing-registry-sdk_{context}"]
+= Writing {registry} SDK Java applications
 
 [role="_abstract"]
-You can write a Java client application to manage artifacts stored in {registry} by using the {registry} Java client classes.  
+You can write a Java client application to manage artifacts stored in {registry} by using the {registry} Java SDK.
 
 .Prerequisites
 ifdef::apicurio-registry,rh-service-registry[]

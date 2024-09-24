@@ -1,8 +1,8 @@
 // Metadata created by nebel
-// ParentAssemblies: assemblies/getting-started/assembly-using-the-registry-client.adoc
+// ParentAssemblies: assemblies/getting-started/assembly-using-the-registry-sdk.adoc
 
-[id="registry-client-config_{context}"]
-= {registry} Java client configuration
+[id="registry-sdk-config_{context}"]
+= {registry} Java SDK configuration
 
 [role="_abstract"]
 The {registry} Java client includes the following configuration options, based on the client factory:

@@ -332,7 +332,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Map<String, String> config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
-            config.put(SerdeConfig.DEREFERENCE_SCHEMA, "true");
+            config.put(SerdeConfig.REGISTER_DEREFERENCED, "true");
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -464,6 +464,21 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             }, bytes);
 
             AvroSchemaB ir = deserializer.deserialize(artifactId, bytes);
+
+            Assertions.assertEquals(avroSchemaB, ir);
+            Assertions.assertEquals(AvroSchemaA.GEMINI, ir.getSchemaA());
+
+            // Create new serializer, the schema already exists in Registry
+            config = new HashMap<>();
+            config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "false");
+            config.put(SerdeConfig.SERIALIZER_DEREFERENCE_SCHEMA, "true");
+            serializer.configure(config, false);
+
+            bytes = serializer.serialize(artifactId, avroSchemaB);
+
+            // No need to wait, the schema has been previously registered in Registry
+            ir = deserializer.deserialize(artifactId, bytes);
 
             Assertions.assertEquals(avroSchemaB, ir);
             Assertions.assertEquals(AvroSchemaA.GEMINI, ir.getSchemaA());

@@ -90,8 +90,15 @@ public class SerdeConfig extends AbstractConfig {
     public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS = SchemaResolverConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS;
     public static final String AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT = SchemaResolverConfig.AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT;
 
-    public static final String DEREFERENCE_SCHEMA = SchemaResolverConfig.DEREFERENCE_SCHEMA;
-    public static final boolean DEREFERENCE_SCHEMA_DEFAULT = SchemaResolverConfig.DEREFERENCE_SCHEMA_DEFAULT;
+    /**
+     * Used to indicate the serializer to ask Registry to return the schema dereferenced. This is useful to
+     * reduce the number of http requests to the server.
+     */
+    public static final String SERIALIZER_DEREFERENCE_SCHEMA = SchemaResolverConfig.SERIALIZER_DEREFERENCE_SCHEMA;
+    public static final boolean SERIALIZER_DEREFERENCE_SCHEMA_DEFAULT = SchemaResolverConfig.SERIALIZER_DEREFERENCE_SCHEMA_DEFAULT;
+
+    public static final String REGISTER_DEREFERENCED = SchemaResolverConfig.REGISTER_DEREFERENCED;
+    public static final boolean REGISTER_DEREFERENCED_DEFAULT = SchemaResolverConfig.REGISTER_DEREFERENCED_DEFAULT;
 
     /**
      * Used to indicate the deserializer to ask Registry to return the schema dereferenced. This is useful to

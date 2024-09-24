@@ -17,8 +17,9 @@ public class DefaultSchemaResolverConfig extends AbstractConfig {
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
-            entry(DEREFERENCE_SCHEMA, DEREFERENCE_SCHEMA_DEFAULT),
-            entry(DESERIALIZER_DEREFERENCE_SCHEMA, DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT));
+            entry(REGISTER_DEREFERENCED, REGISTER_DEREFERENCED_DEFAULT),
+            entry(DESERIALIZER_DEREFERENCE_SCHEMA, DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT),
+            entry(SERIALIZER_DEREFERENCE_SCHEMA, SERIALIZER_DEREFERENCE_SCHEMA_DEFAULT));
 
     public DefaultSchemaResolverConfig(Map<String, ?> originals) {
         this.originals = originals;
@@ -115,8 +116,12 @@ public class DefaultSchemaResolverConfig extends AbstractConfig {
         return getString(EXPLICIT_ARTIFACT_VERSION);
     }
 
+    public boolean registerDereferenced() {
+        return getBooleanOrFalse(REGISTER_DEREFERENCED);
+    }
+
     public boolean serializerDereference() {
-        return getBooleanOrFalse(DEREFERENCE_SCHEMA);
+        return getBooleanOrFalse(SERIALIZER_DEREFERENCE_SCHEMA);
     }
 
     public boolean deserializerDereference() {

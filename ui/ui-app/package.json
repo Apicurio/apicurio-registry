@@ -41,7 +41,7 @@
     "@microsoft/kiota-serialization-multipart": "1.0.0-preview.44",
     "@microsoft/kiota-serialization-text": "1.0.0-preview.63",
     "@patternfly/patternfly": "5.4.0",
-    "@patternfly/react-code-editor": "5.4.0",
+    "@patternfly/react-code-editor": "5.4.1",
     "@patternfly/react-core": "5.4.0",
     "@patternfly/react-icons": "5.4.0",
     "@patternfly/react-table": "5.4.0",

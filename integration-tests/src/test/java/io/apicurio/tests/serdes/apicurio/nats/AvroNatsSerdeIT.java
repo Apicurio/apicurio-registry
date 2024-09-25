@@ -25,7 +25,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
 
-
 import java.io.IOException;
 import java.util.Date;
 import java.util.Map;

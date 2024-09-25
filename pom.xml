@@ -215,7 +215,7 @@
     <woodstox-core.version>7.0.0</woodstox-core.version>
     <jgit.version>7.0.0.202409031743-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>
-    <semver4j.version>5.3.0</semver4j.version>
+    <semver4j.version>5.4.0</semver4j.version>
 
     <!-- Kafka Connect -->
     <connect.version>3.7.0</connect.version>

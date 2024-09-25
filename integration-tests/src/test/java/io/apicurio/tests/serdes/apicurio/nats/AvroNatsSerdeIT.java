@@ -22,10 +22,9 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
+
 
 import java.io.IOException;
 import java.util.Date;

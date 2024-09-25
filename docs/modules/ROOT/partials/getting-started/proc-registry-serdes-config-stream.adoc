@@ -38,7 +38,7 @@ Serde<LogInput> logSerde = Serdes.serdeFrom(
 
 Map<String, Object> config = new HashMap<>();
 config.put(SerdeConfig.REGISTRY_URL, registryUrl);
-config.put(AvroKafkaSerdeConfig.USE_SPECIFIC_AVRO_READER, true);
+config.put(AvroSerdeConfig.USE_SPECIFIC_AVRO_READER, true);
 logSerde.configure(config, false); <3>
 
 ----

@@ -5,7 +5,6 @@ import com.google.protobuf.DynamicMessage;
 import io.api.sample.TableNotification;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
-import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.config.SerdeConfig;
@@ -113,7 +112,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfig.FALLBACK_ARTIFACT_GROUP_ID, groupId);
-            config.put(SchemaResolverConfig.DESERIALIZER_DEREFERENCE_SCHEMA, "true");
+            config.put(SerdeConfig.DESERIALIZER_DEREFERENCE_SCHEMA, "true");
             serializer.configure(config, false);
             deserializer.configure(config, false);
 

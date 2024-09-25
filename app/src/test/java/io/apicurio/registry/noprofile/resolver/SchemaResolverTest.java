@@ -8,6 +8,7 @@ import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -44,7 +45,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
         SchemaResolver<Schema, GenericRecord> resolver = new DefaultSchemaResolver<>();
         resolver.setClient(restClient);
         Map<String, Object> config = new HashMap<>();
-        config.put(SchemaResolverConfig.FIND_LATEST_ARTIFACT, true);
+        config.put(SerdeConfig.FIND_LATEST_ARTIFACT, true);
         resolver.configure(config, new SchemaParser<Schema, GenericRecord>() {
 
             @Override

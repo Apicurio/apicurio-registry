@@ -1,7 +1,6 @@
 package io.apicurio.registry.noprofile;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
@@ -44,7 +43,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientV3);
             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientV3)) {
 
-            Map<String, String> configs = Map.of(SchemaResolverConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId,
+            Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId,
                     KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.VALIDATION_ENABLED, "true");
             serializer.configure(configs, false);
 

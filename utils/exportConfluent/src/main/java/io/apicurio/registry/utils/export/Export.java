@@ -2,19 +2,17 @@ package io.apicurio.registry.utils.export;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.export.mappers.ArtifactReferenceMapper;
-import io.apicurio.registry.utils.impexp.EntityWriter;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
-import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
-import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.v3.ContentEntity;
-import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v2.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.v2.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v2.ContentEntity;
+import io.apicurio.registry.utils.impexp.v2.EntityWriter;
+import io.apicurio.registry.utils.impexp.v2.GlobalRuleEntity;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -96,14 +94,14 @@ public class Export implements QuarkusApplication {
             manifest.exportedOn = new Date();
             manifest.systemDescription = "Unknown remote confluent schema registry (export created using apicurio confluent schema registry export utility).";
             manifest.systemName = "Remote Confluent Schema Registry";
-            manifest.systemVersion = "n/a";
+            manifest.systemVersion = "2.x";
+            manifest.exportVersion = "2.0";
             context.getWriter().writeEntity(manifest);
 
             Collection<String> subjects = context.getSchemaRegistryClient().getAllSubjects();
 
             // Export all subjects
             for (String subject : subjects) {
-                exportSubject(context, subject);
 
                 List<Integer> versions = context.getSchemaRegistryClient().getAllVersions(subject);
                 versions.sort(Comparator.naturalOrder());
@@ -170,19 +168,6 @@ public class Export implements QuarkusApplication {
     public void exportSubject(ExportContext context, String subject) throws RestClientException, IOException {
         SchemaMetadata metadata = context.getSchemaRegistryClient().getSchemaMetadata(subject, 1);
 
-        ArtifactEntity artifactEntity = new ArtifactEntity();
-        artifactEntity.artifactId = subject;
-        artifactEntity.artifactType = metadata.getSchemaType();
-        artifactEntity.owner = "export-confluent-utility";
-        artifactEntity.createdOn = System.currentTimeMillis();
-        artifactEntity.modifiedBy = "export-confluent-utility";
-        artifactEntity.modifiedOn = System.currentTimeMillis();
-        artifactEntity.description = null;
-        artifactEntity.groupId = null;
-        artifactEntity.labels = null;
-        artifactEntity.name = null;
-
-        context.getWriter().writeEntity(artifactEntity);
     }
 
     public void exportSubjectVersionWithRefs(ExportContext context, String subject, Integer version)
@@ -212,14 +197,12 @@ public class Export implements QuarkusApplication {
         List<ArtifactReference> references = artifactReferenceMapper.map(metadata.getReferences());
 
         String artifactType = metadata.getSchemaType().toUpperCase(Locale.ROOT);
-        String contentType = getContentTypeFromArtifactType(artifactType);
 
         Long contentId = context.getContentIndex().computeIfAbsent(contentHash, k -> {
             ContentEntity contentEntity = new ContentEntity();
             contentEntity.contentId = metadata.getId();
             contentEntity.contentHash = contentHash;
             contentEntity.canonicalHash = null;
-            contentEntity.contentType = contentType;
             contentEntity.contentBytes = contentBytes;
             contentEntity.artifactType = artifactType;
             contentEntity.serializedReferences = serializeReferences(references);
@@ -235,32 +218,18 @@ public class Export implements QuarkusApplication {
         ArtifactVersionEntity versionEntity = new ArtifactVersionEntity();
         versionEntity.artifactId = subject;
         versionEntity.contentId = contentId;
-        versionEntity.owner = "export-confluent-utility";
+        versionEntity.createdBy = "export-confluent-utility";
         versionEntity.createdOn = System.currentTimeMillis();
         versionEntity.description = null;
         versionEntity.globalId = -1;
         versionEntity.groupId = null;
         versionEntity.labels = null;
         versionEntity.name = null;
-        versionEntity.state = VersionState.ENABLED;
+        versionEntity.artifactType = artifactType;
+        versionEntity.state = ArtifactState.ENABLED;
         versionEntity.version = String.valueOf(metadata.getVersion());
-        versionEntity.versionOrder = metadata.getVersion();
-        versionEntity.modifiedBy = "export-confluent-utility";
-        versionEntity.modifiedOn = System.currentTimeMillis();
 
         context.getWriter().writeEntity(versionEntity);
-    }
-
-    private static String getContentTypeFromArtifactType(String artifactType) {
-        switch (artifactType) {
-            case "PROTOBUF":
-                return ContentTypes.APPLICATION_PROTOBUF;
-            case "AVRO":
-            case "JSON":
-                return ContentTypes.APPLICATION_JSON;
-            default:
-                throw new IllegalStateException(String.format("Unrecognized schema type %s", artifactType));
-        }
     }
 
     /**

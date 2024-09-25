@@ -1,22 +1,35 @@
-package io.apicurio.registry.utils.impexp;
+/*
+ * Copyright 2021 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.apicurio.registry.utils.impexp.v2;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
-import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.v3.BranchEntity;
-import io.apicurio.registry.utils.impexp.v3.CommentEntity;
-import io.apicurio.registry.utils.impexp.v3.ContentEntity;
-import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.v3.GroupEntity;
-import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityType;
+import io.apicurio.registry.utils.impexp.ManifestEntity;
 
 import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+/**
+ * @author eric.wittmann@gmail.com
+ */
 public class EntityWriter {
 
     private static final ObjectMapper mapper;
@@ -51,12 +64,6 @@ public class EntityWriter {
             case Group:
                 writeEntity((GroupEntity) entity);
                 break;
-            case GroupRule:
-                writeEntity((GroupRuleEntity) entity);
-                break;
-            case Artifact:
-                writeEntity((ArtifactEntity) entity);
-                break;
             case ArtifactVersion:
                 writeEntity((ArtifactVersionEntity) entity);
                 break;
@@ -68,10 +75,6 @@ public class EntityWriter {
                 break;
             case Comment:
                 writeEntity((CommentEntity) entity);
-                break;
-            case Branch:
-                writeEntity((BranchEntity) entity);
-                break;
             case Manifest:
                 writeEntity((ManifestEntity) entity);
                 break;
@@ -104,17 +107,6 @@ public class EntityWriter {
         write(mdEntry, entity, GroupEntity.class);
     }
 
-    private void writeEntity(GroupRuleEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.GroupRule, entity.groupId, entity.type.name(), "json");
-        write(mdEntry, entity, GroupRuleEntity.class);
-    }
-
-    private void writeEntity(ArtifactEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.Artifact, entity.groupId, entity.artifactId, "MetaData",
-                "json");
-        write(mdEntry, entity, ArtifactEntity.class);
-    }
-
     private void writeEntity(ArtifactVersionEntity entity) throws IOException {
         ZipEntry mdEntry = createZipEntry(EntityType.ArtifactVersion, entity.groupId, entity.artifactId,
                 entity.version, "json");
@@ -138,18 +130,8 @@ public class EntityWriter {
         write(mdEntry, entity, CommentEntity.class);
     }
 
-    private void writeEntity(BranchEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.Branch, entity.groupId, entity.artifactId,
-                entity.branchId, "json");
-        write(mdEntry, entity, BranchEntity.class);
-    }
-
     private ZipEntry createZipEntry(EntityType type, String fileName, String fileExt) {
         return createZipEntry(type, null, null, fileName, fileExt);
-    }
-
-    private ZipEntry createZipEntry(EntityType type, String groupId, String fileName, String fileExt) {
-        return createZipEntry(type, groupId, null, fileName, fileExt);
     }
 
     private ZipEntry createZipEntry(EntityType type, String groupId, String artifactId, String fileName,
@@ -159,14 +141,6 @@ public class EntityWriter {
         switch (type) {
             case ArtifactRule:
                 path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupOrDefault(groupId),
-                        artifactId, fileName, type.name(), fileExt);
-                break;
-            case Artifact:
-                path = String.format("groups/%s/artifacts/%s/%s.%s.%s", groupOrDefault(groupId), artifactId,
-                        fileName, type.name(), fileExt);
-                break;
-            case Branch:
-                path = String.format("groups/%s/artifacts/%s/branches/%s.%s.%s", groupOrDefault(groupId),
                         artifactId, fileName, type.name(), fileExt);
                 break;
             case ArtifactVersion:
@@ -181,10 +155,6 @@ public class EntityWriter {
                 break;
             case Group:
                 path = String.format("groups/%s.%s.%s", fileName, type.name(), fileExt);
-                break;
-            case GroupRule:
-                path = String.format("groups/%s/rules/%s.%s.%s", groupOrDefault(groupId), fileName,
-                        type.name(), fileExt);
                 break;
             case Comment:
                 path = String.format("comments/%s.%s.%s", fileName, type.name(), fileExt);

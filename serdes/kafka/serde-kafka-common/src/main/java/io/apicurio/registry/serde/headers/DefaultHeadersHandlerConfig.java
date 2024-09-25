@@ -11,22 +11,6 @@ import static java.util.Map.entry;
 
 public class DefaultHeadersHandlerConfig extends SerdeConfig {
 
-    private final Map<String, ?> DEFAULTS = Map.ofEntries(
-            entry(HEADER_KEY_GLOBAL_ID_OVERRIDE_NAME, HEADER_KEY_GLOBAL_ID),
-            entry(HEADER_KEY_CONTENT_ID_OVERRIDE_NAME, HEADER_KEY_CONTENT_ID),
-            entry(HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, HEADER_KEY_CONTENT_HASH),
-            entry(HEADER_KEY_GROUP_ID_OVERRIDE_NAME, HEADER_KEY_GROUP_ID),
-            entry(HEADER_KEY_ARTIFACT_ID_OVERRIDE_NAME, HEADER_KEY_ARTIFACT_ID),
-            entry(HEADER_KEY_VERSION_OVERRIDE_NAME, HEADER_KEY_VERSION),
-            entry(HEADER_VALUE_GLOBAL_ID_OVERRIDE_NAME, HEADER_VALUE_GLOBAL_ID),
-            entry(HEADER_VALUE_CONTENT_ID_OVERRIDE_NAME, HEADER_VALUE_CONTENT_ID),
-            entry(HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, HEADER_VALUE_CONTENT_HASH),
-            entry(HEADER_VALUE_GROUP_ID_OVERRIDE_NAME, HEADER_VALUE_GROUP_ID),
-            entry(HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME, HEADER_VALUE_ARTIFACT_ID),
-            entry(HEADER_VALUE_VERSION_OVERRIDE_NAME, HEADER_VALUE_VERSION)
-
-    );
-
     public DefaultHeadersHandlerConfig(Map<String, Object> originals) {
         Map<String, Object> joint = new HashMap<>(getDefaults());
         joint.putAll(originals);
@@ -87,4 +71,20 @@ public class DefaultHeadersHandlerConfig extends SerdeConfig {
         joint.putAll(DEFAULTS);
         return joint;
     }
+
+    private static final Map<String, ?> DEFAULTS = Map.ofEntries(
+            entry(HEADER_KEY_GLOBAL_ID_OVERRIDE_NAME, HEADER_KEY_GLOBAL_ID),
+            entry(HEADER_KEY_CONTENT_ID_OVERRIDE_NAME, HEADER_KEY_CONTENT_ID),
+            entry(HEADER_KEY_CONTENT_HASH_OVERRIDE_NAME, HEADER_KEY_CONTENT_HASH),
+            entry(HEADER_KEY_GROUP_ID_OVERRIDE_NAME, HEADER_KEY_GROUP_ID),
+            entry(HEADER_KEY_ARTIFACT_ID_OVERRIDE_NAME, HEADER_KEY_ARTIFACT_ID),
+            entry(HEADER_KEY_VERSION_OVERRIDE_NAME, HEADER_KEY_VERSION),
+            entry(HEADER_VALUE_GLOBAL_ID_OVERRIDE_NAME, HEADER_VALUE_GLOBAL_ID),
+            entry(HEADER_VALUE_CONTENT_ID_OVERRIDE_NAME, HEADER_VALUE_CONTENT_ID),
+            entry(HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, HEADER_VALUE_CONTENT_HASH),
+            entry(HEADER_VALUE_GROUP_ID_OVERRIDE_NAME, HEADER_VALUE_GROUP_ID),
+            entry(HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME, HEADER_VALUE_ARTIFACT_ID),
+            entry(HEADER_VALUE_VERSION_OVERRIDE_NAME, HEADER_VALUE_VERSION)
+
+    );
 }

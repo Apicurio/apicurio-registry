@@ -2,7 +2,6 @@ package io.apicurio.example.debezium.kafka;
 
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroSerdeConfig;
-import io.apicurio.registry.serde.config.SerdeConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.eclipse.microprofile.config.inject.ConfigProperty;

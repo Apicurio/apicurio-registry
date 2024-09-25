@@ -17,13 +17,15 @@ class ConfigurationTest {
     void testDefaultConfiguration() {
 
         var originals = new HashMap<String, Object>();
-        var config = new DefaultSchemaResolverConfig(originals);
+        var config = new SchemaResolverConfig(originals);
 
         var key = "apicurio.registry.auto-register.if-exists";
         assertEquals("FIND_OR_CREATE_VERSION", config.autoRegisterArtifactIfExists());
         assertEquals("FIND_OR_CREATE_VERSION", config.getObject(key));
 
         originals.put(key, "foo");
+        config = new SchemaResolverConfig(originals);
+
         try {
             config.autoRegisterArtifactIfExists();
             Assertions.fail();
@@ -35,6 +37,7 @@ class ConfigurationTest {
         assertEquals(false, config.autoRegisterArtifact());
         assertEquals(false, config.getObject(key));
         originals.put(key, "foo");
+        config = new SchemaResolverConfig(originals);
         try {
             config.autoRegisterArtifact();
             Assertions.fail();
@@ -54,12 +57,6 @@ class ConfigurationTest {
         assertEquals(null, config.getAuthPassword());
         assertEquals(null, config.getObject("apicurio.auth.password"));
 
-        assertEquals(null, config.getAuthRealm());
-        assertEquals(null, config.getObject("apicurio.auth.realm"));
-
-        assertEquals(null, config.getAuthServiceUrl());
-        assertEquals(null, config.getObject("apicurio.auth.service.url"));
-
         assertEquals(null, config.getAuthUsername());
         assertEquals(null, config.getObject("apicurio.auth.username"));
 
@@ -78,6 +75,7 @@ class ConfigurationTest {
         assertEquals(null, config.getTokenEndpoint());
         assertEquals(null, config.getObject("apicurio.auth.service.token.endpoint"));
         originals.put("apicurio.auth.service.token.endpoint", "foo");
+        config = new SchemaResolverConfig(originals);
         assertEquals("foo", config.getTokenEndpoint());
 
         assertEquals(false, config.findLatest());
@@ -95,12 +93,16 @@ class ConfigurationTest {
 
         assertEquals(30000L, config.getObject(key));
         originals.put(key, "123"); // String
+        config = new SchemaResolverConfig(originals);
         assertEquals(Duration.ofMillis(123), config.getCheckPeriod());
         originals.put(key, 456); // Integer
+        config = new SchemaResolverConfig(originals);
         assertEquals(Duration.ofMillis(456), config.getCheckPeriod());
         originals.put(key, 123.0); // Float
+        config = new SchemaResolverConfig(originals);
         assertEquals(Duration.ofMillis(123), config.getCheckPeriod());
         originals.put(key, Duration.ofMillis(456)); // Duration
+        config = new SchemaResolverConfig(originals);
         assertEquals(Duration.ofMillis(456), config.getCheckPeriod());
 
         key = "apicurio.registry.retry-backoff-ms";
@@ -108,12 +110,16 @@ class ConfigurationTest {
         assertEquals(300L, config.getObject(key));
 
         originals.put(key, "123"); // String
+        config = new SchemaResolverConfig(originals);
         assertEquals(Duration.ofMillis(123), config.getRetryBackoff());
         originals.put(key, 456); // Integer
+        config = new SchemaResolverConfig(originals);
         assertEquals(Duration.ofMillis(456), config.getRetryBackoff());
         originals.put(key, 123.0); // Float
+        config = new SchemaResolverConfig(originals);
         assertEquals(Duration.ofMillis(123), config.getRetryBackoff());
         originals.put(key, Duration.ofMillis(456)); // Duration
+        config = new SchemaResolverConfig(originals);
         assertEquals(Duration.ofMillis(456), config.getRetryBackoff());
 
         key = "apicurio.registry.retry-count";
@@ -121,10 +127,13 @@ class ConfigurationTest {
         assertEquals(3L, config.getObject(key));
 
         originals.put(key, "123"); // String
+        config = new SchemaResolverConfig(originals);
         assertEquals(123L, config.getRetryCount());
         originals.put(key, 456); // Integer
+        config = new SchemaResolverConfig(originals);
         assertEquals(456L, config.getRetryCount());
         originals.put(key, 123.0); // Float
+        config = new SchemaResolverConfig(originals);
         assertEquals(123L, config.getRetryCount());
     }
 }

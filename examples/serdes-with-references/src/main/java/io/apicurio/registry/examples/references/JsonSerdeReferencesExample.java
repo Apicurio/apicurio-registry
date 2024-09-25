@@ -3,7 +3,6 @@ package io.apicurio.registry.examples.references;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.examples.references.model.Citizen;
 import io.apicurio.registry.examples.references.model.City;
-import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -245,12 +244,12 @@ public class JsonSerdeReferencesExample {
      * Creates the registry client
      */
     private static RegistryClient createRegistryClient(String registryUrl) {
-        final String tokenEndpoint = System.getenv(SchemaResolverConfig.AUTH_TOKEN_ENDPOINT);
+        final String tokenEndpoint = System.getenv(SerdeConfig.AUTH_TOKEN_ENDPOINT);
 
         // Just if security values are present, then we configure them.
         if (tokenEndpoint != null) {
-            final String authClient = System.getenv(SchemaResolverConfig.AUTH_CLIENT_ID);
-            final String authSecret = System.getenv(SchemaResolverConfig.AUTH_CLIENT_SECRET);
+            final String authClient = System.getenv(SerdeConfig.AUTH_CLIENT_ID);
+            final String authSecret = System.getenv(SerdeConfig.AUTH_CLIENT_SECRET);
             var adapter = new VertXRequestAdapter(buildOIDCWebClient(tokenEndpoint, authClient, authSecret));
             adapter.setBaseUrl(registryUrl);
             return new RegistryClient(adapter);

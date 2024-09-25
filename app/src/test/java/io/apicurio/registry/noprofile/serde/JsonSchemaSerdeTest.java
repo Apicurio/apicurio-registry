@@ -9,7 +9,6 @@ import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -518,9 +517,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         SchemaResolver<JsonSchema, Object> sr = src.getSchemaResolver();
         Map<String, String> configs = new HashMap<>();
-        configs.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT,
-                DefaultSchemaResolver.class.getName());
-        configs.put(SchemaResolverConfig.CHECK_PERIOD_MS, "600000");
+        configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT, DefaultSchemaResolver.class.getName());
+        configs.put(SerdeConfig.CHECK_PERIOD_MS, "600000");
         sr.configure(configs, new JsonSchemaParser<Object>());
         ParsedSchema<JsonSchema> ps = sr.resolveSchemaByArtifactReference((artifactReference))
                 .getParsedSchema();

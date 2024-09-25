@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.examples.validation.protobuf;
 
-import io.apicurio.registry.resolver.SchemaResolverConfig;
+import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;

@@ -1,13 +1,31 @@
-package io.apicurio.registry.resolver;
+package io.apicurio.registry.resolver.config;
 
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
+import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy;
 
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.util.Map.entry;
+
 /**
  * Contains the {@link DefaultSchemaResolver} configuration properties.
  */
-public class SchemaResolverConfig {
+public class SchemaResolverConfig extends AbstractConfig {
+
+    public SchemaResolverConfig() {
+        this.originals = DEFAULTS;
+    }
+
+    public SchemaResolverConfig(Map<String, ?> originals) {
+        Map<String, Object> joint = new HashMap<>(getDefaults());
+        joint.putAll(originals);
+        this.originals = joint;
+    }
 
     /**
      * Fully qualified Java classname of a class that implements {@link ArtifactReferenceResolverStrategy} and
@@ -95,22 +113,9 @@ public class SchemaResolverConfig {
     public static final String REGISTRY_URL = "apicurio.registry.url";
 
     /**
-     * The URL of the Token Endpoint. Required when using any Apicurio Registry serde class (serializer or
-     * deserializer) against a secured Apicurio Registry and AUTH_SERVICE_URL is not specified.
+     * The URL of the Token Endpoint.
      */
     public static final String AUTH_TOKEN_ENDPOINT = "apicurio.auth.service.token.endpoint";
-
-    /**
-     * The URL of the Auth Service. Required when using any Apicurio Registry serde class (serializer or
-     * deserializer) against a secured Apicurio Registry.
-     */
-    public static final String AUTH_SERVICE_URL = "apicurio.auth.service.url";
-    public static final String AUTH_SERVICE_URL_TOKEN_ENDPOINT = "/realms/%s/protocol/openid-connect/token";
-
-    /**
-     * The Realm of the Auth Service.
-     */
-    public static final String AUTH_REALM = "apicurio.auth.realm";
 
     /**
      * The Client Id of the Auth Service.
@@ -182,4 +187,116 @@ public class SchemaResolverConfig {
     public static final String DESERIALIZER_DEREFERENCE_SCHEMA = "apicurio.registry.deserializer.dereference-schema";
     public static final boolean DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT = false;
 
+    public String getRegistryUrl() {
+        return getString(REGISTRY_URL);
+    }
+
+    public String getTokenEndpoint() {
+        return getString(AUTH_TOKEN_ENDPOINT);
+    }
+
+    public String getAuthClientId() {
+        return getString(AUTH_CLIENT_ID);
+    }
+
+    public String getAuthClientSecret() {
+        return getString(AUTH_CLIENT_SECRET);
+    }
+
+    public String getAuthClientScope() {
+        return getString(AUTH_CLIENT_SCOPE);
+    }
+
+    public String getAuthUsername() {
+        return getString(AUTH_USERNAME);
+    }
+
+    public String getAuthPassword() {
+        return getString(AUTH_PASSWORD);
+    }
+
+    public Object getArtifactResolverStrategy() {
+        return getObject(ARTIFACT_RESOLVER_STRATEGY);
+    }
+
+    public boolean autoRegisterArtifact() {
+        // Should be non-null, a default value is defined
+        return getBoolean(AUTO_REGISTER_ARTIFACT);
+    }
+
+    public String autoRegisterArtifactIfExists() {
+        return getStringOneOf(AUTO_REGISTER_ARTIFACT_IF_EXISTS, "FAIL", "CREATE_VERSION",
+                "FIND_OR_CREATE_VERSION");
+    }
+
+    public boolean getCacheLatest() {
+        return getBoolean(CACHE_LATEST);
+    }
+
+    public boolean getFaultTolerantRefresh() {
+        return getBoolean(FAULT_TOLERANT_REFRESH);
+    }
+
+    public boolean findLatest() {
+        // Should be non-null, a default value is defined
+        return getBoolean(FIND_LATEST_ARTIFACT);
+    }
+
+    public Duration getCheckPeriod() {
+        return getDurationNonNegativeMillis(CHECK_PERIOD_MS);
+    }
+
+    public long getRetryCount() {
+        return getLongNonNegative(RETRY_COUNT);
+    }
+
+    public Duration getRetryBackoff() {
+        return getDurationNonNegativeMillis(RETRY_BACKOFF_MS);
+    }
+
+    public String getExplicitArtifactGroupId() {
+        return getString(EXPLICIT_ARTIFACT_GROUP_ID);
+    }
+
+    public String getExplicitArtifactId() {
+        return getString(EXPLICIT_ARTIFACT_ID);
+    }
+
+    public String getExplicitSchemaLocation() {
+        return getString(SCHEMA_LOCATION);
+    }
+
+    public String getExplicitArtifactVersion() {
+        return getString(EXPLICIT_ARTIFACT_VERSION);
+    }
+
+    public boolean registerDereferenced() {
+        return getBooleanOrFalse(REGISTER_DEREFERENCED);
+    }
+
+    public boolean serializerDereference() {
+        return getBooleanOrFalse(SERIALIZER_DEREFERENCE_SCHEMA);
+    }
+
+    public boolean deserializerDereference() {
+        return getBooleanOrFalse(DESERIALIZER_DEREFERENCE_SCHEMA);
+    }
+
+    @Override
+    protected Map<String, ?> getDefaults() {
+        return DEFAULTS;
+    }
+
+    private static final Map<String, Object> DEFAULTS = Map.ofEntries(
+            entry(ARTIFACT_RESOLVER_STRATEGY, ARTIFACT_RESOLVER_STRATEGY_DEFAULT),
+            entry(AUTO_REGISTER_ARTIFACT, AUTO_REGISTER_ARTIFACT_DEFAULT),
+            entry(AUTO_REGISTER_ARTIFACT_IF_EXISTS, AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT),
+            entry(CACHE_LATEST, CACHE_LATEST_DEFAULT),
+            entry(FAULT_TOLERANT_REFRESH, FAULT_TOLERANT_REFRESH_DEFAULT),
+            entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
+            entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
+            entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
+            entry(REGISTER_DEREFERENCED, REGISTER_DEREFERENCED_DEFAULT),
+            entry(DESERIALIZER_DEREFERENCE_SCHEMA, DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT),
+            entry(SERIALIZER_DEREFERENCE_SCHEMA, SERIALIZER_DEREFERENCE_SCHEMA_DEFAULT));
 }

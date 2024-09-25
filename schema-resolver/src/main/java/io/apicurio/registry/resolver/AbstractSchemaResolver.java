@@ -1,7 +1,7 @@
 package io.apicurio.registry.resolver;
 
 import com.microsoft.kiota.RequestAdapter;
-import io.apicurio.registry.resolver.config.DefaultSchemaResolverConfig;
+import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
@@ -33,7 +33,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected final ERCache<SchemaLookupResult<S>> schemaCache = new ERCache<>();
 
-    protected DefaultSchemaResolverConfig config;
+    protected SchemaResolverConfig config;
     protected SchemaParser<S, T> schemaParser;
     protected RegistryClient client;
     protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
@@ -43,7 +43,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String explicitArtifactVersion;
 
     protected Vertx vertx;
-
     protected boolean dereference;
 
     @Override
@@ -54,7 +53,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             this.vertx = Vertx.vertx();
         }
 
-        this.config = new DefaultSchemaResolverConfig(configs);
+        this.config = new SchemaResolverConfig(configs);
         if (client == null) {
             String baseUrl = config.getRegistryUrl();
             if (baseUrl == null) {
@@ -62,13 +61,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                         "Missing registry base url, set " + SchemaResolverConfig.REGISTRY_URL);
             }
 
-            String authServerURL = config.getAuthServiceUrl();
             String tokenEndpoint = config.getTokenEndpoint();
 
             try {
-                if (authServerURL != null || tokenEndpoint != null) {
-                    client = configureClientWithBearerAuthentication(config, baseUrl, authServerURL,
-                            tokenEndpoint);
+                if (tokenEndpoint != null) {
+                    client = configureClientWithBearerAuthentication(config, baseUrl, tokenEndpoint);
                 } else {
                     String username = config.getAuthUsername();
 
@@ -294,33 +291,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
     }
 
-    private RegistryClient configureClientWithBearerAuthentication(DefaultSchemaResolverConfig config,
-            String registryUrl, String authServerUrl, String tokenEndpoint) {
-        RequestAdapter auth;
-        if (authServerUrl != null) {
-            auth = configureAuthWithRealm(config, authServerUrl);
-        } else {
-            auth = configureAuthWithUrl(config, tokenEndpoint);
-        }
+    private RegistryClient configureClientWithBearerAuthentication(SchemaResolverConfig config,
+            String registryUrl, String tokenEndpoint) {
+        RequestAdapter auth = configureAuthWithUrl(config, tokenEndpoint);
         auth.setBaseUrl(registryUrl);
         return new RegistryClient(auth);
     }
 
-    private RequestAdapter configureAuthWithRealm(DefaultSchemaResolverConfig config, String authServerUrl) {
-        final String realm = config.getAuthRealm();
-
-        if (realm == null) {
-            throw new IllegalArgumentException(
-                    "Missing registry auth realm, set " + SchemaResolverConfig.AUTH_REALM);
-        }
-
-        final String tokenEndpoint = authServerUrl
-                + String.format(SchemaResolverConfig.AUTH_SERVICE_URL_TOKEN_ENDPOINT, realm);
-
-        return configureAuthWithUrl(config, tokenEndpoint);
-    }
-
-    private RequestAdapter configureAuthWithUrl(DefaultSchemaResolverConfig config, String tokenEndpoint) {
+    private RequestAdapter configureAuthWithUrl(SchemaResolverConfig config, String tokenEndpoint) {
         final String clientId = config.getAuthClientId();
 
         if (clientId == null) {
@@ -336,13 +314,12 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         final String clientScope = config.getAuthClientScope();
 
-        RequestAdapter adapter = new VertXRequestAdapter(
+        return new VertXRequestAdapter(
                 buildOIDCWebClient(this.vertx, tokenEndpoint, clientId, clientSecret, clientScope));
-        return adapter;
     }
 
-    private RegistryClient configureClientWithBasicAuth(DefaultSchemaResolverConfig config,
-            String registryUrl, String username) {
+    private RegistryClient configureClientWithBasicAuth(SchemaResolverConfig config, String registryUrl,
+            String username) {
 
         final String password = config.getAuthPassword();
 

@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import org.junit.jupiter.api.Test;

@@ -19,7 +19,7 @@ public class BaseKafkaSerDeConfig extends SerdeConfig {
     }
 
     public BaseKafkaSerDeConfig() {
-        this.originals = getDefaults();
+        super(DEFAULTS);
     }
 
     public Object getIdHandler() {

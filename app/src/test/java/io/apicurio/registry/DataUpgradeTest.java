@@ -3,8 +3,11 @@ package io.apicurio.registry;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.HandleReferencesType;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.IoUtil;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -20,10 +23,15 @@ import static org.hamcrest.CoreMatchers.anything;
 @QuarkusTest
 public class DataUpgradeTest extends AbstractResourceTestBase {
 
+    @Inject
+    @Current
+    RegistryStorage storage;
+
     @Override
     @BeforeAll
     protected void beforeAll() throws Exception {
         super.beforeAll();
+        storage.deleteAllUserData();
 
         setupRestAssured();
 

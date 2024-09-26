@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 
 import java.nio.charset.Charset;
@@ -19,6 +20,7 @@ public class ResourceFactory {
     public static final String COMPONENT_UI = "ui";
 
     public static final String RESOURCE_TYPE_DEPLOYMENT = "deployment";
+    public static final String RESOURCE_TYPE_SERVICE = "service";
 
     public static final String APP_CONTAINER_NAME = "apicurio-registry-app";
     public static final String UI_CONTAINER_NAME = "apicurio-registry-ui";
@@ -34,6 +36,18 @@ public class ResourceFactory {
         var r = getDefaultResource(primary, Deployment.class, RESOURCE_TYPE_DEPLOYMENT, COMPONENT_UI);
         addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_UI);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
+        return r;
+    }
+
+    public Service getDefaultAppService(ApicurioRegistry3 primary) {
+        var r = getDefaultResource(primary, Service.class, RESOURCE_TYPE_SERVICE, COMPONENT_APP);
+        addSelectorLabels(r.getSpec().getSelector(), primary, COMPONENT_APP);
+        return r;
+    }
+
+    public Service getDefaultUIService(ApicurioRegistry3 primary) {
+        var r = getDefaultResource(primary, Service.class, RESOURCE_TYPE_SERVICE, COMPONENT_UI);
+        addSelectorLabels(r.getSpec().getSelector(), primary, COMPONENT_UI);
         return r;
     }
 

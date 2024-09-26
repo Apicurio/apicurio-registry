@@ -2,7 +2,10 @@ package io.apicurio.registry.operator.resource;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.app.AppDeploymentDiscriminator;
+import io.apicurio.registry.operator.resource.app.AppServiceDiscriminator;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentDiscriminator;
+import io.apicurio.registry.operator.resource.ui.UIServiceDiscriminator;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.ResourceDiscriminator;
 import lombok.AllArgsConstructor;
@@ -22,8 +25,10 @@ public class ResourceKey<R> {
     public static final String REGISTRY_ID = "ApicurioRegistry3Reconciler";
 
     public static final String APP_DEPLOYMENT_ID = "AppDeploymentResource";
-
     public static final String UI_DEPLOYMENT_ID = "UIDeploymentResource";
+
+    public static final String APP_SERVICE_ID = "AppServiceResource";
+    public static final String UI_SERVICE_ID = "UIServiceResource";
 
     public static final ResourceKey<ApicurioRegistry3> REGISTRY_KEY = new ResourceKey<>(
             REGISTRY_ID, ApicurioRegistry3.class,
@@ -38,6 +43,16 @@ public class ResourceKey<R> {
     public static final ResourceKey<Deployment> UI_DEPLOYMENT_KEY = new ResourceKey<>(
             UI_DEPLOYMENT_ID, Deployment.class,
             UIDeploymentDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUIDeployment
+    );
+
+    public static final ResourceKey<Service> APP_SERVICE_KEY = new ResourceKey<>(
+            APP_SERVICE_ID, Service.class,
+            AppServiceDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultAppService
+    );
+
+    public static final ResourceKey<Service> UI_SERVICE_KEY = new ResourceKey<>(
+            UI_SERVICE_ID, Service.class,
+            UIServiceDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUIService
     );
     // spotless:on
 

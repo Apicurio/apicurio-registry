@@ -3,7 +3,6 @@ package io.apicurio.registry.serde;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -78,8 +77,8 @@ public class BaseSerde<T, U> implements AutoCloseable {
             }
         }
         // enforce default artifactResolverStrategy for kafka apps
-        if (!configs.containsKey(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY)) {
-            configs.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY,
+        if (!configs.containsKey(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY)) {
+            configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY,
                     SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT);
         }
         // isKey is passed via config property

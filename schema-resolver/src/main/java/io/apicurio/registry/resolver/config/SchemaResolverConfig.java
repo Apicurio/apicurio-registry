@@ -174,18 +174,11 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final boolean REGISTER_DEREFERENCED_DEFAULT = true;
 
     /**
-     * Used to indicate the serializer to ask Registry to return the schema dereferenced. This is useful to
-     * reduce the number of http requests to the server.
+     * Used to indicate the serde to ask Registry to return the schema dereferenced. This is useful to reduce
+     * the number of http requests to the server.
      */
-    public static final String SERIALIZER_DEREFERENCE_SCHEMA = "apicurio.registry.serializer.dereference-schema";
-    public static final boolean SERIALIZER_DEREFERENCE_SCHEMA_DEFAULT = false;
-
-    /**
-     * Used to indicate the deserializer to ask Registry to return the schema dereferenced. This is useful to
-     * reduce the number of http requests to the server.
-     */
-    public static final String DESERIALIZER_DEREFERENCE_SCHEMA = "apicurio.registry.deserializer.dereference-schema";
-    public static final boolean DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT = false;
+    public static final String RESOLVE_DEREFERENCED = "apicurio.registry.resolve.dereference-schema";
+    public static final boolean RESOLVE_DEREFERENCED_DEFAULT = false;
 
     public String getRegistryUrl() {
         return getString(REGISTRY_URL);
@@ -274,12 +267,8 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getBooleanOrFalse(REGISTER_DEREFERENCED);
     }
 
-    public boolean serializerDereference() {
-        return getBooleanOrFalse(SERIALIZER_DEREFERENCE_SCHEMA);
-    }
-
-    public boolean deserializerDereference() {
-        return getBooleanOrFalse(DESERIALIZER_DEREFERENCE_SCHEMA);
+    public boolean resolveDereferenced() {
+        return getBooleanOrFalse(RESOLVE_DEREFERENCED);
     }
 
     @Override
@@ -297,6 +286,5 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
             entry(REGISTER_DEREFERENCED, REGISTER_DEREFERENCED_DEFAULT),
-            entry(DESERIALIZER_DEREFERENCE_SCHEMA, DESERIALIZER_DEREFERENCE_SCHEMA_DEFAULT),
-            entry(SERIALIZER_DEREFERENCE_SCHEMA, SERIALIZER_DEREFERENCE_SCHEMA_DEFAULT));
+            entry(RESOLVE_DEREFERENCED, RESOLVE_DEREFERENCED_DEFAULT));
 }

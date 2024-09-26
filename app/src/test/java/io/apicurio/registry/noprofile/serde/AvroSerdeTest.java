@@ -257,6 +257,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             Map<String, String> config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.DEREFERENCE_SCHEMA, "false");
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
 
@@ -332,7 +333,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Map<String, String> config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
-            config.put(SerdeConfig.REGISTER_DEREFERENCED, "true");
             serializer.configure(config, false);
 
             config = new HashMap<>();
@@ -413,7 +413,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
             config.putIfAbsent(AvroSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
-            config.putIfAbsent(SerdeConfig.DESERIALIZER_DEREFERENCE_SCHEMA, "true");
+            config.putIfAbsent(SerdeConfig.DEREFERENCE_SCHEMA, "true");
             deserializer.configure(config, false);
 
             AvroSchemaB avroSchemaB = new AvroSchemaB();
@@ -472,7 +472,6 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "false");
-            config.put(SerdeConfig.SERIALIZER_DEREFERENCE_SCHEMA, "true");
             serializer.configure(config, false);
 
             bytes = serializer.serialize(artifactId, avroSchemaB);
@@ -494,6 +493,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
             Map<String, String> config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.DEREFERENCE_SCHEMA, "true");
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
 
@@ -578,6 +578,7 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
             Map<String, String> config = new HashMap<>();
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.DEREFERENCE_SCHEMA, "true");
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, RecordIdStrategy.class.getName());
             serializer.configure(config, false);
 

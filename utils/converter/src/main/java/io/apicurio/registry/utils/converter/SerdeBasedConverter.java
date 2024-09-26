@@ -1,9 +1,10 @@
 package io.apicurio.registry.utils.converter;
 
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.serde.AbstractKafkaDeserializer;
-import io.apicurio.registry.serde.AbstractKafkaSerializer;
+import io.apicurio.registry.serde.KafkaDeserializer;
+import io.apicurio.registry.serde.KafkaSerializer;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -58,14 +59,14 @@ public class SerdeBasedConverter<S, T> implements Converter, Closeable {
             Utils.instantiate(deserializerClass(), dsp, this::setDeserializer);
             createdDeserializer = true;
         }
-        SchemaResolver<S, T> schemaResolver = null;
-        if (AbstractKafkaSerializer.class.isAssignableFrom(serializer.getClass())) {
-            AbstractKafkaSerializer<S, T> ser = (AbstractKafkaSerializer<S, T>) serializer;
+        SchemaResolver<S, T> schemaResolver = new DefaultSchemaResolver();
+        if (KafkaSerializer.class.isAssignableFrom(serializer.getClass())) {
+            KafkaSerializer<S, T> ser = (KafkaSerializer<S, T>) serializer;
             ser.configure(configs, isKey);
             schemaResolver = ser.getSchemaResolver();
         }
-        if (AbstractKafkaDeserializer.class.isAssignableFrom(deserializer.getClass())) {
-            AbstractKafkaDeserializer<S, T> des = (AbstractKafkaDeserializer<S, T>) deserializer;
+        if (KafkaDeserializer.class.isAssignableFrom(deserializer.getClass())) {
+            KafkaDeserializer<S, T> des = (KafkaDeserializer<S, T>) deserializer;
             if (schemaResolver != null) {
                 des.setSchemaResolver(schemaResolver);
             }

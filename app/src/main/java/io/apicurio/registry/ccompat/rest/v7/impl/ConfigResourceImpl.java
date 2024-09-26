@@ -28,10 +28,12 @@ import io.apicurio.registry.ccompat.rest.v7.ConfigResource;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
+import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.storage.RuleNotFoundException;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.types.RuleType;
+import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 
 import java.util.Optional;
@@ -45,6 +47,9 @@ import java.util.function.Supplier;
 @Logged
 public class ConfigResourceImpl extends AbstractResource implements ConfigResource {
 
+    @Inject
+    RulesProperties rulesProperties;
+
     private CompatibilityLevelParamDto getCompatibilityLevel(Supplier<String> supplyLevel) {
         try {
             // We're assuming the configuration == compatibility level
@@ -55,26 +60,27 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
                     )
             ).get().name());
         } catch (RuleNotFoundException ex) {
-            return new CompatibilityLevelParamDto(CompatibilityLevelDto.Level.NONE.name());
+            var compatRuleDto = rulesProperties.getDefaultGlobalRuleConfiguration(RuleType.COMPATIBILITY);
+            if (compatRuleDto != null) {
+                // Fallback to the default global rule
+                return new CompatibilityLevelParamDto(compatRuleDto.getConfiguration());
+            } else {
+                // Fallback to NONE if no default rule is found
+                return new CompatibilityLevelParamDto(CompatibilityLevelDto.Level.NONE.name());
+            }
         }
     }
 
     private <X extends Exception> void updateCompatibilityLevel(CompatibilityLevelDto.Level level,
-                                                                Consumer<RuleConfigurationDto> updater,
-                                                                Runnable deleter) throws X {
-        if (level == CompatibilityLevelDto.Level.NONE) {
-            // delete the rule
-            deleter.run();
-        } else {
-            String levelString = level.getStringValue();
-            try {
-                CompatibilityLevel.valueOf(levelString);
-            } catch (IllegalArgumentException ex) {
-                throw new IllegalArgumentException("Illegal compatibility level: " + levelString);
-            }
-            updater.accept(RuleConfigurationDto.builder()
-                    .configuration(levelString).build()); // TODO config should take CompatibilityLevel as param
+                                                                Consumer<RuleConfigurationDto> updater) throws X {
+        String levelString = level.getStringValue();
+        try {
+            CompatibilityLevel.valueOf(levelString);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Illegal compatibility level: " + levelString);
         }
+        updater.accept(RuleConfigurationDto.builder()
+                .configuration(levelString).build()); // TODO config should take CompatibilityLevel as param
     }
 
     @Override
@@ -94,8 +100,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
                     } else {
                         storage.updateGlobalRule(RuleType.COMPATIBILITY, dto);
                     }
-                },
-                () -> storage.deleteGlobalRule(RuleType.COMPATIBILITY));
+                }
+        );
         return request;
     }
 
@@ -112,14 +118,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
                     } else {
                         storage.updateArtifactRule(ga.getGroupId(), ga.getArtifactId(), RuleType.COMPATIBILITY, dto);
                     }
-                },
-                () -> {
-                    try {
-                        storage.deleteArtifactRule(ga.getGroupId(), ga.getArtifactId(), RuleType.COMPATIBILITY);
-                    } catch (RuleNotFoundException e) {
-                        //Ignore, fail only when the artifact is not found
-                    }
-                });
+                }
+        );
         return request;
     }
 

@@ -29,7 +29,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean autoCreateArtifact;
     private String autoCreateBehavior;
     private boolean findLatest;
-    private boolean registerDereferenced;
 
     private static final Logger logger = Logger.getLogger(DefaultSchemaResolver.class.getSimpleName());
 
@@ -62,7 +61,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         this.autoCreateArtifact = config.autoRegisterArtifact();
-        this.registerDereferenced = config.registerDereferenced();
         this.autoCreateBehavior = config.autoRegisterArtifactIfExists();
         this.findLatest = config.findLatest();
     }
@@ -77,7 +75,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         ParsedSchema<S> parsedSchema;
         if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
-            parsedSchema = schemaParser.getSchemaFromData(data, registerDereferenced);
+            parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
         } else {
             parsedSchema = null;
         }
@@ -114,7 +112,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             if (schemaParser.supportsExtractSchemaFromData()) {
 
                 if (parsedSchema == null) {
-                    parsedSchema = schemaParser.getSchemaFromData(data, registerDereferenced);
+                    parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
                 }
 
                 if (parsedSchema.hasReferences()) {
@@ -139,7 +137,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         if (schemaParser.supportsExtractSchemaFromData()) {
             if (parsedSchema == null) {
-                parsedSchema = schemaParser.getSchemaFromData(data, dereference);
+                parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
             }
             return handleResolveSchemaByContent(parsedSchema, artifactReference);
         }
@@ -474,7 +472,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         InputStream rawSchema;
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
-        if (dereference) {
+        if (resolveDereferenced) {
             rawSchema = client.ids().globalIds().byGlobalId(gid).get(config -> {
                 assert config.queryParameters != null;
                 config.queryParameters.references = HandleReferencesType.DEREFERENCE;

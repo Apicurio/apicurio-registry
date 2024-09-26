@@ -128,6 +128,11 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |Used by serializers only. Specifies whether the serializer tries to create an artifact in the registry. The JSON Schema serializer does not support this feature.
 |`boolean, boolean String`
 |`false`
+|`DEREFERENCE_SCHEMA`
+|`apicurio.registry.dereference-schema`
+|Used to indicate the serdes to dereference the schema. This is used in two different situation, once the schema is registered, instructs the serdes to ask the server for the schema dereferenced. It is also used to instruct the serializer to dereference the schema before registering it Registry, but this is only supported for Avro.
+|`boolean`
+|`false`
 |`AUTO_REGISTER_ARTIFACT_IF_EXISTS`
 |`apicurio.registry.auto-register.if-exists`
 |Used by serializers only. Configures the behavior of the client when there is a conflict creating an artifact because the artifact already exists. Available values are `FAIL`, `UPDATE`, `RETURN`, or `RETURN_OR_UPDATE`.

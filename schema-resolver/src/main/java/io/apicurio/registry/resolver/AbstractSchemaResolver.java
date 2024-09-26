@@ -43,7 +43,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String explicitArtifactVersion;
 
     protected Vertx vertx;
-    protected boolean dereference;
+    protected boolean resolveDereferenced;
 
     @Override
     public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
@@ -112,7 +112,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             this.explicitArtifactVersion = artifactVersionOverride;
         }
 
-        this.dereference = config.resolveDereferenced();
+        this.resolveDereferenced = config.resolveDereferenced();
     }
 
     /**
@@ -175,7 +175,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {
         return schemaCache.getByGlobalId(globalId, globalIdKey -> {
-            if (dereference) {
+            if (resolveDereferenced) {
                 return resolveSchemaDereferenced(globalIdKey);
             } else {
                 return resolveSchemaWithReferences(globalIdKey);

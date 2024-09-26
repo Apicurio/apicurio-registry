@@ -112,7 +112,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfig.FALLBACK_ARTIFACT_GROUP_ID, groupId);
-            config.put(SerdeConfig.RESOLVE_DEREFERENCED, "true");
+            config.put(SerdeConfig.DEREFERENCE_SCHEMA, "true");
             serializer.configure(config, false);
             deserializer.configure(config, false);
 

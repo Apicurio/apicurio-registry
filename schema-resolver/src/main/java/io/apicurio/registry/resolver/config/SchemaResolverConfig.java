@@ -166,19 +166,13 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
 
     /**
-     * Used to indicate the auto-register feature to try to dereference the schema before registering it in
-     * Registry. Only supported for Avro. Only applicable when
-     * {@link SchemaResolverConfig#AUTO_REGISTER_ARTIFACT} is enabled.
+     * Used to indicate the serdes to dereference the schema. This is used in two different situation, once
+     * the schema is registered, instructs the serdes to ask the server for the schema dereferenced. It is
+     * also used to instruct the serializer to dereference the schema before registering it Registry, but this
+     * is only supported for Avro.
      */
-    public static final String REGISTER_DEREFERENCED = "apicurio.registry.dereference-schema";
-    public static final boolean REGISTER_DEREFERENCED_DEFAULT = true;
-
-    /**
-     * Used to indicate the serde to ask Registry to return the schema dereferenced. This is useful to reduce
-     * the number of http requests to the server.
-     */
-    public static final String RESOLVE_DEREFERENCED = "apicurio.registry.resolve.dereference-schema";
-    public static final boolean RESOLVE_DEREFERENCED_DEFAULT = false;
+    public static final String DEREFERENCE_SCHEMA = "apicurio.registry.dereference-schema";
+    public static final boolean DEREFERENCE_DEFAULT = false;
 
     public String getRegistryUrl() {
         return getString(REGISTRY_URL);
@@ -263,12 +257,8 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getString(EXPLICIT_ARTIFACT_VERSION);
     }
 
-    public boolean registerDereferenced() {
-        return getBooleanOrFalse(REGISTER_DEREFERENCED);
-    }
-
     public boolean resolveDereferenced() {
-        return getBooleanOrFalse(RESOLVE_DEREFERENCED);
+        return getBooleanOrFalse(DEREFERENCE_SCHEMA);
     }
 
     @Override
@@ -285,6 +275,5 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
-            entry(REGISTER_DEREFERENCED, REGISTER_DEREFERENCED_DEFAULT),
-            entry(RESOLVE_DEREFERENCED, RESOLVE_DEREFERENCED_DEFAULT));
+            entry(DEREFERENCE_SCHEMA, DEREFERENCE_DEFAULT));
 }

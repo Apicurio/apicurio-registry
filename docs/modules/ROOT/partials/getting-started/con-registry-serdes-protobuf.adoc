@@ -105,5 +105,5 @@ In this example, two Protobuf artifacts are stored in {registry}, one for `Table
 [role="_additional-resources"]
 .Additional resources
 * For Java example applications, see: 
-** link:https://github.com/Apicurio/apicurio-registry-examples[Protobuf Bean and Protobuf Find Latest examples]
-** link:https://github.com/Apicurio/apicurio-registry-examples[SerDes with references example] 
+** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Protobuf Bean and Protobuf Find Latest examples]
+** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]

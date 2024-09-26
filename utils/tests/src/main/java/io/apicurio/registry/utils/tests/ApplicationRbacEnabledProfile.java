@@ -16,7 +16,7 @@ public class ApplicationRbacEnabledProfile implements QuarkusTestProfile {
         props.put("apicurio.auth.role-source", "application");
         props.put("apicurio.rest.deletion.group.enabled", "true");
         props.put("apicurio.rest.deletion.artifact.enabled", "true");
-        props.put("apicurio.rest.deletion.artifactVersion.enabled", "true");
+        props.put("apicurio.rest.deletion.artifact-version.enabled", "true");
         return props;
     }
 }

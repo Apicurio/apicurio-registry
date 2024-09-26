@@ -10,7 +10,7 @@ import java.util.Optional;
 @Singleton
 public class ImportExportConfigProperties {
 
-    @ConfigProperty(name = "apicurio.import.workDir")
+    @ConfigProperty(name = "apicurio.import.work-dir")
     @Info(category = "import", description = "Temporary work directory to use when importing data.", availableSince = "3.0.0")
     public String workDir;
 

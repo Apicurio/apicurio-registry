@@ -9,8 +9,6 @@ As an administrator, you can use the {registry} web console to export data from 
 
 The following example shows how to export and import existing data in a `.zip` file from one {registry} instance to another instance. All the artifact data contained in the {registry} instance is exported in the `.zip` file.
 
-NOTE: You can import only {registry} data that has been exported from another {registry} instance. 
-
 .Prerequisites
 
 * {registry} instances have been created as follows: 
@@ -22,17 +20,17 @@ NOTE: You can import only {registry} data that has been exported from another {r
 
 .Procedure
 
-. In the web console for the source {registry} instance, view the *Artifacts* tab.
+. In the web console for the source {registry} instance, view the *Explore* tab.
 
-. Click the options icon (three vertical dots) next to *Upload artifact*, and select *Download all artifacts (.zip file)* to export the data for this {registry} instance to a `.zip` download file.
+. Click the additional actions icon (three vertical dots) next to *Create artifact* in the toolbar, and select *Export all (as .ZIP)* to export the data for this {registry} instance to a `.zip` download file.
 
-. In the the web console for the target {registry} instance, view the *Artifacts* tab.
+. In the web console for the target {registry} instance, view the *Explore* tab.
 
-. Click the options icon next to *Upload artifact*, and select *Upload multiple artifacts*.
+. Click the additional actions icon (three vertical dots) next to *Create artifact* in the toolbar, and select *Import from .ZIP*.
 
 . Drag and drop or browse to the `.zip` download file that you exported earlier.
 
-. Click *Upload* and wait for the data to be imported.
+. Click *Import* and wait for the data to be imported.
 
 //[role="_additional-resources"]
 //.Additional resources

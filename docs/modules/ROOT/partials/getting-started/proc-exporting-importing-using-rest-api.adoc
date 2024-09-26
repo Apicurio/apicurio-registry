@@ -9,8 +9,6 @@ As an administrator, you can use the Core Registry API v3 to export data from on
 
 This section shows a simple curl-based example of using the Core Registry API v3 to export and import existing data in `.zip` format from one {registry} instance to another. All the artifact data contained in the {registry} instance is exported in the `.zip` file.
 
-NOTE: You can import only {registry} data that has been exported from another {registry} instance.
-
 .Prerequisites
 
 * {registry} is installed and running in your environment.

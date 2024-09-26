@@ -67,7 +67,6 @@ When an artifact is added to {registry}, a set of metadata properties is created
 
 .Updating artifact metadata
 * You can use the {registry} REST API or web console to update the set of editable metadata properties.
-* You can update the `state` property only by using the {registry} REST API.
 
 [role="_additional-resources"]
 .Additional resources

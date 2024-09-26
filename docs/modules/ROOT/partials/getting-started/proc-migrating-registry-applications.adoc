@@ -23,7 +23,7 @@ You must review your existing {registry} client applications to ensure that the 
 </dependency>
 ----
 
-. In your Java client application, you must change your registry URL configuration, from pointing to the existing v2 API path to the new v3 path. Starting with v3, we use Vertx as the default platform for our rest client, due to this change, a RequestAdapter is required when the client is create. For example:
+. In your Java client application, you must change your registry URL configuration, from pointing to the existing v2 API path to the new v3 path. Starting with v3, we use Vertx as the default platform for our rest client, due to this change, a RequestAdapter is required when the client is created. For example:
 +
 [source,java, subs="attributes+"]
 ----

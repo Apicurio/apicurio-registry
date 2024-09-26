@@ -36,8 +36,7 @@ endif::[]
 |Setting
 |Description
 |*HTTP basic authentication*
-|
-Displayed only when authentication is already enabled.
+|Displayed only when authentication is already enabled (during deployment).
 When selected, {registry} users can authenticate using HTTP basic authentication, in addition to OAuth.
 Not selected by default.
 |===
@@ -48,20 +47,13 @@ Not selected by default.
 |Setting
 |Description
 | *Anonymous read access*
-|Displayed only when authentication is already selected. 
-When selected, {registry} grants read-only access to requests from anonymous users without any credentials. This setting is useful if you want to use {registry} to publish schemas or APIs externally. Not selected by default.
+|Displayed only when authentication is already enabled. When selected, {registry} grants read-only access to requests from anonymous users without any credentials. This setting is useful if you want to use {registry} to publish schemas or APIs externally. Not selected by default.
 | *Artifact owner-only authorization*
-| 
-Displayed only when authentication is already enabled.
-When selected, only the user who created an artifact can modify that artifact. Not selected by default.
+|Displayed only when authentication is already enabled. When selected, only the user who created an artifact can modify that artifact. Not selected by default.
 | *Artifact group owner-only authorization*
-|Displayed only when authentication is already enabled and *Artifact owner-only authorization* is selected.
-When selected, only the user who created an artifact group has write access to that artifact group, for example, to add or remove artifacts in that group. Not selected by default. 
+|Displayed only when authentication is already enabled and *Artifact owner-only authorization* is also enabled. When selected, only the user who created an artifact group has write access to that artifact group, for example, to add or remove artifacts in that group. Not selected by default.
 | *Authenticated read access*
-|
-Displayed only when authentication is already enabled.
-When selected, {registry} grants at least read-only access to requests from any authenticated user
-regardless of their user role. Not selected by default.
+|Displayed only when authentication is already enabled. When selected, {registry} grants at least read-only access to requests from any authenticated user regardless of their user role. Not selected by default.
 |===
 +
 .Compatibility settings
@@ -69,8 +61,12 @@ regardless of their user role. Not selected by default.
 |===
 |Setting
 |Description
+| *Canonical hash mode (compatibility API)*
+| When selected, the Schema Registry compatibility API uses the canonical hash instead of the regular hash of the content.
 | *Legacy ID mode (compatibility API)*
 | When selected, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` as an artifact identifier.
+| *Maximum number of Subjects returned (compatibility API)*
+| Determines the maximum number of Subjects that will be returned by the Confluent Schema Registry compatibility API (for the `/subjects` endpoint).
 |===
 +
 .Web console settings
@@ -80,8 +76,17 @@ regardless of their user role. Not selected by default.
 |Description
 |*Download link expiry*
 | The number of seconds that a generated link to a `.zip` download file is active before expiring for security reasons, for example, when exporting artifact data from {registry}. Defaults to 30 seconds.
-| *UI read-only mode*
-| When selected, the {registry} web console is set to read-only, preventing create, read, update, or delete operations. Changes made using the Core Registry API are not affected by this setting. Not selected by default. 
+|===
++
+.Semantic versioning settings
+[%header,cols="2,4"]
+|===
+|Setting
+|Description
+|*Automatically create semver branches*
+| When enabled, automatically create or update branches for major ('A.x') and minor ('A.B.x') artifact versions.
+|*Ensure all version numbers are 'semver' compatible*
+| When enabled, validate that all artifact versions conform to Semantic Versioning 2 format (https://semver.org).
 |===
 +
 .Additional properties
@@ -89,8 +94,14 @@ regardless of their user role. Not selected by default.
 |===
 |Setting
 |Description
+| *Delete artifact*
+| When selected, users are permitted to delete artifacts in {registry} by using the Core Registry API. Not selected by default.
 | *Delete artifact version*
 | When selected, users are permitted to delete artifact versions in {registry} by using the Core Registry API. Not selected by default.
+| *Delete group*
+| When selected, users are permitted to delete groups in {registry} by using the Core Registry API. Not selected by default.
+| *Storage read-only mode*
+| When selected, Registry will return an error for operations that write to the storage (this property excepted).  Not enabled by default.
 |===
 
 

@@ -48,7 +48,7 @@ This example then creates a schema artifact named `Item`, which includes a refer
         {
             "name":"itemId",
             "type":"com.example.common.ItemId"
-        },
+        }
     ]
 }
 ----
@@ -58,15 +58,14 @@ This example then creates a schema artifact named `Item`, which includes a refer
 * {registry} is installed and running in your environment.
 
 .Procedure
-. Add the `ItemId` schema artifact that you want to create the nested artifact reference to using the `/groups/\{group\}/artifacts` operation:
+. Add the `ItemId` schema artifact that you want to create the nested artifact reference to using the `/groups/\{groupId\}/artifacts` operation:
 +
 [source,bash]
 ----
 $ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
-   -H "Content-Type: application/json; artifactType=AVRO" \
-   -H "X-Registry-ArtifactId: ItemId" \
+   -H "Content-Type: application/json" \
    -H "Authorization: Bearer $ACCESS_TOKEN" \
-   --data '{"namespace": "com.example.common", "type": "record", "name": "ItemId", "fields":[{"name":"id", "type":"int"}]}'      
+   --data '{"artifactId":"ItemId","artifactType":"AVRO","firstVersion":{"version":"1.0.0","content":{"content":"{\"namespace\":\"com.example.common\",\"name\":\"ItemId\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"}]}","contentType":"application/json"}}}'
 ----
 +
 * This example adds an Avro schema artifact with an artifact ID of `ItemId`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID. 
@@ -83,28 +82,34 @@ endif::[]
 +
 [source,bash]
 ----
-{"name":"ItemId","createdBy":"","createdOn":"2022-04-14T10:50:09+0000","modifiedBy":"","modifiedOn":"2022-04-14T10:50:09+0000","id":"ItemId","version":"1","type":"AVRO","globalId":1,"state":"ENABLED","groupId":"my-group","contentId":1,"references":[]}
+{"artifact":{"owner":"","createdOn":"2024-09-26T16:27:38Z","modifiedBy":"","modifiedOn":"2024-09-26T16:27:38Z","artifactType":"AVRO","groupId":"my-group","artifactId":"ItemId"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:27:38Z","artifactType":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2,"artifactId":"ItemId"}}
 ---- 
 
-. Add the `Item` schema artifact that includes the artifact reference to the `ItemId` schema using the `/groups/\{group\}/artifacts` operation:
+. Add the `Item` schema artifact that includes the artifact reference to the `ItemId` schema using the `/groups/\{groupId\}/artifacts` operation:
 +
 [source,bash]
 ----
 $ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
--H 'Content-Type: application/create.extended+json' \
--H "X-Registry-ArtifactId: Item" \
--H 'X-Registry-ArtifactType: AVRO' \
+-H 'Content-Type: application/json' \
 -H "Authorization: Bearer $ACCESS_TOKEN" \
 --data-raw '{
-    "content": "{\r\n \"namespace\":\"com.example.common\",\r\n  \"name\":\"Item\",\r\n  \"type\":\"record\",\r\n  \"fields\":[\r\n   {\r\n  \"name\":\"itemId\",\r\n   \"type\":\"com.example.common.ItemId\"\r\n        }\r\n    ]\r\n}",
-    "references": [
-        {
-            "groupId": "my-group",
-            "artifactId": "ItemId",
-            "name": "com.example.common.ItemId",
-            "version": "1"
-        }
-    ]
+	"artifactId": "Item",
+	"artifactType": "AVRO",
+	"firstVersion": {
+		"version": "1.0.0",
+		"content": {
+			"content": "{\"namespace\":\"com.example.common\",\"name\":\"Item\",\"type\":\"record\",\"fields\":[{\"name\":\"itemId\",\"type\":\"com.example.common.ItemId\"}]}",
+			"contentType": "application/json",
+			"references": [
+				{
+					"name": "com.example.common.ItemId",
+					"groupId": "my-group",
+					"artifactId": "ItemId",
+					"version": "1.0.0"
+				}
+			]
+		}
+	}
 }'
 ----
 +
@@ -114,28 +119,42 @@ $ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
 +
 [source,bash]
 ----
-{"name":"Item","createdBy":"","createdOn":"2022-04-14T11:52:15+0000","modifiedBy":"","modifiedOn":"2022-04-14T11:52:15+0000","id":"Item","version":"1","type":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2, "references":[{"artifactId":"ItemId","groupId":"my-group","name":"ItemId","version":"1"}] }
+{"artifact":{"owner":"","createdOn":"2024-09-26T16:28:45Z","modifiedBy":"","modifiedOn":"2024-09-26T16:28:45Z","artifactType":"AVRO","groupId":"my-group","artifactId":"Item"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:28:45Z","artifactType":"AVRO","globalId":3,"state":"ENABLED","groupId":"my-group","contentId":3,"artifactId":"Item"}}
 ----
 
-. Retrieve the artifact reference from {registry} by specifying the global ID of the artifact that includes the reference. In this example, the specified global ID is `2`:
+. Retrieve the artifact reference from {registry} by specifying the coordinates of the artifact that includes the reference:
 +
 [source,bash]
 ----
-$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3/ids/globalIds/2/references
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/Item/versions/1.0.0/references
 ----
 
 . Verify that the response includes the expected JSON body for this artifact reference. For example:
 +
 [source,bash]
 ----
-[{"groupId":"my-group","artifactId":"ItemId","version":"1","name":"com.example.common.ItemId"}]
+[{"groupId":"my-group","artifactId":"ItemId","version":"1.0.0","name":"com.example.common.ItemId"}]
 ----
 
 **Dereference**
 
-There are some situations where having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v3 supports the _dereference parameter_ in certain operations.
+There are some situations where having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v3 supports the _references parameter_ in certain operations.
 
-This support is currently implemented for Avro and Protobuf when the parameter is present in a particular API operation. The parameter is not supported in any other schema type.
+This support is currently implemented for Avro, JSON Schema, Protobuf, OpenAPI and AsyncAPI when the parameter is present in a particular API operation. The parameter is not supported in other schema types.
+
+. Retrieve the dereferenced (inlined) schema content:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/Item/versions/1.0.0/content?references=DEREFERENCE
+----
+
+. Verify that the response includes the expected JSON body for this artifact content with the references inlined. For example:
++
+[source,bash]
+----
+{"type":"record","name":"Item","namespace":"com.example.common","fields":[{"name":"itemId","type":{"type":"record","name":"ItemId","fields":[{"name":"id","type":"int"}]}}]}
+----
 
 #In Protobuf dereferencing content is only supported when all the schemas in the try belong to the same package.#
 

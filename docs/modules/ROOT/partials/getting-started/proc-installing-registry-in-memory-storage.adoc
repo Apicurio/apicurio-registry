@@ -32,6 +32,8 @@ $ docker pull apicurio/apicurio-registry:VERSION
 $ docker run -it -p 8080:8080 apicurio/apicurio-registry:VERSION
 ----
 
+NOTE: All storage variants of {registry} 3.x now share the same container image of `apicurio/apicurio-registry`.  This is in contrast to the separate container images used by {registry} 2.x.  Choosing a storage variant is now a matter of configuring the single backend/server container image.
+
 . Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:
 +
 [source,bash]

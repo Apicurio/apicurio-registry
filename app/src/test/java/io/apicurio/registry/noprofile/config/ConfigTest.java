@@ -25,6 +25,8 @@ public class ConfigTest extends AbstractResourceTestBase {
     }
 
     private boolean propertyDontMatchPattern(String propertyName) {
-        return propertyName.chars().anyMatch(Character::isUpperCase);
+        boolean hasUpperCase = propertyName.chars().anyMatch(Character::isUpperCase);
+        boolean hasUnderscore = propertyName.chars().anyMatch(c -> c == '_');
+        return hasUpperCase || hasUnderscore;
     }
 }

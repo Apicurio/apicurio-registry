@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
-public class DeploymentITTest extends ITBase {
+public class SmokeITTest extends ITBase {
 
     @Test
     void demoDeployment() {
@@ -23,12 +23,21 @@ public class DeploymentITTest extends ITBase {
         // Act
         client.resources(ApicurioRegistry3.class).inNamespace(getNamespace()).create(registry);
 
-        // Assert
+        // Deployments
         await().ignoreExceptions().until(() -> {
             assertThat(client.apps().deployments().inNamespace(getNamespace()).withName("demo-app-deployment")
                     .get().getStatus().getReadyReplicas()).isEqualTo(1);
             assertThat(client.apps().deployments().inNamespace(getNamespace()).withName("demo-ui-deployment")
                     .get().getStatus().getReadyReplicas()).isEqualTo(1);
+            return true;
+        });
+
+        // Services
+        await().ignoreExceptions().until(() -> {
+            assertThat(client.services().inNamespace(getNamespace()).withName("demo-app-service").get()
+                    .getSpec().getClusterIP()).isNotBlank();
+            assertThat(client.services().inNamespace(getNamespace()).withName("demo-ui-service").get()
+                    .getSpec().getClusterIP()).isNotBlank();
             return true;
         });
     }

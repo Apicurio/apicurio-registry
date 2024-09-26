@@ -4,7 +4,9 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ResourceKey;
 import io.apicurio.registry.operator.resource.app.AppDeploymentDiscriminator;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
+import io.apicurio.registry.operator.resource.app.AppServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
+import io.apicurio.registry.operator.resource.ui.UIServiceResource;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.*;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
@@ -19,10 +21,20 @@ import org.slf4j.LoggerFactory;
                         name = ResourceKey.APP_DEPLOYMENT_ID
                 ),
                 @Dependent(
+                        type = AppServiceResource.class,
+                        name = ResourceKey.APP_SERVICE_ID,
+                        dependsOn = {ResourceKey.APP_DEPLOYMENT_ID}
+                ),
+                @Dependent(
                         type = UIDeploymentResource.class,
                         name = ResourceKey.UI_DEPLOYMENT_ID,
-                        dependsOn = {ResourceKey.APP_DEPLOYMENT_ID}
-                )
+                        dependsOn = {ResourceKey.APP_SERVICE_ID}
+                ),
+                @Dependent(
+                        type = UIServiceResource.class,
+                        name = ResourceKey.UI_SERVICE_ID,
+                        dependsOn = {ResourceKey.UI_DEPLOYMENT_ID}
+                ),
         }
 )
 // spotless:on

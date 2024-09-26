@@ -29,7 +29,7 @@ public class RestConfig {
     Supplier<Boolean> artifactDeletionEnabled;
 
     @Dynamic(label = "Delete artifact version", description = "When selected, users are permitted to delete artifact versions.")
-    @ConfigProperty(name = "apicurio.rest.deletion.artifactVersion.enabled", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.rest.deletion.artifact-version.enabled", defaultValue = "false")
     @Info(category = "rest", description = "Enables artifact version deletion", availableSince = "2.4.2-SNAPSHOT")
     Supplier<Boolean> artifactVersionDeletionEnabled;
 

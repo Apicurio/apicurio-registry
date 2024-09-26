@@ -293,86 +293,86 @@ The following {registry} configuration options are available for each component 
 |
 |`1.2.3.Final`
 |Ignored liveness errors
-|`apicurio.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDuration.seconds`
+|`apicurio.metrics.persistence-exception-liveness-check.counter-reset-window-duration.seconds`
 |`integer`
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of persistence liveness check
-|`apicurio.metrics.PersistenceExceptionLivenessCheck.errorThreshold`
+|`apicurio.metrics.persistence-exception-liveness-check.error-threshold`
 |`integer`
 |`1`
 |`1.0.2.Final`
 |Error threshold of persistence liveness check
-|`apicurio.metrics.PersistenceExceptionLivenessCheck.logging.disabled`
+|`apicurio.metrics.persistence-exception-liveness-check.logging.disabled`
 |`boolean`
 |`false`
 |`2.0.0.Final`
 |Disable logging of persistence liveness check
-|`apicurio.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDuration.seconds`
+|`apicurio.metrics.persistence-exception-liveness-check.status-reset-window-duration.seconds`
 |`integer`
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of persistence liveness check
-|`apicurio.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDuration.seconds`
-|`integer`
-|`60`
-|`1.0.2.Final`
-|Counter reset window duration of persistence readiness check
-|`apicurio.metrics.PersistenceTimeoutReadinessCheck.errorThreshold`
+|`apicurio.metrics.persistence-timeout-readiness-check.error-threshold`
 |`integer`
 |`5`
 |`1.0.2.Final`
 |Error threshold of persistence readiness check
-|`apicurio.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDuration.seconds`
-|`integer`
-|`300`
-|`1.0.2.Final`
-|Status reset window duration of persistence readiness check
-|`apicurio.metrics.PersistenceTimeoutReadinessCheck.timeout.seconds`
+|`apicurio.metrics.persistence-timeout-readiness-check.timeout.seconds`
 |`integer`
 |`15`
 |`1.0.2.Final`
 |Timeout of persistence readiness check
-|`apicurio.metrics.ResponseErrorLivenessCheck.counterResetWindowDuration.seconds`
+|`apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of persistence readiness check
+|`apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds`
 |`integer`
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of response liveness check
-|`apicurio.metrics.ResponseErrorLivenessCheck.errorThreshold`
+|`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
 |`integer`
-|`1`
+|`60`
 |`1.0.2.Final`
-|Error threshold of response liveness check
-|`apicurio.metrics.ResponseErrorLivenessCheck.logging.disabled`
+|Counter reset window duration of persistence readiness check
+|`apicurio.metrics.response-error-liveness-check.disabled`
 |`boolean`
 |`false`
 |`2.0.0.Final`
 |Disable logging of response liveness check
-|`apicurio.metrics.ResponseErrorLivenessCheck.statusResetWindowDuration.seconds`
+|`apicurio.metrics.response-error-liveness-check.error-threshold`
+|`integer`
+|`1`
+|`1.0.2.Final`
+|Error threshold of response liveness check
+|`apicurio.metrics.response-error-liveness-check.status-reset-window-duration.seconds`
 |`integer`
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of response liveness check
-|`apicurio.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDuration.seconds`
+|`apicurio.metrics.response-timeout-readiness-check.counter-reset-window-duration.seconds`
 |`instance<integer>`
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of response readiness check
-|`apicurio.metrics.ResponseTimeoutReadinessCheck.errorThreshold`
+|`apicurio.metrics.response-timeout-readiness-check.error-threshold`
 |`instance<integer>`
 |`1`
 |`1.0.2.Final`
 |Error threshold of response readiness check
-|`apicurio.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDuration.seconds`
-|`instance<integer>`
-|`300`
-|`1.0.2.Final`
-|Status reset window duration of response readiness check
-|`apicurio.metrics.ResponseTimeoutReadinessCheck.timeout.seconds`
+|`apicurio.metrics.response-timeout-readiness-check.timeout.seconds`
 |`instance<integer>`
 |`10`
 |`1.0.2.Final`
 |Timeout of response readiness check
+|`apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds`
+|`instance<integer>`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of response readiness check
 |`apicurio.storage.metrics.cache.check-period.ms`
 |`long`
 |`30000`
@@ -409,7 +409,7 @@ The following {registry} configuration options are available for each component 
 |
 |`2.1.0.Final`
 |The import URL
-|`apicurio.import.workDir`
+|`apicurio.import.work-dir`
 |`string`
 |
 |`3.0.0`
@@ -532,12 +532,12 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.rest.artifact.download.maxSize.bytes`
+|`apicurio.rest.artifact.download.max-size.bytes`
 |`int`
 |`1000000`
 |`2.2.6-SNAPSHOT`
 |Max size of the artifact allowed to be downloaded from URL
-|`apicurio.rest.artifact.download.sslValidation.disabled`
+|`apicurio.rest.artifact.download.ssl-validation.disabled`
 |`boolean`
 |`false`
 |`2.2.6-SNAPSHOT`

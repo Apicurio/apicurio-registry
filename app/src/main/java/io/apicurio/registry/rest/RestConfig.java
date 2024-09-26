@@ -10,11 +10,11 @@ import java.util.function.Supplier;
 @Singleton
 public class RestConfig {
 
-    @ConfigProperty(name = "apicurio.rest.artifact.download.maxSize.bytes", defaultValue = "1000000")
+    @ConfigProperty(name = "apicurio.rest.artifact.download.max-size.bytes", defaultValue = "1000000")
     @Info(category = "rest", description = "Max size of the artifact allowed to be downloaded from URL", availableSince = "2.2.6-SNAPSHOT")
     int downloadMaxSize;
 
-    @ConfigProperty(name = "apicurio.rest.artifact.download.sslValidation.disabled", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.rest.artifact.download.ssl-validation.disabled", defaultValue = "false")
     @Info(category = "rest", description = "Skip SSL validation when downloading artifacts from URL", availableSince = "2.2.6-SNAPSHOT")
     boolean downloadSkipSSLValidation;
 

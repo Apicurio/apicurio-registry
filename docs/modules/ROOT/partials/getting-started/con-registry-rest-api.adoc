@@ -7,7 +7,7 @@
 Client applications can use the Core Registry API v3 to manage the schema and API artifacts in {registry}. This API provides operations for the following features:
 
 Admin::
-Export or import {registry} data in a `.zip` file, and manage logging levels for the {registry} instance at runtime.
+Export or import {registry} data in a `.zip` file, and manage logging levels for the {registry} at runtime.
 Groups::
 Manage groups of artifacts in {registry}.  You can create groups to better organize your artifacts.
 Group Rules::
@@ -25,7 +25,7 @@ Configure rules to govern the content evolution of all schema and API artifacts 
 Search::
 Browse or search for schema and API artifacts and versions, for example, by name, group, description, or label.
 System::
-Get the {registry} version and the limits on resources for the {registry} instance.
+Get the {registry} version and the limits on resources for the {registry} server.
 Users::
 Get the current {registry} user.
 
@@ -44,4 +44,4 @@ endif::[]
 [role="_additional-resources"]
 .Additional resources
 * For more information on the Core Registry API v3, see the {registry-rest-api}.
-* For API documentation on the Core Registry API v3 and all compatible APIs, browse to the `/apis` endpoint of your {registry} instance, for example, `\http://MY-REGISTRY-URL/apis`.
+* For API documentation on the Core Registry API v3 and all compatible APIs, browse to the `/apis` endpoint of your {registry}, for example, `\http://MY-REGISTRY-URL/apis`.

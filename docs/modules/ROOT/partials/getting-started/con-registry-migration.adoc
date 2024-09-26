@@ -43,4 +43,4 @@ endif::[]
 
 [role="_additional-resources"]
 .Additional resources
-* For more details on the v2 REST API, see the link:{attachmentsdir}/registry-rest-api.htm[Registry REST API documentation].
+* For more details on the v3 REST API, see the link:{attachmentsdir}/registry-rest-api.htm[Registry REST API documentation].

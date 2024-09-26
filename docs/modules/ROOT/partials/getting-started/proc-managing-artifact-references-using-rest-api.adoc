@@ -15,7 +15,7 @@ The following artifact types support artifact references:
 * OpenAPI
 * AsyncAPI
 
-This section shows a simple curl-based example of using the Core Registry API v2 to add and retrieve an artifact reference to a simple Avro schema artifact in {registry}. 
+This section shows a simple curl-based example of using the Core Registry API v3 to add and retrieve an artifact reference to a simple Avro schema artifact in {registry}.
 
 This example first creates a schema artifact named `ItemId`:
 
@@ -55,21 +55,9 @@ This example then creates a schema artifact named `Item`, which includes a refer
 
 .Prerequisites
 
-ifdef::apicurio-registry,rh-service-registry[]
 * {registry} is installed and running in your environment.
-endif::[]
-ifdef::rh-openshift-sr[]
-* You have a service account with the correct access permissions for {registry} instances.
-* You have created an access token using your service account credentials. 
-* You have logged in to the {registry-url}[{registry} web console]. 
-endif::[]
 
 .Procedure
-ifdef::rh-openshift-sr[]
-. In the {registry} web console, for the {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
-. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this API endpoint to connect to the {registry} instance. 
-endif::[]
-
 . Add the `ItemId` schema artifact that you want to create the nested artifact reference to using the `/groups/\{group\}/artifacts` operation:
 +
 [source,bash]
@@ -89,10 +77,7 @@ endif::[]
 ifdef::rh-service-registry[]
 host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
 endif::[]
-ifdef::rh-openshift-sr[]
-Core Registry API endpoint that you copied to connect to this {registry} instance. For example: `\https://service-registry.apps.app-sre-0.k3s7.p1.openshiftapps.com/t/f301375a-18a7-426c-bbd8-8e626a0a1d0e`. 
-endif::[]
-* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path. 
+* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path.
 
 . Verify that the response includes the expected JSON body to confirm that the artifact was added. For example:
 +
@@ -148,7 +133,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3
 
 **Dereference**
 
-There are some situations where having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v2 supports the _dereference parameter_ in certain operations.
+There are some situations where having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v3 supports the _dereference parameter_ in certain operations.
 
 This support is currently implemented for Avro and Protobuf when the parameter is present in a particular API operation. The parameter is not supported in any other schema type.
 

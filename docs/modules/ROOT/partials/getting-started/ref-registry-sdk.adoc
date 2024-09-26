@@ -14,7 +14,7 @@ The {registry} Java client includes the following configuration options, based o
 |Description
 |Arguments
 |Plain client
-|Basic REST client used to interact with a running {registry} instance.
+|Basic REST client used to interact with a running {registry}.
 |`baseUrl`
 |Client with custom configuration
 |{registry} client using the configuration provided by the user. 
@@ -22,9 +22,6 @@ The {registry} Java client includes the following configuration options, based o
 |Client with custom configuration and authentication
 |{registry} client that accepts a map containing custom configuration. For example, this is useful to add custom headers to the calls. 
 You must also provide an authentication server to authenticate the requests. 
-ifdef::rh-openshift-sr[]
-The {org-name} Single Sign-On authentication server is `{sso-token-url}`.
-endif::[]
 |`baseUrl, Map<String Object> configs, Auth auth`
 |===
 

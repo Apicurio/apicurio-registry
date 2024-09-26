@@ -5,14 +5,14 @@
 = Installing {registry} with in-memory storage
 
 [role="_abstract"]
-This section explains how to install and run {registry} with simple in-memory storage from a container image. 
+This section explains how to install and run {registry} with simple in-memory storage from a container image.
 
-NOTE: The in-memory storage option is suitable for development only. All data is lost when the container image is restarted.  
+NOTE: The in-memory storage option is suitable for development only. All data is lost when the container image is restarted.
 
 .Prerequisites
 
 * You must have Docker installed and the Docker daemon running.
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-mem.
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
 
 .Procedure
 
@@ -20,16 +20,16 @@ NOTE: The in-memory storage option is suitable for development only. All data is
 +
 [source,bash]
 ----
-$ docker pull apicurio/apicurio-registry-mem:VERSION
+$ docker pull apicurio/apicurio-registry:VERSION
 ----
 + 
-`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry-mem/tags.
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry/tags.
 
 . Run the container image: 
 +
 [source,bash]
 ----
-$ docker run -it -p 8080:8080 apicurio/apicurio-registry-mem:VERSION
+$ docker run -it -p 8080:8080 apicurio/apicurio-registry:VERSION
 ----
 
 . Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:

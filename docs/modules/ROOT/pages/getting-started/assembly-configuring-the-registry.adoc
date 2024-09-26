@@ -10,7 +10,6 @@ This chapter explains how to set important configuration options for your {regis
 ifdef::apicurio-registry[]
 * xref:configuring-registry-ui_{context}[]
 endif::[]
-* xref:registry-logging_{context}[]
 * xref:configuring-liveness-readiness-probes_{context}[]
 * xref:registry-liveness-env-vars_{context}[]
 
@@ -20,6 +19,5 @@ NOTE: For a list of all available configuration options, see {registry-config-re
 ifdef::apicurio-registry[]
 include::{mod-loc}getting-started/proc-configuring-registry-ui.adoc[leveloffset=+1]
 endif::[]
-include::{mod-loc}getting-started/proc-configuring-registry-logging.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/proc-configuring-liveness-readiness-probes.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/ref-registry-liveness-env-vars.adoc[leveloffset=+1]

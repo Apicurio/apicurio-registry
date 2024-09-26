@@ -74,7 +74,7 @@ endif::[]
 :attachmentsdir: files
 :registry-ocp-version: 4.14
 :registry-db-version: 15
-:registry-url: \http://MY_REGISTRY_URL/ui
+:registry-url: \http://MY_REGISTRY_UI_URL/
 
 //integration products
 :amq-version: 2.5

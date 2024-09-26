@@ -5,32 +5,20 @@
 = Exporting and importing registry data using {registry} REST API commands
 
 [role="_abstract"]
-As an administrator, you can use the Core Registry API v2 to export data from one {registry} instance and import into another {registry} instance, so you can migrate data between different instances.
+As an administrator, you can use the Core Registry API v3 to export data from one {registry} instance and import into another {registry} instance, so you can migrate data between different instances.
 
-This section shows a simple curl-based example of using the Core Registry API v2 to export and import existing data in `.zip` format from one {registry} instance to another. All of the artifact data contained in the {registry} instance is exported in the `.zip` file.
+This section shows a simple curl-based example of using the Core Registry API v3 to export and import existing data in `.zip` format from one {registry} instance to another. All the artifact data contained in the {registry} instance is exported in the `.zip` file.
 
 NOTE: You can import only {registry} data that has been exported from another {registry} instance.
 
 .Prerequisites
 
-ifdef::apicurio-registry,rh-service-registry[]
 * {registry} is installed and running in your environment.
-endif::[]
 * {registry} instances have been created:
 ** The source instance that you want to export data from contains at least one schema or API artifact.
 ** The target instance that you want to import data into is empty to preserve unique IDs.
-ifdef::rh-openshift-sr[]
-* You have a service account with administrator access to the {registry} instances.
-* You have created an access token using your service account credentials.
-* You have logged in to the {registry-url}[{registry} web console]. 
-endif::[]
 
 .Procedure
-ifdef::rh-openshift-sr[]
-. In the {registry} web console, for the {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
-. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this API endpoint to connect to the {registry} instance. 
-endif::[]
-
 . Export the {registry} data from your existing source {registry} instance:
 +
 [source,bash]
@@ -46,9 +34,6 @@ host name on which the source {registry} is deployed. For example: `\http://my-s
 endif::[]
 ifdef::rh-service-registry[]
 host name on which the source {registry} is deployed. For example: `my-cluster-source-registry-myproject.example.com`.
-endif::[]
-ifdef::rh-openshift-sr[]
-Core Registry API endpoint that you copied to connect to this {registry} instance. For example: `\https://service-registry-source.apps.app-sre-0.k3s7.p1.openshiftapps.com/t/f301375a-18a7-426c-bbd8-8e626a0a1d0e`.
 endif::[]
 
 . Import the registry data into your target {registry} instance:
@@ -67,14 +52,9 @@ endif::[]
 ifdef::rh-service-registry[]
 host name on which the target {registry} is deployed. For example: `my-cluster-target-registry-myproject.example.com`.
 endif::[]
-ifdef::rh-openshift-sr[]
-Core Registry API endpoint that you copied to connect to this {registry} instance. For example: `\https://service-registry-target.apps.app-sre-0.k3s7.p1.openshiftapps.com/t/f301375a-18a7-426c-bbd8-8e626a0a1d0e`.
-endif::[]
 
 
 [role="_additional-resources"]
 .Additional resources
 * For more details, see the `admin` endpoint in the {registry-rest-api}.
-ifdef::apicurio-registry,rh-service-registry[]
 * For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportV1[Apicurio Registry export utility for 1.x versions].
-endif::[]

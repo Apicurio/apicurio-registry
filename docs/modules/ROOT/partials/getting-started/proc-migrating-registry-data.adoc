@@ -12,7 +12,7 @@ Both {registry} 3.x and 2.x provide an API to bulk import/export all data from y
 The {registry} 3.x import feature is able to import `.zip` contents created from either a 2.x or 3.x deployment.
 
 .Prerequisites 
-* Running {registry} instances of the 2.x server you are exporting from and the 3.x server you are importing into.
+* Running a {registry} instance of the 2.x server you are exporting from and the 3.x instance you are importing into.
 
 .Procedure
 

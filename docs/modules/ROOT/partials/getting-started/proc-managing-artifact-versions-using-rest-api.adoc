@@ -5,28 +5,17 @@
 = Managing schema and API artifact versions using {registry} REST API commands
 
 [role="_abstract"]
-If you do not specify an artifact version when adding schema and API artifacts using the Core Registry API v2, {registry} generates a version automatically. The default version when creating a new artifact  is `1`.
+If you do not specify an artifact version when adding schema and API artifacts using the Core Registry API v3, {registry} generates a version automatically. The default version when creating a new artifact  is `1`.
 
 {registry} also supports custom versioning where you can specify a version using the `X-Registry-Version` HTTP request header as a string. Specifying a custom version value overrides the default version normally assigned when creating or updating an artifact. You can then use this version value when executing REST API operations that require a version.  
 
-This section shows a simple curl-based example of using the Core Registry API v2 to add and retrieve a custom Apache Avro schema version in {registry}. You can specify custom versions to add or update artifacts, or to add artifact versions.
+This section shows a simple curl-based example of using the Core Registry API v3 to add and retrieve a custom Apache Avro schema version in {registry}. You can specify custom versions to add or update artifacts, or to add artifact versions.
 
 .Prerequisites
 
-ifdef::apicurio-registry,rh-service-registry[]
 * {registry} is installed and running in your environment.
-endif::[]
-ifdef::rh-openshift-sr[]
-* You have a service account with the correct access permissions for {registry} instances.
-* You have created an access token using your service account credentials. 
-* You have logged in to the {registry-url}[{registry} web console]. 
-endif::[]
 
 .Procedure
-ifdef::rh-openshift-sr[]
-. In the {registry} web console, for the {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
-. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this API endpoint to connect to the {registry} instance. 
-endif::[]
 
 . Add an artifact version in the registry using the `/groups/\{group\}/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
 +
@@ -48,10 +37,7 @@ endif::[]
 ifdef::rh-service-registry[]
 host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
 endif::[]
-ifdef::rh-openshift-sr[]
-Core Registry API endpoint that you copied to connect to this {registry} instance. For example: `\https://service-registry.apps.app-sre-0.k3s7.p1.openshiftapps.com/t/f301375a-18a7-426c-bbd8-8e626a0a1d0e`. 
-endif::[]
-* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path. 
+* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path.
 
 . Verify that the response includes the expected JSON body to confirm that the custom artifact version was added. For example:
 +

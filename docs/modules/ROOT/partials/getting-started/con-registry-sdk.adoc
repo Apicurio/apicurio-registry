@@ -15,20 +15,10 @@ You can use any of the following SDKs provided as part of {registry}:
 
 === Java
 You can access the {registry} Java SDK by adding the correct dependency to your Apache Maven project.
-ifdef::apicurio-registry,rh-service-registry[]
 For more details, see xref:writing-registry-sdk_registry[].
-endif::[]
-ifdef::rh-openshift-sr[]
-For more details, see xref:writing-registry-sdk_java-client[Writing {registry} Java client applications].
-endif::[]
 
 The {registry} client is implemented by using the HTTP client provided by the JDK, which you can customize as needed. For example, you can add custom headers or enable configuration options for Transport Layer Security (TLS) authentication. 
-ifdef::apicurio-registry,rh-service-registry[]
 For more details, see xref:registry-sdk-config_registry[].
-endif::[]
-ifdef::rh-openshift-sr[]
-For more details, see xref:registry-sdk-config_java-client[{registry} Java client configuration].
-endif::[]
 
 === Typescript
 You can access the {registry} Typescript SDK by adding the correct dependency to your application's `package.json`

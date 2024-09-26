@@ -110,12 +110,7 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
 +
 <1> Specify `register` as the execution goal to upload the schema artifacts to {registry}.
 <2> Specify the {registry} URL by using the `../apis/registry/v3` endpoint.
-ifdef::apicurio-registry,rh-service-registry[]
 <3> If authentication is required, you can specify your authentication server and client credentials.
-endif::[]
-ifdef::rh-openshift-sr[]
-<3> Specify your service account ID and secret and the {org-name} Single Sign-On authentication server: `{sso-token-url}`
-endif::[]
 <4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
 <5> Specify the {registry} artifact reference using its group ID, artifact ID, version, type, and location. You can register multiple artifact references in this way.
 

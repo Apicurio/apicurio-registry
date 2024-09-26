@@ -10,13 +10,8 @@ You can write a client application to manage artifacts stored in {registry} by u
 == Using the {registry} Java SDK
 
 .Prerequisites
-ifdef::apicurio-registry,rh-service-registry[]
 * {registry} is installed and running in your environment.
-endif::[]
 * You have created a Maven project for your Java client application. For more details, see https://maven.apache.org/index.html[Apache Maven].
-ifdef::rh-openshift-sr[]
-* You have a service account with the correct access permissions for {registry} instances.
-endif::[]
 
 .Procedure
 . Add the following dependency to your Maven project:

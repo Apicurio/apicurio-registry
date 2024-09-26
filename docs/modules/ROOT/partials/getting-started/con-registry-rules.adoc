@@ -33,9 +33,7 @@ The order of precedence for artifact-specific and global rules is as follows:
 * Group-specific rules have the next highest priority
 * Global rules have the lowest priority
 
-Note: if a rule is configured at a higher level (e.g. at the global level), but you want that rule to be disabled at a lower
-level, you must configure the same rule (so that it overrides it) at the lower level and set its rules value to
-`NONE`.
+NOTE: If a rule is configured at a higher level (e.g. at the global level), but you want that rule to be disabled at a lower level, you must configure the same rule (so that it overrides it) at the lower level and set its rules value to `NONE`.
 
 [id="registry-rules-work_{context}"]
 == How rules work
@@ -47,7 +45,6 @@ When a rule is executed, it is provided with the content of the current version 
 .Additional resources
 For more details, see {registry-rule-reference}.
 
-ifdef::apicurio-registry,rh-service-registry[]
 [id="registry-rules-config_{context}"]
 == Content rule configuration
 Administrators can configure {registry} global rules, group-specific rules, and artifact-specific rules. Developers can configure group-specific and artifact-specific rules only.
@@ -87,4 +84,3 @@ configured.
 NOTE: You can configure these application properties as Java system properties or include them in the Quarkus
 `application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
 
-endif::[]

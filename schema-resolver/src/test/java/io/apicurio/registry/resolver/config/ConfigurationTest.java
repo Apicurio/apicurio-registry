@@ -46,19 +46,19 @@ class ConfigurationTest {
         }
 
         assertEquals(null, config.getAuthClientId());
-        assertEquals(null, config.getObject("apicurio.auth.client.id"));
+        assertEquals(null, config.getObject("apicurio.registry.auth.client.id"));
 
         assertEquals(null, config.getAuthClientSecret());
-        assertEquals(null, config.getObject("apicurio.auth.client.secret"));
+        assertEquals(null, config.getObject("apicurio.registry.auth.client.secret"));
 
         assertEquals(null, config.getAuthClientScope());
-        assertEquals(null, config.getObject("apicurio.auth.client.scope"));
+        assertEquals(null, config.getObject("apicurio.registry.auth.client.scope"));
 
         assertEquals(null, config.getAuthPassword());
-        assertEquals(null, config.getObject("apicurio.auth.password"));
+        assertEquals(null, config.getObject("apicurio.registry.auth.password"));
 
         assertEquals(null, config.getAuthUsername());
-        assertEquals(null, config.getObject("apicurio.auth.username"));
+        assertEquals(null, config.getObject("apicurio.registry.auth.username"));
 
         assertEquals(null, config.getExplicitArtifactGroupId());
         assertEquals(null, config.getObject("apicurio.registry.artifact.group-id"));
@@ -73,8 +73,8 @@ class ConfigurationTest {
         assertEquals(null, config.getObject("apicurio.registry.url"));
 
         assertEquals(null, config.getTokenEndpoint());
-        assertEquals(null, config.getObject("apicurio.auth.service.token.endpoint"));
-        originals.put("apicurio.auth.service.token.endpoint", "foo");
+        assertEquals(null, config.getObject("apicurio.registry.auth.service.token.endpoint"));
+        originals.put("apicurio.registry.auth.service.token.endpoint", "foo");
         config = new SchemaResolverConfig(originals);
         assertEquals("foo", config.getTokenEndpoint());
 

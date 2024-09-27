@@ -115,32 +115,32 @@ public class SchemaResolverConfig extends AbstractConfig {
     /**
      * The URL of the Token Endpoint.
      */
-    public static final String AUTH_TOKEN_ENDPOINT = "apicurio.auth.service.token.endpoint";
+    public static final String AUTH_TOKEN_ENDPOINT = "apicurio.registry.auth.service.token.endpoint";
 
     /**
      * The Client Id of the Auth Service.
      */
-    public static final String AUTH_CLIENT_ID = "apicurio.auth.client.id";
+    public static final String AUTH_CLIENT_ID = "apicurio.registry.auth.client.id";
 
     /**
      * The Secret of the Auth Service.
      */
-    public static final String AUTH_CLIENT_SECRET = "apicurio.auth.client.secret";
+    public static final String AUTH_CLIENT_SECRET = "apicurio.registry.auth.client.secret";
 
     /**
      * The Scope of the Auth Service.
      */
-    public static final String AUTH_CLIENT_SCOPE = "apicurio.auth.client.scope";
+    public static final String AUTH_CLIENT_SCOPE = "apicurio.registry.auth.client.scope";
 
     /**
      * The Username of the Auth Service.
      */
-    public static final String AUTH_USERNAME = "apicurio.auth.username";
+    public static final String AUTH_USERNAME = "apicurio.registry.auth.username";
 
     /**
      * The Password of the Auth Service.
      */
-    public static final String AUTH_PASSWORD = "apicurio.auth.password";
+    public static final String AUTH_PASSWORD = "apicurio.registry.auth.password";
 
     /**
      * Indicates how long to cache artifacts before auto-eviction. If not included, the artifact will be

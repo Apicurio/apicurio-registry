@@ -82,6 +82,8 @@ jobs:
           npm version $UI_VERSION --allow-same-version
           cd ../tests
           npm version $UI_VERSION --allow-same-version
+          cd ../../typescript-sdk
+          npm version $UI_VERSION --allow-same-version
 
       - name: Build Registry (All Variants)
         run: |
@@ -157,6 +159,8 @@ jobs:
           cd ../ui-docs
           npm version $UI_VERSION --allow-same-version
           cd ../tests
+          npm version $UI_VERSION --allow-same-version
+          cd ../../typescript-sdk
           npm version $UI_VERSION --allow-same-version
 
       - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}

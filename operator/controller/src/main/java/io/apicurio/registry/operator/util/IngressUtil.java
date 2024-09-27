@@ -38,9 +38,9 @@ public class IngressUtil {
         }
         if (host == null) {
             var defaultBaseHost = ConfigProvider.getConfig()
-                    .getOptionalValue("apicurio.operator.default-base-host", String.class)
-                    .orElse("cluster.example");
-            host = "%s-%s.%s.%s".formatted(p.getMetadata().getName(), component,
+                    .getOptionalValue("apicurio.operator.default-base-host", String.class).map(v -> "." + v)
+                    .orElse("");
+            host = "%s-%s.%s%s".formatted(p.getMetadata().getName(), component,
                     p.getMetadata().getNamespace(), defaultBaseHost);
         }
         log.debug("Host for component {} is {}", component, host);

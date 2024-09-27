@@ -4,12 +4,16 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 public class SmokeITTest extends ITBase {
+
+    private static final Logger log = LoggerFactory.getLogger(SmokeITTest.class);
 
     @Test
     void demoDeployment() {
@@ -38,6 +42,17 @@ public class SmokeITTest extends ITBase {
                     .getSpec().getClusterIP()).isNotBlank();
             assertThat(client.services().inNamespace(getNamespace()).withName("demo-ui-service").get()
                     .getSpec().getClusterIP()).isNotBlank();
+            return true;
+        });
+
+        // Ingresses
+        await().ignoreExceptions().until(() -> {
+            assertThat(client.network().v1().ingresses().inNamespace(getNamespace())
+                    .withName("demo-app-ingress").get().getSpec().getRules().get(0).getHost())
+                    .startsWith("demo-app.");
+            assertThat(client.network().v1().ingresses().inNamespace(getNamespace())
+                    .withName("demo-ui-ingress").get().getSpec().getRules().get(0).getHost())
+                    .startsWith("demo-ui.");
             return true;
         });
     }

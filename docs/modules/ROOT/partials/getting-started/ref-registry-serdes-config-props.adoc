@@ -59,27 +59,27 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 |`String`
 |None
 |`AUTH_TOKEN_ENDPOINT`
-|`apicurio.auth.service.token.endpoint`
+|`apicurio.registry.auth.service.token.endpoint`
 |Used by serializers and deserializers. URL of the token endpoint.
 |`String`
 |None
 |`AUTH_CLIENT_ID`
-|`apicurio.auth.client.id`
+|`apicurio.registry.auth.client.id`
 |Used by serializers and deserializers. Client ID to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
 |`String`
 |None
 |`AUTH_CLIENT_SECRET`
-|`apicurio.auth.client.secret`
+|`apicurio.registry.auth.client.secret`
 |Used by serializers and deserializers. Client secret to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
 |`String`
 |None
 |`AUTH_USERNAME`
-|`apicurio.auth.username`
+|`apicurio.registry.auth.username`
 |Used by serializers and deserializers. Username to access the registry. Required when accessing a secure registry using HTTP basic authentication.
 |`String`
 |None
 |`AUTH_PASSWORD`
-|`apicurio.auth.password`
+|`apicurio.registy.auth.password`
 |Used by serializers and deserializers. Password to access the registry. Required when accessing a secure registry using HTTP basic authentication.
 |`String`
 |None

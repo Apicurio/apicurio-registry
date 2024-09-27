@@ -90,26 +90,3 @@ endif::[]
 <3> Specify the {registry} artifact group ID.
 <4> You can upload multiple artifacts using the specified group ID, artifact ID, and location.
 
-[discrete]
-== Configuration using a producer client example
-
-[source,java,subs="+quotes,attributes"]
-----
-String registryUrl_node1 = PropertiesUtil.property(clientProperties, "apicurio.url.node1",
-    "https://my-cluster-service-registry-myproject.example.com/apis/registry/v3"); <1>
-try (RegistryService service = RegistryClient.create(registryUrl_node1)) {
-    String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";
-    try {
-        service.getArtifactMetaData(artifactId); <2>
-    } catch (WebApplicationException e) {
-        CompletionStage <ArtifactMetaData> csa = service.createArtifact(
-            "AVRO",
-            artifactId,
-            new ByteArrayInputStream(LogInput.SCHEMA$.toString().getBytes())
-        );
-        csa.toCompletableFuture().get();
-    }
-}
-----
-<1> You can register properties against more than one URL node.
-<2> Check to see if the schema already exists based on the artifact ID.

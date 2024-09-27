@@ -187,7 +187,7 @@ services:
 ## Security
 
 You can enable authentication for both the application REST APIs and the user interface using a server based
-on OpenID Connect (OIDC). The same server realm and users are federated across the user interface and the
+on OpenID Connect (OIDC). The same server and users are federated across the user interface and the
 REST APIs using Open ID Connect so that you only require one set of credentials.
 
 In order no enable this integration, you will need to set the following environment variables.
@@ -196,10 +196,9 @@ In order no enable this integration, you will need to set the following environm
 
 |Option|Env. variable|
 |---|---|
-|`AUTH_ENABLED`|Set to `true` to enable (default is `false`)|
-|`KEYCLOAK_URL`|OIDC Server URL|
-|`KEYCLOAK_REALM`|OIDC Security realm|
-|`KEYCLOAK_API_CLIENT_ID`|The client for the API|
+|`QUARKUS_OIDC_TENANT_ENABLED`|Set to `true` to enable (default is `false`)|
+|`QUARKUS_OIDC_AUTH_SERVER_URL`|OIDC Server URL|
+|`QUARKUS_OIDC_CLIENT_ID`|The client for the API|
 
 ### User Interface Environment Variables
 
@@ -210,8 +209,7 @@ In order no enable this integration, you will need to set the following environm
 |`APICURIO_AUTH_REDIRECT_URL`|OIDC redirect URL|
 |`APICURIO_AUTH_CLIENT_ID`|The client for the UI|
 
-Note that you will need to have everything configured in your OIDC provider, before starting the application
-(the realm and the two clients).
+Note that you will need to have everything configured in your OIDC provider, before starting the application.
 
 Please note that Registry supports a wide range of authentication and authorization options.
 These options are too extensive to document in this README.  Consider the above to be just a starting point.

@@ -30,25 +30,21 @@ services:
       POSTGRES_PASSWORD: password
 
   backend:
-    image: quay.io/apicurio/apicurio-registry@sha256:3cf8b1a8b67ef1efff872556f642751f432eec8d1b704d45adececeff86a3222
+    image: quay.io/apicurio/apicurio-registry:latest-release
     environment:
-      REGISTRY_DATASOURCE_URL: 'jdbc:postgresql://database-apicurio:5432/apicurio-registry'
-      REGISTRY_DATASOURCE_USERNAME: apicurio-registry
-      REGISTRY_DATASOURCE_PASSWORD: password
-      REGISTRY_STORAGE_KIND: "sql"
-      REGISTRY_STORAGE_DB_KIND: "postgresql"
-      AUTH_ENABLED: "true"
-      KEYCLOAK_REALM: registry
+      APICURIO_DATASOURCE_URL: 'jdbc:postgresql://database-apicurio:5432/apicurio-registry'
+      APICURIO_DATASOURCE_USERNAME: apicurio-registry
+      APICURIO_DATASOURCE_PASSWORD: password
+      APICURIO_STORAGE_KIND: "sql"
+      APICURIO_STORAGE_SQL_KIND: "postgresql"
+      QUARKUS_OIDC_TENANT_ENABLED: "true"
       QUARKUS_HTTP_PORT: 8081
-      KEYCLOAK_URL: "http://localhost:8080"
       LOG_LEVEL: "DEBUG"
-      REGISTRY_UI_CONFIG_AUTH_KEYCLOAK_URL: "http://localhost:8080"
       QUARKUS_OIDC_AUTH_SERVER_URL: "http://keycloak-server:8080/realms/registry"
-      TOKEN_ENDPOINT: "http://keycloak-server:8080/realms/registry/protocol/openid-connect/token"
-      KEYCLOAK_API_CLIENT_ID: registry-api
-      REGISTRY_UI_AUTH_OIDC_CLIENTID: apicurio-registry
+      QUARKUS_OIDC_CLIENT_ID: registry-api
+      APICURIO_UI_AUTH_OIDC_CLIENT_ID: apicurio-registry
       QUARKUS_OIDC_TLS_VERIFICATION: "none"
-      CORS_ALLOWED_ORIGINS: '*'
+      QUARKUS_HTTP_CORS_ORIGINS: '*'
       QUARKUS_PROFILE: "prod"
     ports:
       - 8081:8081
@@ -57,7 +53,7 @@ services:
       - keycloak-server
 
   ui:
-    image: quay.io/apicurio/apicurio-registry-ui@sha256:ec60369e36cafd68e7af6f87df397c54975bbb71530744810822cf4aab2159d9
+    image: quay.io/apicurio/apicurio-registry-ui:latest-release
     environment:
       REGISTRY_API_URL: "http://localhost:8081/apis/registry/v3"
     ports:

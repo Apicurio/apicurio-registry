@@ -69,23 +69,19 @@ You can use the defaults for the other client settings.
 |Description
 |Type
 |Default
-|`AUTH_ENABLED`
+|`QUARKUS_OIDC_TENANT_ENABLED`
 |Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication using {keycloak}.
 |String
 |`false`
-|`KEYCLOAK_URL`
+|`QUARKUS_OIDC_AUTH_SERVER_URL`
 |The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
 |String
 |-
-|`KEYCLOAK_REALM`
-|The {keycloak} realm for authentication. For example, `registry.`
-|String
-|-
-|`KEYCLOAK_API_CLIENT_ID`
+|`QUARKUS_OIDC_CLIENT_ID`
 |The client ID for the {registry} REST API.
 |String
 |`registry-api`
-|`KEYCLOAK_UI_CLIENT_ID`
+|`APICURIO_UI_AUTH_OIDC_CLIENT_ID`
 |The client ID for the {registry} web console.
 |String
 |`apicurio-registry`

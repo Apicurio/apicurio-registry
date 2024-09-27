@@ -13,6 +13,9 @@ import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_U
 
 public class LabelDiscriminators {
 
+    private LabelDiscriminators() {
+    }
+
     public static class AppDeploymentDiscriminator extends LabelDiscriminator<Deployment> {
 
         public static final ResourceDiscriminator<Deployment, ApicurioRegistry3> INSTANCE = new AppDeploymentDiscriminator();

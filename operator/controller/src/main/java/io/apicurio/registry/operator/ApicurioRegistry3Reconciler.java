@@ -19,7 +19,7 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
 // spotless:off
 @ControllerConfiguration(
         dependents = {
-                //App
+                // App
                 @Dependent(
                         type = AppDeploymentResource.class,
                         name = APP_DEPLOYMENT_ID
@@ -38,7 +38,7 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                 @Dependent(
                         type = UIDeploymentResource.class,
                         name = UI_DEPLOYMENT_ID,
-                        dependsOn = {APP_SERVICE_ID}
+                        dependsOn = {APP_INGRESS_ID}
                 ),
                 @Dependent(
                         type = UIServiceResource.class,

@@ -1,7 +1,6 @@
 package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.resource.LabelDiscriminators;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
@@ -65,8 +64,8 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
         log.info("Reconciling Apicurio Registry: {}", primary);
         var statusUpdater = new StatusUpdater(primary);
 
-        return context.getSecondaryResource(Deployment.class,
-                AppDeploymentDiscriminator.INSTANCE).map(deployment -> {
+        return context.getSecondaryResource(Deployment.class, AppDeploymentDiscriminator.INSTANCE)
+                .map(deployment -> {
                     log.info("Updating Apicurio Registry status:");
                     primary.setStatus(statusUpdater.next(deployment));
                     return UpdateControl.patchStatus(primary);

@@ -14,7 +14,7 @@ This chapter explains how to install and run {registry} using Docker with the fo
 .Prerequisites
 * {registry-overview}
 
-NOTE: You can install more than one instance of {registry} depending on your environment. The number of instances depends on your storage option, for example, your Kafka or database cluster configuration, and on the number and type of artifacts stored in {registry}.
+NOTE: You can install more than one replica of {registry} depending on your environment. The number of replicas depends on your storage option, for example, your Kafka or database cluster configuration, and on the number and type of artifacts stored in {registry}.
 
 [role="_additional-resources"]
 .Additional resources

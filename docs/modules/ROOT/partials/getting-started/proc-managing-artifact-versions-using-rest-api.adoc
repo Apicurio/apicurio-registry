@@ -5,39 +5,36 @@
 = Managing schema and API artifact versions using {registry} REST API commands
 
 [role="_abstract"]
-If you do not specify an artifact version when adding schema and API artifacts using the Core Registry API v2, {registry} generates a version automatically. The default version when creating a new artifact  is `1`.
+If you do not specify an artifact version number when adding schema and API artifacts using the Core Registry API v3, {registry} generates a version number automatically. The default version when creating a new artifact is `1`.
 
-{registry} also supports custom versioning where you can specify a version using the `X-Registry-Version` HTTP request header as a string. Specifying a custom version value overrides the default version normally assigned when creating or updating an artifact. You can then use this version value when executing REST API operations that require a version.  
+{registry} also supports custom versioning where you can specify a version number when creating the artifact or artifact version.  Specifying a custom version value overrides the default version normally assigned when creating an artifact or artifact version. You can then use this version value when executing REST API operations that require a version number.
 
-This section shows a simple curl-based example of using the Core Registry API v2 to add and retrieve a custom Apache Avro schema version in {registry}. You can specify custom versions to add or update artifacts, or to add artifact versions.
+This section shows a simple curl-based example of using the Core Registry API v3 to add and retrieve a custom Apache Avro schema version in {registry}. You can specify custom version numbers to create artifacts, or to add artifact versions.
 
 .Prerequisites
 
-ifdef::apicurio-registry,rh-service-registry[]
 * {registry} is installed and running in your environment.
-endif::[]
-ifdef::rh-openshift-sr[]
-* You have a service account with the correct access permissions for {registry} instances.
-* You have created an access token using your service account credentials. 
-* You have logged in to the {registry-url}[{registry} web console]. 
-endif::[]
 
 .Procedure
-ifdef::rh-openshift-sr[]
-. In the {registry} web console, for the {registry} instance that you want to connect to, select the options icon (three vertical dots) and click *Connection*.
-. In the *Connection* page, copy the URL for the *Core Registry API* to a secure location. You will use this API endpoint to connect to the {registry} instance. 
-endif::[]
 
-. Add an artifact version in the registry using the `/groups/\{group\}/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
+. Add an artifact version in the registry using the `/groups/\{groupId\}/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
 +
 [source,bash]
 ----
-$ curl -X POST -H "Content-Type: application/json; artifactType=AVRO" \ 
-  -H "X-Registry-ArtifactId: my-share-price" -H "X-Registry-Version: 1.1.1" \ 
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
+  -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
-  --data '{"type":"record","name":" p","namespace":"com.example", \
-   "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' \ 
-   MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts 
+  --data-raw '{
+    "artifactId": "my-share-price",
+    "artifactType": "AVRO",
+    "firstVersion": {
+        "version": "1.1.1",
+        "content": {
+            "content": "{\"type\":\"record\",\"name\":\" p\",\"namespace\":\"com.example\", \"fields\":[{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"price\",\"type\":\"string\"}]}",
+            "contentType": "application/json"
+        }
+    }
+}'
 ----
 +
 * This example adds an Avro schema artifact with an artifact ID of `my-share-price` and version of `1.1.1`. If you do not specify a version, {registry} automatically generates a default version of `1`. 
@@ -48,28 +45,23 @@ endif::[]
 ifdef::rh-service-registry[]
 host name on which {registry} is deployed. For example: `my-cluster-service-registry-myproject.example.com`. 
 endif::[]
-ifdef::rh-openshift-sr[]
-Core Registry API endpoint that you copied to connect to this {registry} instance. For example: `\https://service-registry.apps.app-sre-0.k3s7.p1.openshiftapps.com/t/f301375a-18a7-426c-bbd8-8e626a0a1d0e`. 
-endif::[]
-* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path. 
+* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path.
 
 . Verify that the response includes the expected JSON body to confirm that the custom artifact version was added. For example:
 +
 [source,bash]
 ----
-{"createdBy":"","createdOn":"2021-04-16T10:51:43+0000","modifiedBy":"", 
-"modifiedOn":"2021-04-16T10:51:43+0000","id":"my-share-price","version":"1.1.1", 
-"type":"AVRO","globalId":3,"state":"ENABLED","groupId":"my-group","contentId":3}
+{"artifact":{"owner":"","createdOn":"2024-09-26T17:06:21Z","modifiedBy":"","modifiedOn":"2024-09-26T17:06:21Z","artifactType":"AVRO","groupId":"my-group","artifactId":"my-share-price"},"version":{"version":"1.1.1","owner":"","createdOn":"2024-09-26T17:06:21Z","artifactType":"AVRO","globalId":4,"state":"ENABLED","groupId":"my-group","contentId":4,"artifactId":"my-share-price"}}
 ----
 * A custom version of `1.1.1` was specified when adding the artifact.
-* This was the third artifact added to the registry, so the global ID and content ID have a value of `3`. 
+* This was the fourth artifact added to the registry, so the global ID and content ID have a value of `4`.
 
 . Retrieve the artifact content from the registry using its artifact ID and version in the API path. In this example, the specified ID is `my-share-price` and the version is `1.1.1`:
 +
 [source,bash]
 ----
 $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \ 
-MY-REGISTRY-URL/apis/registry/v2/groups/my-group/artifacts/my-share-price/versions/1.1.1
+    MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/my-share-price/versions/1.1.1/content
 {"type":"record","name":"price","namespace":"com.example", 
   "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
 ----

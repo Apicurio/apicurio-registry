@@ -5,23 +5,22 @@
 = Govern {registry} content using rules
 
 [role="_abstract"]
-To govern the evolution of artifact content added to {registry}, you can configure optional rules. All configured global rules or artifact-specific rules must pass before a new artifact version can be uploaded to {registry}. Configured artifact-specific rules override any configured global rules.
+To govern the evolution of artifact content added to {registry}, you can configure optional rules. All configured global rules, group-specific rules, or artifact-specific rules must pass before a new artifact version can be added to {registry}. Configured artifact-specific rules override any configured group-specific rules, which in turn override any configured global rules.
 
-The goal of these rules is to prevent invalid content from being added to {registry}. For example, content can be invalid for the following reasons:
+The goal of these rules is to prevent invalid content from being added to {registry} and to control the evolution of an artifact (by e.g. checking the compatibility of a new artifact version against previous versions). For example, content can be invalid for the following reasons:
 
 * Invalid syntax for a given artifact type, for example, `AVRO` or `PROTOBUF`.
 * Valid syntax, but semantics violate a specification.
 * Incompatibility, when new content includes breaking changes relative to the current artifact version.
 * Artifact reference integrity, for example, a duplicate or non-existent artifact reference mapping. 
 
-You can enable optional content rules using the {registry} web console, REST API commands, or a Java client application.
+You can enable optional content rules using the {registry} web console, REST API commands, or by using one of the SDKs.
 
 [id="registry-rules-apply_{context}"]
 == When rules are applied
 Rules are applied only when content is added to {registry}. This includes the following REST operations:
 
 * Adding an artifact
-* Updating an artifact
 * Adding an artifact version
 
 If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
@@ -30,34 +29,31 @@ If a rule is violated, {registry} returns an HTTP error. The response body inclu
 == Order of precedence of rules
 The order of precedence for artifact-specific and global rules is as follows:
 
-* If you enable an artifact-specific rule, and the equivalent global rule is enabled, the artifact rule overrides the global rule.
+* Artifact-specific rules have the highest priority
+* Group-specific rules have the next highest priority
+* Global rules have the lowest priority
 
-* If you disable an artifact-specific rule, and the equivalent global rule is enabled, the global rule applies.
-
-* If you disable an artifact-specific rule, and the equivalent global rule is disabled, the rule is disabled for all artifacts.
-
-* If you set a rule value to `NONE` at the artifact level, you override the enabled global rule. In this case, the artifact rule value of `NONE` takes precedence for this artifact, but the enabled global rule continues to apply to any other artifacts that have the rule disabled at the artifact level.
+NOTE: If a rule is configured at a higher level (e.g. at the global level), but you want that rule to be disabled at a lower level, you must configure the same rule (so that it overrides it) at the lower level and set its rules value to `NONE`.
 
 [id="registry-rules-work_{context}"]
 == How rules work
-Each rule has a name and configuration information. {registry} maintains the list of rules for each artifact and the list of global rules. Each rule in the list consists of a name and configuration for the rule implementation.
+Each rule has a name and configuration information. {registry} maintains the list of rules for each artifact, each group, and the list of global rules. Each rule in the list consists of a name and configuration for the rule implementation.
 
-A rule is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns true or false depending on whether the artifact passes the rule. If not, {registry} reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
+When a rule is executed, it is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns either passes or fails depending on whether the artifact passes the rule. If not, {registry} reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
 [role="_additional-resources"]
 .Additional resources
 For more details, see {registry-rule-reference}.
 
-ifdef::apicurio-registry,rh-service-registry[]
 [id="registry-rules-config_{context}"]
 == Content rule configuration
-Administrators can configure {registry} global rules and artifact-specific rules. Developers can configure artifact-specific rules only. 
+Administrators can configure {registry} global rules, group-specific rules, and artifact-specific rules. Developers can configure group-specific and artifact-specific rules only.
 
-{registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the globally configured rules. If no global rules are configured, no rules are applied.
+{registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the group-specific rules.  If no rules are configured at the group level, then {registry} applies the globally configured rules. If no global rules are configured, then no rules are applied.
 
 [discrete]
-=== Configure artifact rules
-You can configure artifact rules using the {registry} web console or REST API. For details, see the following:
+=== Configure group and artifact specific rules
+You can configure group-specific and artifact-specific rules using the {registry} web console or REST API. For details, see the following:
 
 * {managing-registry-artifacts-ui}
 * link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
@@ -73,7 +69,7 @@ Administrators can configure global rules in several ways:
 .Configure default global rules
 Administrators can configure {registry} at the application level to enable or disable global rules. You can configure default global rules at installation time without post-install configuration using the following application property format:
 ----
-registry.rules.global.<ruleName>
+apicurio.rules.global.<ruleName>
 ----
 
 The following rule names are currently supported:
@@ -88,4 +84,3 @@ configured.
 NOTE: You can configure these application properties as Java system properties or include them in the Quarkus
 `application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
 
-endif::[]

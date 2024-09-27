@@ -2,7 +2,7 @@
 
 The Apicurio Registry user documentation is created using AsciiDoc (https://asciidoc.org/). This readme describes the user documentation conventions and directory structure, and explains how to build the documentation using the Antora site generator (https://antora.org/).
 
-== How the documentation is orgainized
+== How the documentation is organized
 
 The Apicurio Registry user documentation is organized for delivering flexible content, which is a framework for putting together exactly the content you need, and making it easier to reuse the same content in multiple places. This framework includes the following building blocks: 
 

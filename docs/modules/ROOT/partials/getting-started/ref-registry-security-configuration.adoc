@@ -144,15 +144,15 @@ To enable using roles assigned by {keycloak}, set the following environment vari
 | When set to `token`, user roles are taken from the authentication token.
 |String
 |`token`
-|`REGISTRY_AUTH_ROLES_ADMIN`
+|`APICURIO_AUTH_ROLES_ADMIN`
 |The name of the role that indicates a user is an admin.
 |String
 |`sr-admin`
-|`REGISTRY_AUTH_ROLES_DEVELOPER`
+|`APICURIO_AUTH_ROLES_DEVELOPER`
 |The name of the role that indicates a user is a developer.
 |String
 |`sr-developer`
-|`REGISTRY_AUTH_ROLES_READONLY`
+|`APICURIO_AUTH_ROLES_READONLY`
 |The name of the role that indicates a user has read-only access.
 |String
 |`sr-readonly`
@@ -223,27 +223,27 @@ Because there are no default admin users in {registry}, it is usually helpful to
 |Description
 |Type
 |Default
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_ENABLED`
 | Enables the admin-override feature.
 |String
 |`false`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_FROM`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_FROM`
 |Where to look for admin-override information.  Only `token` is currently supported.
 |String
 |`token`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_TYPE`
 |The type of information used to determine if a user is an admin.  Values depend on the value of the FROM variable, for example, `role` or `claim` when FROM is `token`.
 |String
 |`role`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_ROLE`
 |The name of the role that indicates a user is an admin.
 |String
 |`sr-admin`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_CLAIM`
 |The name of a JWT token claim to use for determining admin-override.
 |String
 |`org-admin`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE`
 |The value that the JWT token claim indicated by the CLAIM variable must be for the user to be granted admin-override.
 |String
 |`true`
@@ -272,12 +272,12 @@ You can set the following options to `true` to enable owner-only authorization f
 |Boolean
 |`false`
 
-|`REGISTRY_AUTH_OBAC_ENABLED`
+|`APICURIO_AUTH_OBAC_ENABLED`
 |`apicurio.auth.owner-only-authorization`
 |Boolean
 |`false`
 
-|`REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS`
+|`APICURIO_AUTH_OBAC_LIMIT_GROUP_ACCESS`
 |`apicurio.auth.owner-only-authorization.limit-group-access`
 |Boolean
 |`false`
@@ -306,7 +306,7 @@ To enable authenticated read access, you must first enable role-based authorizat
 |`registry.auth.enabled`
 |Boolean
 |`false`
-|`REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED`
+|`APICURIO_AUTH_AUTHENTICATED_READS_ENABLED`
 |`apicurio.auth.authenticated-read-access.enabled`
 |Boolean
 |`false`
@@ -335,7 +335,7 @@ calls to the REST API, set the following options to `true`:
 |`registry.auth.enabled`
 |Boolean
 |`false`
-|`REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED`
+|`APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED`
 |`apicurio.auth.anonymous-read-access.enabled`
 |Boolean
 |`false`

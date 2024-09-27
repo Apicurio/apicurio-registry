@@ -3,12 +3,12 @@
 
 [id="registry-artifact-states_{context}"]
 
-= {registry} artifact states
+= {registry} artifact version states
 
 [role="_abstract"]
-The valid artifact states in {registry} are `ENABLED`, `DISABLED`, and `DEPRECATED`. 
+The valid artifact version states in {registry} are `ENABLED`, `DISABLED`, and `DEPRECATED`.
 
-.{registry} artifact states
+.{registry} artifact version states
 [%header,cols=2*]
 |===
 |State
@@ -16,7 +16,7 @@ The valid artifact states in {registry} are `ENABLED`, `DISABLED`, and `DEPRECAT
 |`ENABLED`
 |Basic state, all the operations are available.
 |`DISABLED`
-|The artifact and its metadata is viewable and searchable using the {registry} web console, but its content cannot be fetched by any client.
+|The artifact version metadata is viewable and searchable using the {registry} web console, but its content cannot be fetched by any client.
 |`DEPRECATED`
-|The artifact is fully usable but a header is added to the REST API response whenever the artifact content is fetched. The {registry} Rest Client will also log a warning whenever it sees deprecated content.
+|The artifact version is fully usable but a header is added to the REST API response whenever the artifact version content is fetched.
 |===

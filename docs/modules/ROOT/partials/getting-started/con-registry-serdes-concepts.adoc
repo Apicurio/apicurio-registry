@@ -53,8 +53,23 @@ To enable a consumer to use {registry} for deserialization:
 ** {registry} deserializer to use with the messages
 ** Input data stream for deserialization
 
+.Retrieve schemas using a content ID
+By default, the schema is retrieved from {registry} by the deserializer using a content ID (which is an ID unique to the *content* of an artifact version, but not unique to the version itself), which is specified in the message being consumed. The schema content ID can be located in the message headers or in the message payload, depending on the configuration of the producer application.  By default, the content ID will be located in the message body.
+
+When locating the content ID in the message payload, the format of the data begins with a magic byte, used as a signal to consumers, followed by the content ID, and the message data as normal. For example:
+
+[source,shell,subs="+quotes,attributes"]
+----
+# ...
+[MAGIC_BYTE]
+[CONTENT_ID]
+[MESSAGE DATA]
+----
+
+Then when you start Kafka and {registry}, you can access the schema to format messages received from the Kafka broker topic.
+
 .Retrieve schemas using a global ID
-By default, the schema is retrieved from {registry} by the deserializer using a global ID, which is specified in the message being consumed. The schema global ID can be located in the message headers or in the message payload, depending on the configuration of the producer application.
+Alternatively, you can configure to retrieve schemas from {registry} based on the global ID, which is the unique ID of the artifact version.  The same options are available to you when using global ID instead of contentID.  You can either send the global ID in the message headers or the message body (default).
 
 When locating the global ID in the message payload, the format of the data begins with a magic byte, used as a signal to consumers, followed by the global ID, and the message data as normal. For example:
 
@@ -66,9 +81,3 @@ When locating the global ID in the message payload, the format of the data begin
 [MESSAGE DATA]
 ----
 
-Then when you start Kafka and {registry}, you can access the schema to format messages received from the Kafka broker topic.
-
-.Retrieve schemas using a content ID
-Alternatively, you can configure to retrieve schemas from {registry} based on the content ID, which is the unique ID of the artifact content. While the global ID is the unique ID of an artifact version. 
-
-The content ID does not uniquely identify a version, but uniquely identifies the version content only. If multiple versions share the exact same content, they have a different global ID but the same content ID. Confluent Schema Registry uses content ID by default.

@@ -5,74 +5,67 @@
 = Adding artifacts using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to upload schema and API artifacts to {registry}. This section shows simple examples of uploading {registry} artifacts and adding new artifact versions. 
-
-ifdef::rh-openshift-sr[]
-NOTE: When uploading an artifact from a URL, you must specify an HTTPS URL. HTTP URLs are not supported. 
-endif::[]
+You can use the {registry} web console to upload schema and API artifacts to {registry}. This section shows simple examples of creating {registry} artifacts and adding new artifact versions.
 
 .Prerequisites
 
-ifdef::apicurio-registry,rh-service-registry[]
 * {registry} is installed and running in your environment.
-endif::[]
 * You are logged in to the {registry} web console:
 +
 `{registry-url}`
-ifdef::rh-openshift-sr[]
-* You have access to a running {registry} instance.
-endif::[]
 
 .Procedure
-ifdef::rh-openshift-sr[]
-. In the {registry} web console, click your existing {registry} instance, or click *Create {registry} instance* to provision a new one. 
-endif::[]
-. On the *Artifacts* tab, click *Upload artifact*, and specify the following details:
-** *Group & ID*: Use the default empty settings to automatically generate an artifact ID and add the artifact to the `default` artifact group. Alternatively, you can enter an optional artifact group name or ID.
-** *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type, or select the artifact type from the list, for example, *Avro Schema* or *OpenAPI*. You must manually select the *Kafka Connect Schema* artifact type, which cannot be automatically detected.
+. On the *Explore* tab, click *Create artifact*, and specify the following details:
+** *Artifact Coordinates* / *Group ID & Artifact ID*: Use the default empty settings to automatically generate an artifact ID and add the artifact to the `default` artifact group. Alternatively, you can enter an optional artifact group or artifact ID.
+** *Artifact Coordinates* / *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type (not allowed if creating an empty artifact), or select the artifact type from the list, for example, *Avro Schema* or *OpenAPI*. You must manually select the *Kafka Connect Schema* artifact type, which cannot be automatically detected.
 +
-** *Artifact*: Specify the artifact location using either of the following options: 
+** *Artifact Metadata* / *Name*: Enter an optional friendly name for the new artifact.
+** *Artifact Metadata* / *Description*: Enter an optional description for the new artifact.
+** *Artifact Metadata* / *Labels*: Optionally add one or more label (name/value pair) for the new artifact.
++
+** *Version Content* / *Version Number*: Optionally add a version string if creating a first version.
+** *Version Content* / *Content*: Specify the content using either of the following options:
 *** *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
 *** *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
++
+** *Version Metadata* / *Name*: Enter an optional friendly name for the first artifact version.
+** *Version Metadata* / *Description*: Enter an optional description for the first artifact version.
+** *Version Metadata* / *Labels*: Optionally add one or more label (name/value pair) for the first artifact version.
 
-. Click *Upload* and view the artifact details: 
+. Click *Create* and view the artifact details:
 +
-** *Overview*: Displays artifact version metadata such as artifact name, artifact ID, global ID, content ID, labels, properties, and so on. Also displays rules for validity and compatibility that you can configure for artifact content.
-** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically-generated REST API documentation.
-** *Content*: Displays a read-only view of the full artifact content. For JSON content, you can click *JSON* or *YAML* to display your preferred format. 
-** *References*: Displays a read-only view of all artifacts referenced by this artifact. You can also click *View artifacts that reference this artifact*. You can add artifact references using the {registry} Maven plug-in or REST API only.
+** *Overview*: Displays artifact metadata such as artifact ID, name, description, labels, and so on. Also displays rules for validity and compatibility that you can configure for artifact content.
+** *Versions*: Displays a list of all artifact versions.  This will be empty unless you chose to upload a first version when you created the artifact.
+** *Branches*: Displays a list of branches for the artifact. This will display at least the `latest` branch, but might display other generated branches depending on your configuration.
 +
-The following example shows an example OpenAPI artifact:
+The following example shows an example Apache Avro artifact:
 +
 .Artifact details in {registry} web console
-ifdef::apicurio-registry,rh-service-registry[]
 image::images/getting-started/registry-web-console-artifact.png[Artifact details in Registry web console]
-endif::[]
-ifdef::rh-openshift-sr[]
-image::../_images/user-guide/registry-web-console-artifact.png[Artifact details in Registry web console]
-endif::[]
 
 . On the *Overview* tab, click the *Edit* pencil icon to edit artifact metadata such as name or description. 
 +
-You can also enter an optional comma-separated list of labels for searching, or add key-value pairs of arbitrary properties associated with the artifact. To add properties, perform the following steps:
+You can also add zero or more labels (name + value) for categorizing and searching purposes. To add labels, perform the following steps:
 +
-.. Click *Add property*.
-.. Enter the key name and the value.
+.. Click *Add label*.
+.. Enter the key name and the value (optional).
 .. Repeat the first two steps to add multiple properties.
 .. Click *Save*.
  
 . To save the artifact contents to a local file, for example, `my-protobuf-schema.proto` or `my-openapi.json`, click *Download* at the end of the page. 
 
-. To add a new artifact version, click *Upload new version* in the page header, and drag and drop or click *Browse* to upload the file, for example, `my-avro-schema.json` or `my-openapi.json`.
-
+. To add a new artifact version, switch to the **Versions** tab and then click *Create version* in the toolbar.  From there, provide the following information:
+.. *Version Number*: Optionally add a version string for the new version.
+.. *Content*: Specify the content using either of the following options:
+... *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
+... *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
+.. Now you can click the *Create* button to create the new version.
 . To delete an artifact, click *Delete* in the page header.
 +
 WARNING: Deleting an artifact deletes the artifact and all of its versions, and cannot be undone.
 
-ifdef::apicurio-registry,rh-service-registry[]
 [role="_additional-resources"]
 .Additional resources
 * xref:browsing-artifacts-using-console_{context}[]
 * xref:configuring-rules-using-console_{context}[]
 * {registry-rule-reference}
-endif::[]

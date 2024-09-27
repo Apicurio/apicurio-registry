@@ -10,7 +10,9 @@ This chapter provides reference information on the supported artifact types, sta
 
 * xref:registry-artifact-types_{context}[]
 * xref:registry-artifact-states_{context}[]
+* xref:registry-group-metadata_{context}[]
 * xref:registry-artifact-metadata_{context}[]
+* xref:registry-artifact-version-metadata_{context}[]
 
 [role="_additional-resources"]
 .Additional resources
@@ -19,4 +21,6 @@ This chapter provides reference information on the supported artifact types, sta
 //INCLUDES
 include::{mod-loc}getting-started/ref-registry-artifact-types.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/ref-registry-artifact-states.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-group-metadata.adoc[leveloffset=+1]
 include::{mod-loc}getting-started/ref-registry-artifact-metadata.adoc[leveloffset=+1]
+include::{mod-loc}getting-started/ref-registry-artifact-version-metadata.adoc[leveloffset=+1]

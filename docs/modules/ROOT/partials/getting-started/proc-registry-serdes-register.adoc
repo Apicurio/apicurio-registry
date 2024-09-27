@@ -42,7 +42,7 @@ endif::[]
      "namespace":"com.example",
      "fields":[{"name":"symbol","type":"string"},
      {"name":"price","type":"string"}]}'    
-   https://my-cluster-my-registry-my-project.example.com/apis/registry/v2/groups/my-group/artifacts -s <2> 
+   https://my-cluster-my-registry-my-project.example.com/apis/registry/v3/groups/my-group/artifacts -s <2>
 ----
 <1> Simple Avro schema artifact. 
 <2> OpenShift route name that exposes {registry}. 
@@ -63,7 +63,7 @@ endif::[]
             <goal>register</goal>  <1>
         </goals>
         <configuration>
-            <registryUrl>http://REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+            <registryUrl>http://REGISTRY-URL/apis/registry/v3</registryUrl> <2>
             <artifacts>
                 <artifact>
                     <groupId>TestGroup</groupId> <3>
@@ -86,7 +86,7 @@ endif::[]
  </plugin>
 ----
 <1> Specify `register` as the execution goal to upload the schema artifact to the registry.
-<2> Specify the {registry} URL with the `../apis/registry/v2` endpoint.
+<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
 <3> Specify the {registry} artifact group ID.
 <4> You can upload multiple artifacts using the specified group ID, artifact ID, and location.
 
@@ -96,7 +96,7 @@ endif::[]
 [source,java,subs="+quotes,attributes"]
 ----
 String registryUrl_node1 = PropertiesUtil.property(clientProperties, "apicurio.url.node1",
-    "https://my-cluster-service-registry-myproject.example.com/apis/registry/v2"); <1>
+    "https://my-cluster-service-registry-myproject.example.com/apis/registry/v3"); <1>
 try (RegistryService service = RegistryClient.create(registryUrl_node1)) {
     String artifactId = ApplicationImpl.INPUT_TOPIC + "-value";
     try {

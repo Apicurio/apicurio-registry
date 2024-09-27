@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Migrating an existing {registry} deployment 
 
 [role="_abstract"]
-This chapter explains how to migrate an existing {registry} deployment from version {registry-v1} to version 2.x. 
+This chapter explains how to migrate an existing {registry} deployment from version 2.x to version 3.x.
 
 * xref:registry-migration_{context}[]
 * xref:migrating-registry-data_{context}[]

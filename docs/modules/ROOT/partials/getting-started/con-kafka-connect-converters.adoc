@@ -7,12 +7,7 @@
 You can use {registry} with Apache Kafka Connect to stream data between Kafka and external systems. Using Kafka Connect, you can define connectors for different systems to move large volumes of data into and out of Kafka-based systems. 
 
 .{registry} and Kafka Connect architecture
-ifdef::apicurio-registry,rh-service-registry[]
 image::images/getting-started/registry-connect-architecture.png[Registry and Kafka Connect architecture]
-endif::[]
-ifdef::rh-openshift-sr[]
-image::../_images/introduction/registry-connect-architecture.png[Registry and Kafka Connect architecture]
-endif::[]
 
 {registry} provides the following features for Kafka Connect:
 

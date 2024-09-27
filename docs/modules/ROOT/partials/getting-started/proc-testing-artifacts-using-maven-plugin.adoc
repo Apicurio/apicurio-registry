@@ -29,7 +29,7 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
             <goal>test-update</goal>  <1>
         </goals>
         <configuration>
-            <registryUrl>MY-REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+            <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
             <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
             <clientId>MY-CLIENT-ID</clientId>
             <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
@@ -48,13 +48,8 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
 ----
 +
 <1> Specify `test-update` as the execution goal to test the schema artifact.
-<2> Specify the {registry} URL with the `../apis/registry/v2` endpoint.
-ifdef::apicurio-registry,rh-service-registry[]
+<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
 <3> If authentication is required, you can specify your authentication server and client credentials.
-endif::[]
-ifdef::rh-openshift-sr[]
-<3> Specify your service account ID and secret and the {org-name} Single Sign-On authentication server: `{sso-token-url}`
-endif::[]
 <4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
 <5> You can test multiple artifacts from a specified directory using the artifact ID. 
 

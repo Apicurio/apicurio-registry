@@ -5,7 +5,7 @@
 = {registry} serializer/deserializer configuration in client applications
  
 [role="_abstract"]
-You can configure specific client serializer/deserializer (SerDes) services and schema lookup strategies directly in a client application using the example constants shown in this section. Alternatively, you can configure the corresponding {registry} application properties in a file or an instance. 
+You can configure specific client serializer/deserializer (SerDes) services and schema lookup strategies directly in a client application using the example constants shown in this section.
 
 The following sections show examples of commonly used SerDes constants and configuration options.
 

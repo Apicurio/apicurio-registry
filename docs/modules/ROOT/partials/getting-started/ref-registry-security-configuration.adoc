@@ -44,10 +44,6 @@ You can set the following environment variables to configure authentication for 
 |The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
 |String
 |-
-|`KEYCLOAK_REALM`
-|The {keycloak} realm for authentication. For example, `registry.`
-|String
-|-
 |`QUARKUS_OIDC_CLIENT_ID`
 |The client ID for the {registry} REST API.
 |String
@@ -72,11 +68,11 @@ By default, {registry} supports authentication by using OpenID Connect. Users or
 |Type
 |Default value
 |`QUARKUS_OIDC_TENANT_ENABLED`
-|`registry.auth.enabled`
+|`apicurio.auth.enabled`
 |Boolean
 |`false`
-|`CLIENT_CREDENTIALS_BASIC_QUARKUS_OIDC_TENANT_ENABLED`
-|`registry.auth.basic-auth-client-credentials.enabled`
+|`CLIENT_CREDENTIALS_BASIC_ENABLED`
+|`apicurio.auth.basic-auth-client-credentials.enabled`
 |Boolean
 |`false`
 |===
@@ -96,7 +92,7 @@ When using {keycloak}, it is best to set this configuration to your {keycloak} J
 |Type
 |Default value
 |`CLIENT_CREDENTIALS_BASIC_CACHE_EXPIRATION`
-|`registry.auth.basic-auth-client-credentials.cache-expiration`
+|`apicurio.auth.basic-auth-client-credentials.cache-expiration`
 |Integer
 |`10`
 |===
@@ -116,7 +112,7 @@ You can set the following options to `true` to enable role-based authorization i
 |Type
 |Default value
 |`QUARKUS_OIDC_TENANT_ENABLED`
-|`registry.auth.enabled`
+|`apicurio.auth.enabled`
 |Boolean
 |`false`
 |`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
@@ -268,7 +264,7 @@ You can set the following options to `true` to enable owner-only authorization f
 |Default value
 
 |`QUARKUS_OIDC_TENANT_ENABLED`
-|`registry.auth.enabled`
+|`apicurio.auth.enabled`
 |Boolean
 |`false`
 
@@ -303,7 +299,7 @@ To enable authenticated read access, you must first enable role-based authorizat
 |Type
 |Default value
 |`QUARKUS_OIDC_TENANT_ENABLED`
-|`registry.auth.enabled`
+|`apicurio.auth.enabled`
 |Boolean
 |`false`
 |`APICURIO_AUTH_AUTHENTICATED_READS_ENABLED`
@@ -332,7 +328,7 @@ calls to the REST API, set the following options to `true`:
 |Type
 |Default value
 |`QUARKUS_OIDC_TENANT_ENABLED`
-|`registry.auth.enabled`
+|`apicurio.auth.enabled`
 |Boolean
 |`false`
 |`APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED`

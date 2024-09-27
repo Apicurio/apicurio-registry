@@ -1,11 +1,10 @@
 package io.apicurio.registry.operator.resource.ui;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.resource.LabelDiscriminators;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPath;
-import io.fabric8.kubernetes.api.model.networking.v1.IngressRule;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDependent;
@@ -15,8 +14,10 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 
 import static io.apicurio.registry.operator.Mapper.toYAML;
+import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
+import static io.apicurio.registry.operator.util.IngressUtil.withIngressRule;
 
 // spotless:off
 @KubernetesDependent(
@@ -44,21 +45,14 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
         sOpt.ifPresent(s -> {
             var iOpt = context.getSecondaryResource(APP_INGRESS_KEY.getKlass(),
                     APP_INGRESS_KEY.getDiscriminator());
-            iOpt.ifPresent(i -> {
-                for (IngressRule rule : i.getSpec().getRules()) {
-                    for (HTTPIngressPath path : rule.getHttp().getPaths()) {
-                        if (s.getMetadata().getName().equals(path.getBackend().getService().getName())) {
-                            // spotless:off
-                            uiEnv.add(new EnvVarBuilder()
-                                    .withName("REGISTRY_API_URL")
-                                    .withValue("http://%s/apis/registry/v3".formatted(rule.getHost()))
-                                    .build());
-                            // spotless:on
-                            return;
-                        }
-                    }
-                }
-            });
+            iOpt.ifPresent(i -> withIngressRule(s, i, rule -> {
+                // spotless:off
+                uiEnv.add(new EnvVarBuilder()
+                        .withName("REGISTRY_API_URL")
+                        .withValue("http://%s/apis/registry/v3".formatted(rule.getHost()))
+                        .build());
+                // spotless:on
+            }));
         });
 
         d.getSpec().getTemplate().getSpec().getContainers().get(0).setEnv(uiEnv);

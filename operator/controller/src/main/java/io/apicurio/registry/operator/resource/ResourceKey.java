@@ -1,12 +1,8 @@
 package io.apicurio.registry.operator.resource;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.resource.app.AppDeploymentDiscriminator;
-import io.apicurio.registry.operator.resource.app.AppIngressDiscriminator;
-import io.apicurio.registry.operator.resource.app.AppServiceDiscriminator;
-import io.apicurio.registry.operator.resource.ui.UIDeploymentDiscriminator;
-import io.apicurio.registry.operator.resource.ui.UIIngressDiscriminator;
-import io.apicurio.registry.operator.resource.ui.UIServiceDiscriminator;
+import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
+import io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDiscriminator;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
@@ -17,6 +13,8 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.util.function.Function;
+
+import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
 
 @AllArgsConstructor
 @Getter

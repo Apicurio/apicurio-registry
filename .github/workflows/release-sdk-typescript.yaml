@@ -62,6 +62,7 @@ jobs:
       - name: Release Typescript SDK
         run: |
           cd registry/typescript-sdk
+          cat <<< $(jq -r ".version = \"${RELEASE_VERSION}\"" package.json) > package.json
           npm install
           npm run generate-registry-sdk
           npm run build

@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -17,12 +18,17 @@ public class SmokeITTest extends ITBase {
 
     @Test
     void demoDeployment() {
-        // Arrange
+        // spotless:off
         var registry = new ApicurioRegistry3();
         var meta = new ObjectMeta();
         meta.setName("demo");
         meta.setNamespace(getNamespace());
         registry.setMetadata(meta);
+        registry.setSpec(ApicurioRegistry3Spec.builder()
+                .appHost("app-todo")
+                .uiHost("ui-todo")
+                .build());
+        // spotless:on
 
         // Act
         client.resources(ApicurioRegistry3.class).inNamespace(getNamespace()).create(registry);
@@ -49,10 +55,10 @@ public class SmokeITTest extends ITBase {
         await().ignoreExceptions().until(() -> {
             assertThat(client.network().v1().ingresses().inNamespace(getNamespace())
                     .withName("demo-app-ingress").get().getSpec().getRules().get(0).getHost())
-                    .startsWith("demo-app.");
+                    .isEqualTo("app-todo");
             assertThat(client.network().v1().ingresses().inNamespace(getNamespace())
                     .withName("demo-ui-ingress").get().getSpec().getRules().get(0).getHost())
-                    .startsWith("demo-ui.");
+                    .isEqualTo("ui-todo");
             return true;
         });
     }

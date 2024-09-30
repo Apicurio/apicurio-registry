@@ -2654,6 +2654,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(" AND l.groupId = g.groupId)");
                         break;
                     default:
+
                         break;
                 }
                 where.append(")");

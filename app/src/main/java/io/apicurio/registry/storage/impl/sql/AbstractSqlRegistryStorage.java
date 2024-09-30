@@ -16,34 +16,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageBehaviorProperties;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
-import io.apicurio.registry.storage.VersionStateExt;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RoleMappingDto;
-import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.SearchedArtifactDto;
-import io.apicurio.registry.storage.dto.SearchedBranchDto;
-import io.apicurio.registry.storage.dto.SearchedGroupDto;
-import io.apicurio.registry.storage.dto.SearchedVersionDto;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.BranchAlreadyExistsException;
@@ -189,9 +162,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     SecurityIdentity securityIdentity;
-
-    @Inject
-    VersionStateExt artifactStateEx;
 
     HandleFactory handles;
 
@@ -635,7 +605,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * If SemVer support is enabled, create (or update) the automatic system generated semantic versioning
      * branches.
-     * 
+     *
      * @param handle
      * @param gav
      */
@@ -2081,7 +2051,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     /**
      * Deletes a group and all artifacts in that group.
-     * 
+     *
      * @see io.apicurio.registry.storage.RegistryStorage#deleteGroup(java.lang.String)
      */
     @Override
@@ -3522,6 +3492,29 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             log.warn("Skipping database snapshot because no location has been provided");
         }
         return null;
+    }
+
+    @Override
+    public String createEvent(OutboxEvent event) {
+        // Create outbox event
+        handles.withHandle(handle -> handle.createUpdate(sqlStatements.createOutboxEvent())
+                .bind(0, event.getId()).bind(1, event.getAggregateType()).bind(2, event.getAggregateId())
+                .bind(3, event.getType()).bind(4, event.getPayload().toString()).execute());
+
+        deleteEvent(event.getId());
+
+        return event.getId();
+    }
+
+    private void deleteEvent(String eventId) {
+        try {
+            handles.withHandle(handle -> handle.createUpdate(sqlStatements.deleteOutboxEvent())
+                    .bind(0, eventId).execute());
+        }
+
+        catch (RegistryStorageException ex) {
+            throw new RegistryStorageException("Could not delete outbox event with ID " + eventId + ".", ex);
+        }
     }
 
     private boolean isPostgresql() {

@@ -996,4 +996,9 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     public String createSnapshot(String snapshotLocation) throws RegistryStorageException {
         throw new IllegalStateException("Directly creating a snapshot is not supported in Kafkasql");
     }
+
+    @Override
+    public String createEvent(OutboxEvent event) {
+        throw new IllegalStateException("Creating an event is not supported in kafkasql");
+    }
 }

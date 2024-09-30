@@ -3,7 +3,7 @@ package io.apicurio.registry.storage;
 public enum StorageEventType {
 
     /**
-     * This event type MUST be fired only once.
+     * The READY event type MUST be fired only once.
      */
-    READY,
+    READY, ARTIFACT_CREATED
 }

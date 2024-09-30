@@ -11,10 +11,10 @@ import io.apicurio.registry.utils.tests.DeletionEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.vertx.core.impl.ConcurrentHashSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
@@ -27,7 +27,7 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
         String groupId = TestUtils.generateGroupId();
 
-        Set<String> created = new HashSet<>();
+        Set<String> created = new ConcurrentHashSet<>();
         CountDownLatch latch = new CountDownLatch(5);
 
         CreateGroup createGroup = new CreateGroup();
@@ -82,7 +82,7 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
         String groupId = "testMultipleArtifacts";// TestUtils.generateGroupId();
 
-        Set<Integer> created = new HashSet<>();
+        Set<Integer> created = new ConcurrentHashSet<>();
         CountDownLatch latch = new CountDownLatch(5);
 
         CreateGroup createGroup = new CreateGroup();

@@ -996,6 +996,13 @@
           <target>${maven.compiler.target}</target>
           <showDeprecation>false</showDeprecation>
           <showWarnings>false</showWarnings>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+          </annotationProcessorPaths>
         </configuration>
       </plugin>
       <plugin>
@@ -1276,8 +1283,8 @@
         </repository>
       </distributionManagement>
     </profile>
-    <!-- 
-            conditional repo to be excluded in productization 
+    <!--
+            conditional repo to be excluded in productization
             build in prod with:
             mvn ... -P '!external_repos'
         -->

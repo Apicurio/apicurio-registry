@@ -28,7 +28,6 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
 
         Set<String> created = new HashSet<>();
-        Set<String> failed = new HashSet<>();
         CountDownLatch latch = new CountDownLatch(5);
 
         CreateGroup createGroup = new CreateGroup();
@@ -64,9 +63,10 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
                             .byVersionExpression("1");
 
                     created.add(artifactId);
+                    System.out.println("[Fork-" + forkId + "] Succeeded");
                 } catch (Exception e) {
                     System.out.println("[Fork-" + forkId + "] FAILED: " + e.getMessage());
-                    failed.add(artifactId);
+                    Assertions.fail("Failure detected in fork " + forkId, e);
                 }
                 latch.countDown();
             });
@@ -75,7 +75,6 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
         latch.await();
 
         Assertions.assertEquals(5, created.size());
-        Assertions.assertEquals(0, failed.size());
     }
 
     @Test
@@ -83,8 +82,7 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
         String groupId = "testMultipleArtifacts";// TestUtils.generateGroupId();
 
-        Set<String> created = new HashSet<>();
-        Set<String> failed = new HashSet<>();
+        Set<Integer> created = new HashSet<>();
         CountDownLatch latch = new CountDownLatch(5);
 
         CreateGroup createGroup = new CreateGroup();
@@ -119,10 +117,11 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
                     clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                             .byVersionExpression("1");
 
-                    created.add("" + forkId);
+                    created.add(forkId);
+                    System.out.println("[Fork-" + forkId + "] Succeeded");
                 } catch (Exception e) {
                     System.out.println("[Fork-" + forkId + "] FAILED: " + e.getMessage());
-                    failed.add("" + forkId);
+                    Assertions.fail("Failure detected in fork " + forkId, e);
                 }
                 latch.countDown();
             });
@@ -131,7 +130,6 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
         latch.await();
 
         Assertions.assertEquals(5, created.size());
-        Assertions.assertEquals(0, failed.size());
     }
 
 }

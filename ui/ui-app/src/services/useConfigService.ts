@@ -89,7 +89,7 @@ export interface OidcJsAuthOptions {
     logoutUrl?: string;
 }
 
-// Used when `type=keycloakjs`
+// Used when `type=oidc`
 export interface OidcJsAuthConfig extends AuthConfig {
     options: OidcJsAuthOptions;
 }
@@ -123,7 +123,7 @@ export interface ApicurioRegistryConfig extends ConfigType {
 }
 
 
-export function getRegistryConfig(): ApicurioRegistryConfig {
+function _getRegistryConfig(): ApicurioRegistryConfig {
     let config: ApicurioRegistryConfig | undefined;
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -200,7 +200,7 @@ function overrideConfig(base: ApicurioRegistryConfig, overrides: ApicurioRegistr
     return overrideObject(base, overrides);
 }
 
-let registryConfig: ApicurioRegistryConfig = getRegistryConfig();
+let registryConfig: ApicurioRegistryConfig = _getRegistryConfig();
 
 
 export interface ConfigService {

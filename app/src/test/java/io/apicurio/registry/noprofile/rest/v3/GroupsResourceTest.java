@@ -1804,10 +1804,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(reference));
         CreateVersion f_createVersion = createVersion;
 
-        var exception_1 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
-            clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
-                    .post(f_createVersion);
-        });
+        var exception_1 = assertThrows(
+                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
+                    clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                            .post(f_createVersion);
+                });
         Assertions.assertEquals(409, exception_1.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_1.getName());
 
@@ -1830,10 +1831,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(validRef, invalidRef));
         CreateVersion f_createVersion2 = createVersion;
 
-        var exception_2 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
-            clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
-                    .post(f_createVersion2);
-        });
+        var exception_2 = assertThrows(
+                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
+                    clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                            .post(f_createVersion2);
+                });
         Assertions.assertEquals(409, exception_2.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_2.getName());
 
@@ -1843,10 +1845,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(validRef, validRef));
         CreateVersion f_createVersion3 = createVersion;
 
-        var exception_3 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
-            clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
-                    .post(f_createVersion3);
-        });
+        var exception_3 = assertThrows(
+                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
+                    clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                            .post(f_createVersion3);
+                });
         Assertions.assertEquals(409, exception_3.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_3.getName());
     }

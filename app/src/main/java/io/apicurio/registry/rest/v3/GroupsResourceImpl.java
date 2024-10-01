@@ -47,7 +47,6 @@ import io.apicurio.registry.rest.v3.beans.SortOrder;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.apicurio.registry.rest.v3.beans.VersionSortBy;
-import io.apicurio.registry.rest.v3.shared.CommonResourceOperations;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;

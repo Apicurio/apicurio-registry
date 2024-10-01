@@ -6,6 +6,9 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.common.apps.core.System;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.events.ArtifactCreated;
+import io.apicurio.registry.events.ArtifactDeleted;
+import io.apicurio.registry.events.ArtifactMetadataUpdated;
 import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
@@ -530,7 +533,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     pair = ImmutablePair.of(amdDto, null);
                 }
 
-                outboxEvent.fire(ArtifactCreatedEvent.of(amdDto));
+                outboxEvent.fire(ArtifactCreated.of(amdDto));
                 return pair;
             });
         } catch (Exception ex) {
@@ -607,8 +610,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             });
         }
 
-        return handle.createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId()).bind(0, globalId)
+        ArtifactVersionMetaDataDto avmd = handle
+                .createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId()).bind(0, globalId)
                 .map(ArtifactVersionMetaDataDtoMapper.instance).one();
+
+        return avmd;
     }
 
     /**
@@ -767,6 +773,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             deleteAllOrphanedContentRaw(handle);
 
+            outboxEvent.fire(ArtifactDeleted.of(groupId, artifactId));
             return versions;
         });
     }
@@ -1179,8 +1186,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 modified = true;
                 if (rowCount == 0) {
                     throw new ArtifactNotFoundException(groupId, artifactId);
+                } else {
+                    outboxEvent.fire(ArtifactMetadataUpdated.of(groupId, artifactId, metaData));
                 }
-
             }
 
             return null;

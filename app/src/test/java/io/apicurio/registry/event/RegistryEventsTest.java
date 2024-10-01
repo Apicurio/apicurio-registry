@@ -2,6 +2,8 @@ package io.apicurio.registry.event;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
@@ -44,7 +46,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    void createArtifactEventTest() throws Exception {
+    void createArtifactEvent() throws Exception {
         // Preparation
         final String groupId = "testCreateArtifact";
         final String artifactId = generateArtifactId();
@@ -53,6 +55,58 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         final String name = "testCreateArtifactName";
         final String description = "testCreateArtifactDescription";
 
+        ensureArtifactCreatedEvent(groupId, artifactId, version, name, description);
+    }
+
+    @Test
+    public void updateArtifactMetadataEvent() throws Exception {
+        // Preparation
+        final String groupId = "updateArtifactMetadataEvent";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "updateArtifactMetadataEventName";
+        final String description = "updateArtifactMetadataEventDescription";
+
+        CreateArtifactResponse createdArtifact = ensureArtifactCreatedEvent(groupId, artifactId, version,
+                name, description);
+
+        EditableArtifactMetaData emd = new EditableArtifactMetaData();
+        emd.setName("updateArtifactMetadataEventNameEdited");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(emd);
+
+        // Consume the update events from the broker
+        List<ConsumerRecord<String, String>> updateEvents = drain(consumer, 1);
+        Assertions.assertTrue(
+                updateEvents.get(0).value().contains(createdArtifact.getArtifact().getArtifactId()));
+        Assertions.assertTrue(
+                updateEvents.get(0).value().contains(StorageEventType.ARTIFACT_METADATA_UPDATED.name()));
+    }
+
+    @Test
+    public void deleteArtifactEvent() throws Exception {
+        // Preparation
+        final String groupId = "deleteArtifactEvent";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "deleteArtifactEventName";
+        final String description = "deleteArtifactEventDescription";
+
+        CreateArtifactResponse createdArtifact = ensureArtifactCreatedEvent(groupId, artifactId, version,
+                name, description);
+
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
+
+        // Consume the delete event from the broker
+        List<ConsumerRecord<String, String>> deleteEvents = drain(consumer, 1);
+        Assertions.assertTrue(
+                deleteEvents.get(0).value().contains(createdArtifact.getArtifact().getArtifactId()));
+        Assertions.assertTrue(deleteEvents.get(0).value().contains(StorageEventType.ARTIFACT_DELETED.name()));
+    }
+
+    public CreateArtifactResponse ensureArtifactCreatedEvent(String groupId, String artifactId,
+            String version, String name, String description) throws Exception {
         // Execution
         CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON,
                 ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
@@ -74,9 +128,12 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                                 .byVersionExpression("branch=latest").content().get().readAllBytes(),
                         StandardCharsets.UTF_8));
 
-        // Consume the event from the broker
+        // Consume the create event from the broker
         List<ConsumerRecord<String, String>> changeEvents = drain(consumer, 1);
         Assertions.assertTrue(changeEvents.get(0).value().contains(created.getArtifact().getArtifactId()));
+        Assertions.assertTrue(changeEvents.get(0).value().contains(StorageEventType.ARTIFACT_CREATED.name()));
+
+        return created;
     }
 
     private KafkaConsumer<String, String> getConsumer(String bootstrapServers) {

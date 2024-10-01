@@ -29,7 +29,9 @@ import { VersionComments } from "@app/pages";
 export type VersionInfoTabContentProps = {
     artifact: ArtifactMetaData;
     version: VersionMetaData;
+    codegenEnabled: boolean;
     onEditMetaData: () => void;
+    onGenerateClient: () => void;
 };
 
 /**
@@ -58,6 +60,13 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                                     artifactType={props.artifact.artifactType!}/></FlexItem>
                                 <FlexItem className="title">Version metadata</FlexItem>
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
+                                    <If condition={((window as any).kiota !== undefined && props.codegenEnabled && props.version.artifactType === "OPENAPI")}>
+                                        <Button id="generate-client-action"
+                                            data-testid="version-btn-gen-client"
+                                            title="Generate a client"
+                                            onClick={props.onGenerateClient}
+                                            variant="link">Generate client SDK</Button>
+                                    </If>
                                     <IfAuth isDeveloper={true}>
                                         <IfFeature feature="readOnly" isNot={true}>
                                             <Button id="edit-action"

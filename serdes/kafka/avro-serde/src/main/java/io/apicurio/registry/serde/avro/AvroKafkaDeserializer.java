@@ -1,53 +1,44 @@
 package io.apicurio.registry.serde.avro;
 
-import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.AbstractKafkaDeserializer;
+import io.apicurio.registry.serde.KafkaDeserializer;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.header.Headers;
 
-import java.nio.ByteBuffer;
 import java.util.Map;
 
-public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, U> {
+public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
 
     private AvroSerdeHeaders avroHeaders;
-    private AvroDeserializer<U> avroDeserializer;
 
     public AvroKafkaDeserializer() {
-        super();
+        super(new AvroDeserializer<>());
     }
 
     public AvroKafkaDeserializer(RegistryClient client) {
-        super(client);
+        super(new AvroDeserializer<>(client));
+    }
+
+    public AvroKafkaDeserializer(SchemaResolver<Schema, U> schemaResolver) {
+        super(new AvroDeserializer<>(schemaResolver));
+    }
+
+    public AvroKafkaDeserializer(RegistryClient client, SchemaResolver<Schema, U> schemaResolver) {
+        super(new AvroDeserializer<>(client, schemaResolver));
+    }
+
+    public AvroKafkaDeserializer(RegistryClient client, ArtifactReferenceResolverStrategy<Schema, U> strategy,
+            SchemaResolver<Schema, U> schemaResolver) {
+        super(new AvroDeserializer<>(client, strategy, schemaResolver));
     }
 
     @SuppressWarnings("rawtypes")
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        avroHeaders = new AvroSerdeHeaders(isKey);
-        AvroSerdeConfig avroSerdeConfig = new AvroSerdeConfig(configs);
-        this.avroDeserializer = new AvroDeserializer<>();
-        if (getSchemaResolver() != null) {
-            this.avroDeserializer.setSchemaResolver(getSchemaResolver());
-        }
-        avroDeserializer.configure(avroSerdeConfig, isKey);
-
         super.configure(configs, isKey);
-    }
-
-    /**
-     * @see io.apicurio.registry.serde.AbstractKafkaSerDe#schemaParser()
-     */
-    @Override
-    public SchemaParser<Schema, U> schemaParser() {
-        return avroDeserializer.schemaParser();
-    }
-
-    @Override
-    protected U readData(ParsedSchema<Schema> schema, ByteBuffer buffer, int start, int length) {
-        return avroDeserializer.readData(schema, buffer, start, length);
+        avroHeaders = new AvroSerdeHeaders(isKey);
     }
 
     @Override
@@ -60,7 +51,7 @@ public class AvroKafkaDeserializer<U> extends AbstractKafkaDeserializer<Schema, 
             }
         }
         if (encoding != null) {
-            avroDeserializer.setEncoding(encoding);
+            ((AvroDeserializer<U>) delegatedDeserializer).setEncoding(encoding);
         }
 
         return super.deserialize(topic, headers, data);

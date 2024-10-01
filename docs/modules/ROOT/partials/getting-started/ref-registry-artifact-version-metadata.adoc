@@ -1,0 +1,80 @@
+// Metadata created by nebel
+
+[id="registry-artifact-version-metadata_{context}"]
+= {registry} artifact version metadata
+
+[role="_abstract"]
+When an artifact version is added to a {registry} artifact, a set of metadata properties is created and stored along with the artifact version content. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact version is created.
+
+.{registry} system-generated metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`owner`
+|string
+|The name of the user who created the artifact version.
+|`createdOn`
+|date
+|The date and time when the artifact version was created, for example, `2023-10-11T14:15:28Z`.
+|`modifiedBy`
+|string
+|The user who modified the artifact version.
+|`modifiedOn`
+|date
+|The date and time at which the artifact version was modified, for example, `2023-10-11T14:15:28Z`.
+|`contentId`
+|integer
+|Unique identifier of artifact version content in {registry}. The same content ID can be shared by multiple artifact versions when artifact versions have identical content. For example, a content ID of `4` can be used by multiple artifact versions with the same content, even across multiple artifacts.
+|`globalId`
+|integer
+|Globally unique identifier of an artifact version in {registry}. For example, a global ID of `1` is assigned to the first artifact version created in {registry}.
+|===
+
+
+.{registry} user-provided or system-generated metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`groupId`
+|string
+|Unique identifier of an artifact group in {registry}, for example, `development` or `production`.
+|`artifactId`
+|string
+|Unique identifier of an artifact in {registry}.
+|`version`
+|integer
+|The version string of the artifact version. If not provided, the system will generate a new sequential version.  You can provide a version when using the {registry} REST API, SDKs, or Maven plug-in, for example, `2.1.6`.
+|===
+
+
+.{registry} editable metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`name`
+|string
+|Optional human-readable name of the artifact version, for example, `Version One`.
+|`description`
+|string
+|Optional meaningful description of the artifact version, for example, `This is the first version for testing`.
+|`labels`
+| map
+|Optional list of user-defined name-value pairs associated with the artifact version. The name and value must be strings, for example, `my-key` and `my-value`.
+|`state`
+|ArtifactState
+|The state of the artifact version: `ENABLED`, `DISABLED`, or `DEPRECATED`. Defaults to `ENABLED`.
+|===
+
+.Updating artifact version metadata
+* You can use the {registry} REST API or web console to update the set of editable metadata properties.
+* You can update the `state` property only by using the {registry} REST API.
+
+[role="_additional-resources"]
+.Additional resources
+For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}/versions/\{versionId\}` endpoint in the {registry-rest-api}.

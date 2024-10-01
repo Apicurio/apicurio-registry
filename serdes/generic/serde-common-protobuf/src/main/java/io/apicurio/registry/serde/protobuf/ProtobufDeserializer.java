@@ -8,6 +8,7 @@ import com.google.protobuf.Message;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractDeserializer;
@@ -29,7 +30,7 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     private static final String PROTOBUF_PARSE_METHOD = "parseFrom";
 
-    private ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
+    private final ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
     private Class<?> specificReturnClass;
     private Method specificReturnClassParseMethod;
@@ -46,6 +47,11 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         super(client, schemaResolver);
     }
 
+    public ProtobufDeserializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver,
+            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
+        super(client, strategy, schemaResolver);
+    }
+
     public ProtobufDeserializer(RegistryClient client) {
         super(client);
     }
@@ -54,7 +60,6 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         super(schemaResolver);
     }
 
-    @Override
     public void configure(SerdeConfig configs, boolean isKey) {
         ProtobufDeserializerConfig config = new ProtobufDeserializerConfig(configs.originals(), isKey);
         super.configure(config, isKey);
@@ -82,9 +87,6 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     }
 
-    /**
-     * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
-     */
     @Override
     public SchemaParser<ProtobufSchema, U> schemaParser() {
         return parser;

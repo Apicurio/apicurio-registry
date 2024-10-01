@@ -3,7 +3,7 @@ package io.apicurio.tests.converters;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.AbstractKafkaSerDe;
+import io.apicurio.registry.serde.BaseSerde;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.AvroSerdeConfig;
@@ -315,7 +315,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
     @Test
     public void testCompactJson() throws Exception {
         testJson(createRegistryClient(), new CompactFormatStrategy(), input -> {
-            ByteBuffer buffer = AbstractKafkaSerDe.getByteBuffer(input);
+            ByteBuffer buffer = BaseSerde.getByteBuffer(input);
             return buffer.getInt();
         });
     }

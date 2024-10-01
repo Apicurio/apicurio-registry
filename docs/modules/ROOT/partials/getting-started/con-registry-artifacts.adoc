@@ -28,6 +28,51 @@ The items stored in {registry}, such as event schemas and API designs, are known
 
 When a schema or API design is added as an artifact in {registry}, client applications can then use that schema or API design to validate that the client messages conform to the correct data structure at runtime.
 
+Artifacts have metadata, both generated and editable.  Standard metadata for an artifact includes (but may not be limited to):
+
+=== Generated or immutable properties
+
+- groupId
+- artifactId
+- artifactType
+- createdOn
+- modifiedBy
+- modifiedOn
+
+=== Editable properties
+- name
+- description
+- labels
+- owner
+
+[discrete]
+== Artifact Versions
+Every artifact is composed of zero or more _artifact version_s.  Only artifact versions have actual
+content (as well as metadata).  These versions represent the evolution of the content of an artifact,
+and are immutable.  You can think of an Artifact as an ordered sequence of Versions, typically with
+the most recent version representing the "current" schema or API design content.
+
+
+Artifact Versions have metadata, both generated and editable.  Standard metadata for an artifact version includes (but may not be limited to):
+
+=== Generated or immutable properties
+
+- groupId
+- artifactId
+- version
+- globalId
+- contentId
+- owner
+- createdOn
+- modifiedBy
+- modifiedOn
+
+=== Editable properties
+- name
+- description
+- labels
+- state
+
 
 [discrete]
 == Groups of schemas and APIs
@@ -38,20 +83,23 @@ You can create optional artifact groups when adding your schemas and API designs
 
 Schema and API groups can contain multiple artifact types. For example, you could have Protobuf, Avro, JSON Schema, OpenAPI, or AsyncAPI artifacts all in the same group.
 
-You can create schema and API artifacts and groups using the {registry} web console, REST API, command line, Maven plug-in, or Java client application. The following simple example shows using the Core Registry REST API:
+Groups have metadata, both generated and editable.  Standard metadata for a group includes (but may not be limited to):
 
-[source,bash]
-----
-$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \
-  -H "X-Registry-ArtifactId: share-price" \
-  --data '{"type":"record","name":"price","namespace":"com.example", \
-   "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' \
-  https://my-registry.example.com/apis/registry/v2/groups/my-group/artifacts
-----
+=== Generated or immutable properties
 
-This example creates an artifact group named `my-group` and adds an Avro schema with an artifact ID of `share-price`.
+- groupId
+- owner
+- createdOn
+- modifiedBy
+- modifiedOn
 
-NOTE: Specifying a group is optional when using the {registry} web console, and a `default` group is created automatically. When using the REST API or Maven plug-in, specify the `default` group in the API path if you do not want to create a unique group.
+=== Editable properties
+- description
+- labels
+
+You can create schema and API artifacts and groups using the {registry} web console, REST API, command line, Maven plug-in, or Java client application.
+
+NOTE: Specifying a group is optional when using the {registry} web console, and the `default` group is used automatically. When using the REST API or Maven plug-in, specify the `default` group in the API path if you do not want to create a unique group.
 
 [role="_additional-resources"]
 .Additional resources
@@ -121,12 +169,6 @@ You can manage artifact references using the {registry} core REST API, Maven plu
 .Additional resources
 
 * For details on managing artifact references, see:
-ifdef::apicurio-registry,rh-service-registry[]
 ** {managing-registry-artifacts-api}.
 ** {managing-registry-artifacts-maven}.
-endif::[]
-ifdef::rh-openshift-sr[]
-** {base-url}{manage-api-url-registry}[Managing Service Registry data using the Core Registry API].
-** {base-url}{manage-maven-plugin-url-registry}[Managing schemas and APIs using the Service Registry Maven plug-in].
-endif::[]
-* For a Java example, see the https://github.com/Apicurio/apicurio-registry-examples/tree/main/serdes-with-references[Apicurio Registry SerDes with references demonstration].
+* For a Java example, see the https://github.com/Apicurio/apicurio-registry/tree/main/examples/serdes-with-references[Apicurio Registry SerDes with references demonstration].

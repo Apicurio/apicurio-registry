@@ -3,7 +3,7 @@
 
 [id="configuring-liveness-readiness-probes_{context}"]
 
-= Configuring {registry} health checks on OpenShift
+== Configuring {registry} health checks on OpenShift
 
 [role="_abstract"]
 You can configure optional environment variables for liveness and readiness probes to monitor the health of the {registry} server on OpenShift:
@@ -17,7 +17,7 @@ IMPORTANT: The default values of the liveness and readiness environment variable
 .Prerequisites
 * You must have an OpenShift cluster with cluster administrator access.
 * You must have already installed {registry} on OpenShift.
-* You must have already installed and configured your chosen {registry} storage in {kafka-streams} or PostgreSQL. 
+* You must have already installed and configured your chosen {registry} storage in either {kafka-streams} or PostgreSQL.
 
 .Procedure
 

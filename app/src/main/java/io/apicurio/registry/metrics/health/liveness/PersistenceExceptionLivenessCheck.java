@@ -28,7 +28,7 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
      * Maximum number of exceptions raised by artifactStore implementation, as captured by this interceptor,
      * before the liveness check fails.
      */
-    @ConfigProperty(name = "apicurio.metrics.PersistenceExceptionLivenessCheck.errorThreshold", defaultValue = "1")
+    @ConfigProperty(name = "apicurio.metrics.persistence-exception-liveness-check.error-threshold", defaultValue = "1")
     @Info(category = "health", description = "Error threshold of persistence liveness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
@@ -36,7 +36,7 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
      * The counter is reset after some time without errors. i.e. to fail the check after 2 errors in a minute,
      * set the threshold to 1 and this configuration option to 60. TODO report the absolute count as a metric?
      */
-    @ConfigProperty(name = "apicurio.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDuration.seconds", defaultValue = "60")
+    @ConfigProperty(name = "apicurio.metrics.persistence-exception-liveness-check.counter-reset-window-duration.seconds", defaultValue = "60")
     @Info(category = "health", description = "Counter reset window duration of persistence liveness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
@@ -44,11 +44,11 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
      * If set to a positive value, reset the liveness status after this time window passes without any further
      * errors.
      */
-    @ConfigProperty(name = "apicurio.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDuration.seconds", defaultValue = "300")
+    @ConfigProperty(name = "apicurio.metrics.persistence-exception-liveness-check.status-reset-window-duration.seconds", defaultValue = "300")
     @Info(category = "health", description = "Status reset window duration of persistence liveness check", availableSince = "1.0.2.Final")
     Integer configStatusResetWindowDurationSec;
 
-    @ConfigProperty(name = "apicurio.metrics.PersistenceExceptionLivenessCheck.logging.disabled", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.metrics.persistence-exception-liveness-check.logging.disabled", defaultValue = "false")
     @Info(category = "health", description = "Disable logging of persistence liveness check", availableSince = "2.0.0.Final")
     Boolean disableLogging;
 

@@ -14,7 +14,7 @@ public class AuthTestProfile implements QuarkusTestProfile {
         Map<String, String> props = new HashMap<>();
         props.put("apicurio.rest.deletion.group.enabled", "true");
         props.put("apicurio.rest.deletion.artifact.enabled", "true");
-        props.put("apicurio.rest.deletion.artifactVersion.enabled", "true");
+        props.put("apicurio.rest.deletion.artifact-version.enabled", "true");
         props.put("smallrye.jwt.sign.key.location", "privateKey.jwk");
         return props;
     }

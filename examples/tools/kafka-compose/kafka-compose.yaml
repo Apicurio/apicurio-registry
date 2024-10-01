@@ -2,7 +2,6 @@
 version: '3'
 
 services:
-
   kafka:
     image: quay.io/strimzi/kafka:0.39.0-kafka-3.6.1
     command: [

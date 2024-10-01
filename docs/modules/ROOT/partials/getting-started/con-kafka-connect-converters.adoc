@@ -7,12 +7,7 @@
 You can use {registry} with Apache Kafka Connect to stream data between Kafka and external systems. Using Kafka Connect, you can define connectors for different systems to move large volumes of data into and out of Kafka-based systems. 
 
 .{registry} and Kafka Connect architecture
-ifdef::apicurio-registry,rh-service-registry[]
 image::images/getting-started/registry-connect-architecture.png[Registry and Kafka Connect architecture]
-endif::[]
-ifdef::rh-openshift-sr[]
-image::../_images/introduction/registry-connect-architecture.png[Registry and Kafka Connect architecture]
-endif::[]
 
 {registry} provides the following features for Kafka Connect:
 
@@ -35,5 +30,5 @@ endif::[]
 ifdef::apicurio-registry[]
 * link:https://debezium.io/documentation/reference/stable/configuration/avro.html[Configuring Debezium to use Avro serialization and {registry}]
 endif::[] 
-* link:https://github.com/Apicurio/apicurio-registry-examples/tree/main/event-driven-architecture[Example of using Debezium to monitor the PostgreSQL database used by Apicurio Registry]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/event-driven-architecture[Example of using Debezium to monitor the PostgreSQL database used by Apicurio Registry]
 * link:https://kafka.apache.org/documentation/#connect[Apache Kafka Connect documentation]

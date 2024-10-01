@@ -5,16 +5,11 @@
 = Creating an access token for {registry} REST API commands
 
 [role="_abstract"]
-This section shows a curl-based example of how to create an OAuth Bearer access token for use with the Core Registry API v2. You can do this using the OpenShift Application Services authentication server and your service account credentials.
+This section shows a curl-based example of how to create an OAuth Bearer access token for use with the Core Registry API v3. You can do this using the OpenShift Application Services authentication server and your service account credentials.
 
 .Prerequisites
 
-ifdef::apicurio-registry,rh-service-registry[]
 * {registry} is installed and running in your environment
-endif::[]
-ifdef::rh-openshift-sr[]
-* You have access to the {registry} web console.
-endif::[]
 
 .Procedure
 

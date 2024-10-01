@@ -45,13 +45,13 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |Environment variable
 |Description
 |Setting
-|`KEYCLOAK_API_CLIENT_ID`
+|`QUARKUS_OIDC_CLIENT_ID`
 |The client application ID for the {registry} REST API
 |Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
-|`REGISTRY_OIDC_UI_CLIENT_ID`
+|`APICURIO_OIDC_UI_CLIENT_ID`
 |The client application ID for the {registry} web console.
 |Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
-|`REGISTRY_AUTH_URL_CONFIGURED`
+|`QUARKUS_OIDC_AUTH_SERVER_URL`
 |The URL for authentication in Azure AD.
 |Your Azure AD Application (tenant) ID obtained in step 6. For example: `\https://login.microsoftonline.com/1a2bc34d-567e-89f1-g0hi-1j2kl3m4no56/v2.0`.
 |===
@@ -64,16 +64,16 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |Environment variable
 |Description
 |Setting
-|`REGISTRY_AUTH_ENABLED`
+|`QUARKUS_OIDC_TENANT_ENABLED`
 |Enables authentication for {registry}.
 |`true`
-|`REGISTRY_UI_AUTH_TYPE`
+|`APICURIO_UI_AUTH_TYPE`
 |The {registry} authentication type.
 |`oidc`
-|`CORS_ALLOWED_ORIGINS`
+|`QUARKUS_HTTP_CORS_ORIGINS`
 |The host for your {registry} deployment for cross-origin resource sharing (CORS).
 |For example: `\https://test-registry.com`
-|`REGISTRY_OIDC_UI_REDIRECT_URL`
+|`APICURIO_OIDC_UI_REDIRECT_URL`
 |The host for your {registry} web console.
 |For example: `\https://test-registry.com/ui`
 |`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`

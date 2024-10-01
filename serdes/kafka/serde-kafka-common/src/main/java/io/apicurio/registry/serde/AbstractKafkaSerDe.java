@@ -7,7 +7,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 /**
  * Common class for both serializer and deserializer.
  */
-public abstract class AbstractKafkaSerDe<T, U> extends AbstractSerDe<T, U> {
+public abstract class AbstractKafkaSerDe<T, U> extends BaseSerde<T, U> {
 
     public AbstractKafkaSerDe() {
         super();

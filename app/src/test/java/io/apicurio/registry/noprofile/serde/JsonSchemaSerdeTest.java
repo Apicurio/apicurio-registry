@@ -9,13 +9,11 @@ import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.SchemaResolverConfig;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.serde.SchemaResolverConfigurer;
 import io.apicurio.registry.serde.config.IdOption;
 import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
@@ -513,14 +511,10 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                 .builder().globalId(global.getGlobalId()).groupId("GLOBAL")// .version("4")
                 .artifactId("sample.account.json").build();
 
-        SchemaResolverConfigurer<JsonSchema, Object> src = new SchemaResolverConfigurer<JsonSchema, Object>(
-                client);
-
-        SchemaResolver<JsonSchema, Object> sr = src.getSchemaResolver();
+        SchemaResolver<JsonSchema, Object> sr = new DefaultSchemaResolver<>(client);
         Map<String, String> configs = new HashMap<>();
-        configs.put(SchemaResolverConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT,
-                DefaultSchemaResolver.class.getName());
-        configs.put(SchemaResolverConfig.CHECK_PERIOD_MS, "600000");
+        configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT, DefaultSchemaResolver.class.getName());
+        configs.put(SerdeConfig.CHECK_PERIOD_MS, "600000");
         sr.configure(configs, new JsonSchemaParser<Object>());
         ParsedSchema<JsonSchema> ps = sr.resolveSchemaByArtifactReference((artifactReference))
                 .getParsedSchema();

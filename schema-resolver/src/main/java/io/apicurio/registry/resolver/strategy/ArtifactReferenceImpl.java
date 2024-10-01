@@ -1,6 +1,6 @@
 package io.apicurio.registry.resolver.strategy;
 
-import io.apicurio.registry.resolver.SchemaResolverConfig;
+import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 
 /**
  * @see ArtifactReference

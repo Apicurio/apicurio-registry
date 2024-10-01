@@ -43,6 +43,15 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
         super(schemaResolver);
     }
 
+    public ProtobufSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(client, schemaResolver);
+    }
+
+    public ProtobufSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver,
+            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
+        super(client, strategy, schemaResolver);
+    }
+
     @Override
     public void configure(SerdeConfig configs, boolean isKey) {
         ProtobufSerializerConfig config = new ProtobufSerializerConfig(configs.originals());
@@ -52,7 +61,7 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
+     * @see AbstractSerializer#schemaParser()
      */
     @Override
     public SchemaParser<ProtobufSchema, U> schemaParser() {
@@ -64,7 +73,7 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
      *      java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out)
+    public void serializeData(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out)
             throws IOException {
         if (validationEnabled) {
 

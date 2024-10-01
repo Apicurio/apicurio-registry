@@ -12,7 +12,7 @@
 * Role-based authorization for default admin, write, and read-only user roles. 
 * Content-based authorization for schema or API artifacts, where only the owner of the artifacts or artifact group can update or delete artifacts. 
 
-IMPORTANT: All authentication and authorization options in {registry} are disabled by default. Before enabling any of these options, you must first set the `AUTH_ENABLED` option to `true`. 
+IMPORTANT: All authentication and authorization options in {registry} are disabled by default. Before enabling any of these options, you must first set the `QUARKUS_OIDC_TENANT_ENABLED` option to `true`.
 
 This chapter provides details on the following configuration options: 
 
@@ -36,23 +36,19 @@ You can set the following environment variables to configure authentication for 
 |Description
 |Type
 |Default
-|`AUTH_ENABLED`
+|`QUARKUS_OIDC_TENANT_ENABLED`
 |Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication using {keycloak}.
 |String
 |`false`
-|`KEYCLOAK_URL`
+|`QUARKUS_OIDC_AUTH_SERVER_URL`
 |The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
 |String
 |-
-|`KEYCLOAK_REALM`
-|The {keycloak} realm for authentication. For example, `registry.`
-|String
-|-
-|`KEYCLOAK_API_CLIENT_ID`
+|`QUARKUS_OIDC_CLIENT_ID`
 |The client ID for the {registry} REST API.
 |String
 |`registry-api`
-|`KEYCLOAK_UI_CLIENT_ID`
+|`APICURIO_UI_AUTH_OIDC_CLIENT_ID`
 |The client ID for the {registry} web console.
 |String
 |`apicurio-registry`
@@ -71,12 +67,12 @@ By default, {registry} supports authentication by using OpenID Connect. Users or
 |Java system property
 |Type
 |Default value
-|`AUTH_ENABLED`
-|`registry.auth.enabled`
+|`QUARKUS_OIDC_TENANT_ENABLED`
+|`apicurio.auth.enabled`
 |Boolean
 |`false`
-|`CLIENT_CREDENTIALS_BASIC_AUTH_ENABLED`
-|`registry.auth.basic-auth-client-credentials.enabled`
+|`CLIENT_CREDENTIALS_BASIC_ENABLED`
+|`apicurio.auth.basic-auth-client-credentials.enabled`
 |Boolean
 |`false`
 |===
@@ -96,7 +92,7 @@ When using {keycloak}, it is best to set this configuration to your {keycloak} J
 |Type
 |Default value
 |`CLIENT_CREDENTIALS_BASIC_CACHE_EXPIRATION`
-|`registry.auth.basic-auth-client-credentials.cache-expiration`
+|`apicurio.auth.basic-auth-client-credentials.cache-expiration`
 |Integer
 |`10`
 |===
@@ -115,8 +111,8 @@ You can set the following options to `true` to enable role-based authorization i
 |Java system property
 |Type
 |Default value
-|`AUTH_ENABLED`
-|`registry.auth.enabled`
+|`QUARKUS_OIDC_TENANT_ENABLED`
+|`apicurio.auth.enabled`
 |Boolean
 |`false`
 |`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
@@ -144,15 +140,15 @@ To enable using roles assigned by {keycloak}, set the following environment vari
 | When set to `token`, user roles are taken from the authentication token.
 |String
 |`token`
-|`REGISTRY_AUTH_ROLES_ADMIN`
+|`APICURIO_AUTH_ROLES_ADMIN`
 |The name of the role that indicates a user is an admin.
 |String
 |`sr-admin`
-|`REGISTRY_AUTH_ROLES_DEVELOPER`
+|`APICURIO_AUTH_ROLES_DEVELOPER`
 |The name of the role that indicates a user is a developer.
 |String
 |`sr-developer`
-|`REGISTRY_AUTH_ROLES_READONLY`
+|`APICURIO_AUTH_ROLES_READONLY`
 |The name of the role that indicates a user has read-only access.
 |String
 |`sr-readonly`
@@ -223,27 +219,27 @@ Because there are no default admin users in {registry}, it is usually helpful to
 |Description
 |Type
 |Default
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_ENABLED`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_ENABLED`
 | Enables the admin-override feature.
 |String
 |`false`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_FROM`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_FROM`
 |Where to look for admin-override information.  Only `token` is currently supported.
 |String
 |`token`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_TYPE`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_TYPE`
 |The type of information used to determine if a user is an admin.  Values depend on the value of the FROM variable, for example, `role` or `claim` when FROM is `token`.
 |String
 |`role`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_ROLE`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_ROLE`
 |The name of the role that indicates a user is an admin.
 |String
 |`sr-admin`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_CLAIM`
 |The name of a JWT token claim to use for determining admin-override.
 |String
 |`org-admin`
-|`REGISTRY_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE`
 |The value that the JWT token claim indicated by the CLAIM variable must be for the user to be granted admin-override.
 |String
 |`true`
@@ -267,17 +263,17 @@ You can set the following options to `true` to enable owner-only authorization f
 |Type
 |Default value
 
-|`AUTH_ENABLED`
-|`registry.auth.enabled`
+|`QUARKUS_OIDC_TENANT_ENABLED`
+|`apicurio.auth.enabled`
 |Boolean
 |`false`
 
-|`REGISTRY_AUTH_OBAC_ENABLED`
+|`APICURIO_AUTH_OBAC_ENABLED`
 |`apicurio.auth.owner-only-authorization`
 |Boolean
 |`false`
 
-|`REGISTRY_AUTH_OBAC_LIMIT_GROUP_ACCESS`
+|`APICURIO_AUTH_OBAC_LIMIT_GROUP_ACCESS`
 |`apicurio.auth.owner-only-authorization.limit-group-access`
 |Boolean
 |`false`
@@ -302,11 +298,11 @@ To enable authenticated read access, you must first enable role-based authorizat
 |Java system property
 |Type
 |Default value
-|`AUTH_ENABLED`
-|`registry.auth.enabled`
+|`QUARKUS_OIDC_TENANT_ENABLED`
+|`apicurio.auth.enabled`
 |Boolean
 |`false`
-|`REGISTRY_AUTH_AUTHENTICATED_READS_ENABLED`
+|`APICURIO_AUTH_AUTHENTICATED_READS_ENABLED`
 |`apicurio.auth.authenticated-read-access.enabled`
 |Boolean
 |`false`
@@ -331,11 +327,11 @@ calls to the REST API, set the following options to `true`:
 |Java system property
 |Type
 |Default value
-|`AUTH_ENABLED`
-|`registry.auth.enabled`
+|`QUARKUS_OIDC_TENANT_ENABLED`
+|`apicurio.auth.enabled`
 |Boolean
 |`false`
-|`REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED`
+|`APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED`
 |`apicurio.auth.anonymous-read-access.enabled`
 |Boolean
 |`false`

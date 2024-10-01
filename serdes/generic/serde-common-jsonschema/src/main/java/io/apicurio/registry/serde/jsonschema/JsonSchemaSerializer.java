@@ -41,6 +41,10 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         super(client);
     }
 
+    public JsonSchemaSerializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(client, schemaResolver);
+    }
+
     public JsonSchemaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
     }
@@ -50,10 +54,6 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         this.validationEnabled = validationEnabled;
     }
 
-    /**
-     * @see io.apicurio.registry.serde.AbstractSerializer#configure(SerdeConfig, boolean)
-     */
-    @Override
     public void configure(SerdeConfig configs, boolean isKey) {
         JsonSchemaSerializerConfig config = new JsonSchemaSerializerConfig(configs.originals());
 
@@ -68,6 +68,11 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         }
 
         super.configure(config, isKey);
+    }
+
+    @Override
+    public SchemaParser<JsonSchema, T> schemaParser() {
+        return parser;
     }
 
     public boolean isValidationEnabled() {
@@ -86,20 +91,11 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
-     */
-    @Override
-    public SchemaParser<JsonSchema, T> schemaParser() {
-        return parser;
-    }
-
-    /**
      * @see io.apicurio.registry.serde.AbstractSerializer#serializeData(io.apicurio.registry.resolver.ParsedSchema,
      *      java.lang.Object, java.io.OutputStream)
      */
     @Override
-    protected void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out)
-            throws IOException {
+    public void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
         final byte[] dataBytes = mapper.writeValueAsBytes(data);
 
         if (isValidationEnabled()) {

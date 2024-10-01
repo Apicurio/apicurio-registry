@@ -4,28 +4,26 @@
 = {registry} available distributions
 
 [role="_abstract"]
-{registry} provides the following distribution options. 
+{registry} provides the following components as part of its distribution.
 
 ifdef::apicurio-registry[]
 
 .{registry} images 
 [%header,cols="2,4"] 
 |===
-|Distribution option
+|Component
 |Container Image
-|In-memory
-|https://hub.docker.com/r/apicurio/apicurio-registry-mem
-|PostgreSQL database  
-|https://hub.docker.com/r/apicurio/apicurio-registry-sql 
-|Apache Kafka
-|https://hub.docker.com/r/apicurio/apicurio-registry-kafkasql 
-|{registry} Operator 
+|Back-end
+|https://hub.docker.com/r/apicurio/apicurio-registry
+|User Interface
+|https://hub.docker.com/r/apicurio/apicurio-registry-ui
+|{registry} Operator
 |https://hub.docker.com/r/apicurio/apicurio-registry-operator
 |===
 
 .Additional resources
-* For details on building from source code and running Docker images, see https://github.com/Apicurio/apicurio-registry
-* For details on using the Operator to deploy, see https://github.com/Apicurio/apicurio-registry-operator
+* For details on building from source code and running Docker images, see link:https://github.com/Apicurio/apicurio-registry[]
+* For details on using the Operator to deploy, see link:https://github.com/Apicurio/apicurio-registry/tree/main/operator[]
 
 endif::[]
 
@@ -43,10 +41,10 @@ ifdef::rh-service-registry[]
 |Container image for {registry} Operator 
 |link:{download-url-registry-container-catalog}[{org-name} Ecosystem Catalog]
 |General Availability
-|Container image for Kafka storage in AMQ Streams 
+|Container image for Apicurio Registry (Back End)
 |link:{download-url-registry-container-catalog}[{org-name} Ecosystem Catalog] 
 |General Availability
-|Container image for database storage in PostgreSQL 
+|Container image for Apicurio Registry (User Interface)
 |link:{download-url-registry-container-catalog}[{org-name} Ecosystem Catalog]
 |General Availability
 |===
@@ -59,9 +57,6 @@ ifdef::rh-service-registry[]
 |Location
 |Release category
 |Example custom resource definitions for installation
-|link:{download-url-registry-distribution}[{org-name} Software Downloads]
-|General Availability
-|{registry} v1 to v2 migration tool 
 |link:{download-url-registry-distribution}[{org-name} Software Downloads]
 |General Availability
 |Maven repository

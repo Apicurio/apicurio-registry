@@ -65,7 +65,7 @@ public class AvroDeserializer<U> extends AbstractDeserializer<Schema, U> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
+     * @see AbstractDeserializer#schemaParser()
      */
     @Override
     public SchemaParser<Schema, U> schemaParser() {

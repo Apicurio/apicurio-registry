@@ -13,7 +13,7 @@ mvn package -Pprod
 
 Then you can execute it like this:
 ```
-java -jar target/apicurio-registry-utils-exportConfluent-2.2.3-SNAPSHOT-runner.jar http://localhost:8081/
+java -jar target/apicurio-registry-utils-exportConfluent-3.0.0-SNAPSHOT-runner.jar http://localhost:8081/
 ```
 It will create a `confluent-schema-registry-export.zip` in the current directory.
 
@@ -21,7 +21,7 @@ It will create a `confluent-schema-registry-export.zip` in the current directory
 
 You can configure the client used to connect to the registry API like this:
 ```
-java -jar target/apicurio-registry-utils-exportConfluent-2.2.3-SNAPSHOT-runner.jar http://localhost:8081/ --client-props bearer.auth.credentials.source=BEARER_TOKEN
+java -jar target/apicurio-registry-utils-exportConfluent-3.0.0-SNAPSHOT-runner.jar http://localhost:8081/ --client-props bearer.auth.credentials.source=BEARER_TOKEN
 ```
 
 To allow insecure https certificates, you can use `--insecure` parameter.

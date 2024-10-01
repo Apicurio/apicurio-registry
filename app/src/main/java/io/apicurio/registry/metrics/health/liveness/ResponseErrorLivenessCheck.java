@@ -25,7 +25,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck
      * Maximum number of HTTP 5xx errors returned to the user as captured by
      * {@link io.apicurio.registry.rest.RegistryExceptionMapper} before the liveness check fails.
      */
-    @ConfigProperty(name = "apicurio.metrics.ResponseErrorLivenessCheck.errorThreshold", defaultValue = "1")
+    @ConfigProperty(name = "apicurio.metrics.response-error-liveness-check.error-threshold", defaultValue = "1")
     @Info(category = "health", description = "Error threshold of response liveness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
@@ -33,7 +33,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck
      * The counter is reset after some time without errors. i.e. to fail the check after 2 errors in a minute,
      * set the threshold to 1 and this configuration option to 60. TODO report the absolute count as a metric?
      */
-    @ConfigProperty(name = "apicurio.metrics.ResponseErrorLivenessCheck.counterResetWindowDuration.seconds", defaultValue = "60")
+    @ConfigProperty(name = "apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds", defaultValue = "60")
     @Info(category = "health", description = "Counter reset window duration of response liveness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
@@ -41,11 +41,11 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck
      * If set to a positive value, reset the liveness status after this time window passes without any further
      * errors.
      */
-    @ConfigProperty(name = "apicurio.metrics.ResponseErrorLivenessCheck.statusResetWindowDuration.seconds", defaultValue = "300")
+    @ConfigProperty(name = "apicurio.metrics.response-error-liveness-check.status-reset-window-duration.seconds", defaultValue = "300")
     @Info(category = "health", description = "Status reset window duration of response liveness check", availableSince = "1.0.2.Final")
     Integer configStatusResetWindowDurationSec;
 
-    @ConfigProperty(name = "apicurio.metrics.ResponseErrorLivenessCheck.logging.disabled", defaultValue = "false")
+    @ConfigProperty(name = "apicurio.metrics.response-error-liveness-check.disabled", defaultValue = "false")
     @Info(category = "health", description = "Disable logging of response liveness check", availableSince = "2.0.0.Final")
     Boolean disableLogging;
 

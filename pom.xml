@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.0.0-SNAPSHOT</version>
+  <version>3.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -140,25 +140,33 @@
     <!-- UI Build Tools -->
     <node.version>16.17.0</node.version>
 
-    <!-- Quarkus Version -->
+    <!--
+    WARNING: The following group of dependencies has to be aligned with the corresponding Quarkus version.
+    See notes for each entry.
+    -->
     <quarkus.version>3.11.1</quarkus.version>
+    <!-- Go to `io.quarkiverse.operatorsdk:quarkus-operator-sdk-bom` and then to the parent `io.quarkiverse.operatorsdk:quarkus-operator-sdk-parent`. -->
+    <!-- TODO: Fix: Currently, versions are not aligned exactly (3.11.1 vs 3.11.0), because there is no closer version supported by QOSDK. -->
+    <quarkus-operator-sdk.version>6.7.1</quarkus-operator-sdk.version>
+    <java-operator-sdk.version>4.9.5</java-operator-sdk.version>
+    <!-- /WARNING -->
 
     <!-- Jandex -->
     <jandex.version>3.1.8</jandex.version>
 
     <!-- Schema types -->
     <avro.version>1.12.0</avro.version>
-    <json-schema-validator.version>1.5.1</json-schema-validator.version>
+    <json-schema-validator.version>1.5.2</json-schema-validator.version>
     <wire-schema.version>4.9.9</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <wire-compiler.version>4.9.9</wire-compiler.version>
     <okio-jvm.version>3.9.1</okio-jvm.version>
     <okio.version>3.9.1</okio.version>
-    <okio-fake-file-system.version>3.9.0</okio-fake-file-system.version>
+    <okio-fake-file-system.version>3.9.1</okio-fake-file-system.version>
     <icu4j.version>75.1</icu4j.version>
     <protobuf.version>3.25.5</protobuf.version>
     <xmlsec.version>4.0.2</xmlsec.version>
-    <protobuf.googleapi.types.version>2.44.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.45.1</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.4</google.truth.extension.version>
 
@@ -190,7 +198,7 @@
     <org.everit.json.schema.version>1.14.4</org.everit.json.schema.version>
     <!-- TODO unification -->
     <org.json.version>20240303</org.json.version>
-    <jackson-datatype-json-org.version>2.17.2</jackson-datatype-json-org.version>
+    <jackson-datatype-json-org.version>2.18.0</jackson-datatype-json-org.version>
     <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
@@ -211,11 +219,11 @@
 
     <nats.version>2.20.2</nats.version>
     <snakeyaml.version>2.3</snakeyaml.version>
-    <guava.version>33.3.0-jre</guava.version>
+    <guava.version>33.3.1-jre</guava.version>
     <woodstox-core.version>7.0.0</woodstox-core.version>
     <jgit.version>7.0.0.202409031743-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>
-    <semver4j.version>5.3.0</semver4j.version>
+    <semver4j.version>5.4.0</semver4j.version>
 
     <!-- Kafka Connect -->
     <connect.version>3.7.0</connect.version>
@@ -225,14 +233,14 @@
 
     <!-- Scala -->
     <version.scala-maven.plugin>4.4.0</version.scala-maven.plugin>
-    <scala.version>2.13.14</scala.version>
+    <scala.version>2.13.15</scala.version>
 
     <!-- Plugin Versions -->
     <version.build.helper.maven.plugin>3.6.0</version.build.helper.maven.plugin>
     <version.compiler.plugin>3.13.0</version.compiler.plugin>
     <version.deploy.plugin>3.1.3</version.deploy.plugin>
     <version.failsafe.plugin>3.5.0</version.failsafe.plugin>
-    <version.javadoc.plugin>3.10.0</version.javadoc.plugin>
+    <version.javadoc.plugin>3.10.1</version.javadoc.plugin>
     <version.source.plugin>3.3.1</version.source.plugin>
     <version.surefire.plugin>3.5.0</version.surefire.plugin>
     <version.jar.plugin>3.4.2</version.jar.plugin>
@@ -253,7 +261,7 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
-    <test-containers.version>1.20.1</test-containers.version>
+    <test-containers.version>1.20.2</test-containers.version>
     <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
     <keycloak-admin-client.version>21.1.2</keycloak-admin-client.version>
     <embedded-postgres.version>2.0.7</embedded-postgres.version>
@@ -573,7 +581,7 @@
       <dependency>
         <groupId>org.jetbrains.kotlinx</groupId>
         <artifactId>kotlinx-serialization-core</artifactId>
-        <version>1.7.2</version>
+        <version>1.7.3</version>
       </dependency>
       <dependency>
         <groupId>com.ibm.icu</groupId>
@@ -988,6 +996,13 @@
           <target>${maven.compiler.target}</target>
           <showDeprecation>false</showDeprecation>
           <showWarnings>false</showWarnings>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+          </annotationProcessorPaths>
         </configuration>
       </plugin>
       <plugin>
@@ -1219,7 +1234,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>3.2.6</version>
+            <version>3.2.7</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -1268,8 +1283,8 @@
         </repository>
       </distributionManagement>
     </profile>
-    <!-- 
-            conditional repo to be excluded in productization 
+    <!--
+            conditional repo to be excluded in productization
             build in prod with:
             mvn ... -P '!external_repos'
         -->

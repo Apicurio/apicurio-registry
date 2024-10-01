@@ -79,7 +79,7 @@ This section shows a simple example of using the Maven plug-in to register an Av
                 <goal>register</goal> <1>
             </goals>
             <configuration>
-                <registryUrl>MY-REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+                <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
                 <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
                 <clientId>MY-CLIENT-ID</clientId>
                 <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
@@ -105,13 +105,8 @@ This section shows a simple example of using the Maven plug-in to register an Av
 ----
 +
 <1> Specify `register` as the execution goal to upload the schema artifacts to {registry}.
-<2> Specify the {registry} URL by using the `../apis/registry/v2` endpoint.
-ifdef::apicurio-registry,rh-service-registry[]
+<2> Specify the {registry} URL by using the `../apis/registry/v3` endpoint.
 <3> If authentication is required, you can specify your authentication server and client credentials.
-endif::[]
-ifdef::rh-openshift-sr[]
-<3> Specify your service account ID and secret and the {org-name} Single Sign-On authentication server: `{sso-token-url}`
-endif::[]
 <4> Specify the parent artifact group ID that contains the references. You can specify the `default` group if you do not want to use a unique group ID.
 <5> Specify the location of the parent artifact file. All referenced artifacts must also be located in the same directory. 
 <6> Set the `<autoRefs>` option to true to automatically detect and register all references to artifacts in the same directory. You can register multiple artifact references in this way.
@@ -121,7 +116,7 @@ endif::[]
 [role="_additional-resources"]
 .Additional resources
  * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
- * For an open source example of using the {registry} Maven plug-in to automatically register multiple artifact references, see the link:https://github.com/Apicurio/apicurio-registry-examples/tree/main/avro-maven-with-references-auto[avro-maven-with-references-auto demonstration example].
+ * For an open source example of using the {registry} Maven plug-in to automatically register multiple artifact references, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/avro-maven-with-references-auto[avro-maven-with-references-auto demonstration example].
  * For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
 
 

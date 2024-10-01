@@ -58,38 +58,28 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 |Used by serializers and deserializers. URL to access the registry API.
 |`String`
 |None
-|`AUTH_SERVICE_URL`
-|`apicurio.auth.service.url`
-|Used by serializers and deserializers. URL of the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
-|`String`
-|None
 |`AUTH_TOKEN_ENDPOINT`
-|`apicurio.auth.service.token.endpoint`
-|Used by serializers and deserializers. URL of the token endpoint. Required when accessing a secure registry and `AUTH_SERVICE_URL` is not specified.
-|`String`
-|None
-|`AUTH_REALM`
-|`apicurio.auth.realm`
-|Used by serializers and deserializers. Realm to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
+|`apicurio.registry.auth.service.token.endpoint`
+|Used by serializers and deserializers. URL of the token endpoint.
 |`String`
 |None
 |`AUTH_CLIENT_ID`
-|`apicurio.auth.client.id`
+|`apicurio.registry.auth.client.id`
 |Used by serializers and deserializers. Client ID to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
 |`String`
 |None
 |`AUTH_CLIENT_SECRET`
-|`apicurio.auth.client.secret`
+|`apicurio.registry.auth.client.secret`
 |Used by serializers and deserializers. Client secret to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
 |`String`
 |None
 |`AUTH_USERNAME`
-|`apicurio.auth.username`
+|`apicurio.registry.auth.username`
 |Used by serializers and deserializers. Username to access the registry. Required when accessing a secure registry using HTTP basic authentication.
 |`String`
 |None
 |`AUTH_PASSWORD`
-|`apicurio.auth.password`
+|`apicurio.registy.auth.password`
 |Used by serializers and deserializers. Password to access the registry. Required when accessing a secure registry using HTTP basic authentication.
 |`String`
 |None
@@ -137,6 +127,11 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`apicurio.registry.auto-register`
 |Used by serializers only. Specifies whether the serializer tries to create an artifact in the registry. The JSON Schema serializer does not support this feature.
 |`boolean, boolean String`
+|`false`
+|`DEREFERENCE_SCHEMA`
+|`apicurio.registry.dereference-schema`
+|Used to indicate the serdes to dereference the schema. This is used in two different situation, once the schema is registered, instructs the serdes to ask the server for the schema dereferenced. It is also used to instruct the serializer to dereference the schema before registering it Registry, but this is only supported for Avro.
+|`boolean`
 |`false`
 |`AUTO_REGISTER_ARTIFACT_IF_EXISTS`
 |`apicurio.registry.auto-register.if-exists`

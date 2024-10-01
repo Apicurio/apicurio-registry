@@ -5,10 +5,14 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum ConditionStatus {
 
+    // spotless:off
     @JsonProperty("True")
-    TRUE("True"), @JsonProperty("False")
-    FALSE("False"), @JsonProperty("Unknown")
+    TRUE("True"),
+    @JsonProperty("False")
+    FALSE("False"),
+    @JsonProperty("Unknown")
     UNKNOWN("Unknown");
+    // spotless:on
 
     String value;
 

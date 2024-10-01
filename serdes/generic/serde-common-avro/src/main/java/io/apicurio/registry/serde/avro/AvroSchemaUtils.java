@@ -2,8 +2,8 @@ package io.apicurio.registry.serde.avro;
 
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.utils.IoUtil;
+import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaParseException;
 import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.reflect.ReflectData;
 
@@ -44,7 +44,7 @@ public class AvroSchemaUtils {
         try {
             final Schema.Parser parser = new Schema.Parser();
             return parser.parse(schema);
-        } catch (SchemaParseException e) {
+        } catch (AvroTypeException e) {
             // If we fail to parse the content from the main schema, then parse first the references and then
             // the main schema
             final Schema.Parser parser = new Schema.Parser();

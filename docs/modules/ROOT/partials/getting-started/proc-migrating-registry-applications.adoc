@@ -23,7 +23,7 @@ You must review your existing {registry} client applications to ensure that the 
 </dependency>
 ----
 
-. In your Java client application, you must change your registry URL configuration, from pointing to the existing v2 API path to the new v3 path. Starting with v3, we use Vertx as the default platform for our rest client, due to this change, a RequestAdapter is required when the client is create. For example:
+. In your Java client application, you must change your registry URL configuration, from pointing to the existing v2 API path to the new v3 path. Starting with v3, we use Vertx as the default platform for our rest client, due to this change, a RequestAdapter is required when the client is created. For example:
 +
 [source,java, subs="attributes+"]
 ----
@@ -43,7 +43,7 @@ ifdef::apicurio-registry[]
 {rest-client}. 
 endif::[]
 ifdef::rh-service-registry[]
-the link:{LinkServiceRegistryUser}#using-the-registry-client[{NameServiceRegistryUser}].
+the link:{LinkServiceRegistryUser}#using-the-registry-sdk[{NameServiceRegistryUser}].
 endif::[]
 
 . If you are using the {registry} SerDes libraries, you must change the Maven dependencies, which have been repackaged in version 3.x. In {registry} {registry-v2}, the SerDes libraries were provided into three separate Maven modules, while this is still true, the names have been changed:
@@ -76,7 +76,7 @@ _Existing registry v2 API path_:
 +
 [source,java]
 ----
-props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v2");
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v3");
 ----
 +
 _New registry v3 API path_:
@@ -96,4 +96,4 @@ endif::[]
 
 [role="_additional-resources"]
 .Additional resources
-* For detailed configuration examples, see the link:https://github.com/Apicurio/apicurio-registry-examples[Apicurio Registry example applications].
+* For detailed configuration examples, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry example applications].

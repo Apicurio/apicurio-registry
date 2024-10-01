@@ -12,7 +12,8 @@ import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.SchemaResolverConfigurer;
+import io.apicurio.registry.serde.BaseSerde;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.converter.json.FormatStrategy;
@@ -33,15 +34,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
+public class ExtJsonConverter extends BaseSerde<JsonNode, Object>
         implements Converter, SchemaParser<JsonNode, Object>, AutoCloseable {
     private final JsonConverter jsonConverter;
     private final JsonConverter deserializingConverter;
     private final ObjectMapper mapper;
+    private final JsonDeserializer jsonDeserializer;
     private FormatStrategy formatStrategy;
     private boolean isKey;
-
-    private JsonDeserializer jsonDeserializer;
 
     public ExtJsonConverter() {
         this(null);
@@ -63,7 +63,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure((Map<String, Object>) configs, isKey, this);
+        super.configure(new SerdeConfig(configs), isKey, this);
         this.isKey = isKey;
         Map<String, Object> wrapper = new HashMap<>(configs);
         wrapper.put(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false);
@@ -171,7 +171,7 @@ public class ExtJsonConverter extends SchemaResolverConfigurer<JsonNode, Object>
      * @see java.lang.AutoCloseable#close()
      */
     @Override
-    public void close() throws Exception {
+    public void close() {
         jsonConverter.close();
     }
 }

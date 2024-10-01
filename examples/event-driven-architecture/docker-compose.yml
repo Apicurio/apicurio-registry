@@ -68,9 +68,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      REGISTRY_DATASOURCE_URL: "jdbc:postgresql://apicurio-db/apicuriodb"
-      REGISTRY_DATASOURCE_USERNAME: "postgres"
-      REGISTRY_DATASOURCE_PASSWORD: "postgres"
+      APICURIO_DATASOURCE_URL: "jdbc:postgresql://apicurio-db/apicuriodb"
+      APICURIO_DATASOURCE_USERNAME: "postgres"
+      APICURIO_DATASOURCE_PASSWORD: "postgres"
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: divolte-kafka:2181
 

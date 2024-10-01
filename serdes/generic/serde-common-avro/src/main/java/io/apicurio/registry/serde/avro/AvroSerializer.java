@@ -37,6 +37,10 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
         super(schemaResolver);
     }
 
+    public AvroSerializer(RegistryClient client, SchemaResolver<Schema, U> schemaResolver) {
+        super(client, schemaResolver);
+    }
+
     public AvroSerializer(RegistryClient client,
             ArtifactReferenceResolverStrategy<Schema, U> artifactResolverStrategy,
             SchemaResolver<Schema, U> schemaResolver) {
@@ -74,7 +78,7 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
     }
 
     /**
-     * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
+     * @see AvroSerializer#schemaParser()
      */
     @Override
     public SchemaParser<Schema, U> schemaParser() {
@@ -87,7 +91,7 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected void serializeData(ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {
+    public void serializeData(ParsedSchema<Schema> schema, U data, OutputStream out) throws IOException {
         Encoder encoder = createEncoder(schema.getParsedSchema(), out);
 
         if (data instanceof NonRecordContainer) {

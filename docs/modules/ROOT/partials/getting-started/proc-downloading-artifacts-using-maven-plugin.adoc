@@ -26,7 +26,7 @@ You can use the Maven plug-in to download artifacts from {registry}. This is oft
         <goal>download</goal> <1>
       </goals>
       <configuration>
-          <registryUrl>MY-REGISTRY-URL/apis/registry/v2</registryUrl> <2>
+          <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
           <authServerUrl>MY-AUTH-SERVER</authServerUrl> 
           <clientId>MY-CLIENT-ID</clientId>
           <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
@@ -53,13 +53,8 @@ You can use the Maven plug-in to download artifacts from {registry}. This is oft
 ----
 +
 <1> Specify `download` as the execution goal.
-<2> Specify the {registry} URL with the `../apis/registry/v2` endpoint.
-ifdef::apicurio-registry,rh-service-registry[]
+<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
 <3> If authentication is required, you can specify your authentication server and client credentials.
-endif::[]
-ifdef::rh-openshift-sr[]
-<3> Specify your service account ID and secret and {org-name} Single Sign-On authentication server: `{sso-token-url}`
-endif::[]
 <4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
 <5> You can download multiple artifacts to a specified directory using the artifact ID.
 
@@ -68,4 +63,4 @@ endif::[]
 [role="_additional-resources"]
 .Additional resources
  * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
- * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry-examples[Apicurio Registry demonstration examples].
+ * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples].

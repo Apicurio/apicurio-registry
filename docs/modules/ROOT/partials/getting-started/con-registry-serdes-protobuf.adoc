@@ -49,8 +49,7 @@ The deserializer class can determine the values for these options from the messa
 
 The ID location is determined by checking for the magic byte at the start of the message payload. If that byte is found, the ID is read from the message payload using the configured handler. If the magic byte is not found, the ID is read from the message headers.
 
-NOTE: The Protobuf deserializer does not deserialize to your exact Protobuf Message implementation,
-but rather to a `DynamicMessage` instance. There is no appropriate API to do otherwise.
+NOTE: The Protobuf deserializer does not deserialize to your exact Protobuf Message implementation, but rather to a `DynamicMessage` instance. There is no appropriate API to do otherwise.
 
 .Protobuf SerDes and artifact references
 When a complex Protobuf message with an `import` statement is used, the imported Protobuf messages are stored in {registry} as separate artifacts. Then when {registry} gets the main schema to check a Protobuf message, the referenced schemes are also retrieved so the full message schema can be checked and serialized. 
@@ -105,5 +104,5 @@ In this example, two Protobuf artifacts are stored in {registry}, one for `Table
 [role="_additional-resources"]
 .Additional resources
 * For Java example applications, see: 
-** link:https://github.com/Apicurio/apicurio-registry-examples[Protobuf Bean and Protobuf Find Latest examples]
-** link:https://github.com/Apicurio/apicurio-registry-examples[SerDes with references example] 
+** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Protobuf Bean and Protobuf Find Latest examples]
+** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]

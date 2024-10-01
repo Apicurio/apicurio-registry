@@ -154,17 +154,19 @@ jobs:
           SKIP_TESTS: "true"
         run: |
           cd registry
-          ./mvnw  package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
+          ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
 
       - name: Build and Push Native image for testing
         run: |
-          docker build --push -f ./distro/docker/target/docker/Dockerfile.native app/ \
+          cd registry
+          docker build --push -f ./distro/docker/target/docker/Dockerfile.native \
               -t docker.io/apicurio/apicurio-registry-native:latest \
               -t docker.io/apicurio/apicurio-registry-native:latest-release \
               -t docker.io/apicurio/apicurio-registry-native:$RELEASE_VERSION \
               -t quay.io/apicurio/apicurio-registry-native:latest \
               -t quay.io/apicurio/apicurio-registry-native:latest-release \
-              -t quay.io/apicurio/apicurio-registry-native:$RELEASE_VERSION
+              -t quay.io/apicurio/apicurio-registry-native:$RELEASE_VERSION \
+            app/
 
       - name: Google Chat Notification
         if: ${{ failure() }}

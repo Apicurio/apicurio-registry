@@ -9,6 +9,7 @@ import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractDeserializer;
@@ -45,16 +46,16 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         super(schemaResolver);
     }
 
+    public JsonSchemaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver,
+            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
+        super(client, strategy, schemaResolver);
+    }
+
     public JsonSchemaDeserializer(RegistryClient client, Boolean validationEnabled) {
         this(client);
         this.validationEnabled = validationEnabled;
     }
 
-    /**
-     * @see AbstractDeserializer#configure(SerdeConfig, boolean)
-     */
-    @SuppressWarnings("unchecked")
-    @Override
     public void configure(SerdeConfig configs, boolean isKey) {
         JsonSchemaDeserializerConfig config = new JsonSchemaDeserializerConfig(configs.originals(), isKey);
         super.configure(config, isKey);
@@ -72,6 +73,11 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         }
     }
 
+    @Override
+    public SchemaParser<JsonSchema, T> schemaParser() {
+        return parser;
+    }
+
     public boolean isValidationEnabled() {
         return validationEnabled != null && validationEnabled;
     }
@@ -86,14 +92,6 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
     public Class<T> getSpecificReturnClass() {
         return specificReturnClass;
-    }
-
-    /**
-     * @see io.apicurio.registry.serde.AbstractSerDe#schemaParser()
-     */
-    @Override
-    public SchemaParser<JsonSchema, T> schemaParser() {
-        return parser;
     }
 
     /**

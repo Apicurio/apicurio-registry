@@ -82,12 +82,12 @@ objects:
           env:
           - name: QUARKUS_PROFILE
             value: prod
-          - name: REGISTRY_DATASOURCE_URL
-            value: ${REGISTRY_DATASOURCE_URL}
-          - name: REGISTRY_DATASOURCE_USERNAME
-            value: ${REGISTRY_DATASOURCE_USERNAME}
-          - name: REGISTRY_DATASOURCE_PASSWORD
-            value: ${REGISTRY_DATASOURCE_PASSWORD}
+          - name: APICURIO_DATASOURCE_URL
+            value: ${APICURIO_DATASOURCE_URL}
+          - name: APICURIO_DATASOURCE_USERNAME
+            value: ${APICURIO_DATASOURCE_USERNAME}
+          - name: APICURIO_DATASOURCE_PASSWORD
+            value: ${APICURIO_DATASOURCE_PASSWORD}
           resources:
             limits:
               cpu: ${REGISTRY_CPU_LIMIT}
@@ -176,15 +176,15 @@ parameters:
   description: Registry Pods CPU Requests
   value: 100m
   required: true
-- name: REGISTRY_DATASOURCE_URL
+- name: APICURIO_DATASOURCE_URL
   displayName: Datasource URL
   description: Postgresql Datasource URL
   required: true
-- name: REGISTRY_DATASOURCE_USERNAME
+- name: APICURIO_DATASOURCE_USERNAME
   displayName: Datasource Username
   description: Datasource Username
   required: false
-- name: REGISTRY_DATASOURCE_PASSWORD
+- name: APICURIO_DATASOURCE_PASSWORD
   displayName: Datasource Password
   description: Datasource Password
   required: false

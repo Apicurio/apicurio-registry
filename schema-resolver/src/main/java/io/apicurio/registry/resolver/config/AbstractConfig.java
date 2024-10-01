@@ -2,12 +2,11 @@ package io.apicurio.registry.resolver.config;
 
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 public abstract class AbstractConfig {
 
-    protected Map<String, ?> originals;
+    protected Map<String, Object> originals;
 
     protected abstract Map<String, ?> getDefaults();
 
@@ -127,7 +126,7 @@ public abstract class AbstractConfig {
     }
 
     public Map<String, Object> originals() {
-        return new HashMap<>(originals);
+        return originals;
     }
 
     private void reportError(String key, String expectedText, Object value) {

@@ -67,7 +67,6 @@ import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
@@ -125,12 +124,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     SecurityIdentity securityIdentity;
-
-    @Inject
-    CommonResourceOperations common;
-
-    @Inject
-    Event<OutboxEvent> storageEvent;
 
     public enum RegistryHashAlgorithm {
         SHA256, MD5
@@ -819,10 +812,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             if (storageResult.getRight() != null) {
                 rval.setVersion(V3ApiUtil.dtoToVersionMetaData(storageResult.getRight()));
             }
-
-            // before returning the artifact value, fire the artifact created event.
-
-            storageEvent.fire(ArtifactCreatedEvent.of(storageResult.getLeft()));
 
             return rval;
         } catch (ArtifactAlreadyExistsException ex) {

@@ -174,6 +174,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Inject
     SemVerConfigProperties semVerConfigProps;
 
+    @Inject
+
     protected SqlStatements sqlStatements() {
         return sqlStatements;
     }
@@ -187,6 +189,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     Event<StorageEvent> storageEvent;
+
+    @Inject
+    Event<OutboxEvent> outboxEvent;
 
     private volatile boolean isReady = false;
     private volatile Instant isAliveLastCheck = Instant.MIN;
@@ -514,15 +519,19 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .modifiedBy(owner).artifactType(artifactType).labels(labels).build();
 
                 // The artifact was successfully created! Create the version as well, if one was included.
+                ImmutablePair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> pair;
                 if (versionContent != null) {
                     ArtifactVersionMetaDataDto vmdDto = createArtifactVersionRaw(handle, true, groupId,
                             artifactId, version, versionMetaData, owner, createdOn, contentId,
                             versionBranches);
 
-                    return ImmutablePair.of(amdDto, vmdDto);
+                    pair = ImmutablePair.of(amdDto, vmdDto);
                 } else {
-                    return ImmutablePair.left(amdDto);
+                    pair = ImmutablePair.of(amdDto, null);
                 }
+
+                outboxEvent.fire(ArtifactCreatedEvent.of(amdDto));
+                return pair;
             });
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {

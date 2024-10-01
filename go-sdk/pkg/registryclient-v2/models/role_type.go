@@ -1,9 +1,5 @@
 package models
 
-import (
-	"errors"
-)
-
 type RoleType int
 
 const (
@@ -25,7 +21,7 @@ func ParseRoleType(v string) (any, error) {
 	case "ADMIN":
 		result = ADMIN_ROLETYPE
 	default:
-		return 0, errors.New("Unknown RoleType value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

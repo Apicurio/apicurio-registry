@@ -25,11 +25,13 @@ func NewSystemRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 }
 
 // Info retrieve system information
+// returns a *InfoRequestBuilder when successful
 func (m *SystemRequestBuilder) Info() *InfoRequestBuilder {
 	return NewInfoRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Limits retrieve resource limits information
+// returns a *LimitsRequestBuilder when successful
 func (m *SystemRequestBuilder) Limits() *LimitsRequestBuilder {
 	return NewLimitsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

@@ -1,5 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <PackageReference Include="Microsoft.OpenApi.Kiota.Builder" Version="1.10.1" />
-  </ItemGroup>
-</Project>

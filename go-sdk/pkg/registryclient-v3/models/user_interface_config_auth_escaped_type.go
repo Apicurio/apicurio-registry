@@ -1,9 +1,5 @@
 package models
 
-import (
-	"errors"
-)
-
 // This endpoint is used by the user interface to retrieve UI specific configurationin a JSON payload.  This allows the UI and the backend to be configured in the same place (the backend process/pod).  When the UI loads, it will make an API callto this endpoint to determine what UI features and options are configured.
 type UserInterfaceConfigAuth_type int
 
@@ -26,7 +22,7 @@ func ParseUserInterfaceConfigAuth_type(v string) (any, error) {
 	case "oidc":
 		result = OIDC_USERINTERFACECONFIGAUTH_TYPE
 	default:
-		return 0, errors.New("Unknown UserInterfaceConfigAuth_type value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

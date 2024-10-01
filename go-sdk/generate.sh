@@ -10,7 +10,7 @@ if [[ $OSTYPE == 'darwin'* ]]; then
 fi
 
 # TODO move the kiota-version.csproj to it's own folder?
-VERSION=$(cat $SCRIPT_DIR/kiota-version.csproj | grep Version | sed -n 's/.*Version="\([^"]*\)".*/\1/p')
+VERSION=$(cat $SCRIPT_DIR/go-sdk.csproj | grep Version | sed -n 's/.*Version="\([^"]*\)".*/\1/p')
 URL="https://github.com/microsoft/kiota/releases/download/v${VERSION}/${PACKAGE_NAME}.zip"
 
 # COMMAND="kiota"

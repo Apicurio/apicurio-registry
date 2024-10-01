@@ -35,7 +35,7 @@ type ItemArtifactsItemBranchesWithBranchItemRequestBuilderPutRequestConfiguratio
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewItemArtifactsItemBranchesWithBranchItemRequestBuilderInternal instantiates a new WithBranchItemRequestBuilder and sets the default values.
+// NewItemArtifactsItemBranchesWithBranchItemRequestBuilderInternal instantiates a new ItemArtifactsItemBranchesWithBranchItemRequestBuilder and sets the default values.
 func NewItemArtifactsItemBranchesWithBranchItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemBranchesWithBranchItemRequestBuilder {
 	m := &ItemArtifactsItemBranchesWithBranchItemRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/branches/{branchId}", pathParameters),
@@ -43,7 +43,7 @@ func NewItemArtifactsItemBranchesWithBranchItemRequestBuilderInternal(pathParame
 	return m
 }
 
-// NewItemArtifactsItemBranchesWithBranchItemRequestBuilder instantiates a new WithBranchItemRequestBuilder and sets the default values.
+// NewItemArtifactsItemBranchesWithBranchItemRequestBuilder instantiates a new ItemArtifactsItemBranchesWithBranchItemRequestBuilder and sets the default values.
 func NewItemArtifactsItemBranchesWithBranchItemRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemBranchesWithBranchItemRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -51,6 +51,9 @@ func NewItemArtifactsItemBranchesWithBranchItemRequestBuilder(rawUrl string, req
 }
 
 // Delete deletes a single branch in the artifact.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* No branch with this `branchId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a ProblemDetails error when the service returns a 404 status code
+// returns a ProblemDetails error when the service returns a 409 status code
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) Delete(ctx context.Context, requestConfiguration *ItemArtifactsItemBranchesWithBranchItemRequestBuilderDeleteRequestConfiguration) error {
 	requestInfo, err := m.ToDeleteRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -69,6 +72,9 @@ func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) Delete(ctx conte
 }
 
 // Get returns the metaData of a branch.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* No branch with this `branchId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a BranchMetaDataable when successful
+// returns a ProblemDetails error when the service returns a 404 status code
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemArtifactsItemBranchesWithBranchItemRequestBuilderGetRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.BranchMetaDataable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -89,6 +95,8 @@ func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) Get(ctx context.
 }
 
 // Put updates the metadata of a branch.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* No branch with this `branchId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a ProblemDetails error when the service returns a 404 status code
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) Put(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.EditableBranchMetaDataable, requestConfiguration *ItemArtifactsItemBranchesWithBranchItemRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -106,6 +114,7 @@ func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) Put(ctx context.
 }
 
 // ToDeleteRequestInformation deletes a single branch in the artifact.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* No branch with this `branchId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemBranchesWithBranchItemRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -117,6 +126,7 @@ func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) ToDeleteRequestI
 }
 
 // ToGetRequestInformation returns the metaData of a branch.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* No branch with this `branchId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemBranchesWithBranchItemRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -128,6 +138,7 @@ func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) ToGetRequestInfo
 }
 
 // ToPutRequestInformation updates the metadata of a branch.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* No branch with this `branchId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) ToPutRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.EditableBranchMetaDataable, requestConfiguration *ItemArtifactsItemBranchesWithBranchItemRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -143,11 +154,13 @@ func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) ToPutRequestInfo
 }
 
 // Versions manage the versions in a branch.
+// returns a *ItemArtifactsItemBranchesItemVersionsRequestBuilder when successful
 func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) Versions() *ItemArtifactsItemBranchesItemVersionsRequestBuilder {
 	return NewItemArtifactsItemBranchesItemVersionsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ItemArtifactsItemBranchesWithBranchItemRequestBuilder when successful
 func (m *ItemArtifactsItemBranchesWithBranchItemRequestBuilder) WithUrl(rawUrl string) *ItemArtifactsItemBranchesWithBranchItemRequestBuilder {
 	return NewItemArtifactsItemBranchesWithBranchItemRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

@@ -5,7 +5,6 @@ import (
 	i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e "time"
 )
 
-// VersionMetaData
 type VersionMetaData struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -45,36 +44,43 @@ func NewVersionMetaData() *VersionMetaData {
 }
 
 // CreateVersionMetaDataFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateVersionMetaDataFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewVersionMetaData(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *VersionMetaData) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetContentId gets the contentId property value. The contentId property
+// returns a *int64 when successful
 func (m *VersionMetaData) GetContentId() *int64 {
 	return m.contentId
 }
 
 // GetCreatedBy gets the createdBy property value. The createdBy property
+// returns a *string when successful
 func (m *VersionMetaData) GetCreatedBy() *string {
 	return m.createdBy
 }
 
 // GetCreatedOn gets the createdOn property value. The createdOn property
+// returns a *Time when successful
 func (m *VersionMetaData) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
 }
 
 // GetDescription gets the description property value. The description property
+// returns a *string when successful
 func (m *VersionMetaData) GetDescription() *string {
 	return m.description
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["contentId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -217,46 +223,55 @@ func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e8
 }
 
 // GetGlobalId gets the globalId property value. The globalId property
+// returns a *int64 when successful
 func (m *VersionMetaData) GetGlobalId() *int64 {
 	return m.globalId
 }
 
 // GetGroupId gets the groupId property value. An ID of a single artifact group.
+// returns a *string when successful
 func (m *VersionMetaData) GetGroupId() *string {
 	return m.groupId
 }
 
 // GetId gets the id property value. The ID of a single artifact.
+// returns a *string when successful
 func (m *VersionMetaData) GetId() *string {
 	return m.id
 }
 
 // GetLabels gets the labels property value. The labels property
+// returns a []string when successful
 func (m *VersionMetaData) GetLabels() []string {
 	return m.labels
 }
 
 // GetName gets the name property value. The name property
+// returns a *string when successful
 func (m *VersionMetaData) GetName() *string {
 	return m.name
 }
 
 // GetProperties gets the properties property value. User-defined name-value pairs. Name and value must be strings.
+// returns a Propertiesable when successful
 func (m *VersionMetaData) GetProperties() Propertiesable {
 	return m.properties
 }
 
 // GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
+// returns a *ArtifactState when successful
 func (m *VersionMetaData) GetState() *ArtifactState {
 	return m.state
 }
 
 // GetTypeEscaped gets the type property value. The type property
+// returns a *string when successful
 func (m *VersionMetaData) GetTypeEscaped() *string {
 	return m.typeEscaped
 }
 
 // GetVersion gets the version property value. The version property
+// returns a *string when successful
 func (m *VersionMetaData) GetVersion() *string {
 	return m.version
 }
@@ -421,7 +436,6 @@ func (m *VersionMetaData) SetVersion(value *string) {
 	m.version = value
 }
 
-// VersionMetaDataable
 type VersionMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

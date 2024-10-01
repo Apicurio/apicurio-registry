@@ -35,7 +35,7 @@ type RoleMappingsWithPrincipalItemRequestBuilderPutRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewRoleMappingsWithPrincipalItemRequestBuilderInternal instantiates a new WithPrincipalItemRequestBuilder and sets the default values.
+// NewRoleMappingsWithPrincipalItemRequestBuilderInternal instantiates a new RoleMappingsWithPrincipalItemRequestBuilder and sets the default values.
 func NewRoleMappingsWithPrincipalItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *RoleMappingsWithPrincipalItemRequestBuilder {
 	m := &RoleMappingsWithPrincipalItemRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/admin/roleMappings/{principalId}", pathParameters),
@@ -43,7 +43,7 @@ func NewRoleMappingsWithPrincipalItemRequestBuilderInternal(pathParameters map[s
 	return m
 }
 
-// NewRoleMappingsWithPrincipalItemRequestBuilder instantiates a new WithPrincipalItemRequestBuilder and sets the default values.
+// NewRoleMappingsWithPrincipalItemRequestBuilder instantiates a new RoleMappingsWithPrincipalItemRequestBuilder and sets the default values.
 func NewRoleMappingsWithPrincipalItemRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *RoleMappingsWithPrincipalItemRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -51,6 +51,8 @@ func NewRoleMappingsWithPrincipalItemRequestBuilder(rawUrl string, requestAdapte
 }
 
 // Delete deletes a single role mapping, effectively denying access to a user/principal.This operation can fail for the following reasons:* No role mapping for the principalId exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a Error error when the service returns a 404 status code
+// returns a Error error when the service returns a 500 status code
 func (m *RoleMappingsWithPrincipalItemRequestBuilder) Delete(ctx context.Context, requestConfiguration *RoleMappingsWithPrincipalItemRequestBuilderDeleteRequestConfiguration) error {
 	requestInfo, err := m.ToDeleteRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -68,6 +70,9 @@ func (m *RoleMappingsWithPrincipalItemRequestBuilder) Delete(ctx context.Context
 }
 
 // Get gets the details of a single role mapping (by `principalId`).This operation can fail for the following reasons:* No role mapping for the `principalId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a RoleMappingable when successful
+// returns a Error error when the service returns a 404 status code
+// returns a Error error when the service returns a 500 status code
 func (m *RoleMappingsWithPrincipalItemRequestBuilder) Get(ctx context.Context, requestConfiguration *RoleMappingsWithPrincipalItemRequestBuilderGetRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.RoleMappingable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -88,6 +93,8 @@ func (m *RoleMappingsWithPrincipalItemRequestBuilder) Get(ctx context.Context, r
 }
 
 // Put updates a single role mapping for one user/principal.This operation can fail for the following reasons:* No role mapping for the principalId exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a Error error when the service returns a 404 status code
+// returns a Error error when the service returns a 500 status code
 func (m *RoleMappingsWithPrincipalItemRequestBuilder) Put(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.UpdateRoleable, requestConfiguration *RoleMappingsWithPrincipalItemRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -105,6 +112,7 @@ func (m *RoleMappingsWithPrincipalItemRequestBuilder) Put(ctx context.Context, b
 }
 
 // ToDeleteRequestInformation deletes a single role mapping, effectively denying access to a user/principal.This operation can fail for the following reasons:* No role mapping for the principalId exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *RoleMappingsWithPrincipalItemRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *RoleMappingsWithPrincipalItemRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -116,6 +124,7 @@ func (m *RoleMappingsWithPrincipalItemRequestBuilder) ToDeleteRequestInformation
 }
 
 // ToGetRequestInformation gets the details of a single role mapping (by `principalId`).This operation can fail for the following reasons:* No role mapping for the `principalId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *RoleMappingsWithPrincipalItemRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *RoleMappingsWithPrincipalItemRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -127,6 +136,7 @@ func (m *RoleMappingsWithPrincipalItemRequestBuilder) ToGetRequestInformation(ct
 }
 
 // ToPutRequestInformation updates a single role mapping for one user/principal.This operation can fail for the following reasons:* No role mapping for the principalId exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *RoleMappingsWithPrincipalItemRequestBuilder) ToPutRequestInformation(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.UpdateRoleable, requestConfiguration *RoleMappingsWithPrincipalItemRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -142,6 +152,7 @@ func (m *RoleMappingsWithPrincipalItemRequestBuilder) ToPutRequestInformation(ct
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *RoleMappingsWithPrincipalItemRequestBuilder when successful
 func (m *RoleMappingsWithPrincipalItemRequestBuilder) WithUrl(rawUrl string) *RoleMappingsWithPrincipalItemRequestBuilder {
 	return NewRoleMappingsWithPrincipalItemRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

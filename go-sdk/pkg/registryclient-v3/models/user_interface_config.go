@@ -24,26 +24,31 @@ func NewUserInterfaceConfig() *UserInterfaceConfig {
 }
 
 // CreateUserInterfaceConfigFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateUserInterfaceConfigFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewUserInterfaceConfig(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *UserInterfaceConfig) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetAuth gets the auth property value. The auth property
+// returns a UserInterfaceConfigAuthable when successful
 func (m *UserInterfaceConfig) GetAuth() UserInterfaceConfigAuthable {
 	return m.auth
 }
 
 // GetFeatures gets the features property value. The features property
+// returns a UserInterfaceConfigFeaturesable when successful
 func (m *UserInterfaceConfig) GetFeatures() UserInterfaceConfigFeaturesable {
 	return m.features
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *UserInterfaceConfig) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["auth"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -80,6 +85,7 @@ func (m *UserInterfaceConfig) GetFieldDeserializers() map[string]func(i878a80d23
 }
 
 // GetUi gets the ui property value. The ui property
+// returns a UserInterfaceConfigUiable when successful
 func (m *UserInterfaceConfig) GetUi() UserInterfaceConfigUiable {
 	return m.ui
 }
@@ -133,7 +139,6 @@ func (m *UserInterfaceConfig) SetUi(value UserInterfaceConfigUiable) {
 	m.ui = value
 }
 
-// UserInterfaceConfigable
 type UserInterfaceConfigable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

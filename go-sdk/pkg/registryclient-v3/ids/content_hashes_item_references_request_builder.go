@@ -19,7 +19,7 @@ type ContentHashesItemReferencesRequestBuilderGetRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewContentHashesItemReferencesRequestBuilderInternal instantiates a new ReferencesRequestBuilder and sets the default values.
+// NewContentHashesItemReferencesRequestBuilderInternal instantiates a new ContentHashesItemReferencesRequestBuilder and sets the default values.
 func NewContentHashesItemReferencesRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ContentHashesItemReferencesRequestBuilder {
 	m := &ContentHashesItemReferencesRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/ids/contentHashes/{contentHash}/references", pathParameters),
@@ -27,7 +27,7 @@ func NewContentHashesItemReferencesRequestBuilderInternal(pathParameters map[str
 	return m
 }
 
-// NewContentHashesItemReferencesRequestBuilder instantiates a new ReferencesRequestBuilder and sets the default values.
+// NewContentHashesItemReferencesRequestBuilder instantiates a new ContentHashesItemReferencesRequestBuilder and sets the default values.
 func NewContentHashesItemReferencesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ContentHashesItemReferencesRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -35,6 +35,7 @@ func NewContentHashesItemReferencesRequestBuilder(rawUrl string, requestAdapter 
 }
 
 // Get returns a list containing all the artifact references using the artifact content hash.This operation may fail for one of the following reasons:* A server error occurred (HTTP error `500`)
+// returns a []ArtifactReferenceable when successful
 func (m *ContentHashesItemReferencesRequestBuilder) Get(ctx context.Context, requestConfiguration *ContentHashesItemReferencesRequestBuilderGetRequestConfiguration) ([]i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactReferenceable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -54,6 +55,7 @@ func (m *ContentHashesItemReferencesRequestBuilder) Get(ctx context.Context, req
 }
 
 // ToGetRequestInformation returns a list containing all the artifact references using the artifact content hash.This operation may fail for one of the following reasons:* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ContentHashesItemReferencesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ContentHashesItemReferencesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -65,6 +67,7 @@ func (m *ContentHashesItemReferencesRequestBuilder) ToGetRequestInformation(ctx 
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ContentHashesItemReferencesRequestBuilder when successful
 func (m *ContentHashesItemReferencesRequestBuilder) WithUrl(rawUrl string) *ContentHashesItemReferencesRequestBuilder {
 	return NewContentHashesItemReferencesRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

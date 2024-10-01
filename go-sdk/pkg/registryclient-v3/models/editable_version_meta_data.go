@@ -4,7 +4,6 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
-// EditableVersionMetaData
 type EditableVersionMetaData struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -26,21 +25,25 @@ func NewEditableVersionMetaData() *EditableVersionMetaData {
 }
 
 // CreateEditableVersionMetaDataFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateEditableVersionMetaDataFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewEditableVersionMetaData(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *EditableVersionMetaData) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetDescription gets the description property value. The description property
+// returns a *string when successful
 func (m *EditableVersionMetaData) GetDescription() *string {
 	return m.description
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *EditableVersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["description"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -87,16 +90,19 @@ func (m *EditableVersionMetaData) GetFieldDeserializers() map[string]func(i878a8
 }
 
 // GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
+// returns a Labelsable when successful
 func (m *EditableVersionMetaData) GetLabels() Labelsable {
 	return m.labels
 }
 
 // GetName gets the name property value. The name property
+// returns a *string when successful
 func (m *EditableVersionMetaData) GetName() *string {
 	return m.name
 }
 
 // GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
+// returns a *VersionState when successful
 func (m *EditableVersionMetaData) GetState() *VersionState {
 	return m.state
 }
@@ -162,7 +168,6 @@ func (m *EditableVersionMetaData) SetState(value *VersionState) {
 	m.state = value
 }
 
-// EditableVersionMetaDataable
 type EditableVersionMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

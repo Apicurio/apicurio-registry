@@ -72,8 +72,8 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
         setIsGenerating(true);
         setIsGenerated(false);
 
-        // @ts-ignore
-        const { generate } = await import('/kiota-wasm/main.js?url');
+        // @ts-expect-error
+        const { generate } = await import("/kiota-wasm/main.js?url");
 
         try {
             console.debug("GENERATING USING KIOTA:");

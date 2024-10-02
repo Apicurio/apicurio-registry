@@ -533,7 +533,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     pair = ImmutablePair.of(amdDto, null);
                 }
 
-                outboxEvent.fire(ArtifactCreated.of(amdDto));
+                if (supportsDatabaseEvents()) {
+                    outboxEvent.fire(ArtifactCreated.of(amdDto));
+                }
+
                 return pair;
             });
         } catch (Exception ex) {
@@ -773,7 +776,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             deleteAllOrphanedContentRaw(handle);
 
-            outboxEvent.fire(ArtifactDeleted.of(groupId, artifactId));
+            if (supportsDatabaseEvents()) {
+                outboxEvent.fire(ArtifactDeleted.of(groupId, artifactId));
+            }
+
             return versions;
         });
     }
@@ -1186,7 +1192,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 modified = true;
                 if (rowCount == 0) {
                     throw new ArtifactNotFoundException(groupId, artifactId);
-                } else {
+                } else if (supportsDatabaseEvents()) {
                     outboxEvent.fire(ArtifactMetadataUpdated.of(groupId, artifactId, metaData));
                 }
             }
@@ -3523,6 +3529,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return event.getId();
     }
 
+    @Override
+    public boolean supportsDatabaseEvents() {
+        return isPostgresql() || isMssql();
+    }
+
     private void deleteEvent(String eventId) {
         try {
             handles.withHandle(handle -> handle.createUpdate(sqlStatements.deleteOutboxEvent())
@@ -3536,6 +3547,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     private boolean isPostgresql() {
         return sqlStatements.dbType().equals("postgresql");
+    }
+
+    private boolean isMssql() {
+        return sqlStatements.dbType().equals("mssql");
     }
 
     private boolean isH2() {

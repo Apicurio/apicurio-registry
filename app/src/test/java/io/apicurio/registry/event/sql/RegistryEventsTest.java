@@ -1,4 +1,4 @@
-package io.apicurio.registry.event;
+package io.apicurio.registry.event.sql;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Tag(ApicurioTestTags.SLOW)
 public class RegistryEventsTest extends AbstractResourceTestBase {
 
-    private KafkaConsumer<String, String> consumer;
+    protected KafkaConsumer<String, String> consumer;
 
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
 
@@ -136,7 +136,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         return created;
     }
 
-    private KafkaConsumer<String, String> getConsumer(String bootstrapServers) {
+    protected KafkaConsumer<String, String> getConsumer(String bootstrapServers) {
         return new KafkaConsumer<>(
                 Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
                         ConsumerConfig.GROUP_ID_CONFIG, "tc-" + UUID.randomUUID(),

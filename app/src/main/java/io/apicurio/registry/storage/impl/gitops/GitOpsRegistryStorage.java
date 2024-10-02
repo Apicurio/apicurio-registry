@@ -498,4 +498,9 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     public String createEvent(OutboxEvent event) {
         return proxy((storage -> storage.createEvent(event)));
     }
+
+    @Override
+    public boolean supportsDatabaseEvents() {
+        return proxy((RegistryStorage::supportsDatabaseEvents));
+    }
 }

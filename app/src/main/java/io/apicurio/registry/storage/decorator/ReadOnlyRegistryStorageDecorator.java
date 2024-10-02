@@ -47,7 +47,7 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return readOnlyModeEnabled.get();
     }
 
     @Override

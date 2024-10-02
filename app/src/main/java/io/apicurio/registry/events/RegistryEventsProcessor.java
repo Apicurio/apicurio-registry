@@ -8,13 +8,13 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 
 @ApplicationScoped
-public class EventSender {
+public class RegistryEventsProcessor {
 
     @Inject
     @Current
     RegistryStorage storage;
 
-    public void onExportedEvent(@Observes OutboxEvent event) {
-        String createdEvent = storage.createEvent(event);
+    public void processEvent(@Observes OutboxEvent event) {
+        storage.createEvent(event);
     }
 }

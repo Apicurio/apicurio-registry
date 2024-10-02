@@ -952,6 +952,13 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     String createEvent(OutboxEvent event);
 
+    /**
+     * true if the underlying Registry storage supports emitting events to the database.
+     *
+     * @throws RegistryStorageException
+     */
+    boolean supportsDatabaseEvents();
+
     enum RetrievalBehavior {
         DEFAULT,
         /**

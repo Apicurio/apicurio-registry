@@ -3,6 +3,10 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.events.ArtifactCreated;
+import io.apicurio.registry.events.ArtifactDeleted;
+import io.apicurio.registry.events.ArtifactMetadataUpdated;
+import io.apicurio.registry.events.RegistryEventsConfiguration;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
@@ -93,6 +97,9 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     RegistryStorageContentUtils utils;
 
     @Inject
+    RegistryEventsConfiguration eventsConfiguration;
+
+    @Inject
     @Named("KafkaSqlJournalConsumer")
     KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> journalConsumer;
 
@@ -105,10 +112,17 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     ProducerActions<String, String> snapshotsProducer;
 
     @Inject
+    @Named("KafkaSqlEventsProducer")
+    ProducerActions<String, String> eventsProducer;
+
+    @Inject
     KafkaSqlSubmitter submitter;
 
     @Inject
     Event<StorageEvent> storageEvent;
+
+    @Inject
+    Event<OutboxEvent> outboxEvent;
 
     private volatile boolean bootstrapped = false;
     private volatile boolean stopped = true;
@@ -166,7 +180,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      * Automatically create the Kafka topics.
      */
     private void autoCreateTopics() {
-        Set<String> topicNames = Set.of(configuration.topic(), configuration.snapshotsTopic());
+        Set<String> topicNames = null;
+        if (eventsConfiguration.getEventsEnabled()) {
+            topicNames = Set.of(configuration.topic(), configuration.snapshotsTopic(),
+                    configuration.eventsTopic());
+        } else {
+            topicNames = Set.of(configuration.topic(), configuration.snapshotsTopic());
+        }
+
         Map<String, String> topicProperties = new HashMap<>();
         configuration.topicProperties()
                 .forEach((key, value) -> topicProperties.put(key.toString(), value.toString()));
@@ -384,7 +405,12 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new CreateArtifact9Message(groupId, artifactId, artifactType, artifactMetaData, version,
                 contentType, content, references, versionMetaData, versionBranches, dryRun);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
-        return (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator.waitForResponse(uuid);
+
+        Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createdArtifact = (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator
+                .waitForResponse(uuid);
+
+        outboxEvent.fire(ArtifactCreated.of(createdArtifact.getLeft()));
+        return createdArtifact;
     }
 
     /**
@@ -396,7 +422,9 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             throws ArtifactNotFoundException, RegistryStorageException {
         var message = new DeleteArtifact2Message(groupId, artifactId);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
-        return (List<String>) coordinator.waitForResponse(uuid);
+        List<String> versions = (List<String>) coordinator.waitForResponse(uuid);
+        outboxEvent.fire(ArtifactDeleted.of(groupId, artifactId));
+        return versions;
     }
 
     /**
@@ -432,6 +460,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new UpdateArtifactMetaData3Message(groupId, artifactId, metaData);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(ArtifactMetadataUpdated.of(groupId, artifactId, metaData));
     }
 
     @Override
@@ -999,6 +1028,9 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public String createEvent(OutboxEvent event) {
-        throw new IllegalStateException("Creating an event is not supported in kafkasql");
+        ProducerRecord<String, String> record = new ProducerRecord<>(configuration.eventsTopic(), 0,
+                event.getId(), event.getPayload().toString(), Collections.emptyList());
+        ConcurrentUtil.get(eventsProducer.apply(record));
+        return event.getId();
     }
 }

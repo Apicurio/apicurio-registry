@@ -102,6 +102,3 @@ ALTER TABLE branch_versions ADD CONSTRAINT FK_branch_versions_2 FOREIGN KEY (gro
 CREATE INDEX IDX_branch_versions_1 ON branch_versions(groupId, artifactId, branchId, branchOrder);
 CREATE INDEX IDX_branch_versions_2 ON branch_versions(branchId);
 CREATE INDEX IDX_branch_versions_3 ON branch_versions(branchOrder);
-
-CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(255) NOT NULL, type VARCHAR(255) NOT NULL, payload JSON NOT NULL);
-ALTER TABLE outbox ADD PRIMARY KEY (id);

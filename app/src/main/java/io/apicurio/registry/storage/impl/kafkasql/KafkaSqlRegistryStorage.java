@@ -6,6 +6,9 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.events.ArtifactCreated;
 import io.apicurio.registry.events.ArtifactDeleted;
 import io.apicurio.registry.events.ArtifactMetadataUpdated;
+import io.apicurio.registry.events.GroupCreated;
+import io.apicurio.registry.events.GroupDeleted;
+import io.apicurio.registry.events.GroupMetadataUpdated;
 import io.apicurio.registry.events.RegistryEventsConfiguration;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
@@ -617,6 +620,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new CreateGroup1Message(group);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+
+        outboxEvent.fire(GroupCreated.of(group));
     }
 
     /**
@@ -627,6 +632,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new DeleteGroup1Message(groupId);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+
+        outboxEvent.fire(GroupDeleted.of(groupId));
     }
 
     /**
@@ -638,6 +645,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new UpdateGroupMetaData2Message(groupId, dto);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+
+        outboxEvent.fire(GroupMetadataUpdated.of(groupId, dto));
     }
 
     /**

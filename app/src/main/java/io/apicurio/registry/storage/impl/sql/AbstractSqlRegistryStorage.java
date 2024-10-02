@@ -9,6 +9,9 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.events.ArtifactCreated;
 import io.apicurio.registry.events.ArtifactDeleted;
 import io.apicurio.registry.events.ArtifactMetadataUpdated;
+import io.apicurio.registry.events.GroupCreated;
+import io.apicurio.registry.events.GroupDeleted;
+import io.apicurio.registry.events.GroupMetadataUpdated;
 import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
@@ -2062,6 +2065,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     });
                 }
 
+                outboxEvent.fire(GroupCreated.of(group));
+
                 return null;
             });
         } catch (Exception ex) {
@@ -2094,6 +2099,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             if (rows == 0) {
                 throw new GroupNotFoundException(groupId);
             }
+
+            outboxEvent.fire(GroupDeleted.of(groupId));
+
             return null;
         });
     }
@@ -2128,6 +2136,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             .bind(2, limitStr(asLowerCase(v), 512)).execute();
                 });
             }
+
+            outboxEvent.fire(GroupMetadataUpdated.of(groupId, dto));
 
             return null;
         });

@@ -7,7 +7,10 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.GroupMetaData;
+import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.v3.V3ApiUtil;
@@ -114,6 +117,25 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType,
             String content, String contentType) throws Exception {
         return createArtifact(groupId, artifactId, artifactType, content, contentType, null);
+    }
+
+    protected GroupMetaData createGroup(String groupId, String description, Labels labels,
+            Consumer<CreateGroup> requestCustomizer) throws Exception {
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        createGroup.setDescription(description);
+        createGroup.setLabels(labels);
+
+        if (requestCustomizer != null) {
+            requestCustomizer.accept(createGroup);
+        }
+
+        var result = clientV3.groups().post(createGroup);
+
+        assert (result.getGroupId().equals(groupId));
+        assert (result.getDescription().equals(description));
+
+        return result;
     }
 
     protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType,

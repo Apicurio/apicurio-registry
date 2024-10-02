@@ -6,6 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
+import io.apicurio.registry.rest.client.models.GroupMetaData;
+import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
@@ -17,6 +21,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.rnorth.ducttape.unreliables.Unreliables;
@@ -29,9 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_CREATED;
-import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_DELETED;
-import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -53,6 +56,86 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    @Order(1)
+    public void createGroup() throws Exception {
+        // Preparation
+        final String groupId = "createGroup";
+        final String description = "createGroupDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        // Consume the create event from the broker
+        List<JsonNode> events = drain(consumer, groupId, GROUP_CREATED);
+
+        checkGroupEvent(groupId, events);
+    }
+
+    @Test
+    @Order(2)
+    public void updateGroupMetadata() throws Exception {
+        // Preparation
+        final String groupId = "updateGroupMetadata";
+        final String description = "updateGroupMetadataDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        EditableGroupMetaData emd = new EditableGroupMetaData();
+        emd.setDescription("updateArtifactMetadataEventDescriptionEdited");
+        clientV3.groups().byGroupId(groupId).put(emd);
+
+        // Consume the create event from the broker
+        List<JsonNode> events = drain(consumer, groupId, GROUP_METADATA_UPDATED);
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(GROUP_METADATA_UPDATED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(GROUP_METADATA_UPDATED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals("updateArtifactMetadataEventDescriptionEdited",
+                updateEvent.get("description").asText());
+    }
+
+    @Test
+    @Order(3)
+    public void deleteGroupEvent() throws Exception {
+        // Preparation
+        final String groupId = "deleteGroupEvent";
+        final String description = "deleteGroupEventDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        clientV3.groups().byGroupId(groupId).delete();
+
+        // Consume the delete event from the broker
+        List<JsonNode> deleteEvents = drain(consumer, groupId, GROUP_DELETED);
+
+        JsonNode deleteEvent = null;
+
+        for (JsonNode event : deleteEvents) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(GROUP_DELETED.name())) {
+                deleteEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(groupId, deleteEvent.get("groupId").asText());
+        Assertions.assertEquals(GROUP_DELETED.name(), deleteEvent.get("eventType").asText());
+    }
+
+    @Test
+    @Order(4)
     void createArtifactEvent() throws Exception {
         // Preparation
         final String groupId = "testCreateArtifact";
@@ -62,10 +145,13 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         final String name = "testCreateArtifactName";
         final String description = "testCreateArtifactDescription";
 
-        ensureArtifactCreatedEvent(groupId, artifactId, version, name, description);
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+        List<JsonNode> events = drain(consumer, groupId, ARTIFACT_CREATED);
+        checkArtifactEvent(groupId, artifactId, name, events);
     }
 
     @Test
+    @Order(5)
     public void updateArtifactMetadataEvent() throws Exception {
         // Preparation
         final String groupId = "updateArtifactMetadataEvent";
@@ -75,17 +161,23 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         final String name = "updateArtifactMetadataEventName";
         final String description = "updateArtifactMetadataEventDescription";
 
-        CreateArtifactResponse createdArtifact = ensureArtifactCreatedEvent(groupId, artifactId, version,
-                name, description);
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
 
         EditableArtifactMetaData emd = new EditableArtifactMetaData();
         emd.setName("updateArtifactMetadataEventNameEdited");
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(emd);
 
         // Consume the update events from the broker
-        List<ConsumerRecord<String, String>> updateEvents = drain(consumer, 1);
+        List<JsonNode> updateEvents = drain(consumer, groupId, ARTIFACT_METADATA_UPDATED);
 
-        JsonNode updateEvent = readEventPayload(updateEvents.get(0));
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : updateEvents) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_METADATA_UPDATED.name())) {
+                updateEvent = event;
+            }
+        }
 
         Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
         Assertions.assertEquals(ARTIFACT_METADATA_UPDATED.name(), updateEvent.get("eventType").asText());
@@ -94,6 +186,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    @Order(5)
     public void deleteArtifactEvent() throws Exception {
         // Preparation
         final String groupId = "deleteArtifactEvent";
@@ -103,24 +196,57 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         final String name = "deleteArtifactEventName";
         final String description = "deleteArtifactEventDescription";
 
-        CreateArtifactResponse createdArtifact = ensureArtifactCreatedEvent(groupId, artifactId, version,
-                name, description);
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
 
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
 
         // Consume the delete event from the broker
-        List<ConsumerRecord<String, String>> deleteEvents = drain(consumer, 1);
+        List<JsonNode> deleteEvents = drain(consumer, groupId, ARTIFACT_DELETED);
 
-        JsonNode updateEvent = readEventPayload(deleteEvents.get(0));
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : deleteEvents) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_DELETED.name())) {
+                updateEvent = event;
+            }
+        }
 
         Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
         Assertions.assertEquals(ARTIFACT_DELETED.name(), updateEvent.get("eventType").asText());
         Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
     }
 
-    public CreateArtifactResponse ensureArtifactCreatedEvent(String groupId, String artifactId,
-            String version, String name, String description) throws Exception {
-        // Execution
+    private void checkGroupEvent(String groupId, List<JsonNode> events) {
+        JsonNode createEvent = null;
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)) {
+                createEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(groupId, createEvent.get("groupId").asText());
+        Assertions.assertEquals(GROUP_CREATED.name(), createEvent.get("eventType").asText());
+    }
+
+    private void checkArtifactEvent(String groupId, String artifactId, String name, List<JsonNode> events) {
+        JsonNode artifactCreatedEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_CREATED.name())) {
+                artifactCreatedEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(groupId, artifactCreatedEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_CREATED.name(), artifactCreatedEvent.get("eventType").asText());
+        Assertions.assertEquals(artifactId, artifactCreatedEvent.get("artifactId").asText());
+        Assertions.assertEquals(name, artifactCreatedEvent.get("name").asText());
+    }
+
+    public CreateArtifactResponse ensureArtifactCreated(String groupId, String artifactId, String version,
+            String name, String description) throws Exception {
         CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON,
                 ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
                     createArtifact.setName(name);
@@ -141,17 +267,20 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                                 .byVersionExpression("branch=latest").content().get().readAllBytes(),
                         StandardCharsets.UTF_8));
 
-        // Consume the create event from the broker
-        List<ConsumerRecord<String, String>> createEvents = drain(consumer, 1);
-
-        JsonNode createEvent = readEventPayload(createEvents.get(0));
-
-        Assertions.assertEquals(groupId, createEvent.get("groupId").asText());
-        Assertions.assertEquals(ARTIFACT_CREATED.name(), createEvent.get("eventType").asText());
-        Assertions.assertEquals(artifactId, createEvent.get("artifactId").asText());
-        Assertions.assertEquals(name, createEvent.get("name").asText());
-
         return created;
+    }
+
+    public void ensureGroupCreated(String groupId, String description, Labels labels) throws Exception {
+        GroupMetaData created = createGroup(groupId, description, labels, (createGroup -> {
+            createGroup.setDescription(description);
+            createGroup.setGroupId(groupId);
+            createGroup.setLabels(labels);
+        }));
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(description, created.getDescription());
     }
 
     protected KafkaConsumer<String, String> getConsumer(String bootstrapServers) {
@@ -162,27 +291,35 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 new StringDeserializer(), new StringDeserializer());
     }
 
-    private List<ConsumerRecord<String, String>> drain(KafkaConsumer<String, String> consumer,
-            int expectedRecordCount) {
+    private List<JsonNode> drain(KafkaConsumer<String, String> consumer, String groupId,
+            StorageEventType eventType) {
 
-        List<ConsumerRecord<String, String>> allRecords = new ArrayList<>();
+        List<JsonNode> events = new ArrayList<>();
 
         Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
-            consumer.poll(Duration.ofMillis(50)).iterator().forEachRemaining(allRecords::add);
+            consumer.poll(Duration.ofMillis(50)).iterator().forEachRemaining(record -> {
+                events.add(readEventPayload(record));
+            });
 
-            return allRecords.size() == expectedRecordCount;
+            return events.stream().anyMatch(event -> event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(eventType.name()));
+
         });
-
-        return allRecords;
+        return events;
     }
 
-    private JsonNode readEventPayload(ConsumerRecord<String, String> event) throws JsonProcessingException {
-        String eventPayload = objectMapper.readTree(event.value()).asText();
+    private JsonNode readEventPayload(ConsumerRecord<String, String> event) {
+        String eventPayload = null;
+        try {
+            eventPayload = objectMapper.readTree(event.value()).asText();
 
-        if (eventPayload.isBlank()) {
-            eventPayload = event.value();
+            if (eventPayload.isBlank()) {
+                eventPayload = event.value();
+            }
+
+            return objectMapper.readValue(eventPayload, JsonNode.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
-
-        return objectMapper.readValue(eventPayload, JsonNode.class);
     }
 }

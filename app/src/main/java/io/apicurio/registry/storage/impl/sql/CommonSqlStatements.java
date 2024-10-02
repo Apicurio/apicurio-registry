@@ -1171,7 +1171,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String createOutboxEvent() {
         return """
                 INSERT INTO outbox (id, aggregatetype, aggregateid, type, payload) \
-                VALUES (?, ?, ?, ?, (?::json))\
+                VALUES (?, ?, ?, ?, ?::jsonb)\
                 """;
     }
 

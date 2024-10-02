@@ -1,9 +1,11 @@
 package io.apicurio.registry.event.sql;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
-import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
@@ -27,6 +29,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_CREATED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_DELETED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_METADATA_UPDATED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -36,6 +41,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class RegistryEventsTest extends AbstractResourceTestBase {
 
     protected KafkaConsumer<String, String> consumer;
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
 
@@ -77,10 +84,13 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         // Consume the update events from the broker
         List<ConsumerRecord<String, String>> updateEvents = drain(consumer, 1);
-        Assertions.assertTrue(
-                updateEvents.get(0).value().contains(createdArtifact.getArtifact().getArtifactId()));
-        Assertions.assertTrue(
-                updateEvents.get(0).value().contains(StorageEventType.ARTIFACT_METADATA_UPDATED.name()));
+
+        JsonNode updateEvent = readEventPayload(updateEvents.get(0));
+
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_METADATA_UPDATED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
+        Assertions.assertEquals("updateArtifactMetadataEventNameEdited", updateEvent.get("name").asText());
     }
 
     @Test
@@ -100,9 +110,12 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         // Consume the delete event from the broker
         List<ConsumerRecord<String, String>> deleteEvents = drain(consumer, 1);
-        Assertions.assertTrue(
-                deleteEvents.get(0).value().contains(createdArtifact.getArtifact().getArtifactId()));
-        Assertions.assertTrue(deleteEvents.get(0).value().contains(StorageEventType.ARTIFACT_DELETED.name()));
+
+        JsonNode updateEvent = readEventPayload(deleteEvents.get(0));
+
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_DELETED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
     }
 
     public CreateArtifactResponse ensureArtifactCreatedEvent(String groupId, String artifactId,
@@ -129,9 +142,14 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                         StandardCharsets.UTF_8));
 
         // Consume the create event from the broker
-        List<ConsumerRecord<String, String>> changeEvents = drain(consumer, 1);
-        Assertions.assertTrue(changeEvents.get(0).value().contains(created.getArtifact().getArtifactId()));
-        Assertions.assertTrue(changeEvents.get(0).value().contains(StorageEventType.ARTIFACT_CREATED.name()));
+        List<ConsumerRecord<String, String>> createEvents = drain(consumer, 1);
+
+        JsonNode createEvent = readEventPayload(createEvents.get(0));
+
+        Assertions.assertEquals(groupId, createEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_CREATED.name(), createEvent.get("eventType").asText());
+        Assertions.assertEquals(artifactId, createEvent.get("artifactId").asText());
+        Assertions.assertEquals(name, createEvent.get("name").asText());
 
         return created;
     }
@@ -156,5 +174,15 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         });
 
         return allRecords;
+    }
+
+    private JsonNode readEventPayload(ConsumerRecord<String, String> event) throws JsonProcessingException {
+        String eventPayload = objectMapper.readTree(event.value()).asText();
+
+        if (eventPayload.isBlank()) {
+            eventPayload = event.value();
+        }
+
+        return objectMapper.readValue(eventPayload, JsonNode.class);
     }
 }

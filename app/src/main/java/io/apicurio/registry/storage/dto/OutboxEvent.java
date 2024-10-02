@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.json.JSONObject;
 
 public abstract class OutboxEvent {
 
@@ -24,7 +24,7 @@ public abstract class OutboxEvent {
         return "registry-events";
     }
 
-    public abstract JsonNode getPayload();
+    public abstract JSONObject getPayload();
 
     public abstract String getType();
 }

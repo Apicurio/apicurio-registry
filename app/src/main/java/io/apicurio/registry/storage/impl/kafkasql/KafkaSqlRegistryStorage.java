@@ -1029,7 +1029,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @Override
     public String createEvent(OutboxEvent event) {
         ProducerRecord<String, String> record = new ProducerRecord<>(configuration.eventsTopic(), 0,
-                event.getId(), event.getPayload().toString(), Collections.emptyList());
+                event.getAggregateId(), event.getPayload().toString(), Collections.emptyList());
         ConcurrentUtil.get(eventsProducer.apply(record));
         return event.getId();
     }

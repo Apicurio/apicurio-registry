@@ -1,7 +1,6 @@
 package io.apicurio.registry.event.kafkasql;
 
 import io.apicurio.registry.event.sql.RegistryEventsTest;
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorageTest;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;

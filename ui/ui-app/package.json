@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "private": true,
   "scripts": {
-    "postinstall": "node .fix_yaml.cjs",
+    "postinstall": "node .fix_yaml.cjs && rimraf ./public/kiota-wasm && copyfiles -u 4 'node_modules/@kiota-community/kiota-wasm/dist/**/*.*' 'public/kiota-wasm'",
     "clean": "rimraf dist",
     "dev": "vite",
     "build": "tsc && vite build",
@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "0.3.0",
+    "@kiota-community/kiota-wasm": "^0.0.3",
     "@monaco-editor/react": "4.6.0",
     "@types/luxon": "3.4.2",
     "@types/pluralize": "0.0.33",
@@ -22,6 +23,7 @@
     "@typescript-eslint/eslint-plugin": "7.13.1",
     "@typescript-eslint/parser": "7.13.1",
     "@vitejs/plugin-react-swc": "3.7.1",
+    "copyfiles": "^2.4.1",
     "eslint": "8.57.0",
     "eslint-plugin-react-hooks": "4.6.2",
     "eslint-plugin-react-refresh": "0.4.7",
@@ -31,8 +33,8 @@
     "vite-tsconfig-paths": "5.0.1"
   },
   "dependencies": {
-    "@apicurio/common-ui-components": "2.0.4",
     "@apicurio/apicurio-registry-sdk": "file:../../typescript-sdk",
+    "@apicurio/common-ui-components": "2.0.4",
     "@apicurio/data-models": "1.1.27",
     "@microsoft/kiota-abstractions": "1.0.0-preview.66",
     "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.65",

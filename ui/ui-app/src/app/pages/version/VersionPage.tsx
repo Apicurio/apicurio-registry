@@ -13,7 +13,7 @@ import {
     VersionPageHeader
 } from "@app/pages";
 import { ReferencesTabContent } from "@app/pages/version/components/tabs/ReferencesTabContent.tsx";
-import { ConfirmDeleteModal, EditMetaDataModal, IfFeature, MetaData } from "@app/components";
+import { ConfirmDeleteModal, EditMetaDataModal, GenerateClientModal, IfFeature, MetaData } from "@app/components";
 import { ContentTypes } from "@models/contentTypes.model.ts";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
@@ -41,6 +41,7 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
+    const [isGenerateClientModalOpen, setIsGenerateClientModalOpen] = useState(false);
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
@@ -223,7 +224,9 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
             <VersionInfoTabContent
                 artifact={artifact as ArtifactMetaData}
                 version={artifactVersion as VersionMetaData}
+                codegenEnabled={true}
                 onEditMetaData={openEditMetaDataModal}
+                onGenerateClient={() => setIsGenerateClientModalOpen(true)}
             />
         </Tab>,
         <Tab data-testid="documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab">
@@ -302,6 +305,11 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
                 isOpen={isEditModalOpen}
                 onClose={onEditModalClose}
                 onEditMetaData={doEditMetaData}
+            />
+            <GenerateClientModal
+                artifactContent={versionContent}
+                onClose={() => setIsGenerateClientModalOpen(false)}
+                isOpen={isGenerateClientModalOpen}
             />
             <PleaseWaitModal message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen} />

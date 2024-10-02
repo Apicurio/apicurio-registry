@@ -22,21 +22,25 @@ func NewGroupSearchResults() *GroupSearchResults {
 }
 
 // CreateGroupSearchResultsFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateGroupSearchResultsFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewGroupSearchResults(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *GroupSearchResults) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetCount gets the count property value. The total number of groups that matched the query that produced the result set (may be more than the number of groups in the result set).
+// returns a *int32 when successful
 func (m *GroupSearchResults) GetCount() *int32 {
 	return m.count
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *GroupSearchResults) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["count"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -69,6 +73,7 @@ func (m *GroupSearchResults) GetFieldDeserializers() map[string]func(i878a80d233
 }
 
 // GetGroups gets the groups property value. The groups returned in the result set.
+// returns a []SearchedGroupable when successful
 func (m *GroupSearchResults) GetGroups() []SearchedGroupable {
 	return m.groups
 }
@@ -117,7 +122,6 @@ func (m *GroupSearchResults) SetGroups(value []SearchedGroupable) {
 	m.groups = value
 }
 
-// GroupSearchResultsable
 type GroupSearchResultsable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

@@ -22,21 +22,25 @@ func NewDownloadRef() *DownloadRef {
 }
 
 // CreateDownloadRefFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateDownloadRefFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewDownloadRef(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *DownloadRef) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetDownloadId gets the downloadId property value. The downloadId property
+// returns a *string when successful
 func (m *DownloadRef) GetDownloadId() *string {
 	return m.downloadId
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *DownloadRef) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["downloadId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -63,6 +67,7 @@ func (m *DownloadRef) GetFieldDeserializers() map[string]func(i878a80d2330e89d26
 }
 
 // GetHref gets the href property value. The href property
+// returns a *string when successful
 func (m *DownloadRef) GetHref() *string {
 	return m.href
 }
@@ -105,7 +110,6 @@ func (m *DownloadRef) SetHref(value *string) {
 	m.href = value
 }
 
-// DownloadRefable
 type DownloadRefable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

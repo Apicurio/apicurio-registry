@@ -5,7 +5,6 @@ import (
 	i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e "time"
 )
 
-// Comment
 type Comment struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -27,31 +26,37 @@ func NewComment() *Comment {
 }
 
 // CreateCommentFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateCommentFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewComment(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *Comment) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetCommentId gets the commentId property value. The commentId property
+// returns a *string when successful
 func (m *Comment) GetCommentId() *string {
 	return m.commentId
 }
 
 // GetCreatedBy gets the createdBy property value. The createdBy property
+// returns a *string when successful
 func (m *Comment) GetCreatedBy() *string {
 	return m.createdBy
 }
 
 // GetCreatedOn gets the createdOn property value. The createdOn property
+// returns a *Time when successful
 func (m *Comment) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *Comment) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["commentId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -98,6 +103,7 @@ func (m *Comment) GetFieldDeserializers() map[string]func(i878a80d2330e89d268963
 }
 
 // GetValue gets the value property value. The value property
+// returns a *string when successful
 func (m *Comment) GetValue() *string {
 	return m.value
 }
@@ -162,7 +168,6 @@ func (m *Comment) SetValue(value *string) {
 	m.value = value
 }
 
-// Commentable
 type Commentable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

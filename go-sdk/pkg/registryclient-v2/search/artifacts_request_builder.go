@@ -31,12 +31,12 @@ type ArtifactsRequestBuilderGetQueryParameters struct {
 	// The number of artifacts to skip before starting to collect the result set.  Defaults to 0.
 	Offset *int32 `uriparametername:"offset"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
-	// Deprecated: This property is deprecated, use orderAsSortOrder instead
+	// Deprecated: This property is deprecated, use OrderAsSortOrder instead
 	Order *string `uriparametername:"order"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
 	OrderAsSortOrder *i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.SortOrder `uriparametername:"order"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	// Deprecated: This property is deprecated, use orderbyAsSortBy instead
+	// Deprecated: This property is deprecated, use OrderbyAsSortBy instead
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
 	OrderbyAsSortBy *i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.SortBy `uriparametername:"orderby"`
@@ -65,12 +65,12 @@ type ArtifactsRequestBuilderPostQueryParameters struct {
 	// The number of artifacts to skip before starting to collect the result set.  Defaults to 0.
 	Offset *int32 `uriparametername:"offset"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
-	// Deprecated: This property is deprecated, use orderAsPostOrderQueryParameterType instead
+	// Deprecated: This property is deprecated, use OrderAsPostOrderQueryParameterType instead
 	Order *string `uriparametername:"order"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
 	OrderAsPostOrderQueryParameterType *ie8be0c90121d7d083037815d4b53c9b92094bdd04db14cfd7f4e165f59ceda76.PostOrderQueryParameterType `uriparametername:"order"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	// Deprecated: This property is deprecated, use orderbyAsPostOrderbyQueryParameterType instead
+	// Deprecated: This property is deprecated, use OrderbyAsPostOrderbyQueryParameterType instead
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
 	OrderbyAsPostOrderbyQueryParameterType *ie8be0c90121d7d083037815d4b53c9b92094bdd04db14cfd7f4e165f59ceda76.PostOrderbyQueryParameterType `uriparametername:"orderby"`
@@ -89,7 +89,7 @@ type ArtifactsRequestBuilderPostRequestConfiguration struct {
 // NewArtifactsRequestBuilderInternal instantiates a new ArtifactsRequestBuilder and sets the default values.
 func NewArtifactsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ArtifactsRequestBuilder {
 	m := &ArtifactsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/artifacts{?name*,offset*,limit*,order*,orderby*,labels*,properties*,description*,group*,globalId*,contentId*,canonical*,artifactType*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/artifacts{?artifactType*,canonical*,contentId*,description*,globalId*,group*,labels*,limit*,name*,offset*,order*,orderby*,properties*}", pathParameters),
 	}
 	return m
 }
@@ -102,6 +102,8 @@ func NewArtifactsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee2633
 }
 
 // Get returns a paginated list of all artifacts that match the provided filter criteria.
+// returns a ArtifactSearchResultsable when successful
+// returns a Error error when the service returns a 500 status code
 func (m *ArtifactsRequestBuilder) Get(ctx context.Context, requestConfiguration *ArtifactsRequestBuilderGetRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactSearchResultsable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -121,6 +123,8 @@ func (m *ArtifactsRequestBuilder) Get(ctx context.Context, requestConfiguration 
 }
 
 // Post returns a paginated list of all artifacts with at least one version that matches theposted content.
+// returns a ArtifactSearchResultsable when successful
+// returns a Error error when the service returns a 500 status code
 func (m *ArtifactsRequestBuilder) Post(ctx context.Context, body []byte, contentType *string, requestConfiguration *ArtifactsRequestBuilderPostRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactSearchResultsable, error) {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, contentType, requestConfiguration)
 	if err != nil {
@@ -140,6 +144,7 @@ func (m *ArtifactsRequestBuilder) Post(ctx context.Context, body []byte, content
 }
 
 // ToGetRequestInformation returns a paginated list of all artifacts that match the provided filter criteria.
+// returns a *RequestInformation when successful
 func (m *ArtifactsRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ArtifactsRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -154,6 +159,7 @@ func (m *ArtifactsRequestBuilder) ToGetRequestInformation(ctx context.Context, r
 }
 
 // ToPostRequestInformation returns a paginated list of all artifacts with at least one version that matches theposted content.
+// returns a *RequestInformation when successful
 func (m *ArtifactsRequestBuilder) ToPostRequestInformation(ctx context.Context, body []byte, contentType *string, requestConfiguration *ArtifactsRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -169,6 +175,7 @@ func (m *ArtifactsRequestBuilder) ToPostRequestInformation(ctx context.Context, 
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ArtifactsRequestBuilder when successful
 func (m *ArtifactsRequestBuilder) WithUrl(rawUrl string) *ArtifactsRequestBuilder {
 	return NewArtifactsRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

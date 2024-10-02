@@ -32,12 +32,12 @@ type VersionsRequestBuilderGetQueryParameters struct {
 	// The number of versions to skip before starting to collect the result set.  Defaults to 0.
 	Offset *int32 `uriparametername:"offset"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
-	// Deprecated: This property is deprecated, use orderAsSortOrder instead
+	// Deprecated: This property is deprecated, use OrderAsSortOrder instead
 	Order *string `uriparametername:"order"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
 	OrderAsSortOrder *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SortOrder `uriparametername:"order"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	// Deprecated: This property is deprecated, use orderbyAsVersionSortBy instead
+	// Deprecated: This property is deprecated, use OrderbyAsVersionSortBy instead
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
 	OrderbyAsVersionSortBy *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSortBy `uriparametername:"orderby"`
@@ -70,12 +70,12 @@ type VersionsRequestBuilderPostQueryParameters struct {
 	// The number of versions to skip before starting to collect the result set.  Defaults to 0.
 	Offset *int32 `uriparametername:"offset"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
-	// Deprecated: This property is deprecated, use orderAsSortOrder instead
+	// Deprecated: This property is deprecated, use OrderAsSortOrder instead
 	Order *string `uriparametername:"order"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
 	OrderAsSortOrder *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SortOrder `uriparametername:"order"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	// Deprecated: This property is deprecated, use orderbyAsVersionSortBy instead
+	// Deprecated: This property is deprecated, use OrderbyAsVersionSortBy instead
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
 	OrderbyAsVersionSortBy *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSortBy `uriparametername:"orderby"`
@@ -94,7 +94,7 @@ type VersionsRequestBuilderPostRequestConfiguration struct {
 // NewVersionsRequestBuilderInternal instantiates a new VersionsRequestBuilder and sets the default values.
 func NewVersionsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *VersionsRequestBuilder {
 	m := &VersionsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/versions{?version*,offset*,limit*,order*,orderby*,labels*,description*,groupId*,globalId*,contentId*,artifactId*,name*,canonical*,artifactType*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/versions{?artifactId*,artifactType*,canonical*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,offset*,order*,orderby*,version*}", pathParameters),
 	}
 	return m
 }
@@ -107,6 +107,8 @@ func NewVersionsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee26337
 }
 
 // Get returns a paginated list of all versions that match the provided filter criteria.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
+// returns a VersionSearchResultsable when successful
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *VersionsRequestBuilder) Get(ctx context.Context, requestConfiguration *VersionsRequestBuilderGetRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSearchResultsable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -126,6 +128,9 @@ func (m *VersionsRequestBuilder) Get(ctx context.Context, requestConfiguration *
 }
 
 // Post returns a paginated list of all versions that match the posted content.This operation can fail for the following reasons:* Provided content (request body) was empty (HTTP error `400`)* A server error occurred (HTTP error `500`)
+// returns a VersionSearchResultsable when successful
+// returns a ProblemDetails error when the service returns a 400 status code
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *VersionsRequestBuilder) Post(ctx context.Context, body []byte, contentType *string, requestConfiguration *VersionsRequestBuilderPostRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSearchResultsable, error) {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, contentType, requestConfiguration)
 	if err != nil {
@@ -146,6 +151,7 @@ func (m *VersionsRequestBuilder) Post(ctx context.Context, body []byte, contentT
 }
 
 // ToGetRequestInformation returns a paginated list of all versions that match the provided filter criteria.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *VersionsRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *VersionsRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -160,6 +166,7 @@ func (m *VersionsRequestBuilder) ToGetRequestInformation(ctx context.Context, re
 }
 
 // ToPostRequestInformation returns a paginated list of all versions that match the posted content.This operation can fail for the following reasons:* Provided content (request body) was empty (HTTP error `400`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *VersionsRequestBuilder) ToPostRequestInformation(ctx context.Context, body []byte, contentType *string, requestConfiguration *VersionsRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -175,6 +182,7 @@ func (m *VersionsRequestBuilder) ToPostRequestInformation(ctx context.Context, b
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *VersionsRequestBuilder when successful
 func (m *VersionsRequestBuilder) WithUrl(rawUrl string) *VersionsRequestBuilder {
 	return NewVersionsRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

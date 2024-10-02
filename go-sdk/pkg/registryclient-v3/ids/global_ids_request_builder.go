@@ -12,6 +12,7 @@ type GlobalIdsRequestBuilder struct {
 
 // ByGlobalId access artifact content utilizing an artifact version's globally unique identifier.
 // Deprecated: This indexer is deprecated and will be removed in the next major version. Use the one with the typed parameter instead.
+// returns a *GlobalIdsWithGlobalItemRequestBuilder when successful
 func (m *GlobalIdsRequestBuilder) ByGlobalId(globalId string) *GlobalIdsWithGlobalItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {
@@ -24,6 +25,7 @@ func (m *GlobalIdsRequestBuilder) ByGlobalId(globalId string) *GlobalIdsWithGlob
 }
 
 // ByGlobalIdInt64 access artifact content utilizing an artifact version's globally unique identifier.
+// returns a *GlobalIdsWithGlobalItemRequestBuilder when successful
 func (m *GlobalIdsRequestBuilder) ByGlobalIdInt64(globalId int64) *GlobalIdsWithGlobalItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {

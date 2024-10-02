@@ -43,6 +43,8 @@ func NewExportRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 }
 
 // Get exports registry data as a ZIP archive.
+// returns a DownloadRefable when successful
+// returns a Error error when the service returns a 500 status code
 func (m *ExportRequestBuilder) Get(ctx context.Context, requestConfiguration *ExportRequestBuilderGetRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.DownloadRefable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -62,6 +64,7 @@ func (m *ExportRequestBuilder) Get(ctx context.Context, requestConfiguration *Ex
 }
 
 // ToGetRequestInformation exports registry data as a ZIP archive.
+// returns a *RequestInformation when successful
 func (m *ExportRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ExportRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -76,6 +79,7 @@ func (m *ExportRequestBuilder) ToGetRequestInformation(ctx context.Context, requ
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ExportRequestBuilder when successful
 func (m *ExportRequestBuilder) WithUrl(rawUrl string) *ExportRequestBuilder {
 	return NewExportRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

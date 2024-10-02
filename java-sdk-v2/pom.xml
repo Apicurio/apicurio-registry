@@ -82,7 +82,7 @@
               <goal>generate</goal>
             </goals>
             <configuration>
-              <kiotaVersion>1.10.1</kiotaVersion>
+              <kiotaVersion>1.18.0</kiotaVersion>
               <baseURL>${kiota.base.url}</baseURL>
               <file>../common/src/main/resources/META-INF/openapi-v2.json</file>
               <namespace>io.apicurio.registry.rest.client.v2</namespace>

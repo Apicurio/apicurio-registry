@@ -30,31 +30,37 @@ func NewError() *Error {
 }
 
 // CreateErrorFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateErrorFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewError(), nil
 }
 
 // Error the primary error message.
+// returns a string when successful
 func (m *Error) Error() string {
 	return m.ApiError.Error()
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *Error) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetDetail gets the detail property value. Full details about the error.  This might contain a server stack trace, for example.
+// returns a *string when successful
 func (m *Error) GetDetail() *string {
 	return m.detail
 }
 
 // GetErrorCode gets the error_code property value. The server-side error code.
+// returns a *int32 when successful
 func (m *Error) GetErrorCode() *int32 {
 	return m.error_code
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *Error) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["detail"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -101,11 +107,13 @@ func (m *Error) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388
 }
 
 // GetMessage gets the message property value. The short error message.
+// returns a *string when successful
 func (m *Error) GetMessage() *string {
 	return m.message
 }
 
 // GetName gets the name property value. The error name - typically the classname of the exception thrown by the server.
+// returns a *string when successful
 func (m *Error) GetName() *string {
 	return m.name
 }
@@ -170,7 +178,6 @@ func (m *Error) SetName(value *string) {
 	m.name = value
 }
 
-// Errorable
 type Errorable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

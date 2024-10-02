@@ -459,7 +459,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
                 Assertions.assertEquals(expectedErrorName,
                         ((io.apicurio.registry.rest.client.models.RuleViolationProblemDetails) e).getName());
                 Assertions.assertEquals(expectedCode,
-                        ((io.apicurio.registry.rest.client.models.RuleViolationProblemDetails) e).getStatus());
+                        ((io.apicurio.registry.rest.client.models.RuleViolationProblemDetails) e)
+                                .getStatus());
             } else if (e instanceof io.apicurio.registry.rest.client.models.ProblemDetails) {
                 Assertions.assertEquals(expectedErrorName,
                         ((io.apicurio.registry.rest.client.models.ProblemDetails) e).getName());

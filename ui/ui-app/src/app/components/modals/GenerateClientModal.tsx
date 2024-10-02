@@ -72,7 +72,7 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
         setIsGenerating(true);
         setIsGenerated(false);
 
-        // @ts-expect-error
+        // @ts-expect-error unsafe inclusion of the wasm assets
         const { generate } = await import("/kiota-wasm/main.js?url");
 
         try {

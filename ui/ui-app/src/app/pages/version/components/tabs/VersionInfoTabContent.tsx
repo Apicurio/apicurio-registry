@@ -60,7 +60,7 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                                     artifactType={props.artifact.artifactType!}/></FlexItem>
                                 <FlexItem className="title">Version metadata</FlexItem>
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                    <If condition={((window as any).kiota !== undefined && props.codegenEnabled && props.version.artifactType === "OPENAPI")}>
+                                    <If condition={(props.codegenEnabled && props.version.artifactType === "OPENAPI")}>
                                         <Button id="generate-client-action"
                                             data-testid="version-btn-gen-client"
                                             title="Generate a client"

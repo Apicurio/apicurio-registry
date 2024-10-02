@@ -38,7 +38,6 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
         excludePatterns: "",
     });
     const [isValid, setIsValid] = useState(true);
-    const [downloadData, setDownloadData] = useState("");
     const [isErrorVisible, setIsErrorVisible] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
@@ -62,9 +61,9 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
         setIsExpanded(isExpanded);
     };
 
-    const triggerDownload = (): void => {
+    const triggerDownload = (content: string): void => {
         const fname: string = `client-${data.language.toLowerCase()}.zip`;
-        download.downloadBase64DataToFS(downloadData, fname);
+        download.downloadBase64DataToFS(content, fname);
     };
 
     const doGenerate = async (): Promise<void> => {
@@ -73,41 +72,35 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
         setIsGenerating(true);
         setIsGenerated(false);
 
-        const global = window as any;
+        // @ts-ignore
+        const { generate } = await import('/kiota-wasm/main.js?url');
 
-        if (global.kiota !== undefined && global.kiota.generate !== undefined) {
-            try {
-                console.debug("GENERATING USING KIOTA:");
-                console.debug(data);
+        try {
+            console.debug("GENERATING USING KIOTA:");
+            console.debug(data);
 
-                const zipData = await global.kiota.generate(
-                    data.content,
-                    data.language,
-                    data.clientClassName,
-                    data.namespaceName,
-                    data.includePatterns,
-                    data.excludePatterns,
-                );
+            const zipData = await generate(
+                data.content,
+                data.language,
+                data.clientClassName,
+                data.namespaceName,
+                data.includePatterns,
+                data.excludePatterns,
+            );
 
-                setDownloadData(zipData);
-                setIsErrorVisible(false);
+            setIsErrorVisible(false);
+            setIsGenerated(true);
+
+            setTimeout(() => {
+                triggerDownload(zipData);
                 setIsGenerating(false);
-                setIsGenerated(true);
-
-                setTimeout(triggerDownload, 250);
-            } catch (e) {
-                setIsErrorVisible(true);
-                setErrorMessage("" + e);
-                setIsGenerating(false);
-                setIsGenerated(false);
-                console.error(e);
-            }
-        } else {
-            console.error("Kiota is not available");
+            }, 250);
+        } catch (e) {
             setIsErrorVisible(true);
-            setErrorMessage("Kiota is not available in the runtime");
+            setErrorMessage("" + e);
             setIsGenerating(false);
             setIsGenerated(false);
+            console.error(e);
         }
     };
 
@@ -169,7 +162,7 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
 
     let actions = [
         <Button key="Generate" variant="primary" id="generate-client-button" data-testid="modal-btn-edit"
-            onClick={doGenerate} isDisabled={!isGenerateEnabled()} {...generatingProps}
+            onClick={doGenerate} isDisabled={!isGenerateEnabled() || isGenerating} {...generatingProps}
         ><If condition={isGenerated}><CheckCircleIcon style={{ marginRight: "5px" }} /></If><span>Generate and download</span></Button>,
         <Button key="Cancel" variant="link" onClick={props.onClose}>Cancel</Button>
     ];

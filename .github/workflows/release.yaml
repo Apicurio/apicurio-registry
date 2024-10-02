@@ -147,11 +147,6 @@ jobs:
             registry/distro/docker/target/docker/app-files/apicurio-registry-storage-sql-${{ github.event.inputs.release-version }}-all.tar.gz
             registry/distro/docker/target/docker/app-files/apicurio-registry-storage-kafkasql-${{ github.event.inputs.release-version }}-all.tar.gz
 
-      - name: Generate Release Notes
-        run: |
-          cd registry
-          gren release --token=${{ secrets.GITHUB_TOKEN }} --override
-
       - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
         run: |
           cd registry
@@ -173,16 +168,6 @@ jobs:
           git add .
           git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
           git push
-
-      # TODO: ${{ steps.create_release.outputs.html_url }} will not be available, since we're now using script to do github release. Need to explicitly fetch
-      # - name: Tweet About The Release
-      #   uses: ethomson/send-tweet-action@v1
-      #   with:
-      #     status: "Apicurio Registry version ${{ github.event.inputs.release-version}} is out!  Check out the release notes here: ${{ steps.create_release.outputs.html_url }}"
-      #     consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
-      #     consumer-secret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
-      #     access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-      #     access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
 
       - name: Google Chat Notification
         if: ${{ failure() }}

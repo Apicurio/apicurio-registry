@@ -98,7 +98,7 @@ jobs:
 
         - name: Upload tests logs artifacts
           if: failure()
-          uses: actions/upload-artifact@v1.0.0
+          uses: actions/upload-artifact@v4
           with:
             name: tests-logs
             path: artifacts

@@ -157,7 +157,7 @@
         <jandex.version>3.1.8</jandex.version>
 
         <!-- Schema types -->
-        <avro.version>1.11.3</avro.version>
+        <avro.version>1.11.4</avro.version>
         <json-schema-validator.version>1.5.1</json-schema-validator.version>
         <vertx-json-schema.version>4.5.7</vertx-json-schema.version>
         <wire-schema.version>4.9.9</wire-schema.version>

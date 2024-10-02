@@ -25,6 +25,10 @@ updates:
     directory: "/python-sdk"
     schedule:
       interval: daily
+  - package-ecosystem: nuget
+    directory: "/go-sdk"
+    schedule:
+      interval: daily
 
   - package-ecosystem: maven
     directory: "/"

@@ -19,7 +19,7 @@ type ContentIdsItemReferencesRequestBuilderGetRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewContentIdsItemReferencesRequestBuilderInternal instantiates a new ReferencesRequestBuilder and sets the default values.
+// NewContentIdsItemReferencesRequestBuilderInternal instantiates a new ContentIdsItemReferencesRequestBuilder and sets the default values.
 func NewContentIdsItemReferencesRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ContentIdsItemReferencesRequestBuilder {
 	m := &ContentIdsItemReferencesRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/ids/contentIds/{contentId}/references", pathParameters),
@@ -27,7 +27,7 @@ func NewContentIdsItemReferencesRequestBuilderInternal(pathParameters map[string
 	return m
 }
 
-// NewContentIdsItemReferencesRequestBuilder instantiates a new ReferencesRequestBuilder and sets the default values.
+// NewContentIdsItemReferencesRequestBuilder instantiates a new ContentIdsItemReferencesRequestBuilder and sets the default values.
 func NewContentIdsItemReferencesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ContentIdsItemReferencesRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -35,6 +35,7 @@ func NewContentIdsItemReferencesRequestBuilder(rawUrl string, requestAdapter i2a
 }
 
 // Get returns a list containing all the artifact references using the artifact content ID.This operation may fail for one of the following reasons:* A server error occurred (HTTP error `500`)
+// returns a []ArtifactReferenceable when successful
 func (m *ContentIdsItemReferencesRequestBuilder) Get(ctx context.Context, requestConfiguration *ContentIdsItemReferencesRequestBuilderGetRequestConfiguration) ([]i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactReferenceable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -54,6 +55,7 @@ func (m *ContentIdsItemReferencesRequestBuilder) Get(ctx context.Context, reques
 }
 
 // ToGetRequestInformation returns a list containing all the artifact references using the artifact content ID.This operation may fail for one of the following reasons:* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ContentIdsItemReferencesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ContentIdsItemReferencesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -65,6 +67,7 @@ func (m *ContentIdsItemReferencesRequestBuilder) ToGetRequestInformation(ctx con
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ContentIdsItemReferencesRequestBuilder when successful
 func (m *ContentIdsItemReferencesRequestBuilder) WithUrl(rawUrl string) *ContentIdsItemReferencesRequestBuilder {
 	return NewContentIdsItemReferencesRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

@@ -1,9 +1,5 @@
 package models
 
-import (
-	"errors"
-)
-
 type IfArtifactExists int
 
 const (
@@ -25,7 +21,7 @@ func ParseIfArtifactExists(v string) (any, error) {
 	case "FIND_OR_CREATE_VERSION":
 		result = FIND_OR_CREATE_VERSION_IFARTIFACTEXISTS
 	default:
-		return 0, errors.New("Unknown IfArtifactExists value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

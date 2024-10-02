@@ -24,9 +24,7 @@ jobs:
     name: Qodana
     runs-on: ubuntu-latest
     if: >
-      github.repository_owner == 'Apicurio' &&
-      !contains(github.event.*.labels.*.name, 'DO NOT MERGE') &&
-      github.event.pull_request.user.login != 'dependabot[bot]'
+      github.repository_owner == 'Apicurio' && contains(github.event.*.labels.*.name, 'QODANA')
     permissions:
       checks: write
       contents: write

@@ -27,7 +27,7 @@ type ItemArtifactsItemOwnerRequestBuilderPutRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewItemArtifactsItemOwnerRequestBuilderInternal instantiates a new OwnerRequestBuilder and sets the default values.
+// NewItemArtifactsItemOwnerRequestBuilderInternal instantiates a new ItemArtifactsItemOwnerRequestBuilder and sets the default values.
 func NewItemArtifactsItemOwnerRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemOwnerRequestBuilder {
 	m := &ItemArtifactsItemOwnerRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/owner", pathParameters),
@@ -35,7 +35,7 @@ func NewItemArtifactsItemOwnerRequestBuilderInternal(pathParameters map[string]s
 	return m
 }
 
-// NewItemArtifactsItemOwnerRequestBuilder instantiates a new OwnerRequestBuilder and sets the default values.
+// NewItemArtifactsItemOwnerRequestBuilder instantiates a new ItemArtifactsItemOwnerRequestBuilder and sets the default values.
 func NewItemArtifactsItemOwnerRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemOwnerRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -43,6 +43,9 @@ func NewItemArtifactsItemOwnerRequestBuilder(rawUrl string, requestAdapter i2ae4
 }
 
 // Get gets the owner of an artifact in the registry.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a ArtifactOwnerable when successful
+// returns a Error error when the service returns a 404 status code
+// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemOwnerRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemArtifactsItemOwnerRequestBuilderGetRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactOwnerable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -63,6 +66,8 @@ func (m *ItemArtifactsItemOwnerRequestBuilder) Get(ctx context.Context, requestC
 }
 
 // Put changes the ownership of an artifact.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a Error error when the service returns a 404 status code
+// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemOwnerRequestBuilder) Put(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactOwnerable, requestConfiguration *ItemArtifactsItemOwnerRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -80,6 +85,7 @@ func (m *ItemArtifactsItemOwnerRequestBuilder) Put(ctx context.Context, body i80
 }
 
 // ToGetRequestInformation gets the owner of an artifact in the registry.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemOwnerRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemOwnerRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -91,6 +97,7 @@ func (m *ItemArtifactsItemOwnerRequestBuilder) ToGetRequestInformation(ctx conte
 }
 
 // ToPutRequestInformation changes the ownership of an artifact.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemOwnerRequestBuilder) ToPutRequestInformation(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactOwnerable, requestConfiguration *ItemArtifactsItemOwnerRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -106,6 +113,7 @@ func (m *ItemArtifactsItemOwnerRequestBuilder) ToPutRequestInformation(ctx conte
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ItemArtifactsItemOwnerRequestBuilder when successful
 func (m *ItemArtifactsItemOwnerRequestBuilder) WithUrl(rawUrl string) *ItemArtifactsItemOwnerRequestBuilder {
 	return NewItemArtifactsItemOwnerRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

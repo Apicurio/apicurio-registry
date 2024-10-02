@@ -25,7 +25,7 @@
   <artifactId>apicurio-registry-v2-java-sdk</artifactId>
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
-    <kiota.libs.version>1.4.0</kiota.libs.version>
+    <kiota.libs.version>1.5.0</kiota.libs.version>
     <kiota.community.version>0.0.18</kiota.community.version>
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
   </properties>
@@ -82,7 +82,7 @@
               <goal>generate</goal>
             </goals>
             <configuration>
-              <kiotaVersion>1.10.1</kiotaVersion>
+              <kiotaVersion>1.18.0</kiotaVersion>
               <baseURL>${kiota.base.url}</baseURL>
               <file>../common/src/main/resources/META-INF/openapi-v2.json</file>
               <namespace>io.apicurio.registry.rest.client.v2</namespace>

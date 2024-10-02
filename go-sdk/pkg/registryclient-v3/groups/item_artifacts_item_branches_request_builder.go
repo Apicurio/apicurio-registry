@@ -38,6 +38,7 @@ type ItemArtifactsItemBranchesRequestBuilderPostRequestConfiguration struct {
 }
 
 // ByBranchId manage a single branch.
+// returns a *ItemArtifactsItemBranchesWithBranchItemRequestBuilder when successful
 func (m *ItemArtifactsItemBranchesRequestBuilder) ByBranchId(branchId string) *ItemArtifactsItemBranchesWithBranchItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {
@@ -49,15 +50,15 @@ func (m *ItemArtifactsItemBranchesRequestBuilder) ByBranchId(branchId string) *I
 	return NewItemArtifactsItemBranchesWithBranchItemRequestBuilderInternal(urlTplParams, m.BaseRequestBuilder.RequestAdapter)
 }
 
-// NewItemArtifactsItemBranchesRequestBuilderInternal instantiates a new BranchesRequestBuilder and sets the default values.
+// NewItemArtifactsItemBranchesRequestBuilderInternal instantiates a new ItemArtifactsItemBranchesRequestBuilder and sets the default values.
 func NewItemArtifactsItemBranchesRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemBranchesRequestBuilder {
 	m := &ItemArtifactsItemBranchesRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/branches{?offset*,limit*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/branches{?limit*,offset*}", pathParameters),
 	}
 	return m
 }
 
-// NewItemArtifactsItemBranchesRequestBuilder instantiates a new BranchesRequestBuilder and sets the default values.
+// NewItemArtifactsItemBranchesRequestBuilder instantiates a new ItemArtifactsItemBranchesRequestBuilder and sets the default values.
 func NewItemArtifactsItemBranchesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemBranchesRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -65,6 +66,9 @@ func NewItemArtifactsItemBranchesRequestBuilder(rawUrl string, requestAdapter i2
 }
 
 // Get returns a list of all branches in the artifact. Each branch is a list of version identifiers,ordered from the latest (tip of the branch) to the oldest.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a BranchSearchResultsable when successful
+// returns a ProblemDetails error when the service returns a 404 status code
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsItemBranchesRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemArtifactsItemBranchesRequestBuilderGetRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.BranchSearchResultsable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -85,6 +89,10 @@ func (m *ItemArtifactsItemBranchesRequestBuilder) Get(ctx context.Context, reque
 }
 
 // Post creates a new branch for the artifact.  A new branch consists of metadata and alist of versions.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* A branch with the given `branchId` already exists (HTTP error `409`)* A server error occurred (HTTP error `500`)
+// returns a BranchMetaDataable when successful
+// returns a ProblemDetails error when the service returns a 404 status code
+// returns a ProblemDetails error when the service returns a 409 status code
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsItemBranchesRequestBuilder) Post(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateBranchable, requestConfiguration *ItemArtifactsItemBranchesRequestBuilderPostRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.BranchMetaDataable, error) {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -106,6 +114,7 @@ func (m *ItemArtifactsItemBranchesRequestBuilder) Post(ctx context.Context, body
 }
 
 // ToGetRequestInformation returns a list of all branches in the artifact. Each branch is a list of version identifiers,ordered from the latest (tip of the branch) to the oldest.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemBranchesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemBranchesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -120,6 +129,7 @@ func (m *ItemArtifactsItemBranchesRequestBuilder) ToGetRequestInformation(ctx co
 }
 
 // ToPostRequestInformation creates a new branch for the artifact.  A new branch consists of metadata and alist of versions.This operation can fail for the following reasons:* No artifact with this `groupId` and `artifactId` exists (HTTP error `404`)* A branch with the given `branchId` already exists (HTTP error `409`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemBranchesRequestBuilder) ToPostRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateBranchable, requestConfiguration *ItemArtifactsItemBranchesRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -135,6 +145,7 @@ func (m *ItemArtifactsItemBranchesRequestBuilder) ToPostRequestInformation(ctx c
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ItemArtifactsItemBranchesRequestBuilder when successful
 func (m *ItemArtifactsItemBranchesRequestBuilder) WithUrl(rawUrl string) *ItemArtifactsItemBranchesRequestBuilder {
 	return NewItemArtifactsItemBranchesRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

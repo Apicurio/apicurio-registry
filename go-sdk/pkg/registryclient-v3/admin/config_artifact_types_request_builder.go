@@ -19,7 +19,7 @@ type ConfigArtifactTypesRequestBuilderGetRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewConfigArtifactTypesRequestBuilderInternal instantiates a new ArtifactTypesRequestBuilder and sets the default values.
+// NewConfigArtifactTypesRequestBuilderInternal instantiates a new ConfigArtifactTypesRequestBuilder and sets the default values.
 func NewConfigArtifactTypesRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ConfigArtifactTypesRequestBuilder {
 	m := &ConfigArtifactTypesRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/admin/config/artifactTypes", pathParameters),
@@ -27,7 +27,7 @@ func NewConfigArtifactTypesRequestBuilderInternal(pathParameters map[string]stri
 	return m
 }
 
-// NewConfigArtifactTypesRequestBuilder instantiates a new ArtifactTypesRequestBuilder and sets the default values.
+// NewConfigArtifactTypesRequestBuilder instantiates a new ConfigArtifactTypesRequestBuilder and sets the default values.
 func NewConfigArtifactTypesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ConfigArtifactTypesRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -35,6 +35,8 @@ func NewConfigArtifactTypesRequestBuilder(rawUrl string, requestAdapter i2ae4187
 }
 
 // Get gets a list of all the configured artifact types.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
+// returns a []ArtifactTypeInfoable when successful
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ConfigArtifactTypesRequestBuilder) Get(ctx context.Context, requestConfiguration *ConfigArtifactTypesRequestBuilderGetRequestConfiguration) ([]i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ArtifactTypeInfoable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -57,6 +59,7 @@ func (m *ConfigArtifactTypesRequestBuilder) Get(ctx context.Context, requestConf
 }
 
 // ToGetRequestInformation gets a list of all the configured artifact types.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ConfigArtifactTypesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ConfigArtifactTypesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -68,6 +71,7 @@ func (m *ConfigArtifactTypesRequestBuilder) ToGetRequestInformation(ctx context.
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ConfigArtifactTypesRequestBuilder when successful
 func (m *ConfigArtifactTypesRequestBuilder) WithUrl(rawUrl string) *ConfigArtifactTypesRequestBuilder {
 	return NewConfigArtifactTypesRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

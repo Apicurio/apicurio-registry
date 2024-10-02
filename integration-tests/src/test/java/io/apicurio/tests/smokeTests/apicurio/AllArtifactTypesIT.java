@@ -65,7 +65,7 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
                     config -> {
                         config.queryParameters.dryRun = true;
                     });
-        }, errorCodeExtractor);
+         }, errorCodeExtractor);
 
         // Update artifact (valid v2 content)
         createArtifactVersion(groupId, artifactId, v2Content, contentType, null);

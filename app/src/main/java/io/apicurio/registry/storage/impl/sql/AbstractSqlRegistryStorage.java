@@ -9,6 +9,9 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.events.ArtifactCreated;
 import io.apicurio.registry.events.ArtifactDeleted;
 import io.apicurio.registry.events.ArtifactMetadataUpdated;
+import io.apicurio.registry.events.ArtifactVersionCreated;
+import io.apicurio.registry.events.ArtifactVersionDeleted;
+import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
 import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
 import io.apicurio.registry.events.GroupMetadataUpdated;
@@ -617,6 +620,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         ArtifactVersionMetaDataDto avmd = handle
                 .createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId()).bind(0, globalId)
                 .map(ArtifactVersionMetaDataDtoMapper.instance).one();
+
+        outboxEvent.fire(ArtifactVersionCreated.of(avmd));
 
         return avmd;
     }
@@ -1690,6 +1695,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             deleteAllOrphanedContentRaw(handle);
 
+            outboxEvent.fire(ArtifactVersionDeleted.of(groupId, artifactId, version));
+
             return null;
         });
     }
@@ -1780,6 +1787,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     });
                 }
             }
+
+            outboxEvent.fire(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, editableMetadata));
 
             return null;
         });

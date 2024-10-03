@@ -3,13 +3,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.events.ArtifactCreated;
-import io.apicurio.registry.events.ArtifactDeleted;
-import io.apicurio.registry.events.ArtifactMetadataUpdated;
-import io.apicurio.registry.events.GroupCreated;
-import io.apicurio.registry.events.GroupDeleted;
-import io.apicurio.registry.events.GroupMetadataUpdated;
-import io.apicurio.registry.events.RegistryEventsConfiguration;
+import io.apicurio.registry.events.*;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
@@ -450,7 +444,9 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new CreateArtifactVersion8Message(groupId, artifactId, version, artifactType,
                 contentType, content, references, metaData, branches, dryRun);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
-        return (ArtifactVersionMetaDataDto) coordinator.waitForResponse(uuid);
+        ArtifactVersionMetaDataDto versionMetaDataDto = (ArtifactVersionMetaDataDto) coordinator.waitForResponse(uuid);
+        outboxEvent.fire(ArtifactVersionCreated.of(versionMetaDataDto));
+        return versionMetaDataDto;
     }
 
     /**
@@ -552,6 +548,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new DeleteArtifactVersion3Message(groupId, artifactId, version);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(ArtifactVersionDeleted.of(groupId, artifactId, version));
     }
 
     /**
@@ -565,6 +562,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new UpdateArtifactVersionMetaData4Message(groupId, artifactId, version, metaData);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, metaData));
     }
 
     /**

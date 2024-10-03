@@ -7,6 +7,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
+import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.storage.StorageEventType;
@@ -186,7 +187,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     public void deleteArtifactEvent() throws Exception {
         // Preparation
         final String groupId = "deleteArtifactEvent";
@@ -217,6 +218,95 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
     }
 
+    @Test
+    @Order(7)
+    public void createArtifactVersion() throws Exception {
+        // Preparation
+        final String groupId = "createArtifactVersion";
+
+        final String artifactId = generateArtifactId();
+
+        String name = "createArtifactVersionName";
+        String description = "createArtifactVersionDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+        // Consume the create event from the broker
+        List<JsonNode> events = drain(consumer, groupId, ARTIFACT_VERSION_CREATED);
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_CREATED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_CREATED.name(), updateEvent.get("eventType").asText());
+    }
+
+    @Test
+    @Order(8)
+    public void updateArtifactVersionMetadata() throws Exception {
+        // Preparation
+        final String groupId = "createArtifactVersion";
+        final String artifactId = generateArtifactId();
+
+        String name = "updateArtifactVersionMetadataName";
+        String description = "updateArtifactVersionMetadataDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+
+        EditableVersionMetaData emd = new EditableVersionMetaData();
+        emd.setDescription("updateArtifactVersionMetadataEventDescriptionEdited");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").put(emd);
+
+        // Consume the create event from the broker
+        List<JsonNode> events = drain(consumer, groupId, ARTIFACT_VERSION_METADATA_UPDATED);
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_METADATA_UPDATED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_METADATA_UPDATED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals("updateArtifactVersionMetadataEventDescriptionEdited", updateEvent.get("description").asText());
+    }
+
+    @Test
+    @Order(9)
+    public void deleteArtifactVersion() throws Exception {
+        // Preparation
+        final String groupId = "createArtifactVersion";
+        final String artifactId = generateArtifactId();
+        String name = "deleteArtifactVersionName";
+        String description = "deleteArtifactVersionDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1").delete();
+
+        // Consume the delete event from the broker
+        List<JsonNode> deleteEvents = drain(consumer, groupId, ARTIFACT_VERSION_DELETED);
+
+        JsonNode deleteEvent = null;
+
+        for (JsonNode event : deleteEvents) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_DELETED.name())) {
+                deleteEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(groupId, deleteEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_DELETED.name(), deleteEvent.get("eventType").asText());
+    }
+
     private void checkGroupEvent(String groupId, List<JsonNode> events) {
         JsonNode createEvent = null;
         for (JsonNode event : events) {
@@ -243,6 +333,24 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         Assertions.assertEquals(ARTIFACT_CREATED.name(), artifactCreatedEvent.get("eventType").asText());
         Assertions.assertEquals(artifactId, artifactCreatedEvent.get("artifactId").asText());
         Assertions.assertEquals(name, artifactCreatedEvent.get("name").asText());
+    }
+
+    public CreateArtifactResponse ensureArtifactCreated(String groupId, String artifactId,
+                                                        String name, String description) throws Exception {
+        CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON,
+                ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
+                    createArtifact.setName(name);
+                    createArtifact.setDescription(description);
+                }));
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getArtifact().getGroupId());
+        assertEquals(artifactId, created.getArtifact().getArtifactId());
+        assertEquals(name, created.getArtifact().getName());
+        assertEquals(description, created.getArtifact().getDescription());
+
+        return created;
     }
 
     public CreateArtifactResponse ensureArtifactCreated(String groupId, String artifactId, String version,

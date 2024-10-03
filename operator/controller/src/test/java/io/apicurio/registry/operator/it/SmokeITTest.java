@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,43 +110,42 @@ public class SmokeITTest extends ITBase {
     }
 
     @Test
+    @DisabledIfSystemProperty(named = INGRESS_SKIP_PROP, matches = "true")
     void testIngress() {
-        if (ingressManager.isIngressSupported()) {
-            // spotless:off
-            var registry = new ApicurioRegistry3();
-            var meta = new ObjectMeta();
-            meta.setName("demo");
-            meta.setNamespace(namespace);
-            registry.setMetadata(meta);
-            registry.setSpec(ApicurioRegistry3Spec.builder()
-                    .appHost(ingressManager.getIngressHost("demo-app"))
-                    .uiHost(ingressManager.getIngressHost("demo-ui"))
-                    .build());
-            // spotless:on
+        // spotless:off
+        var registry = new ApicurioRegistry3();
+        var meta = new ObjectMeta();
+        meta.setName("demo");
+        meta.setNamespace(namespace);
+        registry.setMetadata(meta);
+        registry.setSpec(ApicurioRegistry3Spec.builder()
+                .appHost(ingressManager.getIngressHost("demo-app"))
+                .uiHost(ingressManager.getIngressHost("demo-ui"))
+                .build());
+        // spotless:on
 
-            // Act
-            client.resources(ApicurioRegistry3.class).inNamespace(namespace).create(registry);
+        // Act
+        client.resources(ApicurioRegistry3.class).inNamespace(namespace).create(registry);
 
-            // Wait for Ingresses
-            await().ignoreExceptions().until(() -> {
-                assertThat(client.network().v1().ingresses().inNamespace(namespace)
-                        .withName("demo-app-ingress").get()).isNotNull();
-                assertThat(client.network().v1().ingresses().inNamespace(namespace)
-                        .withName("demo-ui-ingress").get()).isNotNull();
-                return true;
-            });
+        // Wait for Ingresses
+        await().ignoreExceptions().until(() -> {
+            assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-app-ingress")
+                    .get()).isNotNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-ui-ingress")
+                    .get()).isNotNull();
+            return true;
+        });
 
-            await().ignoreExceptions().until(() -> {
-                ingressManager.startHttpRequest("demo-app-ingress").basePath("/apis/registry/v3/system/info")
-                        .get().then().statusCode(200);
-                return true;
-            });
+        await().ignoreExceptions().until(() -> {
+            ingressManager.startHttpRequest("demo-app-ingress").basePath("/apis/registry/v3/system/info")
+                    .get().then().statusCode(200);
+            return true;
+        });
 
-            await().ignoreExceptions().until(() -> {
-                ingressManager.startHttpRequest("demo-ui-ingress").basePath("/config.js").get().then()
-                        .statusCode(200);
-                return true;
-            });
-        }
+        await().ignoreExceptions().until(() -> {
+            ingressManager.startHttpRequest("demo-ui-ingress").basePath("/config.js").get().then()
+                    .statusCode(200);
+            return true;
+        });
     }
 }

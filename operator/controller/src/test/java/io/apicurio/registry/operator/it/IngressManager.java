@@ -26,6 +26,9 @@ public class IngressManager {
     public IngressManager(KubernetesClient k8sClient, String namespace) {
         this.k8sClient = k8sClient;
         this.namespace = namespace;
+        if (isSkipIngress()) {
+            log.warn("Ingress testing is skipped. This is not recommended.");
+        }
     }
 
     public String getIngressHost(String prefix) {
@@ -41,16 +44,8 @@ public class IngressManager {
         return ConfigProvider.getConfig().getOptionalValue(INGRESS_HOST_PROP, String.class);
     }
 
-    public boolean isIngressSupported() {
-        if (isSkipIngress()) {
-            log.warn("Ingress testing is skipped. This is not recommended.");
-            return false;
-        }
-        return true;
-    }
-
     public RequestSpecification startHttpRequest(String ingressName) {
-        if (!isIngressSupported()) {
+        if (isSkipIngress()) {
             throw new OperatorException("Ingress tests are not supported.");
         }
 

@@ -29,3 +29,15 @@ To execute the tests in `remote` mode you need to perform the following steps:
 - run `eval $(minikube -p minikube docker-env)` in the teerminal yuo are going to build the container image
 - build the image `mvn clean package -Dquarkus.container-image.build=true -f operator/controller/pom.xml`
 - run the tests `mvn verify -f operator/controller/pom.xml -Dtest.operator.deployment=remote -Dquarkus.kubernetes.deployment-target=minikube -DskipOperatorTests=false`
+
+#### Testing of Ingresses
+
+To allow the testing of Ingresses when using minikube, run:
+  ```shell
+  minikube addons enable ingress
+  minikube tunnel
+  ```
+
+On other clusters, you might need to provide `test.operator.ingress-host` property that contains the base hostname from  where applications on your cluster are accessible.
+
+If your cluster does not have an accessible ingress host, you can skip them using `test.operator.ingress-skip=true` (**not recommended**).

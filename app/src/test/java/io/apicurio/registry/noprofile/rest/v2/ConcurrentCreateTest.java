@@ -8,12 +8,12 @@ import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import io.vertx.core.impl.ConcurrentHashSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
@@ -25,8 +25,8 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
         String groupId = TestUtils.generateGroupId();
 
-        Set<String> created = new HashSet<>();
-        Set<String> failed = new HashSet<>();
+        Set<String> created = new ConcurrentHashSet<>();
+        Set<String> failed = new ConcurrentHashSet<>();
         CountDownLatch latch = new CountDownLatch(5);
 
         // Create artifacts
@@ -82,8 +82,8 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
         String groupId = TestUtils.generateGroupId();
 
-        Set<String> created = new HashSet<>();
-        Set<String> failed = new HashSet<>();
+        Set<String> created = new ConcurrentHashSet<>();
+        Set<String> failed = new ConcurrentHashSet<>();
         CountDownLatch latch = new CountDownLatch(5);
 
         // Try to create the SAME artifact 5 times.

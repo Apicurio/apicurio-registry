@@ -5,7 +5,6 @@ import org.json.JSONObject;
 
 import java.util.UUID;
 
-import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_DELETED;
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_DELETED;
 
 public class ArtifactVersionDeleted extends OutboxEvent {
@@ -20,11 +19,8 @@ public class ArtifactVersionDeleted extends OutboxEvent {
     public static ArtifactVersionDeleted of(String groupId, String artifactId, String version) {
         String id = UUID.randomUUID().toString();
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("id", id).put("groupId", groupId)
-                .put("artifactId", artifactId)
-                .put("version", version)
-                .put("eventType",
-                ARTIFACT_VERSION_DELETED.name());
+        jsonObject.put("id", id).put("groupId", groupId).put("artifactId", artifactId).put("version", version)
+                .put("eventType", ARTIFACT_VERSION_DELETED.name());
 
         return new ArtifactVersionDeleted(id, groupId + "-" + artifactId + "-" + version, jsonObject);
     }

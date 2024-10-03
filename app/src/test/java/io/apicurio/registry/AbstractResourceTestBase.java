@@ -255,6 +255,14 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
     }
 
+    protected void createGroupRule(String groupId, RuleType ruleType, String ruleConfig) {
+        var createRule = new io.apicurio.registry.rest.client.models.CreateRule();
+        createRule.setConfig(ruleConfig);
+        createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
+
+        clientV3.groups().byGroupId(groupId).rules().post(createRule);
+    }
+
     protected io.apicurio.registry.rest.client.models.Rule createGlobalRule(RuleType ruleType,
             String ruleConfig) {
         var createRule = new io.apicurio.registry.rest.client.models.CreateRule();

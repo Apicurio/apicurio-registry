@@ -10,6 +10,9 @@ import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadiness
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
@@ -444,7 +447,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new CreateArtifactVersion8Message(groupId, artifactId, version, artifactType,
                 contentType, content, references, metaData, branches, dryRun);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
-        ArtifactVersionMetaDataDto versionMetaDataDto = (ArtifactVersionMetaDataDto) coordinator.waitForResponse(uuid);
+        ArtifactVersionMetaDataDto versionMetaDataDto = (ArtifactVersionMetaDataDto) coordinator
+                .waitForResponse(uuid);
         outboxEvent.fire(ArtifactVersionCreated.of(versionMetaDataDto));
         return versionMetaDataDto;
     }
@@ -468,6 +472,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new CreateArtifactRule4Message(groupId, artifactId, rule, config);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(ArtifactRuleConfigured.of(groupId, artifactId, rule, config));
     }
 
     /**
@@ -494,6 +499,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new UpdateArtifactRule4Message(groupId, artifactId, rule, config);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(ArtifactRuleConfigured.of(groupId, artifactId, rule, config));
     }
 
     /**
@@ -506,6 +512,15 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new DeleteArtifactRule3Message(groupId, artifactId, rule);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+
+        switch (rule) {
+            case VALIDITY -> outboxEvent.fire(ArtifactRuleConfigured.of(groupId, artifactId, rule,
+                    RuleConfigurationDto.builder().configuration(ValidityLevel.NONE.name()).build()));
+            case COMPATIBILITY -> outboxEvent.fire(ArtifactRuleConfigured.of(groupId, artifactId, rule,
+                    RuleConfigurationDto.builder().configuration(CompatibilityLevel.NONE.name()).build()));
+            case INTEGRITY -> outboxEvent.fire(ArtifactRuleConfigured.of(groupId, artifactId, rule,
+                    RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build()));
+        }
     }
 
     @Override
@@ -514,6 +529,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new CreateGroupRule3Message(groupId, rule, config);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(GroupRuleConfigured.of(groupId, rule, config));
     }
 
     @Override
@@ -522,6 +538,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new UpdateGroupRule3Message(groupId, rule, config);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(GroupRuleConfigured.of(groupId, rule, config));
     }
 
     @Override
@@ -529,6 +546,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new DeleteGroupRule2Message(groupId, rule);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        switch (rule) {
+            case VALIDITY -> outboxEvent.fire(GroupRuleConfigured.of(groupId, rule,
+                    RuleConfigurationDto.builder().configuration(ValidityLevel.NONE.name()).build()));
+            case COMPATIBILITY -> outboxEvent.fire(GroupRuleConfigured.of(groupId, rule,
+                    RuleConfigurationDto.builder().configuration(CompatibilityLevel.NONE.name()).build()));
+            case INTEGRITY -> outboxEvent.fire(GroupRuleConfigured.of(groupId, rule,
+                    RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build()));
+        }
     }
 
     @Override
@@ -575,6 +600,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new CreateGlobalRule2Message(rule, config);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(GlobalRuleConfigured.of(rule, config));
     }
 
     /**
@@ -597,6 +623,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new UpdateGlobalRule2Message(rule, config);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(GlobalRuleConfigured.of(rule, config));
     }
 
     /**
@@ -607,6 +634,15 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         var message = new DeleteGlobalRule1Message(rule);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+
+        switch (rule) {
+            case VALIDITY -> outboxEvent.fire(GlobalRuleConfigured.of(rule,
+                    RuleConfigurationDto.builder().configuration(ValidityLevel.NONE.name()).build()));
+            case COMPATIBILITY -> outboxEvent.fire(GlobalRuleConfigured.of(rule,
+                    RuleConfigurationDto.builder().configuration(CompatibilityLevel.NONE.name()).build()));
+            case INTEGRITY -> outboxEvent.fire(GlobalRuleConfigured.of(rule,
+                    RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build()));
+        }
     }
 
     /**

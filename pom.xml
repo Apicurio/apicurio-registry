@@ -213,7 +213,7 @@
     <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
     <httpclient.version>4.5.14</httpclient.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
-    <apicurio-common-app-components.version>1.2.4</apicurio-common-app-components.version>
+    <apicurio-common-app-components.version>1.2.5</apicurio-common-app-components.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
     <pulsar-clients.version>3.3.1</pulsar-clients.version>
 

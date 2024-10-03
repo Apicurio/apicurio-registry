@@ -188,7 +188,7 @@ public class ITBase {
 
     @AfterAll
     public static void after() throws Exception {
-
+        portForwardManager.stop();
         if (operatorDeployment == OperatorDeployment.local) {
             Log.info("Stopping Operator");
             operator.stop();

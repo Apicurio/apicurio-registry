@@ -536,9 +536,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     pair = ImmutablePair.of(amdDto, null);
                 }
 
-                if (supportsDatabaseEvents()) {
-                    outboxEvent.fire(ArtifactCreated.of(amdDto));
-                }
+                outboxEvent.fire(ArtifactCreated.of(amdDto));
 
                 return pair;
             });
@@ -779,9 +777,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             deleteAllOrphanedContentRaw(handle);
 
-            if (supportsDatabaseEvents()) {
-                outboxEvent.fire(ArtifactDeleted.of(groupId, artifactId));
-            }
+            outboxEvent.fire(ArtifactDeleted.of(groupId, artifactId));
 
             return versions;
         });
@@ -1195,7 +1191,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 modified = true;
                 if (rowCount == 0) {
                     throw new ArtifactNotFoundException(groupId, artifactId);
-                } else if (supportsDatabaseEvents()) {
+                } else {
                     outboxEvent.fire(ArtifactMetadataUpdated.of(groupId, artifactId, metaData));
                 }
             }
@@ -3529,13 +3525,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public String createEvent(OutboxEvent event) {
-        // Create outbox event
-        handles.withHandle(handle -> handle.createUpdate(sqlStatements.createOutboxEvent())
-                .bind(0, event.getId()).bind(1, event.getAggregateType()).bind(2, event.getAggregateId())
-                .bind(3, event.getType()).bind(4, event.getPayload().toString()).execute());
+        if (supportsDatabaseEvents()) {
+            // Create outbox event
+            handles.withHandle(handle -> handle.createUpdate(sqlStatements.createOutboxEvent())
+                    .bind(0, event.getId()).bind(1, event.getAggregateType()).bind(2, event.getAggregateId())
+                    .bind(3, event.getType()).bind(4, event.getPayload().toString()).execute());
 
-        deleteEvent(event.getId());
+            deleteEvent(event.getId());
 
+        }
         return event.getId();
     }
 

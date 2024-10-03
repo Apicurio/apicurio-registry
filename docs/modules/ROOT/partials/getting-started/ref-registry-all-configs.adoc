@@ -248,6 +248,22 @@ The following {registry} configuration options are available for each component 
 |Download link expiry
 |===
 
+== events
+.events configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.events.enabled`
+|`boolean`
+|`false`
+|`3.0.1`
+|Sending events is enabled
+|===
+
 == gitops
 .gitops configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -694,6 +710,11 @@ The following {registry} configuration options are available for each component 
 |`sa`
 |`3.0.0.Final`
 |Application datasource username
+|`apicurio.events.kafka.topic`
+|`string`
+|`registry-events`
+|
+|Kafka sql storage event topic
 |`apicurio.kafkasql.bootstrap.servers`
 |`string`
 |

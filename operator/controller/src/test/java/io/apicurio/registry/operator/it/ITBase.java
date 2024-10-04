@@ -107,6 +107,13 @@ public class ITBase {
                 if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
                     var crb = (ClusterRoleBinding) r;
                     crb.getSubjects().stream().forEach(s -> s.setNamespace(getNamespace()));
+                    // TODO: We need to patch the generated resources, because the referenced ClusterRole name
+                    // is
+                    // wrong.
+                    if ("apicurioregistry3reconciler-cluster-role-binding"
+                            .equals(crb.getMetadata().getName())) {
+                        crb.getRoleRef().setName("apicurioregistry3reconciler-cluster-role");
+                    }
                 }
                 client.resource(r).inNamespace(getNamespace()).createOrReplace();
             });

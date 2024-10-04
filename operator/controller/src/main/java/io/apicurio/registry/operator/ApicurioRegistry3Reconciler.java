@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
@@ -14,6 +15,7 @@ import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.operator.resource.ActivationConditions.*;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 
 // spotless:off
@@ -32,13 +34,13 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                 @Dependent(
                         type = AppIngressResource.class,
                         name = APP_INGRESS_ID,
-                        dependsOn = {APP_SERVICE_ID}
+                        dependsOn = {APP_SERVICE_ID},
+                        activationCondition = AppIngressActivationCondition.class
                 ),
                 // UI
                 @Dependent(
                         type = UIDeploymentResource.class,
-                        name = UI_DEPLOYMENT_ID,
-                        dependsOn = {APP_INGRESS_ID}
+                        name = UI_DEPLOYMENT_ID
                 ),
                 @Dependent(
                         type = UIServiceResource.class,
@@ -48,7 +50,8 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                 @Dependent(
                         type = UIIngressResource.class,
                         name = UI_INGRESS_ID,
-                        dependsOn = {UI_SERVICE_ID}
+                        dependsOn = {UI_SERVICE_ID},
+                        activationCondition = UIIngressActivationCondition.class
                 )
         }
 )

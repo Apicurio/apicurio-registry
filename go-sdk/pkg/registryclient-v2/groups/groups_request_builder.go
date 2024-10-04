@@ -18,12 +18,12 @@ type GroupsRequestBuilderGetQueryParameters struct {
 	// The number of groups to skip before starting the result set.  Defaults to 0.
 	Offset *int32 `uriparametername:"offset"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
-	// Deprecated: This property is deprecated, use OrderAsSortOrder instead
+	// Deprecated: This property is deprecated, use orderAsSortOrder instead
 	Order *string `uriparametername:"order"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
 	OrderAsSortOrder *i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.SortOrder `uriparametername:"order"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	// Deprecated: This property is deprecated, use OrderbyAsSortBy instead
+	// Deprecated: This property is deprecated, use orderbyAsSortBy instead
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
 	OrderbyAsSortBy *i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.SortBy `uriparametername:"orderby"`
@@ -48,7 +48,6 @@ type GroupsRequestBuilderPostRequestConfiguration struct {
 }
 
 // ByGroupId collection to manage a single group in the registry.
-// returns a *WithGroupItemRequestBuilder when successful
 func (m *GroupsRequestBuilder) ByGroupId(groupId string) *WithGroupItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {
@@ -76,8 +75,6 @@ func NewGroupsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 }
 
 // Get returns a list of all groups.  This list is paged.
-// returns a GroupSearchResultsable when successful
-// returns a Error error when the service returns a 500 status code
 func (m *GroupsRequestBuilder) Get(ctx context.Context, requestConfiguration *GroupsRequestBuilderGetRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.GroupSearchResultsable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -97,9 +94,6 @@ func (m *GroupsRequestBuilder) Get(ctx context.Context, requestConfiguration *Gr
 }
 
 // Post creates a new group.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group already exist (HTTP error `409`)
-// returns a GroupMetaDataable when successful
-// returns a Error error when the service returns a 409 status code
-// returns a Error error when the service returns a 500 status code
 func (m *GroupsRequestBuilder) Post(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.CreateGroupMetaDataable, requestConfiguration *GroupsRequestBuilderPostRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.GroupMetaDataable, error) {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -120,7 +114,6 @@ func (m *GroupsRequestBuilder) Post(ctx context.Context, body i80228d093fd3b582e
 }
 
 // ToGetRequestInformation returns a list of all groups.  This list is paged.
-// returns a *RequestInformation when successful
 func (m *GroupsRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *GroupsRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -135,7 +128,6 @@ func (m *GroupsRequestBuilder) ToGetRequestInformation(ctx context.Context, requ
 }
 
 // ToPostRequestInformation creates a new group.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group already exist (HTTP error `409`)
-// returns a *RequestInformation when successful
 func (m *GroupsRequestBuilder) ToPostRequestInformation(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.CreateGroupMetaDataable, requestConfiguration *GroupsRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -151,7 +143,6 @@ func (m *GroupsRequestBuilder) ToPostRequestInformation(ctx context.Context, bod
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *GroupsRequestBuilder when successful
 func (m *GroupsRequestBuilder) WithUrl(rawUrl string) *GroupsRequestBuilder {
 	return NewGroupsRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

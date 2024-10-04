@@ -19,7 +19,7 @@ type ItemArtifactsItemVersionsItemStateRequestBuilderPutRequestConfiguration str
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewItemArtifactsItemVersionsItemStateRequestBuilderInternal instantiates a new ItemArtifactsItemVersionsItemStateRequestBuilder and sets the default values.
+// NewItemArtifactsItemVersionsItemStateRequestBuilderInternal instantiates a new StateRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsItemStateRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsItemStateRequestBuilder {
 	m := &ItemArtifactsItemVersionsItemStateRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/versions/{version}/state", pathParameters),
@@ -27,7 +27,7 @@ func NewItemArtifactsItemVersionsItemStateRequestBuilderInternal(pathParameters 
 	return m
 }
 
-// NewItemArtifactsItemVersionsItemStateRequestBuilder instantiates a new ItemArtifactsItemVersionsItemStateRequestBuilder and sets the default values.
+// NewItemArtifactsItemVersionsItemStateRequestBuilder instantiates a new StateRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsItemStateRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsItemStateRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -35,9 +35,6 @@ func NewItemArtifactsItemVersionsItemStateRequestBuilder(rawUrl string, requestA
 }
 
 // Put updates the state of a specific version of an artifact.  For example, you can use this operation to disable a specific version.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a Error error when the service returns a 400 status code
-// returns a Error error when the service returns a 404 status code
-// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemVersionsItemStateRequestBuilder) Put(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.UpdateStateable, requestConfiguration *ItemArtifactsItemVersionsItemStateRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -56,7 +53,6 @@ func (m *ItemArtifactsItemVersionsItemStateRequestBuilder) Put(ctx context.Conte
 }
 
 // ToPutRequestInformation updates the state of a specific version of an artifact.  For example, you can use this operation to disable a specific version.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemVersionsItemStateRequestBuilder) ToPutRequestInformation(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.UpdateStateable, requestConfiguration *ItemArtifactsItemVersionsItemStateRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -72,7 +68,6 @@ func (m *ItemArtifactsItemVersionsItemStateRequestBuilder) ToPutRequestInformati
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *ItemArtifactsItemVersionsItemStateRequestBuilder when successful
 func (m *ItemArtifactsItemVersionsItemStateRequestBuilder) WithUrl(rawUrl string) *ItemArtifactsItemVersionsItemStateRequestBuilder {
 	return NewItemArtifactsItemVersionsItemStateRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

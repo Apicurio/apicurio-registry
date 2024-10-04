@@ -27,7 +27,7 @@ type ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilderPutReques
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilderInternal instantiates a new ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder and sets the default values.
+// NewItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilderInternal instantiates a new WithCommentItemRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder {
 	m := &ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/versions/{version}/comments/{commentId}", pathParameters),
@@ -35,7 +35,7 @@ func NewItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilderIntern
 	return m
 }
 
-// NewItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder instantiates a new ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder and sets the default values.
+// NewItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder instantiates a new WithCommentItemRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -43,8 +43,6 @@ func NewItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder(rawUr
 }
 
 // Delete deletes a single comment in an artifact version.  Only the owner of thecomment can delete it.  The `artifactId`, unique `version` number, and `commentId` must be provided.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* No comment with this `commentId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a Error error when the service returns a 404 status code
-// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder) Delete(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilderDeleteRequestConfiguration) error {
 	requestInfo, err := m.ToDeleteRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -62,8 +60,6 @@ func (m *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder) Del
 }
 
 // Put updates the value of a single comment in an artifact version.  Only the owner of thecomment can modify it.  The `artifactId`, unique `version` number, and `commentId` must be provided.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* No comment with this `commentId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a Error error when the service returns a 404 status code
-// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder) Put(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.DTONewCommentable, requestConfiguration *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -81,7 +77,6 @@ func (m *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder) Put
 }
 
 // ToDeleteRequestInformation deletes a single comment in an artifact version.  Only the owner of thecomment can delete it.  The `artifactId`, unique `version` number, and `commentId` must be provided.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* No comment with this `commentId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -93,7 +88,6 @@ func (m *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder) ToD
 }
 
 // ToPutRequestInformation updates the value of a single comment in an artifact version.  Only the owner of thecomment can modify it.  The `artifactId`, unique `version` number, and `commentId` must be provided.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* No comment with this `commentId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder) ToPutRequestInformation(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.DTONewCommentable, requestConfiguration *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -109,7 +103,6 @@ func (m *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder) ToP
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder when successful
 func (m *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder) WithUrl(rawUrl string) *ItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder {
 	return NewItemArtifactsItemVersionsItemCommentsWithCommentItemRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

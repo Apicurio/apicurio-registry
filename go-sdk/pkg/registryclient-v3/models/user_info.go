@@ -28,37 +28,31 @@ func NewUserInfo() *UserInfo {
 }
 
 // CreateUserInfoFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
-// returns a Parsable when successful
 func CreateUserInfoFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewUserInfo(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-// returns a map[string]any when successful
 func (m *UserInfo) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetAdmin gets the admin property value. The admin property
-// returns a *bool when successful
 func (m *UserInfo) GetAdmin() *bool {
 	return m.admin
 }
 
 // GetDeveloper gets the developer property value. The developer property
-// returns a *bool when successful
 func (m *UserInfo) GetDeveloper() *bool {
 	return m.developer
 }
 
 // GetDisplayName gets the displayName property value. The displayName property
-// returns a *string when successful
 func (m *UserInfo) GetDisplayName() *string {
 	return m.displayName
 }
 
 // GetFieldDeserializers the deserialization information for the current model
-// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *UserInfo) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["admin"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -115,13 +109,11 @@ func (m *UserInfo) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896
 }
 
 // GetUsername gets the username property value. The username property
-// returns a *string when successful
 func (m *UserInfo) GetUsername() *string {
 	return m.username
 }
 
 // GetViewer gets the viewer property value. The viewer property
-// returns a *bool when successful
 func (m *UserInfo) GetViewer() *bool {
 	return m.viewer
 }
@@ -197,6 +189,7 @@ func (m *UserInfo) SetViewer(value *bool) {
 	m.viewer = value
 }
 
+// UserInfoable
 type UserInfoable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

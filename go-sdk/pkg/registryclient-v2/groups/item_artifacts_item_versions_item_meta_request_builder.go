@@ -35,7 +35,7 @@ type ItemArtifactsItemVersionsItemMetaRequestBuilderPutRequestConfiguration stru
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewItemArtifactsItemVersionsItemMetaRequestBuilderInternal instantiates a new ItemArtifactsItemVersionsItemMetaRequestBuilder and sets the default values.
+// NewItemArtifactsItemVersionsItemMetaRequestBuilderInternal instantiates a new MetaRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsItemMetaRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsItemMetaRequestBuilder {
 	m := &ItemArtifactsItemVersionsItemMetaRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/versions/{version}/meta", pathParameters),
@@ -43,7 +43,7 @@ func NewItemArtifactsItemVersionsItemMetaRequestBuilderInternal(pathParameters m
 	return m
 }
 
-// NewItemArtifactsItemVersionsItemMetaRequestBuilder instantiates a new ItemArtifactsItemVersionsItemMetaRequestBuilder and sets the default values.
+// NewItemArtifactsItemVersionsItemMetaRequestBuilder instantiates a new MetaRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsItemMetaRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsItemMetaRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -51,8 +51,6 @@ func NewItemArtifactsItemVersionsItemMetaRequestBuilder(rawUrl string, requestAd
 }
 
 // Delete deletes the user-editable metadata properties of the artifact version.  Any propertiesthat are not user-editable are preserved.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a Error error when the service returns a 404 status code
-// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) Delete(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsItemMetaRequestBuilderDeleteRequestConfiguration) error {
 	requestInfo, err := m.ToDeleteRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -70,9 +68,6 @@ func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) Delete(ctx context.Con
 }
 
 // Get retrieves the metadata for a single version of the artifact.  The version metadata is a subset of the artifact metadata and only includes the metadata that is specific tothe version (for example, this doesn't include `modifiedOn`).This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a VersionMetaDataable when successful
-// returns a Error error when the service returns a 404 status code
-// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsItemMetaRequestBuilderGetRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.VersionMetaDataable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -93,8 +88,6 @@ func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) Get(ctx context.Contex
 }
 
 // Put updates the user-editable portion of the artifact version's metadata.  Only some of the metadata fields are editable by the user.  For example, `description` is editable, but `createdOn` is not.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a Error error when the service returns a 404 status code
-// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) Put(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.EditableMetaDataable, requestConfiguration *ItemArtifactsItemVersionsItemMetaRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -112,7 +105,6 @@ func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) Put(ctx context.Contex
 }
 
 // ToDeleteRequestInformation deletes the user-editable metadata properties of the artifact version.  Any propertiesthat are not user-editable are preserved.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsItemMetaRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -124,7 +116,6 @@ func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) ToDeleteRequestInforma
 }
 
 // ToGetRequestInformation retrieves the metadata for a single version of the artifact.  The version metadata is a subset of the artifact metadata and only includes the metadata that is specific tothe version (for example, this doesn't include `modifiedOn`).This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsItemMetaRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -136,7 +127,6 @@ func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) ToGetRequestInformatio
 }
 
 // ToPutRequestInformation updates the user-editable portion of the artifact version's metadata.  Only some of the metadata fields are editable by the user.  For example, `description` is editable, but `createdOn` is not.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) ToPutRequestInformation(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.EditableMetaDataable, requestConfiguration *ItemArtifactsItemVersionsItemMetaRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -152,7 +142,6 @@ func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) ToPutRequestInformatio
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *ItemArtifactsItemVersionsItemMetaRequestBuilder when successful
 func (m *ItemArtifactsItemVersionsItemMetaRequestBuilder) WithUrl(rawUrl string) *ItemArtifactsItemVersionsItemMetaRequestBuilder {
 	return NewItemArtifactsItemVersionsItemMetaRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

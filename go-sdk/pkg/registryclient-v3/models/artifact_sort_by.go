@@ -1,5 +1,9 @@
 package models
 
+import (
+	"errors"
+)
+
 type ArtifactSortBy int
 
 const (
@@ -27,7 +31,7 @@ func ParseArtifactSortBy(v string) (any, error) {
 	case "name":
 		result = NAME_ARTIFACTSORTBY
 	default:
-		return nil, nil
+		return 0, errors.New("Unknown ArtifactSortBy value: " + v)
 	}
 	return &result, nil
 }

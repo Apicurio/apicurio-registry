@@ -35,7 +35,7 @@ type ItemArtifactsItemRulesWithRuleTypeItemRequestBuilderPutRequestConfiguration
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewItemArtifactsItemRulesWithRuleTypeItemRequestBuilderInternal instantiates a new ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder and sets the default values.
+// NewItemArtifactsItemRulesWithRuleTypeItemRequestBuilderInternal instantiates a new WithRuleTypeItemRequestBuilder and sets the default values.
 func NewItemArtifactsItemRulesWithRuleTypeItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder {
 	m := &ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/rules/{ruleType}", pathParameters),
@@ -43,7 +43,7 @@ func NewItemArtifactsItemRulesWithRuleTypeItemRequestBuilderInternal(pathParamet
 	return m
 }
 
-// NewItemArtifactsItemRulesWithRuleTypeItemRequestBuilder instantiates a new ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder and sets the default values.
+// NewItemArtifactsItemRulesWithRuleTypeItemRequestBuilder instantiates a new WithRuleTypeItemRequestBuilder and sets the default values.
 func NewItemArtifactsItemRulesWithRuleTypeItemRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -51,8 +51,6 @@ func NewItemArtifactsItemRulesWithRuleTypeItemRequestBuilder(rawUrl string, requ
 }
 
 // Delete deletes a rule from the artifact.  This results in the rule no longer applying forthis artifact.  If this is the only rule configured for the artifact, this is the same as deleting **all** rules, and the globally configured rules now apply tothis artifact.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No rule with this name/type is configured for this artifact (HTTP error `404`)* Invalid rule type (HTTP error `400`)* A server error occurred (HTTP error `500`)
-// returns a ProblemDetails error when the service returns a 404 status code
-// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) Delete(ctx context.Context, requestConfiguration *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilderDeleteRequestConfiguration) error {
 	requestInfo, err := m.ToDeleteRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -70,9 +68,6 @@ func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) Delete(ctx contex
 }
 
 // Get returns information about a single rule configured for an artifact.  This is usefulwhen you want to know what the current configuration settings are for a specific rule.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No rule with this name/type is configured for this artifact (HTTP error `404`)* Invalid rule type (HTTP error `400`)* A server error occurred (HTTP error `500`)
-// returns a Ruleable when successful
-// returns a ProblemDetails error when the service returns a 404 status code
-// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilderGetRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.Ruleable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -93,9 +88,6 @@ func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) Get(ctx context.C
 }
 
 // Put updates the configuration of a single rule for the artifact.  The configuration datais specific to each rule type, so the configuration of the `COMPATIBILITY` rule is in a different format from the configuration of the `VALIDITY` rule.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No rule with this name/type is configured for this artifact (HTTP error `404`)* Invalid rule type (HTTP error `400`)* A server error occurred (HTTP error `500`)
-// returns a Ruleable when successful
-// returns a ProblemDetails error when the service returns a 404 status code
-// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) Put(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.Ruleable, requestConfiguration *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilderPutRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.Ruleable, error) {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -116,7 +108,6 @@ func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) Put(ctx context.C
 }
 
 // ToDeleteRequestInformation deletes a rule from the artifact.  This results in the rule no longer applying forthis artifact.  If this is the only rule configured for the artifact, this is the same as deleting **all** rules, and the globally configured rules now apply tothis artifact.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No rule with this name/type is configured for this artifact (HTTP error `404`)* Invalid rule type (HTTP error `400`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -128,7 +119,6 @@ func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) ToDeleteRequestIn
 }
 
 // ToGetRequestInformation returns information about a single rule configured for an artifact.  This is usefulwhen you want to know what the current configuration settings are for a specific rule.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No rule with this name/type is configured for this artifact (HTTP error `404`)* Invalid rule type (HTTP error `400`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -140,7 +130,6 @@ func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) ToGetRequestInfor
 }
 
 // ToPutRequestInformation updates the configuration of a single rule for the artifact.  The configuration datais specific to each rule type, so the configuration of the `COMPATIBILITY` rule is in a different format from the configuration of the `VALIDITY` rule.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No rule with this name/type is configured for this artifact (HTTP error `404`)* Invalid rule type (HTTP error `400`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) ToPutRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.Ruleable, requestConfiguration *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -156,7 +145,6 @@ func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) ToPutRequestInfor
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder when successful
 func (m *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder) WithUrl(rawUrl string) *ItemArtifactsItemRulesWithRuleTypeItemRequestBuilder {
 	return NewItemArtifactsItemRulesWithRuleTypeItemRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

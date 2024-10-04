@@ -5,6 +5,7 @@ import (
 	i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e "time"
 )
 
+// GroupMetaData
 type GroupMetaData struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -32,31 +33,26 @@ func NewGroupMetaData() *GroupMetaData {
 }
 
 // CreateGroupMetaDataFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
-// returns a Parsable when successful
 func CreateGroupMetaDataFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewGroupMetaData(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-// returns a map[string]any when successful
 func (m *GroupMetaData) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetCreatedOn gets the createdOn property value. The createdOn property
-// returns a *Time when successful
 func (m *GroupMetaData) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
 }
 
 // GetDescription gets the description property value. The description property
-// returns a *string when successful
 func (m *GroupMetaData) GetDescription() *string {
 	return m.description
 }
 
 // GetFieldDeserializers the deserialization information for the current model
-// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *GroupMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["createdOn"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -133,31 +129,26 @@ func (m *GroupMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 }
 
 // GetGroupId gets the groupId property value. An ID of a single artifact group.
-// returns a *string when successful
 func (m *GroupMetaData) GetGroupId() *string {
 	return m.groupId
 }
 
 // GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
-// returns a Labelsable when successful
 func (m *GroupMetaData) GetLabels() Labelsable {
 	return m.labels
 }
 
 // GetModifiedBy gets the modifiedBy property value. The modifiedBy property
-// returns a *string when successful
 func (m *GroupMetaData) GetModifiedBy() *string {
 	return m.modifiedBy
 }
 
 // GetModifiedOn gets the modifiedOn property value. The modifiedOn property
-// returns a *Time when successful
 func (m *GroupMetaData) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.modifiedOn
 }
 
 // GetOwner gets the owner property value. The owner property
-// returns a *string when successful
 func (m *GroupMetaData) GetOwner() *string {
 	return m.owner
 }
@@ -255,6 +246,7 @@ func (m *GroupMetaData) SetOwner(value *string) {
 	m.owner = value
 }
 
+// GroupMetaDataable
 type GroupMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

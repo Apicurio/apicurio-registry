@@ -10,7 +10,6 @@ type SearchRequestBuilder struct {
 }
 
 // Artifacts search for artifacts in the registry.
-// returns a *ArtifactsRequestBuilder when successful
 func (m *SearchRequestBuilder) Artifacts() *ArtifactsRequestBuilder {
 	return NewArtifactsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

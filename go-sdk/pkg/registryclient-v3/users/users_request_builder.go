@@ -25,7 +25,6 @@ func NewUsersRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb
 }
 
 // Me retrieves information about the current user
-// returns a *MeRequestBuilder when successful
 func (m *UsersRequestBuilder) Me() *MeRequestBuilder {
 	return NewMeRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

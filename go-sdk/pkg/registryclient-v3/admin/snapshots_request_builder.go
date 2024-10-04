@@ -35,8 +35,6 @@ func NewSnapshotsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee2633
 }
 
 // Post triggers the creation of a snapshot of the internal database for compatible storages.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-// returns a SnapshotMetaDataable when successful
-// returns a ProblemDetails error when the service returns a 500 status code
 func (m *SnapshotsRequestBuilder) Post(ctx context.Context, requestConfiguration *SnapshotsRequestBuilderPostRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SnapshotMetaDataable, error) {
 	requestInfo, err := m.ToPostRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -56,7 +54,6 @@ func (m *SnapshotsRequestBuilder) Post(ctx context.Context, requestConfiguration
 }
 
 // ToPostRequestInformation triggers the creation of a snapshot of the internal database for compatible storages.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *SnapshotsRequestBuilder) ToPostRequestInformation(ctx context.Context, requestConfiguration *SnapshotsRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -68,7 +65,6 @@ func (m *SnapshotsRequestBuilder) ToPostRequestInformation(ctx context.Context, 
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *SnapshotsRequestBuilder when successful
 func (m *SnapshotsRequestBuilder) WithUrl(rawUrl string) *SnapshotsRequestBuilder {
 	return NewSnapshotsRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

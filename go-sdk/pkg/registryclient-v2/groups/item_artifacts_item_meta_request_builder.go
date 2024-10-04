@@ -43,7 +43,7 @@ type ItemArtifactsItemMetaRequestBuilderPutRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewItemArtifactsItemMetaRequestBuilderInternal instantiates a new ItemArtifactsItemMetaRequestBuilder and sets the default values.
+// NewItemArtifactsItemMetaRequestBuilderInternal instantiates a new MetaRequestBuilder and sets the default values.
 func NewItemArtifactsItemMetaRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemMetaRequestBuilder {
 	m := &ItemArtifactsItemMetaRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/meta{?canonical*}", pathParameters),
@@ -51,7 +51,7 @@ func NewItemArtifactsItemMetaRequestBuilderInternal(pathParameters map[string]st
 	return m
 }
 
-// NewItemArtifactsItemMetaRequestBuilder instantiates a new ItemArtifactsItemMetaRequestBuilder and sets the default values.
+// NewItemArtifactsItemMetaRequestBuilder instantiates a new MetaRequestBuilder and sets the default values.
 func NewItemArtifactsItemMetaRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemMetaRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -59,9 +59,6 @@ func NewItemArtifactsItemMetaRequestBuilder(rawUrl string, requestAdapter i2ae41
 }
 
 // Get gets the metadata for an artifact in the registry, based on the latest version. If the latest version of the artifact is marked as `DISABLED`, the next available non-disabled version will be used. The returned metadata includesboth generated (read-only) and editable metadata (such as name and description).This operation can fail for the following reasons:* No artifact with this `artifactId` exists  or all versions are `DISABLED` (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a ArtifactMetaDataable when successful
-// returns a Error error when the service returns a 404 status code
-// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemMetaRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemArtifactsItemMetaRequestBuilderGetRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactMetaDataable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -82,9 +79,6 @@ func (m *ItemArtifactsItemMetaRequestBuilder) Get(ctx context.Context, requestCo
 }
 
 // Post gets the metadata for an artifact that matches the raw content.  Searches the registryfor a version of the given artifact matching the content provided in the body of thePOST.This operation can fail for the following reasons:* Provided content (request body) was empty (HTTP error `400`)* No artifact with the `artifactId` exists (HTTP error `404`)* No artifact version matching the provided content exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a VersionMetaDataable when successful
-// returns a Error error when the service returns a 404 status code
-// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemMetaRequestBuilder) Post(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactContentable, requestConfiguration *ItemArtifactsItemMetaRequestBuilderPostRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.VersionMetaDataable, error) {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -105,8 +99,6 @@ func (m *ItemArtifactsItemMetaRequestBuilder) Post(ctx context.Context, body i80
 }
 
 // Put updates the editable parts of the artifact's metadata.  Not all metadata fields canbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.This operation can fail for the following reasons:* No artifact with the `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a Error error when the service returns a 404 status code
-// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemMetaRequestBuilder) Put(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.EditableMetaDataable, requestConfiguration *ItemArtifactsItemMetaRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -124,7 +116,6 @@ func (m *ItemArtifactsItemMetaRequestBuilder) Put(ctx context.Context, body i802
 }
 
 // ToGetRequestInformation gets the metadata for an artifact in the registry, based on the latest version. If the latest version of the artifact is marked as `DISABLED`, the next available non-disabled version will be used. The returned metadata includesboth generated (read-only) and editable metadata (such as name and description).This operation can fail for the following reasons:* No artifact with this `artifactId` exists  or all versions are `DISABLED` (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemMetaRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemMetaRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -136,7 +127,6 @@ func (m *ItemArtifactsItemMetaRequestBuilder) ToGetRequestInformation(ctx contex
 }
 
 // ToPostRequestInformation gets the metadata for an artifact that matches the raw content.  Searches the registryfor a version of the given artifact matching the content provided in the body of thePOST.This operation can fail for the following reasons:* Provided content (request body) was empty (HTTP error `400`)* No artifact with the `artifactId` exists (HTTP error `404`)* No artifact version matching the provided content exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemMetaRequestBuilder) ToPostRequestInformation(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactContentable, requestConfiguration *ItemArtifactsItemMetaRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -155,7 +145,6 @@ func (m *ItemArtifactsItemMetaRequestBuilder) ToPostRequestInformation(ctx conte
 }
 
 // ToPutRequestInformation updates the editable parts of the artifact's metadata.  Not all metadata fields canbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.This operation can fail for the following reasons:* No artifact with the `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemMetaRequestBuilder) ToPutRequestInformation(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.EditableMetaDataable, requestConfiguration *ItemArtifactsItemMetaRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -171,7 +160,6 @@ func (m *ItemArtifactsItemMetaRequestBuilder) ToPutRequestInformation(ctx contex
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *ItemArtifactsItemMetaRequestBuilder when successful
 func (m *ItemArtifactsItemMetaRequestBuilder) WithUrl(rawUrl string) *ItemArtifactsItemMetaRequestBuilder {
 	return NewItemArtifactsItemMetaRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

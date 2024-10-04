@@ -35,8 +35,6 @@ func NewLimitsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 }
 
 // Get this operation retrieves the list of limitations on used resources, that are applied on the current instance of Registry.
-// returns a Limitsable when successful
-// returns a Error error when the service returns a 500 status code
 func (m *LimitsRequestBuilder) Get(ctx context.Context, requestConfiguration *LimitsRequestBuilderGetRequestConfiguration) (i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.Limitsable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -56,7 +54,6 @@ func (m *LimitsRequestBuilder) Get(ctx context.Context, requestConfiguration *Li
 }
 
 // ToGetRequestInformation this operation retrieves the list of limitations on used resources, that are applied on the current instance of Registry.
-// returns a *RequestInformation when successful
 func (m *LimitsRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *LimitsRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -68,7 +65,6 @@ func (m *LimitsRequestBuilder) ToGetRequestInformation(ctx context.Context, requ
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *LimitsRequestBuilder when successful
 func (m *LimitsRequestBuilder) WithUrl(rawUrl string) *LimitsRequestBuilder {
 	return NewLimitsRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

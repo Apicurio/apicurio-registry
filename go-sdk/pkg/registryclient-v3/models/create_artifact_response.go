@@ -4,6 +4,7 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
+// CreateArtifactResponse
 type CreateArtifactResponse struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -21,25 +22,21 @@ func NewCreateArtifactResponse() *CreateArtifactResponse {
 }
 
 // CreateCreateArtifactResponseFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
-// returns a Parsable when successful
 func CreateCreateArtifactResponseFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewCreateArtifactResponse(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-// returns a map[string]any when successful
 func (m *CreateArtifactResponse) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetArtifact gets the artifact property value. The artifact property
-// returns a ArtifactMetaDataable when successful
 func (m *CreateArtifactResponse) GetArtifact() ArtifactMetaDataable {
 	return m.artifact
 }
 
 // GetFieldDeserializers the deserialization information for the current model
-// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *CreateArtifactResponse) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["artifact"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -66,7 +63,6 @@ func (m *CreateArtifactResponse) GetFieldDeserializers() map[string]func(i878a80
 }
 
 // GetVersion gets the version property value. The version property
-// returns a VersionMetaDataable when successful
 func (m *CreateArtifactResponse) GetVersion() VersionMetaDataable {
 	return m.version
 }
@@ -109,6 +105,7 @@ func (m *CreateArtifactResponse) SetVersion(value VersionMetaDataable) {
 	m.version = value
 }
 
+// CreateArtifactResponseable
 type CreateArtifactResponseable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

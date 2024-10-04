@@ -10,7 +10,6 @@ type ContentHashesRequestBuilder struct {
 }
 
 // ByContentHash access artifact content utilizing the SHA-256 hash of the content.
-// returns a *ContentHashesWithContentHashItemRequestBuilder when successful
 func (m *ContentHashesRequestBuilder) ByContentHash(contentHash string) *ContentHashesWithContentHashItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {

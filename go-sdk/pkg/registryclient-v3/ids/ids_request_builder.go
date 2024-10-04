@@ -25,19 +25,16 @@ func NewIdsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c
 }
 
 // ContentHashes the contentHashes property
-// returns a *ContentHashesRequestBuilder when successful
 func (m *IdsRequestBuilder) ContentHashes() *ContentHashesRequestBuilder {
 	return NewContentHashesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // ContentIds the contentIds property
-// returns a *ContentIdsRequestBuilder when successful
 func (m *IdsRequestBuilder) ContentIds() *ContentIdsRequestBuilder {
 	return NewContentIdsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // GlobalIds the globalIds property
-// returns a *GlobalIdsRequestBuilder when successful
 func (m *IdsRequestBuilder) GlobalIds() *GlobalIdsRequestBuilder {
 	return NewGlobalIdsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

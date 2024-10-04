@@ -35,7 +35,7 @@ type ConfigPropertiesWithPropertyNameItemRequestBuilderPutRequestConfiguration s
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewConfigPropertiesWithPropertyNameItemRequestBuilderInternal instantiates a new ConfigPropertiesWithPropertyNameItemRequestBuilder and sets the default values.
+// NewConfigPropertiesWithPropertyNameItemRequestBuilderInternal instantiates a new WithPropertyNameItemRequestBuilder and sets the default values.
 func NewConfigPropertiesWithPropertyNameItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ConfigPropertiesWithPropertyNameItemRequestBuilder {
 	m := &ConfigPropertiesWithPropertyNameItemRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/admin/config/properties/{propertyName}", pathParameters),
@@ -43,7 +43,7 @@ func NewConfigPropertiesWithPropertyNameItemRequestBuilderInternal(pathParameter
 	return m
 }
 
-// NewConfigPropertiesWithPropertyNameItemRequestBuilder instantiates a new ConfigPropertiesWithPropertyNameItemRequestBuilder and sets the default values.
+// NewConfigPropertiesWithPropertyNameItemRequestBuilder instantiates a new WithPropertyNameItemRequestBuilder and sets the default values.
 func NewConfigPropertiesWithPropertyNameItemRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ConfigPropertiesWithPropertyNameItemRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -51,8 +51,6 @@ func NewConfigPropertiesWithPropertyNameItemRequestBuilder(rawUrl string, reques
 }
 
 // Delete resets the value of a single configuration property.  This will return the property toits default value (see external documentation for supported properties and their defaultvalues).This operation may fail for one of the following reasons:* Property not found or not configured (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a ProblemDetails error when the service returns a 404 status code
-// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Delete(ctx context.Context, requestConfiguration *ConfigPropertiesWithPropertyNameItemRequestBuilderDeleteRequestConfiguration) error {
 	requestInfo, err := m.ToDeleteRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -70,9 +68,6 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Delete(ctx context.
 }
 
 // Get returns the value of a single configuration property.This operation may fail for one of the following reasons:* Property not found or not configured (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a ConfigurationPropertyable when successful
-// returns a ProblemDetails error when the service returns a 404 status code
-// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Get(ctx context.Context, requestConfiguration *ConfigPropertiesWithPropertyNameItemRequestBuilderGetRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.ConfigurationPropertyable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -93,8 +88,6 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Get(ctx context.Con
 }
 
 // Put updates the value of a single configuration property.This operation may fail for one of the following reasons:* Property not found or not configured (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a ProblemDetails error when the service returns a 404 status code
-// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Put(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.UpdateConfigurationPropertyable, requestConfiguration *ConfigPropertiesWithPropertyNameItemRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -112,7 +105,6 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Put(ctx context.Con
 }
 
 // ToDeleteRequestInformation resets the value of a single configuration property.  This will return the property toits default value (see external documentation for supported properties and their defaultvalues).This operation may fail for one of the following reasons:* Property not found or not configured (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *ConfigPropertiesWithPropertyNameItemRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -124,7 +116,6 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) ToDeleteRequestInfo
 }
 
 // ToGetRequestInformation returns the value of a single configuration property.This operation may fail for one of the following reasons:* Property not found or not configured (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ConfigPropertiesWithPropertyNameItemRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -136,7 +127,6 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) ToGetRequestInforma
 }
 
 // ToPutRequestInformation updates the value of a single configuration property.This operation may fail for one of the following reasons:* Property not found or not configured (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) ToPutRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.UpdateConfigurationPropertyable, requestConfiguration *ConfigPropertiesWithPropertyNameItemRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -152,7 +142,6 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) ToPutRequestInforma
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *ConfigPropertiesWithPropertyNameItemRequestBuilder when successful
 func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) WithUrl(rawUrl string) *ConfigPropertiesWithPropertyNameItemRequestBuilder {
 	return NewConfigPropertiesWithPropertyNameItemRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

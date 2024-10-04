@@ -1,5 +1,9 @@
 package models
 
+import (
+	"errors"
+)
+
 type RuleType int
 
 const (
@@ -21,7 +25,7 @@ func ParseRuleType(v string) (any, error) {
 	case "INTEGRITY":
 		result = INTEGRITY_RULETYPE
 	default:
-		return nil, nil
+		return 0, errors.New("Unknown RuleType value: " + v)
 	}
 	return &result, nil
 }

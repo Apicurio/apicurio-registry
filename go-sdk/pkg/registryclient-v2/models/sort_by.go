@@ -1,5 +1,9 @@
 package models
 
+import (
+	"errors"
+)
+
 type SortBy int
 
 const (
@@ -18,7 +22,7 @@ func ParseSortBy(v string) (any, error) {
 	case "createdOn":
 		result = CREATEDON_SORTBY
 	default:
-		return nil, nil
+		return 0, errors.New("Unknown SortBy value: " + v)
 	}
 	return &result, nil
 }

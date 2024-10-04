@@ -28,7 +28,6 @@ type RoleMappingsRequestBuilderPostRequestConfiguration struct {
 }
 
 // ByPrincipalId manage the configuration of a single role mapping.
-// returns a *RoleMappingsWithPrincipalItemRequestBuilder when successful
 func (m *RoleMappingsRequestBuilder) ByPrincipalId(principalId string) *RoleMappingsWithPrincipalItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {
@@ -56,8 +55,6 @@ func NewRoleMappingsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee2
 }
 
 // Get gets a list of all role mappings configured in the registry (if any).This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-// returns a []RoleMappingable when successful
-// returns a Error error when the service returns a 500 status code
 func (m *RoleMappingsRequestBuilder) Get(ctx context.Context, requestConfiguration *RoleMappingsRequestBuilderGetRequestConfiguration) ([]i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.RoleMappingable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -80,7 +77,6 @@ func (m *RoleMappingsRequestBuilder) Get(ctx context.Context, requestConfigurati
 }
 
 // Post creates a new mapping between a user/principal and a role.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-// returns a Error error when the service returns a 500 status code
 func (m *RoleMappingsRequestBuilder) Post(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.RoleMappingable, requestConfiguration *RoleMappingsRequestBuilderPostRequestConfiguration) error {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -97,7 +93,6 @@ func (m *RoleMappingsRequestBuilder) Post(ctx context.Context, body i80228d093fd
 }
 
 // ToGetRequestInformation gets a list of all role mappings configured in the registry (if any).This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *RoleMappingsRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *RoleMappingsRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -109,7 +104,6 @@ func (m *RoleMappingsRequestBuilder) ToGetRequestInformation(ctx context.Context
 }
 
 // ToPostRequestInformation creates a new mapping between a user/principal and a role.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *RoleMappingsRequestBuilder) ToPostRequestInformation(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.RoleMappingable, requestConfiguration *RoleMappingsRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -125,7 +119,6 @@ func (m *RoleMappingsRequestBuilder) ToPostRequestInformation(ctx context.Contex
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *RoleMappingsRequestBuilder when successful
 func (m *RoleMappingsRequestBuilder) WithUrl(rawUrl string) *RoleMappingsRequestBuilder {
 	return NewRoleMappingsRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

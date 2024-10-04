@@ -1,5 +1,9 @@
 package models
 
+import (
+	"errors"
+)
+
 type SortOrder int
 
 const (
@@ -18,7 +22,7 @@ func ParseSortOrder(v string) (any, error) {
 	case "desc":
 		result = DESC_SORTORDER
 	default:
-		return nil, nil
+		return 0, errors.New("Unknown SortOrder value: " + v)
 	}
 	return &result, nil
 }

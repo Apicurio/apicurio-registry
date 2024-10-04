@@ -31,31 +31,26 @@ func NewSearchedGroup() *SearchedGroup {
 }
 
 // CreateSearchedGroupFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
-// returns a Parsable when successful
 func CreateSearchedGroupFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewSearchedGroup(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-// returns a map[string]any when successful
 func (m *SearchedGroup) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetCreatedOn gets the createdOn property value. The createdOn property
-// returns a *Time when successful
 func (m *SearchedGroup) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
 }
 
 // GetDescription gets the description property value. The description property
-// returns a *string when successful
 func (m *SearchedGroup) GetDescription() *string {
 	return m.description
 }
 
 // GetFieldDeserializers the deserialization information for the current model
-// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *SearchedGroup) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["createdOn"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -122,25 +117,21 @@ func (m *SearchedGroup) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 }
 
 // GetGroupId gets the groupId property value. An ID of a single artifact group.
-// returns a *string when successful
 func (m *SearchedGroup) GetGroupId() *string {
 	return m.groupId
 }
 
 // GetModifiedBy gets the modifiedBy property value. The modifiedBy property
-// returns a *string when successful
 func (m *SearchedGroup) GetModifiedBy() *string {
 	return m.modifiedBy
 }
 
 // GetModifiedOn gets the modifiedOn property value. The modifiedOn property
-// returns a *Time when successful
 func (m *SearchedGroup) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.modifiedOn
 }
 
 // GetOwner gets the owner property value. The owner property
-// returns a *string when successful
 func (m *SearchedGroup) GetOwner() *string {
 	return m.owner
 }
@@ -227,6 +218,7 @@ func (m *SearchedGroup) SetOwner(value *string) {
 	m.owner = value
 }
 
+// SearchedGroupable
 type SearchedGroupable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

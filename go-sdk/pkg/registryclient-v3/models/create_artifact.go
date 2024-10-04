@@ -30,37 +30,31 @@ func NewCreateArtifact() *CreateArtifact {
 }
 
 // CreateCreateArtifactFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
-// returns a Parsable when successful
 func CreateCreateArtifactFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewCreateArtifact(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-// returns a map[string]any when successful
 func (m *CreateArtifact) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetArtifactId gets the artifactId property value. The ID of a single artifact.
-// returns a *string when successful
 func (m *CreateArtifact) GetArtifactId() *string {
 	return m.artifactId
 }
 
 // GetArtifactType gets the artifactType property value. The artifactType property
-// returns a *string when successful
 func (m *CreateArtifact) GetArtifactType() *string {
 	return m.artifactType
 }
 
 // GetDescription gets the description property value. The description property
-// returns a *string when successful
 func (m *CreateArtifact) GetDescription() *string {
 	return m.description
 }
 
 // GetFieldDeserializers the deserialization information for the current model
-// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *CreateArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["artifactId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -127,19 +121,16 @@ func (m *CreateArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e89
 }
 
 // GetFirstVersion gets the firstVersion property value. The firstVersion property
-// returns a CreateVersionable when successful
 func (m *CreateArtifact) GetFirstVersion() CreateVersionable {
 	return m.firstVersion
 }
 
 // GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
-// returns a Labelsable when successful
 func (m *CreateArtifact) GetLabels() Labelsable {
 	return m.labels
 }
 
 // GetName gets the name property value. The name property
-// returns a *string when successful
 func (m *CreateArtifact) GetName() *string {
 	return m.name
 }
@@ -226,6 +217,7 @@ func (m *CreateArtifact) SetName(value *string) {
 	m.name = value
 }
 
+// CreateArtifactable
 type CreateArtifactable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

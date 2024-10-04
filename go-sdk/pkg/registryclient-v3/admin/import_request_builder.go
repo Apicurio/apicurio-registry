@@ -43,8 +43,6 @@ func NewImportRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 }
 
 // Post imports registry data that was previously exported using the `/admin/export` operation.
-// returns a ProblemDetails error when the service returns a 409 status code
-// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ImportRequestBuilder) Post(ctx context.Context, body []byte, requestConfiguration *ImportRequestBuilderPostRequestConfiguration) error {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -62,7 +60,6 @@ func (m *ImportRequestBuilder) Post(ctx context.Context, body []byte, requestCon
 }
 
 // ToPostRequestInformation imports registry data that was previously exported using the `/admin/export` operation.
-// returns a *RequestInformation when successful
 func (m *ImportRequestBuilder) ToPostRequestInformation(ctx context.Context, body []byte, requestConfiguration *ImportRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -78,7 +75,6 @@ func (m *ImportRequestBuilder) ToPostRequestInformation(ctx context.Context, bod
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *ImportRequestBuilder when successful
 func (m *ImportRequestBuilder) WithUrl(rawUrl string) *ImportRequestBuilder {
 	return NewImportRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

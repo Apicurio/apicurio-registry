@@ -41,37 +41,31 @@ func NewSearchedArtifact() *SearchedArtifact {
 }
 
 // CreateSearchedArtifactFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
-// returns a Parsable when successful
 func CreateSearchedArtifactFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewSearchedArtifact(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-// returns a map[string]any when successful
 func (m *SearchedArtifact) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetCreatedBy gets the createdBy property value. The createdBy property
-// returns a *string when successful
 func (m *SearchedArtifact) GetCreatedBy() *string {
 	return m.createdBy
 }
 
 // GetCreatedOn gets the createdOn property value. The createdOn property
-// returns a *Time when successful
 func (m *SearchedArtifact) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.createdOn
 }
 
 // GetDescription gets the description property value. The description property
-// returns a *string when successful
 func (m *SearchedArtifact) GetDescription() *string {
 	return m.description
 }
 
 // GetFieldDeserializers the deserialization information for the current model
-// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *SearchedArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["createdBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -194,49 +188,41 @@ func (m *SearchedArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e
 }
 
 // GetGroupId gets the groupId property value. An ID of a single artifact group.
-// returns a *string when successful
 func (m *SearchedArtifact) GetGroupId() *string {
 	return m.groupId
 }
 
 // GetId gets the id property value. The ID of a single artifact.
-// returns a *string when successful
 func (m *SearchedArtifact) GetId() *string {
 	return m.id
 }
 
 // GetLabels gets the labels property value. The labels property
-// returns a []string when successful
 func (m *SearchedArtifact) GetLabels() []string {
 	return m.labels
 }
 
 // GetModifiedBy gets the modifiedBy property value. The modifiedBy property
-// returns a *string when successful
 func (m *SearchedArtifact) GetModifiedBy() *string {
 	return m.modifiedBy
 }
 
 // GetModifiedOn gets the modifiedOn property value. The modifiedOn property
-// returns a *Time when successful
 func (m *SearchedArtifact) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.modifiedOn
 }
 
 // GetName gets the name property value. The name property
-// returns a *string when successful
 func (m *SearchedArtifact) GetName() *string {
 	return m.name
 }
 
 // GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
-// returns a *ArtifactState when successful
 func (m *SearchedArtifact) GetState() *ArtifactState {
 	return m.state
 }
 
 // GetTypeEscaped gets the type property value. The type property
-// returns a *string when successful
 func (m *SearchedArtifact) GetTypeEscaped() *string {
 	return m.typeEscaped
 }
@@ -379,6 +365,7 @@ func (m *SearchedArtifact) SetTypeEscaped(value *string) {
 	m.typeEscaped = value
 }
 
+// SearchedArtifactable
 type SearchedArtifactable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

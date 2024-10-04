@@ -10,7 +10,6 @@ type SearchRequestBuilder struct {
 }
 
 // Artifacts search for artifacts in the registry.
-// returns a *ArtifactsRequestBuilder when successful
 func (m *SearchRequestBuilder) Artifacts() *ArtifactsRequestBuilder {
 	return NewArtifactsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
@@ -31,13 +30,11 @@ func NewSearchRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 }
 
 // Groups search for groups in the registry.
-// returns a *GroupsRequestBuilder when successful
 func (m *SearchRequestBuilder) Groups() *GroupsRequestBuilder {
 	return NewGroupsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Versions search for versions in the registry.
-// returns a *VersionsRequestBuilder when successful
 func (m *SearchRequestBuilder) Versions() *VersionsRequestBuilder {
 	return NewVersionsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

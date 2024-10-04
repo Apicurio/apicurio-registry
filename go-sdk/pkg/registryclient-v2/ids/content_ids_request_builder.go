@@ -12,7 +12,6 @@ type ContentIdsRequestBuilder struct {
 
 // ByContentId access artifact content utilizing the unique content identifier for that content.
 // Deprecated: This indexer is deprecated and will be removed in the next major version. Use the one with the typed parameter instead.
-// returns a *ContentIdsWithContentItemRequestBuilder when successful
 func (m *ContentIdsRequestBuilder) ByContentId(contentId string) *ContentIdsWithContentItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {
@@ -25,7 +24,6 @@ func (m *ContentIdsRequestBuilder) ByContentId(contentId string) *ContentIdsWith
 }
 
 // ByContentIdInt64 access artifact content utilizing the unique content identifier for that content.
-// returns a *ContentIdsWithContentItemRequestBuilder when successful
 func (m *ContentIdsRequestBuilder) ByContentIdInt64(contentId int64) *ContentIdsWithContentItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {

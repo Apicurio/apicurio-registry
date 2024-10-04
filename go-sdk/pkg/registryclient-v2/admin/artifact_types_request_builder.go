@@ -35,8 +35,6 @@ func NewArtifactTypesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee
 }
 
 // Get gets a list of all the configured artifact types.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-// returns a []ArtifactTypeInfoable when successful
-// returns a Error error when the service returns a 500 status code
 func (m *ArtifactTypesRequestBuilder) Get(ctx context.Context, requestConfiguration *ArtifactTypesRequestBuilderGetRequestConfiguration) ([]i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactTypeInfoable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -59,7 +57,6 @@ func (m *ArtifactTypesRequestBuilder) Get(ctx context.Context, requestConfigurat
 }
 
 // ToGetRequestInformation gets a list of all the configured artifact types.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ArtifactTypesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ArtifactTypesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -71,7 +68,6 @@ func (m *ArtifactTypesRequestBuilder) ToGetRequestInformation(ctx context.Contex
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *ArtifactTypesRequestBuilder when successful
 func (m *ArtifactTypesRequestBuilder) WithUrl(rawUrl string) *ArtifactTypesRequestBuilder {
 	return NewArtifactTypesRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

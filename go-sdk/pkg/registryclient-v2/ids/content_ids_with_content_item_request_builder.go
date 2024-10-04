@@ -19,7 +19,7 @@ type ContentIdsWithContentItemRequestBuilderGetRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewContentIdsWithContentItemRequestBuilderInternal instantiates a new ContentIdsWithContentItemRequestBuilder and sets the default values.
+// NewContentIdsWithContentItemRequestBuilderInternal instantiates a new WithContentItemRequestBuilder and sets the default values.
 func NewContentIdsWithContentItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ContentIdsWithContentItemRequestBuilder {
 	m := &ContentIdsWithContentItemRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/ids/contentIds/{contentId}", pathParameters),
@@ -27,7 +27,7 @@ func NewContentIdsWithContentItemRequestBuilderInternal(pathParameters map[strin
 	return m
 }
 
-// NewContentIdsWithContentItemRequestBuilder instantiates a new ContentIdsWithContentItemRequestBuilder and sets the default values.
+// NewContentIdsWithContentItemRequestBuilder instantiates a new WithContentItemRequestBuilder and sets the default values.
 func NewContentIdsWithContentItemRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ContentIdsWithContentItemRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -35,9 +35,6 @@ func NewContentIdsWithContentItemRequestBuilder(rawUrl string, requestAdapter i2
 }
 
 // Get gets the content for an artifact version in the registry using the unique contentidentifier for that content.  This content ID may be shared by multiple artifactversions in the case where the artifact versions are identical.This operation may fail for one of the following reasons:* No content with this `contentId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a []byte when successful
-// returns a Error error when the service returns a 404 status code
-// returns a Error error when the service returns a 500 status code
 func (m *ContentIdsWithContentItemRequestBuilder) Get(ctx context.Context, requestConfiguration *ContentIdsWithContentItemRequestBuilderGetRequestConfiguration) ([]byte, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -58,13 +55,11 @@ func (m *ContentIdsWithContentItemRequestBuilder) Get(ctx context.Context, reque
 }
 
 // References the references property
-// returns a *ContentIdsItemReferencesRequestBuilder when successful
 func (m *ContentIdsWithContentItemRequestBuilder) References() *ContentIdsItemReferencesRequestBuilder {
 	return NewContentIdsItemReferencesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // ToGetRequestInformation gets the content for an artifact version in the registry using the unique contentidentifier for that content.  This content ID may be shared by multiple artifactversions in the case where the artifact versions are identical.This operation may fail for one of the following reasons:* No content with this `contentId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a *RequestInformation when successful
 func (m *ContentIdsWithContentItemRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ContentIdsWithContentItemRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -76,7 +71,6 @@ func (m *ContentIdsWithContentItemRequestBuilder) ToGetRequestInformation(ctx co
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
-// returns a *ContentIdsWithContentItemRequestBuilder when successful
 func (m *ContentIdsWithContentItemRequestBuilder) WithUrl(rawUrl string) *ContentIdsWithContentItemRequestBuilder {
 	return NewContentIdsWithContentItemRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

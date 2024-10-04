@@ -4,6 +4,7 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
+// CreateVersion
 type CreateVersion struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -29,37 +30,31 @@ func NewCreateVersion() *CreateVersion {
 }
 
 // CreateCreateVersionFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
-// returns a Parsable when successful
 func CreateCreateVersionFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewCreateVersion(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-// returns a map[string]any when successful
 func (m *CreateVersion) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetBranches gets the branches property value. The branches property
-// returns a []string when successful
 func (m *CreateVersion) GetBranches() []string {
 	return m.branches
 }
 
 // GetContent gets the content property value. The content property
-// returns a VersionContentable when successful
 func (m *CreateVersion) GetContent() VersionContentable {
 	return m.content
 }
 
 // GetDescription gets the description property value. The description property
-// returns a *string when successful
 func (m *CreateVersion) GetDescription() *string {
 	return m.description
 }
 
 // GetFieldDeserializers the deserialization information for the current model
-// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *CreateVersion) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["branches"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -132,19 +127,16 @@ func (m *CreateVersion) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 }
 
 // GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
-// returns a Labelsable when successful
 func (m *CreateVersion) GetLabels() Labelsable {
 	return m.labels
 }
 
 // GetName gets the name property value. The name property
-// returns a *string when successful
 func (m *CreateVersion) GetName() *string {
 	return m.name
 }
 
 // GetVersion gets the version property value. A single version of an artifact.  Can be provided by the client when creating a new version,or it can be server-generated.  The value can be any string unique to the artifact, but it isrecommended to use a simple integer or a semver value.
-// returns a *string when successful
 func (m *CreateVersion) GetVersion() *string {
 	return m.version
 }
@@ -231,6 +223,7 @@ func (m *CreateVersion) SetVersion(value *string) {
 	m.version = value
 }
 
+// CreateVersionable
 type CreateVersionable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

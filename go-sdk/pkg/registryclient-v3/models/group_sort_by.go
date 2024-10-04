@@ -1,5 +1,9 @@
 package models
 
+import (
+	"errors"
+)
+
 type GroupSortBy int
 
 const (
@@ -18,7 +22,7 @@ func ParseGroupSortBy(v string) (any, error) {
 	case "createdOn":
 		result = CREATEDON_GROUPSORTBY
 	default:
-		return nil, nil
+		return 0, errors.New("Unknown GroupSortBy value: " + v)
 	}
 	return &result, nil
 }

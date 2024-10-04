@@ -25,7 +25,6 @@ func NewConfigRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 }
 
 // Properties manage configuration properties.
-// returns a *ConfigPropertiesRequestBuilder when successful
 func (m *ConfigRequestBuilder) Properties() *ConfigPropertiesRequestBuilder {
 	return NewConfigPropertiesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

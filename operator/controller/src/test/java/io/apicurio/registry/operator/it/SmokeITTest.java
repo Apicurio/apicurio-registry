@@ -203,7 +203,15 @@ public class SmokeITTest extends ITBase {
         // Disable host and therefore Ingress
         registry.getSpec().getApp().setHost("");
         registry.getSpec().getUi().setHost("");
-        client.resource(registry).update();
+
+        // The remote test does not work properly. As a workaround the CR will be deleted and recreated
+        // instead of updated.
+        // client.resource(registry).update();
+        client.resource(registry).delete();
+        await().untilAsserted(() -> {
+            assertThat(client.resource(registry).get()).isNull();
+        });
+        client.resource(registry).create();
 
         await().untilAsserted(() -> {
             assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-app-ingress")

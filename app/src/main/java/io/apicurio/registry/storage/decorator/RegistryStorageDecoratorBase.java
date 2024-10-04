@@ -41,9 +41,10 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches, boolean dryRun) throws RegistryStorageException {
+            List<String> versionBranches, boolean versionIsDraft, boolean dryRun)
+            throws RegistryStorageException {
         return delegate.createArtifact(groupId, artifactId, artifactType, artifactMetaData, version,
-                versionContent, versionMetaData, versionBranches, dryRun);
+                versionContent, versionMetaData, versionBranches, versionIsDraft, dryRun);
     }
 
     @Override
@@ -60,9 +61,15 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches, boolean dryRun) throws RegistryStorageException {
+            List<String> branches, boolean isDraft, boolean dryRun) throws RegistryStorageException {
         return delegate.createArtifactVersion(groupId, artifactId, version, artifactType, content, metaData,
-                branches, dryRun);
+                branches, isDraft, dryRun);
+    }
+
+    @Override
+    public void updateArtifactVersionContent(String groupId, String artifactId, String version,
+             String artifactType, ContentWrapperDto content) throws RegistryStorageException {
+        delegate.updateArtifactVersionContent(groupId, artifactId, version, artifactType, content);
     }
 
     @Override

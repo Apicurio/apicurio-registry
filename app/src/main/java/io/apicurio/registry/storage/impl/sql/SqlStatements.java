@@ -90,6 +90,12 @@ public interface SqlStatements {
     public String insertVersion(boolean firstVersion);
 
     /**
+     * A statement used when updating artifact version content.  Updates the versions
+     * table with a new contentId, modifiedBy, and modifiedOn.
+     */
+    public String updateArtifactVersionContent();
+
+    /**
      * A statement used to select a single row in the versions table by globalId.
      */
     public String selectArtifactVersionMetaDataByGlobalId();

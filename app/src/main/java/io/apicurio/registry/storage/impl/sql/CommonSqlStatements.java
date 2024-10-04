@@ -1052,6 +1052,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String updateArtifactVersionContent() {
+        return "UPDATE versions SET contentId = ?, modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
+    }
+
+    @Override
     public String selectGAVByGlobalId() {
         return "SELECT groupId, artifactId, version FROM versions " + "WHERE globalId = ?";
     }

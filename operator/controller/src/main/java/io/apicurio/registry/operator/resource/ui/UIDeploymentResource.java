@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 
 import static io.apicurio.registry.operator.Mapper.toYAML;
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
+import static io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 import static io.apicurio.registry.operator.util.IngressUtil.withIngressRule;

@@ -8,7 +8,7 @@ import io.fabric8.kubernetes.api.model.KubernetesResource;
 import lombok.*;
 
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "appHost", "uiHost" })
+@JsonPropertyOrder({ "app", "ui" })
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -19,18 +19,18 @@ import lombok.*;
 public class ApicurioRegistry3Spec implements KubernetesResource {
 
     /**
-     * Apicurio Registry backend base URL
+     * Configuration specific to Apicurio Registry backend component.
      */
-    @JsonProperty("appHost")
-    @JsonPropertyDescription("Apicurio Registry backend base URL")
+    @JsonProperty("app")
+    @JsonPropertyDescription("Configuration specific to Apicurio Registry backend component.")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String appHost;
+    private ApicurioRegistry3SpecApp app = new ApicurioRegistry3SpecApp();
 
     /**
-     * Apicurio Registry UI URL
+     * Configuration specific to Apicurio Registry UI component.
      */
-    @JsonProperty("uiHost")
-    @JsonPropertyDescription("Apicurio Registry UI base URL")
+    @JsonProperty("ui")
+    @JsonPropertyDescription("Configuration specific to Apicurio Registry UI component.")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String uiHost;
+    private ApicurioRegistry3SpecUI ui = new ApicurioRegistry3SpecUI();
 }

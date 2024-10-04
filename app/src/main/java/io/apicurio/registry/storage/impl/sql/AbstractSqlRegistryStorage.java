@@ -189,6 +189,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     boolean initDB;
 
     @Inject
+    @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
+    @Info(category = "storage", description = "Storage event topic")
+    String eventsTopic;
+
+    @Inject
     Event<SqlStorageEvent> sqlStorageEvent;
 
     @Inject
@@ -3583,7 +3588,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (supportsDatabaseEvents()) {
             // Create outbox event
             handles.withHandle(handle -> handle.createUpdate(sqlStatements.createOutboxEvent())
-                    .bind(0, event.getId()).bind(1, event.getAggregateType()).bind(2, event.getAggregateId())
+                    .bind(0, event.getId()).bind(1, eventsTopic).bind(2, event.getAggregateId())
                     .bind(3, event.getType()).bind(4, event.getPayload().toString()).execute());
 
             deleteEvent(event.getId());

@@ -20,10 +20,6 @@ public abstract class OutboxEvent {
         return aggregateId;
     }
 
-    public String getAggregateType() {
-        return "registry-events";
-    }
-
     public abstract JSONObject getPayload();
 
     public abstract String getType();

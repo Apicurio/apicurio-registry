@@ -10,6 +10,7 @@ import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -23,7 +24,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.rnorth.ducttape.unreliables.Unreliables;
@@ -58,7 +58,6 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Order(1)
     public void createGroup() throws Exception {
         // Preparation
         final String groupId = "createGroup";
@@ -69,13 +68,12 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         ensureGroupCreated(groupId, description, labels);
 
         // Consume the create event from the broker
-        List<JsonNode> events = drain(consumer, groupId, GROUP_CREATED);
+        List<JsonNode> events = lookupEvent(consumer, "groupId", groupId, GROUP_CREATED);
 
         checkGroupEvent(groupId, events);
     }
 
     @Test
-    @Order(2)
     public void updateGroupMetadata() throws Exception {
         // Preparation
         final String groupId = "updateGroupMetadata";
@@ -90,7 +88,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).put(emd);
 
         // Consume the create event from the broker
-        List<JsonNode> events = drain(consumer, groupId, GROUP_METADATA_UPDATED);
+        List<JsonNode> events = lookupEvent(consumer, "groupId", groupId, GROUP_METADATA_UPDATED);
 
         JsonNode updateEvent = null;
 
@@ -108,7 +106,6 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Order(3)
     public void deleteGroupEvent() throws Exception {
         // Preparation
         final String groupId = "deleteGroupEvent";
@@ -121,7 +118,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).delete();
 
         // Consume the delete event from the broker
-        List<JsonNode> deleteEvents = drain(consumer, groupId, GROUP_DELETED);
+        List<JsonNode> deleteEvents = lookupEvent(consumer, "groupId", groupId, GROUP_DELETED);
 
         JsonNode deleteEvent = null;
 
@@ -137,7 +134,6 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Order(4)
     void createArtifactEvent() throws Exception {
         // Preparation
         final String groupId = "testCreateArtifact";
@@ -148,12 +144,11 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         final String description = "testCreateArtifactDescription";
 
         ensureArtifactCreated(groupId, artifactId, version, name, description);
-        List<JsonNode> events = drain(consumer, groupId, ARTIFACT_CREATED);
+        List<JsonNode> events = lookupEvent(consumer, "groupId", groupId, ARTIFACT_CREATED);
         checkArtifactEvent(groupId, artifactId, name, events);
     }
 
     @Test
-    @Order(5)
     public void updateArtifactMetadataEvent() throws Exception {
         // Preparation
         final String groupId = "updateArtifactMetadataEvent";
@@ -170,7 +165,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(emd);
 
         // Consume the update events from the broker
-        List<JsonNode> updateEvents = drain(consumer, groupId, ARTIFACT_METADATA_UPDATED);
+        List<JsonNode> updateEvents = lookupEvent(consumer, "groupId", groupId, ARTIFACT_METADATA_UPDATED);
 
         JsonNode updateEvent = null;
 
@@ -188,7 +183,6 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Order(6)
     public void deleteArtifactEvent() throws Exception {
         // Preparation
         final String groupId = "deleteArtifactEvent";
@@ -203,7 +197,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
 
         // Consume the delete event from the broker
-        List<JsonNode> deleteEvents = drain(consumer, groupId, ARTIFACT_DELETED);
+        List<JsonNode> deleteEvents = lookupEvent(consumer, "groupId", groupId, ARTIFACT_DELETED);
 
         JsonNode updateEvent = null;
 
@@ -220,7 +214,6 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Order(7)
     public void createArtifactVersion() throws Exception {
         // Preparation
         final String groupId = "createArtifactVersion";
@@ -232,7 +225,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         ensureArtifactCreated(groupId, artifactId, name, description);
         // Consume the create event from the broker
-        List<JsonNode> events = drain(consumer, groupId, ARTIFACT_VERSION_CREATED);
+        List<JsonNode> events = lookupEvent(consumer, "groupId", groupId, ARTIFACT_VERSION_CREATED);
         JsonNode updateEvent = null;
 
         for (JsonNode event : events) {
@@ -247,7 +240,6 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Order(8)
     public void updateArtifactVersionMetadata() throws Exception {
         // Preparation
         final String groupId = "createArtifactVersion";
@@ -264,7 +256,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .byVersionExpression("1").put(emd);
 
         // Consume the create event from the broker
-        List<JsonNode> events = drain(consumer, groupId, ARTIFACT_VERSION_METADATA_UPDATED);
+        List<JsonNode> events = lookupEvent(consumer, "groupId", groupId, ARTIFACT_VERSION_METADATA_UPDATED);
 
         JsonNode updateEvent = null;
 
@@ -283,7 +275,6 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Order(9)
     public void deleteArtifactVersion() throws Exception {
         // Preparation
         final String groupId = "createArtifactVersion";
@@ -297,7 +288,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .byVersionExpression("1").delete();
 
         // Consume the delete event from the broker
-        List<JsonNode> deleteEvents = drain(consumer, groupId, ARTIFACT_VERSION_DELETED);
+        List<JsonNode> deleteEvents = lookupEvent(consumer, "groupId", groupId, ARTIFACT_VERSION_DELETED);
 
         JsonNode deleteEvent = null;
 
@@ -313,12 +304,12 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Order(10)
-    public void globalRuleConfigured() throws Exception {
+    public void globalRuleCreated() throws Exception {
         createGlobalRule(RuleType.VALIDITY, "SYNTAX_ONLY");
 
         // Consume the create event from the broker
-        List<JsonNode> events = drain(consumer, GLOBAL_RULE_CONFIGURED);
+        List<JsonNode> events = lookupEvent(consumer, "ruleType", RuleType.VALIDITY.value(),
+                GLOBAL_RULE_CONFIGURED);
 
         JsonNode updateEvent = null;
 
@@ -332,8 +323,52 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @Order(10)
-    public void groupRuleConfigured() throws Exception {
+    public void globalRuleUpdated() throws Exception {
+        createGlobalRule(RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        // Consume the create event from the broker
+        updateGlobalRule(RuleType.VALIDITY, ValidityLevel.FULL.name());
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, GLOBAL_RULE_CONFIGURED,
+                Map.of("rule", ValidityLevel.FULL.name()));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(GLOBAL_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asText());
+    }
+
+    @Test
+    public void globalRuleDeleted() throws Exception {
+        createGlobalRule(RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        clientV3.admin().rules().byRuleType(RuleType.VALIDITY.name()).delete();
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, GLOBAL_RULE_CONFIGURED,
+                Map.of("rule", ValidityLevel.NONE.name()));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(GLOBAL_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asText());
+    }
+
+    @Test
+    public void groupRuleCreated() throws Exception {
         // Preparation
         final String groupId = "groupRuleConfigured";
         final String description = "groupRuleConfiguredDescription";
@@ -345,7 +380,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         createGroupRule(groupId, RuleType.VALIDITY, "SYNTAX_ONLY");
 
         // Consume the create event from the broker
-        List<JsonNode> events = drain(consumer, groupId, GROUP_RULE_CONFIGURED);
+        List<JsonNode> events = lookupEvent(consumer, "groupId", groupId, GROUP_RULE_CONFIGURED);
 
         JsonNode updateEvent = null;
 
@@ -356,10 +391,72 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         }
 
         Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
     }
 
     @Test
-    @Order(10)
+    public void groupRuleUpdated() throws Exception {
+        // Preparation
+        final String groupId = "groupRuleUpdated";
+        final String description = "groupRuleUpdatedDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        createGroupRule(groupId, RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        updateGroupRule(groupId, RuleType.VALIDITY, ValidityLevel.FULL.name());
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, GROUP_RULE_CONFIGURED,
+                Map.of("groupId", groupId, "rule", ValidityLevel.FULL.name()));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(GROUP_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+    }
+
+    @Test
+    public void groupRuleDeleted() throws Exception {
+        // Preparation
+        final String groupId = "groupRuleDeleted";
+        final String description = "groupRuleDeletedDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        createGroupRule(groupId, RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        clientV3.groups().byGroupId(groupId).rules().byRuleType(RuleType.VALIDITY.name()).delete();
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, GROUP_RULE_CONFIGURED,
+                Map.of("groupId", groupId, "rule", ValidityLevel.NONE.name()));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(GROUP_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+    }
+
+    @Test
     public void artifactRuleConfigured() throws Exception {
         // Preparation
         final String groupId = "artifactRuleConfigured";
@@ -373,7 +470,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         createArtifactRule(groupId, artifactId, RuleType.VALIDITY, "SYNTAX_ONLY");
 
         // Consume the create event from the broker
-        List<JsonNode> events = drain(consumer, groupId, ARTIFACT_RULE_CONFIGURED);
+        List<JsonNode> events = lookupEvent(consumer, "groupId", groupId, ARTIFACT_RULE_CONFIGURED);
 
         JsonNode updateEvent = null;
 
@@ -384,9 +481,76 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         }
 
         Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
     }
 
-    // FIXME: Add tests for rules updated and deleted.
+    @Test
+    public void artifactRuleUpdated() throws Exception {
+        // Preparation
+        final String groupId = "artifactRuleUpdated";
+        final String description = "artifactRuleUpdatedDescription";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "artifactRuleUpdatedName";
+
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+        createArtifactRule(groupId, artifactId, RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        updateArtifactRule(groupId, artifactId, RuleType.VALIDITY, ValidityLevel.FULL.name());
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_RULE_CONFIGURED,
+                Map.of("groupId", groupId, "rule", ValidityLevel.FULL.name(), "artifactId", artifactId));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(ARTIFACT_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
+    }
+
+    @Test
+    public void artifactRuleDeleted() throws Exception {
+        // Preparation
+        final String groupId = "artifactRuleUpdated";
+        final String description = "artifactRuleUpdatedDescription";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "artifactRuleUpdatedName";
+
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+        createArtifactRule(groupId, artifactId, RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
+                .byRuleType(RuleType.VALIDITY.name()).delete();
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_RULE_CONFIGURED,
+                Map.of("groupId", groupId, "rule", ValidityLevel.NONE.name(), "artifactId", artifactId));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(ARTIFACT_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
+    }
 
     private void checkGroupEvent(String groupId, List<JsonNode> events) {
         JsonNode createEvent = null;
@@ -480,8 +644,8 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 new StringDeserializer(), new StringDeserializer());
     }
 
-    private List<JsonNode> drain(KafkaConsumer<String, String> consumer, String groupId,
-            StorageEventType eventType) {
+    private List<JsonNode> lookupEvent(KafkaConsumer<String, String> consumer, String fieldLookupName,
+            String fieldValue, StorageEventType eventType) {
 
         List<JsonNode> events = new ArrayList<>();
 
@@ -490,14 +654,15 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 events.add(readEventPayload(record));
             });
 
-            return events.stream().anyMatch(event -> event.get("groupId").asText().equals(groupId)
+            return events.stream().anyMatch(event -> event.get(fieldLookupName).asText().equals(fieldValue)
                     && event.get("eventType").asText().equals(eventType.name()));
 
         });
         return events;
     }
 
-    private List<JsonNode> drain(KafkaConsumer<String, String> consumer, StorageEventType eventType) {
+    private List<JsonNode> lookupEvent(KafkaConsumer<String, String> consumer, StorageEventType eventType,
+            Map<String, String> lookups) {
 
         List<JsonNode> events = new ArrayList<>();
 
@@ -507,10 +672,16 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
             });
 
             return events.stream()
-                    .anyMatch(event -> event.get("eventType").asText().equals(eventType.name()));
+                    .anyMatch(event -> event.get("eventType").asText().equals(eventType.name())
+                            && lookups.keySet().stream().allMatch(
+                                    fieldName -> checkField(event, fieldName, lookups.get(fieldName))));
 
         });
         return events;
+    }
+
+    private boolean checkField(JsonNode event, String fieldName, String expectedFieldValue) {
+        return event.get(fieldName).asText().equals(expectedFieldValue);
     }
 
     private JsonNode readEventPayload(ConsumerRecord<String, String> event) {

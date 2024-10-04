@@ -255,12 +255,30 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
     }
 
+    protected void updateArtifactRule(String groupId, String artifactId, RuleType ruleType,
+            String ruleConfig) {
+        var updateRule = new io.apicurio.registry.rest.client.models.Rule();
+        updateRule.setConfig(ruleConfig);
+        updateRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
+
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
+                .byRuleType(ruleType.value()).put(updateRule);
+    }
+
     protected void createGroupRule(String groupId, RuleType ruleType, String ruleConfig) {
         var createRule = new io.apicurio.registry.rest.client.models.CreateRule();
         createRule.setConfig(ruleConfig);
         createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
 
         clientV3.groups().byGroupId(groupId).rules().post(createRule);
+    }
+
+    protected void updateGroupRule(String groupId, RuleType ruleType, String ruleConfig) {
+        var updateRule = new io.apicurio.registry.rest.client.models.Rule();
+        updateRule.setConfig(ruleConfig);
+        updateRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
+
+        clientV3.groups().byGroupId(groupId).rules().byRuleType(ruleType.value()).put(updateRule);
     }
 
     protected io.apicurio.registry.rest.client.models.Rule createGlobalRule(RuleType ruleType,
@@ -270,6 +288,17 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
 
         clientV3.admin().rules().post(createRule);
+        // TODO: verify this get
+        return clientV3.admin().rules().byRuleType(ruleType.value()).get();
+    }
+
+    protected io.apicurio.registry.rest.client.models.Rule updateGlobalRule(RuleType ruleType,
+            String ruleConfig) {
+        var createRule = new io.apicurio.registry.rest.client.models.Rule();
+        createRule.setConfig(ruleConfig);
+        createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
+
+        clientV3.admin().rules().byRuleType(ruleType.value()).put(createRule);
         // TODO: verify this get
         return clientV3.admin().rules().byRuleType(ruleType.value()).get();
     }

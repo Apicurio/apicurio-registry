@@ -32,7 +32,7 @@ public class NatsProducerImpl<DATA> implements NatsProducer<DATA> {
     }
 
     @Override
-    public void send(DATA message) throws ApicurioNatsException {
+    public void publish(DATA message) throws ApicurioNatsException {
         byte[] data = serializer.serializeData(subject, message);
 
         try {

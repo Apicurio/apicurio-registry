@@ -189,26 +189,29 @@ public class DraftContentTest extends AbstractResourceTestBase {
                 AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
-        CreateVersion createVersion = TestUtils.clientCreateVersion(AVRO_CONTENT_V2, ContentTypes.APPLICATION_JSON);
+        CreateVersion createVersion = TestUtils.clientCreateVersion(AVRO_CONTENT_V2,
+                ContentTypes.APPLICATION_JSON);
         createVersion.setVersion("1.1");
         createVersion.setIsDraft(true);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).versions().post(createVersion);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).versions()
+                .post(createVersion);
 
-        createArtifact = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.ASYNCAPI,
-                AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.ASYNCAPI, AVRO_CONTENT_V1,
+                ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         createArtifact.getFirstVersion().setIsDraft(true);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-        createArtifact = TestUtils.clientCreateArtifact(artifactId3, ArtifactType.ASYNCAPI,
-                AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact = TestUtils.clientCreateArtifact(artifactId3, ArtifactType.ASYNCAPI, AVRO_CONTENT_V1,
+                ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         for (int i = 1; i <= 5; i++) {
             createVersion = TestUtils.clientCreateVersion(AVRO_CONTENT_V2, ContentTypes.APPLICATION_JSON);
             createVersion.setVersion("1." + i);
             createVersion.setIsDraft(true);
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId3).versions().post(createVersion);
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId3).versions()
+                    .post(createVersion);
         }
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {

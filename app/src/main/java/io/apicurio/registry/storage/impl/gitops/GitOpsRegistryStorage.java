@@ -43,7 +43,6 @@ import org.slf4j.Logger;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -392,6 +391,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
+    public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
+        return proxy(storage -> storage.getContentByReference(reference));
+    }
+
+    @Override
     public boolean isContentExists(String contentHash) {
         return proxy(storage -> storage.isContentExists(contentHash));
     }
@@ -409,11 +413,6 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Override
     public boolean isRoleMappingExists(String principalId) {
         return proxy(storage -> storage.isRoleMappingExists(principalId));
-    }
-
-    @Override
-    public Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references) {
-        return proxy(storage -> storage.resolveReferences(references));
     }
 
     @Override

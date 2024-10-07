@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.storage.dto.SearchedBranchDto;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 import java.sql.ResultSet;
@@ -22,7 +22,8 @@ public class SearchedBranchMapper implements RowMapper<SearchedBranchDto> {
      */
     @Override
     public SearchedBranchDto map(ResultSet rs) throws SQLException {
-        return SearchedBranchDto.builder().groupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")))
+        return SearchedBranchDto.builder()
+                .groupId(RegistryContentUtils.denormalizeGroupId(rs.getString("groupId")))
                 .artifactId(rs.getString("artifactId")).branchId(rs.getString("branchId"))
                 .description(rs.getString("description")).systemDefined(rs.getBoolean("systemDefined"))
                 .owner(rs.getString("owner")).createdOn(rs.getTimestamp("createdOn").getTime())

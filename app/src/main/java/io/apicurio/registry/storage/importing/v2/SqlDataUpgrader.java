@@ -9,8 +9,8 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.VersionState;
@@ -160,7 +160,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                 entity.contentId = storage.nextContentId();
             }
 
-            List<ArtifactReferenceDto> references = SqlUtil
+            List<ArtifactReferenceDto> references = RegistryContentUtils
                     .deserializeReferences(entity.serializedReferences);
 
             // Recalculate the hash using the current algorithm
@@ -169,7 +169,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
 
             // Try to recalculate the canonical hash - this may fail if the content has references
             try {
-                Map<String, TypedContent> resolvedReferences = storage.resolveReferences(references);
+                Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                        .recursivelyResolveReferences(references, storage::getContentByReference);
                 entity.artifactType = utils.determineArtifactType(typedContent, null, resolvedReferences);
 
                 // First we have to recalculate both the canonical hash and the contentHash
@@ -299,7 +300,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
 
             TypedContent content = TypedContent.create(wrapperDto.getContent(), wrapperDto.getContentType());
             String artifactType = versions.get(0).getArtifactType();
-            Map<String, TypedContent> resolvedReferences = storage.resolveReferences(references);
+            Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                    .recursivelyResolveReferences(references, storage::getContentByReference);
             TypedContent canonicalContent = utils.canonicalizeContent(artifactType, content,
                     resolvedReferences);
             String canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());

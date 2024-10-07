@@ -35,7 +35,6 @@ import io.apicurio.registry.utils.impexp.Entity;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -273,11 +272,6 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references) {
-        return delegate.resolveReferences(references);
-    }
-
-    @Override
     public boolean isEmpty() {
         return delegate.isEmpty();
     }
@@ -351,6 +345,11 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     @Override
     public Optional<Long> contentIdFromHash(String contentHash) {
         return delegate.contentIdFromHash(contentHash);
+    }
+
+    @Override
+    public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
+        return delegate.getContentByReference(reference);
     }
 
     @Override

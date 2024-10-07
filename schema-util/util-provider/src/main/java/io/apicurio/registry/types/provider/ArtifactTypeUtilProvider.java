@@ -34,4 +34,6 @@ public interface ArtifactTypeUtilProvider {
     ContentDereferencer getContentDereferencer();
 
     ReferenceFinder getReferenceFinder();
+
+    boolean supportsReferencesWithContext();
 }

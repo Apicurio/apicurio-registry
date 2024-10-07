@@ -10,4 +10,6 @@ public interface ArtifactTypeUtilProviderFactory {
 
     List<ArtifactTypeUtilProvider> getAllArtifactTypeProviders();
 
+    String getArtifactContentType(String type);
+
 }

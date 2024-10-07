@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 import java.sql.ResultSet;
@@ -24,7 +24,7 @@ public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
     @Override
     public GroupMetaDataDto map(ResultSet rs) throws SQLException {
         GroupMetaDataDto dto = new GroupMetaDataDto();
-        dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
+        dto.setGroupId(RegistryContentUtils.denormalizeGroupId(rs.getString("groupId")));
         dto.setDescription(rs.getString("description"));
 
         String type = rs.getString("artifactsType");
@@ -37,7 +37,7 @@ public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
         Timestamp modifiedOn = rs.getTimestamp("modifiedOn");
         dto.setModifiedOn(modifiedOn == null ? 0 : modifiedOn.getTime());
 
-        dto.setLabels(SqlUtil.deserializeLabels(rs.getString("labels")));
+        dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
 
         return dto;
     }

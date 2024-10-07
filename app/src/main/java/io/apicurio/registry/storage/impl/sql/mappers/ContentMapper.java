@@ -2,7 +2,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 import java.sql.ResultSet;
@@ -28,7 +28,7 @@ public class ContentMapper implements RowMapper<ContentWrapperDto> {
         ContentHandle content = ContentHandle.create(contentBytes);
         contentWrapperDto.setContent(content);
         contentWrapperDto.setContentType(rs.getString("contentType"));
-        contentWrapperDto.setReferences(SqlUtil.deserializeReferences(rs.getString("refs")));
+        contentWrapperDto.setReferences(RegistryContentUtils.deserializeReferences(rs.getString("refs")));
         return contentWrapperDto;
     }
 

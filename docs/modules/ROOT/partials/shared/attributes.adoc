@@ -92,10 +92,7 @@ include::attributes-links.adoc[]
 
 // Container catalog URL
 :download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
-// v2 download URL
-:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
-// v3 download URL 
-//:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?product=rhboar&downloadType=distributions
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?product=rhboar&downloadType=distributions
 
 
 // internal links

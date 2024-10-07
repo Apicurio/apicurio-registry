@@ -1,12 +1,9 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
-import io.apicurio.registry.operator.api.v1.ApicurioRegistry3SpecApp;
-import io.apicurio.registry.operator.api.v1.ApicurioRegistry3SpecUI;
+import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.quarkus.test.junit.QuarkusTest;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -29,86 +26,73 @@ public class SmokeITTest extends ITBase {
 
     @Test
     void demoDeployment() {
-        // spotless:off
-        var registry = new ApicurioRegistry3();
-        var meta = new ObjectMeta();
-        meta.setName("demo");
-        meta.setNamespace(getNamespace());
-        registry.setMetadata(meta);
-        registry.setSpec(ApicurioRegistry3Spec.builder()
-                .app(ApicurioRegistry3SpecApp.builder()
-                        .host(ingressManager.getIngressHost("demo-app"))
-                        .build())
-                .ui(ApicurioRegistry3SpecUI.builder()
-                        .host(ingressManager.getIngressHost("demo-ui"))
-                        .build())
-                .build());
-        // spotless:on
 
-        // Act
+        var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+
         client.resource(registry).create();
 
         // Deployments
         await().ignoreExceptions().until(() -> {
-            assertThat(client.apps().deployments().inNamespace(getNamespace()).withName("demo-app-deployment")
-                    .get().getStatus().getReadyReplicas()).isEqualTo(1);
-            assertThat(client.apps().deployments().inNamespace(getNamespace()).withName("demo-ui-deployment")
-                    .get().getStatus().getReadyReplicas()).isEqualTo(1);
+            assertThat(client.apps().deployments().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-deployment").get().getStatus()
+                    .getReadyReplicas()).isEqualTo(1);
+            assertThat(client.apps().deployments().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-deployment").get().getStatus()
+                    .getReadyReplicas()).isEqualTo(1);
             return true;
         });
 
         // Services
         await().ignoreExceptions().until(() -> {
-            assertThat(client.services().inNamespace(getNamespace()).withName("demo-app-service").get()
-                    .getSpec().getClusterIP()).isNotBlank();
-            assertThat(client.services().inNamespace(getNamespace()).withName("demo-ui-service").get()
-                    .getSpec().getClusterIP()).isNotBlank();
+            assertThat(client.services().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-service").get().getSpec()
+                    .getClusterIP()).isNotBlank();
+            assertThat(client.services().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-service").get().getSpec()
+                    .getClusterIP()).isNotBlank();
             return true;
         });
 
         // Ingresses
         await().ignoreExceptions().until(() -> {
-            assertThat(client.network().v1().ingresses().inNamespace(getNamespace())
-                    .withName("demo-app-ingress").get().getSpec().getRules().get(0).getHost())
-                    .isEqualTo(registry.getSpec().getApp().getHost());
-            assertThat(client.network().v1().ingresses().inNamespace(getNamespace())
-                    .withName("demo-ui-ingress").get().getSpec().getRules().get(0).getHost())
-                    .isEqualTo(registry.getSpec().getUi().getHost());
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-ingress").get().getSpec().getRules()
+                    .get(0).getHost()).isEqualTo(registry.getSpec().getApp().getHost());
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-ingress").get().getSpec().getRules()
+                    .get(0).getHost()).isEqualTo(registry.getSpec().getUi().getHost());
             return true;
         });
     }
 
     @Test
     void testService() {
-        // spotless:off
-        var registry = new ApicurioRegistry3();
-        var meta = new ObjectMeta();
-        meta.setName("demo");
-        meta.setNamespace(namespace);
-        registry.setMetadata(meta);
-        registry.setSpec(ApicurioRegistry3Spec.builder()
-                .app(ApicurioRegistry3SpecApp.builder()
-                        .host(ingressManager.getIngressHost("demo-app"))
-                        .build())
-                .ui(ApicurioRegistry3SpecUI.builder()
-                        .host(ingressManager.getIngressHost("demo-ui"))
-                        .build())
-                .build());
-        // spotless:on
 
-        // Act
-        client.resources(ApicurioRegistry3.class).inNamespace(namespace).create(registry);
+        var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+
+        client.resource(registry).create();
 
         // Wait for Services
         await().ignoreExceptions().until(() -> {
-            assertThat(client.services().inNamespace(namespace).withName("demo-app-service").get().getSpec()
+            assertThat(client.services().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-service").get().getSpec()
                     .getClusterIP()).isNotBlank();
-            assertThat(client.services().inNamespace(namespace).withName("demo-ui-service").get().getSpec()
+            assertThat(client.services().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-service").get().getSpec()
                     .getClusterIP()).isNotBlank();
             return true;
         });
 
-        int appServicePort = portForwardManager.startPortForward("demo-app-service", 8080);
+        int appServicePort = portForwardManager
+                .startPortForward(registry.getMetadata().getName() + "-app-service", 8080);
 
         await().ignoreExceptions().until(() -> {
             given().get(new URI("http://localhost:" + appServicePort + "/apis/registry/v3/system/info"))
@@ -116,7 +100,8 @@ public class SmokeITTest extends ITBase {
             return true;
         });
 
-        int uiServicePort = portForwardManager.startPortForward("demo-ui-service", 8080);
+        int uiServicePort = portForwardManager
+                .startPortForward(registry.getMetadata().getName() + "-ui-service", 8080);
 
         await().ignoreExceptions().until(() -> {
             given().get(new URI("http://localhost:" + uiServicePort + "/config.js")).then().statusCode(200);
@@ -127,85 +112,66 @@ public class SmokeITTest extends ITBase {
     @Test
     @DisabledIfSystemProperty(named = INGRESS_SKIP_PROP, matches = "true")
     void testIngress() {
-        // spotless:off
-        var registry = new ApicurioRegistry3();
-        var meta = new ObjectMeta();
-        meta.setName("demo");
-        meta.setNamespace(namespace);
-        registry.setMetadata(meta);
-        registry.setSpec(ApicurioRegistry3Spec.builder()
-                .app(ApicurioRegistry3SpecApp.builder()
-                        .host(ingressManager.getIngressHost("demo-app"))
-                        .build())
-                .ui(ApicurioRegistry3SpecUI.builder()
-                        .host(ingressManager.getIngressHost("demo-ui"))
-                        .build())
-                .build());
-        // spotless:on
 
-        // Act
-        client.resources(ApicurioRegistry3.class).inNamespace(namespace).create(registry);
+        var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+
+        client.resource(registry).create();
 
         // Wait for Ingresses
         await().untilAsserted(() -> {
-            assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-app-ingress")
-                    .get()).isNotNull();
-            assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-ui-ingress")
-                    .get()).isNotNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-ingress").get()).isNotNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-ingress").get()).isNotNull();
         });
 
         await().ignoreExceptions().until(() -> {
-            ingressManager.startHttpRequest("demo-app-ingress").basePath("/apis/registry/v3/system/info")
-                    .get().then().statusCode(200);
+            ingressManager.startHttpRequest(registry.getMetadata().getName() + "-app-ingress")
+                    .basePath("/apis/registry/v3/system/info").get().then().statusCode(200);
             return true;
         });
 
         await().ignoreExceptions().until(() -> {
-            ingressManager.startHttpRequest("demo-ui-ingress").basePath("/config.js").get().then()
-                    .statusCode(200);
+            ingressManager.startHttpRequest(registry.getMetadata().getName() + "-ui-ingress")
+                    .basePath("/config.js").get().then().statusCode(200);
             return true;
         });
     }
 
     @Test
     void testEmptyHostDisablesIngress() {
-        // spotless:off
-        var registry = new ApicurioRegistry3();
-        var meta = new ObjectMeta();
-        meta.setName("demo");
-        meta.setNamespace(namespace);
-        registry.setMetadata(meta);
-        registry.setSpec(ApicurioRegistry3Spec.builder()
-                .app(ApicurioRegistry3SpecApp.builder()
-                        .host(ingressManager.getIngressHost("demo-app"))
-                        .build())
-                .ui(ApicurioRegistry3SpecUI.builder()
-                        .host(ingressManager.getIngressHost("demo-ui"))
-                        .build())
-                .build());
-        // spotless:on
+
+        var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
 
         client.resource(registry).create();
 
         // Wait for Ingresses
         await().untilAsserted(() -> {
-            assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-app-ingress")
-                    .get()).isNotNull();
-            assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-ui-ingress")
-                    .get()).isNotNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-ingress").get()).isNotNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-ingress").get()).isNotNull();
         });
 
         // Check that REGISTRY_API_URL is set
-        var uiDeployment = client.apps().deployments().inNamespace(namespace).withName("demo-ui-deployment")
-                .get();
+        var uiDeployment = client.apps().deployments().inNamespace(namespace)
+                .withName(registry.getMetadata().getName() + "-ui-deployment").get();
         verify_REGISTRY_API_URL_isSet(registry, uiDeployment);
 
         // Disable host and therefore Ingress
         registry.getSpec().getApp().setHost("");
         registry.getSpec().getUi().setHost("");
 
-        // The remote test does not work properly. As a workaround the CR will be deleted and recreated
-        // instead of updated.
+        // TODO: The remote test does not work properly. As a workaround the CR will be deleted and recreated
+        // instead of updated:
         // client.resource(registry).update();
         client.resource(registry).delete();
         await().untilAsserted(() -> {
@@ -214,16 +180,16 @@ public class SmokeITTest extends ITBase {
         client.resource(registry).create();
 
         await().untilAsserted(() -> {
-            assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-app-ingress")
-                    .get()).isNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-ingress").get()).isNull();
         });
         await().untilAsserted(() -> {
-            assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-ui-ingress")
-                    .get()).isNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-ingress").get()).isNull();
         });
 
-        uiDeployment = client.apps().deployments().inNamespace(namespace).withName("demo-ui-deployment")
-                .get();
+        uiDeployment = client.apps().deployments().inNamespace(namespace)
+                .withName(registry.getMetadata().getName() + "-ui-deployment").get();
         assertThat(uiDeployment).isNotNull();
         // spotless:off
         assertThat(uiDeployment.getSpec().getTemplate().getSpec().getContainers())
@@ -234,21 +200,21 @@ public class SmokeITTest extends ITBase {
         // spotless:on
 
         // Enable again
-        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("demo-app"));
-        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("demo-ui"));
+        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
         client.resource(registry).update();
 
         // Verify Ingresses are back
         await().untilAsserted(() -> {
-            assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-app-ingress")
-                    .get()).isNotNull();
-            assertThat(client.network().v1().ingresses().inNamespace(namespace).withName("demo-ui-ingress")
-                    .get()).isNotNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-ingress").get()).isNotNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-ingress").get()).isNotNull();
         });
 
         // Check that REGISTRY_API_URL is set again
-        uiDeployment = client.apps().deployments().inNamespace(namespace).withName("demo-ui-deployment")
-                .get();
+        uiDeployment = client.apps().deployments().inNamespace(namespace)
+                .withName(registry.getMetadata().getName() + "-ui-deployment").get();
         verify_REGISTRY_API_URL_isSet(registry, uiDeployment);
     }
 

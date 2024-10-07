@@ -1264,6 +1264,9 @@
         {
           "name": "subject",
           "description": "subject (string) – the name of the subject",
+          "schema": {
+            "type": "string"
+          },
           "in": "path",
           "required": true
         },

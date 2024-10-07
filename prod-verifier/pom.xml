@@ -21,11 +21,13 @@
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-app</artifactId>
       <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-distro-connect-converter</artifactId>
       <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 

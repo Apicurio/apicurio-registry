@@ -450,13 +450,12 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
-                                             String artifactType,
-            ContentWrapperDto contentDto) throws RegistryStorageException {
+            String artifactType, ContentWrapperDto contentDto) throws RegistryStorageException {
         String content = contentDto != null ? contentDto.getContent().content() : null;
         String contentType = contentDto != null ? contentDto.getContentType() : null;
         List<ArtifactReferenceDto> references = contentDto != null ? contentDto.getReferences() : null;
-        var message = new UpdateArtifactVersionContent5Message(groupId, artifactId, version, artifactType, contentType,
-                content, references);
+        var message = new UpdateArtifactVersionContent5Message(groupId, artifactId, version, artifactType,
+                contentType, content, references);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }

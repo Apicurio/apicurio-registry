@@ -2637,6 +2637,39 @@
         "summary": "Get artifact version",
         "description": "Retrieves a single version of the artifact content.  Both the `artifactId` and the\nunique `version` number must be provided.  The `Content-Type` of the response depends \non the artifact type.  In most cases, this is `application/json`, but for some types \nit may be different (for example, `PROTOBUF`).\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
       },
+      "put": {
+        "requestBody": {
+          "description": "The new artifact version content.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Versions"
+        ],
+        "responses": {
+          "204": {
+            "description": "The artifact version content was successfully updated."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "updateArtifactVersionContent",
+        "summary": "Update artifact version content",
+        "description": "Updates the content of a single version of an artifact.\n\nNOTE: the artifact must be in `DRAFT` status.\n\nBoth the `artifactId` and the unique `version` number must be provided to identify\nthe version to update.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* Artifact version not in `DRAFT` status (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      },
       "parameters": [
         {
           "name": "groupId",
@@ -2870,6 +2903,14 @@
             "description": "Filter by name.",
             "schema": {
               "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "state",
+            "description": "Filter by version state.",
+            "schema": {
+              "$ref": "#/components/schemas/VersionState"
             },
             "in": "query"
           }
@@ -4794,7 +4835,8 @@
         "enum": [
           "ENABLED",
           "DISABLED",
-          "DEPRECATED"
+          "DEPRECATED",
+          "DRAFT"
         ],
         "type": "string",
         "x-codegen-package": "io.apicurio.registry.types"
@@ -4885,6 +4927,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "isDraft": {
+            "description": "",
+            "type": "boolean"
           }
         }
       },

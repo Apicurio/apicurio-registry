@@ -68,7 +68,7 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
 
     @Override
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
-             String artifactType, ContentWrapperDto content) throws RegistryStorageException {
+            String artifactType, ContentWrapperDto content) throws RegistryStorageException {
         delegate.updateArtifactVersionContent(groupId, artifactId, version, artifactType, content);
     }
 

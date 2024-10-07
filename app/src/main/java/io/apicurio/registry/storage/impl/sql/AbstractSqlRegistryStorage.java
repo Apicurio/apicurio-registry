@@ -1654,6 +1654,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         where.append(")");
                         break;
+                    case state:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("v.state " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
+                        });
+                        break;
                     default:
                         break;
                 }
@@ -1755,8 +1762,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public void updateArtifactVersionContent(String groupId, String artifactId, String version, String artifactType,
-            ContentWrapperDto content) throws RegistryStorageException {
+    public void updateArtifactVersionContent(String groupId, String artifactId, String version,
+            String artifactType, ContentWrapperDto content) throws RegistryStorageException {
         log.debug("Updating content for artifact version: {} {} @ {}", groupId, artifactId, version);
 
         // Put the new content in the DB and get the unique content ID back.
@@ -1767,13 +1774,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         handles.withHandle(handle -> {
             int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionContent())
-                    .bind(0, contentId)
-                    .bind(1, modifiedBy)
-                    .bind(2, modifiedOn)
-                    .bind(3, normalizeGroupId(groupId))
-                    .bind(4, artifactId)
-                    .bind(5, version)
-                    .execute();
+                    .bind(0, contentId).bind(1, modifiedBy).bind(2, modifiedOn)
+                    .bind(3, normalizeGroupId(groupId)).bind(4, artifactId).bind(5, version).execute();
             if (rowCount == 0) {
                 throw new VersionNotFoundException(groupId, artifactId, version);
             }

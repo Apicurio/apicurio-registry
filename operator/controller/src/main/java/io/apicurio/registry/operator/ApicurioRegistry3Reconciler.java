@@ -1,15 +1,14 @@
 package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.context.GlobalContext;
 import io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
-import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.AppServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UIServiceResource;
-import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.*;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import org.slf4j.Logger;
@@ -64,15 +63,18 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
     public UpdateControl<ApicurioRegistry3> reconcile(ApicurioRegistry3 primary,
             Context<ApicurioRegistry3> context) {
 
-        log.info("Reconciling Apicurio Registry: {}", primary);
-        var statusUpdater = new StatusUpdater(primary);
-
-        return context.getSecondaryResource(Deployment.class, AppDeploymentDiscriminator.INSTANCE)
-                .map(deployment -> {
-                    log.info("Updating Apicurio Registry status:");
-                    primary.setStatus(statusUpdater.next(deployment));
-                    return UpdateControl.patchStatus(primary);
-                }).orElseGet(UpdateControl::noUpdate);
+        return GlobalContext.INSTANCE.reconcileReturn(REGISTRY_KEY, primary, context, (crContext, p) -> {
+            UpdateControl<ApicurioRegistry3> uc;
+            if (crContext.isUpdatePrimary()) {
+                // This should only happen rarely:
+                uc = UpdateControl.updateResourceAndPatchStatus(p);
+            } else if (crContext.isUpdateStatus()) {
+                uc = UpdateControl.patchStatus(p);
+            } else {
+                uc = UpdateControl.noUpdate();
+            }
+            return uc;
+        });
     }
 
     @Override
@@ -86,6 +88,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
 
     @Override
     public DeleteControl cleanup(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+        GlobalContext.INSTANCE.cleanup(primary);
         return DeleteControl.defaultDelete();
     }
 }

@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.resource;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDiscriminator;
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
@@ -20,7 +21,7 @@ import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(onlyExplicitlyIncluded = true)
-public class ResourceKey<R> {
+public class ResourceKey<R extends HasMetadata> {
 
     // spotless:off
     public static final String REGISTRY_ID = "ApicurioRegistry3Reconciler";

@@ -1,8 +1,7 @@
 package io.apicurio.registry.operator.resource.ui;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import io.apicurio.registry.operator.context.GlobalContext;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
@@ -10,13 +9,9 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-
-import static io.apicurio.registry.operator.Mapper.toYAML;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
-import static io.apicurio.registry.operator.resource.ResourceKey.*;
-import static io.apicurio.registry.operator.util.IngressUtil.withIngressRule;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_DEPLOYMENT_KEY;
 
 // spotless:off
 @KubernetesDependent(
@@ -34,29 +29,6 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
 
     @Override
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-
-        var d = UI_DEPLOYMENT_KEY.getFactory().apply(primary);
-
-        var uiEnv = new ArrayList<EnvVar>();
-
-        var sOpt = context.getSecondaryResource(APP_SERVICE_KEY.getKlass(),
-                APP_SERVICE_KEY.getDiscriminator());
-        sOpt.ifPresent(s -> {
-            var iOpt = context.getSecondaryResource(APP_INGRESS_KEY.getKlass(),
-                    APP_INGRESS_KEY.getDiscriminator());
-            iOpt.ifPresent(i -> withIngressRule(s, i, rule -> {
-                // spotless:off
-                uiEnv.add(new EnvVarBuilder()
-                        .withName("REGISTRY_API_URL")
-                        .withValue("http://%s/apis/registry/v3".formatted(rule.getHost()))
-                        .build());
-                // spotless:on
-            }));
-        });
-
-        d.getSpec().getTemplate().getSpec().getContainers().get(0).setEnv(uiEnv);
-
-        log.debug("Desired {} is {}", UI_DEPLOYMENT_KEY.getId(), toYAML(d));
-        return d;
+        return GlobalContext.INSTANCE.reconcileReturn(UI_DEPLOYMENT_KEY, primary, context);
     }
 }

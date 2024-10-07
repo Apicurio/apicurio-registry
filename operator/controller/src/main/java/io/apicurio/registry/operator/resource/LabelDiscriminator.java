@@ -32,7 +32,7 @@ public class LabelDiscriminator<R extends HasMetadata>
             return true;
         }).toList();
         if (filtered.size() > 1) {
-            throw new OperatorException("Expected at most one " + resource.getSimpleName()
+            throw new OperatorException("Expected at most one " + resource.getCanonicalName()
                     + " resource with labels " + labels + " but got more.");
         }
         return filtered.isEmpty() ? Optional.empty() : Optional.of(filtered.get(0));

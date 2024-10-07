@@ -47,7 +47,7 @@ public class StatusUpdater {
         return status;
     }
 
-    public ApicurioRegistry3Status next(Deployment deployment) {
+    public void next(ApicurioRegistry3Status status, Deployment deployment) {
         var lastTransitionTime = Instant.now();
         if (registry != null && registry.getStatus() != null
                 && registry.getStatus().getConditions().size() > 0 &&
@@ -65,9 +65,6 @@ public class StatusUpdater {
         nextCondition.setMessage("TODO");
         nextCondition.setReason("reasons");
 
-        var status = new ApicurioRegistry3Status();
         status.setConditions(List.of(nextCondition));
-
-        return status;
     }
 }

@@ -18,7 +18,6 @@ public class ArtifactCreated extends OutboxEvent {
 
     public static ArtifactCreated of(ArtifactMetaDataDto artifactMetaDataDto) {
         String id = UUID.randomUUID().toString();
-        // TODO here we have to define the internal structure of the event, maybe use cloudevents?
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", artifactMetaDataDto.getGroupId())
                 .put("artifactId", artifactMetaDataDto.getArtifactId())

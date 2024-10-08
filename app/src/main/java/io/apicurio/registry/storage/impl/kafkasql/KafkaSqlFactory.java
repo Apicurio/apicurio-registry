@@ -41,22 +41,22 @@ public class KafkaSqlFactory {
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.snapshots.topic", defaultValue = "kafkasql-snapshots")
-    @Info(category = "storage", description = "Kafka sql storage topic name")
+    @Info(category = "storage", description = "Kafka sql storage topic name", registryAvailableSince = "3.0.0")
     String snapshotsTopic;
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.snapshot.every.seconds", defaultValue = "86400s")
-    @Info(category = "storage", description = "Kafka sql journal topic snapshot every")
+    @Info(category = "storage", description = "Kafka sql journal topic snapshot every", registryAvailableSince = "3.0.0")
     String snapshotEvery;
 
     @Inject
     @ConfigProperty(name = "apicurio.storage.snapshot.location", defaultValue = "./")
-    @Info(category = "storage", description = "Kafka sql snapshots store location")
+    @Info(category = "storage", description = "Kafka sql snapshots store location", registryAvailableSince = "3.0.0")
     String snapshotStoreLocation;
 
     @Inject
     @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
-    @Info(category = "storage", description = "Kafka sql storage event topic")
+    @Info(category = "storage", description = "Kafka sql storage event topic", registryAvailableSince = "3.0.1")
     String eventsTopic;
 
     @Inject

@@ -18,7 +18,6 @@ public class GroupCreated extends OutboxEvent {
 
     public static GroupCreated of(GroupMetaDataDto groupMetaDataDto) {
         String id = UUID.randomUUID().toString();
-        // TODO here we have to define the internal structure of the event, maybe use cloudevents?
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupMetaDataDto.getGroupId()).put("eventType",
                 GROUP_CREATED.name());

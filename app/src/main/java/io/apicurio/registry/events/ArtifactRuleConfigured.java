@@ -20,7 +20,6 @@ public class ArtifactRuleConfigured extends OutboxEvent {
     public static ArtifactRuleConfigured of(String groupId, String artifactId, RuleType ruleType,
             RuleConfigurationDto rule) {
         String id = UUID.randomUUID().toString();
-        // TODO here we have to define the internal structure of the event, maybe use cloudevents?
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupId).put("artifactId", artifactId)
                 .put("ruleType", ruleType.value()).put("rule", rule.getConfiguration())

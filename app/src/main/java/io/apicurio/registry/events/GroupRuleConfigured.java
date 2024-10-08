@@ -19,7 +19,6 @@ public class GroupRuleConfigured extends OutboxEvent {
 
     public static GroupRuleConfigured of(String groupId, RuleType ruleType, RuleConfigurationDto rule) {
         String id = UUID.randomUUID().toString();
-        // TODO here we have to define the internal structure of the event, maybe use cloudevents?
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupId).put("ruleType", ruleType.value())
                 .put("rule", rule.getConfiguration()).put("eventType", GROUP_RULE_CONFIGURED.name());

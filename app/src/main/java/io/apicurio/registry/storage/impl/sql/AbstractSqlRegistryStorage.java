@@ -3587,12 +3587,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public String createEvent(OutboxEvent event) {
         if (supportsDatabaseEvents()) {
             // Create outbox event
-            handles.withHandle(handle -> handle.createUpdate(sqlStatements.createOutboxEvent())
-                    .bind(0, event.getId()).bind(1, eventsTopic).bind(2, event.getAggregateId())
-                    .bind(3, event.getType()).bind(4, event.getPayload().toString()).execute());
+            handles.withHandle(handle -> {
+                handle.createUpdate(sqlStatements.createOutboxEvent()).bind(0, event.getId())
+                        .bind(1, eventsTopic).bind(2, event.getAggregateId()).bind(3, event.getType())
+                        .bind(4, event.getPayload().toString()).execute();
 
-            deleteEvent(event.getId());
-
+                return handle.createUpdate(sqlStatements.deleteOutboxEvent()).bind(0, event.getId())
+                        .execute();
+            });
         }
         return event.getId();
     }
@@ -3600,17 +3602,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public boolean supportsDatabaseEvents() {
         return isPostgresql() || isMssql();
-    }
-
-    private void deleteEvent(String eventId) {
-        try {
-            handles.withHandle(handle -> handle.createUpdate(sqlStatements.deleteOutboxEvent())
-                    .bind(0, eventId).execute());
-        }
-
-        catch (RegistryStorageException ex) {
-            throw new RegistryStorageException("Could not delete outbox event with ID " + eventId + ".", ex);
-        }
     }
 
     private boolean isPostgresql() {

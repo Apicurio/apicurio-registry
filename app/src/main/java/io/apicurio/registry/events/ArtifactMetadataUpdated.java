@@ -20,7 +20,6 @@ public class ArtifactMetadataUpdated extends OutboxEvent {
     public static ArtifactMetadataUpdated of(String groupId, String artifactId,
             EditableArtifactMetaDataDto artifactMetaDataDto) {
         String id = UUID.randomUUID().toString();
-        // TODO here we have to define the internal structure of the event, maybe use cloudevents?
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupId).put("artifactId", artifactId)
                 .put("name", artifactMetaDataDto.getName()).put("owner", artifactMetaDataDto.getOwner())

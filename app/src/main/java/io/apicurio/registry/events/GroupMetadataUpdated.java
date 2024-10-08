@@ -18,7 +18,6 @@ public class GroupMetadataUpdated extends OutboxEvent {
 
     public static GroupMetadataUpdated of(String groupId, EditableGroupMetaDataDto groupMetaDataDto) {
         String id = UUID.randomUUID().toString();
-        // TODO here we have to define the internal structure of the event, maybe use cloudevents?
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupId).put("description", groupMetaDataDto.getDescription())
                 .put("eventType", GROUP_METADATA_UPDATED.name());

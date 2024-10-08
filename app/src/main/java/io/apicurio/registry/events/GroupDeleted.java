@@ -17,7 +17,6 @@ public class GroupDeleted extends OutboxEvent {
 
     public static GroupDeleted of(String groupId) {
         String id = UUID.randomUUID().toString();
-        // TODO here we have to define the internal structure of the event, maybe use cloudevents?
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupId).put("eventType", GROUP_DELETED.name());
 

@@ -173,9 +173,6 @@
     <!-- Picocli -->
     <picocli.version>4.6.3</picocli.version>
 
-    <!-- Cloudevents-->
-    <cloudevents.version>4.0.1</cloudevents.version>
-
     <!-- Confluent API / client -->
     <confluent.version>7.6.2</confluent.version>
 
@@ -632,11 +629,6 @@
         <artifactId>lombok</artifactId>
         <version>${lombok.version}</version>
         <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.cloudevents</groupId>
-        <artifactId>cloudevents-json-jackson</artifactId>
-        <version>${cloudevents.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.santuario</groupId>

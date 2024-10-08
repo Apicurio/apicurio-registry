@@ -1589,6 +1589,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 case globalId:
                     orderByQuery.append(" ORDER BY v.globalId");
                     break;
+                case groupId:
+                    orderByQuery.append(" ORDER BY v.groupId");
+                    break;
                 case version:
                     orderByQuery.append(" ORDER BY v.version");
                     break;
@@ -2646,6 +2649,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(" AND l.groupId = g.groupId)");
                         break;
                     default:
+
                         break;
                 }
                 where.append(")");

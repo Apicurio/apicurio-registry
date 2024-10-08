@@ -11,14 +11,19 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.shared.CommonResourceOperations;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
+import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -31,10 +36,17 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
-public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource {
+public class IdsResourceImpl implements IdsResource {
 
     @Inject
     CommonResourceOperations common;
+
+    @Inject
+    @Current
+    RegistryStorage storage;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
 
     private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String artifactId, String version,
             Response.ResponseBuilder builder) {
@@ -70,8 +82,24 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);
 
         TypedContent contentToReturn = TypedContent.create(artifact.getContent(), artifact.getContentType());
-        handleContentReferences(dereference, metaData.getArtifactType(), contentToReturn,
-                artifact.getReferences());
+
+        ArtifactTypeUtilProvider artifactTypeProvider = factory
+                .getArtifactTypeProvider(metaData.getArtifactType());
+
+        if (dereference && !artifact.getReferences().isEmpty()) {
+            if (artifactTypeProvider.supportsReferencesWithContext()) {
+                RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
+                        .recursivelyResolveReferencesWithContext(contentToReturn, metaData.getArtifactType(),
+                                artifact.getReferences(), storage::getContentByReference);
+
+                contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
+                        rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
+            } else {
+                contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
+                        RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(),
+                                storage::getContentByReference));
+            }
+        }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(),
                 contentToReturn.getContentType());

@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -24,7 +24,7 @@ public class GroupRuleEntityMapper implements RowMapper<GroupRuleEntity> {
     @Override
     public GroupRuleEntity map(ResultSet rs) throws SQLException {
         GroupRuleEntity entity = new GroupRuleEntity();
-        entity.groupId = SqlUtil.denormalizeGroupId(rs.getString("groupId"));
+        entity.groupId = RegistryContentUtils.denormalizeGroupId(rs.getString("groupId"));
         entity.type = RuleType.fromValue(rs.getString("type"));
         entity.configuration = rs.getString("configuration");
         return entity;

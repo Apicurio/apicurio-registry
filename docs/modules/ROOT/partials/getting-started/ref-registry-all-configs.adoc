@@ -17,11 +17,6 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.1.4.Final`
 |Include stack trace in errors responses
-|`apicurio.apis.v2.base-href`
-|`string`
-|`_`
-|`2.5.0.Final`
-|API base href (URI)
 |`apicurio.apis.v3.base-href`
 |`string`
 |`_`

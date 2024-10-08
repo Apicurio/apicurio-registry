@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.VersionState;
 
@@ -24,7 +24,7 @@ public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
     @Override
     public SearchedVersionDto map(ResultSet rs) throws SQLException {
         SearchedVersionDto dto = new SearchedVersionDto();
-        dto.setGroupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")));
+        dto.setGroupId(RegistryContentUtils.denormalizeGroupId(rs.getString("groupId")));
         dto.setArtifactId(rs.getString("artifactId"));
         dto.setVersion(rs.getString("version"));
         dto.setVersionOrder(rs.getInt("versionOrder"));

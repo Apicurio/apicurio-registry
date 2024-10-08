@@ -7,6 +7,7 @@ import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -50,13 +51,22 @@ public abstract class AbstractResourceImpl {
      */
     protected TypedContent handleContentReferences(HandleReferencesType referencesType, String artifactType,
             TypedContent content, List<ArtifactReferenceDto> references) {
-        // Dereference or rewrite references
         if (!references.isEmpty()) {
             if (referencesType == HandleReferencesType.DEREFERENCE) {
                 ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
-                ContentDereferencer contentDereferencer = artifactTypeProvider.getContentDereferencer();
-                Map<String, TypedContent> resolvedReferences = storage.resolveReferences(references);
-                content = contentDereferencer.dereference(content, resolvedReferences);
+
+                if (artifactTypeProvider.supportsReferencesWithContext()) {
+                    RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
+                            .recursivelyResolveReferencesWithContext(content, artifactType, references,
+                                    storage::getContentByReference);
+
+                    content = artifactTypeProvider.getContentDereferencer().dereference(
+                            rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
+                } else {
+                    content = artifactTypeProvider.getContentDereferencer().dereference(content,
+                            RegistryContentUtils.recursivelyResolveReferences(references,
+                                    storage::getContentByReference));
+                }
             } else if (referencesType == HandleReferencesType.REWRITE) {
                 ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
                 ContentDereferencer contentDereferencer = artifactTypeProvider.getContentDereferencer();
@@ -71,7 +81,7 @@ public abstract class AbstractResourceImpl {
      * Convert the list of references into a list of REST API URLs that point to the content. This means that
      * we generate a REST API URL from the GAV (groupId, artifactId, version) information found in each
      * reference.
-     * 
+     *
      * @param references
      */
     protected Map<String, String> resolveReferenceUrls(List<ArtifactReferenceDto> references) {
@@ -92,7 +102,7 @@ public abstract class AbstractResourceImpl {
     /**
      * Convert a single artifact reference to a REST API URL. This means that we generate a REST API URL from
      * the GAV (groupId, artifactId, version) information found in the reference.
-     * 
+     *
      * @param reference
      */
     protected String resolveReferenceUrl(ArtifactReferenceDto reference) {

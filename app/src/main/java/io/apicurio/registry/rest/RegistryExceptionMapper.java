@@ -10,7 +10,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
-import org.slf4j.Logger;
 
 /**
  * TODO use v1 beans when appropriate (when handling REST API v1 calls)
@@ -18,9 +17,6 @@ import org.slf4j.Logger;
 @ApplicationScoped
 @Provider
 public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
-
-    @Inject
-    Logger log;
 
     @Inject
     CoreRegistryExceptionMapperService coreMapper;

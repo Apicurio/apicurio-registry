@@ -1189,6 +1189,12 @@
             </properties>
         </profile>
         <profile>
+            <id>productization</id>
+            <modules>
+                <module>prod-verifier</module>
+            </modules>
+        </profile>
+        <profile>
             <id>integration-tests</id>
             <modules>
                 <module>integration-tests</module>

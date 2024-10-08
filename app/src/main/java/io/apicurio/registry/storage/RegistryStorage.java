@@ -34,7 +34,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -749,11 +748,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     List<DynamicConfigPropertyDto> getStaleConfigProperties(Instant since);
 
-    /**
-     * @return The artifact references resolved as a map containing the reference name as key and the
-     *         referenced artifact content.
-     */
-    Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references);
+    ContentWrapperDto getContentByReference(ArtifactReferenceDto reference);
 
     /**
      * Quickly checks for the existence of a given artifact.

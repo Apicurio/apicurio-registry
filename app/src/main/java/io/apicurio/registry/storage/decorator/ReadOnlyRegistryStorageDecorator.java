@@ -464,4 +464,10 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
         checkReadOnly();
         return delegate.createEvent(event);
     }
+
+    @Override
+    public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
+        checkReadOnly();
+        return delegate.getContentByReference(reference);
+    }
 }

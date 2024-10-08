@@ -4,7 +4,6 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
-// UserInterfaceConfigUi
 type UserInterfaceConfigUi struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -24,21 +23,25 @@ func NewUserInterfaceConfigUi() *UserInterfaceConfigUi {
 }
 
 // CreateUserInterfaceConfigUiFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateUserInterfaceConfigUiFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewUserInterfaceConfigUi(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *UserInterfaceConfigUi) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetContextPath gets the contextPath property value. The contextPath property
+// returns a *string when successful
 func (m *UserInterfaceConfigUi) GetContextPath() *string {
 	return m.contextPath
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *UserInterfaceConfigUi) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["contextPath"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -75,11 +78,13 @@ func (m *UserInterfaceConfigUi) GetFieldDeserializers() map[string]func(i878a80d
 }
 
 // GetNavPrefixPath gets the navPrefixPath property value. The navPrefixPath property
+// returns a *string when successful
 func (m *UserInterfaceConfigUi) GetNavPrefixPath() *string {
 	return m.navPrefixPath
 }
 
 // GetOaiDocsUrl gets the oaiDocsUrl property value. The oaiDocsUrl property
+// returns a *string when successful
 func (m *UserInterfaceConfigUi) GetOaiDocsUrl() *string {
 	return m.oaiDocsUrl
 }
@@ -133,7 +138,6 @@ func (m *UserInterfaceConfigUi) SetOaiDocsUrl(value *string) {
 	m.oaiDocsUrl = value
 }
 
-// UserInterfaceConfigUiable
 type UserInterfaceConfigUiable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

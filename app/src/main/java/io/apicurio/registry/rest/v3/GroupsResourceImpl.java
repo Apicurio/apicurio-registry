@@ -57,6 +57,7 @@ import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
@@ -773,7 +774,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
             // Try to resolve the references
-            final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
             // Apply any configured rules
             if (content != null) {
@@ -874,7 +876,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 data.getContent().getReferences());
 
         // Try to resolve the new artifact references and the nested ones (if any)
-        final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         TypedContent typedContent = TypedContent.create(content, ct);
@@ -1145,7 +1148,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
-        final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
         final TypedContent typedContent = TypedContent.create(content, contentType);
         rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
                 typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);

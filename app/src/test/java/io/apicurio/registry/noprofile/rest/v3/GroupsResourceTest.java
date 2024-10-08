@@ -15,7 +15,7 @@ import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
@@ -1613,7 +1613,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .extract().as(new TypeRef<List<ArtifactReference>>() {
                 });
 
-        final String referencesSerialized = SqlUtil.serializeReferences(toReferenceDtos(references));
+        final String referencesSerialized = RegistryContentUtils
+                .serializeReferences(toReferenceDtos(references));
 
         // We calculate the hash using the content itself and the references
         String contentHash = DigestUtils
@@ -1804,10 +1805,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(reference));
         CreateVersion f_createVersion = createVersion;
 
-        var exception_1 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
-            clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
-                    .post(f_createVersion);
-        });
+        var exception_1 = assertThrows(
+                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
+                    clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                            .post(f_createVersion);
+                });
         Assertions.assertEquals(409, exception_1.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_1.getName());
 
@@ -1830,10 +1832,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(validRef, invalidRef));
         CreateVersion f_createVersion2 = createVersion;
 
-        var exception_2 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
-            clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
-                    .post(f_createVersion2);
-        });
+        var exception_2 = assertThrows(
+                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
+                    clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                            .post(f_createVersion2);
+                });
         Assertions.assertEquals(409, exception_2.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_2.getName());
 
@@ -1843,10 +1846,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(validRef, validRef));
         CreateVersion f_createVersion3 = createVersion;
 
-        var exception_3 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
-            clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
-                    .post(f_createVersion3);
-        });
+        var exception_3 = assertThrows(
+                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
+                    clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                            .post(f_createVersion3);
+                });
         Assertions.assertEquals(409, exception_3.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_3.getName());
     }
@@ -1890,8 +1894,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .queryParam("references", "DEREFERENCE")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200).body("openapi", equalTo("3.0.2"))
-                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref",
-                        equalTo("#/components/schemas/Widget"));
+                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo(
+                        "GroupsResourceTest:testGetArtifactVersionWithReferences/ReferencedTypes:1:./referenced-types.json#/components/schemas/Widget"));
     }
 
 }

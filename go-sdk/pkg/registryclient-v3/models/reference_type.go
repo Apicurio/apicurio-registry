@@ -1,9 +1,5 @@
 package models
 
-import (
-	"errors"
-)
-
 type ReferenceType int
 
 const (
@@ -22,7 +18,7 @@ func ParseReferenceType(v string) (any, error) {
 	case "INBOUND":
 		result = INBOUND_REFERENCETYPE
 	default:
-		return 0, errors.New("Unknown ReferenceType value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

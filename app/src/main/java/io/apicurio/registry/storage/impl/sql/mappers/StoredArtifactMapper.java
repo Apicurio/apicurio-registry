@@ -2,7 +2,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 import java.sql.ResultSet;
@@ -27,6 +27,6 @@ public class StoredArtifactMapper implements RowMapper<StoredArtifactVersionDto>
                 .contentType(rs.getString("contentType")).contentId(rs.getLong("contentId"))
                 .globalId(rs.getLong("globalId")).version(rs.getString("version"))
                 .versionOrder(rs.getInt("versionOrder"))
-                .references(SqlUtil.deserializeReferences(rs.getString("refs"))).build();
+                .references(RegistryContentUtils.deserializeReferences(rs.getString("refs"))).build();
     }
 }

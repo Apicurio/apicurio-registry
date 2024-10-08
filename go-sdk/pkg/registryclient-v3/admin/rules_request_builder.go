@@ -36,6 +36,7 @@ type RulesRequestBuilderPostRequestConfiguration struct {
 }
 
 // ByRuleType manage the configuration of a single global artifact rule.
+// returns a *RulesWithRuleTypeItemRequestBuilder when successful
 func (m *RulesRequestBuilder) ByRuleType(ruleType string) *RulesWithRuleTypeItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {
@@ -63,6 +64,7 @@ func NewRulesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb
 }
 
 // Delete deletes all globally configured rules.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *RulesRequestBuilder) Delete(ctx context.Context, requestConfiguration *RulesRequestBuilderDeleteRequestConfiguration) error {
 	requestInfo, err := m.ToDeleteRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -79,6 +81,8 @@ func (m *RulesRequestBuilder) Delete(ctx context.Context, requestConfiguration *
 }
 
 // Get gets a list of all the currently configured global rules (if any).This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
+// returns a []RuleType when successful
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *RulesRequestBuilder) Get(ctx context.Context, requestConfiguration *RulesRequestBuilderGetRequestConfiguration) ([]i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.RuleType, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -101,6 +105,9 @@ func (m *RulesRequestBuilder) Get(ctx context.Context, requestConfiguration *Rul
 }
 
 // Post adds a rule to the list of globally configured rules.This operation can fail for the following reasons:* The rule type is unknown (HTTP error `400`)* The rule already exists (HTTP error `409`)* A server error occurred (HTTP error `500`)
+// returns a ProblemDetails error when the service returns a 400 status code
+// returns a ProblemDetails error when the service returns a 409 status code
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *RulesRequestBuilder) Post(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateRuleable, requestConfiguration *RulesRequestBuilderPostRequestConfiguration) error {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -119,6 +126,7 @@ func (m *RulesRequestBuilder) Post(ctx context.Context, body i00eb2e63d156923d00
 }
 
 // ToDeleteRequestInformation deletes all globally configured rules.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *RulesRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *RulesRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -130,6 +138,7 @@ func (m *RulesRequestBuilder) ToDeleteRequestInformation(ctx context.Context, re
 }
 
 // ToGetRequestInformation gets a list of all the currently configured global rules (if any).This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *RulesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *RulesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -141,6 +150,7 @@ func (m *RulesRequestBuilder) ToGetRequestInformation(ctx context.Context, reque
 }
 
 // ToPostRequestInformation adds a rule to the list of globally configured rules.This operation can fail for the following reasons:* The rule type is unknown (HTTP error `400`)* The rule already exists (HTTP error `409`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *RulesRequestBuilder) ToPostRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateRuleable, requestConfiguration *RulesRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -156,6 +166,7 @@ func (m *RulesRequestBuilder) ToPostRequestInformation(ctx context.Context, body
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *RulesRequestBuilder when successful
 func (m *RulesRequestBuilder) WithUrl(rawUrl string) *RulesRequestBuilder {
 	return NewRulesRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

@@ -4,7 +4,6 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
-// CreateRule
 type CreateRule struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -22,21 +21,25 @@ func NewCreateRule() *CreateRule {
 }
 
 // CreateCreateRuleFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateCreateRuleFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewCreateRule(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *CreateRule) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetConfig gets the config property value. The config property
+// returns a *string when successful
 func (m *CreateRule) GetConfig() *string {
 	return m.config
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *CreateRule) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["config"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -63,6 +66,7 @@ func (m *CreateRule) GetFieldDeserializers() map[string]func(i878a80d2330e89d268
 }
 
 // GetRuleType gets the ruleType property value. The ruleType property
+// returns a *RuleType when successful
 func (m *CreateRule) GetRuleType() *RuleType {
 	return m.ruleType
 }
@@ -106,7 +110,6 @@ func (m *CreateRule) SetRuleType(value *RuleType) {
 	m.ruleType = value
 }
 
-// CreateRuleable
 type CreateRuleable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

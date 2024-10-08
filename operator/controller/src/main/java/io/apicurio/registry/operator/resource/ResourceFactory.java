@@ -6,6 +6,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 
 import java.nio.charset.Charset;
 import java.util.Map;
@@ -21,6 +22,7 @@ public class ResourceFactory {
 
     public static final String RESOURCE_TYPE_DEPLOYMENT = "deployment";
     public static final String RESOURCE_TYPE_SERVICE = "service";
+    public static final String RESOURCE_TYPE_INGRESS = "ingress";
 
     public static final String APP_CONTAINER_NAME = "apicurio-registry-app";
     public static final String UI_CONTAINER_NAME = "apicurio-registry-ui";
@@ -48,6 +50,20 @@ public class ResourceFactory {
     public Service getDefaultUIService(ApicurioRegistry3 primary) {
         var r = getDefaultResource(primary, Service.class, RESOURCE_TYPE_SERVICE, COMPONENT_UI);
         addSelectorLabels(r.getSpec().getSelector(), primary, COMPONENT_UI);
+        return r;
+    }
+
+    public Ingress getDefaultAppIngress(ApicurioRegistry3 primary) {
+        var r = getDefaultResource(primary, Ingress.class, RESOURCE_TYPE_INGRESS, COMPONENT_APP);
+        r.getSpec().getRules().get(0).getHttp().getPaths().get(0).getBackend().getService()
+                .setName(primary.getMetadata().getName() + "-" + COMPONENT_APP + "-" + RESOURCE_TYPE_SERVICE);
+        return r;
+    }
+
+    public Ingress getDefaultUIIngress(ApicurioRegistry3 primary) {
+        var r = getDefaultResource(primary, Ingress.class, RESOURCE_TYPE_INGRESS, COMPONENT_UI);
+        r.getSpec().getRules().get(0).getHttp().getPaths().get(0).getBackend().getService()
+                .setName(primary.getMetadata().getName() + "-" + COMPONENT_UI + "-" + RESOURCE_TYPE_SERVICE);
         return r;
     }
 
@@ -86,7 +102,7 @@ public class ResourceFactory {
         // spotless:on
     }
 
-    private <T extends HasMetadata> T deserialize(String path, Class<T> klass) {
+    public static <T extends HasMetadata> T deserialize(String path, Class<T> klass) {
         try {
             return YAML_MAPPER.readValue(load(path), klass);
         } catch (JsonProcessingException ex) {
@@ -94,7 +110,7 @@ public class ResourceFactory {
         }
     }
 
-    private String load(String path) {
+    private static String load(String path) {
         try (var stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(path)) {
             return new String(stream.readAllBytes(), Charset.defaultCharset());
         } catch (Exception ex) {

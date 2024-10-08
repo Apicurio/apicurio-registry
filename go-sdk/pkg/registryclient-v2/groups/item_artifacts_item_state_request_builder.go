@@ -19,7 +19,7 @@ type ItemArtifactsItemStateRequestBuilderPutRequestConfiguration struct {
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewItemArtifactsItemStateRequestBuilderInternal instantiates a new StateRequestBuilder and sets the default values.
+// NewItemArtifactsItemStateRequestBuilderInternal instantiates a new ItemArtifactsItemStateRequestBuilder and sets the default values.
 func NewItemArtifactsItemStateRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemStateRequestBuilder {
 	m := &ItemArtifactsItemStateRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/state", pathParameters),
@@ -27,7 +27,7 @@ func NewItemArtifactsItemStateRequestBuilderInternal(pathParameters map[string]s
 	return m
 }
 
-// NewItemArtifactsItemStateRequestBuilder instantiates a new StateRequestBuilder and sets the default values.
+// NewItemArtifactsItemStateRequestBuilder instantiates a new ItemArtifactsItemStateRequestBuilder and sets the default values.
 func NewItemArtifactsItemStateRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemStateRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -35,6 +35,9 @@ func NewItemArtifactsItemStateRequestBuilder(rawUrl string, requestAdapter i2ae4
 }
 
 // Put updates the state of the artifact.  For example, you can use this to mark the latest version of an artifact as `DEPRECATED`. The operation changes the state of the latest version of the artifact, even if this version is `DISABLED`. If multiple versions exist, only the most recent is changed.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a Error error when the service returns a 400 status code
+// returns a Error error when the service returns a 404 status code
+// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemStateRequestBuilder) Put(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.UpdateStateable, requestConfiguration *ItemArtifactsItemStateRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -53,6 +56,7 @@ func (m *ItemArtifactsItemStateRequestBuilder) Put(ctx context.Context, body i80
 }
 
 // ToPutRequestInformation updates the state of the artifact.  For example, you can use this to mark the latest version of an artifact as `DEPRECATED`. The operation changes the state of the latest version of the artifact, even if this version is `DISABLED`. If multiple versions exist, only the most recent is changed.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemStateRequestBuilder) ToPutRequestInformation(ctx context.Context, body i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.UpdateStateable, requestConfiguration *ItemArtifactsItemStateRequestBuilderPutRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.PUT, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -68,6 +72,7 @@ func (m *ItemArtifactsItemStateRequestBuilder) ToPutRequestInformation(ctx conte
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ItemArtifactsItemStateRequestBuilder when successful
 func (m *ItemArtifactsItemStateRequestBuilder) WithUrl(rawUrl string) *ItemArtifactsItemStateRequestBuilder {
 	return NewItemArtifactsItemStateRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

@@ -18,10 +18,10 @@
       "minimum": 0
     },
     "city": {
-      "$ref": "city.json"
+      "$ref": "types/city/city.json"
     },
     "identifier": {
-      "$ref": "citizenIdentifier.json"
+      "$ref": "types/identifier/citizenIdentifier.json"
     },
     "qualifications": {
       "type": "array",

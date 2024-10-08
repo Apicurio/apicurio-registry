@@ -807,6 +807,11 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(uuid);
     }
 
+    @Override
+    public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
+        return sqlStore.getContentByReference(reference);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#createArtifactVersionComment(java.lang.String,
      *      java.lang.String, java.lang.String, java.lang.String)

@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
@@ -24,7 +24,7 @@ public class ArtifactRuleEntityMapper implements RowMapper<ArtifactRuleEntity> {
     @Override
     public ArtifactRuleEntity map(ResultSet rs) throws SQLException {
         ArtifactRuleEntity entity = new ArtifactRuleEntity();
-        entity.groupId = SqlUtil.denormalizeGroupId(rs.getString("groupId"));
+        entity.groupId = RegistryContentUtils.denormalizeGroupId(rs.getString("groupId"));
         entity.artifactId = rs.getString("artifactId");
         entity.type = RuleType.fromValue(rs.getString("type"));
         entity.configuration = rs.getString("configuration");

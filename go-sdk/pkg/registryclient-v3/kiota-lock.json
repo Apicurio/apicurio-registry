@@ -1,14 +1,15 @@
 {
-  "descriptionHash": "79B205310FA70DD9DA535BB286F89E27394E5714135C8039E068DE7A312B64AB9124702A6EAD6829511FBCC23221D53BA3EC93E5D48B1D092FA94A188B4BA76F",
+  "descriptionHash": "63458FA9F74D289AF7723F27696C3DBA642832DEC01628597EEF51657803AE44946245B0BD2B46A22E96261A48CF659102629051B9F248F60040E7914A2A029C",
   "descriptionLocation": "../../v3.json",
   "lockFileVersion": "1.0.0",
-  "kiotaVersion": "1.10.1",
+  "kiotaVersion": "1.18.0",
   "clientClassName": "ApiClient",
   "clientNamespaceName": "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3",
   "language": "Go",
   "usesBackingStore": false,
   "excludeBackwardCompatible": false,
   "includeAdditionalData": true,
+  "disableSSLValidation": false,
   "serializers": [
     "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory",
     "Microsoft.Kiota.Serialization.Text.TextSerializationWriterFactory",

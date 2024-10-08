@@ -154,7 +154,6 @@ public class ReadOnlyRegistryStorageTest {
                 entry("resetContentId0", new State(true, RegistryStorage::resetContentId)),
                 entry("resetCommentId0", new State(true, RegistryStorage::resetCommentId)),
                 entry("resetGlobalId0", new State(true, RegistryStorage::resetGlobalId)),
-                entry("resolveReferences1", new State(false, s -> s.resolveReferences(null))),
                 entry("searchArtifacts5", new State(false, s -> s.searchArtifacts(null, null, null, 0, 0))),
                 entry("searchGroups5", new State(false, s -> s.searchGroups(null, null, null, null, null))),
                 entry("searchVersions5", new State(false, s -> s.searchVersions(null, null, null, 0, 0))),
@@ -191,7 +190,8 @@ public class ReadOnlyRegistryStorageTest {
                 entry("createSnapshot1", new State(true, s -> s.createSnapshot(null))),
                 entry("upgradeData3", new State(true, s -> s.upgradeData(null, false, false))),
                 entry("createEvent1", new State(true, s -> s.createEvent(null))),
-                entry("supportsDatabaseEvents0", new State(true, s -> s.createEvent(null))));
+                entry("supportsDatabaseEvents0", new State(true, s -> s.createEvent(null))),
+                entry("getContentByReference1", new State(true, s -> s.getContentByReference(null))));
 
         CURRENT_METHODS = Arrays.stream(RegistryStorage.class.getMethods())
                 .map(m -> m.getName() + m.getParameterCount()).collect(Collectors.toSet());

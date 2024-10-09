@@ -51,6 +51,6 @@ spec:
             - name: LOG_DIR
               value: /tmp/logs
             - name: KAFKA_ADVERTISED_LISTENERS
-              value: PLAINTEXT://kafka-service:9092
+              value: PLAINTEXT://kafka-service:9092,PLAINTEXT_HOST://localhost:29092
           ports:
             - containerPort: 9092

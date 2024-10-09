@@ -97,9 +97,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     RegistryStorageContentUtils utils;
 
     @Inject
-    RegistryEventsConfiguration eventsConfiguration;
-
-    @Inject
     @Named("KafkaSqlJournalConsumer")
     KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> journalConsumer;
 
@@ -180,13 +177,8 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      * Automatically create the Kafka topics.
      */
     private void autoCreateTopics() {
-        Set<String> topicNames = null;
-        if (eventsConfiguration.getEventsEnabled()) {
-            topicNames = Set.of(configuration.topic(), configuration.snapshotsTopic(),
-                    configuration.eventsTopic());
-        } else {
-            topicNames = Set.of(configuration.topic(), configuration.snapshotsTopic());
-        }
+        Set<String> topicNames = Set.of(configuration.topic(), configuration.snapshotsTopic(),
+                configuration.eventsTopic());
 
         Map<String, String> topicProperties = new HashMap<>();
         configuration.topicProperties()

@@ -68,6 +68,11 @@
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-utils-tests</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

@@ -98,4 +98,10 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
     public ReferenceFinder getReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() {
+        return false;
+    }
+
 }

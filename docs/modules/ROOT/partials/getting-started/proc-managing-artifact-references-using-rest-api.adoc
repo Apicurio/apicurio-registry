@@ -156,8 +156,11 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3
 {"type":"record","name":"Item","namespace":"com.example.common","fields":[{"name":"itemId","type":{"type":"record","name":"ItemId","fields":[{"name":"id","type":"int"}]}}]}
 ----
 
-#In Protobuf dereferencing content is only supported when all the schemas in the try belong to the same package.#
+This support is currently implemented only for Avro, Protobuf, OpenAPI, AsyncAPI, and JSON Schema artifacts when the `dereference` parameter is specified in the API operation. This parameter is not supported for any other artifact types.
 
+NOTE: For Protobuf artifacts, dereferencing content is supported only when all the schemas belong to the same package.
+
+NOTE: Circular dependencies are allowed by some artifact types (e.g. JSON Schema) but are not supported by {registry}.
 
 [role="_additional-resources"]
 .Additional resources

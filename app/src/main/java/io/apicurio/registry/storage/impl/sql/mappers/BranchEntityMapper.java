@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 
@@ -16,7 +16,8 @@ public class BranchEntityMapper implements RowMapper<BranchEntity> {
 
     @Override
     public BranchEntity map(ResultSet rs) throws SQLException {
-        return BranchEntity.builder().groupId(SqlUtil.denormalizeGroupId(rs.getString("groupId")))
+        return BranchEntity.builder()
+                .groupId(RegistryContentUtils.denormalizeGroupId(rs.getString("groupId")))
                 .artifactId(rs.getString("artifactId")).branchId(rs.getString("branchId"))
                 .description(rs.getString("description")).systemDefined(rs.getBoolean("systemDefined"))
                 .owner(rs.getString("owner")).createdOn(rs.getTimestamp("createdOn").getTime())

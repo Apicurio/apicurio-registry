@@ -106,9 +106,16 @@ public class ITBase {
             resources.getItems().stream().forEach(r -> {
                 if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
                     var crb = (ClusterRoleBinding) r;
-                    crb.getSubjects().stream().forEach(s -> s.setNamespace(getNamespace()));
+                    crb.getSubjects().stream().forEach(s -> s.setNamespace(namespace));
+                    // TODO: We need to patch the generated resources, because the referenced ClusterRole name
+                    // is
+                    // wrong.
+                    if ("apicurioregistry3reconciler-cluster-role-binding"
+                            .equals(crb.getMetadata().getName())) {
+                        crb.getRoleRef().setName("apicurioregistry3reconciler-cluster-role");
+                    }
                 }
-                client.resource(r).inNamespace(getNamespace()).createOrReplace();
+                client.resource(r).inNamespace(namespace).createOrReplace();
             });
         }
     }
@@ -122,9 +129,9 @@ public class ITBase {
                 resources.getItems().stream().forEach(r -> {
                     if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
                         var crb = (ClusterRoleBinding) r;
-                        crb.getSubjects().stream().forEach(s -> s.setNamespace(getNamespace()));
+                        crb.getSubjects().stream().forEach(s -> s.setNamespace(namespace));
                     }
-                    client.resource(r).inNamespace(getNamespace()).delete();
+                    client.resource(r).inNamespace(namespace).delete();
                 });
             }
         }
@@ -206,9 +213,4 @@ public class ITBase {
         }
         client.close();
     }
-
-    public static String getNamespace() {
-        return namespace;
-    }
-
 }

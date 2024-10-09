@@ -38,9 +38,9 @@ import io.apicurio.registry.rest.v2.beans.SortOrder;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
-import io.apicurio.registry.rest.v2.shared.CommonResourceOperations;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -63,12 +63,15 @@ import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
@@ -78,10 +81,12 @@ import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
 import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jose4j.base64url.Base64;
@@ -130,7 +135,7 @@ import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 @ApplicationScoped
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
-public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsResource {
+public class GroupsResourceImpl implements GroupsResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     @SuppressWarnings("unused")
@@ -149,10 +154,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     SecurityIdentity securityIdentity;
 
     @Inject
-    CommonResourceOperations common;
+    @Current
+    RegistryStorage storage;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
 
     @Inject
     io.apicurio.registry.rest.v3.GroupsResourceImpl v3;
+
+    @Context
+    HttpServletRequest request;
 
     /**
      * @see io.apicurio.registry.rest.v2.GroupsResource#getLatestArtifact(java.lang.String, java.lang.String,
@@ -179,8 +191,25 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             TypedContent contentToReturn = TypedContent.create(artifact.getContent(),
                     artifact.getContentType());
-            contentToReturn = handleContentReferences(dereference, metaData.getArtifactType(),
-                    contentToReturn, artifact.getReferences());
+
+            ArtifactTypeUtilProvider artifactTypeProvider = factory
+                    .getArtifactTypeProvider(metaData.getArtifactType());
+
+            if (dereference && !artifact.getReferences().isEmpty()) {
+                if (artifactTypeProvider.supportsReferencesWithContext()) {
+                    RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
+                            .recursivelyResolveReferencesWithContext(contentToReturn,
+                                    metaData.getArtifactType(), artifact.getReferences(),
+                                    storage::getContentByReference);
+
+                    contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
+                            rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
+                } else {
+                    contentToReturn = artifactTypeProvider.getContentDereferencer()
+                            .dereference(contentToReturn, RegistryContentUtils.recursivelyResolveReferences(
+                                    artifact.getReferences(), storage::getContentByReference));
+                }
+            }
 
             Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(),
                     contentToReturn.getContentType());
@@ -642,8 +671,24 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 artifactId, version);
 
         TypedContent contentToReturn = TypedContent.create(artifact.getContent(), artifact.getContentType());
-        contentToReturn = handleContentReferences(dereference, metaData.getArtifactType(), contentToReturn,
-                artifact.getReferences());
+
+        ArtifactTypeUtilProvider artifactTypeProvider = factory
+                .getArtifactTypeProvider(metaData.getArtifactType());
+
+        if (dereference && !artifact.getReferences().isEmpty()) {
+            if (artifactTypeProvider.supportsReferencesWithContext()) {
+                RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
+                        .recursivelyResolveReferencesWithContext(contentToReturn, metaData.getArtifactType(),
+                                artifact.getReferences(), storage::getContentByReference);
+
+                contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
+                        rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
+            } else {
+                contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
+                        RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(),
+                                storage::getContentByReference));
+            }
+        }
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(),
                 contentToReturn.getContentType());
@@ -1064,7 +1109,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
             // Try to resolve the new artifact references and the nested ones (if any)
-            final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
             rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
@@ -1200,7 +1246,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
         // Try to resolve the new artifact references and the nested ones (if any)
-        final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         TypedContent typedContent = TypedContent.create(content, ct);
@@ -1325,7 +1372,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
-        final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(referencesAsDtos);
+        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
         TypedContent typedContent = TypedContent.create(content, contentType);
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,

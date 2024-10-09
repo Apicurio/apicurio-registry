@@ -26,12 +26,12 @@ public class IngressUtil {
     public static String getHost(String component, ApicurioRegistry3 p) {
         String host = null;
         if (COMPONENT_APP.equals(component)) {
-            if (!isBlank(p.getSpec().getAppHost())) {
-                host = p.getSpec().getAppHost();
+            if (!isBlank(p.getSpec().getApp().getHost())) {
+                host = p.getSpec().getApp().getHost();
             }
         } else if (COMPONENT_UI.equals(component)) {
-            if (!isBlank(p.getSpec().getUiHost())) {
-                host = p.getSpec().getUiHost();
+            if (!isBlank(p.getSpec().getUi().getHost())) {
+                host = p.getSpec().getUi().getHost();
             }
         } else {
             throw new OperatorException("Unexpected value: " + component);

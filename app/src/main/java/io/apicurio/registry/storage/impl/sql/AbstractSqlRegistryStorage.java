@@ -115,6 +115,7 @@ import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -142,8 +143,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
-import static io.apicurio.registry.storage.impl.sql.SqlUtil.normalizeGroupId;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
 import static java.util.stream.Collectors.toList;
@@ -517,7 +518,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 }
 
                 Map<String, String> labels = amd.getLabels();
-                String labelsStr = SqlUtil.serializeLabels(labels);
+                String labelsStr = RegistryContentUtils.serializeLabels(labels);
 
                 // Create a row in the artifacts table.
                 handle.createUpdate(sqlStatements.insertArtifact()).bind(0, normalizeGroupId(groupId))
@@ -570,7 +571,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
 
         ArtifactState state = ArtifactState.ENABLED;
-        String labelsStr = SqlUtil.serializeLabels(metaData.getLabels());
+        String labelsStr = RegistryContentUtils.serializeLabels(metaData.getLabels());
 
         Long globalId = nextGlobalIdRaw(handle);
         GAV gav;
@@ -700,7 +701,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             contentHash = utils.getContentHash(content, references);
             canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, references,
                     referenceResolver);
-            serializedReferences = SqlUtil.serializeReferences(references);
+            serializedReferences = RegistryContentUtils.serializeReferences(references);
         } else {
             contentHash = utils.getContentHash(content, null);
             canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, null, null);
@@ -1168,7 +1169,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // Update labels
             if (metaData.getLabels() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactLabels())
-                        .bind(0, SqlUtil.serializeLabels(metaData.getLabels()))
+                        .bind(0, RegistryContentUtils.serializeLabels(metaData.getLabels()))
                         .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).execute();
                 modified = true;
                 if (rowCount == 0) {
@@ -1768,7 +1769,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             if (editableMetadata.getLabels() != null) {
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionLabelsByGAV())
-                        .bind(0, SqlUtil.serializeLabels(editableMetadata.getLabels()))
+                        .bind(0, RegistryContentUtils.serializeLabels(editableMetadata.getLabels()))
                         .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version).execute();
                 if (rowCount == 0) {
                     throw new VersionNotFoundException(groupId, artifactId, version);
@@ -2056,7 +2057,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(4, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
                         .bind(5, group.getModifiedBy())
                         .bind(6, group.getModifiedOn() == 0 ? new Date() : new Date(group.getModifiedOn()))
-                        .bind(7, SqlUtil.serializeLabels(group.getLabels())).execute();
+                        .bind(7, RegistryContentUtils.serializeLabels(group.getLabels())).execute();
 
                 // Insert new labels into the "group_labels" table
                 Map<String, String> labels = group.getLabels();
@@ -2118,8 +2119,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         handles.withHandleNoException(handle -> {
             // Update the row in the groups table
             int rows = handle.createUpdate(sqlStatements.updateGroup()).bind(0, dto.getDescription())
-                    .bind(1, modifiedBy).bind(2, modifiedOn).bind(3, SqlUtil.serializeLabels(dto.getLabels()))
-                    .bind(4, groupId).execute();
+                    .bind(1, modifiedBy).bind(2, modifiedOn)
+                    .bind(3, RegistryContentUtils.serializeLabels(dto.getLabels())).bind(4, groupId)
+                    .execute();
             if (rows == 0) {
                 throw new GroupNotFoundException(groupId);
             }
@@ -2508,13 +2510,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     }
 
-    @Override
-    public Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references) {
-        return handles.withHandleNoException(handle -> {
-            return resolveReferencesRaw(handle, references);
-        });
-    }
-
     private Map<String, TypedContent> resolveReferencesRaw(Handle handle,
             List<ArtifactReferenceDto> references) {
         if (references == null || references.isEmpty()) {
@@ -2713,6 +2708,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
+    @Override
+    @Transactional
+    public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
+        try {
+            var meta = getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(),
+                    reference.getVersion());
+            ContentWrapperDto artifactByContentId = getContentById(meta.getContentId());
+            artifactByContentId.setArtifactType(meta.getArtifactType());
+            return artifactByContentId;
+        } catch (VersionNotFoundException e) {
+            return null;
+        }
+    }
+
     private void resolveReferencesRaw(Handle handle, Map<String, TypedContent> resolvedReferences,
             List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
@@ -2866,7 +2875,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void importArtifact(ArtifactEntity entity) {
         handles.withHandleNoException(handle -> {
             if (!isArtifactExistsRaw(handle, entity.groupId, entity.artifactId)) {
-                String labelsStr = SqlUtil.serializeLabels(entity.labels);
+                String labelsStr = RegistryContentUtils.serializeLabels(entity.labels);
                 handle.createUpdate(sqlStatements.insertArtifact()).bind(0, normalizeGroupId(entity.groupId))
                         .bind(1, entity.artifactId).bind(2, entity.artifactType).bind(3, entity.owner)
                         .bind(4, new Date(entity.createdOn)).bind(5, entity.modifiedBy)
@@ -2905,8 +2914,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(6, entity.name).bind(7, entity.description).bind(8, entity.owner)
                         .bind(9, new Date(entity.createdOn)).bind(10, entity.modifiedBy)
                         .bind(11, new Date(entity.modifiedOn))
-                        .bind(12, SqlUtil.serializeLabels(entity.labels)).bind(13, entity.contentId)
-                        .execute();
+                        .bind(12, RegistryContentUtils.serializeLabels(entity.labels))
+                        .bind(13, entity.contentId).execute();
 
                 // Insert labels into the "version_labels" table
                 if (entity.labels != null && !entity.labels.isEmpty()) {
@@ -2934,7 +2943,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(4, entity.contentBytes).bind(5, entity.serializedReferences).execute();
 
                 insertReferencesRaw(handle, entity.contentId,
-                        SqlUtil.deserializeReferences(entity.serializedReferences));
+                        RegistryContentUtils.deserializeReferences(entity.serializedReferences));
             } else {
                 throw new ContentAlreadyExistsException(entity.contentId);
             }
@@ -2958,11 +2967,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 throw new GroupAlreadyExistsException(entity.groupId);
             }
 
-            handle.createUpdate(sqlStatements.importGroup()).bind(0, SqlUtil.normalizeGroupId(entity.groupId))
+            handle.createUpdate(sqlStatements.importGroup())
+                    .bind(0, RegistryContentUtils.normalizeGroupId(entity.groupId))
                     .bind(1, entity.description).bind(2, entity.artifactsType).bind(3, entity.owner)
                     .bind(4, new Date(entity.createdOn)).bind(5, entity.modifiedBy)
-                    .bind(6, new Date(entity.modifiedOn)).bind(7, SqlUtil.serializeLabels(entity.labels))
-                    .execute();
+                    .bind(6, new Date(entity.modifiedOn))
+                    .bind(7, RegistryContentUtils.serializeLabels(entity.labels)).execute();
 
             // Insert labels into the "group_labels" table
             if (entity.labels != null && !entity.labels.isEmpty()) {

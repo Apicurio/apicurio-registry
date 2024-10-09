@@ -15,7 +15,7 @@ import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
@@ -1613,7 +1613,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .extract().as(new TypeRef<List<ArtifactReference>>() {
                 });
 
-        final String referencesSerialized = SqlUtil.serializeReferences(toReferenceDtos(references));
+        final String referencesSerialized = RegistryContentUtils
+                .serializeReferences(toReferenceDtos(references));
 
         // We calculate the hash using the content itself and the references
         String contentHash = DigestUtils
@@ -1893,8 +1894,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .queryParam("references", "DEREFERENCE")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200).body("openapi", equalTo("3.0.2"))
-                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref",
-                        equalTo("#/components/schemas/Widget"));
+                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo(
+                        "GroupsResourceTest:testGetArtifactVersionWithReferences/ReferencedTypes:1:./referenced-types.json#/components/schemas/Widget"));
     }
 
 }

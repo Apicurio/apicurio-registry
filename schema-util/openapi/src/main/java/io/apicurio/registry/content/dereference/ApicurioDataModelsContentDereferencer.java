@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.TraverserDirection;
 import io.apicurio.datamodels.models.Document;
-import io.apicurio.datamodels.refs.IReferenceResolver;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
@@ -20,12 +19,11 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
     public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
             JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
-            Document document = Library.readDocument((ObjectNode) node);
-            IReferenceResolver resolver = new RegistryReferenceResolver(resolvedReferences);
-            Document dereferencedDoc = Library.dereferenceDocument(document, resolver, false);
-            String dereferencedContentStr = Library.writeDocumentToJSONString(dereferencedDoc);
-            return TypedContent.create(ContentHandle.create(dereferencedContentStr),
-                    ContentTypes.APPLICATION_JSON);
+            Document doc = Library.readDocument((ObjectNode) node);
+            ReferenceInliner inliner = new ReferenceInliner(resolvedReferences);
+            Library.visitTree(doc, inliner, TraverserDirection.down);
+            String dereferencedContent = Library.writeDocumentToJSONString(doc);
+            return TypedContent.create(ContentHandle.create(dereferencedContent), content.getContentType());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

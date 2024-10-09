@@ -102,7 +102,7 @@ public class ResourceFactory {
         // spotless:on
     }
 
-    private <T extends HasMetadata> T deserialize(String path, Class<T> klass) {
+    public static <T extends HasMetadata> T deserialize(String path, Class<T> klass) {
         try {
             return YAML_MAPPER.readValue(load(path), klass);
         } catch (JsonProcessingException ex) {
@@ -110,7 +110,7 @@ public class ResourceFactory {
         }
     }
 
-    private String load(String path) {
+    private static String load(String path) {
         try (var stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(path)) {
             return new String(stream.readAllBytes(), Charset.defaultCharset());
         } catch (Exception ex) {

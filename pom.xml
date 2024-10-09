@@ -166,7 +166,7 @@
     <icu4j.version>75.1</icu4j.version>
     <protobuf.version>3.25.5</protobuf.version>
     <xmlsec.version>4.0.2</xmlsec.version>
-    <protobuf.googleapi.types.version>2.45.1</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.46.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.4</google.truth.extension.version>
 
@@ -238,10 +238,10 @@
     <version.build.helper.maven.plugin>3.6.0</version.build.helper.maven.plugin>
     <version.compiler.plugin>3.13.0</version.compiler.plugin>
     <version.deploy.plugin>3.1.3</version.deploy.plugin>
-    <version.failsafe.plugin>3.5.0</version.failsafe.plugin>
+    <version.failsafe.plugin>3.5.1</version.failsafe.plugin>
     <version.javadoc.plugin>3.10.1</version.javadoc.plugin>
     <version.source.plugin>3.3.1</version.source.plugin>
-    <version.surefire.plugin>3.5.0</version.surefire.plugin>
+    <version.surefire.plugin>3.5.1</version.surefire.plugin>
     <version.jar.plugin>3.4.2</version.jar.plugin>
     <version.checkstyle.plugin>3.5.0</version.checkstyle.plugin>
     <version.properties.plugin>1.2.1</version.properties.plugin>
@@ -1185,6 +1185,12 @@
       <id>examples</id>
       <modules>
         <module>examples</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>productization</id>
+      <modules>
+        <module>prod-verifier</module>
       </modules>
     </profile>
     <profile>

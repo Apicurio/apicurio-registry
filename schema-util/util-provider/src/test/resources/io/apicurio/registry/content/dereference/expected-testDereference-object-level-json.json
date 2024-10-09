@@ -1,0 +1,96 @@
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "title" : "Citizen",
+  "type" : "object",
+  "properties" : {
+    "firstName" : {
+      "description" : "The citizen's first name.",
+      "type" : "string"
+    },
+    "lastName" : {
+      "description" : "The citizen's last name.",
+      "type" : "string"
+    },
+    "identifier" : {
+      "title" : "Identifier",
+      "type" : "object",
+      "properties" : {
+        "identifier" : {
+          "description" : "The citizen identifier.",
+          "type" : "integer",
+          "minimum" : 0
+        },
+        "qualification" : {
+          "title" : "Qualification",
+          "type" : "object",
+          "properties" : {
+            "qualification" : {
+              "description" : "The identifier qualification",
+              "type" : "integer",
+              "minimum" : 20
+            },
+            "name" : {
+              "description" : "The subject's name",
+              "type" : "string"
+            }
+          }
+        }
+      }
+    },
+    "qualifications" : {
+      "type" : "array",
+      "items" : {
+        "title" : "Qualification",
+        "type" : "object",
+        "properties" : {
+          "qualification" : {
+            "description" : "The city qualification",
+            "type" : "integer",
+            "minimum" : 10
+          },
+          "name" : {
+            "description" : "The subject's name",
+            "type" : "string"
+          }
+        }
+      }
+    },
+    "city" : {
+      "title" : "City",
+      "type" : "object",
+      "properties" : {
+        "zipCode" : {
+          "description" : "The zip code.",
+          "type" : "integer",
+          "minimum" : 0
+        },
+        "qualification" : {
+          "title" : "Qualification",
+          "type" : "object",
+          "properties" : {
+            "qualification" : {
+              "description" : "The city qualification",
+              "type" : "integer",
+              "minimum" : 10
+            },
+            "name" : {
+              "description" : "The subject's name",
+              "type" : "string"
+            }
+          }
+        },
+        "name" : {
+          "description" : "The city's name.",
+          "type" : "string"
+        }
+      }
+    },
+    "age" : {
+      "description" : "Age in years which must be equal to or greater than zero.",
+      "type" : "integer",
+      "minimum" : 0
+    }
+  },
+  "required" : [ "city" ],
+  "$id" : "https://example.com/citizen.json"
+}

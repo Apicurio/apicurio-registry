@@ -172,7 +172,7 @@ services:
       POSTGRES_USER: apicurio-registry
       POSTGRES_PASSWORD: password
   app:
-    image: apicurio/apicurio-registry:3.0.0-SNAPSHOT
+    image: apicurio/apicurio-registry:3.0.0
     ports:
       - 8080:8080
     environment:

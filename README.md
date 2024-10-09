@@ -172,12 +172,12 @@ services:
       POSTGRES_USER: apicurio-registry
       POSTGRES_PASSWORD: password
   app:
-    image: apicurio/apicurio-registry:3.0.0-SNAPSHOT
+    image: apicurio/apicurio-registry:3.0.0
     ports:
       - 8080:8080
     environment:
       APICURIO_STORAGE_KIND: 'sql'
-      APICURIO_STORAGE_DB_KIND: 'postgresql'
+      APICURIO_STORAGE_SQL_KIND: 'postgresql'
       APICURIO_DATASOURCE_URL: 'jdbc:postgresql://postgres/apicurio-registry'
       APICURIO_DATASOURCE_USERNAME: apicurio-registry
       APICURIO_DATASOURCE_PASSWORD: password

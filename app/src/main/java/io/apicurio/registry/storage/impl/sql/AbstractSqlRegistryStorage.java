@@ -1896,8 +1896,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionLabelsByGAV())
                         .bind(0, RegistryContentUtils.serializeLabels(editableMetadata.getLabels()))
-                        .bind(1, normalizeGroupId(groupId))
-                        .bind(2, artifactId).bind(3, version).execute();
+                        .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version).execute();
                 if (rowCount == 0) {
                     throw new VersionNotFoundException(groupId, artifactId, version);
                 }

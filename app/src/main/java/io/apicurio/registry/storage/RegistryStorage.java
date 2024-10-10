@@ -7,29 +7,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RoleMappingDto;
-import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
@@ -961,6 +939,20 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     String createSnapshot(String snapshotLocation) throws RegistryStorageException;
+
+    /**
+     * Creates a new event row in the outbox table.
+     *
+     * @throws RegistryStorageException
+     */
+    String createEvent(OutboxEvent event);
+
+    /**
+     * true if the underlying Registry storage supports emitting events to the database.
+     *
+     * @throws RegistryStorageException
+     */
+    boolean supportsDatabaseEvents();
 
     enum RetrievalBehavior {
         DEFAULT,

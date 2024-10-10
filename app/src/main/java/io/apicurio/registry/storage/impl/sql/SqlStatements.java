@@ -619,4 +619,7 @@ public interface SqlStatements {
 
     public String restoreFromSnapshot();
 
+    String createOutboxEvent();
+
+    String deleteOutboxEvent();
 }

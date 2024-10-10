@@ -41,18 +41,23 @@ public class KafkaSqlFactory {
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.snapshots.topic", defaultValue = "kafkasql-snapshots")
-    @Info(category = "storage", description = "Kafka sql storage topic name")
+    @Info(category = "storage", description = "Kafka sql storage topic name", registryAvailableSince = "3.0.0")
     String snapshotsTopic;
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.snapshot.every.seconds", defaultValue = "86400s")
-    @Info(category = "storage", description = "Kafka sql journal topic snapshot every")
+    @Info(category = "storage", description = "Kafka sql journal topic snapshot every", registryAvailableSince = "3.0.0")
     String snapshotEvery;
 
     @Inject
     @ConfigProperty(name = "apicurio.storage.snapshot.location", defaultValue = "./")
-    @Info(category = "storage", description = "Kafka sql snapshots store location")
+    @Info(category = "storage", description = "Kafka sql snapshots store location", registryAvailableSince = "3.0.0")
     String snapshotStoreLocation;
+
+    @Inject
+    @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
+    @Info(category = "storage", description = "Kafka sql storage event topic", registryAvailableSince = "3.0.1")
+    String eventsTopic;
 
     @Inject
     @RegistryProperties(value = "apicurio.kafkasql.topic")
@@ -163,6 +168,11 @@ public class KafkaSqlFactory {
             @Override
             public String snapshotsTopic() {
                 return snapshotsTopic;
+            }
+
+            @Override
+            public String eventsTopic() {
+                return eventsTopic;
             }
 
             @Override
@@ -308,6 +318,31 @@ public class KafkaSqlFactory {
 
         // Create the Kafka Consumer
         return new KafkaConsumer<>(props, keySerializer, valueSerializer);
+    }
+
+    /**
+     * Creates the Kafka data producer.
+     */
+    @ApplicationScoped
+    @Produces
+    @Named("KafkaSqlEventsProducer")
+    public ProducerActions<String, String> createKafkaSqlEventsProducer() {
+        Properties props = (Properties) producerProperties.clone();
+
+        // Configure kafka settings
+        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + UUID.randomUUID().toString());
+        props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
+        props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 10);
+        props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class);
+
+        tryToConfigureSecurity(props);
+
+        StringSerializer keySerializer = new StringSerializer();
+        StringSerializer valueSerializer = new StringSerializer();
+
+        // Create the Kafka producer
+        return new AsyncProducer<>(props, keySerializer, valueSerializer);
     }
 
     private void tryToConfigureSecurity(Properties props) {

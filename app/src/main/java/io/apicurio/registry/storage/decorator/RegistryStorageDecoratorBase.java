@@ -4,18 +4,7 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.VersionId;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchMetaDataDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -371,5 +360,10 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     @Override
     public String createSnapshot(String snapshotLocation) throws RegistryStorageException {
         return delegate.createSnapshot(snapshotLocation);
+    }
+
+    @Override
+    public String createEvent(OutboxEvent event) {
+        return delegate.createEvent(event);
     }
 }

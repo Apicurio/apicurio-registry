@@ -382,4 +382,9 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     public BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId) {
         return delegate.getBranchMetaData(ga, branchId);
     }
+
+    @Override
+    public boolean supportsDatabaseEvents() {
+        return delegate.supportsDatabaseEvents();
+    }
 }

@@ -689,6 +689,11 @@ The following {registry} configuration options are available for each component 
 |`sa`
 |`3.0.0.Final`
 |Application datasource username
+|`apicurio.events.kafka.topic`
+|`string`
+|`registry-events`
+|
+|Storage event topic
 |`apicurio.kafkasql.bootstrap.servers`
 |`string`
 |
@@ -752,12 +757,12 @@ The following {registry} configuration options are available for each component 
 |`apicurio.kafkasql.snapshot.every.seconds`
 |`string`
 |`86400s`
-|
+|`3.0.0`
 |Kafka sql journal topic snapshot every
 |`apicurio.kafkasql.snapshots.topic`
 |`string`
 |`kafkasql-snapshots`
-|
+|`3.0.0`
 |Kafka sql storage topic name
 |`apicurio.kafkasql.ssl.key.password`
 |`optional<string>`
@@ -812,7 +817,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.storage.snapshot.location`
 |`string`
 |`./`
-|
+|`3.0.0`
 |Kafka sql snapshots store location
 |`apicurio.storage.sql.kind`
 |`string`

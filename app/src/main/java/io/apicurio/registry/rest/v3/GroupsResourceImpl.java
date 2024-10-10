@@ -47,30 +47,10 @@ import io.apicurio.registry.rest.v3.beans.SortOrder;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.apicurio.registry.rest.v3.beans.VersionSortBy;
-import io.apicurio.registry.rest.v3.shared.CommonResourceOperations;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -144,9 +124,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     SecurityIdentity securityIdentity;
-
-    @Inject
-    CommonResourceOperations common;
 
     public enum RegistryHashAlgorithm {
         SHA256, MD5
@@ -836,6 +813,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             if (storageResult.getRight() != null) {
                 rval.setVersion(V3ApiUtil.dtoToVersionMetaData(storageResult.getRight()));
             }
+
             return rval;
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(groupId, artifactId, ifExists, data.getFirstVersion(), fcanonical);

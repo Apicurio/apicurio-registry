@@ -119,7 +119,7 @@ NOTE: For each configuration property you can override the value by using the co
 |Name
 |New Option
 |`registry.events.ksink`
-|`apicurio.events.ksink`
+|`removed`
 |===
 
 == health
@@ -183,7 +183,7 @@ NOTE: For each configuration property you can override the value by using the co
 |Name
 |New Option
 |`registry.events.kafka.topic`
-|`Removed`
+|`apicurio.events.kafka.topic`
 |`registry.events.kafka.topic-partition`
 |`Removed`
 |===

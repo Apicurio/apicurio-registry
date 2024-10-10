@@ -214,6 +214,7 @@
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <apicurio-common-app-components.version>1.2.5</apicurio-common-app-components.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
+    <debezium.version>2.6.2.Final</debezium.version>
     <pulsar-clients.version>3.3.1</pulsar-clients.version>
 
     <nats.version>2.20.2</nats.version>
@@ -785,6 +786,11 @@
         <groupId>org.testcontainers</groupId>
         <artifactId>pulsar</artifactId>
         <version>${test-containers.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.debezium</groupId>
+        <artifactId>debezium-testing-testcontainers</artifactId>
+        <version>${debezium.version}</version>
       </dependency>
       <dependency>
         <groupId>io.strimzi</groupId>

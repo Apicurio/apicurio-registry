@@ -103,6 +103,8 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getArtifactVersions2", new State(false, s -> s.getArtifactVersions(null, null))),
                 entry("getArtifactVersions3", new State(false,
                         s -> s.getArtifactVersions(null, null, RegistryStorage.RetrievalBehavior.DEFAULT))),
+                entry("getArtifactVersionState3",
+                        new State(false, s -> s.getArtifactVersionState(null, null, null))),
                 entry("getEnabledArtifactContentIds2",
                         new State(false, s -> s.getEnabledArtifactContentIds(null, null))),
                 entry("getArtifactVersionsByContentId1",
@@ -181,6 +183,8 @@ public class ReadOnlyRegistryStorageTest {
                 entry("updateGlobalRule2", new State(true, s -> s.updateGlobalRule(null, null))),
                 entry("updateGroupMetaData2", new State(true, s -> s.updateGroupMetaData(null, null))),
                 entry("updateRoleMapping2", new State(true, s -> s.updateRoleMapping(null, null))),
+                entry("updateArtifactVersionState5",
+                        new State(true, s -> s.updateArtifactVersionState(null, null, null, null, false))),
 
                 entry("getGroupRules1", new State(false, s -> s.getGroupRules(null))),
                 entry("getGroupRule2", new State(false, s -> s.getGroupRule(null, null))),

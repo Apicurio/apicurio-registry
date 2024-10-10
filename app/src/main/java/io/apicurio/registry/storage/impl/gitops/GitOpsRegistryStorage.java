@@ -16,6 +16,7 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.gitops.sql.BlueSqlStorage;
 import io.apicurio.registry.storage.impl.gitops.sql.GreenSqlStorage;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PreDestroy;
@@ -451,6 +452,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Override
     public List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version) {
         return proxy(storage -> storage.getArtifactVersionComments(groupId, artifactId, version));
+    }
+
+    @Override
+    public VersionState getArtifactVersionState(String groupId, String artifactId, String version) {
+        return proxy(storage -> storage.getArtifactVersionState(groupId, artifactId, version));
     }
 
     @Override

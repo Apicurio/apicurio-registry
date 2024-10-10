@@ -20,6 +20,7 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
@@ -142,6 +143,12 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     @Override
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
             EditableVersionMetaDataDto metaData) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void updateArtifactVersionState(String groupId, String artifactId, String version,
+            VersionState newState, boolean dryRun) {
         readOnlyViolation();
     }
 

@@ -3390,6 +3390,110 @@
         }
       ]
     },
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/state": {
+      "summary": "Manage the state of an artifact version.",
+      "get": {
+        "tags": [
+          "Versions"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrappedVersionState"
+                }
+              }
+            },
+            "description": "The current artifact version state."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getArtifactVersionState",
+        "summary": "Get artifact version state",
+        "description": "Gets the current state of an artifact version.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "put": {
+        "requestBody": {
+          "description": "The new state.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WrappedVersionState"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Versions"
+        ],
+        "parameters": [
+          {
+            "name": "dryRun",
+            "description": "When set to `true`, the operation will not result in any changes. Instead, it\nwill return a result based on whether the operation **would have succeeded**.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The state was successfully updated."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "updateArtifactVersionState",
+        "summary": "Update the artifact version state",
+        "description": "Updates the state of an artifact version.\n\nNOTE: There are some restrictions on state transitions.  Notably a version \ncannot be transitioned to the `DRAFT` state from any other state.  The `DRAFT` \nstate can only be entered (optionally) when creating a new artifact/version.\nA version in `DRAFT` state can only be transitioned to `ENABLED`.  When this\nhappens, any configured content rules will be applied.  This may result in a\nfailure to change the state.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* An invalid new state was provided (HTTP error `400`)\n* The draft content violates one or more of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "versionExpression",
+          "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "x-codegen-contextRoot": "/apis/registry/v3"
   },
   "components": {
@@ -3973,6 +4077,15 @@
           "groupId": {
             "$ref": "#/components/schemas/GroupId",
             "description": ""
+          },
+          "modifiedBy": {
+            "description": "",
+            "type": "string"
+          },
+          "modifiedOn": {
+            "format": "date-time",
+            "description": "",
+            "type": "string"
           }
         },
         "example": {
@@ -4814,16 +4927,11 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
-          },
-          "state": {
-            "$ref": "#/components/schemas/VersionState",
-            "description": ""
           }
         },
         "example": {
           "name": "Artifact Name",
           "description": "The description of the artifact.",
-          "state": "DEPRECATED",
           "labels": {
             "custom-1": "foo",
             "custom-2": "bar"
@@ -5162,6 +5270,22 @@
               "$ref": "#/components/schemas/Version"
             }
           }
+        }
+      },
+      "WrappedVersionState": {
+        "title": "Root Type for WrappedVersionState",
+        "description": "",
+        "required": [
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/VersionState"
+          }
+        },
+        "example": {
+          "state": "ENABLED"
         }
       }
     },

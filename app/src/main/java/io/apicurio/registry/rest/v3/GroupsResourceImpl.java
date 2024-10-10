@@ -49,6 +49,7 @@ import io.apicurio.registry.rest.v3.beans.VersionContent;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.apicurio.registry.rest.v3.beans.VersionSortBy;
+import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
@@ -91,7 +92,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.HEAD;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
 import jakarta.ws.rs.client.Client;
@@ -629,9 +629,72 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
-        dto.setState(data.getState());
         storage.updateArtifactVersionMetaData(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), dto);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public WrappedVersionState getArtifactVersionState(String groupId, String artifactId,
+            String versionExpression) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("version", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+
+        VersionState state = storage.getArtifactVersionState(gav.getRawGroupIdWithNull(),
+                gav.getRawArtifactId(), gav.getRawVersionId());
+        return WrappedVersionState.builder().state(state).build();
+    }
+
+    @Override
+    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "dryRun" })
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void updateArtifactVersionState(String groupId, String artifactId, String versionExpression,
+            Boolean dryRun, WrappedVersionState data) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("versionExpression", versionExpression);
+        requireParameter("body.state", data.getState());
+
+        if (data.getState() == VersionState.DRAFT) {
+            throw new BadRequestException("Illegal state transition: cannot transition to DRAFT state.");
+        }
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+
+        // Get current state.
+        VersionState currentState = storage.getArtifactVersionState(gav.getRawGroupIdWithNull(),
+                gav.getRawArtifactId(), gav.getRawVersionId());
+
+        // If the current state is the same as the new state, do nothing.
+        if (currentState == data.getState()) {
+            return;
+        }
+
+        // If the current state is DRAFT, apply rules.
+        if (currentState == VersionState.DRAFT) {
+            VersionMetaData vmd = getArtifactVersionMetaData(gav.getRawGroupIdWithNull(),
+                    gav.getRawArtifactId(), gav.getRawVersionId());
+            StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
+                    gav.getRawArtifactId(), gav.getRawVersionId());
+            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                    .recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference);
+            final List<ArtifactReference> references = V3ApiUtil
+                    .referenceDtosToReferences(artifact.getReferences());
+
+            TypedContent typedContent = TypedContent.create(artifact.getContent(), artifact.getContentType());
+            rulesService.applyRules(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                    vmd.getArtifactType(), typedContent, RuleApplicationType.UPDATE, references,
+                    resolvedReferences);
+        }
+
+        // Now update the state.
+        storage.updateArtifactVersionState(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                gav.getRawVersionId(), data.getState(), dryRun != null && dryRun);
     }
 
     /**

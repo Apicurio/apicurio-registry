@@ -2,12 +2,17 @@ package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateGroup;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -45,6 +50,13 @@ public class DraftContentTest extends AbstractResourceTestBase {
                   { "name" : "LastName" , "type" : "string" }
                ]
             }
+            """;
+
+    private static final String INVALID_AVRO_CONTENT = """
+            {
+               "type" : "record",
+               "namespace" : "Apicurio",
+               "name" : "FullName"
             """;
 
     @Test
@@ -220,6 +232,76 @@ public class DraftContentTest extends AbstractResourceTestBase {
         });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(7, results.getVersions().size());
+    }
+
+    @Test
+    public void testCreateInvalidDraftArtifact() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        // Create group
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
+
+        // Enable validity group rule
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig(ValidityLevel.FULL.name());
+        clientV3.groups().byGroupId(groupId).rules().post(createRule);
+
+        // Create artifact with first version that has invalid content
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                INVALID_AVRO_CONTENT, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setIsDraft(true);
+        createArtifact.getFirstVersion().setVersion("1.0.0");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Now try to transition from DRAFT to ENABLED - should fail
+        WrappedVersionState enabled = new WrappedVersionState();
+        enabled.setState(VersionState.ENABLED);
+        ProblemDetails error = Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("1.0.0").state().put(enabled);
+        });
+        Assertions.assertEquals("RuleViolationException", error.getName());
+        Assertions.assertEquals("Syntax violation for OpenAPI artifact.", error.getTitle());
+    }
+
+    @Test
+    public void testCreateInvalidDraftVersion() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        // Create empty artifact
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.AVRO);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Enable the validity rule for the new artifact.
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig(ValidityLevel.FULL.name());
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
+
+        // Try to create a new version with invalid content (should work if state is DRAFT).
+        CreateVersion createVersion = TestUtils.clientCreateVersion(INVALID_AVRO_CONTENT,
+                ContentTypes.APPLICATION_JSON);
+        createVersion.setVersion("1.0.0");
+        createVersion.setIsDraft(true);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
+
+        // Now try to transition from DRAFT to ENABLED - should fail
+        WrappedVersionState enabled = new WrappedVersionState();
+        enabled.setState(VersionState.ENABLED);
+        ProblemDetails error = Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("1.0.0").state().put(enabled);
+        });
+        Assertions.assertEquals("RuleViolationException", error.getName());
+        Assertions.assertEquals("Syntax violation for Avro artifact.", error.getTitle());
     }
 
 }

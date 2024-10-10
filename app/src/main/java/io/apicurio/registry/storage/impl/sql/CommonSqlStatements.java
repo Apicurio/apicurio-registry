@@ -176,6 +176,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
 
+    @Override
+    public String selectArtifactVersionState() {
+        return "SELECT v.state FROM versions v "
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByContentHash()
      */
@@ -282,6 +288,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String updateArtifactModifiedByOn() {
         return "UPDATE artifacts SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ?";
+    }
+
+    @Override
+    public String updateArtifactVersionModifiedByOn() {
+        return "UPDATE versions SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
 
     /**

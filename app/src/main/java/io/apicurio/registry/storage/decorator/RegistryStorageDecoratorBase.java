@@ -13,6 +13,7 @@ import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
@@ -124,6 +125,12 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
             EditableVersionMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
         delegate.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
+    }
+
+    @Override
+    public void updateArtifactVersionState(String groupId, String artifactId, String version,
+            VersionState newState, boolean dryRun) {
+        delegate.updateArtifactVersionState(groupId, artifactId, version, newState, dryRun);
     }
 
     @Override

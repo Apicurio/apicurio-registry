@@ -852,9 +852,8 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
 
-        EditableVersionMetaDataDto emd = EditableVersionMetaDataDto.builder()
-                .state(VersionState.fromValue(data.getState().name())).build();
-        storage.updateArtifactVersionMetaData(defaultGroupIdToNull(groupId), artifactId, version, emd);
+        VersionState newState = VersionState.fromValue(data.getState().name());
+        storage.updateArtifactVersionState(groupId, artifactId, version, newState, false);
     }
 
     /**

@@ -19,6 +19,7 @@ import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
@@ -869,6 +870,28 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param version
      */
     List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version);
+
+    /**
+     * Returns the current state of the artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @return
+     */
+    VersionState getArtifactVersionState(String groupId, String artifactId, String version);
+
+    /**
+     * Updates the state of the given artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param newState
+     * @param dryRun
+     */
+    void updateArtifactVersionState(String groupId, String artifactId, String version, VersionState newState,
+            boolean dryRun);
 
     /**
      * Updates a single comment.

@@ -33,6 +33,7 @@ import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.v2.SqlDataUpgrader;
 import io.apicurio.registry.storage.importing.v3.SqlDataImporter;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
@@ -602,6 +603,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(uuid);
         outboxEvent.fire(KafkaSqlOutboxEvent
                 .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, metaData)));
+    }
+
+    @Override
+    public void updateArtifactVersionState(String groupId, String artifactId, String version,
+            VersionState newState, boolean dryRun) {
+        var message = new UpdateArtifactVersionState5Message(groupId, artifactId, version, newState, dryRun);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     /**

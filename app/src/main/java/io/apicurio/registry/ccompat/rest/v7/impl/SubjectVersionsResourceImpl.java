@@ -20,7 +20,6 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
@@ -190,9 +189,8 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
             if (avmd.getState().equals(VersionState.DISABLED)) {
                 throw new SchemaSoftDeletedException("Schema is already soft deleted");
             } else {
-                EditableVersionMetaDataDto emd = EditableVersionMetaDataDto.builder()
-                        .state(VersionState.DISABLED).build();
-                storage.updateArtifactVersionMetaData(groupId, artifactId, version, emd);
+                storage.updateArtifactVersionState(groupId, artifactId, version, VersionState.DISABLED,
+                        false);
             }
         }
         return version;

@@ -227,6 +227,11 @@ public interface SqlStatements {
     public String updateArtifactModifiedByOn();
 
     /**
+     * A statement to update the modified by and modified on for an artifact version.
+     */
+    public String updateArtifactVersionModifiedByOn();
+
+    /**
      * A statement to update a single artifact owner.
      */
     public String updateArtifactOwner();
@@ -444,6 +449,11 @@ public interface SqlStatements {
      * A statement used to select a single group in groups table by groupId.
      */
     public String selectGroupByGroupId();
+
+    /**
+     * A statement used to select the state of a version.
+     */
+    public String selectArtifactVersionState();
 
     /*
      * The next few statements support globalId and contentId management.

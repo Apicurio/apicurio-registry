@@ -137,6 +137,12 @@ func (m *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder) Refer
 	return NewItemArtifactsItemVersionsItemReferencesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
+// State manage the state of an artifact version.
+// returns a *ItemArtifactsItemVersionsItemStateRequestBuilder when successful
+func (m *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder) State() *ItemArtifactsItemVersionsItemStateRequestBuilder {
+	return NewItemArtifactsItemVersionsItemStateRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // ToDeleteRequestInformation deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`are needed. If this is the only version of the artifact, this operation is the same as deleting the entire artifact.This feature is disabled by default and it's discouraged for normal usage. To enable it, set the `registry.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`) * Feature is disabled (HTTP error `405`) * A server error occurred (HTTP error `500`)
 // returns a *RequestInformation when successful
 func (m *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {

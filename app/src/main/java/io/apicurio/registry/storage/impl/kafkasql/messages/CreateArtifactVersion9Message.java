@@ -23,8 +23,7 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @ToString
-@Deprecated
-public class CreateArtifactVersion8Message extends AbstractMessage {
+public class CreateArtifactVersion9Message extends AbstractMessage {
 
     private String groupId;
     private String artifactId;
@@ -35,10 +34,11 @@ public class CreateArtifactVersion8Message extends AbstractMessage {
     private List<ArtifactReferenceDto> references;
     private EditableVersionMetaDataDto metaData;
     private List<String> branches;
-    boolean dryRun;
+    private boolean isDraft;
+    private boolean dryRun;
 
     /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(io.apicurio.registry.storage.RegistryStorage)
+     * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(RegistryStorage)
      */
     @Override
     public Object dispatchTo(RegistryStorage storage) {
@@ -47,7 +47,7 @@ public class CreateArtifactVersion8Message extends AbstractMessage {
                 .content(handle).references(references).build()
             : null;
         return storage.createArtifactVersion(groupId, artifactId, version, artifactType, contentDto, metaData,
-                branches, false, dryRun);
+                branches, isDraft, dryRun);
     }
 
 }

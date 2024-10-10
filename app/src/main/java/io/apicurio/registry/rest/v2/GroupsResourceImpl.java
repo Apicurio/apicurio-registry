@@ -852,9 +852,8 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
 
-        EditableVersionMetaDataDto emd = EditableVersionMetaDataDto.builder()
-                .state(VersionState.fromValue(data.getState().name())).build();
-        storage.updateArtifactVersionMetaData(defaultGroupIdToNull(groupId), artifactId, version, emd);
+        VersionState newState = VersionState.fromValue(data.getState().name());
+        storage.updateArtifactVersionState(groupId, artifactId, version, newState, false);
     }
 
     /**
@@ -1131,7 +1130,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
             Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createResult = storage.createArtifact(
                     defaultGroupIdToNull(groupId), artifactId, artifactType, metaData, xRegistryVersion,
-                    contentDto, versionMetaData, List.of(), false);
+                    contentDto, versionMetaData, List.of(), false, false);
 
             return V2ApiUtil.dtoToMetaData(groupId, artifactId, artifactType, createResult.getRight());
         } catch (ArtifactAlreadyExistsException ex) {
@@ -1257,7 +1256,7 @@ public class GroupsResourceImpl implements GroupsResource {
         ContentWrapperDto contentDto = ContentWrapperDto.builder().content(content).contentType(ct)
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(defaultGroupIdToNull(groupId),
-                artifactId, xRegistryVersion, artifactType, contentDto, metaData, List.of(), false);
+                artifactId, xRegistryVersion, artifactType, contentDto, metaData, List.of(), false, false);
         return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType,
                 vmdDto);
     }
@@ -1393,7 +1392,7 @@ public class GroupsResourceImpl implements GroupsResource {
         ContentWrapperDto contentDto = ContentWrapperDto.builder().content(content).contentType(contentType)
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto dto = storage.createArtifactVersion(defaultGroupIdToNull(groupId),
-                artifactId, version, artifactType, contentDto, metaData, List.of(), false);
+                artifactId, version, artifactType, contentDto, metaData, List.of(), false, false);
 
         // Note: if the version was created, we need to update the artifact metadata as well, because
         // those are the semantics of the v2 API. :(

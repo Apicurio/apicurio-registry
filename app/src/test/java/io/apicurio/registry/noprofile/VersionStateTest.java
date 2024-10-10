@@ -4,6 +4,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
@@ -16,12 +17,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
 public class VersionStateTest extends AbstractResourceTestBase {
-
-    private static final EditableVersionMetaData toEditableVersionMetaData(VersionState state) {
-        EditableVersionMetaData evmd = new EditableVersionMetaData();
-        evmd.setState(state);
-        return evmd;
-    }
 
     @Test
     public void testSmoke() throws Exception {
@@ -39,9 +34,10 @@ public class VersionStateTest extends AbstractResourceTestBase {
 
         // disable latest
 
-        EditableVersionMetaData evmd = toEditableVersionMetaData(VersionState.DISABLED);
+        WrappedVersionState vs = new WrappedVersionState();
+        vs.setState(VersionState.DISABLED);
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
-                .byVersionExpression(amd.getVersion()).put(evmd);
+                .byVersionExpression(amd.getVersion()).state().put(vs);
 
         VersionMetaData tvmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression("3").get();
@@ -77,8 +73,10 @@ public class VersionStateTest extends AbstractResourceTestBase {
             Assertions.assertEquals(description, innerAvmd.getDescription());
         }
 
+        vs = new WrappedVersionState();
+        vs.setState(VersionState.DEPRECATED);
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
-                .byVersionExpression("3").put(toEditableVersionMetaData(VersionState.DEPRECATED));
+                .byVersionExpression("3").state().put(vs);
 
         tamd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                 .byVersionExpression("branch=latest").get();
@@ -102,8 +100,10 @@ public class VersionStateTest extends AbstractResourceTestBase {
         }
 
         // can revert back to enabled from deprecated
+        vs = new WrappedVersionState();
+        vs.setState(VersionState.ENABLED);
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
-                .byVersionExpression("3").put(toEditableVersionMetaData(VersionState.ENABLED));
+                .byVersionExpression("3").state().put(vs);
 
         {
             VersionMetaData innerAmd = clientV3.groups().byGroupId(groupId).artifacts()
@@ -115,6 +115,14 @@ public class VersionStateTest extends AbstractResourceTestBase {
                     .byArtifactId(artifactId).versions().byVersionExpression("1").get();
             Assertions.assertNull(innerVmd.getDescription());
         }
+
+        // cannot change to DRAFT (not allowed)
+        Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
+            WrappedVersionState vstate = new WrappedVersionState();
+            vstate.setState(VersionState.DRAFT);
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("3").state().put(vstate);
+        });
     }
 
 }

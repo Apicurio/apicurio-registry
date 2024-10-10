@@ -19,6 +19,7 @@ import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
@@ -88,7 +89,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
     Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId, String artifactId,
             String artifactType, EditableArtifactMetaDataDto artifactMetaData, String version,
             ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches, boolean dryRun)
+            List<String> versionBranches, boolean versionIsDraft, boolean dryRun)
             throws ArtifactAlreadyExistsException, RegistryStorageException;
 
     /**
@@ -161,11 +162,12 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param content
      * @param metaData
      * @param branches
+     * @param isDraft
      * @param dryRun
      */
     ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches, boolean dryRun)
+            List<String> branches, boolean isDraft, boolean dryRun)
             throws ArtifactNotFoundException, VersionAlreadyExistsException, RegistryStorageException;
 
     /**
@@ -431,6 +433,23 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId, String version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Updates the content of a specific artifact version. This is only applicable for versions in the DRAFT
+     * status.
+     *
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param artifactType
+     * @param content
+     * @throws ArtifactNotFoundException
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void updateArtifactVersionContent(String groupId, String artifactId, String version, String artifactType,
+            ContentWrapperDto content)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 
     /**
@@ -851,6 +870,28 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param version
      */
     List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version);
+
+    /**
+     * Returns the current state of the artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @return
+     */
+    VersionState getArtifactVersionState(String groupId, String artifactId, String version);
+
+    /**
+     * Updates the state of the given artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param newState
+     * @param dryRun
+     */
+    void updateArtifactVersionState(String groupId, String artifactId, String version, VersionState newState,
+            boolean dryRun);
 
     /**
      * Updates a single comment.

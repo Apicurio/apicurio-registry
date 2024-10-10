@@ -31,6 +31,7 @@ import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
 
 import java.time.Instant;
@@ -319,6 +320,11 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     @Override
     public List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version) {
         return delegate.getArtifactVersionComments(groupId, artifactId, version);
+    }
+
+    @Override
+    public VersionState getArtifactVersionState(String groupId, String artifactId, String version) {
+        return delegate.getArtifactVersionState(groupId, artifactId, version);
     }
 
     @Override

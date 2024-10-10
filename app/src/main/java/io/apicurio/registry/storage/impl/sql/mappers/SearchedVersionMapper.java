@@ -33,6 +33,8 @@ public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
         dto.setState(VersionState.valueOf(rs.getString("state")));
         dto.setOwner(rs.getString("owner"));
         dto.setCreatedOn(rs.getTimestamp("createdOn"));
+        dto.setModifiedBy(rs.getString("modifiedBy"));
+        dto.setModifiedOn(rs.getTimestamp("modifiedOn"));
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));
         dto.setArtifactType(rs.getString("type"));

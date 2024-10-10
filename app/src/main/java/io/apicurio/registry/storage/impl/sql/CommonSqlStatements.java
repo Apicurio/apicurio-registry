@@ -176,6 +176,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
 
+    @Override
+    public String selectArtifactVersionState() {
+        return "SELECT v.state FROM versions v "
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByContentHash()
      */
@@ -282,6 +288,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String updateArtifactModifiedByOn() {
         return "UPDATE artifacts SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ?";
+    }
+
+    @Override
+    public String updateArtifactVersionModifiedByOn() {
+        return "UPDATE versions SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
 
     /**
@@ -596,7 +607,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentById() {
-        return "SELECT c.content, c.contentType, c.refs FROM content c " + "WHERE c.contentId = ?";
+        return "SELECT c.content, c.contentType, c.refs, c.contentHash FROM content c "
+                + "WHERE c.contentId = ?";
     }
 
     /**
@@ -604,7 +616,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentByContentHash() {
-        return "SELECT c.content, c.contentType, c.refs FROM content c " + "WHERE c.contentHash = ?";
+        return "SELECT c.content, c.contentType, c.refs, c.contentHash FROM content c "
+                + "WHERE c.contentHash = ?";
     }
 
     @Override
@@ -1049,6 +1062,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String updateVersionComment() {
         return "UPDATE version_comments SET cvalue = ? WHERE globalId = ? AND commentId = ? AND owner = ?";
+    }
+
+    @Override
+    public String updateArtifactVersionContent() {
+        return "UPDATE versions SET contentId = ?, modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
 
     @Override

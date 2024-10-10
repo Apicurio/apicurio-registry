@@ -4,7 +4,6 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.AbstractMessage;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,8 +22,7 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @ToString
-@Deprecated
-public class CreateArtifactVersion8Message extends AbstractMessage {
+public class UpdateArtifactVersionContent5Message extends AbstractMessage {
 
     private String groupId;
     private String artifactId;
@@ -33,12 +31,9 @@ public class CreateArtifactVersion8Message extends AbstractMessage {
     private String contentType;
     private String content;
     private List<ArtifactReferenceDto> references;
-    private EditableVersionMetaDataDto metaData;
-    private List<String> branches;
-    boolean dryRun;
 
     /**
-     * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(io.apicurio.registry.storage.RegistryStorage)
+     * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(RegistryStorage)
      */
     @Override
     public Object dispatchTo(RegistryStorage storage) {
@@ -46,8 +41,8 @@ public class CreateArtifactVersion8Message extends AbstractMessage {
         ContentWrapperDto contentDto = content != null ? ContentWrapperDto.builder().contentType(contentType)
                 .content(handle).references(references).build()
             : null;
-        return storage.createArtifactVersion(groupId, artifactId, version, artifactType, contentDto, metaData,
-                branches, false, dryRun);
+        storage.updateArtifactVersionContent(groupId, artifactId, version, artifactType, contentDto);
+        return null;
     }
 
 }

@@ -1,6 +1,5 @@
 package io.apicurio.registry.storage.dto;
 
-import io.apicurio.registry.types.VersionState;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,6 +29,5 @@ public class EditableVersionMetaDataDto {
 
     private String name;
     private String description;
-    private VersionState state;
     private Map<String, String> labels;
 }

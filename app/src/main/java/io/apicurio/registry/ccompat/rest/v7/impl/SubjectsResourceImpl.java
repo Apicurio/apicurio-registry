@@ -16,7 +16,6 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
@@ -135,10 +134,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     private List<Integer> deleteSubjectVersions(String groupId, String artifactId) {
         List<String> deletedVersions = storage.getArtifactVersions(groupId, artifactId);
         try {
-            EditableVersionMetaDataDto dto = EditableVersionMetaDataDto.builder().state(VersionState.DISABLED)
-                    .build();
-            deletedVersions.forEach(
-                    version -> storage.updateArtifactVersionMetaData(groupId, artifactId, version, dto));
+            deletedVersions.forEach(version -> storage.updateArtifactVersionState(groupId, artifactId,
+                    version, VersionState.DISABLED, false));
         } catch (InvalidArtifactStateException | InvalidVersionStateException ignored) {
             log.warn("Invalid artifact state transition", ignored);
         }

@@ -3,9 +3,11 @@ package io.apicurio.registry.storage.impl.kafkasql.serde;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 import io.apicurio.registry.storage.impl.kafkasql.messages.AppendVersionToBranch3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.ConsumeDownload1Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifact10Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifact9Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactRule4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersion8Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersion9Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersionComment4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateBranch4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateDownload1Message;
@@ -81,7 +83,8 @@ public class KafkaSqlMessageIndex {
 
     static {
         indexMessageClasses(AppendVersionToBranch3Message.class, ConsumeDownload1Message.class,
-                CreateArtifact9Message.class, CreateArtifactVersion8Message.class,
+                CreateArtifact9Message.class, CreateArtifact10Message.class,
+                CreateArtifactVersion8Message.class, CreateArtifactVersion9Message.class,
                 CreateArtifactRule4Message.class, CreateGroupRule3Message.class,
                 CreateArtifactVersionComment4Message.class, CreateBranch4Message.class,
                 CreateDownload1Message.class, CreateGlobalRule2Message.class, CreateGroup1Message.class,

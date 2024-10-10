@@ -16,6 +16,7 @@ import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
@@ -75,10 +76,11 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches, boolean dryRun) throws RegistryStorageException {
+            List<String> versionBranches, boolean isVersionDraft, boolean dryRun)
+            throws RegistryStorageException {
         checkReadOnly();
         return delegate.createArtifact(groupId, artifactId, artifactType, artifactMetaData, version,
-                versionContent, versionMetaData, versionBranches, dryRun);
+                versionContent, versionMetaData, versionBranches, isVersionDraft, dryRun);
     }
 
     @Override
@@ -97,10 +99,10 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches, boolean dryRun) throws RegistryStorageException {
+            List<String> branches, boolean isDraft, boolean dryRun) throws RegistryStorageException {
         checkReadOnly();
         return delegate.createArtifactVersion(groupId, artifactId, version, artifactType, content, metaData,
-                branches, dryRun);
+                branches, isDraft, dryRun);
     }
 
     @Override
@@ -179,6 +181,13 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
             EditableVersionMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         checkReadOnly();
         delegate.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
+    }
+
+    @Override
+    public void updateArtifactVersionState(String groupId, String artifactId, String version,
+            VersionState newState, boolean dryRun) {
+        checkReadOnly();
+        delegate.updateArtifactVersionState(groupId, artifactId, version, newState, dryRun);
     }
 
     @Override
@@ -300,6 +309,13 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
             String commentId, String value) {
         checkReadOnly();
         delegate.updateArtifactVersionComment(groupId, artifactId, version, commentId, value);
+    }
+
+    @Override
+    public void updateArtifactVersionContent(String groupId, String artifactId, String version,
+            String artifactType, ContentWrapperDto content) throws RegistryStorageException {
+        checkReadOnly();
+        delegate.updateArtifactVersionContent(groupId, artifactId, version, artifactType, content);
     }
 
     @Override

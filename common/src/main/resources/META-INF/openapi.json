@@ -2357,6 +2357,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
@@ -2574,6 +2577,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
@@ -2658,6 +2664,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"

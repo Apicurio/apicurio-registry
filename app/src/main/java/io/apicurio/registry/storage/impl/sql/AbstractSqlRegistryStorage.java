@@ -530,7 +530,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         long cid = -1;
         if (versionContent != null) {
             // Put the content in the DB and get the unique content ID back.
-            cid = ensureContentAndGetId(artifactType, versionContent);
+            cid = ensureContentAndGetId(artifactType, versionContent, versionIsDraft);
         }
         final long contentId = cid;
 
@@ -719,14 +719,27 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * Make sure the content exists in the database (try to insert it). Regardless of whether it already
      * existed or not, return the contentId of the content in the DB.
      */
-    private Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto) {
+    private Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft) {
         List<ArtifactReferenceDto> references = contentDto.getReferences();
         TypedContent content = TypedContent.create(contentDto.getContent(), contentDto.getContentType());
         String contentHash;
         String canonicalContentHash;
         String serializedReferences;
 
-        if (notEmpty(references)) {
+        // Need to create the content hash and canonical content hash. If the content is DRAFT
+        // content, then do NOT calculate those hashes because we don't want DRAFT content to
+        // be looked up by those hashes.
+        //
+        // So we have three different paths to calculate the hashes:
+        // 1. If DRAFT state
+        // 2. If the content has references
+        // 3. If the content has no references
+
+        if (isDraft) {
+            contentHash = "draft:" + UUID.randomUUID().toString();
+            canonicalContentHash = "draft:" + UUID.randomUUID().toString();
+            serializedReferences = null;
+        } else if (notEmpty(references)) {
             Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver = (refs) -> {
                 return handles.withHandle(handle -> {
                     return resolveReferencesRaw(handle, refs);
@@ -863,7 +876,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.
-        long contentId = ensureContentAndGetId(artifactType, content);
+        long contentId = ensureContentAndGetId(artifactType, content, isDraft);
 
         try {
             // Create version and return
@@ -1769,7 +1782,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         log.debug("Updating content for artifact version: {} {} @ {}", groupId, artifactId, version);
 
         // Put the new content in the DB and get the unique content ID back.
-        long contentId = ensureContentAndGetId(artifactType, content);
+        long contentId = ensureContentAndGetId(artifactType, content, true);
 
         String modifiedBy = securityIdentity.getPrincipal().getName();
         Date modifiedOn = new Date();
@@ -1781,6 +1794,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             if (rowCount == 0) {
                 throw new VersionNotFoundException(groupId, artifactId, version);
             }
+
+            // Updating content will typically leave a row in the content table orphaned.
+            deleteAllOrphanedContentRaw(handle);
+
             return null;
         });
     }

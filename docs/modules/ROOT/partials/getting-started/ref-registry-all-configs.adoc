@@ -540,7 +540,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.rest.deletion.artifact-version.enabled`
 |`boolean [dynamic]`
 |`false`
-|`2.4.2-SNAPSHOT`
+|`2.4.2`
 |Enables artifact version deletion
 |`apicurio.rest.deletion.artifact.enabled`
 |`boolean [dynamic]`
@@ -552,6 +552,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.0`
 |Enables group deletion
+|`apicurio.rest.mutability.artifact-version-content.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.2`
+|Enables artifact version mutability
 |===
 
 == semver

@@ -2,6 +2,7 @@ package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -15,8 +16,10 @@ import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.MutabilityEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -25,6 +28,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 @QuarkusTest
+@TestProfile(MutabilityEnabledProfile.class)
 public class DraftContentTest extends AbstractResourceTestBase {
 
     private static final String AVRO_CONTENT_V1 = """
@@ -70,12 +74,28 @@ public class DraftContentTest extends AbstractResourceTestBase {
         createArtifact.getFirstVersion().setIsDraft(true);
         createArtifact.getFirstVersion().setVersion("1.0.0");
 
-        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(car);
+        Assertions.assertNotNull(car.getVersion());
 
         VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression("1.0.0").get();
         Assertions.assertNotNull(vmd);
         Assertions.assertEquals(VersionState.DRAFT, vmd.getState());
+
+        // Note: Should NOT be able to fetch its content by globalId (disallowed for DRAFT content)
+        Long globalId = car.getVersion().getGlobalId();
+        Assertions.assertNotNull(globalId);
+        Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.ids().globalIds().byGlobalId(globalId).get();
+        });
+
+        // Note: Should NOT be able to fetch its content by contentId (disallowed for DRAFT content)
+        Long contentId = car.getVersion().getContentId();
+        Assertions.assertNotNull(contentId);
+        Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.ids().contentIds().byContentId(contentId).get();
+        });
     }
 
     @Test

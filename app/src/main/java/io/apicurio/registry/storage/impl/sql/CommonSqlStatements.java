@@ -607,7 +607,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentById() {
-        return "SELECT c.content, c.contentType, c.refs FROM content c " + "WHERE c.contentId = ?";
+        return "SELECT c.content, c.contentType, c.refs, c.contentHash FROM content c "
+                + "WHERE c.contentId = ?";
     }
 
     /**
@@ -615,7 +616,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentByContentHash() {
-        return "SELECT c.content, c.contentType, c.refs FROM content c " + "WHERE c.contentHash = ?";
+        return "SELECT c.content, c.contentType, c.refs, c.contentHash FROM content c "
+                + "WHERE c.contentHash = ?";
     }
 
     @Override

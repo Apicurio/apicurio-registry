@@ -535,7 +535,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("artifactId", artifactId);
         requireParameter("versionExpression", versionExpression);
 
-        // TODO check if DRAFT content is allowed (global config property)
+        if (!restConfig.isArtifactVersionMutabilityEnabled()) {
+            throw new NotAllowedException("Artifact version content update operation is not enabled.",
+                    HttpMethod.GET, (String[]) null);
+        }
 
         // Resolve the GAV info
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
@@ -724,7 +727,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3",
-            "comment_id" }) // TODO
+            "comment_id" })
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId) {
@@ -765,7 +768,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3",
-            "comment_id" }) // TODO
+            "comment_id" })
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId, NewComment data) {
@@ -998,8 +1001,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
         String ct = data.getContent().getContentType();
         boolean isDraft = data.getIsDraft() != null && data.getIsDraft();
-
-        // TODO Only allow DRAFT content if the global opt-in config property is set/enabled
 
         // Transform the given references into dtos
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(

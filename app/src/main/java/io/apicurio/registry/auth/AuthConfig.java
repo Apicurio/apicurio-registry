@@ -96,7 +96,7 @@ public class AuthConfig {
     String adminOverrideClaimValue;
 
     @ConfigProperty(name = "apicurio.auth.admin-override.user", defaultValue = "admin")
-    @Info(category = "auth", description = "Auth admin override user name", availableSince = "3.0.0.Final")
+    @Info(category = "auth", description = "Auth admin override user name", availableSince = "3.0.0")
     String adminOverrideUser;
 
     @PostConstruct

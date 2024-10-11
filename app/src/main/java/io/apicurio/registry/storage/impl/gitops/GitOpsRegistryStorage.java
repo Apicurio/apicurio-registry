@@ -53,7 +53,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     GitManager gitManager;
 
     @ConfigProperty(name = "apicurio.storage.kind")
-    @Info(category = "storage", description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0.Final")
+    @Info(category = "storage", description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0")
     String registryStorageType;
 
     // Fair lock, so we ensure the writer does not wait indefinitely under high throughput.

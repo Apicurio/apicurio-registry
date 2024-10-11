@@ -53,7 +53,9 @@ import io.apicurio.registry.storage.impl.kafkasql.messages.SetConfigProperty1Mes
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactMetaData3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactRule4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionComment5Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionContent5Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionMetaData4Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionState5Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateBranchMetaData3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateContentCanonicalHash3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateGlobalRule2Message;
@@ -106,6 +108,7 @@ public class KafkaSqlMessageIndex {
                 UpdateArtifactVersionMetaData4Message.class, UpdateBranchMetaData3Message.class,
                 UpdateContentCanonicalHash3Message.class, UpdateGlobalRule2Message.class,
                 UpdateGroupMetaData2Message.class, UpdateRoleMapping2Message.class,
+                UpdateArtifactVersionState5Message.class, UpdateArtifactVersionContent5Message.class,
                 UpdateGroupRule3Message.class, DeleteGroupRule2Message.class, DeleteGroupRules1Message.class,
                 ImportGroupRule1Message.class, ExecuteSqlStatement1Message.class);
     }

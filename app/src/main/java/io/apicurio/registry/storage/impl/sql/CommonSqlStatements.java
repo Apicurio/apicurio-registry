@@ -182,6 +182,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
 
+    @Override
+    public String selectArtifactVersionStateForUpdate() {
+        return "SELECT v.state FROM versions v "
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? FOR UPDATE";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByContentHash()
      */
@@ -1142,12 +1148,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String deleteBranchVersions() {
-        return "DELETE FROM branch_versions " + "WHERE groupId = ? AND artifactId = ? AND branchId = ?";
+        return "DELETE FROM branch_versions WHERE groupId = ? AND artifactId = ? AND branchId = ?";
+    }
+
+    @Override
+    public String deleteVersionFromBranch() {
+        return "DELETE FROM branch_versions WHERE groupId = ? AND artifactId = ? AND branchId = ? AND version = ?";
     }
 
     @Override
     public String deleteBranch() {
-        return "DELETE FROM branches " + "WHERE groupId = ? AND artifactId = ? AND branchId = ?";
+        return "DELETE FROM branches WHERE groupId = ? AND artifactId = ? AND branchId = ?";
     }
 
     @Override

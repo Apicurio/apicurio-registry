@@ -324,4 +324,55 @@ public class DraftContentTest extends AbstractResourceTestBase {
         Assertions.assertEquals("Syntax violation for Avro artifact.", error.getTitle());
     }
 
+    @Test
+    public void testDraftVersionsWithBranches() throws Exception {
+        String content = resourceToString("openapi-empty.json");
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        // First version is ENABLED
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                content, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setIsDraft(false);
+        createArtifact.getFirstVersion().setVersion("1.0.0");
+
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        VersionSearchResults latestBranch = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).branches().byBranchId("latest").versions().get();
+        Assertions.assertEquals(1, latestBranch.getVersions().size());
+        ProblemDetails problemDetails = Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                    .byBranchId("drafts").versions().get();
+        });
+        Assertions.assertEquals("BranchNotFoundException", problemDetails.getName());
+
+        // Second version is DRAFT
+        CreateVersion createVersion = TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON);
+        createVersion.setVersion("1.0.1");
+        createVersion.setIsDraft(true);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
+
+        latestBranch = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                .byBranchId("latest").versions().get();
+        Assertions.assertEquals(1, latestBranch.getVersions().size());
+        VersionSearchResults draftsBranch = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).branches().byBranchId("drafts").versions().get();
+        Assertions.assertEquals(1, draftsBranch.getVersions().size());
+
+        // Transition draft content to enabled
+        WrappedVersionState enabled = new WrappedVersionState();
+        enabled.setState(VersionState.ENABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1.0.1").state().put(enabled);
+
+        latestBranch = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                .byBranchId("latest").versions().get();
+        Assertions.assertEquals(2, latestBranch.getVersions().size());
+        draftsBranch = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                .byBranchId("drafts").versions().get();
+        Assertions.assertEquals(0, draftsBranch.getVersions().size());
+    }
+
 }

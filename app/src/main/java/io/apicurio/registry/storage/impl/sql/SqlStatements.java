@@ -455,6 +455,11 @@ public interface SqlStatements {
      */
     public String selectArtifactVersionState();
 
+    /**
+     * A statement used to select the state of a version.
+     */
+    public String selectArtifactVersionStateForUpdate();
+
     /*
      * The next few statements support globalId and contentId management.
      */
@@ -631,11 +636,18 @@ public interface SqlStatements {
 
     public String deleteAllBranches();
 
+    public String deleteVersionFromBranch();
+
+    // ========== Snapshots ==========
+
     public String createDataSnapshot();
 
     public String restoreFromSnapshot();
 
-    String createOutboxEvent();
+    // ========== Events ==========
 
-    String deleteOutboxEvent();
+    public String createOutboxEvent();
+
+    public String deleteOutboxEvent();
+
 }

@@ -130,6 +130,12 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String selectArtifactVersionStateForUpdate() {
+        return "SELECT v.state FROM versions v WITH (UPDLOCK, ROWLOCK)"
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
+    }
+
+    @Override
     public String createDataSnapshot() {
         throw new IllegalStateException("Snapshot creation is not supported for Sqlserver storage");
     }

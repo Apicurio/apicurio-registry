@@ -647,8 +647,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
 
         // Update system generated branches
-        createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
-        createOrUpdateSemverBranchesRaw(handle, gav);
+        if (isDraft) {
+            createOrUpdateBranchRaw(handle, gav, BranchId.DRAFTS, true);
+        } else {
+            createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
+            createOrUpdateSemverBranchesRaw(handle, gav);
+        }
 
         // Create any user defined branches
         if (branches != null && !branches.isEmpty()) {
@@ -2046,20 +2050,29 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 handle.setRollback(true);
             }
 
-            int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionStateByGAV())
-                    .bind(0, newState.name()).bind(1, normalizeGroupId(groupId)).bind(2, artifactId)
-                    .bind(3, version).execute();
-            if (rowCount == 0) {
-                throw new VersionNotFoundException(groupId, artifactId, version);
-            }
+            Optional<VersionState> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionStateForUpdate())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                    .map(VersionStateMapper.instance).findOne();
+            VersionState currentState = res
+                    .orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
+
+            handle.createUpdate(sqlStatements.updateArtifactVersionStateByGAV()).bind(0, newState.name())
+                    .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version).execute();
+
             String modifiedBy = securityIdentity.getPrincipal().getName();
             Date modifiedOn = new Date();
+            handle.createUpdate(sqlStatements.updateArtifactVersionModifiedByOn()).bind(0, modifiedBy)
+                    .bind(1, modifiedOn).bind(2, normalizeGroupId(groupId)).bind(3, artifactId)
+                    .bind(4, version).execute();
 
-            rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionModifiedByOn())
-                    .bind(0, modifiedBy).bind(1, modifiedOn).bind(2, normalizeGroupId(groupId))
-                    .bind(3, artifactId).bind(4, version).execute();
-            if (rowCount == 0) {
-                throw new VersionNotFoundException(groupId, artifactId, version);
+            // If transitioning from DRAFT state to something else, then we need to maintain
+            // the system branches.
+            if (currentState == VersionState.DRAFT) {
+                GAV gav = new GAV(groupId, artifactId, version);
+                createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
+                createOrUpdateSemverBranchesRaw(handle, gav);
+                removeVersionFromBranchRaw(handle, gav, BranchId.DRAFTS);
             }
 
             return null;
@@ -3631,6 +3644,19 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         // Now add the version to it.
         appendVersionToBranchRaw(handle, gav, branchId, gav.getVersionId());
+    }
+
+    /**
+     * Removes a version from the given branch.
+     * 
+     * @param handle
+     * @param gav
+     * @param branchId
+     */
+    private void removeVersionFromBranchRaw(Handle handle, GAV gav, BranchId branchId) {
+        handle.createUpdate(sqlStatements.deleteVersionFromBranch()).bind(0, gav.getRawGroupIdWithNull())
+                .bind(1, gav.getRawArtifactId()).bind(2, branchId.getRawBranchId())
+                .bind(3, gav.getRawVersionId()).execute();
     }
 
     private void updateBranchModifiedTimeRaw(Handle handle, GA ga, BranchId branchId) {

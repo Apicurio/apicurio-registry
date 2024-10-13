@@ -3,7 +3,7 @@ package io.apicurio.registry.storage.impl.sql;
 public enum RegistryDatabaseKind {
 
     postgresql("org.postgresql.Driver"), h2("org.h2.Driver"), mssql(
-            "com.microsoft.sqlserver.jdbc.SQLServerDriver"), mysql("org.mariadb.jdbc.Driver");
+            "com.microsoft.sqlserver.jdbc.SQLServerDriver"), mysql("com.mysql.cj.jdbc.Driver");
 
     final String driverClassName;
 

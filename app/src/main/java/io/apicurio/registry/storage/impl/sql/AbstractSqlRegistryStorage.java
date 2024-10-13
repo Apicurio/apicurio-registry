@@ -3044,7 +3044,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     private long nextSequenceValueRaw(Handle handle, String sequenceName) {
         if (isH2()) {
             return sequenceCounters.get(sequenceName).incrementAndGet();
-        } else {
+        } else if (isMysql()) {
+            handle.createUpdate(sqlStatements.getNextSequenceValue()).bind(0, sequenceName)
+                    .execute();
+            return handle.createQuery(sqlStatements.selectCurrentSequenceValue())
+                    .bind(0, sequenceName).mapTo(Long.class).one();
+        }
+        else {
             return handle.createQuery(sqlStatements.getNextSequenceValue()).bind(0, sequenceName)
                     .mapTo(Long.class).one(); // TODO Handle non-existing sequence (see resetSequence)
         }
@@ -3540,5 +3546,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     private boolean isH2() {
         return sqlStatements.dbType().equals("h2");
+    }
+
+    private boolean isMysql() {
+        return sqlStatements.dbType().equals("mysql");
     }
 }

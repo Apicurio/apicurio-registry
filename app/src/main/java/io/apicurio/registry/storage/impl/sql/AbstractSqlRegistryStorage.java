@@ -3045,12 +3045,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         if (isH2()) {
             return sequenceCounters.get(sequenceName).incrementAndGet();
         } else if (isMysql()) {
-            handle.createUpdate(sqlStatements.getNextSequenceValue()).bind(0, sequenceName)
-                    .execute();
-            return handle.createQuery(sqlStatements.selectCurrentSequenceValue())
-                    .bind(0, sequenceName).mapTo(Long.class).one();
-        }
-        else {
+            handle.createUpdate(sqlStatements.getNextSequenceValue()).bind(0, sequenceName).execute();
+            return handle.createQuery(sqlStatements.selectCurrentSequenceValue()).bind(0, sequenceName)
+                    .mapTo(Long.class).one();
+        } else {
             return handle.createQuery(sqlStatements.getNextSequenceValue()).bind(0, sequenceName)
                     .mapTo(Long.class).one(); // TODO Handle non-existing sequence (see resetSequence)
         }

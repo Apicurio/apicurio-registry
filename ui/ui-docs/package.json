@@ -1,6 +1,6 @@
 {
   "name": "@apicurio/registry-ui-docs",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Apicurio Registry UI Docs",
   "repository": "https://github.com/Apicurio/apicurio-registry.git",
   "license": "Apache-2.0",
@@ -22,7 +22,7 @@
     "eslint-plugin-react-hooks": "4.6.2",
     "eslint-plugin-react-refresh": "0.4.12",
     "rimraf": "6.0.1",
-    "typescript": "5.6.2",
+    "typescript": "5.6.3",
     "vite": "5.4.8",
     "vite-tsconfig-paths": "5.0.1"
   },

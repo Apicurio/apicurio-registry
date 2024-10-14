@@ -189,6 +189,8 @@ public class ReadOnlyRegistryStorageTest {
                 entry("triggerSnapshotCreation0", new State(true, RegistryStorage::triggerSnapshotCreation)),
                 entry("createSnapshot1", new State(true, s -> s.createSnapshot(null))),
                 entry("upgradeData3", new State(true, s -> s.upgradeData(null, false, false))),
+                entry("createEvent1", new State(true, s -> s.createEvent(null))),
+                entry("supportsDatabaseEvents0", new State(true, s -> s.createEvent(null))),
                 entry("getContentByReference1", new State(true, s -> s.getContentByReference(null))));
 
         CURRENT_METHODS = Arrays.stream(RegistryStorage.class.getMethods())

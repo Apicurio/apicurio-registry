@@ -10,7 +10,7 @@ This section explains how to install and run {registry} with storage in a Postgr
 .Prerequisites
 
 * You must have Docker installed and the Docker daemon running.
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry-sql. 
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry. 
 * You must already have a PostgreSQL database server installed and running. For example: 
 +
 [source,bash]

@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator.resource.app;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.utils.ResourceUtils;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
@@ -8,13 +9,12 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.Mapper.toYAML;
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
+import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppIngressDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_INGRESS_KEY;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_KEY;
-import static io.apicurio.registry.operator.util.IngressUtil.getHost;
-import static io.apicurio.registry.operator.util.IngressUtil.withIngressRule;
+import static io.apicurio.registry.operator.utils.IngressUtils.getHost;
+import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 
 // spotless:off
 @KubernetesDependent(
@@ -32,14 +32,15 @@ public class AppIngressResource extends CRUDKubernetesDependentResource<Ingress,
 
     @Override
     protected Ingress desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+        try (var ru = new ResourceUtils<>(primary, context, APP_INGRESS_KEY)) {
 
-        var i = APP_INGRESS_KEY.getFactory().apply(primary);
+            ru.withExistingResource(APP_SERVICE_KEY, s -> {
+                ru.withDesiredResource(i -> {
+                    withIngressRule(s, i, rule -> rule.setHost(getHost(COMPONENT_APP, primary)));
+                });
+            });
 
-        var sOpt = context.getSecondaryResource(APP_SERVICE_KEY.getKlass(),
-                APP_SERVICE_KEY.getDiscriminator());
-        sOpt.ifPresent(s -> withIngressRule(s, i, rule -> rule.setHost(getHost(COMPONENT_APP, primary))));
-
-        log.debug("Desired {} is {}", APP_INGRESS_KEY.getId(), toYAML(i));
-        return i;
+            return ru.returnDesiredResource();
+        }
     }
 }

@@ -8,10 +8,10 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.Mapper.toYAML;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_KEY;
+import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
 // spotless:off
 @KubernetesDependent(

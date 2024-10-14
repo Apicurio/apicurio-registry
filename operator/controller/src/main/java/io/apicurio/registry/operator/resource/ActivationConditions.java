@@ -8,7 +8,7 @@ import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.DependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.workflow.Condition;
 
-import static io.apicurio.registry.operator.util.Util.isBlank;
+import static io.apicurio.registry.operator.utils.TraverseUtils.isBlank;
 
 public class ActivationConditions {
 

@@ -1,8 +1,8 @@
 package io.apicurio.registry.operator.resource.ui;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import io.apicurio.registry.operator.env.EnvCache;
+import io.apicurio.registry.operator.utils.ResourceUtils;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
@@ -10,13 +10,13 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-
-import static io.apicurio.registry.operator.Mapper.toYAML;
+import static io.apicurio.registry.operator.env.EnvCachePriority.OPERATOR;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
+import static io.apicurio.registry.operator.resource.ResourceFactory.UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
-import static io.apicurio.registry.operator.util.IngressUtil.withIngressRule;
+import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
+import static io.apicurio.registry.operator.utils.TraverseUtils.where;
 
 // spotless:off
 @KubernetesDependent(
@@ -34,29 +34,29 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
 
     @Override
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+        try (var ru = new ResourceUtils<>(primary, context, UI_DEPLOYMENT_KEY)) {
 
-        var d = UI_DEPLOYMENT_KEY.getFactory().apply(primary);
+            ru.withExistingResource(APP_SERVICE_KEY, appS -> {
+                ru.withExistingResource(APP_INGRESS_KEY, appI -> {
+                    withIngressRule(appS, appI, rule -> {
 
-        var uiEnv = new ArrayList<EnvVar>();
+                        var ec = new EnvCache();
+                        ec.addFromPrimary(primary.getSpec().getUi().getEnv());
 
-        var sOpt = context.getSecondaryResource(APP_SERVICE_KEY.getKlass(),
-                APP_SERVICE_KEY.getDiscriminator());
-        sOpt.ifPresent(s -> {
-            var iOpt = context.getSecondaryResource(APP_INGRESS_KEY.getKlass(),
-                    APP_INGRESS_KEY.getDiscriminator());
-            iOpt.ifPresent(i -> withIngressRule(s, i, rule -> {
-                // spotless:off
-                uiEnv.add(new EnvVarBuilder()
-                        .withName("REGISTRY_API_URL")
-                        .withValue("http://%s/apis/registry/v3".formatted(rule.getHost()))
-                        .build());
-                // spotless:on
-            }));
-        });
+                        ec.add("REGISTRY_API_URL", "http://%s/apis/registry/v3".formatted(rule.getHost()),
+                                OPERATOR);
 
-        d.getSpec().getTemplate().getSpec().getContainers().get(0).setEnv(uiEnv);
+                        ru.withDesiredResource(d -> {
+                            where(d.getSpec().getTemplate().getSpec().getContainers(),
+                                    c -> UI_CONTAINER_NAME.equals(c.getName()), c -> {
+                                        c.setEnv(ec.getEnv());
+                                    });
+                        });
+                    });
+                });
+            });
 
-        log.debug("Desired {} is {}", UI_DEPLOYMENT_KEY.getId(), toYAML(d));
-        return d;
+            return ru.returnDesiredResource();
+        }
     }
 }

@@ -22,7 +22,7 @@ concurrency:
 jobs:
   lint:
     name: Qodana
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: >
       github.repository_owner == 'Apicurio' && contains(github.event.*.labels.*.name, 'QODANA')
     permissions:

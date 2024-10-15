@@ -7,6 +7,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
@@ -30,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 
 public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBase {
 
@@ -94,12 +93,10 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         EditableArtifactMetaDataDto artifactMetaDataDto = EditableArtifactMetaDataDto.builder()
                 .name("Empty API").description("An example API design using OpenAPI.").build();
-        ArtifactVersionMetaDataDto dto = storage()
-                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, artifactMetaDataDto, null,
-                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
-                                .content(content).build(),
-                        versionMetaDataDto, Collections.emptyList(), false, false)
-                .getValue();
+        ArtifactVersionMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
+                artifactMetaDataDto, null, ContentWrapperDto.builder()
+                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                versionMetaDataDto, Collections.emptyList(), false, false).getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -151,11 +148,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testCreateArtifactWithMetaData() throws Exception {
         String artifactId = "testCreateArtifactWithMetaData-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder()
-                .name("NAME")
-                .description("DESCRIPTION")
-                .labels(Collections.singletonMap("KEY", "VALUE"))
-                .build();
+        EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name("NAME")
+                .description("DESCRIPTION").labels(Collections.singletonMap("KEY", "VALUE")).build();
 
         EditableArtifactMetaDataDto artifactMetaDataDto = new EditableArtifactMetaDataDto("NAME",
                 "DESCRIPTION", null, Collections.singletonMap("KEY", "VALUE"));
@@ -221,10 +215,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testCreateDuplicateArtifact() throws Exception {
         String artifactId = "testCreateDuplicateArtifact-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
 
         // Should throw error for duplicate artifact.
@@ -264,10 +260,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testCreateArtifactVersion() throws Exception {
         String artifactId = "testCreateArtifactVersion-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -297,10 +295,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testGetArtifactVersions() throws Exception {
         String artifactId = "testGetArtifactVersions";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -382,10 +382,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testCreateArtifactVersionWithMetaData() throws Exception {
         String artifactId = "testCreateArtifactVersionWithMetaData-2";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -396,11 +398,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(1, versions.size());
 
         ContentHandle contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
-        EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder()
-                .name("NAME")
-                .description("DESCRIPTION")
-                .labels(Collections.singletonMap("K", "V"))
-                .build();
+        EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name("NAME")
+                .description("DESCRIPTION").labels(Collections.singletonMap("K", "V")).build();
         ArtifactVersionMetaDataDto dtov2 = storage().createArtifactVersion(
                 GROUP_ID, artifactId, "2", ArtifactType.OPENAPI, ContentWrapperDto.builder()
                         .contentType(ContentTypes.APPLICATION_JSON).content(contentv2).build(),
@@ -430,12 +429,10 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
                 .description("An example API design using OpenAPI.").build();
-        ArtifactVersionMetaDataDto dto = storage()
-                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
-                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
-                                .content(content).build(),
-                        versionMetaDataDto, Collections.emptyList(), false, false)
-                .getValue();
+        ArtifactVersionMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
+                null, null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                        .content(content).build(),
+                versionMetaDataDto, Collections.emptyList(), false, false).getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -462,12 +459,10 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
                 .description("An example API design using OpenAPI.").build();
-        ArtifactVersionMetaDataDto dto = storage()
-                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
-                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
-                                .content(content).build(),
-                        versionMetaDataDto, Collections.emptyList(), false, false)
-                .getValue();
+        ArtifactVersionMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
+                null, null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                        .content(content).build(),
+                versionMetaDataDto, Collections.emptyList(), false, false).getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -495,10 +490,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testUpdateArtifactVersionState() throws Exception {
         String artifactId = "testUpdateArtifactVersionState-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
 
         ContentHandle contentv2 = ContentHandle.create(OPENAPI_CONTENT_V2);
@@ -529,12 +526,10 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
                 .description("An example API design using OpenAPI.").build();
-        ArtifactVersionMetaDataDto dto = storage()
-                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
-                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
-                                .content(content).build(),
-                        versionMetaDataDto, Collections.emptyList(), false, false)
-                .getValue();
+        ArtifactVersionMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
+                null, null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                        .content(content).build(),
+                versionMetaDataDto, Collections.emptyList(), false, false).getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -563,12 +558,10 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
                 .description("An example API design using OpenAPI.").build();
-        ArtifactVersionMetaDataDto dto = storage()
-                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
-                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
-                                .content(content).build(),
-                        versionMetaDataDto, Collections.emptyList(), false, false)
-                .getValue();
+        ArtifactVersionMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
+                null, null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                        .content(content).build(),
+                versionMetaDataDto, Collections.emptyList(), false, false).getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -601,10 +594,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ////////////////////////////
         String artifactId = "testDeleteArtifactVersion-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals("1", dto.getVersion());
 
@@ -625,10 +620,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         // Delete one of multiple versions
         artifactId = "testDeleteArtifactVersion-2";
         content = ContentHandle.create(OPENAPI_CONTENT);
-        dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals("1", dto.getVersion());
 
@@ -665,7 +662,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         updateVersionState(GROUP_ID, artifactId, "2", VersionState.DISABLED);
         storage().deleteArtifactVersion(GROUP_ID, artifactId, "3");
 
-        GAV latestGAV = storage().getBranchTip(new GA(GROUP_ID, artifactId), BranchId.LATEST, RetrievalBehavior.ALL_STATES);
+        GAV latestGAV = storage().getBranchTip(new GA(GROUP_ID, artifactId), BranchId.LATEST,
+                RetrievalBehavior.ALL_STATES);
         ArtifactVersionMetaDataDto artifactMetaData = storage().getArtifactVersionMetaData(GROUP_ID, aid2,
                 latestGAV.getRawVersionId());
         Assertions.assertNotNull(artifactMetaData);
@@ -675,10 +673,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         // Delete the latest version
         artifactId = "testDeleteArtifactVersion-3";
         content = ContentHandle.create(OPENAPI_CONTENT);
-        dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(contentv2).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(contentv2).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
 
         Assertions.assertNotNull(dto);
         Assertions.assertEquals("1", dto.getVersion());
@@ -726,10 +726,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testCreateArtifactRule() throws Exception {
         String artifactId = "testCreateArtifactRule-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -752,10 +754,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testUpdateArtifactRule() throws Exception {
         String artifactId = "testUpdateArtifactRule-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -779,10 +783,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testDeleteArtifactRule() throws Exception {
         String artifactId = "testDeleteArtifactRule-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -805,10 +811,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testDeleteAllArtifactRules() throws Exception {
         String artifactId = "testDeleteAllArtifactRulse-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -990,10 +998,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testSearchVersions() throws Exception {
         String artifactId = "testSearchVersions-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -1045,11 +1055,13 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                 .getValue();
         storage().createArtifactRule(group1, artifactId1, RuleType.VALIDITY,
                 RuleConfigurationDto.builder().configuration("FULL").build());
-        ArtifactVersionMetaDataDto artifactDto2 = storage().createArtifact(
-                group2, artifactId2, ArtifactType.OPENAPI,
-                EditableArtifactMetaDataDto.builder().name("test").build(), null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto artifactDto2 = storage()
+                .createArtifact(group2, artifactId2, ArtifactType.OPENAPI,
+                        EditableArtifactMetaDataDto.builder().name("test").build(), null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
 
         storage().createGlobalRule(RuleType.VALIDITY,
                 RuleConfigurationDto.builder().configuration("FULL").build());
@@ -1135,10 +1147,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testComments() {
         String artifactId = "testComments-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dto = storage().createArtifact(
-                GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -1176,10 +1190,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertThrows(ArtifactNotFoundException.class, () -> storage().getBranches(ga, 0, 100));
 
         var content = ContentHandle.create(OPENAPI_CONTENT);
-        ArtifactVersionMetaDataDto dtoV1 = storage().createArtifact(GROUP_ID, ga.getRawArtifactId(),
-                ArtifactType.OPENAPI, null, null, ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
-                null, Collections.emptyList(), false, false).getValue();
+        ArtifactVersionMetaDataDto dtoV1 = storage()
+                .createArtifact(GROUP_ID, ga.getRawArtifactId(), ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false)
+                .getValue();
 
         Assertions.assertNotNull(dtoV1);
         Assertions.assertEquals(ga.getRawGroupIdWithDefaultString(), dtoV1.getGroupId());
@@ -1228,14 +1244,14 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
          * var otherBranch = storage().getBranchTip(ga, otherBranchId, RetrievalBehavior.ALL_STATES);
          * Assertions.assertEquals(List.of(new GAV(ga, dtoV1.getVersion())), otherBranch);
          * 
-         * var gavV2 = storage().getBranchTip(ga, BranchId.LATEST, RetrievalBehavior.ALL_STATES); Assertions.assertNotNull(gavV2);
-         * Assertions.assertEquals(gavV2.getRawGroupIdWithDefaultString(), dtoV2.getGroupId());
-         * Assertions.assertEquals(gavV2.getRawArtifactId(), dtoV2.getArtifactId());
+         * var gavV2 = storage().getBranchTip(ga, BranchId.LATEST, RetrievalBehavior.ALL_STATES);
+         * Assertions.assertNotNull(gavV2); Assertions.assertEquals(gavV2.getRawGroupIdWithDefaultString(),
+         * dtoV2.getGroupId()); Assertions.assertEquals(gavV2.getRawArtifactId(), dtoV2.getArtifactId());
          * Assertions.assertEquals(gavV2.getRawVersionId(), dtoV2.getVersion());
          * 
-         * gavV1 = storage().getBranchTip(ga, otherBranchId, RetrievalBehavior.ALL_STATES); Assertions.assertNotNull(gavV1);
-         * Assertions.assertEquals(gavV1.getRawGroupIdWithDefaultString(), dtoV1.getGroupId());
-         * Assertions.assertEquals(gavV1.getRawArtifactId(), dtoV1.getArtifactId());
+         * gavV1 = storage().getBranchTip(ga, otherBranchId, RetrievalBehavior.ALL_STATES);
+         * Assertions.assertNotNull(gavV1); Assertions.assertEquals(gavV1.getRawGroupIdWithDefaultString(),
+         * dtoV1.getGroupId()); Assertions.assertEquals(gavV1.getRawArtifactId(), dtoV1.getArtifactId());
          * Assertions.assertEquals(gavV1.getRawVersionId(), dtoV1.getVersion());
          * 
          * storage().createBranch(gavV2, otherBranchId, "", Collections.emptyList());
@@ -1262,14 +1278,16 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
          * storage().deleteArtifactVersion(gavV1.getRawGroupIdWithDefaultString(), gavV1.getRawArtifactId(),
          * gavV1.getRawVersionId());
          * 
-         * Assertions.assertEquals(List.of(gavV2), storage().getBranchTip(ga, BranchId.LATEST, RetrievalBehavior.ALL_STATES));
-         * Assertions.assertEquals(List.of(gavV2), storage().getBranchTip(ga, otherBranchId, RetrievalBehavior.ALL_STATES));
+         * Assertions.assertEquals(List.of(gavV2), storage().getBranchTip(ga, BranchId.LATEST,
+         * RetrievalBehavior.ALL_STATES)); Assertions.assertEquals(List.of(gavV2), storage().getBranchTip(ga,
+         * otherBranchId, RetrievalBehavior.ALL_STATES));
          * 
          * storage().deleteBranch(ga, otherBranchId);
          * 
          * Assertions.assertThrows(BranchNotFoundException.class, () -> storage().getBranchTip(ga,
-         * otherBranchId, RetrievalBehavior.ALL_STATES)); Assertions.assertThrows(VersionNotFoundException.class, () ->
-         * storage().getBranchTip(ga, otherBranchId, RetrievalBehavior.ALL_STATES));
+         * otherBranchId, RetrievalBehavior.ALL_STATES));
+         * Assertions.assertThrows(VersionNotFoundException.class, () -> storage().getBranchTip(ga,
+         * otherBranchId, RetrievalBehavior.ALL_STATES));
          * 
          * Assertions.assertThrows(NotAllowedException.class, () -> storage().deleteBranch(ga,
          * BranchId.LATEST));

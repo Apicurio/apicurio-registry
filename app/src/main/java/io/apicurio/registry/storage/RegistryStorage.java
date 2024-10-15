@@ -24,6 +24,7 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -41,6 +42,7 @@ import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
@@ -56,7 +58,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -111,7 +112,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
     Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId, String artifactId,
             String artifactType, EditableArtifactMetaDataDto artifactMetaData, String version,
             ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches, boolean dryRun)
+            List<String> versionBranches, boolean versionIsDraft, boolean dryRun)
             throws ArtifactAlreadyExistsException, RegistryStorageException;
 
     /**
@@ -184,11 +185,12 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param content
      * @param metaData
      * @param branches
+     * @param isDraft
      * @param dryRun
      */
     ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches, boolean dryRun)
+            List<String> branches, boolean isDraft, boolean dryRun)
             throws ArtifactNotFoundException, VersionAlreadyExistsException, RegistryStorageException;
 
     /**
@@ -416,7 +418,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws ArtifactNotFoundException
      * @throws RegistryStorageException
      */
-    List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior)
+    List<String> getArtifactVersions(String groupId, String artifactId, Set<VersionState> filterBy)
             throws ArtifactNotFoundException, RegistryStorageException;
 
     /**
@@ -454,6 +456,23 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId, String version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Updates the content of a specific artifact version. This is only applicable for versions in the DRAFT
+     * status.
+     *
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param artifactType
+     * @param content
+     * @throws ArtifactNotFoundException
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void updateArtifactVersionContent(String groupId, String artifactId, String version, String artifactType,
+            ContentWrapperDto content)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 
     /**
@@ -771,11 +790,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     List<DynamicConfigPropertyDto> getStaleConfigProperties(Instant since);
 
-    /**
-     * @return The artifact references resolved as a map containing the reference name as key and the
-     *         referenced artifact content.
-     */
-    Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references);
+    ContentWrapperDto getContentByReference(ArtifactReferenceDto reference);
 
     /**
      * Quickly checks for the existence of a given artifact.
@@ -880,6 +895,28 @@ public interface RegistryStorage extends DynamicConfigStorage {
     List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version);
 
     /**
+     * Returns the current state of the artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @return
+     */
+    VersionState getArtifactVersionState(String groupId, String artifactId, String version);
+
+    /**
+     * Updates the state of the given artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param newState
+     * @param dryRun
+     */
+    void updateArtifactVersionState(String groupId, String artifactId, String version, VersionState newState,
+            boolean dryRun);
+
+    /**
      * Updates a single comment.
      *
      * @param groupId
@@ -944,7 +981,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     void deleteBranch(GA ga, BranchId branchId);
 
-    GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior);
+    GAV getBranchTip(GA ga, BranchId branchId, Set<VersionState> filterBy);
 
     VersionSearchResultsDto getBranchVersions(GA ga, BranchId branchId, int offset, int limit);
 
@@ -967,12 +1004,33 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     String createSnapshot(String snapshotLocation) throws RegistryStorageException;
 
-    enum RetrievalBehavior {
-        DEFAULT,
-        /**
-         * Skip artifact versions with DISABLED state
-         */
-        SKIP_DISABLED_LATEST
-    }
+    /**
+     * Creates a new event row in the outbox table.
+     *
+     * @throws RegistryStorageException
+     */
+    String createEvent(OutboxEvent event);
 
+    /**
+     * true if the underlying Registry storage supports emitting events to the database.
+     *
+     * @throws RegistryStorageException
+     */
+    boolean supportsDatabaseEvents();
+
+    /**
+     * Legacy code: we used to have an enum that drove how to retrieve versions. This has since been converted
+     * to a filtered set of states. For now, this class replicates the names of the old enum values, aiding in
+     * converting existing code with fewer changes.
+     */
+    class RetrievalBehavior {
+        public static final Set<VersionState> SKIP_DISABLED_LATEST = Set.of(VersionState.ENABLED,
+                VersionState.DEPRECATED, VersionState.DRAFT);
+        public static final Set<VersionState> ALL_STATES = Set.of(); // Note: empty set means just include
+                                                                     // everything (no filtering)
+        public static final Set<VersionState> ACTIVE_STATES = Set.of(VersionState.ENABLED,
+                VersionState.DEPRECATED);
+        public static final Set<VersionState> NON_DRAFT_STATES = Set.of(VersionState.ENABLED,
+                VersionState.DEPRECATED, VersionState.DISABLED);
+    }
 }

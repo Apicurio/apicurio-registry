@@ -34,26 +34,31 @@ func NewProblemDetails() *ProblemDetails {
 }
 
 // CreateProblemDetailsFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateProblemDetailsFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewProblemDetails(), nil
 }
 
 // Error the primary error message.
+// returns a string when successful
 func (m *ProblemDetails) Error() string {
 	return m.ApiError.Error()
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *ProblemDetails) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetDetail gets the detail property value. A human-readable explanation specific to this occurrence of the problem.
+// returns a *string when successful
 func (m *ProblemDetails) GetDetail() *string {
 	return m.detail
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *ProblemDetails) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["detail"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -120,26 +125,31 @@ func (m *ProblemDetails) GetFieldDeserializers() map[string]func(i878a80d2330e89
 }
 
 // GetInstance gets the instance property value. A URI reference that identifies the specific occurrence of the problem.
+// returns a *string when successful
 func (m *ProblemDetails) GetInstance() *string {
 	return m.instance
 }
 
 // GetName gets the name property value. The name of the error (typically a server exception class name).
+// returns a *string when successful
 func (m *ProblemDetails) GetName() *string {
 	return m.name
 }
 
 // GetStatus gets the status property value. The HTTP status code.
+// returns a *int32 when successful
 func (m *ProblemDetails) GetStatus() *int32 {
 	return m.status
 }
 
 // GetTitle gets the title property value. A short, human-readable summary of the problem type.
+// returns a *string when successful
 func (m *ProblemDetails) GetTitle() *string {
 	return m.title
 }
 
 // GetTypeEscaped gets the type property value. A URI reference [RFC3986] that identifies the problem type.
+// returns a *string when successful
 func (m *ProblemDetails) GetTypeEscaped() *string {
 	return m.typeEscaped
 }
@@ -226,7 +236,6 @@ func (m *ProblemDetails) SetTypeEscaped(value *string) {
 	m.typeEscaped = value
 }
 
-// ProblemDetailsable
 type ProblemDetailsable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

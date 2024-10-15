@@ -19,7 +19,7 @@ type ContentHashesWithContentHashItemRequestBuilderGetRequestConfiguration struc
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
 }
 
-// NewContentHashesWithContentHashItemRequestBuilderInternal instantiates a new WithContentHashItemRequestBuilder and sets the default values.
+// NewContentHashesWithContentHashItemRequestBuilderInternal instantiates a new ContentHashesWithContentHashItemRequestBuilder and sets the default values.
 func NewContentHashesWithContentHashItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ContentHashesWithContentHashItemRequestBuilder {
 	m := &ContentHashesWithContentHashItemRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/ids/contentHashes/{contentHash}", pathParameters),
@@ -27,7 +27,7 @@ func NewContentHashesWithContentHashItemRequestBuilderInternal(pathParameters ma
 	return m
 }
 
-// NewContentHashesWithContentHashItemRequestBuilder instantiates a new WithContentHashItemRequestBuilder and sets the default values.
+// NewContentHashesWithContentHashItemRequestBuilder instantiates a new ContentHashesWithContentHashItemRequestBuilder and sets the default values.
 func NewContentHashesWithContentHashItemRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ContentHashesWithContentHashItemRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -35,6 +35,9 @@ func NewContentHashesWithContentHashItemRequestBuilder(rawUrl string, requestAda
 }
 
 // Get gets the content for an artifact version in the registry using the SHA-256 hash of the content.  This content hash may be shared by multiple artifactversions in the case where the artifact versions have identical content.This operation may fail for one of the following reasons:* No content with this `contentHash` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a []byte when successful
+// returns a Error error when the service returns a 404 status code
+// returns a Error error when the service returns a 500 status code
 func (m *ContentHashesWithContentHashItemRequestBuilder) Get(ctx context.Context, requestConfiguration *ContentHashesWithContentHashItemRequestBuilderGetRequestConfiguration) ([]byte, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -55,11 +58,13 @@ func (m *ContentHashesWithContentHashItemRequestBuilder) Get(ctx context.Context
 }
 
 // References the references property
+// returns a *ContentHashesItemReferencesRequestBuilder when successful
 func (m *ContentHashesWithContentHashItemRequestBuilder) References() *ContentHashesItemReferencesRequestBuilder {
 	return NewContentHashesItemReferencesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // ToGetRequestInformation gets the content for an artifact version in the registry using the SHA-256 hash of the content.  This content hash may be shared by multiple artifactversions in the case where the artifact versions have identical content.This operation may fail for one of the following reasons:* No content with this `contentHash` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ContentHashesWithContentHashItemRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ContentHashesWithContentHashItemRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -71,6 +76,7 @@ func (m *ContentHashesWithContentHashItemRequestBuilder) ToGetRequestInformation
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ContentHashesWithContentHashItemRequestBuilder when successful
 func (m *ContentHashesWithContentHashItemRequestBuilder) WithUrl(rawUrl string) *ContentHashesWithContentHashItemRequestBuilder {
 	return NewContentHashesWithContentHashItemRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

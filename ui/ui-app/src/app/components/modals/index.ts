@@ -9,3 +9,4 @@ export * from "./EditCommentModal";
 export * from "./EditMetaDataModal";
 export * from "./InvalidContentModal";
 export * from "./LabelsFormGroup";
+export * from "./GenerateClientModal";

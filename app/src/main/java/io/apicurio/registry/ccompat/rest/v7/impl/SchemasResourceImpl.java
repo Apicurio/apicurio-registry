@@ -15,6 +15,7 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.util.ArtifactTypeUtil;
@@ -47,8 +48,10 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             references = contentWrapper.getReferences();
         }
         TypedContent typedContent = TypedContent.create(contentHandle, contentType);
-        return converter.convert(contentHandle, ArtifactTypeUtil.determineArtifactType(typedContent, null,
-                storage.resolveReferences(references), factory), references);
+        return converter.convert(contentHandle,
+                ArtifactTypeUtil.determineArtifactType(typedContent, null, RegistryContentUtils
+                        .recursivelyResolveReferences(references, storage::getContentByReference), factory),
+                references);
     }
 
     @Override

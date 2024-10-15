@@ -20,11 +20,7 @@ import jakarta.enterprise.inject.spi.CDI;
 import jakarta.enterprise.util.TypeLiteral;
 import org.awaitility.Awaitility;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.*;
 
 import java.io.FileInputStream;
 import java.time.Duration;
@@ -36,6 +32,8 @@ public class ITBase {
 
     public static final String DEPLOYMENT_TARGET = "test.operator.deployment-target";
     public static final String OPERATOR_DEPLOYMENT_PROP = "test.operator.deployment";
+    public static final String INGRESS_HOST_PROP = "test.operator.ingress-host";
+    public static final String INGRESS_SKIP_PROP = "test.operator.ingress-skip";
     public static final String CLEANUP = "test.operator.cleanup";
     public static final String GENERATED_RESOURCES_FOLDER = "target/kubernetes/";
     public static final String CRD_FILE = "../model/target/classes/META-INF/fabric8/apicurioregistries3.registry.apicur.io-v1.yml";
@@ -48,6 +46,8 @@ public class ITBase {
     protected static Instance<Reconciler<? extends HasMetadata>> reconcilers;
     protected static QuarkusConfigurationService configuration;
     protected static KubernetesClient client;
+    protected static PortForwardManager portForwardManager;
+    protected static IngressManager ingressManager;
     protected static String deploymentTarget;
     protected static String namespace;
     protected static boolean cleanup;
@@ -70,6 +70,9 @@ public class ITBase {
         createK8sClient();
         createCRDs();
         createNamespace();
+
+        portForwardManager = new PortForwardManager(client, namespace);
+        ingressManager = new IngressManager(client, namespace);
 
         if (operatorDeployment == OperatorDeployment.remote) {
             createGeneratedResources();
@@ -103,9 +106,16 @@ public class ITBase {
             resources.getItems().stream().forEach(r -> {
                 if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
                     var crb = (ClusterRoleBinding) r;
-                    crb.getSubjects().stream().forEach(s -> s.setNamespace(getNamespace()));
+                    crb.getSubjects().stream().forEach(s -> s.setNamespace(namespace));
+                    // TODO: We need to patch the generated resources, because the referenced ClusterRole name
+                    // is
+                    // wrong.
+                    if ("apicurioregistry3reconciler-cluster-role-binding"
+                            .equals(crb.getMetadata().getName())) {
+                        crb.getRoleRef().setName("apicurioregistry3reconciler-cluster-role");
+                    }
                 }
-                client.resource(r).inNamespace(getNamespace()).createOrReplace();
+                client.resource(r).inNamespace(namespace).createOrReplace();
             });
         }
     }
@@ -119,9 +129,9 @@ public class ITBase {
                 resources.getItems().stream().forEach(r -> {
                     if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
                         var crb = (ClusterRoleBinding) r;
-                        crb.getSubjects().stream().forEach(s -> s.setNamespace(getNamespace()));
+                        crb.getSubjects().stream().forEach(s -> s.setNamespace(namespace));
                     }
-                    client.resource(r).inNamespace(getNamespace()).delete();
+                    client.resource(r).inNamespace(namespace).delete();
                 });
             }
         }
@@ -166,8 +176,8 @@ public class ITBase {
     }
 
     private static void setDefaultAwaitilityTimings() {
-        Awaitility.setDefaultPollInterval(Duration.ofSeconds(1));
-        Awaitility.setDefaultTimeout(Duration.ofSeconds(360));
+        Awaitility.setDefaultPollInterval(Duration.ofSeconds(5));
+        Awaitility.setDefaultTimeout(Duration.ofSeconds(5 * 60));
     }
 
     @AfterEach
@@ -185,7 +195,7 @@ public class ITBase {
 
     @AfterAll
     public static void after() throws Exception {
-
+        portForwardManager.stop();
         if (operatorDeployment == OperatorDeployment.local) {
             Log.info("Stopping Operator");
             operator.stop();
@@ -202,9 +212,5 @@ public class ITBase {
             assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
         }
         client.close();
-    }
-
-    public static String getNamespace() {
-        return namespace;
     }
 }

@@ -1,0 +1,22 @@
+package io.apicurio.registry.event.sql;
+
+import io.apicurio.registry.utils.tests.DebeziumContainerResource;
+import io.quarkus.test.junit.QuarkusTestProfile;
+
+import java.util.List;
+import java.util.Map;
+
+public class EventsTestProfile implements QuarkusTestProfile {
+
+    @Override
+    public Map<String, String> getConfigOverrides() {
+        return Map.of("apicurio.storage.sql.kind", "postgresql", "apicurio.rest.deletion.artifact.enabled",
+                "true", "apicurio.rest.deletion.artifact-version.enabled", "true",
+                "apicurio.rest.deletion.group.enabled", "true");
+    }
+
+    @Override
+    public List<TestResourceEntry> testResources() {
+        return List.of(new TestResourceEntry(DebeziumContainerResource.class));
+    }
+}

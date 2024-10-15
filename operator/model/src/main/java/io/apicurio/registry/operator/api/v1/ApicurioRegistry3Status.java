@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
-import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.operator.api.v1.status.Conditions;
 import io.apicurio.registry.operator.api.v1.status.Info;
@@ -20,7 +20,7 @@ import java.util.List;
 
 @JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({ "conditions", "info" })
-@JsonDeserialize(using = JsonDeserializer.None.class)
+@JsonDeserialize(using = None.class)
 @Getter
 @Setter
 @ToString

@@ -1,9 +1,5 @@
 package models
 
-import (
-	"errors"
-)
-
 type VersionSortBy int
 
 const (
@@ -31,7 +27,7 @@ func ParseVersionSortBy(v string) (any, error) {
 	case "globalId":
 		result = GLOBALID_VERSIONSORTBY
 	default:
-		return 0, errors.New("Unknown VersionSortBy value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

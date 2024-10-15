@@ -14,7 +14,7 @@ type ItemArtifactsItemVersionsItemReferencesRequestBuilder struct {
 // ItemArtifactsItemVersionsItemReferencesRequestBuilderGetQueryParameters retrieves all references for a single version of an artifact.  Both the `artifactId` and theunique `version` number must be provided.  Using the `refType` query parameter, it is possibleto retrieve an array of either the inbound or outbound references.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 type ItemArtifactsItemVersionsItemReferencesRequestBuilderGetQueryParameters struct {
 	// Determines the type of reference to return, either INBOUND or OUTBOUND.  Defaults to OUTBOUND.
-	// Deprecated: This property is deprecated, use refTypeAsReferenceType instead
+	// Deprecated: This property is deprecated, use RefTypeAsReferenceType instead
 	RefType *string `uriparametername:"refType"`
 	// Determines the type of reference to return, either INBOUND or OUTBOUND.  Defaults to OUTBOUND.
 	RefTypeAsReferenceType *i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ReferenceType `uriparametername:"refType"`
@@ -30,7 +30,7 @@ type ItemArtifactsItemVersionsItemReferencesRequestBuilderGetRequestConfiguratio
 	QueryParameters *ItemArtifactsItemVersionsItemReferencesRequestBuilderGetQueryParameters
 }
 
-// NewItemArtifactsItemVersionsItemReferencesRequestBuilderInternal instantiates a new ReferencesRequestBuilder and sets the default values.
+// NewItemArtifactsItemVersionsItemReferencesRequestBuilderInternal instantiates a new ItemArtifactsItemVersionsItemReferencesRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsItemReferencesRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsItemReferencesRequestBuilder {
 	m := &ItemArtifactsItemVersionsItemReferencesRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references{?refType*}", pathParameters),
@@ -38,7 +38,7 @@ func NewItemArtifactsItemVersionsItemReferencesRequestBuilderInternal(pathParame
 	return m
 }
 
-// NewItemArtifactsItemVersionsItemReferencesRequestBuilder instantiates a new ReferencesRequestBuilder and sets the default values.
+// NewItemArtifactsItemVersionsItemReferencesRequestBuilder instantiates a new ItemArtifactsItemVersionsItemReferencesRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsItemReferencesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsItemReferencesRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -46,6 +46,9 @@ func NewItemArtifactsItemVersionsItemReferencesRequestBuilder(rawUrl string, req
 }
 
 // Get retrieves all references for a single version of an artifact.  Both the `artifactId` and theunique `version` number must be provided.  Using the `refType` query parameter, it is possibleto retrieve an array of either the inbound or outbound references.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a []ArtifactReferenceable when successful
+// returns a Error error when the service returns a 404 status code
+// returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemVersionsItemReferencesRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsItemReferencesRequestBuilderGetRequestConfiguration) ([]i80228d093fd3b582ec81b86f113cc707692a60cdd08bae7a390086a8438c7543.ArtifactReferenceable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -69,6 +72,7 @@ func (m *ItemArtifactsItemVersionsItemReferencesRequestBuilder) Get(ctx context.
 }
 
 // ToGetRequestInformation retrieves all references for a single version of an artifact.  Both the `artifactId` and theunique `version` number must be provided.  Using the `refType` query parameter, it is possibleto retrieve an array of either the inbound or outbound references.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemArtifactsItemVersionsItemReferencesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsItemReferencesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -83,6 +87,7 @@ func (m *ItemArtifactsItemVersionsItemReferencesRequestBuilder) ToGetRequestInfo
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ItemArtifactsItemVersionsItemReferencesRequestBuilder when successful
 func (m *ItemArtifactsItemVersionsItemReferencesRequestBuilder) WithUrl(rawUrl string) *ItemArtifactsItemVersionsItemReferencesRequestBuilder {
 	return NewItemArtifactsItemVersionsItemReferencesRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

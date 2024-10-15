@@ -117,16 +117,22 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     @Override
-    public String selectBranchTipNotDisabled() {
+    public String selectBranchTipFilteredByState() {
         return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab "
                 + "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version "
-                + "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' "
+                + "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state IN (?) "
                 + "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
     }
 
     @Override
     public String deleteAllOrphanedContent() {
         return "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId )";
+    }
+
+    @Override
+    public String selectArtifactVersionStateForUpdate() {
+        return "SELECT v.state FROM versions v WITH (UPDLOCK, ROWLOCK)"
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
 
     @Override

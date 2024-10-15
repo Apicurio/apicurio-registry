@@ -9,11 +9,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.operator.Mapper.toYAML;
+import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_KEY;
 
-@KubernetesDependent(labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component="
-        + COMPONENT_APP, resourceDiscriminator = AppServiceDiscriminator.class)
+// spotless:off
+@KubernetesDependent(
+        labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_APP,
+        resourceDiscriminator = AppServiceDiscriminator.class
+)
+// spotless:on
 public class AppServiceResource extends CRUDKubernetesDependentResource<Service, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(AppServiceResource.class);

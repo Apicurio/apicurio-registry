@@ -23,6 +23,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.vertx.core.Vertx;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -88,6 +89,16 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.groups().byGroupId(groupId).artifacts().get();
         });
         assertTrue(exception.getMessage().contains("Unauthorized"));
+    }
+
+    @Test
+    public void testNoCreds() throws Exception {
+        var adapter = new VertXRequestAdapter(Vertx.vertx());
+        adapter.setBaseUrl(registryV3ApiUrl);
+        RegistryClient client = new RegistryClient(adapter);
+        Assertions.assertThrows(Exception.class, () -> {
+            client.groups().byGroupId(groupId).artifacts().get();
+        });
     }
 
     @Test

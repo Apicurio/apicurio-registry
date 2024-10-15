@@ -47,7 +47,7 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
 
     @Override
     public T deserialize(String topic, Headers headers, byte[] data) {
-        if (headers != null
+        if (serdeHeaders != null && headers != null
                 && ((JsonSchemaDeserializer<T>) delegatedDeserializer).getSpecificReturnClass() == null) {
             String javaType = serdeHeaders.getMessageType(headers);
             ((JsonSchemaDeserializer<T>) delegatedDeserializer)

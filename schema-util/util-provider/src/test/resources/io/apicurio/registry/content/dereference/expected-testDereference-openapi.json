@@ -1,0 +1,231 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "Widget API (with refs)",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/widgets": {
+            "summary": "Path used to manage the list of widgets.",
+            "description": "The REST endpoint/path used to list and create zero or more `Widget` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.",
+            "get": {
+                "summary": "List All Widgets",
+                "description": "Gets a list of all `Widget` entities.",
+                "operationId": "getWidgets",
+                "responses": {
+                    "200": {
+                        "description": "Successful response - returns an array of `Widget` entities.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Widget"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a Widget",
+                "description": "Creates a new instance of a `Widget`.",
+                "operationId": "createWidget",
+                "requestBody": {
+                    "description": "A new `Widget` to be created.",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Widget"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful response."
+                    }
+                }
+            }
+        },
+        "/widgets/{widgetId}": {
+            "summary": "Path used to manage a single Widget.",
+            "description": "The REST endpoint/path used to get, update, and delete single instances of an `Widget`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.",
+            "get": {
+                "summary": "Get a Widget",
+                "description": "Gets the details of a single instance of a `Widget`.",
+                "operationId": "getWidget",
+                "responses": {
+                    "200": {
+                        "description": "Successful response - returns a single `Widget`.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Widget"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update a Widget",
+                "description": "Updates an existing `Widget`.",
+                "operationId": "updateWidget",
+                "requestBody": {
+                    "description": "Updated `Widget` information.",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Widget"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "202": {
+                        "description": "Successful response."
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a Widget",
+                "description": "Deletes an existing `Widget`.",
+                "operationId": "deleteWidget",
+                "responses": {
+                    "204": {
+                        "description": "Successful response."
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "widgetId",
+                    "in": "path",
+                    "description": "A unique identifier for a `Widget`.",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ]
+        }
+    },
+    "components": {
+        "schemas": {
+            "Widget": {
+                "title": "Root Type for Widget",
+                "description": "",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "foo": {
+                        "$ref": "#/components/schemas/Foo"
+                    }
+                },
+                "example": {
+                    "name": "...",
+                    "description": "...",
+                    "foo": {
+                        "prop-1": "",
+                        "prop-2": ""
+                    }
+                }
+            },
+            "Foo": {
+                "description": "",
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "address": {
+                        "title": "Root Type for Address",
+                        "description": "",
+                        "type": "object",
+                        "properties": {
+                            "address1": {
+                                "type": "string"
+                            },
+                            "city": {
+                                "type": "string"
+                            },
+                            "state": {
+                                "type": "string"
+                            },
+                            "zip": {
+                                "type": "string"
+                            }
+                        },
+                        "example": {
+                            "address1": "225 West South St",
+                            "city": "Springfield",
+                            "state": "Massiginia",
+                            "zip": "11556"
+                        }
+                    }
+                }
+            },
+            "Bar": {
+                "description": "",
+                "required": [
+                    "name",
+                    "description"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "description": "",
+                        "type": "string"
+                    },
+                    "address": {
+                        "title": "Root Type for Address",
+                        "description": "",
+                        "type": "object",
+                        "properties": {
+                            "address1": {
+                                "type": "string"
+                            },
+                            "city": {
+                                "type": "string"
+                            },
+                            "state": {
+                                "type": "string"
+                            },
+                            "zip": {
+                                "type": "string"
+                            }
+                        },
+                        "example": {
+                            "address1": "225 West South St",
+                            "city": "Springfield",
+                            "state": "Massiginia",
+                            "zip": "11556"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -72,7 +72,7 @@ public class RegistryStorageContentUtils {
             Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver) {
         try {
             if (notEmpty(references)) {
-                String referencesSerialized = SqlUtil.serializeReferences(references);
+                String referencesSerialized = RegistryContentUtils.serializeReferences(references);
                 TypedContent canonicalContent = canonicalizeContent(artifactType, content,
                         referenceResolver.apply(references));
                 return DigestUtils.sha256Hex(concatContentAndReferences(canonicalContent.getContent().bytes(),
@@ -92,7 +92,7 @@ public class RegistryStorageContentUtils {
     public String getContentHash(TypedContent content, List<ArtifactReferenceDto> references) {
         try {
             if (notEmpty(references)) {
-                String referencesSerialized = SqlUtil.serializeReferences(references);
+                String referencesSerialized = RegistryContentUtils.serializeReferences(references);
                 return DigestUtils.sha256Hex(
                         concatContentAndReferences(content.getContent().bytes(), referencesSerialized));
             } else {

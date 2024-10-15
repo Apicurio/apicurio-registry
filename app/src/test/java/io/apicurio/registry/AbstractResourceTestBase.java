@@ -7,7 +7,10 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.GroupMetaData;
+import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.v3.V3ApiUtil;
@@ -114,6 +117,25 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType,
             String content, String contentType) throws Exception {
         return createArtifact(groupId, artifactId, artifactType, content, contentType, null);
+    }
+
+    protected GroupMetaData createGroup(String groupId, String description, Labels labels,
+            Consumer<CreateGroup> requestCustomizer) throws Exception {
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        createGroup.setDescription(description);
+        createGroup.setLabels(labels);
+
+        if (requestCustomizer != null) {
+            requestCustomizer.accept(createGroup);
+        }
+
+        var result = clientV3.groups().post(createGroup);
+
+        assert (result.getGroupId().equals(groupId));
+        assert (result.getDescription().equals(description));
+
+        return result;
     }
 
     protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType,
@@ -233,6 +255,32 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
     }
 
+    protected void updateArtifactRule(String groupId, String artifactId, RuleType ruleType,
+            String ruleConfig) {
+        var updateRule = new io.apicurio.registry.rest.client.models.Rule();
+        updateRule.setConfig(ruleConfig);
+        updateRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
+
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
+                .byRuleType(ruleType.value()).put(updateRule);
+    }
+
+    protected void createGroupRule(String groupId, RuleType ruleType, String ruleConfig) {
+        var createRule = new io.apicurio.registry.rest.client.models.CreateRule();
+        createRule.setConfig(ruleConfig);
+        createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
+
+        clientV3.groups().byGroupId(groupId).rules().post(createRule);
+    }
+
+    protected void updateGroupRule(String groupId, RuleType ruleType, String ruleConfig) {
+        var updateRule = new io.apicurio.registry.rest.client.models.Rule();
+        updateRule.setConfig(ruleConfig);
+        updateRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
+
+        clientV3.groups().byGroupId(groupId).rules().byRuleType(ruleType.value()).put(updateRule);
+    }
+
     protected io.apicurio.registry.rest.client.models.Rule createGlobalRule(RuleType ruleType,
             String ruleConfig) {
         var createRule = new io.apicurio.registry.rest.client.models.CreateRule();
@@ -240,6 +288,17 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
 
         clientV3.admin().rules().post(createRule);
+        // TODO: verify this get
+        return clientV3.admin().rules().byRuleType(ruleType.value()).get();
+    }
+
+    protected io.apicurio.registry.rest.client.models.Rule updateGlobalRule(RuleType ruleType,
+            String ruleConfig) {
+        var createRule = new io.apicurio.registry.rest.client.models.Rule();
+        createRule.setConfig(ruleConfig);
+        createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType.value()));
+
+        clientV3.admin().rules().byRuleType(ruleType.value()).put(createRule);
         // TODO: verify this get
         return clientV3.admin().rules().byRuleType(ruleType.value()).get();
     }

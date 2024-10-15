@@ -1,9 +1,5 @@
 package artifacts
 
-import (
-	"errors"
-)
-
 // Search for artifacts in the registry.
 type PostOrderbyQueryParameterType int
 
@@ -23,7 +19,7 @@ func ParsePostOrderbyQueryParameterType(v string) (any, error) {
 	case "createdOn":
 		result = CREATEDON_POSTORDERBYQUERYPARAMETERTYPE
 	default:
-		return 0, errors.New("Unknown PostOrderbyQueryParameterType value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

@@ -60,11 +60,12 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches, boolean dryRun) throws RegistryStorageException {
+            List<String> versionBranches, boolean versionIsDraft, boolean dryRun)
+            throws RegistryStorageException {
         Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> rval = withLimitsCheck(
                 () -> limitsService.canCreateArtifact(artifactMetaData, versionContent, versionMetaData))
                 .execute(() -> super.createArtifact(groupId, artifactId, artifactType, artifactMetaData,
-                        version, versionContent, versionMetaData, versionBranches, dryRun));
+                        version, versionContent, versionMetaData, versionBranches, versionIsDraft, dryRun));
         limitsService.artifactCreated();
         return rval;
     }
@@ -72,11 +73,11 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches, boolean dryRun) throws RegistryStorageException {
+            List<String> branches, boolean isDraft, boolean dryRun) throws RegistryStorageException {
         ArtifactVersionMetaDataDto dto = withLimitsCheck(
                 () -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content.getContent()))
                 .execute(() -> super.createArtifactVersion(groupId, artifactId, version, artifactType,
-                        content, metaData, branches, dryRun));
+                        content, metaData, branches, isDraft, dryRun));
         limitsService.artifactVersionCreated(groupId, artifactId);
         return dto;
     }

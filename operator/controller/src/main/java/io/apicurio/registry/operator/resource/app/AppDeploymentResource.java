@@ -13,11 +13,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.apicurio.registry.operator.Mapper.toYAML;
+import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
 
-@KubernetesDependent(labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component="
-        + COMPONENT_APP, resourceDiscriminator = AppDeploymentDiscriminator.class)
+// spotless:off
+@KubernetesDependent(
+        labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_APP,
+        resourceDiscriminator = AppDeploymentDiscriminator.class
+)
+// spotless:on
 public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(AppDeploymentResource.class);
@@ -47,7 +52,6 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         d.getSpec().getTemplate().getSpec().getContainers().get(0).setEnv(appEnv);
 
         log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(d));
-
         return d;
     }
 }

@@ -79,4 +79,10 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     public ReferenceFinder getReferenceFinder() {
         return new ProtobufReferenceFinder();
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() {
+        return false;
+    }
+
 }

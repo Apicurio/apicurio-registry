@@ -33,3 +33,5 @@ update:
 	poetry add microsoft-kiota-http@latest
 	poetry add microsoft-kiota-serialization-json@latest
 	poetry add microsoft-kiota-serialization-text@latest
+	poetry add microsoft-kiota-serialization-form@latest
+	poetry add microsoft-kiota-serialization-multipart@latest

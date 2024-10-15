@@ -13,6 +13,8 @@ public interface KafkaSqlConfiguration {
 
     String snapshotLocation();
 
+    String eventsTopic();
+
     Properties topicProperties();
 
     boolean isTopicAutoCreate();

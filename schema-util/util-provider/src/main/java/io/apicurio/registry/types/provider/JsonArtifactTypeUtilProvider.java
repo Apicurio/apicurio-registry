@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
-import io.apicurio.registry.content.dereference.AsyncApiDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.dereference.JsonSchemaDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.JsonContentExtractor;
 import io.apicurio.registry.content.refs.JsonSchemaReferenceFinder;
@@ -66,11 +66,17 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
 
     @Override
     public ContentDereferencer getContentDereferencer() {
-        return new AsyncApiDereferencer();
+        return new JsonSchemaDereferencer();
     }
 
     @Override
     public ReferenceFinder getReferenceFinder() {
         return new JsonSchemaReferenceFinder();
     }
+
+    @Override
+    public boolean supportsReferencesWithContext() {
+        return true;
+    }
+
 }

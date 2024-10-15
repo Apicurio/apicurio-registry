@@ -8,12 +8,12 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.rest.v2.beans.ArtifactContent;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -52,10 +52,10 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    private static final EditableVersionMetaData toEditableVersionMetaData(VersionState state) {
-        EditableVersionMetaData evmd = new EditableVersionMetaData();
-        evmd.setState(state);
-        return evmd;
+    private static WrappedVersionState toWrappedVersionState(VersionState state) {
+        WrappedVersionState wvs = new WrappedVersionState();
+        wvs.setState(state);
+        return wvs;
     }
 
     @Test
@@ -298,8 +298,8 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         // Disable v3
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
-                .byVersionExpression(String.valueOf(v3MD.getVersion()))
-                .put(toEditableVersionMetaData(VersionState.DISABLED));
+                .byVersionExpression(String.valueOf(v3MD.getVersion())).state()
+                .put(toWrappedVersionState(VersionState.DISABLED));
 
         // Verify artifact
         retryOp((rc) -> {
@@ -323,8 +323,8 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         // Re-enable v3
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
-                .byVersionExpression(String.valueOf(v3MD.getVersion()))
-                .put(toEditableVersionMetaData(VersionState.ENABLED));
+                .byVersionExpression(String.valueOf(v3MD.getVersion())).state()
+                .put(toWrappedVersionState(VersionState.ENABLED));
 
         retryOp((rc) -> {
             // Verify artifact (now v3)
@@ -370,8 +370,8 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         // Deprecate v2
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
-                .byVersionExpression(String.valueOf(v2MD.getVersion()))
-                .put(toEditableVersionMetaData(VersionState.DEPRECATED));
+                .byVersionExpression(String.valueOf(v2MD.getVersion())).state()
+                .put(toWrappedVersionState(VersionState.DEPRECATED));
 
         retryOp((rc) -> {
             // Verify v1

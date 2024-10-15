@@ -29,7 +29,7 @@ public class Info implements KubernetesResource {
      * Apicurio Registry UI URL
      */
     @JsonProperty("uiHost")
-    @JsonPropertyDescription("Apicurio Registry UI URL")
+    @JsonPropertyDescription("Apicurio Registry UI base URL")
     @JsonSetter(nulls = Nulls.SKIP)
     private String uiHost;
 }

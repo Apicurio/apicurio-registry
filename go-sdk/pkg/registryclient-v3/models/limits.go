@@ -42,16 +42,19 @@ func NewLimits() *Limits {
 }
 
 // CreateLimitsFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateLimitsFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewLimits(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *Limits) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *Limits) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["maxArtifactDescriptionLengthChars"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -178,61 +181,73 @@ func (m *Limits) GetFieldDeserializers() map[string]func(i878a80d2330e89d2689638
 }
 
 // GetMaxArtifactDescriptionLengthChars gets the maxArtifactDescriptionLengthChars property value. The maxArtifactDescriptionLengthChars property
+// returns a *int64 when successful
 func (m *Limits) GetMaxArtifactDescriptionLengthChars() *int64 {
 	return m.maxArtifactDescriptionLengthChars
 }
 
 // GetMaxArtifactLabelsCount gets the maxArtifactLabelsCount property value. The maxArtifactLabelsCount property
+// returns a *int64 when successful
 func (m *Limits) GetMaxArtifactLabelsCount() *int64 {
 	return m.maxArtifactLabelsCount
 }
 
 // GetMaxArtifactNameLengthChars gets the maxArtifactNameLengthChars property value. The maxArtifactNameLengthChars property
+// returns a *int64 when successful
 func (m *Limits) GetMaxArtifactNameLengthChars() *int64 {
 	return m.maxArtifactNameLengthChars
 }
 
 // GetMaxArtifactPropertiesCount gets the maxArtifactPropertiesCount property value. The maxArtifactPropertiesCount property
+// returns a *int64 when successful
 func (m *Limits) GetMaxArtifactPropertiesCount() *int64 {
 	return m.maxArtifactPropertiesCount
 }
 
 // GetMaxArtifactsCount gets the maxArtifactsCount property value. The maxArtifactsCount property
+// returns a *int64 when successful
 func (m *Limits) GetMaxArtifactsCount() *int64 {
 	return m.maxArtifactsCount
 }
 
 // GetMaxLabelSizeBytes gets the maxLabelSizeBytes property value. The maxLabelSizeBytes property
+// returns a *int64 when successful
 func (m *Limits) GetMaxLabelSizeBytes() *int64 {
 	return m.maxLabelSizeBytes
 }
 
 // GetMaxPropertyKeySizeBytes gets the maxPropertyKeySizeBytes property value. The maxPropertyKeySizeBytes property
+// returns a *int64 when successful
 func (m *Limits) GetMaxPropertyKeySizeBytes() *int64 {
 	return m.maxPropertyKeySizeBytes
 }
 
 // GetMaxPropertyValueSizeBytes gets the maxPropertyValueSizeBytes property value. The maxPropertyValueSizeBytes property
+// returns a *int64 when successful
 func (m *Limits) GetMaxPropertyValueSizeBytes() *int64 {
 	return m.maxPropertyValueSizeBytes
 }
 
 // GetMaxRequestsPerSecondCount gets the maxRequestsPerSecondCount property value. The maxRequestsPerSecondCount property
+// returns a *int64 when successful
 func (m *Limits) GetMaxRequestsPerSecondCount() *int64 {
 	return m.maxRequestsPerSecondCount
 }
 
 // GetMaxSchemaSizeBytes gets the maxSchemaSizeBytes property value. The maxSchemaSizeBytes property
+// returns a *int64 when successful
 func (m *Limits) GetMaxSchemaSizeBytes() *int64 {
 	return m.maxSchemaSizeBytes
 }
 
 // GetMaxTotalSchemasCount gets the maxTotalSchemasCount property value. The maxTotalSchemasCount property
+// returns a *int64 when successful
 func (m *Limits) GetMaxTotalSchemasCount() *int64 {
 	return m.maxTotalSchemasCount
 }
 
 // GetMaxVersionsPerArtifactCount gets the maxVersionsPerArtifactCount property value. The maxVersionsPerArtifactCount property
+// returns a *int64 when successful
 func (m *Limits) GetMaxVersionsPerArtifactCount() *int64 {
 	return m.maxVersionsPerArtifactCount
 }
@@ -385,7 +400,6 @@ func (m *Limits) SetMaxVersionsPerArtifactCount(value *int64) {
 	m.maxVersionsPerArtifactCount = value
 }
 
-// Limitsable
 type Limitsable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

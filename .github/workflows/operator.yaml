@@ -24,10 +24,15 @@ concurrency:
 jobs:
   tests:
     name: Operator Basic tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+
+      - name: Enable port-forwarding
+        run: |
+          sudo apt-get -y install socat  
+
       - name: Setup Minikube-Kubernetes
         uses: manusa/actions-setup-minikube@v2.9.0
         with:
@@ -35,6 +40,15 @@ jobs:
           kubernetes version: v1.25.0
           github token: ${{ secrets.GITHUB_TOKEN }}
           start args: '--force'
+
+      - name: Enable minikube ingress
+        run: |
+          minikube addons enable ingress
+
+      - name: Setup minikube tunnel
+        run: |
+          minikube tunnel &         
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -48,7 +62,6 @@ jobs:
           rm -rf ~/.m2/repository/com/github/java-json-tools
           mkdir -p /tmp/coreutils-workaround
           ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
-
 
       - name: Run the tests in local mode
         run: ./mvnw clean verify -P '!external_repos' -DskipOperatorTests=false -pl operator/controller -am

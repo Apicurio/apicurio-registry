@@ -31,11 +31,11 @@ import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -273,11 +273,6 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references) {
-        return delegate.resolveReferences(references);
-    }
-
-    @Override
     public boolean isEmpty() {
         return delegate.isEmpty();
     }
@@ -328,6 +323,11 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
+    public VersionState getArtifactVersionState(String groupId, String artifactId, String version) {
+        return delegate.getArtifactVersionState(groupId, artifactId, version);
+    }
+
+    @Override
     public boolean isContentExists(String contentHash) throws RegistryStorageException {
         return delegate.isContentExists(contentHash);
     }
@@ -354,18 +354,23 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
+    public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
+        return delegate.getContentByReference(reference);
+    }
+
+    @Override
     public List<Long> getEnabledArtifactContentIds(String groupId, String artifactId) {
         return delegate.getEnabledArtifactContentIds(groupId, artifactId);
     }
 
     @Override
-    public List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior)
+    public List<String> getArtifactVersions(String groupId, String artifactId, Set<VersionState> behavior)
             throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersions(groupId, artifactId, behavior);
     }
 
     @Override
-    public GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior) {
+    public GAV getBranchTip(GA ga, BranchId branchId, Set<VersionState> behavior) {
         return delegate.getBranchTip(ga, branchId, behavior);
     }
 
@@ -382,5 +387,10 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     @Override
     public BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId) {
         return delegate.getBranchMetaData(ga, branchId);
+    }
+
+    @Override
+    public boolean supportsDatabaseEvents() {
+        return delegate.supportsDatabaseEvents();
     }
 }

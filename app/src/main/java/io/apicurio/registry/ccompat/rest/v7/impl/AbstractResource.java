@@ -25,6 +25,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.Current;
@@ -104,7 +105,8 @@ public abstract class AbstractResource {
                 .map(dto -> ArtifactReference.builder().name(dto.getName()).groupId(dto.getGroupId())
                         .artifactId(dto.getArtifactId()).version(dto.getVersion()).build())
                 .collect(Collectors.toList());
-        final Map<String, TypedContent> resolvedReferences = storage.resolveReferences(parsedReferences);
+        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                .recursivelyResolveReferences(parsedReferences, storage::getContentByReference);
         try {
             ContentHandle schemaContent;
             schemaContent = ContentHandle.create(schema);
@@ -125,7 +127,7 @@ public abstract class AbstractResource {
                         .contentType(contentType).references(parsedReferences).build();
 
                 res = storage.createArtifact(groupId, artifactId, artifactType, artifactMetaData, null,
-                        firstVersionContent, firstVersionMetaData, null, false).getValue();
+                        firstVersionContent, firstVersionMetaData, null, false, false).getValue();
             } else {
                 TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
                 rulesService.applyRules(groupId, artifactId, artifactType, typedSchemaContent,
@@ -133,7 +135,7 @@ public abstract class AbstractResource {
                 ContentWrapperDto versionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();
                 res = storage.createArtifactVersion(groupId, artifactId, null, artifactType, versionContent,
-                        EditableVersionMetaDataDto.builder().build(), List.of(), false);
+                        EditableVersionMetaDataDto.builder().build(), List.of(), false, false);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {
@@ -175,8 +177,9 @@ public abstract class AbstractResource {
                                     .getArtifactVersionContent(groupId, artifactId, version);
                             TypedContent typedArtifactVersion = TypedContent
                                     .create(artifactVersion.getContent(), artifactVersion.getContentType());
-                            Map<String, TypedContent> artifactVersionReferences = storage
-                                    .resolveReferences(artifactVersion.getReferences());
+                            Map<String, TypedContent> artifactVersionReferences = RegistryContentUtils
+                                    .recursivelyResolveReferences(artifactVersion.getReferences(),
+                                            storage::getContentByReference);
                             String dereferencedExistingContentSha = DigestUtils
                                     .sha256Hex(artifactTypeProvider.getContentDereferencer()
                                             .dereference(typedArtifactVersion, artifactVersionReferences)
@@ -215,7 +218,8 @@ public abstract class AbstractResource {
                 return artifactReferenceDto;
             }).collect(Collectors.toList());
 
-            resolvedReferences = storage.resolveReferences(referencesAsDtos);
+            resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(referencesAsDtos,
+                    storage::getContentByReference);
 
             if (references.size() > resolvedReferences.size()) {
                 // There are unresolvable references, which is not allowed.
@@ -234,7 +238,7 @@ public abstract class AbstractResource {
     protected String getLatestArtifactVersionForSubject(String artifactId, String groupId) {
         try {
             GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
-                    RetrievalBehavior.SKIP_DISABLED_LATEST);
+                    RetrievalBehavior.ACTIVE_STATES);
             return latestGAV.getRawVersionId();
         } catch (ArtifactNotFoundException ex) {
             throw new VersionNotFoundException(groupId, artifactId, "latest");

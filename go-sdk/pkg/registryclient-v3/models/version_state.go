@@ -1,9 +1,5 @@
 package models
 
-import (
-	"errors"
-)
-
 // Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
 type VersionState int
 
@@ -11,10 +7,11 @@ const (
 	ENABLED_VERSIONSTATE VersionState = iota
 	DISABLED_VERSIONSTATE
 	DEPRECATED_VERSIONSTATE
+	DRAFT_VERSIONSTATE
 )
 
 func (i VersionState) String() string {
-	return []string{"ENABLED", "DISABLED", "DEPRECATED"}[i]
+	return []string{"ENABLED", "DISABLED", "DEPRECATED", "DRAFT"}[i]
 }
 func ParseVersionState(v string) (any, error) {
 	result := ENABLED_VERSIONSTATE
@@ -25,8 +22,10 @@ func ParseVersionState(v string) (any, error) {
 		result = DISABLED_VERSIONSTATE
 	case "DEPRECATED":
 		result = DEPRECATED_VERSIONSTATE
+	case "DRAFT":
+		result = DRAFT_VERSIONSTATE
 	default:
-		return 0, errors.New("Unknown VersionState value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

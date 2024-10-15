@@ -24,6 +24,7 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @ToString
+@Deprecated
 public class CreateArtifact9Message extends AbstractMessage {
 
     private String groupId;
@@ -48,7 +49,7 @@ public class CreateArtifact9Message extends AbstractMessage {
                 .contentType(contentType).content(handle).references(references).build()
             : null;
         return storage.createArtifact(groupId, artifactId, artifactType, artifactMetaDataDto, version,
-                versionContent, versionMetaData, versionBranches, dryRun);
+                versionContent, versionMetaData, versionBranches, false, dryRun);
     }
 
 }

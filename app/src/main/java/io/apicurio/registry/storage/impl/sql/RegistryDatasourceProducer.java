@@ -22,31 +22,31 @@ public class RegistryDatasourceProducer {
     Logger log;
 
     @ConfigProperty(name = "apicurio.storage.sql.kind", defaultValue = "h2")
-    @Info(category = "storage", description = "Application datasource database type", availableSince = "3.0.0.Final")
+    @Info(category = "storage", description = "Application datasource database type", availableSince = "3.0.0")
     String databaseType;
 
     @ConfigProperty(name = "apicurio.datasource.url", defaultValue = "jdbc:h2:mem:registry_db")
-    @Info(category = "storage", description = "Application datasource jdbc url", availableSince = "3.0.0.Final")
+    @Info(category = "storage", description = "Application datasource jdbc url", availableSince = "3.0.0")
     String jdbcUrl;
 
     @ConfigProperty(name = "apicurio.datasource.username", defaultValue = "sa")
-    @Info(category = "storage", description = "Application datasource username", availableSince = "3.0.0.Final")
+    @Info(category = "storage", description = "Application datasource username", availableSince = "3.0.0")
     String username;
 
     @ConfigProperty(name = "apicurio.datasource.password", defaultValue = "sa")
-    @Info(category = "storage", description = "Application datasource password", availableSince = "3.0.0.Final")
+    @Info(category = "storage", description = "Application datasource password", availableSince = "3.0.0")
     String password;
 
     @ConfigProperty(name = "apicurio.datasource.jdbc.initial-size", defaultValue = "20")
-    @Info(category = "storage", description = "Application datasource pool initial size", availableSince = "3.0.0.Final")
+    @Info(category = "storage", description = "Application datasource pool initial size", availableSince = "3.0.0")
     String initialSize;
 
     @ConfigProperty(name = "apicurio.datasource.jdbc.min-size", defaultValue = "20")
-    @Info(category = "storage", description = "Application datasource pool minimum size", availableSince = "3.0.0.Final")
+    @Info(category = "storage", description = "Application datasource pool minimum size", availableSince = "3.0.0")
     String minSize;
 
     @ConfigProperty(name = "apicurio.datasource.jdbc.max-size", defaultValue = "100")
-    @Info(category = "storage", description = "Application datasource pool maximum size", availableSince = "3.0.0.Final")
+    @Info(category = "storage", description = "Application datasource pool maximum size", availableSince = "3.0.0")
     String maxSize;
 
     @Produces

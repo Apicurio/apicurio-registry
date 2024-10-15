@@ -21,6 +21,7 @@ type ApiClient struct {
 }
 
 // Admin the admin property
+// returns a *AdminRequestBuilder when successful
 func (m *ApiClient) Admin() *i3a143df9c3656a25fd13a0937faacbbcd9cb03fed9483505ecd519e4d74a7a15.AdminRequestBuilder {
 	return i3a143df9c3656a25fd13a0937faacbbcd9cb03fed9483505ecd519e4d74a7a15.NewAdminRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
@@ -55,26 +56,31 @@ func NewApiClient(requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa52901
 }
 
 // Groups collection of the groups in the registry.
+// returns a *GroupsRequestBuilder when successful
 func (m *ApiClient) Groups() *i3320989eb8a8dfacce0884b8a7002d636bc4014dd0a4e589ddae4aaa1ae321f4.GroupsRequestBuilder {
 	return i3320989eb8a8dfacce0884b8a7002d636bc4014dd0a4e589ddae4aaa1ae321f4.NewGroupsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Ids the ids property
+// returns a *IdsRequestBuilder when successful
 func (m *ApiClient) Ids() *i7229f5841ba844b770381d53c9153420c122078a773e55c45064f1c87d6aab5b.IdsRequestBuilder {
 	return i7229f5841ba844b770381d53c9153420c122078a773e55c45064f1c87d6aab5b.NewIdsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Search the search property
+// returns a *SearchRequestBuilder when successful
 func (m *ApiClient) Search() *i854c9d5780d14cbecc42929178b6e2f7b5d935bacd7ac9e5d2a5b5741cc31a4d.SearchRequestBuilder {
 	return i854c9d5780d14cbecc42929178b6e2f7b5d935bacd7ac9e5d2a5b5741cc31a4d.NewSearchRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // System the system property
+// returns a *SystemRequestBuilder when successful
 func (m *ApiClient) System() *i3b87edbdca8565e069a95744531fb5ecdfd17a8d304795b4ec765c590fda2881.SystemRequestBuilder {
 	return i3b87edbdca8565e069a95744531fb5ecdfd17a8d304795b4ec765c590fda2881.NewSystemRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Users the users property
+// returns a *UsersRequestBuilder when successful
 func (m *ApiClient) Users() *i3c84b7c05c4459609afd9e2bb17ddb7b28031a2ebfb232920d207cdb1a77a604.UsersRequestBuilder {
 	return i3c84b7c05c4459609afd9e2bb17ddb7b28031a2ebfb232920d207cdb1a77a604.NewUsersRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

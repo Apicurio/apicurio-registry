@@ -27,6 +27,8 @@ public class SearchedVersionDto {
     private String description;
     private Date createdOn;
     private String owner;
+    private String modifiedBy;
+    private Date modifiedOn;
     private String artifactType;
     private VersionState state;
     private long globalId;

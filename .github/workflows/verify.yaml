@@ -241,7 +241,7 @@ jobs:
           docker build --push -f ./distro/docker/target/docker/Dockerfile.native -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d app/
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
+        uses: manusa/actions-setup-minikube@v2.13.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'

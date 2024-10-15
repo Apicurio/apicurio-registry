@@ -38,6 +38,7 @@ import io.apicurio.registry.types.RoleType;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public final class V3ApiUtil {
@@ -192,6 +193,8 @@ public final class V3ApiUtil {
             sv.setVersion(version.getVersion());
             sv.setOwner(version.getOwner());
             sv.setCreatedOn(version.getCreatedOn());
+            sv.setModifiedBy(version.getModifiedBy());
+            sv.setModifiedOn(version.getModifiedOn());
             sv.setDescription(version.getDescription());
             sv.setGlobalId(version.getGlobalId());
             sv.setContentId(version.getContentId());
@@ -210,6 +213,10 @@ public final class V3ApiUtil {
         artifactReference.setVersion(reference.getVersion());
         artifactReference.setArtifactId(reference.getArtifactId());
         return artifactReference;
+    }
+
+    public static List<ArtifactReference> referenceDtosToReferences(List<ArtifactReferenceDto> dtos) {
+        return dtos.stream().map(dto -> referenceDtoToReference(dto)).collect(Collectors.toList());
     }
 
     public static ArtifactReference referenceDtoToReference(ArtifactReferenceDto reference) {

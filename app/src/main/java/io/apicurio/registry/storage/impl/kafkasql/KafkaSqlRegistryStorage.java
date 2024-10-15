@@ -33,6 +33,7 @@ import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.v2.SqlDataUpgrader;
 import io.apicurio.registry.storage.importing.v3.SqlDataImporter;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.ConcurrentUtil;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
@@ -385,13 +386,15 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches, boolean dryRun) throws RegistryStorageException {
+            List<String> versionBranches, boolean versionIsDraft, boolean dryRun)
+            throws RegistryStorageException {
         String content = versionContent != null ? versionContent.getContent().content() : null;
         String contentType = versionContent != null ? versionContent.getContentType() : null;
         List<ArtifactReferenceDto> references = versionContent != null ? versionContent.getReferences()
             : null;
-        var message = new CreateArtifact9Message(groupId, artifactId, artifactType, artifactMetaData, version,
-                contentType, content, references, versionMetaData, versionBranches, dryRun);
+        var message = new CreateArtifact10Message(groupId, artifactId, artifactType, artifactMetaData,
+                version, contentType, content, references, versionMetaData, versionBranches, versionIsDraft,
+                dryRun);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
 
         Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createdArtifact = (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator
@@ -433,17 +436,29 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto contentDto, EditableVersionMetaDataDto metaData,
-            List<String> branches, boolean dryRun) throws RegistryStorageException {
+            List<String> branches, boolean isDraft, boolean dryRun) throws RegistryStorageException {
         String content = contentDto != null ? contentDto.getContent().content() : null;
         String contentType = contentDto != null ? contentDto.getContentType() : null;
         List<ArtifactReferenceDto> references = contentDto != null ? contentDto.getReferences() : null;
-        var message = new CreateArtifactVersion8Message(groupId, artifactId, version, artifactType,
-                contentType, content, references, metaData, branches, dryRun);
+        var message = new CreateArtifactVersion9Message(groupId, artifactId, version, artifactType,
+                contentType, content, references, metaData, branches, isDraft, dryRun);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         ArtifactVersionMetaDataDto versionMetaDataDto = (ArtifactVersionMetaDataDto) coordinator
                 .waitForResponse(uuid);
         outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionCreated.of(versionMetaDataDto)));
         return versionMetaDataDto;
+    }
+
+    @Override
+    public void updateArtifactVersionContent(String groupId, String artifactId, String version,
+            String artifactType, ContentWrapperDto contentDto) throws RegistryStorageException {
+        String content = contentDto != null ? contentDto.getContent().content() : null;
+        String contentType = contentDto != null ? contentDto.getContentType() : null;
+        List<ArtifactReferenceDto> references = contentDto != null ? contentDto.getReferences() : null;
+        var message = new UpdateArtifactVersionContent5Message(groupId, artifactId, version, artifactType,
+                contentType, content, references);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     /**
@@ -590,6 +605,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
                 .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, metaData)));
     }
 
+    @Override
+    public void updateArtifactVersionState(String groupId, String artifactId, String version,
+            VersionState newState, boolean dryRun) {
+        var message = new UpdateArtifactVersionState5Message(groupId, artifactId, version, newState, dryRun);
+        var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#createGlobalRule(io.apicurio.registry.types.RuleType,
      *      io.apicurio.registry.storage.dto.RuleConfigurationDto)
@@ -683,8 +706,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#importData(io.apicurio.registry.storage.impexp.EntityInputStream,
-     *      boolean, boolean)
+     * @see io.apicurio.registry.storage.RegistryStorage#importData(EntityInputStream, boolean, boolean)
      */
     @Override
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId)
@@ -709,8 +731,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#upgradeData(io.apicurio.registry.storage.impexp.EntityInputStream,
-     *      boolean, boolean)
+     * @see io.apicurio.registry.storage.RegistryStorage#upgradeData(EntityInputStream, boolean, boolean)
      */
     @Override
     public void upgradeData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId)

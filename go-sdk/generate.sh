@@ -17,17 +17,17 @@ URL="https://github.com/microsoft/kiota/releases/download/v${VERSION}/${PACKAGE_
 # if ! command -v $COMMAND &> /dev/null
 # then
 #  echo "System wide kiota could not be found, using local version"
-  if [[ ! -f $SCRIPT_DIR/kiota_tmp/kiota ]]
+  if [[ ! -f $SCRIPT_DIR/target/kiota_tmp/kiota ]]
   then
     echo "Local kiota could not be found, downloading"
-    rm -rf $SCRIPT_DIR/kiota_tmp
-    mkdir -p $SCRIPT_DIR/kiota_tmp
-    curl -sL $URL > $SCRIPT_DIR/kiota_tmp/kiota.zip
-    unzip $SCRIPT_DIR/kiota_tmp/kiota.zip -d $SCRIPT_DIR/kiota_tmp
+    rm -rf $SCRIPT_DIR/target/kiota_tmp
+    mkdir -p $SCRIPT_DIR/target/kiota_tmp
+    curl -sL $URL > $SCRIPT_DIR/target/kiota_tmp/kiota.zip
+    unzip $SCRIPT_DIR/target/kiota_tmp/kiota.zip -d $SCRIPT_DIR/target/kiota_tmp
 
-    chmod a+x $SCRIPT_DIR/kiota_tmp/kiota
+    chmod a+x $SCRIPT_DIR/target/kiota_tmp/kiota
   fi
-  COMMAND="$SCRIPT_DIR/kiota_tmp/kiota"
+  COMMAND="$SCRIPT_DIR/target/kiota_tmp/kiota"
 # fi
 
 rm -rf $SCRIPT_DIR/pkg/registryclient-v2

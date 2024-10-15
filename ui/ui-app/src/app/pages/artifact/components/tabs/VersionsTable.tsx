@@ -14,6 +14,7 @@ import {
     VersionSortByObject
 } from "@sdk/lib/generated-client/models";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+import { Flex, FlexItem, Label } from "@patternfly/react-core";
 
 export type VersionsTableProps = {
     artifact: ArtifactMetaData;
@@ -56,15 +57,30 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
             const version: string = encodeURIComponent(column.version!);
             return (
                 <div>
-                    <Link className="version-title"
-                        style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
-                        to={appNavigation.createLink(`/explore/${groupId}/${artifactId}/versions/${version}`)}
-                    >
-                        <span>{ column.version }</span>
-                        <If condition={column.name != "" && column.name !== undefined && column.name !== null}>
-                            <span style={{ marginLeft: "10px" }}>({column.name})</span>
-                        </If>
-                    </Link>
+                    <Flex>
+                        <FlexItem>
+                            <Link className="version-title"
+                                style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
+                                to={appNavigation.createLink(`/explore/${groupId}/${artifactId}/versions/${version}`)}
+                            >
+                                <span>{ column.version }</span>
+                                <If condition={column.name != "" && column.name !== undefined && column.name !== null}>
+                                    <span style={{ marginLeft: "10px" }}>({column.name})</span>
+                                </If>
+                            </Link>
+                        </FlexItem>
+                        <FlexItem>
+                            <If condition={column.state === "DRAFT"}>
+                                <Label color="grey">Draft</Label>
+                            </If>
+                            <If condition={column.state === "DEPRECATED"}>
+                                <Label color="orange">Deprecated</Label>
+                            </If>
+                            <If condition={column.state === "DISABLED"}>
+                                <Label color="red">Disabled</Label>
+                            </If>
+                        </FlexItem>
+                    </Flex>
                     <ArtifactDescription className="version-description" style={{ overflow: "hidden", textOverflow: "hidden", whiteSpace: "nowrap", fontSize: "14px" }}
                         description={column.description}
                         truncate={true} />

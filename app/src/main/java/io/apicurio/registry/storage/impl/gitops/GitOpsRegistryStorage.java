@@ -16,6 +16,7 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.gitops.sql.BlueSqlStorage;
 import io.apicurio.registry.storage.impl.gitops.sql.GreenSqlStorage;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PreDestroy;
@@ -270,7 +271,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
-    public List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior) {
+    public List<String> getArtifactVersions(String groupId, String artifactId, Set<VersionState> behavior) {
         return proxy(storage -> storage.getArtifactVersions(groupId, artifactId, behavior));
     }
 
@@ -454,6 +455,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
+    public VersionState getArtifactVersionState(String groupId, String artifactId, String version) {
+        return proxy(storage -> storage.getArtifactVersionState(groupId, artifactId, version));
+    }
+
+    @Override
     public DynamicConfigPropertyDto getConfigProperty(String propertyName) {
         return proxy(storage -> storage.getConfigProperty(propertyName));
     }
@@ -479,7 +485,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
-    public GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior) {
+    public GAV getBranchTip(GA ga, BranchId branchId, Set<VersionState> behavior) {
         return proxy(storage -> storage.getBranchTip(ga, branchId, behavior));
     }
 

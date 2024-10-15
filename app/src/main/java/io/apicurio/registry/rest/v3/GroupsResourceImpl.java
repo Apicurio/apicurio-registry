@@ -14,6 +14,7 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.RestConfig;
@@ -44,13 +45,34 @@ import io.apicurio.registry.rest.v3.beans.NewComment;
 import io.apicurio.registry.rest.v3.beans.ReplaceBranchVersions;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.SortOrder;
+import io.apicurio.registry.rest.v3.beans.VersionContent;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.apicurio.registry.rest.v3.beans.VersionSortBy;
+import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
-import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
+import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -138,7 +160,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             String versionExpression, ReferenceType refType) {
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         if (refType == null || refType == ReferenceType.OUTBOUND) {
             return storage
@@ -505,6 +527,48 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return builder.build();
     }
 
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void updateArtifactVersionContent(String groupId, String artifactId, String versionExpression,
+            VersionContent data) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("versionExpression", versionExpression);
+
+        if (!restConfig.isArtifactVersionMutabilityEnabled()) {
+            throw new NotAllowedException("Artifact version content update operation is not enabled.",
+                    HttpMethod.GET, (String[]) null);
+        }
+
+        // Resolve the GAV info (only look for DRAFT versions)
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
+
+        // Ensure the artifact version is in DRAFT status
+        ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(gav.getRawGroupIdWithNull(),
+                gav.getRawArtifactId(), gav.getRawVersionId());
+        if (vmd.getState() != VersionState.DRAFT) {
+            throw new ConflictException(
+                    "Requested artifact version is not in DRAFT state.  Update disallowed.");
+        }
+
+        ContentHandle content = ContentHandle.create(data.getContent());
+        if (content.bytes().length == 0) {
+            throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+        }
+
+        // Transform the given references into dtos
+        final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(data.getReferences());
+
+        // Create the content wrapper dto
+        ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(data.getContentType())
+                .content(content).references(referencesAsDtos).build();
+
+        // Now ask the storage to update the content
+        storage.updateArtifactVersionContent(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                gav.getRawVersionId(), vmd.getArtifactType(), contentDto);
+    }
+
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#deleteArtifactVersion(java.lang.String,
      *      java.lang.String, java.lang.String)
@@ -522,7 +586,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         storage.deleteArtifactVersion(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId());
@@ -562,15 +626,78 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
         EditableVersionMetaDataDto dto = new EditableVersionMetaDataDto();
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
-        dto.setState(data.getState());
         storage.updateArtifactVersionMetaData(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), dto);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public WrappedVersionState getArtifactVersionState(String groupId, String artifactId,
+            String versionExpression) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("version", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
+
+        VersionState state = storage.getArtifactVersionState(gav.getRawGroupIdWithNull(),
+                gav.getRawArtifactId(), gav.getRawVersionId());
+        return WrappedVersionState.builder().state(state).build();
+    }
+
+    @Override
+    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "dryRun" })
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void updateArtifactVersionState(String groupId, String artifactId, String versionExpression,
+            Boolean dryRun, WrappedVersionState data) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("versionExpression", versionExpression);
+        requireParameter("body.state", data.getState());
+
+        if (data.getState() == VersionState.DRAFT) {
+            throw new BadRequestException("Illegal state transition: cannot transition to DRAFT state.");
+        }
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
+
+        // Get current state.
+        VersionState currentState = storage.getArtifactVersionState(gav.getRawGroupIdWithNull(),
+                gav.getRawArtifactId(), gav.getRawVersionId());
+
+        // If the current state is the same as the new state, do nothing.
+        if (currentState == data.getState()) {
+            return;
+        }
+
+        // If the current state is DRAFT, apply rules.
+        if (currentState == VersionState.DRAFT) {
+            VersionMetaData vmd = getArtifactVersionMetaData(gav.getRawGroupIdWithDefaultString(),
+                    gav.getRawArtifactId(), gav.getRawVersionId());
+            StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
+                    gav.getRawArtifactId(), gav.getRawVersionId());
+            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                    .recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference);
+            final List<ArtifactReference> references = V3ApiUtil
+                    .referenceDtosToReferences(artifact.getReferences());
+
+            TypedContent typedContent = TypedContent.create(artifact.getContent(), artifact.getContentType());
+            rulesService.applyRules(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                    vmd.getArtifactType(), typedContent, RuleApplicationType.UPDATE, references,
+                    resolvedReferences);
+        }
+
+        // Now update the state.
+        storage.updateArtifactVersionState(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                gav.getRawVersionId(), data.getState(), dryRun != null && dryRun);
     }
 
     /**
@@ -587,7 +714,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         CommentDto newComment = storage.createArtifactVersionComment(gav.getRawGroupIdWithNull(),
                 gav.getRawArtifactId(), gav.getRawVersionId(), data.getValue());
@@ -600,7 +727,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3",
-            "comment_id" }) // TODO
+            "comment_id" })
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId) {
@@ -610,7 +737,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("commentId", commentId);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         storage.deleteArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), commentId);
@@ -628,7 +755,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         return storage.getArtifactVersionComments(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId()).stream().map(V3ApiUtil::commentDtoToComment).collect(toList());
@@ -641,7 +768,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3",
-            "comment_id" }) // TODO
+            "comment_id" })
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId, NewComment data) {
@@ -652,7 +779,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("value", data.getValue());
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         storage.updateArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), commentId, data.getValue());
@@ -770,20 +897,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             String artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, data.getArtifactType(),
                     factory);
 
-            // Convert references to DTOs
-            final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
-
-            // Try to resolve the references
-            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
-
-            // Apply any configured rules
-            if (content != null) {
-                rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
-                        artifactType, typedContent, RuleApplicationType.CREATE, references,
-                        resolvedReferences);
-            }
-
             // Create the artifact (with optional first version)
             EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
                     .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
@@ -791,7 +904,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             ContentWrapperDto firstVersionContent = null;
             EditableVersionMetaDataDto firstVersionMetaData = null;
             List<String> firstVersionBranches = null;
+            boolean firstVersionIsDraft = false;
             if (data.getFirstVersion() != null) {
+                // Convert references to DTOs
+                final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
+
                 firstVersion = data.getFirstVersion().getVersion();
                 firstVersionContent = ContentWrapperDto.builder().content(content).contentType(contentType)
                         .references(referencesAsDtos).build();
@@ -800,12 +917,25 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .name(data.getFirstVersion().getName()).labels(data.getFirstVersion().getLabels())
                         .build();
                 firstVersionBranches = data.getFirstVersion().getBranches();
+                firstVersionIsDraft = data.getFirstVersion().getIsDraft() != null
+                        && data.getFirstVersion().getIsDraft();
+
+                // Try to resolve the references
+                final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                        .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+
+                // Apply any configured rules unless it is a DRAFT version
+                if (!firstVersionIsDraft) {
+                    rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                            artifactType, typedContent, RuleApplicationType.CREATE, references,
+                            resolvedReferences);
+                }
             }
 
             Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> storageResult = storage.createArtifact(
                     new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, artifactMetaData,
                     firstVersion, firstVersionContent, firstVersionMetaData, firstVersionBranches,
-                    dryRun != null && dryRun);
+                    firstVersionIsDraft, dryRun != null && dryRun);
 
             // Now return both the artifact metadata and (if available) the version metadata
             CreateArtifactResponse rval = CreateArtifactResponse.builder()
@@ -870,20 +1000,25 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
         String ct = data.getContent().getContentType();
+        boolean isDraft = data.getIsDraft() != null && data.getIsDraft();
 
         // Transform the given references into dtos
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(
                 data.getContent().getReferences());
 
-        // Try to resolve the new artifact references and the nested ones (if any)
-        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
-
         String artifactType = lookupArtifactType(groupId, artifactId);
-        TypedContent typedContent = TypedContent.create(content, ct);
-        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                typedContent, RuleApplicationType.UPDATE, data.getContent().getReferences(),
-                resolvedReferences);
+
+        // Apply rules unless the version is DRAFT
+        if (!isDraft) {
+            // Try to resolve the new artifact references and the nested ones (if any)
+            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+
+            TypedContent typedContent = TypedContent.create(content, ct);
+            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
+                    typedContent, RuleApplicationType.UPDATE, data.getContent().getReferences(),
+                    resolvedReferences);
+        }
         EditableVersionMetaDataDto metaDataDto = EditableVersionMetaDataDto.builder()
                 .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(ct).content(content)
@@ -891,7 +1026,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(
                 new GroupId(groupId).getRawGroupIdWithNull(), artifactId, data.getVersion(), artifactType,
-                contentDto, metaDataDto, data.getBranches(), dryRun != null && dryRun);
+                contentDto, metaDataDto, data.getBranches(), isDraft, dryRun != null && dryRun);
 
         return V3ApiUtil.dtoToVersionMetaData(vmd);
     }
@@ -1092,13 +1227,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         switch (ifExists) {
             case CREATE_VERSION:
                 return updateArtifactInternal(groupId, artifactId, theVersion);
-            // case RETURN:
-            // GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
-            // ArtifactRetrievalBehavior.DEFAULT);
-            // ArtifactVersionMetaDataDto latestVersionMD =
-            // storage.getArtifactVersionMetaData(latestGAV.getRawGroupIdWithNull(),
-            // latestGAV.getRawArtifactId(), latestGAV.getRawVersionId());
-            // return V3ApiUtil.dtoToVersionMetaData(latestVersionMD);
             case FIND_OR_CREATE_VERSION:
                 return handleIfExistsReturnOrUpdate(groupId, artifactId, theVersion, canonical);
             default:
@@ -1141,6 +1269,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         List<ArtifactReference> references = theVersion.getContent().getReferences();
         String contentType = theVersion.getContent().getContentType();
         ContentHandle content = ContentHandle.create(theVersion.getContent().getContent());
+        boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
 
         String artifactType = lookupArtifactType(groupId, artifactId);
 
@@ -1148,17 +1277,21 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
-        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
-        final TypedContent typedContent = TypedContent.create(content, contentType);
-        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
+        // Apply rules only if not a draft version
+        if (!isDraftVersion) {
+            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+            final TypedContent typedContent = TypedContent.create(content, contentType);
+            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
+                    typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
+        }
+
         EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name(name)
                 .description(description).labels(labels).build();
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(contentType).content(content)
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(groupId, artifactId, version,
-                artifactType, contentDto, metaData, branches, false);
+                artifactType, contentDto, metaData, branches, isDraftVersion, false);
         VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
 
         // Need to also return the artifact metadata

@@ -3,9 +3,11 @@ package io.apicurio.registry.storage.impl.kafkasql.serde;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 import io.apicurio.registry.storage.impl.kafkasql.messages.AppendVersionToBranch3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.ConsumeDownload1Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifact10Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifact9Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactRule4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersion8Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersion9Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateArtifactVersionComment4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateBranch4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreateDownload1Message;
@@ -51,7 +53,9 @@ import io.apicurio.registry.storage.impl.kafkasql.messages.SetConfigProperty1Mes
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactMetaData3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactRule4Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionComment5Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionContent5Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionMetaData4Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateArtifactVersionState5Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateBranchMetaData3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateContentCanonicalHash3Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateGlobalRule2Message;
@@ -81,7 +85,8 @@ public class KafkaSqlMessageIndex {
 
     static {
         indexMessageClasses(AppendVersionToBranch3Message.class, ConsumeDownload1Message.class,
-                CreateArtifact9Message.class, CreateArtifactVersion8Message.class,
+                CreateArtifact9Message.class, CreateArtifact10Message.class,
+                CreateArtifactVersion8Message.class, CreateArtifactVersion9Message.class,
                 CreateArtifactRule4Message.class, CreateGroupRule3Message.class,
                 CreateArtifactVersionComment4Message.class, CreateBranch4Message.class,
                 CreateDownload1Message.class, CreateGlobalRule2Message.class, CreateGroup1Message.class,
@@ -103,6 +108,7 @@ public class KafkaSqlMessageIndex {
                 UpdateArtifactVersionMetaData4Message.class, UpdateBranchMetaData3Message.class,
                 UpdateContentCanonicalHash3Message.class, UpdateGlobalRule2Message.class,
                 UpdateGroupMetaData2Message.class, UpdateRoleMapping2Message.class,
+                UpdateArtifactVersionState5Message.class, UpdateArtifactVersionContent5Message.class,
                 UpdateGroupRule3Message.class, DeleteGroupRule2Message.class, DeleteGroupRules1Message.class,
                 ImportGroupRule1Message.class, ExecuteSqlStatement1Message.class);
     }

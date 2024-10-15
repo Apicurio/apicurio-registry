@@ -8,11 +8,11 @@ import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
-import io.apicurio.registry.rest.v3.beans.EditableVersionMetaData;
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
 import io.apicurio.registry.rest.v3.beans.NewComment;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
+import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
@@ -368,7 +368,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/MissingAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
                 .statusCode(404).body("status", equalTo(404)).body("title", equalTo(
-                        "No version '<tip of the branch 'latest' that does not have disabled status>' found for artifact with ID 'testGetArtifact/MissingAPI' in group 'GroupsResourceTest'."));
+                        "No version '<tip of the branch 'latest'>' found for artifact with ID 'testGetArtifact/MissingAPI' in group 'GroupsResourceTest'."));
     }
 
     @Test
@@ -446,56 +446,24 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact("testUpdateVersionState", "testUpdateVersionState/EmptyAPI/1", ArtifactType.OPENAPI,
                 oaiArtifactContent, ContentTypes.APPLICATION_JSON);
 
-        EditableVersionMetaData body = new EditableVersionMetaData();
-        body.setState(VersionState.DEPRECATED);
+        WrappedVersionState newState = WrappedVersionState.builder().state(VersionState.DEPRECATED).build();
 
         // Update the artifact state to DEPRECATED.
         given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateVersionState")
-                .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1").body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
-                .statusCode(204);
+                .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1").body(newState)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/state")
+                .then().statusCode(204);
 
         // Update the artifact state to DEPRECATED again.
         given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateVersionState")
-                .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1").body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
-                .statusCode(204);
+                .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1").body(newState)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/state")
+                .then().statusCode(204);
 
         // Send a GET request to check if the artifact state is DEPRECATED.
         given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateVersionState")
                 .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
-                .then().statusCode(200).header("X-Registry-Deprecated", "true");
-    }
-
-    @Test
-    public void testUpdateArtifactVersionState() throws Exception {
-        String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateArtifactVersionState", "testUpdateArtifactVersionState/EmptyAPI",
-                ArtifactType.OPENAPI, oaiArtifactContent, ContentTypes.APPLICATION_JSON);
-
-        EditableVersionMetaData body = new EditableVersionMetaData();
-        body.setState(VersionState.DEPRECATED);
-
-        // Update the artifact state to DEPRECATED.
-        given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateArtifactVersionState")
-                .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
-                .pathParam("versionId", "1").body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}").then()
-                .statusCode(204);
-
-        // Update the artifact state to DEPRECATED again.
-        given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateArtifactVersionState")
-                .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
-                .pathParam("versionId", "1").body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}").then()
-                .statusCode(204);
-
-        // Send a GET request to check if the artifact state is DEPRECATED.
-        given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateArtifactVersionState")
-                .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
-                .pathParam("versionId", "1")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}/content")
                 .then().statusCode(200).header("X-Registry-Deprecated", "true");
     }
 

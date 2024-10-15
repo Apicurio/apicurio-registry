@@ -530,17 +530,17 @@ The following {registry} configuration options are available for each component 
 |`apicurio.rest.artifact.download.max-size.bytes`
 |`int`
 |`1000000`
-|`2.2.6-SNAPSHOT`
+|`2.2.6`
 |Max size of the artifact allowed to be downloaded from URL
 |`apicurio.rest.artifact.download.ssl-validation.disabled`
 |`boolean`
 |`false`
-|`2.2.6-SNAPSHOT`
+|`2.2.6`
 |Skip SSL validation when downloading artifacts from URL
 |`apicurio.rest.deletion.artifact-version.enabled`
 |`boolean [dynamic]`
 |`false`
-|`2.4.2-SNAPSHOT`
+|`2.4.2`
 |Enables artifact version deletion
 |`apicurio.rest.deletion.artifact.enabled`
 |`boolean [dynamic]`
@@ -552,6 +552,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.0`
 |Enables group deletion
+|`apicurio.rest.mutability.artifact-version-content.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.2`
+|Enables artifact version mutability
 |===
 
 == semver
@@ -827,7 +832,7 @@ The following {registry} configuration options are available for each component 
 |`artifacts.skip.disabled.latest`
 |`boolean`
 |`true`
-|`2.4.2-SNAPSHOT`
+|`2.4.2`
 |Skip artifact versions with DISABLED state when retrieving latest artifact version
 |===
 

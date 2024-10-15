@@ -45,7 +45,9 @@ public abstract class AbstractHandleFactory implements HandleFactory {
             return callback.withHandle(state.handle);
         } catch (SQLException e) {
             // If a SQL exception is thrown, set the handle to rollback.
-            state.handle.setRollback(true);
+            if (state.handle != null) {
+                state.handle.setRollback(true);
+            }
             // Wrap the SQL exception.
             throw new RegistryStorageException(e);
         } catch (Exception e) {

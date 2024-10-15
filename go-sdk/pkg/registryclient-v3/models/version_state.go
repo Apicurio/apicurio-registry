@@ -7,10 +7,11 @@ const (
 	ENABLED_VERSIONSTATE VersionState = iota
 	DISABLED_VERSIONSTATE
 	DEPRECATED_VERSIONSTATE
+	DRAFT_VERSIONSTATE
 )
 
 func (i VersionState) String() string {
-	return []string{"ENABLED", "DISABLED", "DEPRECATED"}[i]
+	return []string{"ENABLED", "DISABLED", "DEPRECATED", "DRAFT"}[i]
 }
 func ParseVersionState(v string) (any, error) {
 	result := ENABLED_VERSIONSTATE
@@ -21,6 +22,8 @@ func ParseVersionState(v string) (any, error) {
 		result = DISABLED_VERSIONSTATE
 	case "DEPRECATED":
 		result = DEPRECATED_VERSIONSTATE
+	case "DRAFT":
+		result = DRAFT_VERSIONSTATE
 	default:
 		return nil, nil
 	}

@@ -17,6 +17,7 @@ public final class BranchId {
     private static final Pattern VALID_PATTERN = Pattern.compile("[a-zA-Z0-9._\\-+]{1,256}");
 
     public static final BranchId LATEST = new BranchId("latest");
+    public static final BranchId DRAFTS = new BranchId("drafts");
 
     private final String rawBranchId;
 

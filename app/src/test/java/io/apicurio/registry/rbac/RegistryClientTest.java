@@ -15,7 +15,6 @@ import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
-import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.GroupSearchResults;
 import io.apicurio.registry.rest.client.models.GroupSortBy;
@@ -32,6 +31,7 @@ import io.apicurio.registry.rest.client.models.UpdateRole;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.rest.v2.beans.ArtifactContent;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
@@ -630,12 +630,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         // Preparation
         // Put 2 of the 5 artifacts in DISABLED state
-        EditableVersionMetaData eamd = new EditableVersionMetaData();
-        eamd.setState(VersionState.DISABLED);
+        WrappedVersionState newState = new WrappedVersionState();
+        newState.setState(VersionState.DISABLED);
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIds.get(0)).versions()
-                .byVersionExpression("1").put(eamd);
+                .byVersionExpression("1").state().put(newState);
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIds.get(3)).versions()
-                .byVersionExpression("1").put(eamd);
+                .byVersionExpression("1").state().put(newState);
 
         // Execution
         // Check the search results still include the DISABLED artifacts
@@ -696,12 +696,12 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         // Preparation
         // Put 2 of the 3 versions in DISABLED state
-        EditableVersionMetaData evmd = new EditableVersionMetaData();
-        evmd.setState(VersionState.DISABLED);
+        WrappedVersionState newState = new WrappedVersionState();
+        newState.setState(VersionState.DISABLED);
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
-                .byVersionExpression("1").put(evmd);
+                .byVersionExpression("1").state().put(newState);
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
-                .byVersionExpression("3").put(evmd);
+                .byVersionExpression("3").state().put(newState);
 
         // Execution
         // Check that the search results still include the DISABLED versions

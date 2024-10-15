@@ -41,6 +41,11 @@ type VersionsRequestBuilderGetQueryParameters struct {
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
 	OrderbyAsVersionSortBy *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSortBy `uriparametername:"orderby"`
+	// Filter by version state.
+	// Deprecated: This property is deprecated, use StateAsVersionState instead
+	State *string `uriparametername:"state"`
+	// Filter by version state.
+	StateAsVersionState *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionState `uriparametername:"state"`
 	// Filter by version number.
 	Version *string `uriparametername:"version"`
 }
@@ -94,7 +99,7 @@ type VersionsRequestBuilderPostRequestConfiguration struct {
 // NewVersionsRequestBuilderInternal instantiates a new VersionsRequestBuilder and sets the default values.
 func NewVersionsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *VersionsRequestBuilder {
 	m := &VersionsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/versions{?artifactId*,artifactType*,canonical*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,offset*,order*,orderby*,version*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/versions{?artifactId*,artifactType*,canonical*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,offset*,order*,orderby*,state*,version*}", pathParameters),
 	}
 	return m
 }

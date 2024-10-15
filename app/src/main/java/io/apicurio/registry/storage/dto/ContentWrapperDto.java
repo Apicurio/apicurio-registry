@@ -18,4 +18,5 @@ public class ContentWrapperDto {
     private ContentHandle content;
     private List<ArtifactReferenceDto> references;
     private String artifactType;
+    private transient String contentHash;
 }

@@ -436,8 +436,8 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
 
         // Create artifact with version as DRAFT
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
-                content, ContentTypes.APPLICATION_JSON);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, content,
+                ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setIsDraft(true);
         createArtifact.getFirstVersion().setVersion("1.0");
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);

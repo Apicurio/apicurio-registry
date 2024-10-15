@@ -71,7 +71,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.auth.admin-override.user`
 |`string`
 |`admin`
-|`3.0.0.Final`
+|`3.0.0`
 |Auth admin override user name
 |`apicurio.auth.anonymous-read-access.enabled`
 |`boolean [dynamic]`
@@ -530,12 +530,12 @@ The following {registry} configuration options are available for each component 
 |`apicurio.rest.artifact.download.max-size.bytes`
 |`int`
 |`1000000`
-|`2.2.6-SNAPSHOT`
+|`2.2.6`
 |Max size of the artifact allowed to be downloaded from URL
 |`apicurio.rest.artifact.download.ssl-validation.disabled`
 |`boolean`
 |`false`
-|`2.2.6-SNAPSHOT`
+|`2.2.6`
 |Skip SSL validation when downloading artifacts from URL
 |`apicurio.rest.deletion.artifact-version.enabled`
 |`boolean [dynamic]`
@@ -832,7 +832,7 @@ The following {registry} configuration options are available for each component 
 |`artifacts.skip.disabled.latest`
 |`boolean`
 |`true`
-|`2.4.2-SNAPSHOT`
+|`2.4.2`
 |Skip artifact versions with DISABLED state when retrieving latest artifact version
 |===
 

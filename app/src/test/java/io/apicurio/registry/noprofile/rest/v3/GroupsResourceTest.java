@@ -368,7 +368,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/MissingAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
                 .statusCode(404).body("status", equalTo(404)).body("title", equalTo(
-                        "No version '<tip of the branch 'latest' that does not have disabled status>' found for artifact with ID 'testGetArtifact/MissingAPI' in group 'GroupsResourceTest'."));
+                        "No version '<tip of the branch 'latest'>' found for artifact with ID 'testGetArtifact/MissingAPI' in group 'GroupsResourceTest'."));
     }
 
     @Test

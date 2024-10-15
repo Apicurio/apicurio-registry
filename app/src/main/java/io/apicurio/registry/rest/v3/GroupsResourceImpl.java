@@ -160,7 +160,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             String versionExpression, ReferenceType refType) {
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         if (refType == null || refType == ReferenceType.OUTBOUND) {
             return storage
@@ -540,9 +540,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     HttpMethod.GET, (String[]) null);
         }
 
-        // Resolve the GAV info
+        // Resolve the GAV info (only look for DRAFT versions)
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         // Ensure the artifact version is in DRAFT status
         ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(gav.getRawGroupIdWithNull(),
@@ -586,7 +586,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         storage.deleteArtifactVersion(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId());
@@ -626,7 +626,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
         EditableVersionMetaDataDto dto = new EditableVersionMetaDataDto();
         dto.setName(data.getName());
@@ -645,7 +645,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         VersionState state = storage.getArtifactVersionState(gav.getRawGroupIdWithNull(),
                 gav.getRawArtifactId(), gav.getRawVersionId());
@@ -667,7 +667,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         // Get current state.
         VersionState currentState = storage.getArtifactVersionState(gav.getRawGroupIdWithNull(),
@@ -680,7 +680,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // If the current state is DRAFT, apply rules.
         if (currentState == VersionState.DRAFT) {
-            VersionMetaData vmd = getArtifactVersionMetaData(gav.getRawGroupIdWithNull(),
+            VersionMetaData vmd = getArtifactVersionMetaData(gav.getRawGroupIdWithDefaultString(),
                     gav.getRawArtifactId(), gav.getRawVersionId());
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
                     gav.getRawArtifactId(), gav.getRawVersionId());
@@ -714,7 +714,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         CommentDto newComment = storage.createArtifactVersionComment(gav.getRawGroupIdWithNull(),
                 gav.getRawArtifactId(), gav.getRawVersionId(), data.getValue());
@@ -737,7 +737,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("commentId", commentId);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         storage.deleteArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), commentId);
@@ -755,7 +755,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         return storage.getArtifactVersionComments(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId()).stream().map(V3ApiUtil::commentDtoToComment).collect(toList());
@@ -779,7 +779,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("value", data.getValue());
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.DEFAULT));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
         storage.updateArtifactVersionComment(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), commentId, data.getValue());
@@ -1227,13 +1227,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         switch (ifExists) {
             case CREATE_VERSION:
                 return updateArtifactInternal(groupId, artifactId, theVersion);
-            // case RETURN:
-            // GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
-            // ArtifactRetrievalBehavior.DEFAULT);
-            // ArtifactVersionMetaDataDto latestVersionMD =
-            // storage.getArtifactVersionMetaData(latestGAV.getRawGroupIdWithNull(),
-            // latestGAV.getRawArtifactId(), latestGAV.getRawVersionId());
-            // return V3ApiUtil.dtoToVersionMetaData(latestVersionMD);
             case FIND_OR_CREATE_VERSION:
                 return handleIfExistsReturnOrUpdate(groupId, artifactId, theVersion, canonical);
             default:

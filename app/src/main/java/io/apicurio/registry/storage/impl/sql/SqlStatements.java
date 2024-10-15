@@ -128,7 +128,7 @@ public interface SqlStatements {
     /**
      * A statement used to select non-disabled version numbers (only) for a given artifactId.
      */
-    public String selectArtifactVersionsNotDisabled();
+    public String selectArtifactVersionsFilteredByState();
 
     /**
      * A statement used to select all versions for a given artifactId.
@@ -622,7 +622,7 @@ public interface SqlStatements {
 
     public String selectBranchTip();
 
-    public String selectBranchTipNotDisabled();
+    public String selectBranchTipFilteredByState();
 
     public String updateBranchModifiedTime();
 

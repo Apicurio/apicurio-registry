@@ -17,16 +17,16 @@ public class AuthConfig {
     Logger log;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
-    @Info(category = "auth", description = "Enable auth", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = "auth", description = "Enable auth", availableSince = "0.1.18", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
     boolean oidcAuthEnabled;
 
     @Dynamic(label = "HTTP basic authentication", description = "When selected, users are permitted to authenticate using HTTP basic authentication (in addition to OAuth).", requires = "apicurio.authn.enabled=true")
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.enabled", defaultValue = "false")
-    @Info(category = "auth", description = "Enable basic auth client credentials", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = "auth", description = "Enable basic auth client credentials", availableSince = "0.1.18", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
     Supplier<Boolean> basicClientCredentialsAuthEnabled;
 
     @ConfigProperty(name = "quarkus.http.auth.basic", defaultValue = "false")
-    @Info(category = "auth", description = "Enable basic auth", availableSince = "1.1.X-SNAPSHOT", registryAvailableSince = "3.X.X.Final", studioAvailableSince = "1.0.0")
+    @Info(category = "auth", description = "Enable basic auth", availableSince = "1.1.x", registryAvailableSince = "3.0.0", studioAvailableSince = "1.0.0")
     boolean basicAuthEnabled;
 
     @ConfigProperty(name = "apicurio.auth.role-based-authorization", defaultValue = "false")
@@ -96,7 +96,7 @@ public class AuthConfig {
     String adminOverrideClaimValue;
 
     @ConfigProperty(name = "apicurio.auth.admin-override.user", defaultValue = "admin")
-    @Info(category = "auth", description = "Auth admin override user name", availableSince = "3.0.0.Final")
+    @Info(category = "auth", description = "Auth admin override user name", availableSince = "3.0.0")
     String adminOverrideUser;
 
     @PostConstruct

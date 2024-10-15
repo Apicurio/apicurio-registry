@@ -162,8 +162,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String selectArtifactVersionsNotDisabled() {
-        return "SELECT version FROM versions WHERE groupId = ? AND artifactId = ? AND state != 'DISABLED'";
+    public String selectArtifactVersionsFilteredByState() {
+        return "SELECT version FROM versions WHERE groupId = ? AND artifactId = ? AND state IN (?)";
     }
 
     /**
@@ -1126,10 +1126,10 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String selectBranchTipNotDisabled() {
-        return "SELECT bv.groupId, bv.artifactId, bv.version " + "FROM branch_versions bv "
+    public String selectBranchTipFilteredByState() {
+        return "SELECT bv.groupId, bv.artifactId, bv.version FROM branch_versions bv "
                 + "JOIN versions v ON bv.groupId = v.groupId AND bv.artifactId = v.artifactId AND bv.version = v.version "
-                + "WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ? AND v.state != 'DISABLED' "
+                + "WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ? AND v.state IN (?) "
                 + "ORDER BY bv.branchOrder DESC LIMIT 1";
     }
 

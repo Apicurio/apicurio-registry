@@ -238,7 +238,7 @@ public abstract class AbstractResource {
     protected String getLatestArtifactVersionForSubject(String artifactId, String groupId) {
         try {
             GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
-                    RetrievalBehavior.SKIP_DISABLED_LATEST);
+                    RetrievalBehavior.ACTIVE_STATES);
             return latestGAV.getRawVersionId();
         } catch (ArtifactNotFoundException ex) {
             throw new VersionNotFoundException(groupId, artifactId, "latest");

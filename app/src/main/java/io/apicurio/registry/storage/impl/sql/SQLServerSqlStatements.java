@@ -117,10 +117,10 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     @Override
-    public String selectBranchTipNotDisabled() {
+    public String selectBranchTipFilteredByState() {
         return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab "
                 + "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version "
-                + "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' "
+                + "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state IN (?) "
                 + "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
     }
 

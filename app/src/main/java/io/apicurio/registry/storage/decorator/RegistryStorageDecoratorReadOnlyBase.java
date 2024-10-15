@@ -364,13 +364,13 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior)
+    public List<String> getArtifactVersions(String groupId, String artifactId, Set<VersionState> behavior)
             throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersions(groupId, artifactId, behavior);
     }
 
     @Override
-    public GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior) {
+    public GAV getBranchTip(GA ga, BranchId branchId, Set<VersionState> behavior) {
         return delegate.getBranchTip(ga, branchId, behavior);
     }
 

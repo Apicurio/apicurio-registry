@@ -1,6 +1,8 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateGroup;
@@ -14,10 +16,13 @@ import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.MutabilityEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.apache.commons.io.IOUtils;
@@ -26,6 +31,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.UUID;
+
+import static io.restassured.RestAssured.given;
 
 @QuarkusTest
 @TestProfile(MutabilityEnabledProfile.class)
@@ -66,6 +75,8 @@ public class DraftContentTest extends AbstractResourceTestBase {
     @Test
     public void testCreateDraftArtifact() throws Exception {
         String content = resourceToString("openapi-empty.json");
+        // Ensure the content is unique because we will do a contentHash check later in the test.
+        content = content.replace("Empty API", "Unique API: " + UUID.randomUUID().toString());
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
@@ -95,6 +106,14 @@ public class DraftContentTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(contentId);
         Assertions.assertThrows(ProblemDetails.class, () -> {
             clientV3.ids().contentIds().byContentId(contentId).get();
+        });
+
+        // Note: Should NOT be able to fetch its content by contentHash (disallowed for DRAFT content)
+        ContentWrapperDto contentWrapperDto = ContentWrapperDto.builder()
+                .content(ContentHandle.create(content)).contentType(ContentTypes.APPLICATION_JSON).build();
+        String contentHash = RegistryContentUtils.contentHash(contentWrapperDto);
+        Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.ids().contentHashes().byContentHash(contentHash).get();
         });
     }
 
@@ -375,4 +394,70 @@ public class DraftContentTest extends AbstractResourceTestBase {
         Assertions.assertEquals(0, draftsBranch.getVersions().size());
     }
 
+    @Test
+    public void testDraftVersionsInCcompat() throws Exception {
+        String content = AVRO_CONTENT_V1;
+        String groupId = GroupId.DEFAULT.getRawGroupIdWithDefaultString();
+        String draftArtifactId = TestUtils.generateArtifactId();
+        String enabledArtifactId = TestUtils.generateArtifactId();
+
+        // Create artifact with version as DRAFT
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(draftArtifactId, ArtifactType.AVRO,
+                content, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setIsDraft(true);
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(car);
+        Assertions.assertNotNull(car.getVersion());
+
+        // Create artifact with version as ENABLED
+        createArtifact = TestUtils.clientCreateArtifact(enabledArtifactId, ArtifactType.AVRO, content,
+                ContentTypes.APPLICATION_JSON);
+        car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(car);
+        Assertions.assertNotNull(car.getVersion());
+
+        // Should be able to fetch the subject in ccompat
+        List<String> allSubjects = confluentClient.getAllSubjects();
+        Assertions.assertTrue(!allSubjects.isEmpty());
+
+        // Should not be able to list versions - no versions are visible
+        Assertions.assertThrows(RestClientException.class, () -> {
+            confluentClient.getAllVersions(draftArtifactId);
+        });
+
+        List<Integer> allVersions = confluentClient.getAllVersions(enabledArtifactId);
+        Assertions.assertEquals(1, allVersions.size());
+    }
+
+    @Test
+    public void testDraftVersionsInCoreV2() throws Exception {
+        String content = AVRO_CONTENT_V1;
+        String groupId = GroupId.DEFAULT.getRawGroupIdWithDefaultString();
+        String artifactId = TestUtils.generateArtifactId();
+
+        // Create artifact with version as DRAFT
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                content, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setIsDraft(true);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(car);
+        Assertions.assertNotNull(car.getVersion());
+
+        // The version of the artifact is DRAFT so v2 will report the artifact as 404 not found
+        given().when().contentType(CT_JSON).pathParam("groupId", groupId).pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest").then()
+                .statusCode(404);
+
+        // Transition draft content to enabled
+        WrappedVersionState enabled = new WrappedVersionState();
+        enabled.setState(VersionState.ENABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1.0").state().put(enabled);
+
+        // Now we can get the artifact
+        given().when().contentType(CT_JSON).pathParam("groupId", groupId).pathParam("artifactId", artifactId)
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest").then()
+                .statusCode(200);
+    }
 }

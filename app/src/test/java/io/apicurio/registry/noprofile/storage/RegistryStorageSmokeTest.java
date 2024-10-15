@@ -117,7 +117,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         assertNotNull(a1.getContent());
 
         GAV latestGAV = getStorage().getBranchTip(new GA(GROUP_ID, artifactId1), BranchId.LATEST,
-                RetrievalBehavior.DEFAULT);
+                RetrievalBehavior.ALL_STATES);
         ArtifactVersionMetaDataDto metaLatest = getStorage().getArtifactVersionMetaData(GROUP_ID, artifactId1,
                 latestGAV.getRawVersionId());
         assertEquals(vmdDto1_2, metaLatest);

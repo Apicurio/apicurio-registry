@@ -157,6 +157,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
@@ -1538,31 +1539,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior)
+    public List<String> getArtifactVersions(String groupId, String artifactId, Set<VersionState> filterBy)
             throws ArtifactNotFoundException, RegistryStorageException {
         log.debug("Getting a list of versions for artifact: {} {}", groupId, artifactId);
 
-        try {
-            List<String> versions = handles.withHandle(handle -> {
-                switch (behavior) {
-                    case DEFAULT -> {
-                        return getArtifactVersionsRaw(handle, groupId, artifactId,
-                                sqlStatements.selectArtifactVersions());
-                    }
-                    case SKIP_DISABLED_LATEST -> {
-                        return getArtifactVersionsRaw(handle, groupId, artifactId,
-                                sqlStatements.selectArtifactVersionsNotDisabled());
-                    }
-                }
-                return null;
-            });
-            if (versions != null) {
-                return versions;
+        return handles.withHandle(handle -> {
+            String sql = sqlStatements.selectArtifactVersions();
+            if (filterBy != null && !filterBy.isEmpty()) {
+                sql = sqlStatements.selectArtifactVersionsFilteredByState();
+                String jclause = filterBy.stream().map(vs -> "'" + vs.name() + "'")
+                        .collect(Collectors.joining(",", "(", ")"));
+                sql = sql.replace("(?)", jclause);
             }
-        } catch (BranchNotFoundException ex) {
-            throw new ArtifactNotFoundException(groupId, artifactId);
-        }
-        throw new UnsupportedOperationException("Retrieval behavior not implemented: " + behavior.name());
+            return getArtifactVersionsRaw(handle, groupId, artifactId, sql);
+        });
     }
 
     private List<String> getArtifactVersionsRaw(Handle handle, String groupId, String artifactId,
@@ -3669,26 +3659,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior) {
+    public GAV getBranchTip(GA ga, BranchId branchId, Set<VersionState> filterBy) {
         return handles.withHandleNoException(handle -> {
-            switch (behavior) {
-                case DEFAULT:
-                    return handle.createQuery(sqlStatements.selectBranchTip()).bind(0, ga.getRawGroupId())
-                            .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
-                            .map(GAVMapper.instance).findOne()
-                            .orElseThrow(() -> new VersionNotFoundException(
-                                    ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(),
-                                    "<tip of the branch '" + branchId.getRawBranchId() + "'>"));
-                case SKIP_DISABLED_LATEST:
-                    return handle.createQuery(sqlStatements.selectBranchTipNotDisabled())
-                            .bind(0, ga.getRawGroupId()).bind(1, ga.getRawArtifactId())
-                            .bind(2, branchId.getRawBranchId()).map(GAVMapper.instance).findOne()
-                            .orElseThrow(() -> new VersionNotFoundException(
-                                    ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId(),
-                                    "<tip of the branch '" + branchId.getRawBranchId()
-                                            + "' that does not have disabled status>"));
+            String sql = sqlStatements.selectBranchTip();
+            if (filterBy != null && !filterBy.isEmpty()) {
+                sql = sqlStatements.selectBranchTipFilteredByState();
+                String jclause = filterBy.stream().map(vs -> "'" + vs.name() + "'")
+                        .collect(Collectors.joining(",", "(", ")"));
+                sql = sql.replace("(?)", jclause);
             }
-            throw new UnreachableCodeException();
+            return handle.createQuery(sql).bind(0, ga.getRawGroupId()).bind(1, ga.getRawArtifactId())
+                    .bind(2, branchId.getRawBranchId()).map(GAVMapper.instance).findOne()
+                    .orElseThrow(() -> new VersionNotFoundException(ga.getRawGroupIdWithDefaultString(),
+                            ga.getRawArtifactId(),
+                            "<tip of the branch '" + branchId.getRawBranchId() + "'>"));
         });
     }
 

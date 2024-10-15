@@ -19,6 +19,7 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
+import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
@@ -37,8 +38,6 @@ import java.util.stream.Collectors;
 
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
-import static io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior.DEFAULT;
-import static io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior.SKIP_DISABLED_LATEST;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
@@ -55,13 +54,15 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
         List<Integer> rval;
         if (fdeleted) {
-            rval = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), DEFAULT)
+            rval = storage
+                    .getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                            RetrievalBehavior.NON_DRAFT_STATES)
                     .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
                     .collect(Collectors.toList());
         } else {
             rval = storage
                     .getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                            SKIP_DISABLED_LATEST)
+                            RetrievalBehavior.ACTIVE_STATES)
                     .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
                     .collect(Collectors.toList());
         }

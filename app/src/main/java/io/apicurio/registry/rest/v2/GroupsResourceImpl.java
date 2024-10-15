@@ -16,6 +16,7 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
@@ -182,7 +183,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         try {
             GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
-                    RetrievalBehavior.SKIP_DISABLED_LATEST);
+                    RetrievalBehavior.ACTIVE_STATES);
             ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(
                     latestGAV.getRawGroupIdWithNull(), latestGAV.getRawArtifactId(),
                     latestGAV.getRawVersionId());
@@ -261,6 +262,13 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId,
             String version, ReferenceType refType) {
+
+        if ("latest".equals(version)) {
+            var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), "branch=latest",
+                    (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
+            version = gav.getRawVersionId();
+        }
+
         if (refType == null || refType == ReferenceType.OUTBOUND) {
             return storage.getArtifactVersionContent(defaultGroupIdToNull(groupId), artifactId, version)
                     .getReferences().stream().map(V2ApiUtil::referenceDtoToReference)
@@ -324,7 +332,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(defaultGroupIdToNull(groupId), artifactId);
         GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
-                RetrievalBehavior.SKIP_DISABLED_LATEST);
+                RetrievalBehavior.ACTIVE_STATES);
         ArtifactVersionMetaDataDto vdto = storage.getArtifactVersionMetaData(
                 latestGAV.getRawGroupIdWithNull(), latestGAV.getRawArtifactId(), latestGAV.getRawVersionId());
 
@@ -352,7 +360,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
         GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
-                RetrievalBehavior.DEFAULT);
+                RetrievalBehavior.ALL_STATES);
         storage.updateArtifactVersionMetaData(groupId, artifactId, latestGAV.getRawVersionId(),
                 EditableVersionMetaDataDto.builder().name(data.getName()).description(data.getDescription())
                         .labels(V2ApiUtil.toV3Labels(data.getLabels(), data.getProperties())).build());
@@ -614,7 +622,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         // Possible race condition here. Worst case should be that the update fails with a reasonable message.
         GAV latestGAV = storage.getBranchTip(new GA(defaultGroupIdToNull(groupId), artifactId),
-                BranchId.LATEST, RetrievalBehavior.DEFAULT);
+                BranchId.LATEST, RetrievalBehavior.ALL_STATES);
         updateArtifactVersionState(groupId, artifactId, latestGAV.getRawVersionId(), data);
     }
 
@@ -660,6 +668,12 @@ public class GroupsResourceImpl implements GroupsResource {
 
         if (dereference == null) {
             dereference = Boolean.FALSE;
+        }
+
+        if ("latest".equals(version)) {
+            var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), "branch=latest",
+                    (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
+            version = gav.getRawVersionId();
         }
 
         ArtifactVersionMetaDataDto metaData = storage
@@ -725,6 +739,12 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
+
+        if ("latest".equals(version)) {
+            var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), "branch=latest",
+                    (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
+            version = gav.getRawVersionId();
+        }
 
         ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(defaultGroupIdToNull(groupId),
                 artifactId, version);
@@ -812,6 +832,12 @@ public class GroupsResourceImpl implements GroupsResource {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
         requireParameter("version", version);
+
+        if ("latest".equals(version)) {
+            var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), "branch=latest",
+                    (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
+            version = gav.getRawVersionId();
+        }
 
         return storage.getArtifactVersionComments(defaultGroupIdToNull(groupId), artifactId, version).stream()
                 .map(V2ApiUtil::commentDtoToComment).collect(Collectors.toList());

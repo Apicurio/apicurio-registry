@@ -271,7 +271,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
-    public List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior) {
+    public List<String> getArtifactVersions(String groupId, String artifactId, Set<VersionState> behavior) {
         return proxy(storage -> storage.getArtifactVersions(groupId, artifactId, behavior));
     }
 
@@ -485,7 +485,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
-    public GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior) {
+    public GAV getBranchTip(GA ga, BranchId branchId, Set<VersionState> behavior) {
         return proxy(storage -> storage.getBranchTip(ga, branchId, behavior));
     }
 

@@ -11,11 +11,11 @@ import java.util.function.Supplier;
 public class RestConfig {
 
     @ConfigProperty(name = "apicurio.rest.artifact.download.max-size.bytes", defaultValue = "1000000")
-    @Info(category = "rest", description = "Max size of the artifact allowed to be downloaded from URL", availableSince = "2.2.6-SNAPSHOT")
+    @Info(category = "rest", description = "Max size of the artifact allowed to be downloaded from URL", availableSince = "2.2.6")
     int downloadMaxSize;
 
     @ConfigProperty(name = "apicurio.rest.artifact.download.ssl-validation.disabled", defaultValue = "false")
-    @Info(category = "rest", description = "Skip SSL validation when downloading artifacts from URL", availableSince = "2.2.6-SNAPSHOT")
+    @Info(category = "rest", description = "Skip SSL validation when downloading artifacts from URL", availableSince = "2.2.6")
     boolean downloadSkipSSLValidation;
 
     @Dynamic(label = "Delete group", description = "When selected, users are permitted to delete groups.")

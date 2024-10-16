@@ -634,6 +634,8 @@ public interface SqlStatements {
 
     public String deleteBranch();
 
+    public String deleteAllBranchVersions();
+
     public String deleteAllBranches();
 
     public String deleteVersionFromBranch();

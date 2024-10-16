@@ -1162,6 +1162,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String deleteAllBranchVersions() {
+        return "DELETE FROM branch_versions";
+    }
+
+    @Override
     public String deleteAllBranches() {
         return "DELETE FROM branches";
     }
@@ -1198,17 +1203,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String createOutboxEvent() {
-        return """
-                INSERT INTO outbox (id, aggregatetype, aggregateid, type, payload)
-                VALUES (?, ?, ?, ?, ?)
-                """;
+        return "INSERT INTO outbox (id, aggregatetype, aggregateid, type, payload) VALUES (?, ?, ?, ?, ?)";
     }
 
     @Override
     public String deleteOutboxEvent() {
-        return """
-                DELETE FROM outbox o
-                WHERE o.id = ?
-                """;
+        return "DELETE FROM outbox WHERE id = ?";
     }
 }

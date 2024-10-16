@@ -2689,6 +2689,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             handle.createUpdate(sqlStatements.deleteAllVersionComments()).execute();
 
+            handle.createUpdate(sqlStatements.deleteAllBranchVersions()).execute();
+
             handle.createUpdate(sqlStatements.deleteAllBranches()).execute();
 
             handle.createUpdate(sqlStatements.deleteAllVersions()).execute();

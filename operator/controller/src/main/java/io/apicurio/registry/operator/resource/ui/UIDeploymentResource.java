@@ -17,6 +17,7 @@ import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_U
 import static io.apicurio.registry.operator.resource.ResourceFactory.UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
+import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainer;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
@@ -40,6 +41,9 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
         var d = UI_DEPLOYMENT_KEY.getFactory().apply(primary);
 
         var envVars = new LinkedHashMap<String, EnvVar>();
+        primary.getSpec().getUi().getEnv().forEach(e -> {
+            envVars.put(e.getName(), e);
+        });
 
         var sOpt = context.getSecondaryResource(APP_SERVICE_KEY.getKlass(),
                 APP_SERVICE_KEY.getDiscriminator());
@@ -53,17 +57,8 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
             }));
         });
 
-        // This must be done after any modification of the map by the operator.
-        primary.getSpec().getUi().getEnv().forEach(e -> {
-            envVars.remove(e.getName());
-            envVars.put(e.getName(), e);
-        });
-
-        for (var c : d.getSpec().getTemplate().getSpec().getContainers()) {
-            if (UI_CONTAINER_NAME.equals(c.getName())) {
-                c.setEnv(envVars.values().stream().toList());
-            }
-        }
+        var container = getContainer(d, UI_CONTAINER_NAME);
+        container.setEnv(envVars.values().stream().toList());
 
         log.debug("Desired {} is {}", UI_DEPLOYMENT_KEY.getId(), toYAML(d));
         return d;

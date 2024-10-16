@@ -1,8 +1,8 @@
-package io.apicurio.registry.operator.util;
+package io.apicurio.registry.operator.utils;
 
-public class Util {
+public class Utils {
 
-    private Util() {
+    private Utils() {
     }
 
     public static boolean isBlank(String value) {

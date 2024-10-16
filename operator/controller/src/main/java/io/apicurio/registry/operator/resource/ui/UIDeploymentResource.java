@@ -10,13 +10,16 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
-import static io.apicurio.registry.operator.Mapper.toYAML;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
+import static io.apicurio.registry.operator.resource.ResourceFactory.UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
-import static io.apicurio.registry.operator.util.IngressUtil.withIngressRule;
+import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
+import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainer;
+import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
+import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
 // spotless:off
 @KubernetesDependent(
@@ -37,7 +40,10 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
 
         var d = UI_DEPLOYMENT_KEY.getFactory().apply(primary);
 
-        var uiEnv = new ArrayList<EnvVar>();
+        var envVars = new LinkedHashMap<String, EnvVar>();
+        primary.getSpec().getUi().getEnv().forEach(e -> {
+            envVars.put(e.getName(), e);
+        });
 
         var sOpt = context.getSecondaryResource(APP_SERVICE_KEY.getKlass(),
                 APP_SERVICE_KEY.getDiscriminator());
@@ -46,15 +52,13 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
                     APP_INGRESS_KEY.getDiscriminator());
             iOpt.ifPresent(i -> withIngressRule(s, i, rule -> {
                 // spotless:off
-                uiEnv.add(new EnvVarBuilder()
-                        .withName("REGISTRY_API_URL")
-                        .withValue("http://%s/apis/registry/v3".formatted(rule.getHost()))
-                        .build());
+                addEnvVar(envVars, new EnvVarBuilder().withName("REGISTRY_API_URL").withValue("http://%s/apis/registry/v3".formatted(rule.getHost())).build());
                 // spotless:on
             }));
         });
 
-        d.getSpec().getTemplate().getSpec().getContainers().get(0).setEnv(uiEnv);
+        var container = getContainer(d, UI_CONTAINER_NAME);
+        container.setEnv(envVars.values().stream().toList());
 
         log.debug("Desired {} is {}", UI_DEPLOYMENT_KEY.getId(), toYAML(d));
         return d;

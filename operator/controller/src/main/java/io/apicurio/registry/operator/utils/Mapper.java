@@ -1,8 +1,10 @@
-package io.apicurio.registry.operator;
+package io.apicurio.registry.operator.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.apicurio.registry.operator.OperatorException;
 
 public class Mapper {
 
@@ -10,6 +12,7 @@ public class Mapper {
 
     static {
         YAML_MAPPER = new YAMLMapper();
+        YAML_MAPPER.registerModule(new JavaTimeModule());
     }
 
     public static String toYAML(Object value) {

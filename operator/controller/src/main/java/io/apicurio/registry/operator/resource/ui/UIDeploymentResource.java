@@ -1,8 +1,8 @@
 package io.apicurio.registry.operator.resource.ui;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.env.EnvCache;
-import io.apicurio.registry.operator.utils.ResourceUtils;
+import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
@@ -10,13 +10,15 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.env.EnvCachePriority.OPERATOR;
+import java.util.LinkedHashMap;
+
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.resource.ResourceFactory.UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
+import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
-import static io.apicurio.registry.operator.utils.TraverseUtils.where;
+import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
 // spotless:off
 @KubernetesDependent(
@@ -34,29 +36,36 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
 
     @Override
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-        try (var ru = new ResourceUtils<>(primary, context, UI_DEPLOYMENT_KEY)) {
 
-            ru.withExistingResource(APP_SERVICE_KEY, appS -> {
-                ru.withExistingResource(APP_INGRESS_KEY, appI -> {
-                    withIngressRule(appS, appI, rule -> {
+        var d = UI_DEPLOYMENT_KEY.getFactory().apply(primary);
 
-                        var ec = new EnvCache();
-                        ec.addFromPrimary(primary.getSpec().getUi().getEnv());
+        var envVars = new LinkedHashMap<String, EnvVar>();
 
-                        ec.add("REGISTRY_API_URL", "http://%s/apis/registry/v3".formatted(rule.getHost()),
-                                OPERATOR);
+        var sOpt = context.getSecondaryResource(APP_SERVICE_KEY.getKlass(),
+                APP_SERVICE_KEY.getDiscriminator());
+        sOpt.ifPresent(s -> {
+            var iOpt = context.getSecondaryResource(APP_INGRESS_KEY.getKlass(),
+                    APP_INGRESS_KEY.getDiscriminator());
+            iOpt.ifPresent(i -> withIngressRule(s, i, rule -> {
+                // spotless:off
+                addEnvVar(envVars, new EnvVarBuilder().withName("REGISTRY_API_URL").withValue("http://%s/apis/registry/v3".formatted(rule.getHost())).build());
+                // spotless:on
+            }));
+        });
 
-                        ru.withDesiredResource(d -> {
-                            where(d.getSpec().getTemplate().getSpec().getContainers(),
-                                    c -> UI_CONTAINER_NAME.equals(c.getName()), c -> {
-                                        c.setEnv(ec.getEnv());
-                                    });
-                        });
-                    });
-                });
-            });
+        // This must be done after any modification of the map by the operator.
+        primary.getSpec().getUi().getEnv().forEach(e -> {
+            envVars.remove(e.getName());
+            envVars.put(e.getName(), e);
+        });
 
-            return ru.returnDesiredResource();
+        for (var c : d.getSpec().getTemplate().getSpec().getContainers()) {
+            if (UI_CONTAINER_NAME.equals(c.getName())) {
+                c.setEnv(envVars.values().stream().toList());
+            }
         }
+
+        log.debug("Desired {} is {}", UI_DEPLOYMENT_KEY.getId(), toYAML(d));
+        return d;
     }
 }

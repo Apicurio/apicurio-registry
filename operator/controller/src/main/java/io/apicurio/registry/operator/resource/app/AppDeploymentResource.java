@@ -1,8 +1,8 @@
 package io.apicurio.registry.operator.resource.app;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.env.EnvCache;
-import io.apicurio.registry.operator.utils.ResourceUtils;
+import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
@@ -10,12 +10,14 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.env.EnvCachePriority.OPERATOR;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceFactory.APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
-import static io.apicurio.registry.operator.utils.TraverseUtils.where;
+import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
 // spotless:off
 @KubernetesDependent(
@@ -33,31 +35,39 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
 
     @Override
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-        try (var ru = new ResourceUtils<>(primary, context, APP_DEPLOYMENT_KEY)) {
 
-            var ec = new EnvCache();
-            ec.addFromPrimary(primary.getSpec().getApp().getEnv());
+        var d = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
 
-            ec.add("QUARKUS_PROFILE", "prod", OPERATOR);
-            ec.add("APICURIO_CONFIG_CACHE_ENABLED", "true", OPERATOR);
+        var envVars = new LinkedHashMap<String, EnvVar>();
 
-            ec.add("QUARKUS_HTTP_ACCESS_LOG_ENABLED", "true", OPERATOR);
-            ec.add("QUARKUS_HTTP_CORS_ORIGINS", "*", OPERATOR);
+        // spotless:off
+        addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_PROFILE").withValue("prod").build());
+        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_CONFIG_CACHE_ENABLED").withValue("true").build());
+        addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_HTTP_ACCESS_LOG_ENABLED").withValue("true").build());
+        addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_HTTP_CORS_ORIGINS").withValue("*").build());
+        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_REST_DELETION_GROUP_ENABLED").withValue("true").build());
+        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_REST_DELETION_ARTIFACT_ENABLED").withValue("true").build());
+        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_REST_DELETION_ARTIFACTVERSION_ENABLED").withValue("true").build());
+        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_APIS_V2_DATE_FORMAT").withValue("yyyy-MM-dd''T''HH:mm:ssZ").build());
+        // spotless:on
 
-            ec.add("APICURIO_REST_DELETION_GROUP_ENABLED", "true", OPERATOR);
-            ec.add("APICURIO_REST_DELETION_ARTIFACT_ENABLED", "true", OPERATOR);
-            ec.add("APICURIO_REST_DELETION_ARTIFACTVERSION_ENABLED", "true", OPERATOR);
+        // This must be done after any modification of the map by the operator.
+        primary.getSpec().getApp().getEnv().forEach(e -> {
+            envVars.remove(e.getName());
+            envVars.put(e.getName(), e);
+        });
 
-            ec.add("APICURIO_APIS_V2_DATE_FORMAT", "yyyy-MM-dd''T''HH:mm:ssZ", OPERATOR);
-
-            ru.withDesiredResource(d -> {
-                where(d.getSpec().getTemplate().getSpec().getContainers(),
-                        c -> APP_CONTAINER_NAME.equals(c.getName()), c -> {
-                            c.setEnv(ec.getEnv());
-                        });
-            });
-
-            return ru.returnDesiredResource();
+        for (var c : d.getSpec().getTemplate().getSpec().getContainers()) {
+            if (APP_CONTAINER_NAME.equals(c.getName())) {
+                c.setEnv(envVars.values().stream().toList());
+            }
         }
+
+        log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(d));
+        return d;
+    }
+
+    public static void addEnvVar(Map<String, EnvVar> map, EnvVar envVar) {
+        map.put(envVar.getName(), envVar);
     }
 }

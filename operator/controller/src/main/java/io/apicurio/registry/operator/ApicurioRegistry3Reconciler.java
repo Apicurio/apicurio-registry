@@ -2,21 +2,21 @@ package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
+import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.AppServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UIServiceResource;
-import io.apicurio.registry.operator.utils.ResourceUtils;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.*;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.resource.ActivationConditions.AppIngressActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.*;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
-import static io.apicurio.registry.operator.utils.Cell.cell;
 
 // spotless:off
 @ControllerConfiguration(
@@ -63,26 +63,16 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
 
     public UpdateControl<ApicurioRegistry3> reconcile(ApicurioRegistry3 primary,
             Context<ApicurioRegistry3> context) {
-        try (var ru = new ResourceUtils<>(primary, context, REGISTRY_KEY)) {
 
-            var statusUpdated = cell(false);
+        log.info("Reconciling Apicurio Registry: {}", primary);
+        var statusUpdater = new StatusUpdater(primary);
 
-            ru.withExistingResource(APP_DEPLOYMENT_KEY, d -> {
-                ru.withDesiredResource(p -> {
-
-                    var statusUpdater = new StatusUpdater(p);
+        return context.getSecondaryResource(Deployment.class, AppDeploymentDiscriminator.INSTANCE)
+                .map(deployment -> {
                     log.info("Updating Apicurio Registry status:");
-                    p.setStatus(statusUpdater.next(d));
-                    statusUpdated.setValue(true);
-                });
-            });
-
-            if (statusUpdated.getValue()) {
-                return UpdateControl.patchStatus(ru.returnDesiredResource());
-            } else {
-                return UpdateControl.noUpdate();
-            }
-        }
+                    primary.setStatus(statusUpdater.next(deployment));
+                    return UpdateControl.patchStatus(primary);
+                }).orElseGet(UpdateControl::noUpdate);
     }
 
     @Override

@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
-import static io.apicurio.registry.operator.utils.TraverseUtils.isBlank;
+import static io.apicurio.registry.operator.utils.Utils.isBlank;
 
 public class IngressUtils {
 

@@ -1199,16 +1199,16 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String createOutboxEvent() {
         return """
-                INSERT INTO outbox (id, aggregatetype, aggregateid, type, payload) \
-                VALUES (?, ?, ?, ?, ?::jsonb)\
+                INSERT INTO outbox (id, aggregatetype, aggregateid, type, payload)
+                VALUES (?, ?, ?, ?, ?)
                 """;
     }
 
     @Override
     public String deleteOutboxEvent() {
         return """
-                DELETE FROM outbox o \
-                WHERE o.id= ?\
+                DELETE FROM outbox o
+                WHERE o.id = ?
                 """;
     }
 }

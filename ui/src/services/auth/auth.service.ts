@@ -182,7 +182,7 @@ export class AuthService implements Service {
     public getToken = () => this.keycloak.token;
 
     public getOidcToken = () => {
-        return this.oidcUser.id_token;
+        return this.oidcUser.access_token;
     };
 
     public isAuthenticationEnabled(): boolean {

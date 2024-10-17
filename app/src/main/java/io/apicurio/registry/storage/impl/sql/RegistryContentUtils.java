@@ -67,7 +67,7 @@ public class RegistryContentUtils {
         else {
             Map<String, ContentHandle> resolvedReferences = new LinkedHashMap<>();
             //First we resolve all the references tree, re-writing the nested contents to use the artifact version coordinates instead of the reference name.
-            return resolveReferencesWithContext(mainContent, mainContentType, resolvedReferences, references, loader);
+            return resolveReferencesWithContext(mainContent, mainContentType, resolvedReferences, references, loader, new HashMap<>());
         }
     }
 
@@ -79,8 +79,7 @@ public class RegistryContentUtils {
     private static RewrittenContentHolder resolveReferencesWithContext(ContentHandle mainContent, String schemaType,
                                                                        Map<String, ContentHandle> partialRecursivelyResolvedReferences,
                                                                        List<ArtifactReferenceDto> references,
-                                                                       Function<ArtifactReferenceDto, ContentAndReferencesDto> loader) {
-        Map<String, String> referencesRewrites = new HashMap<>();
+                                                                       Function<ArtifactReferenceDto, ContentAndReferencesDto> loader, Map<String, String> referencesRewrites) {
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {
                 if (reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
@@ -102,7 +101,7 @@ public class RegistryContentUtils {
                             if (nested != null) {
                                 ArtifactTypeUtilProvider typeUtilProvider = ARTIFACT_TYPE_UTIL.getArtifactTypeProvider(nested.getArtifactType());
                                 RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(nested.getContent(), nested.getArtifactType(),
-                                        partialRecursivelyResolvedReferences, nested.getReferences(), loader);
+                                        partialRecursivelyResolvedReferences, nested.getReferences(), loader, referencesRewrites);
                                 referencesRewrites.put(refName, referenceCoordinates);
                                 ContentHandle rewrittenContent = typeUtilProvider.getContentDereferencer()
                                         .rewriteReferences(rewrittenContentHolder.getRewrittenContent(), referencesRewrites);

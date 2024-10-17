@@ -1,0 +1,178 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "FLIStockTypes.json",
+    "type": "object",
+    "$defs": {
+        "LUStock": {
+            "description": "This object models the stock object.",
+            "type": "object",
+            "properties": {
+                "ItemReference": {
+                    "$ref": "FLIItemBaseTypes.json#/$defs/ItemReferenceType"
+                },
+                "SupplierReference": {
+                    "$ref": "FLIBusinessUnitBaseTypes.json#/$defs/BusinessUnitAddressReferenceType"
+                },
+                "ItemDWPReference": {
+                    "$ref": "FLIItemBaseTypes.json#/$defs/DWPReferenceType"
+                },
+                "RegistrationDateTime": {
+                    "$ref": "FLIServiceTypes.json#/$defs/fliDateTime"
+                },
+                "ProductionDate": {
+                    "$ref": "FLIServiceTypes.json#/$defs/fliDate"
+                },
+                "StockLocationId": {
+                    "$ref": "FLIServiceTypes.json#/$defs/nonEmptyString30"
+                },
+                "Quantity": {
+                    "$ref": "FLIServiceTypes.json#/$defs/decimal11-2"
+                },
+                "UOMCodeQuantity": {
+                    "$ref": "FLIServiceTypes.json#/$defs/nonEmptyString10"
+                },
+                "InboundConsignmentLineReference": {
+                    "$ref": "#/$defs/ConsignmentLineReference"
+                },
+                "CountryOfOrigin": {
+                    "$ref": "FLIServiceTypes.json#/$defs/string2"
+                },
+                "TradeStatus": {
+                    "$ref": "#/$defs/TradeStatus"
+                },
+                "OrderReference": {
+                    "$ref": "FLIServiceTypes.json#/$defs/nonEmptyString24"
+                },
+                "OrderType": {
+                    "$ref": "FLIServiceTypes.json#/$defs/nonEmptyString10"
+                },
+                "BondedFlag": {
+                    "type": "boolean"
+                },
+                "LUStockStatus": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/LUStockStatus"
+                    }
+                }
+            },
+            "required": [
+                "ItemReference",
+                "SupplierReference",
+                "ItemDWPReference",
+                "RegistrationDateTime",
+                "ProductionDate",
+                "StockLocationId",
+                "Quantity",
+                "UOMCodeQuantity",
+                "CountryOfOrigin",
+                "TradeStatus",
+                "BondedFlag"
+            ],
+            "additionalProperties": false
+        },
+        "ConsignmentLineReference": {
+            "type": "object",
+            "properties": {
+                "ConsignmentId": {
+                    "$ref": "#/$defs/ConsignmentId"
+                },
+                "ConsignmentLineNumber": {
+                    "$ref": "#/$defs/ConsignmentLineNumber"
+                }
+            },
+            "required": [
+                "ConsignmentId",
+                "ConsignmentLineNumber"
+            ],
+            "additionalProperties": false
+        },
+        "TradeStatus": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ]
+        },
+        "StockStatusSubCode": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 99
+        },
+        "LUStockStatus": {
+            "type": "object",
+            "properties": {
+                "StockStatus": {
+                    "type": "string"
+                },
+                "StockStatusSubCode": 
+                {
+                    "$ref": "#/$defs/StockStatusSubCode"
+                }
+            },
+            "required": [
+                "StockStatus"
+            ],
+            "additionalProperties": false
+        },
+        "ConsignmentId": {
+            "type": "object",
+            "properties": {
+                "CreatorReference": {
+                    "$ref": "FLIBusinessUnitBaseTypes.json#/$defs/BusinessUnitReferenceType"
+                },
+                "ConsignmentNumber": {
+                    "type": "string",
+                    "maxLength": 12,
+                    "minLength": 1
+                }
+            },
+            "required": [
+                "CreatorReference",
+                "ConsignmentNumber"
+            ],
+            "additionalProperties": false
+        },
+        "ConsignmentLineNumber": {
+            "$ref": "FLIServiceTypes.json#/$defs/positiveInteger"
+        },
+        "orderSource": {
+            "$ref": "FLIServiceTypes.json#/$defs/nonEmptyString10"
+        },
+        "executableOrderId": {
+            "$ref": "FLIServiceTypes.json#/$defs/nonEmptyString40"
+        },
+        "executableOrderLineId": {
+            "$ref": "FLIServiceTypes.json#/$defs/integer4"
+        },
+        "OutBoundReferences": {
+            "type": "object",
+            "properties": {
+                "OutboundConsignmentLineReference": {
+                    "$ref": "#/$defs/ConsignmentLineReference"
+                },
+                "OrderSource": {
+                    "$ref": "#/$defs/orderSource"
+                },
+                "ExecutableOrderLineReference": {
+                    "type": "object",
+                    "properties": {
+                        "ExecutableOrderId": {
+                            "$ref": "#/$defs/executableOrderId"
+                        },
+                        "ExecutableOrderLineId": {
+                            "$ref": "#/$defs/executableOrderLineId"
+                        }
+                    },
+                    "required": [
+                        "ExecutableOrderId",
+                        "ExecutableOrderLineId"
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}

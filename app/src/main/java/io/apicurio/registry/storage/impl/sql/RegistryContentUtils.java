@@ -72,7 +72,7 @@ public class RegistryContentUtils {
             // First we resolve all the references tree, re-writing the nested contents to use the artifact
             // version coordinates instead of the reference name.
             return resolveReferencesWithContext(mainContent, mainContentType, resolvedReferences, references,
-                    loader);
+                    loader, new HashMap<>());
         }
     }
 
@@ -84,8 +84,8 @@ public class RegistryContentUtils {
      */
     private static RewrittenContentHolder resolveReferencesWithContext(TypedContent mainContent,
             String schemaType, Map<String, TypedContent> partialRecursivelyResolvedReferences,
-            List<ArtifactReferenceDto> references, Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
-        Map<String, String> referencesRewrites = new HashMap<>();
+            List<ArtifactReferenceDto> references, Function<ArtifactReferenceDto, ContentWrapperDto> loader,
+            Map<String, String> referencesRewrites) {
         if (references != null && !references.isEmpty()) {
             for (ArtifactReferenceDto reference : references) {
                 if (reference.getArtifactId() == null || reference.getName() == null
@@ -112,7 +112,7 @@ public class RegistryContentUtils {
                                 RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(
                                         TypedContent.create(nested.getContent(), nested.getArtifactType()),
                                         nested.getArtifactType(), partialRecursivelyResolvedReferences,
-                                        nested.getReferences(), loader);
+                                        nested.getReferences(), loader, referencesRewrites);
                                 referencesRewrites.put(refName, referenceCoordinates);
                                 TypedContent rewrittenContent = typeUtilProvider.getContentDereferencer()
                                         .rewriteReferences(rewrittenContentHolder.getRewrittenContent(),

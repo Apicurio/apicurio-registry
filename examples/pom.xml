@@ -55,6 +55,7 @@
         <module>serdes-with-references</module>
         <module>avro-maven-with-references</module>
         <module>avro-maven-with-references-auto</module>
+        <module>json-maven-with-references-auto</module>
         <module>protobuf-validation</module>
         <module>simple-protobuf</module>
         <module>protobuf-find-latest</module>

@@ -2,6 +2,7 @@ package io.apicurio.registry.operator.resource.app;
 
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.spec.Sql;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
@@ -33,6 +34,12 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
 
     private static final Logger log = LoggerFactory.getLogger(AppDeploymentResource.class);
 
+    public static final String ENV_APICURIO_STORAGE_KIND = "APICURIO_STORAGE_KIND";
+    public static final String ENV_APICURIO_STORAGE_SQL_KIND = "APICURIO_STORAGE_SQL_KIND";
+    public static final String ENV_APICURIO_DATASOURCE_URL = "APICURIO_DATASOURCE_URL";
+    public static final String ENV_APICURIO_DATASOURCE_USERNAME = "APICURIO_DATASOURCE_USERNAME";
+    public static final String ENV_APICURIO_DATASOURCE_PASSWORD = "APICURIO_DATASOURCE_PASSWORD";
+
     public AppDeploymentResource() {
         super(Deployment.class);
     }
@@ -58,11 +65,32 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_APIS_V2_DATE_FORMAT").withValue("yyyy-MM-dd''T''HH:mm:ssZ").build());
         // spotless:on
 
+        configureSqlDatasource(envVars, primary.getSpec().getApp().getSql());
+
         var container = getContainer(d, APP_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());
 
         log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(d));
         return d;
+    }
+
+    private static void configureSqlDatasource(Map<String, EnvVar> map, Sql sql) {
+        if (sql != null && sql.getDatasource() != null) {
+            var datasource = sql.getDatasource();
+
+            addEnvVar(map, new EnvVarBuilder().withName(ENV_APICURIO_STORAGE_KIND).withValue("sql").build());
+            addEnvVar(map, new EnvVarBuilder().withName(ENV_APICURIO_STORAGE_SQL_KIND).withValue("postgresql")
+                    .build());
+
+            addEnvVar(map, new EnvVarBuilder().withName(ENV_APICURIO_DATASOURCE_URL)
+                    .withValue(datasource.getUrl()).build());
+            addEnvVar(map, new EnvVarBuilder().withName(ENV_APICURIO_DATASOURCE_USERNAME)
+                    .withValue(datasource.getUsername()).build());
+            addEnvVar(map, new EnvVarBuilder().withName(ENV_APICURIO_DATASOURCE_PASSWORD)
+                    .withValue(datasource.getPassword()).build());
+        } else {
+            log.info("No SQL datasource configured");
+        }
     }
 
     public static void addEnvVar(Map<String, EnvVar> map, EnvVar envVar) {

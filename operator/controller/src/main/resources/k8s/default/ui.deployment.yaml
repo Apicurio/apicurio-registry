@@ -9,6 +9,8 @@ spec:
   template:
     metadata: { }
     spec:
+      # WARNING: Make sure to update the io.apicurio.registry.operator.utils.PodTemplateSpecUtils.merge method
+      # when making significant changes here:
       containers:
         - name: apicurio-registry-ui
           image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot

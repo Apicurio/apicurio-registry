@@ -7,6 +7,8 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
 import java.util.Map;
@@ -14,6 +16,8 @@ import java.util.Map;
 import static io.apicurio.registry.operator.utils.Mapper.YAML_MAPPER;
 
 public class ResourceFactory {
+
+    private static final Logger log = LoggerFactory.getLogger(ResourceFactory.class);
 
     public static final ResourceFactory INSTANCE = new ResourceFactory();
 
@@ -28,6 +32,9 @@ public class ResourceFactory {
     public static final String UI_CONTAINER_NAME = "apicurio-registry-ui";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
+        // WARNING: Make sure to update the io.apicurio.registry.operator.utils.PodTemplateSpecUtils.merge
+        // method
+        // when making significant changes here:
         var r = getDefaultResource(primary, Deployment.class, RESOURCE_TYPE_DEPLOYMENT, COMPONENT_APP);
         addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_APP);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_APP);
@@ -35,6 +42,9 @@ public class ResourceFactory {
     }
 
     public Deployment getDefaultUIDeployment(ApicurioRegistry3 primary) {
+        // WARNING: Make sure to update the io.apicurio.registry.operator.utils.PodTemplateSpecUtils.merge
+        // method
+        // when making significant changes here:
         var r = getDefaultResource(primary, Deployment.class, RESOURCE_TYPE_DEPLOYMENT, COMPONENT_UI);
         addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_UI);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
@@ -102,11 +112,11 @@ public class ResourceFactory {
         // spotless:on
     }
 
-    public static <T extends HasMetadata> T deserialize(String path, Class<T> klass) {
+    public static <T> T deserialize(String path, Class<T> klass) {
         try {
             return YAML_MAPPER.readValue(load(path), klass);
         } catch (JsonProcessingException ex) {
-            throw new OperatorException("Could not deserialize default resource: " + path, ex);
+            throw new OperatorException("Could not deserialize resource: " + path, ex);
         }
     }
 
@@ -114,7 +124,7 @@ public class ResourceFactory {
         try (var stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(path)) {
             return new String(stream.readAllBytes(), Charset.defaultCharset());
         } catch (Exception ex) {
-            throw new OperatorException("Could not read default resource: " + path, ex);
+            throw new OperatorException("Could not read resource: " + path, ex);
         }
     }
 }

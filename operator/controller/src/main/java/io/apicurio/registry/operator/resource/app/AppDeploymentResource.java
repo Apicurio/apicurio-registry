@@ -23,6 +23,7 @@ import static io.apicurio.registry.operator.resource.ResourceFactory.APP_CONTAIN
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
+import static io.apicurio.registry.operator.utils.PodTemplateSpecUtils.mergePTS;
 import static java.util.Objects.requireNonNull;
 
 // spotless:off
@@ -49,6 +50,9 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
         var d = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
+
+        d.getSpec().setTemplate(mergePTS(primary.getSpec().getApp().getPodTemplateSpec(),
+                d.getSpec().getTemplate(), APP_CONTAINER_NAME));
 
         var envVars = new LinkedHashMap<String, EnvVar>();
         primary.getSpec().getApp().getEnv().forEach(e -> {
@@ -104,9 +108,13 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
     public static Container getContainer(Deployment d, String name) {
         requireNonNull(d);
         requireNonNull(name);
-        for (var c : d.getSpec().getTemplate().getSpec().getContainers()) {
-            if (name.equals(c.getName())) {
-                return c;
+        if (d.getSpec() != null & d.getSpec().getTemplate() != null
+                && d.getSpec().getTemplate().getSpec() != null
+                && d.getSpec().getTemplate().getSpec().getContainers() != null) {
+            for (var c : d.getSpec().getTemplate().getSpec().getContainers()) {
+                if (name.equals(c.getName())) {
+                    return c;
+                }
             }
         }
         throw new OperatorException(

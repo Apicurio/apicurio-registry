@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.apicurio.registry.operator.api.v1.spec.Sql;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.KubernetesResource;
 import lombok.*;
@@ -12,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "env", "host" })
+@JsonPropertyOrder({ "env", "host", "sql" })
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -47,4 +48,10 @@ public class ApicurioRegistry3SpecApp implements KubernetesResource {
             If you create the Ingress manually, you have to manually set the REGISTRY_API_URL environment variable for the backend component.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private String host;
+
+    @JsonProperty("sql")
+    @JsonPropertyDescription("""
+            Configuration of Apicurio Registry SQL storage.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private Sql sql;
 }

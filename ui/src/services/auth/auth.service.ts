@@ -76,7 +76,7 @@ export class AuthService implements Service {
         const configOptions: any = only(KC_CONFIG_OPTIONS, this.config.authOptions());
         const initOptions: any = only(KC_INIT_OPTIONS, this.config.authOptions());
 
-        this.keycloak = Keycloak(configOptions);
+        this.keycloak = new Keycloak(configOptions);
 
         const addRoles: ((user: AuthenticatedUser) => void) = (user) => {
             if (this.keycloak.resourceAccess) {

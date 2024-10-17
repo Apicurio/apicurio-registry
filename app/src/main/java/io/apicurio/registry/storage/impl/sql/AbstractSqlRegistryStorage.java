@@ -1681,6 +1681,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 case globalId:
                     orderByQuery.append(" ORDER BY v.globalId");
                     break;
+                case groupId:
+                    orderByQuery.append(" ORDER BY v.groupId");
+                    break;
                 case version:
                     orderByQuery.append(" ORDER BY v.version");
                     break;
@@ -2686,6 +2689,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             handle.createUpdate(sqlStatements.deleteAllVersionComments()).execute();
 
+            handle.createUpdate(sqlStatements.deleteAllBranchVersions()).execute();
+
             handle.createUpdate(sqlStatements.deleteAllBranches()).execute();
 
             handle.createUpdate(sqlStatements.deleteAllVersions()).execute();
@@ -2849,6 +2854,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(" AND l.groupId = g.groupId)");
                         break;
                     default:
+
                         break;
                 }
                 where.append(")");
@@ -3689,6 +3695,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
 
         handles.withHandleNoException(handle -> {
+            // First delete all branch versions (only needed for "mssql" due to cascade limitations there).
+            if (isMssql()) {
+                handle.createUpdate(sqlStatements.deleteBranchVersions()).bind(0, ga.getRawGroupId())
+                        .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId()).execute();
+            }
+
             var affected = handle.createUpdate(sqlStatements.deleteBranch()).bind(0, ga.getRawGroupId())
                     .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId()).execute();
 

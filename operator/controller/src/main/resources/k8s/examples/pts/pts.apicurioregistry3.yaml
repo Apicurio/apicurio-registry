@@ -1,0 +1,21 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: pts
+spec:
+  app:
+    env:
+      - name: APICURIO_IMPORT_URL
+        value: file:///tmp/export/export.zip
+    podTemplateSpec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            volumeMounts:
+              - name: export-data
+                mountPath: "/tmp/export"
+                readOnly: true
+        volumes:
+          - name: export-data
+            configMap:
+              name: export-data

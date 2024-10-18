@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
@@ -75,7 +76,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
      */
     @Parameter(required = true)
     List<RegisterArtifact> artifacts;
-    
+
     DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl();
 
     /**
@@ -161,24 +162,24 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             throw new RuntimeException("Artifact reference loop detected (not supported): " + printLoop(registrationStack));
         }
         registrationStack.push(artifact);
-        
+
         // Read the artifact content.
         ContentHandle artifactContent = readContent(artifact.getFile());
-        
+
         // Find all references in the content
         ArtifactTypeUtilProvider provider = this.utilProviderFactory.getArtifactTypeProvider(artifact.getType());
         ReferenceFinder referenceFinder = provider.getReferenceFinder();
         Set<ExternalReference> externalReferences = referenceFinder.findExternalReferences(artifactContent);
-        
+
         // Register all of the references first, then register the artifact.
         List<ArtifactReference> registeredReferences = externalReferences.stream().map(externalRef -> {
             IndexedResource iresource = index.lookup(externalRef.getResource(), Paths.get(artifact.getFile().toURI()));
-            
+
             // TODO: need a way to resolve references that are not local (already registered in the registry)
             if (iresource == null) {
                 throw new RuntimeException("Reference could not be resolved.  From: " + artifact.getFile().getName() + "  To: " + externalRef.getFullReference());
             }
-            
+
             // If the resource isn't already registered, then register it now.
             if (!iresource.isRegistered()) {
                 // TODO: determine the artifactId better (type-specific logic here?)
@@ -197,13 +198,15 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 }
             }
 
-            return new ArtifactReference(
-                    iresource.getRegistration().getGroupId(), 
-                    iresource.getRegistration().getId(),
-                    iresource.getRegistration().getVersion(),
-                    externalRef.getFullReference());
+            ArtifactReference referencedArtifact = new ArtifactReference();
+            referencedArtifact.setName(externalRef.getFullReference());
+            referencedArtifact.setArtifactId(iresource.getRegistration().getId());
+            referencedArtifact.setGroupId(iresource.getRegistration().getGroupId());
+            referencedArtifact.setVersion(iresource.getRegistration().getVersion());
 
-        }).sorted((ref1, ref2) -> ref1.getName().compareTo(ref2.getName())).collect(Collectors.toList());
+            return referencedArtifact;
+
+        }).sorted(Comparator.comparing(ArtifactReference::getName)).collect(Collectors.toList());
 
         registrationStack.pop();
         return registerArtifact(artifact, registeredReferences);
@@ -248,11 +251,14 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 ObjectMapper objectMapper = new ObjectMapper();
                 JsonNode jsonNode = objectMapper.readValue(artifactContent, JsonNode.class);
                 artifactContent = new ByteArrayInputStream(jsonNode.toString().getBytes());
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
-        ArtifactMetaData amd = this.getClient().createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null, artifactContent, references);
+        ArtifactMetaData amd = this.getClient()
+                .createArtifact(groupId, artifactId, version, type, ifExists, canonicalize, null, null, ContentTypes.APPLICATION_CREATE_EXTENDED, null, null,
+                        artifactContent, references);
         getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
 
         return amd;
@@ -292,6 +298,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     /**
      * Create a local index relative to the given file location.
+     *
      * @param file
      */
     private static ReferenceIndex createIndex(File file) {
@@ -309,7 +316,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 ArtifactMetaData amd;
                 if (ref.getVersion() == null || "LATEST".equalsIgnoreCase(ref.getVersion())) {
                     amd = getClient().getArtifactMetaData(ref.getGroupId(), ref.getArtifactId());
-                } else {
+                }
+                else {
                     amd = new ArtifactMetaData();
                     amd.setGroupId(ref.getGroupId());
                     amd.setId(ref.getArtifactId());
@@ -323,7 +331,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     protected static ContentHandle readContent(File file) {
         try {
             return ContentHandle.create(Files.readAllBytes(file.toPath()));
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new RuntimeException("Failed to read schema file: " + file, e);
         }
     }
@@ -348,6 +357,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     /**
      * Detects a loop by looking for the given artifact in the registration stack.
+     *
      * @param artifact
      * @param registrationStack
      */

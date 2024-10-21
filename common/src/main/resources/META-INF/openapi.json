@@ -4007,6 +4007,15 @@
           "artifactId": {
             "$ref": "#/components/schemas/ArtifactId",
             "description": ""
+          },
+          "modifiedBy": {
+            "description": "",
+            "type": "string"
+          },
+          "modifiedOn": {
+            "format": "date-time",
+            "description": "",
+            "type": "string"
           }
         },
         "example": {

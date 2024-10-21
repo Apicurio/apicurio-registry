@@ -77,6 +77,8 @@ public final class V3ApiUtil {
         metaData.setArtifactId(dto.getArtifactId());
         metaData.setOwner(dto.getOwner());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
+        metaData.setModifiedBy(dto.getModifiedBy());
+        metaData.setModifiedOn(new Date(dto.getModifiedOn()));
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
         metaData.setArtifactType(dto.getArtifactType());

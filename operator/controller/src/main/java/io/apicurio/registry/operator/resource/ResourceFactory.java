@@ -110,7 +110,7 @@ public class ResourceFactory {
         }
     }
 
-    private static String load(String path) {
+    public static String load(String path) {
         try (var stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(path)) {
             return new String(stream.readAllBytes(), Charset.defaultCharset());
         } catch (Exception ex) {

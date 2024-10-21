@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.resource.app;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.spec.Sql;
+import io.apicurio.registry.operator.feat.KafkaSql;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
@@ -66,6 +67,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         // spotless:on
 
         configureSqlDatasource(envVars, primary.getSpec().getApp().getSql());
+        KafkaSql.configureKafkaSQL(primary, envVars);
 
         var container = getContainer(d, APP_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());

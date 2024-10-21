@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "env", "host", "sql" })
+@JsonPropertyOrder({ "sql", "kafkasql", "env", "host" })
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -22,6 +22,18 @@ import java.util.List;
 @Setter
 @ToString
 public class ApicurioRegistry3SpecApp implements KubernetesResource {
+
+    @JsonProperty("sql")
+    @JsonPropertyDescription("""
+            Configuration of Apicurio Registry SQL storage.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private Sql sql;
+
+    @JsonProperty("kafkasql")
+    @JsonPropertyDescription("""
+            Configure KafkaSQL storage.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private ApicurioRegistry3SpecKafkaSql kafkasql = new ApicurioRegistry3SpecKafkaSql();
 
     @JsonProperty("env")
     @JsonPropertyDescription("""
@@ -48,10 +60,4 @@ public class ApicurioRegistry3SpecApp implements KubernetesResource {
             If you create the Ingress manually, you have to manually set the REGISTRY_API_URL environment variable for the backend component.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private String host;
-
-    @JsonProperty("sql")
-    @JsonPropertyDescription("""
-            Configuration of Apicurio Registry SQL storage.""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private Sql sql;
 }

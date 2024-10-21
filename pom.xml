@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.0.2-SNAPSHOT</version>
+  <version>3.0.3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -1116,58 +1116,6 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>com.diffplug.spotless</groupId>
-        <artifactId>spotless-maven-plugin</artifactId>
-        <version>${version.spotless}</version>
-        <configuration>
-          <formats>
-            <format>
-              <includes>
-                <include>*.md</include>
-                <include>.gitignore</include>
-              </includes>
-              <trimTrailingWhitespace/>
-              <endWithNewline/>
-              <indent>
-                <spaces>true</spaces>
-                <spacesPerTab>2</spacesPerTab>
-              </indent>
-            </format>
-          </formats>
-          <java>
-            <includes>
-              <include>**/src/main/java/**/*.java</include>
-              <include>**/src/test/java/**/*.java</include>
-            </includes>
-            <eclipse>
-              <file>${projectRoot}/ide-config/eclipse-format.xml</file>
-            </eclipse>
-            <importOrder>
-              <file>${projectRoot}/ide-config/eclipse.importorder</file>
-            </importOrder>
-            <removeUnusedImports/>
-            <toggleOffOn/>
-          </java>
-          <pom>
-            <includes>
-              <include>**/pom.xml</include>
-            </includes>
-            <sortPom>
-              <expandEmptyElements>false</expandEmptyElements>
-            </sortPom>
-          </pom>
-        </configuration>
-        <executions>
-          <execution>
-            <id>format</id>
-            <goals>
-              <goal>check</goal>
-            </goals>
-            <phase>process-sources</phase>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
@@ -1186,6 +1134,68 @@
       <modules>
         <module>integration-tests</module>
       </modules>
+    </profile>
+    <profile>
+      <id>spotless</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.diffplug.spotless</groupId>
+            <artifactId>spotless-maven-plugin</artifactId>
+            <version>${version.spotless}</version>
+            <configuration>
+              <formats>
+                <format>
+                  <includes>
+                    <include>*.md</include>
+                    <include>.gitignore</include>
+                  </includes>
+                  <trimTrailingWhitespace/>
+                  <endWithNewline/>
+                  <indent>
+                    <spaces>true</spaces>
+                    <spacesPerTab>2</spacesPerTab>
+                  </indent>
+                </format>
+              </formats>
+              <java>
+                <includes>
+                  <include>**/src/main/java/**/*.java</include>
+                  <include>**/src/test/java/**/*.java</include>
+                </includes>
+                <eclipse>
+                  <file>${projectRoot}/ide-config/eclipse-format.xml</file>
+                </eclipse>
+                <importOrder>
+                  <file>${projectRoot}/ide-config/eclipse.importorder</file>
+                </importOrder>
+                <removeUnusedImports/>
+                <toggleOffOn/>
+              </java>
+              <pom>
+                <includes>
+                  <include>**/pom.xml</include>
+                </includes>
+                <sortPom>
+                  <expandEmptyElements>false</expandEmptyElements>
+                </sortPom>
+              </pom>
+            </configuration>
+            <executions>
+              <execution>
+                <id>format</id>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+                <phase>process-sources</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
     <profile>
       <id>examples</id>

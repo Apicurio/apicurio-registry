@@ -42,6 +42,7 @@ jobs:
           cd website
           git add .
           git commit -m "Automated Update For Apicurio Registry Release Version: ${{ env.RELEASE_VERSION }}"
+          git pull origin main
           git push
 
       - name: Google Chat Notification

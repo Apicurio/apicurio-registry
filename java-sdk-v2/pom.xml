@@ -19,14 +19,14 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.2-SNAPSHOT</version>
+    <version>3.0.3-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>apicurio-registry-v2-java-sdk</artifactId>
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
     <kiota.libs.version>1.7.0</kiota.libs.version>
-    <kiota.community.version>0.0.18</kiota.community.version>
+    <kiota.community.version>0.0.19</kiota.community.version>
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
   </properties>
   <dependencies>

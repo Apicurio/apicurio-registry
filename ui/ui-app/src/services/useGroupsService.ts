@@ -215,21 +215,21 @@ const getArtifactVersionComments = async (config: ConfigService, auth: AuthServi
 
 const createArtifactVersionComment = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, data: NewComment): Promise<Comment> => {
     groupId = normalizeGroupId(groupId);
-    console.info("[GroupsService] Getting the list of comments for artifact version: ", groupId, artifactId, version);
+    console.info("[GroupsService] Creating a comment for artifact version: ", groupId, artifactId, version);
     return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions
         .byVersionExpression(version).comments.post(data).then(v => v!);
 };
 
 const updateArtifactVersionComment = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, commentId: string, data: NewComment): Promise<void> => {
     groupId = normalizeGroupId(groupId);
-    console.info("[GroupsService] Getting the list of comments for artifact version: ", groupId, artifactId, version);
+    console.info("[GroupsService] Updating a comment for artifact version: ", groupId, artifactId, version);
     return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions
         .byVersionExpression(version).comments.byCommentId(commentId).put(data);
 };
 
 const deleteArtifactVersionComment = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, commentId: string): Promise<void> => {
     groupId = normalizeGroupId(groupId);
-    console.info("[GroupsService] Getting the list of comments for artifact version: ", groupId, artifactId, version);
+    console.info("[GroupsService] Deleting a comment for artifact version: ", groupId, artifactId, version);
     return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions
         .byVersionExpression(version).comments.byCommentId(commentId).delete();
 };

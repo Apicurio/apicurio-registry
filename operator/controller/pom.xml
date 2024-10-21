@@ -89,6 +89,12 @@
       <artifactId>lombok</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.strimzi</groupId>
+      <artifactId>api</artifactId>
+      <version>0.43.0</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

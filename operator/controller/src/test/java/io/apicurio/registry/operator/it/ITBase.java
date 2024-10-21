@@ -54,7 +54,7 @@ public class ITBase {
     private static Operator operator;
 
     @BeforeAll
-    public static void before() throws Exception {
+    public static void beforeAll() throws Exception {
         configuration = CDI.current().select(QuarkusConfigurationService.class).get();
         reconcilers = CDI.current().select(new TypeLiteral<>() {
         });
@@ -194,7 +194,7 @@ public class ITBase {
     }
 
     @AfterAll
-    public static void after() throws Exception {
+    public static void afterAll() throws Exception {
         portForwardManager.stop();
         if (operatorDeployment == OperatorDeployment.local) {
             Log.info("Stopping Operator");

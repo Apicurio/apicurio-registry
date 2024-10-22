@@ -144,6 +144,7 @@ public final class V3ApiUtil {
             sa.setModifiedOn(artifact.getModifiedOn());
             sa.setName(artifact.getName());
             sa.setArtifactType(artifact.getArtifactType());
+            sa.setLabels(artifact.getLabels());
             results.getArtifacts().add(sa);
         });
         return results;
@@ -161,6 +162,7 @@ public final class V3ApiUtil {
             sg.setGroupId(group.getId());
             sg.setModifiedBy(group.getModifiedBy());
             sg.setModifiedOn(group.getModifiedOn());
+            sg.setLabels(group.getLabels());
             results.getGroups().add(sg);
         });
         return results;
@@ -179,6 +181,7 @@ public final class V3ApiUtil {
             searchedBranch.setBranchId(branch.getBranchId());
             searchedBranch.setModifiedBy(branch.getModifiedBy());
             searchedBranch.setModifiedOn(new Date(branch.getModifiedOn()));
+            searchedBranch.setLabels(branch.getLabels());
             results.getBranches().add(searchedBranch);
         });
         return results;
@@ -203,6 +206,7 @@ public final class V3ApiUtil {
             sv.setName(version.getName());
             sv.setState(version.getState());
             sv.setArtifactType(version.getArtifactType());
+            sv.setLabels(version.getLabels());
             results.getVersions().add(sv);
         });
         return results;

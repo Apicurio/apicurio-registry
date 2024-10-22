@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.Map;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -26,5 +28,6 @@ public class SearchedBranchDto {
     private long createdOn;
     private String modifiedBy;
     private long modifiedOn;
+    private Map<String, String> labels;
 
 }

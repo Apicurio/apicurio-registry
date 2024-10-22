@@ -2,6 +2,8 @@ package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
+import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
@@ -10,6 +12,8 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 @QuarkusTest
 public class SearchVersionsTest extends AbstractResourceTestBase {
@@ -235,6 +239,68 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         });
 
         Assertions.assertEquals(1, results.getCount());
+    }
+
+    @Test
+    public void testSearchVersionsByLabels() throws Exception {
+        String artifactContent = "testSearchVersionsByLabels-content";
+        String group1 = TestUtils.generateGroupId();
+        String group2 = TestUtils.generateGroupId();
+
+        CreateArtifactResponse car = null;
+
+        // Create 5 artifacts in group 1 (two versions each)
+        for (int idx = 0; idx < 5; idx++) {
+            String artifactId = "testSearchVersionsByIds_Group1_Artifact_" + idx;
+            car = createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+            createArtifactVersion(group1, artifactId, artifactContent, ContentTypes.APPLICATION_JSON);
+
+            // Add labels to some versions
+            EditableVersionMetaData emd = new EditableVersionMetaData();
+            emd.setLabels(new Labels());
+            emd.getLabels().setAdditionalData(Map.of("id", artifactId, "key-" + idx, "value-" + idx));
+            clientV3.groups().byGroupId(group1).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(car.getVersion().getVersion()).put(emd);
+        }
+
+        // Create 3 artifacts in group 2
+        for (int idx = 0; idx < 3; idx++) {
+            String artifactId = "testSearchVersionsByIds_Group2_Artifact_" + idx;
+            car = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+
+            // Add labels to some versions
+            EditableVersionMetaData emd = new EditableVersionMetaData();
+            emd.setLabels(new Labels());
+            emd.getLabels().setAdditionalData(Map.of("id", artifactId, "key-" + idx, "value-" + idx));
+            clientV3.groups().byGroupId(group2).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(car.getVersion().getVersion()).put(emd);
+        }
+
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "key-1" };
+        });
+        Assertions.assertEquals(2, results.getCount());
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "key-1:value-1" };
+        });
+        Assertions.assertEquals(2, results.getCount());
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "key-1:value-2" };
+        });
+        Assertions.assertEquals(0, results.getCount());
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "id:testSearchVersionsByIds_Group1_Artifact_1" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        // Check that labels are return in search results.
+        Assertions.assertNotNull(results.getVersions().get(0).getLabels());
+        Assertions.assertEquals(Map.of("key-1", "value-1", "id", "testSearchVersionsByIds_Group1_Artifact_1"),
+                results.getVersions().get(0).getLabels().getAdditionalData());
     }
 
 }

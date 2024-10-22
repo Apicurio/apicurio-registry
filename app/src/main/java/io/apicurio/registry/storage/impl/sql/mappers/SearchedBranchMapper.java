@@ -28,6 +28,6 @@ public class SearchedBranchMapper implements RowMapper<SearchedBranchDto> {
                 .description(rs.getString("description")).systemDefined(rs.getBoolean("systemDefined"))
                 .owner(rs.getString("owner")).createdOn(rs.getTimestamp("createdOn").getTime())
                 .modifiedBy(rs.getString("modifiedBy")).modifiedOn(rs.getTimestamp("modifiedOn").getTime())
-                .build();
+                .labels(RegistryContentUtils.deserializeLabels(rs.getString("labels"))).build();
     }
 }

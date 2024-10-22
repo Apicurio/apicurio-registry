@@ -15,6 +15,8 @@ type SearchedGroup struct {
 	description *string
 	// An ID of a single artifact group.
 	groupId *string
+	// User-defined name-value pairs. Name and value must be strings.
+	labels Labelsable
 	// The modifiedBy property
 	modifiedBy *string
 	// The modifiedOn property
@@ -88,6 +90,16 @@ func (m *SearchedGroup) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 		}
 		return nil
 	}
+	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetLabels(val.(Labelsable))
+		}
+		return nil
+	}
 	res["modifiedBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -127,6 +139,12 @@ func (m *SearchedGroup) GetGroupId() *string {
 	return m.groupId
 }
 
+// GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
+// returns a Labelsable when successful
+func (m *SearchedGroup) GetLabels() Labelsable {
+	return m.labels
+}
+
 // GetModifiedBy gets the modifiedBy property value. The modifiedBy property
 // returns a *string when successful
 func (m *SearchedGroup) GetModifiedBy() *string {
@@ -161,6 +179,12 @@ func (m *SearchedGroup) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0
 	}
 	{
 		err := writer.WriteStringValue("groupId", m.GetGroupId())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteObjectValue("labels", m.GetLabels())
 		if err != nil {
 			return err
 		}
@@ -212,6 +236,11 @@ func (m *SearchedGroup) SetGroupId(value *string) {
 	m.groupId = value
 }
 
+// SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *SearchedGroup) SetLabels(value Labelsable) {
+	m.labels = value
+}
+
 // SetModifiedBy sets the modifiedBy property value. The modifiedBy property
 func (m *SearchedGroup) SetModifiedBy(value *string) {
 	m.modifiedBy = value
@@ -233,12 +262,14 @@ type SearchedGroupable interface {
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
 	GetGroupId() *string
+	GetLabels() Labelsable
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetOwner() *string
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetGroupId(value *string)
+	SetLabels(value Labelsable)
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetOwner(value *string)

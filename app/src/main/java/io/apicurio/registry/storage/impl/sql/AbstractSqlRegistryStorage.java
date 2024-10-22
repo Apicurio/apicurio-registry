@@ -3450,7 +3450,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Execute query
             List<SearchedBranchDto> branches = branchesQuery.map(SearchedBranchMapper.instance).list();
-            limitReturnedLabelsInBranches(branches);
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
 
@@ -3813,7 +3812,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 if (totalBytes < maxBytes) {
                     String value = labels.get(key);
                     cappedLabels.put(key, value);
-                    totalBytes += value.length() + key.length();
+                    totalBytes += key.length() + (value != null ? value.length() : 0);
                 }
             }
             return cappedLabels;
@@ -3843,14 +3842,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             Map<String, String> labels = version.getLabels();
             Map<String, String> cappedLabels = limitReturnedLabels(labels);
             version.setLabels(cappedLabels);
-        });
-    }
-
-    private void limitReturnedLabelsInBranches(List<SearchedBranchDto> branches) {
-        branches.forEach(branch -> {
-            Map<String, String> labels = branch.getLabels();
-            Map<String, String> cappedLabels = limitReturnedLabels(labels);
-            branch.setLabels(cappedLabels);
         });
     }
 

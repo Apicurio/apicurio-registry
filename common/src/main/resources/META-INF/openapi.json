@@ -5218,10 +5218,6 @@
           "systemDefined": {
             "description": "",
             "type": "boolean"
-          },
-          "labels": {
-            "$ref": "#/components/schemas/Labels",
-            "description": ""
           }
         },
         "example": {

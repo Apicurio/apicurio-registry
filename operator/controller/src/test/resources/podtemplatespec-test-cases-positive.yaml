@@ -83,19 +83,6 @@ cases:
           - name: test
             image: test:tag
 
-  - id: 'Image 1'
-    original:
-      spec:
-        containers:
-          - name: test
-            image: test:tag
-    spec:
-      spec:
-        containers:
-          - name: test
-            image: foo:tag
-    expectedException: true
-
   - id: 'Image 2'
     original:
       spec:
@@ -135,21 +122,6 @@ cases:
             env:
               - name: foo
                 value: bar
-
-  - id: 'Env 1'
-    original:
-      spec:
-        containers:
-          - name: test
-            image: test:tag
-    spec:
-      spec:
-        containers:
-          - name: test
-            env:
-              - name: foo
-                value: bar
-    expectedException: true
 
   - id: 'Env 2'
     original:

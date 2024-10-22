@@ -11,14 +11,15 @@ import java.util.HashMap;
 
 import static io.apicurio.registry.operator.utils.Mapper.duplicate;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
-import static io.apicurio.registry.operator.utils.Utils.*;
+import static io.apicurio.registry.operator.utils.Utils.isBlank;
+import static io.apicurio.registry.operator.utils.Utils.mergeNotOverride;
 import static java.util.Objects.requireNonNull;
 
-public class PodTemplateSpecUtils {
+public class PodTemplateSpecFeature {
 
     private static final Logger log = LoggerFactory.getLogger(UIDeploymentResource.class);
 
-    private PodTemplateSpecUtils() {
+    private PodTemplateSpecFeature() {
     }
 
     /**
@@ -26,7 +27,7 @@ public class PodTemplateSpecUtils {
      *
      * @return merged copy
      */
-    public static PodTemplateSpec mergePTS(PodTemplateSpec spec, PodTemplateSpec original,
+    public static PodTemplateSpec merge(PodTemplateSpec spec, PodTemplateSpec original,
             String containerName) {
 
         requireNonNull(original);
@@ -46,7 +47,9 @@ public class PodTemplateSpecUtils {
             merged.getMetadata().setLabels(new HashMap<>());
         }
         if (original.getMetadata() != null) {
-            mergeOverride(merged.getMetadata().getLabels(), original.getMetadata().getLabels());
+            if (original.getMetadata().getLabels() != null) {
+                merged.getMetadata().getLabels().putAll(original.getMetadata().getLabels());
+            }
         }
 
         // .metadata.annotations
@@ -54,7 +57,9 @@ public class PodTemplateSpecUtils {
             merged.getMetadata().setAnnotations(new HashMap<>());
         }
         if (original.getMetadata() != null) {
-            mergeOverride(merged.getMetadata().getAnnotations(), original.getMetadata().getAnnotations());
+            if (original.getMetadata().getAnnotations() != null) {
+                merged.getMetadata().getAnnotations().putAll(original.getMetadata().getAnnotations());
+            }
         }
 
         // .spec.containers[name = containerName]
@@ -80,7 +85,7 @@ public class PodTemplateSpecUtils {
         } else {
 
             // .spec.containers[name = containerName].env
-            if (!isEmpty(mc.getEnv())) {
+            if (mc.getEnv() != null && !mc.getEnv().isEmpty()) {
                 throw new OperatorException("""
                         Field spec.(app/ui).podTemplateSpec.spec.containers[name = %s].env must be empty.  \
                         Use spec.(app/ui).env to configure environment variables."""
@@ -89,13 +94,9 @@ public class PodTemplateSpecUtils {
             mc.setEnv(oc.getEnv());
 
             // .spec.containers[name = containerName].image
-            if (!isEmpty(mc.getImage())) {
-                // TODO: Do we want to allow this?
-                throw new OperatorException("""
-                        Field spec.(app/ui).podTemplateSpec.spec.containers[name = %s].image must be empty."""
-                        .formatted(containerName));
+            if (isBlank(mc.getImage())) {
+                mc.setImage(oc.getImage());
             }
-            mc.setImage(oc.getImage());
 
             // .spec.containers[name = containerName].ports
             mergeNotOverride(mc.getPorts(), oc.getPorts(), ContainerPort::getName);
@@ -132,6 +133,11 @@ public class PodTemplateSpecUtils {
         return merged;
     }
 
+    /**
+     * Get container with a given name from the given PTS.
+     *
+     * @return null when container was not found
+     */
     public static Container getContainer(PodTemplateSpec pts, String name) {
         requireNonNull(pts);
         requireNonNull(name);

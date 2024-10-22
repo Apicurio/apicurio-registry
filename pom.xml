@@ -214,7 +214,7 @@
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <apicurio-common-app-components.version>1.2.5</apicurio-common-app-components.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
-    <debezium.version>2.6.2.Final</debezium.version>
+    <debezium.version>3.0.0.Final</debezium.version>
     <pulsar-clients.version>3.3.1</pulsar-clients.version>
 
     <nats.version>2.20.2</nats.version>
@@ -275,7 +275,7 @@
     <embedded-postgres.version>2.0.7</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock-jre8.version>2.35.2</wiremock-jre8.version>
-    <strimzi-test-container.version>0.107.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.108.0</strimzi-test-container.version>
   </properties>
 
   <dependencyManagement>

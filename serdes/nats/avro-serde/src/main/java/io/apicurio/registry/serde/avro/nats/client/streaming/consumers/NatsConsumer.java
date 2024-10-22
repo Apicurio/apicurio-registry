@@ -10,10 +10,10 @@ public interface NatsConsumer<T> extends AutoCloseable {
 
     String getSubject();
 
-    NatsConsumerRecord<T> receive() throws JetStreamApiException, IOException;
+    NatsConsumerRecord<T> fetch() throws JetStreamApiException, IOException;
 
-    NatsConsumerRecord<T> receive(Duration timeout) throws JetStreamApiException, IOException;
+    NatsConsumerRecord<T> fetch(Duration timeout) throws JetStreamApiException, IOException;
 
-    Collection<NatsConsumerRecord<T>> receive(int batchSize, Duration timeout)
+    Collection<NatsConsumerRecord<T>> fetch(int batchSize, Duration timeout)
             throws JetStreamApiException, IOException;
 }

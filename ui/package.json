@@ -69,7 +69,7 @@
     "@rhoas/app-services-ui-components": "2.30.0",
     "ace-builds": "1.18.0",
     "axios": "0.27.2",
-    "keycloak-js": "21.1.1",
+    "keycloak-js": "26.0.0",
     "mobx": "6.9.0",
     "moment": "2.29.4",
     "oidc-client-ts": "2.2.3",

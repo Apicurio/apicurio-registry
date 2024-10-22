@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -165,6 +166,55 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
 
         //Assertions
         validateStructure(groupId, artifactId, 3, 4, protoFiles);
+    }
+
+    @Test
+    public void autoRegisterJsonSchemaWithReferencesDeref() throws MojoExecutionException, MojoFailureException {
+        //Preparation
+        String groupId = "autoRegisterJsonSchemaWithReferencesDeref";
+        String artifactId = "stock";
+
+        File stockFile = new File(getClass().getResource("./stock/FLIStockAdjustment.json").getFile());
+
+        Set<String> jsonFiles = Arrays.stream(Objects.requireNonNull(stockFile.getParentFile().listFiles((dir, name) -> name.endsWith(JSON_SCHEMA_EXTENSION))))
+                .map(file -> {
+                    FileInputStream fis = null;
+                    try {
+                        fis = new FileInputStream(file);
+                    } catch (FileNotFoundException e) {
+                    }
+                    return IoUtil.toString(fis).trim();
+                })
+                .collect(Collectors.toSet());
+
+        RegisterArtifact stock = new RegisterArtifact();
+        stock.setAutoRefs(true);
+        stock.setGroupId(groupId);
+        stock.setArtifactId(artifactId);
+        stock.setType(ArtifactType.JSON);
+        stock.setFile(stockFile);
+        stock.setIfExists(IfExists.RETURN_OR_UPDATE);
+
+        registerMojo.setArtifacts(Collections.singletonList(stock));
+
+        //Execution
+        registerMojo.execute();
+
+        //Assertions
+        validateStructure(groupId, artifactId, 9, 6, jsonFiles);
+
+        final ArtifactMetaData artifactWithReferences = clientV2.getArtifactMetaData(groupId, artifactId);
+        InputStream contentByGlobalId = clientV2.getContentByGlobalId(artifactWithReferences.getGlobalId(), false, true);
+
+        File stockFileDeref = new File(getClass().getResource("./stock/FLIStockAdjustment_deref.json").getFile());
+
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(stockFileDeref);
+        } catch (FileNotFoundException e) {
+        }
+
+        Assertions.assertEquals(IoUtil.toString(fis).trim(), IoUtil.toString(contentByGlobalId));
     }
 
     private void validateStructure(String groupId, String artifactId, int expectedMainReferences, int expectedTotalArtifacts, Set<String> originalContents) {

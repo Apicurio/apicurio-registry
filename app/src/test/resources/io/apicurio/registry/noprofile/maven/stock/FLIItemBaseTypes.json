@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "FLIItemBaseTypes.json",
+  "$defs": {
+    "ItemReferenceType": {
+      "type": "object",
+      "properties": {
+        "ItemNumber": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 15
+        },
+        "ItemType": {
+          "type": "string",
+          "enum": [
+            "ADS",
+            "ART",
+            "CCI",
+            "HM",
+            "OAD",
+            "SGR",
+            "SPR"
+          ]
+        }
+      },
+      "required": [
+        "ItemNumber",
+        "ItemType"
+      ],
+      "additionalProperties": false
+    },
+    "ItemSKUType": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20
+    },
+    "DWPReferenceType": {
+      "type": "object",
+      "properties": {
+        "ItemReference": {
+          "$ref": "#/$defs/ItemReferenceType"
+        },
+        "ItemSupplierReference": {
+          "$ref": "FLIBusinessUnitBaseTypes.json#/$defs/BusinessUnitReferenceType"
+        },
+        "DWPNumber": { "type": "integer" },
+        "DWPEdition": { "type": "integer" },
+        "DWPFromPackagingDate": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "required": [
+        "ItemReference",
+        "ItemSupplierReference",
+        "DWPNumber",
+        "DWPEdition",
+        "DWPFromPackagingDate"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "anyOf": [
+    { "$ref": "#/$defs/ItemReferenceType" },
+    { "$ref": "#/$defs/DWPReferenceType" }
+  ]
+}

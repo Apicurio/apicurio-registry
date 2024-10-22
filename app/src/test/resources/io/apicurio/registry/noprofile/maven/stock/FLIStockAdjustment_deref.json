@@ -1,0 +1,851 @@
+{
+  "$schema" : "https://json-schema.org/draft/2019-09/schema",
+  "$defs" : {
+    "StockAdjustment" : {
+      "additionalProperties" : false,
+      "type" : "object",
+      "properties" : {
+        "LUStock" : {
+          "description" : "This object models the stock object.",
+          "additionalProperties" : false,
+          "type" : "object",
+          "properties" : {
+            "LUStockStatus" : {
+              "type" : "array",
+              "items" : {
+                "additionalProperties" : false,
+                "type" : "object",
+                "properties" : {
+                  "StockStatus" : {
+                    "type" : "string"
+                  },
+                  "StockStatusSubCode" : {
+                    "maximum" : 99,
+                    "type" : "integer",
+                    "minimum" : 0
+                  }
+                },
+                "required" : [ "StockStatus" ]
+              }
+            },
+            "UOMCodeQuantity" : {
+              "minLength" : 1,
+              "type" : "string",
+              "maxLength" : 10
+            },
+            "CountryOfOrigin" : {
+              "type" : "string",
+              "maxLength" : 2
+            },
+            "Quantity" : {
+              "multipleOf" : 0.01,
+              "maximum" : 9.9999999999E8,
+              "type" : "number",
+              "minimum" : -9.9999999999E8
+            },
+            "BondedFlag" : {
+              "type" : "boolean"
+            },
+            "ItemReference" : {
+              "additionalProperties" : false,
+              "type" : "object",
+              "properties" : {
+                "ItemNumber" : {
+                  "minLength" : 1,
+                  "type" : "string",
+                  "maxLength" : 15
+                },
+                "ItemType" : {
+                  "type" : "string",
+                  "enum" : [ "ADS", "ART", "CCI", "HM", "OAD", "SGR", "SPR" ]
+                }
+              },
+              "required" : [ "ItemNumber", "ItemType" ]
+            },
+            "StockLocationId" : {
+              "minLength" : 1,
+              "type" : "string",
+              "maxLength" : 30
+            },
+            "InboundConsignmentLineReference" : {
+              "additionalProperties" : false,
+              "type" : "object",
+              "properties" : {
+                "ConsignmentId" : {
+                  "additionalProperties" : false,
+                  "type" : "object",
+                  "properties" : {
+                    "ConsignmentNumber" : {
+                      "minLength" : 1,
+                      "type" : "string",
+                      "maxLength" : 12
+                    },
+                    "CreatorReference" : {
+                      "additionalProperties" : false,
+                      "type" : "object",
+                      "required" : [ "BusinessUnitCode", "BusinessUnitType" ],
+                      "properties" : {
+                        "BusinessUnitType" : {
+                          "pattern" : "(^[A-Z]{2,3})",
+                          "type" : "string"
+                        },
+                        "BusinessUnitCode" : {
+                          "pattern" : "(^[0-9A-Z]{3,5})|AP",
+                          "type" : "string"
+                        }
+                      }
+                    }
+                  },
+                  "required" : [ "CreatorReference", "ConsignmentNumber" ]
+                },
+                "ConsignmentLineNumber" : { }
+              },
+              "required" : [ "ConsignmentId", "ConsignmentLineNumber" ]
+            },
+            "OrderType" : {
+              "minLength" : 1,
+              "type" : "string",
+              "maxLength" : 10
+            },
+            "OrderReference" : {
+              "minLength" : 1,
+              "type" : "string",
+              "maxLength" : 24
+            },
+            "ItemDWPReference" : {
+              "additionalProperties" : false,
+              "type" : "object",
+              "properties" : {
+                "ItemReference" : {
+                  "additionalProperties" : false,
+                  "type" : "object",
+                  "properties" : {
+                    "ItemNumber" : {
+                      "minLength" : 1,
+                      "type" : "string",
+                      "maxLength" : 15
+                    },
+                    "ItemType" : {
+                      "type" : "string",
+                      "enum" : [ "ADS", "ART", "CCI", "HM", "OAD", "SGR", "SPR" ]
+                    }
+                  },
+                  "required" : [ "ItemNumber", "ItemType" ]
+                },
+                "ItemSupplierReference" : {
+                  "additionalProperties" : false,
+                  "type" : "object",
+                  "required" : [ "BusinessUnitCode", "BusinessUnitType" ],
+                  "properties" : {
+                    "BusinessUnitType" : {
+                      "pattern" : "(^[A-Z]{2,3})",
+                      "type" : "string"
+                    },
+                    "BusinessUnitCode" : {
+                      "pattern" : "(^[0-9A-Z]{3,5})|AP",
+                      "type" : "string"
+                    }
+                  }
+                },
+                "DWPNumber" : {
+                  "type" : "integer"
+                },
+                "DWPEdition" : {
+                  "type" : "integer"
+                },
+                "DWPFromPackagingDate" : {
+                  "format" : "date",
+                  "type" : "string"
+                }
+              },
+              "required" : [ "ItemReference", "ItemSupplierReference", "DWPNumber", "DWPEdition", "DWPFromPackagingDate" ]
+            },
+            "SupplierReference" : {
+              "additionalProperties" : false,
+              "type" : "object",
+              "required" : [ "BusinessUnitCode", "BusinessUnitType", "BusinessUnitSequence" ],
+              "properties" : {
+                "BusinessUnitSequence" : {
+                  "maximum" : 99,
+                  "type" : "integer",
+                  "minimum" : 0
+                },
+                "BusinessUnitType" : {
+                  "pattern" : "(^[A-Z]{2,3})",
+                  "type" : "string"
+                },
+                "BusinessUnitCode" : {
+                  "pattern" : "(^[0-9A-Z]{3,5})|AP",
+                  "type" : "string"
+                }
+              }
+            },
+            "ProductionDate" : {
+              "format" : "date",
+              "type" : "string"
+            },
+            "TradeStatus" : {
+              "type" : "integer",
+              "enum" : [ 0, 1, 2 ]
+            },
+            "RegistrationDateTime" : {
+              "format" : "date-time",
+              "pattern" : "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$",
+              "type" : "string"
+            }
+          },
+          "required" : [ "ItemReference", "SupplierReference", "ItemDWPReference", "RegistrationDateTime", "ProductionDate", "StockLocationId", "Quantity", "UOMCodeQuantity", "CountryOfOrigin", "TradeStatus", "BondedFlag" ]
+        },
+        "LUStockAdjustment" : {
+          "additionalProperties" : false,
+          "type" : "object",
+          "properties" : {
+            "TransactionType" : {
+              "type" : "string",
+              "maxLength" : 3
+            },
+            "UOMCodeQuantity" : {
+              "minLength" : 1,
+              "type" : "string",
+              "maxLength" : 10
+            },
+            "ReportDateTime" : {
+              "format" : "date-time",
+              "pattern" : "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$",
+              "type" : "string"
+            },
+            "RuleIdentifier" : {
+              "type" : "integer"
+            },
+            "TransactionDateTime" : {
+              "format" : "date-time",
+              "pattern" : "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$",
+              "type" : "string"
+            },
+            "AdjustmentQuantity" : {
+              "multipleOf" : 0.01,
+              "maximum" : 9.9999999999E8,
+              "type" : "number",
+              "minimum" : -9.9999999999E8
+            },
+            "SubCode" : {
+              "maximum" : 99,
+              "type" : "integer",
+              "minimum" : 0
+            },
+            "LogId" : {
+              "type" : "integer"
+            },
+            "ChangeNote" : {
+              "minLength" : 1,
+              "type" : "string",
+              "maxLength" : 35
+            },
+            "OutBoundReferences" : {
+              "additionalProperties" : false,
+              "type" : "object",
+              "properties" : {
+                "ExecutableOrderLineReference" : {
+                  "additionalProperties" : false,
+                  "type" : "object",
+                  "properties" : {
+                    "ExecutableOrderId" : {
+                      "minLength" : 1,
+                      "type" : "string",
+                      "maxLength" : 40
+                    },
+                    "ExecutableOrderLineId" : {
+                      "maximum" : 9999,
+                      "type" : "integer",
+                      "minimum" : -9999
+                    }
+                  },
+                  "required" : [ "ExecutableOrderId", "ExecutableOrderLineId" ]
+                },
+                "OutboundConsignmentLineReference" : {
+                  "additionalProperties" : false,
+                  "type" : "object",
+                  "properties" : {
+                    "ConsignmentId" : {
+                      "additionalProperties" : false,
+                      "type" : "object",
+                      "properties" : {
+                        "ConsignmentNumber" : {
+                          "minLength" : 1,
+                          "type" : "string",
+                          "maxLength" : 12
+                        },
+                        "CreatorReference" : {
+                          "additionalProperties" : false,
+                          "type" : "object",
+                          "required" : [ "BusinessUnitCode", "BusinessUnitType" ],
+                          "properties" : {
+                            "BusinessUnitType" : {
+                              "pattern" : "(^[A-Z]{2,3})",
+                              "type" : "string"
+                            },
+                            "BusinessUnitCode" : {
+                              "pattern" : "(^[0-9A-Z]{3,5})|AP",
+                              "type" : "string"
+                            }
+                          }
+                        }
+                      },
+                      "required" : [ "CreatorReference", "ConsignmentNumber" ]
+                    },
+                    "ConsignmentLineNumber" : { }
+                  },
+                  "required" : [ "ConsignmentId", "ConsignmentLineNumber" ]
+                },
+                "OrderSource" : {
+                  "minLength" : 1,
+                  "type" : "string",
+                  "maxLength" : 10
+                }
+              }
+            }
+          },
+          "required" : [ "LogId", "TransactionType", "ReportDateTime", "TransactionDateTime", "AdjustmentQuantity", "UOMCodeQuantity" ]
+        },
+        "LogisticUnitReference" : {
+          "additionalProperties" : false,
+          "type" : "object",
+          "required" : [ "BusinessUnitCode", "BusinessUnitType" ],
+          "properties" : {
+            "BusinessUnitType" : {
+              "pattern" : "(^[A-Z]{2,3})",
+              "type" : "string"
+            },
+            "BusinessUnitCode" : {
+              "pattern" : "(^[0-9A-Z]{3,5})|AP",
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "required" : [ "LogisticUnitReference", "LUStock", "LUStockAdjustment" ]
+    },
+    "LUStockAdjustment" : {
+      "additionalProperties" : false,
+      "type" : "object",
+      "properties" : {
+        "TransactionType" : {
+          "type" : "string",
+          "maxLength" : 3
+        },
+        "UOMCodeQuantity" : {
+          "minLength" : 1,
+          "type" : "string",
+          "maxLength" : 10
+        },
+        "ReportDateTime" : {
+          "format" : "date-time",
+          "pattern" : "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$",
+          "type" : "string"
+        },
+        "RuleIdentifier" : {
+          "type" : "integer"
+        },
+        "TransactionDateTime" : {
+          "format" : "date-time",
+          "pattern" : "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$",
+          "type" : "string"
+        },
+        "AdjustmentQuantity" : {
+          "multipleOf" : 0.01,
+          "maximum" : 9.9999999999E8,
+          "type" : "number",
+          "minimum" : -9.9999999999E8
+        },
+        "SubCode" : {
+          "maximum" : 99,
+          "type" : "integer",
+          "minimum" : 0
+        },
+        "LogId" : {
+          "type" : "integer"
+        },
+        "ChangeNote" : {
+          "minLength" : 1,
+          "type" : "string",
+          "maxLength" : 35
+        },
+        "OutBoundReferences" : {
+          "additionalProperties" : false,
+          "type" : "object",
+          "properties" : {
+            "ExecutableOrderLineReference" : {
+              "additionalProperties" : false,
+              "type" : "object",
+              "properties" : {
+                "ExecutableOrderId" : {
+                  "minLength" : 1,
+                  "type" : "string",
+                  "maxLength" : 40
+                },
+                "ExecutableOrderLineId" : {
+                  "maximum" : 9999,
+                  "type" : "integer",
+                  "minimum" : -9999
+                }
+              },
+              "required" : [ "ExecutableOrderId", "ExecutableOrderLineId" ]
+            },
+            "OutboundConsignmentLineReference" : {
+              "additionalProperties" : false,
+              "type" : "object",
+              "properties" : {
+                "ConsignmentId" : {
+                  "additionalProperties" : false,
+                  "type" : "object",
+                  "properties" : {
+                    "ConsignmentNumber" : {
+                      "minLength" : 1,
+                      "type" : "string",
+                      "maxLength" : 12
+                    },
+                    "CreatorReference" : {
+                      "additionalProperties" : false,
+                      "type" : "object",
+                      "required" : [ "BusinessUnitCode", "BusinessUnitType" ],
+                      "properties" : {
+                        "BusinessUnitType" : {
+                          "pattern" : "(^[A-Z]{2,3})",
+                          "type" : "string"
+                        },
+                        "BusinessUnitCode" : {
+                          "pattern" : "(^[0-9A-Z]{3,5})|AP",
+                          "type" : "string"
+                        }
+                      }
+                    }
+                  },
+                  "required" : [ "CreatorReference", "ConsignmentNumber" ]
+                },
+                "ConsignmentLineNumber" : { }
+              },
+              "required" : [ "ConsignmentId", "ConsignmentLineNumber" ]
+            },
+            "OrderSource" : {
+              "minLength" : 1,
+              "type" : "string",
+              "maxLength" : 10
+            }
+          }
+        }
+      },
+      "required" : [ "LogId", "TransactionType", "ReportDateTime", "TransactionDateTime", "AdjustmentQuantity", "UOMCodeQuantity" ]
+    }
+  },
+  "description" : "Schema for the validation of stock adjustment messages.",
+  "additionalProperties" : false,
+  "title" : "Stock adjustment schema for GIS",
+  "type" : "object",
+  "properties" : {
+    "MsgHeader" : {
+      "additionalProperties" : false,
+      "type" : "object",
+      "properties" : {
+        "MsgName" : {
+          "minLength" : 1,
+          "type" : "string",
+          "maxLength" : 36
+        },
+        "MsgVersNo" : {
+          "minLength" : 1,
+          "type" : "string",
+          "maxLength" : 10
+        },
+        "SendingSystem" : {
+          "minLength" : 1,
+          "type" : "string",
+          "maxLength" : 20
+        },
+        "LogicalRoutingIdentifier" : {
+          "additionalProperties" : false,
+          "type" : "object",
+          "properties" : {
+            "SourceCode" : {
+              "minLength" : 1,
+              "type" : "string"
+            },
+            "SourceType" : {
+              "minLength" : 1,
+              "type" : "string"
+            },
+            "SourceLookupType" : {
+              "minLength" : 1,
+              "type" : "string"
+            }
+          },
+          "required" : [ "SourceCode", "SourceType" ]
+        },
+        "MsgDateTime" : {
+          "format" : "date-time",
+          "pattern" : "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$",
+          "type" : "string"
+        },
+        "SendingUnit" : {
+          "additionalProperties" : false,
+          "type" : "object",
+          "properties" : {
+            "BUType" : {
+              "minLength" : 2,
+              "type" : "string",
+              "maxLength" : 3
+            },
+            "BUCode" : {
+              "minLength" : 3,
+              "type" : "string",
+              "maxLength" : 5
+            }
+          },
+          "required" : [ "BUCode", "BUType" ]
+        },
+        "MsgReference" : {
+          "minLength" : 1,
+          "type" : "string",
+          "maxLength" : 36
+        }
+      },
+      "required" : [ "MsgName", "MsgVersNo", "MsgDateTime", "MsgReference", "SendingSystem" ]
+    },
+    "MsgBody" : {
+      "additionalProperties" : false,
+      "type" : "object",
+      "properties" : {
+        "StockAdjustments" : {
+          "minItems" : 1,
+          "type" : "array",
+          "items" : {
+            "additionalProperties" : false,
+            "type" : "object",
+            "properties" : {
+              "LUStock" : {
+                "description" : "This object models the stock object.",
+                "additionalProperties" : false,
+                "type" : "object",
+                "properties" : {
+                  "LUStockStatus" : {
+                    "type" : "array",
+                    "items" : {
+                      "additionalProperties" : false,
+                      "type" : "object",
+                      "properties" : {
+                        "StockStatus" : {
+                          "type" : "string"
+                        },
+                        "StockStatusSubCode" : {
+                          "maximum" : 99,
+                          "type" : "integer",
+                          "minimum" : 0
+                        }
+                      },
+                      "required" : [ "StockStatus" ]
+                    }
+                  },
+                  "UOMCodeQuantity" : {
+                    "minLength" : 1,
+                    "type" : "string",
+                    "maxLength" : 10
+                  },
+                  "CountryOfOrigin" : {
+                    "type" : "string",
+                    "maxLength" : 2
+                  },
+                  "Quantity" : {
+                    "multipleOf" : 0.01,
+                    "maximum" : 9.9999999999E8,
+                    "type" : "number",
+                    "minimum" : -9.9999999999E8
+                  },
+                  "BondedFlag" : {
+                    "type" : "boolean"
+                  },
+                  "ItemReference" : {
+                    "additionalProperties" : false,
+                    "type" : "object",
+                    "properties" : {
+                      "ItemNumber" : {
+                        "minLength" : 1,
+                        "type" : "string",
+                        "maxLength" : 15
+                      },
+                      "ItemType" : {
+                        "type" : "string",
+                        "enum" : [ "ADS", "ART", "CCI", "HM", "OAD", "SGR", "SPR" ]
+                      }
+                    },
+                    "required" : [ "ItemNumber", "ItemType" ]
+                  },
+                  "StockLocationId" : {
+                    "minLength" : 1,
+                    "type" : "string",
+                    "maxLength" : 30
+                  },
+                  "InboundConsignmentLineReference" : {
+                    "additionalProperties" : false,
+                    "type" : "object",
+                    "properties" : {
+                      "ConsignmentId" : {
+                        "additionalProperties" : false,
+                        "type" : "object",
+                        "properties" : {
+                          "ConsignmentNumber" : {
+                            "minLength" : 1,
+                            "type" : "string",
+                            "maxLength" : 12
+                          },
+                          "CreatorReference" : {
+                            "additionalProperties" : false,
+                            "type" : "object",
+                            "required" : [ "BusinessUnitCode", "BusinessUnitType" ],
+                            "properties" : {
+                              "BusinessUnitType" : {
+                                "pattern" : "(^[A-Z]{2,3})",
+                                "type" : "string"
+                              },
+                              "BusinessUnitCode" : {
+                                "pattern" : "(^[0-9A-Z]{3,5})|AP",
+                                "type" : "string"
+                              }
+                            }
+                          }
+                        },
+                        "required" : [ "CreatorReference", "ConsignmentNumber" ]
+                      },
+                      "ConsignmentLineNumber" : { }
+                    },
+                    "required" : [ "ConsignmentId", "ConsignmentLineNumber" ]
+                  },
+                  "OrderType" : {
+                    "minLength" : 1,
+                    "type" : "string",
+                    "maxLength" : 10
+                  },
+                  "OrderReference" : {
+                    "minLength" : 1,
+                    "type" : "string",
+                    "maxLength" : 24
+                  },
+                  "ItemDWPReference" : {
+                    "additionalProperties" : false,
+                    "type" : "object",
+                    "properties" : {
+                      "ItemReference" : {
+                        "additionalProperties" : false,
+                        "type" : "object",
+                        "properties" : {
+                          "ItemNumber" : {
+                            "minLength" : 1,
+                            "type" : "string",
+                            "maxLength" : 15
+                          },
+                          "ItemType" : {
+                            "type" : "string",
+                            "enum" : [ "ADS", "ART", "CCI", "HM", "OAD", "SGR", "SPR" ]
+                          }
+                        },
+                        "required" : [ "ItemNumber", "ItemType" ]
+                      },
+                      "ItemSupplierReference" : {
+                        "additionalProperties" : false,
+                        "type" : "object",
+                        "required" : [ "BusinessUnitCode", "BusinessUnitType" ],
+                        "properties" : {
+                          "BusinessUnitType" : {
+                            "pattern" : "(^[A-Z]{2,3})",
+                            "type" : "string"
+                          },
+                          "BusinessUnitCode" : {
+                            "pattern" : "(^[0-9A-Z]{3,5})|AP",
+                            "type" : "string"
+                          }
+                        }
+                      },
+                      "DWPNumber" : {
+                        "type" : "integer"
+                      },
+                      "DWPEdition" : {
+                        "type" : "integer"
+                      },
+                      "DWPFromPackagingDate" : {
+                        "format" : "date",
+                        "type" : "string"
+                      }
+                    },
+                    "required" : [ "ItemReference", "ItemSupplierReference", "DWPNumber", "DWPEdition", "DWPFromPackagingDate" ]
+                  },
+                  "SupplierReference" : {
+                    "additionalProperties" : false,
+                    "type" : "object",
+                    "required" : [ "BusinessUnitCode", "BusinessUnitType", "BusinessUnitSequence" ],
+                    "properties" : {
+                      "BusinessUnitSequence" : {
+                        "maximum" : 99,
+                        "type" : "integer",
+                        "minimum" : 0
+                      },
+                      "BusinessUnitType" : {
+                        "pattern" : "(^[A-Z]{2,3})",
+                        "type" : "string"
+                      },
+                      "BusinessUnitCode" : {
+                        "pattern" : "(^[0-9A-Z]{3,5})|AP",
+                        "type" : "string"
+                      }
+                    }
+                  },
+                  "ProductionDate" : {
+                    "format" : "date",
+                    "type" : "string"
+                  },
+                  "TradeStatus" : {
+                    "type" : "integer",
+                    "enum" : [ 0, 1, 2 ]
+                  },
+                  "RegistrationDateTime" : {
+                    "format" : "date-time",
+                    "pattern" : "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$",
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "ItemReference", "SupplierReference", "ItemDWPReference", "RegistrationDateTime", "ProductionDate", "StockLocationId", "Quantity", "UOMCodeQuantity", "CountryOfOrigin", "TradeStatus", "BondedFlag" ]
+              },
+              "LUStockAdjustment" : {
+                "additionalProperties" : false,
+                "type" : "object",
+                "properties" : {
+                  "TransactionType" : {
+                    "type" : "string",
+                    "maxLength" : 3
+                  },
+                  "UOMCodeQuantity" : {
+                    "minLength" : 1,
+                    "type" : "string",
+                    "maxLength" : 10
+                  },
+                  "ReportDateTime" : {
+                    "format" : "date-time",
+                    "pattern" : "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$",
+                    "type" : "string"
+                  },
+                  "RuleIdentifier" : {
+                    "type" : "integer"
+                  },
+                  "TransactionDateTime" : {
+                    "format" : "date-time",
+                    "pattern" : "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$",
+                    "type" : "string"
+                  },
+                  "AdjustmentQuantity" : {
+                    "multipleOf" : 0.01,
+                    "maximum" : 9.9999999999E8,
+                    "type" : "number",
+                    "minimum" : -9.9999999999E8
+                  },
+                  "SubCode" : {
+                    "maximum" : 99,
+                    "type" : "integer",
+                    "minimum" : 0
+                  },
+                  "LogId" : {
+                    "type" : "integer"
+                  },
+                  "ChangeNote" : {
+                    "minLength" : 1,
+                    "type" : "string",
+                    "maxLength" : 35
+                  },
+                  "OutBoundReferences" : {
+                    "additionalProperties" : false,
+                    "type" : "object",
+                    "properties" : {
+                      "ExecutableOrderLineReference" : {
+                        "additionalProperties" : false,
+                        "type" : "object",
+                        "properties" : {
+                          "ExecutableOrderId" : {
+                            "minLength" : 1,
+                            "type" : "string",
+                            "maxLength" : 40
+                          },
+                          "ExecutableOrderLineId" : {
+                            "maximum" : 9999,
+                            "type" : "integer",
+                            "minimum" : -9999
+                          }
+                        },
+                        "required" : [ "ExecutableOrderId", "ExecutableOrderLineId" ]
+                      },
+                      "OutboundConsignmentLineReference" : {
+                        "additionalProperties" : false,
+                        "type" : "object",
+                        "properties" : {
+                          "ConsignmentId" : {
+                            "additionalProperties" : false,
+                            "type" : "object",
+                            "properties" : {
+                              "ConsignmentNumber" : {
+                                "minLength" : 1,
+                                "type" : "string",
+                                "maxLength" : 12
+                              },
+                              "CreatorReference" : {
+                                "additionalProperties" : false,
+                                "type" : "object",
+                                "required" : [ "BusinessUnitCode", "BusinessUnitType" ],
+                                "properties" : {
+                                  "BusinessUnitType" : {
+                                    "pattern" : "(^[A-Z]{2,3})",
+                                    "type" : "string"
+                                  },
+                                  "BusinessUnitCode" : {
+                                    "pattern" : "(^[0-9A-Z]{3,5})|AP",
+                                    "type" : "string"
+                                  }
+                                }
+                              }
+                            },
+                            "required" : [ "CreatorReference", "ConsignmentNumber" ]
+                          },
+                          "ConsignmentLineNumber" : { }
+                        },
+                        "required" : [ "ConsignmentId", "ConsignmentLineNumber" ]
+                      },
+                      "OrderSource" : {
+                        "minLength" : 1,
+                        "type" : "string",
+                        "maxLength" : 10
+                      }
+                    }
+                  }
+                },
+                "required" : [ "LogId", "TransactionType", "ReportDateTime", "TransactionDateTime", "AdjustmentQuantity", "UOMCodeQuantity" ]
+              },
+              "LogisticUnitReference" : {
+                "additionalProperties" : false,
+                "type" : "object",
+                "required" : [ "BusinessUnitCode", "BusinessUnitType" ],
+                "properties" : {
+                  "BusinessUnitType" : {
+                    "pattern" : "(^[A-Z]{2,3})",
+                    "type" : "string"
+                  },
+                  "BusinessUnitCode" : {
+                    "pattern" : "(^[0-9A-Z]{3,5})|AP",
+                    "type" : "string"
+                  }
+                }
+              }
+            },
+            "required" : [ "LogisticUnitReference", "LUStock", "LUStockAdjustment" ]
+          }
+        }
+      },
+      "required" : [ "StockAdjustments" ]
+    }
+  },
+  "required" : [ "MsgHeader", "MsgBody" ],
+  "$id" : "FLIStockAdjustment.json"
+}

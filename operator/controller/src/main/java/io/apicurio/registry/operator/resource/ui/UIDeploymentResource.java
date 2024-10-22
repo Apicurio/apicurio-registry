@@ -20,7 +20,7 @@ import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.a
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainer;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
-import static io.apicurio.registry.operator.utils.PodTemplateSpecUtils.mergePTS;
+import static io.apicurio.registry.operator.utils.PodTemplateSpecFeature.merge;
 
 // spotless:off
 @KubernetesDependent(
@@ -41,7 +41,7 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
 
         var d = UI_DEPLOYMENT_KEY.getFactory().apply(primary);
 
-        d.getSpec().setTemplate(mergePTS(primary.getSpec().getUi().getPodTemplateSpec(),
+        d.getSpec().setTemplate(merge(primary.getSpec().getUi().getPodTemplateSpec(),
                 d.getSpec().getTemplate(), UI_CONTAINER_NAME));
 
         var envVars = new LinkedHashMap<String, EnvVar>();

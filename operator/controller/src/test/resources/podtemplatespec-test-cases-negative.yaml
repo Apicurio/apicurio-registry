@@ -1,0 +1,15 @@
+cases:
+
+  - id: 'Env 1'
+    original:
+      spec:
+        containers:
+          - name: test
+            image: test:tag
+    spec:
+      spec:
+        containers:
+          - name: test
+            env:
+              - name: foo
+                value: bar

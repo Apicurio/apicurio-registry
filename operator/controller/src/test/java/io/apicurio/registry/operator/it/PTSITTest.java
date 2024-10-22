@@ -22,13 +22,12 @@ public class PTSITTest extends ITBase {
     @Test
     void testPTS() {
         // spotless:off
-        var exportData = ResourceFactory.deserialize("/k8s/examples/pts/export-data.configmap.yaml",
-                ConfigMap.class);
-        var registry = ResourceFactory.deserialize("/k8s/examples/pts/pts.apicurioregistry3.yaml",
+        var exportData = ResourceFactory
+                .deserialize("/k8s/examples/podtemplatespec/export-data.configmap.yaml", ConfigMap.class);
+        var registry = ResourceFactory.deserialize(
+                "/k8s/examples/podtemplatespec/podtemplatespec.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
-        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
-        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
 
         client.resource(exportData).create();
         client.resource(registry).create();

@@ -19,6 +19,8 @@ type SearchedArtifact struct {
 	description *string
 	// An ID of a single artifact group.
 	groupId *string
+	// User-defined name-value pairs. Name and value must be strings.
+	labels Labelsable
 	// The modifiedBy property
 	modifiedBy *string
 	// The modifiedOn property
@@ -126,6 +128,16 @@ func (m *SearchedArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		return nil
 	}
+	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetLabels(val.(Labelsable))
+		}
+		return nil
+	}
 	res["modifiedBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -173,6 +185,12 @@ func (m *SearchedArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e
 // returns a *string when successful
 func (m *SearchedArtifact) GetGroupId() *string {
 	return m.groupId
+}
+
+// GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
+// returns a Labelsable when successful
+func (m *SearchedArtifact) GetLabels() Labelsable {
+	return m.labels
 }
 
 // GetModifiedBy gets the modifiedBy property value. The modifiedBy property
@@ -227,6 +245,12 @@ func (m *SearchedArtifact) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 	}
 	{
 		err := writer.WriteStringValue("groupId", m.GetGroupId())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteObjectValue("labels", m.GetLabels())
 		if err != nil {
 			return err
 		}
@@ -294,6 +318,11 @@ func (m *SearchedArtifact) SetGroupId(value *string) {
 	m.groupId = value
 }
 
+// SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *SearchedArtifact) SetLabels(value Labelsable) {
+	m.labels = value
+}
+
 // SetModifiedBy sets the modifiedBy property value. The modifiedBy property
 func (m *SearchedArtifact) SetModifiedBy(value *string) {
 	m.modifiedBy = value
@@ -322,6 +351,7 @@ type SearchedArtifactable interface {
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
 	GetGroupId() *string
+	GetLabels() Labelsable
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetName() *string
@@ -331,6 +361,7 @@ type SearchedArtifactable interface {
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetGroupId(value *string)
+	SetLabels(value Labelsable)
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetName(value *string)

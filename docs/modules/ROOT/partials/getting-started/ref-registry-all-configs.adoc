@@ -557,6 +557,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.2`
 |Enables artifact version mutability
+|`apicurio.rest.search-results.labels.max-size.bytes`
+|`int`
+|`512`
+|`3.0.3`
+|Max size of the labels (in bytes) per item from within search results
 |===
 
 == semver

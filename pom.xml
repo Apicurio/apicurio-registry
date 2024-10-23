@@ -924,11 +924,6 @@
           <version>${version.clean.plugin}</version>
         </plugin>
         <plugin>
-          <groupId>io.gatling</groupId>
-          <artifactId>gatling-maven-plugin</artifactId>
-          <version>${version.gatling.plugin}</version>
-        </plugin>
-        <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
           <version>4.9.2</version>

@@ -67,14 +67,14 @@ public class ApicurioRegistry3SpecApp implements KubernetesResource {
      * App component This allows users to modify the apicurio-registry-app container, or adding another
      * container to the pod. Operator will apply changes on top of this PTS, so some parts might be
      * overridden, depending on other fields in this CR. Restrictions: `.spec.containers[name =
-     * apicurio-registry-app].env` and `.spec.containers[name = apicurio-registry-app].image` must be empty.
+     * apicurio-registry-app].env` must be empty.
      */
     @JsonProperty("podTemplateSpec")
     @JsonPropertyDescription("""
             This field can be used to specify a PodTemplateSpec that will be used to generate Deployment for the App component
             This allows users to modify the apicurio-registry-app container, or adding another container to the pod.
             Operator will apply changes on top of this PTS, so some parts might be overridden, depending on other fields in this CR.
-            Restrictions: `.spec.containers[name = apicurio-registry-app].env` and `.spec.containers[name = apicurio-registry-app].image` must be empty.
+            Restrictions: `.spec.containers[name = apicurio-registry-app].env` must be empty.
             """)
     @JsonSetter(nulls = Nulls.SKIP)
     private PodTemplateSpec podTemplateSpec;

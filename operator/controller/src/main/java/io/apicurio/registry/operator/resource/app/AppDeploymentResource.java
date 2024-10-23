@@ -4,10 +4,10 @@ import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.spec.Sql;
 import io.apicurio.registry.operator.feat.KafkaSql;
-import io.apicurio.registry.operator.utils.PodTemplateSpecFeature;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import io.fabric8.kubernetes.api.model.PodTemplateSpec;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
@@ -24,7 +24,6 @@ import static io.apicurio.registry.operator.resource.ResourceFactory.APP_CONTAIN
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
-import static io.apicurio.registry.operator.utils.PodTemplateSpecFeature.merge;
 import static java.util.Objects.requireNonNull;
 
 // spotless:off
@@ -51,9 +50,6 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
         var d = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
-
-        d.getSpec().setTemplate(merge(primary.getSpec().getApp().getPodTemplateSpec(),
-                d.getSpec().getTemplate(), APP_CONTAINER_NAME));
 
         var envVars = new LinkedHashMap<String, EnvVar>();
         primary.getSpec().getApp().getEnv().forEach(e -> {
@@ -116,12 +112,30 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         requireNonNull(name);
         log.debug("Getting container {} in Deployment {}", name, ResourceID.fromResource(d));
         if (d.getSpec() != null & d.getSpec().getTemplate() != null) {
-            var c = PodTemplateSpecFeature.getContainer(d.getSpec().getTemplate(), name);
+            var c = getContainer(d.getSpec().getTemplate(), name);
             if (c != null) {
                 return c;
             }
         }
         throw new OperatorException(
                 "Container %s not found in Deployment %s".formatted(name, ResourceID.fromResource(d)));
+    }
+
+    /**
+     * Get container with a given name from the given PTS.
+     *
+     * @return null when container was not found
+     */
+    public static Container getContainer(PodTemplateSpec pts, String name) {
+        requireNonNull(pts);
+        requireNonNull(name);
+        if (pts.getSpec() != null && pts.getSpec().getContainers() != null) {
+            for (var c : pts.getSpec().getContainers()) {
+                if (name.equals(c.getName())) {
+                    return c;
+                }
+            }
+        }
+        return null;
     }
 }

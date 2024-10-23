@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.dto;
 import lombok.*;
 
 import java.util.Date;
+import java.util.Map;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,4 +20,6 @@ public class SearchedGroupDto {
     private String owner;
     private Date modifiedOn;
     private String modifiedBy;
+    private Map<String, String> labels;
+
 }

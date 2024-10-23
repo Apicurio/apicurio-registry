@@ -38,6 +38,7 @@ public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));
         dto.setArtifactType(rs.getString("type"));
+        dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
         return dto;
     }
 

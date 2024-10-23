@@ -14,6 +14,10 @@ public class RestConfig {
     @Info(category = "rest", description = "Max size of the artifact allowed to be downloaded from URL", availableSince = "2.2.6")
     int downloadMaxSize;
 
+    @ConfigProperty(name = "apicurio.rest.search-results.labels.max-size.bytes", defaultValue = "512")
+    @Info(category = "rest", description = "Max size of the labels (in bytes) per item from within search results", availableSince = "3.0.3")
+    int labelsInSearchResultsMaxSize;
+
     @ConfigProperty(name = "apicurio.rest.artifact.download.ssl-validation.disabled", defaultValue = "false")
     @Info(category = "rest", description = "Skip SSL validation when downloading artifacts from URL", availableSince = "2.2.6")
     boolean downloadSkipSSLValidation;
@@ -40,6 +44,10 @@ public class RestConfig {
 
     public int getDownloadMaxSize() {
         return this.downloadMaxSize;
+    }
+
+    public int getLabelsInSearchResultsMaxSize() {
+        return this.labelsInSearchResultsMaxSize;
     }
 
     public boolean getDownloadSkipSSLValidation() {

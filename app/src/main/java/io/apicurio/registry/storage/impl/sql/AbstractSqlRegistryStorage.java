@@ -23,6 +23,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -218,6 +219,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     SemVerConfigProperties semVerConfigProps;
+
+    @Inject
+    RestConfig restConfig;
 
     @Inject
 
@@ -1112,6 +1116,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Execute artifact query
             List<SearchedArtifactDto> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
+            limitReturnedLabelsInArtifacts(artifacts);
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
 
@@ -1736,6 +1741,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Execute query
             List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
+            limitReturnedLabelsInVersions(versions);
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
 
@@ -2907,6 +2913,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Execute query
             List<SearchedGroupDto> groups = groupsQuery.map(SearchedGroupMapper.instance).list();
+            limitReturnedLabelsInGroups(groups);
+
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
 
@@ -3539,6 +3547,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Execute query
             List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
+            limitReturnedLabelsInVersions(versions);
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
 
@@ -3788,4 +3797,52 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     private boolean isH2() {
         return sqlStatements.dbType().equals("h2");
     }
+
+    /*
+     * Ensures that only a reasonable number/size of labels for each item in the list are returned. This is to
+     * guard against an unexpectedly enormous response size to a REST API search operation.
+     */
+
+    private Map<String, String> limitReturnedLabels(Map<String, String> labels) {
+        int maxBytes = restConfig.getLabelsInSearchResultsMaxSize();
+        if (labels != null && !labels.isEmpty()) {
+            Map<String, String> cappedLabels = new HashMap<>();
+            int totalBytes = 0;
+            for (String key : labels.keySet()) {
+                if (totalBytes < maxBytes) {
+                    String value = labels.get(key);
+                    cappedLabels.put(key, value);
+                    totalBytes += key.length() + (value != null ? value.length() : 0);
+                }
+            }
+            return cappedLabels;
+        }
+
+        return null;
+    }
+
+    private void limitReturnedLabelsInGroups(List<SearchedGroupDto> groups) {
+        groups.forEach(group -> {
+            Map<String, String> labels = group.getLabels();
+            Map<String, String> cappedLabels = limitReturnedLabels(labels);
+            group.setLabels(cappedLabels);
+        });
+    }
+
+    private void limitReturnedLabelsInArtifacts(List<SearchedArtifactDto> artifacts) {
+        artifacts.forEach(artifact -> {
+            Map<String, String> labels = artifact.getLabels();
+            Map<String, String> cappedLabels = limitReturnedLabels(labels);
+            artifact.setLabels(cappedLabels);
+        });
+    }
+
+    private void limitReturnedLabelsInVersions(List<SearchedVersionDto> versions) {
+        versions.forEach(version -> {
+            Map<String, String> labels = version.getLabels();
+            Map<String, String> cappedLabels = limitReturnedLabels(labels);
+            version.setLabels(cappedLabels);
+        });
+    }
+
 }

@@ -1066,17 +1066,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 case name:
                     orderByQuery.append(" ORDER BY coalesce(a.name, a.artifactId)");
                     break;
-                case artifactId:
-                    orderByQuery.append(" ORDER BY a.artifactId");
-                    break;
-                case createdOn:
-                    orderByQuery.append(" ORDER BY a.createdOn");
-                    break;
-                case modifiedOn:
-                    orderByQuery.append(" ORDER BY a.modifiedOn");
-                    break;
                 case artifactType:
                     orderByQuery.append(" ORDER BY a.type");
+                    break;
+                case groupId:
+                case artifactId:
+                case createdOn:
+                case modifiedOn:
+                    orderByQuery.append(" ORDER BY a." + orderBy.name());
                     break;
                 default:
                     throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
@@ -1681,28 +1678,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 where.append(")");
             }
 
-            // Add order by to artifact query
+            // Add order by to query
             switch (orderBy) {
-                case globalId:
-                    orderByQuery.append(" ORDER BY v.globalId");
+                case name:
+                    orderByQuery.append(" ORDER BY coalesce(v.name, v.version)");
                     break;
                 case groupId:
-                    orderByQuery.append(" ORDER BY v.groupId");
-                    break;
+                case artifactId:
                 case version:
-                    orderByQuery.append(" ORDER BY v.version");
-                    break;
-                case name:
-                    orderByQuery.append(" ORDER BY v.name");
-                    break;
+                case globalId:
                 case createdOn:
-                    orderByQuery.append(" ORDER BY v.createdOn");
-                    break;
                 case modifiedOn:
-                    orderByQuery.append(" ORDER BY v.modifiedOn");
+                    orderByQuery.append(" ORDER BY v." + orderBy.name());
                     break;
                 default:
-                    break;
+                    throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
@@ -2869,13 +2859,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // Add order by to artifact query
             switch (orderBy) {
                 case groupId:
-                    orderByQuery.append(" ORDER BY g.groupId");
-                    break;
                 case createdOn:
+                case modifiedOn:
                     orderByQuery.append(" ORDER BY g.").append(orderBy.name());
                     break;
                 default:
-                    break;
+                    throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
             }
             orderByQuery.append(" ").append(orderDirection.name());
 

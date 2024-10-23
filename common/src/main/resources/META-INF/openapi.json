@@ -3676,6 +3676,7 @@
       "ArtifactSortBy": {
         "description": "",
         "enum": [
+          "groupId",
           "artifactId",
           "createdOn",
           "modifiedOn",
@@ -5092,6 +5093,8 @@
       "VersionSortBy": {
         "description": "",
         "enum": [
+          "groupId",
+          "artifactId",
           "version",
           "name",
           "createdOn",
@@ -5104,7 +5107,8 @@
         "description": "",
         "enum": [
           "groupId",
-          "createdOn"
+          "createdOn",
+          "modifiedOn"
         ],
         "type": "string"
       },

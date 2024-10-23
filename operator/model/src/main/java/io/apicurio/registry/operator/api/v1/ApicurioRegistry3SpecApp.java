@@ -33,7 +33,7 @@ public class ApicurioRegistry3SpecApp implements KubernetesResource {
     @JsonPropertyDescription("""
             Configure KafkaSQL storage.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private ApicurioRegistry3SpecKafkaSql kafkasql = new ApicurioRegistry3SpecKafkaSql();
+    private ApicurioRegistry3SpecKafkaSql kafkasql;
 
     @JsonProperty("env")
     @JsonPropertyDescription("""

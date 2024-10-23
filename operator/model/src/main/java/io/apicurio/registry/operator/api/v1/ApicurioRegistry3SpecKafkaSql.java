@@ -8,7 +8,7 @@ import io.fabric8.kubernetes.api.model.KubernetesResource;
 import lombok.*;
 
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "env", "host" })
+@JsonPropertyOrder({ "bootstrapServers" })
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

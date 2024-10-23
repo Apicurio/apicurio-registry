@@ -1,5 +1,9 @@
 apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry3
 metadata:
-  name: simple
-spec: {}
+  name: kafkasql-plain
+spec:
+  app:
+    kafkasql:
+      bootstrapServers: "<service name>.<namespace>.svc:9092"
+      # Try using Strimzi/Red Hat AMQ Streams Operator!

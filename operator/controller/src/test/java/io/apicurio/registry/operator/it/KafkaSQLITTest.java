@@ -9,16 +9,17 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.strimzi.api.kafka.model.kafka.Kafka;
 import io.strimzi.api.kafka.model.kafka.listener.ListenerStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.net.URL;
 import java.util.List;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
-import static io.apicurio.registry.operator.resource.ResourceFactory.load;
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -30,8 +31,8 @@ public class KafkaSQLITTest extends ITBase {
 
     @BeforeAll
     public static void beforeAll() throws Exception {
-        ITBase.beforeAll();
-        applyStrimziResources(false);
+        ITBase.before();
+        applyStrimziResources();
     }
 
     @Test
@@ -75,30 +76,21 @@ public class KafkaSQLITTest extends ITBase {
         });
     }
 
-    @AfterAll
-    public static void afterAll() throws Exception {
-        applyStrimziResources(true);
-        ITBase.afterAll();
-    }
-
-    private static void applyStrimziResources(boolean delete) {
-        String text = load("/k8s/examples/kafkasql/strimzi-cluster-operator-0.43.0.yaml");
-        List<HasMetadata> resources = Serialization.unmarshal(text);
-        resources.stream().forEach(r -> {
-            if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
-                var crb = (ClusterRoleBinding) r;
-                crb.getSubjects().stream().forEach(s -> s.setNamespace(namespace));
-            } else if (r.getKind().equals("RoleBinding") && r instanceof RoleBinding) {
-                var crb = (RoleBinding) r;
-                crb.getSubjects().stream().forEach(s -> s.setNamespace(namespace));
-            }
-            if (!delete) {
+    private static void applyStrimziResources() throws IOException {
+        try (BufferedInputStream in = new BufferedInputStream(
+                new URL("https://strimzi.io/install/latest").openStream())) {
+            List<HasMetadata> resources = Serialization.unmarshal(in);
+            resources.forEach(r -> {
+                if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
+                    var crb = (ClusterRoleBinding) r;
+                    crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+                } else if (r.getKind().equals("RoleBinding") && r instanceof RoleBinding) {
+                    var crb = (RoleBinding) r;
+                    crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+                }
                 log.info("Creating Strimzi in namespace {}", namespace);
                 client.resource(r).inNamespace(namespace).createOrReplace();
-            } else {
-                log.info("Deleting Strimzi from namespace {}", namespace);
-                client.resource(r).inNamespace(namespace).delete();
-            }
-        });
+            });
+        }
     }
 }

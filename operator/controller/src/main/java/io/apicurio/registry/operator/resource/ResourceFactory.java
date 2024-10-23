@@ -3,17 +3,23 @@ package io.apicurio.registry.operator.resource;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.Service;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainer;
 import static io.apicurio.registry.operator.utils.Mapper.YAML_MAPPER;
+import static io.apicurio.registry.operator.utils.Utils.isBlank;
+import static io.apicurio.registry.operator.utils.Utils.mergeNotOverride;
 
 public class ResourceFactory {
 
@@ -32,22 +38,157 @@ public class ResourceFactory {
     public static final String UI_CONTAINER_NAME = "apicurio-registry-ui";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
-        // WARNING: Make sure to update the io.apicurio.registry.operator.utils.PodTemplateSpecUtils.merge
-        // method
-        // when making significant changes here:
-        var r = getDefaultResource(primary, Deployment.class, RESOURCE_TYPE_DEPLOYMENT, COMPONENT_APP);
-        addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_APP);
+        var r = new Deployment();
+
+        // Metadata
+        if (r.getMetadata() == null) {
+            r.setMetadata(new ObjectMeta());
+        }
+        if (r.getMetadata().getLabels() == null) {
+            r.getMetadata().setLabels(new HashMap<>());
+        }
+        r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
+        r.getMetadata().setName(
+                primary.getMetadata().getName() + "-" + COMPONENT_APP + "-" + RESOURCE_TYPE_DEPLOYMENT);
+        addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_APP);
+
+        // Spec
+        r.setSpec(new DeploymentSpec());
+        r.getSpec().setReplicas(1);
+        r.getSpec().setSelector(new LabelSelector());
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_APP);
+        if (primary.getSpec().getApp().getPodTemplateSpec() != null) {
+            r.getSpec().setTemplate(primary.getSpec().getApp().getPodTemplateSpec());
+        } else {
+            r.getSpec().setTemplate(new PodTemplateSpec());
+        }
+        if (r.getSpec().getTemplate().getMetadata() == null) {
+            r.getSpec().getTemplate().setMetadata(new ObjectMeta());
+        }
+        addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_APP);
+        var c = getContainer(r.getSpec().getTemplate(), APP_CONTAINER_NAME);
+        if (c == null) {
+            if (r.getSpec().getTemplate().getSpec() == null) {
+                r.getSpec().getTemplate().setSpec(new PodSpec());
+            }
+            c = new Container();
+            c.setName(APP_CONTAINER_NAME);
+            if (r.getSpec().getTemplate().getSpec().getContainers() == null) {
+                r.getSpec().getTemplate().getSpec().setContainers(new ArrayList<>());
+            }
+            r.getSpec().getTemplate().getSpec().getContainers().add(c);
+        }
+        if (isBlank(c.getImage())) {
+            c.setImage("quay.io/apicurio/apicurio-registry:latest-snapshot");
+        }
+        if (c.getEnv() != null && !c.getEnv().isEmpty()) {
+            throw new OperatorException("""
+                    Field spec.(app/ui).podTemplateSpec.spec.containers[name = %s].env must be empty.  \
+                    Use spec.(app/ui).env to configure environment variables."""
+                    .formatted(APP_CONTAINER_NAME));
+        }
+        if (c.getPorts() == null) {
+            c.setPorts(new ArrayList<>());
+        }
+        mergeNotOverride(c.getPorts(), List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP")
+                .withContainerPort(8080).build()), ContainerPort::getName);
+        if (c.getReadinessProbe() == null) {
+            c.setReadinessProbe(
+                    new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/ready")
+                            .withPort(new IntOrString(8080)).withScheme("HTTP").build()).build());
+        }
+        if (c.getLivenessProbe() == null) {
+            c.setLivenessProbe(
+                    new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live")
+                            .withPort(new IntOrString(8080)).withScheme("HTTP").build()).build());
+        }
+        if (c.getResources() == null) {
+            c.setResources(new ResourceRequirements());
+        }
+        if (c.getResources().getRequests() == null || c.getResources().getRequests().isEmpty()) {
+            c.getResources()
+                    .setRequests(Map.of("cpu", new Quantity("500m"), "memory", new Quantity("512Mi")));
+        }
+        if (c.getResources().getLimits() == null || c.getResources().getLimits().isEmpty()) {
+            c.getResources().setLimits(Map.of("cpu", new Quantity("1"), "memory", new Quantity("1Gi")));
+        }
+
         return r;
     }
 
     public Deployment getDefaultUIDeployment(ApicurioRegistry3 primary) {
-        // WARNING: Make sure to update the io.apicurio.registry.operator.utils.PodTemplateSpecUtils.merge
-        // method
-        // when making significant changes here:
-        var r = getDefaultResource(primary, Deployment.class, RESOURCE_TYPE_DEPLOYMENT, COMPONENT_UI);
-        addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_UI);
+        var r = new Deployment();
+
+        // Metadata
+        if (r.getMetadata() == null) {
+            r.setMetadata(new ObjectMeta());
+        }
+        r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
+        r.getMetadata().setName(
+                primary.getMetadata().getName() + "-" + COMPONENT_UI + "-" + RESOURCE_TYPE_DEPLOYMENT);
+        addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_UI);
+
+        // Spec
+        r.setSpec(new DeploymentSpec());
+        r.getSpec().setReplicas(1);
+        r.getSpec().setSelector(new LabelSelector());
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
+        if (primary.getSpec().getUi().getPodTemplateSpec() != null) {
+            r.getSpec().setTemplate(primary.getSpec().getUi().getPodTemplateSpec());
+        } else {
+            r.getSpec().setTemplate(new PodTemplateSpec());
+        }
+        if (r.getSpec().getTemplate().getMetadata() == null) {
+            r.getSpec().getTemplate().setMetadata(new ObjectMeta());
+        }
+        addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_UI);
+        var c = getContainer(r.getSpec().getTemplate(), UI_CONTAINER_NAME);
+        if (c == null) {
+            if (r.getSpec().getTemplate().getSpec() == null) {
+                r.getSpec().getTemplate().setSpec(new PodSpec());
+            }
+            c = new Container();
+            c.setName(UI_CONTAINER_NAME);
+            if (r.getSpec().getTemplate().getSpec().getContainers() == null) {
+                r.getSpec().getTemplate().getSpec().setContainers(new ArrayList<>());
+            }
+            r.getSpec().getTemplate().getSpec().getContainers().add(c);
+        }
+        if (isBlank(c.getImage())) {
+            c.setImage("quay.io/apicurio/apicurio-registry-ui:latest-snapshot");
+        }
+        if (c.getEnv() != null && !c.getEnv().isEmpty()) {
+            throw new OperatorException("""
+                    Field spec.(app/ui).podTemplateSpec.spec.containers[name = %s].env must be empty.  \
+                    Use spec.(app/ui).env to configure environment variables."""
+                    .formatted(UI_CONTAINER_NAME));
+        }
+        if (c.getPorts() == null) {
+            c.setPorts(new ArrayList<>());
+        }
+        mergeNotOverride(c.getPorts(), List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP")
+                .withContainerPort(8080).build()), ContainerPort::getName);
+        if (c.getReadinessProbe() == null) {
+            c.setReadinessProbe(
+                    new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js")
+                            .withPort(new IntOrString(8080)).withScheme("HTTP").build()).build());
+        }
+        if (c.getLivenessProbe() == null) {
+            c.setLivenessProbe(
+                    new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js")
+                            .withPort(new IntOrString(8080)).withScheme("HTTP").build()).build());
+        }
+        if (c.getResources() == null) {
+            c.setResources(new ResourceRequirements());
+        }
+        if (c.getResources().getRequests() == null || c.getResources().getRequests().isEmpty()) {
+            c.getResources()
+                    .setRequests(Map.of("cpu", new Quantity("100m"), "memory", new Quantity("256Mi")));
+        }
+        if (c.getResources().getLimits() == null || c.getResources().getLimits().isEmpty()) {
+            c.getResources().setLimits(Map.of("cpu", new Quantity("200m"), "memory", new Quantity("512Mi")));
+        }
+
         return r;
     }
 

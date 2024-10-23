@@ -1,0 +1,553 @@
+cases:
+
+  - id: 'Empty 1'
+    spec: { }
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 1
+                memory: 1Gi
+
+  - id: 'Metadata 1'
+    spec:
+      metadata:
+        labels:
+          app: override
+          foo: bar
+        annotations:
+          bar: baz
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+          foo: bar
+        annotations:
+          bar: baz
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 1
+                memory: 1Gi
+
+  - id: 'Image 1'
+    spec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: other:tag
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: other:tag
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 1
+                memory: 1Gi
+
+  - id: 'Image 2'
+    spec:
+      spec:
+        containers:
+          - name: other
+            image: other:tag
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 1
+                memory: 1Gi
+          - name: other
+            image: other:tag
+
+  - id: 'Env 1'
+    spec:
+      spec:
+        containers:
+          - name: other
+            image: other:tag
+            env:
+              - name: foo
+                value: bar
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 1
+                memory: 1Gi
+          - name: other
+            image: other:tag
+            env:
+              - name: foo
+                value: bar
+
+  - id: 'Ports 1'
+    spec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            ports:
+              - containerPort: 8081
+                name: http
+                protocol: TCP
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8081
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 1
+                memory: 1Gi
+
+  - id: 'Ports 2'
+    spec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            ports:
+              - containerPort: 8443
+                name: https
+                protocol: TCP
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+              - containerPort: 8443
+                name: https
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 1
+                memory: 1Gi
+
+  - id: 'Ports 3'
+    spec:
+      spec:
+        containers:
+          - name: other
+            image: other:tag
+            ports:
+              - containerPort: 8080
+                name: http-other
+                protocol: TCP
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 1
+                memory: 1Gi
+          - name: other
+            image: other:tag
+            ports:
+              - containerPort: 8080
+                name: http-other
+                protocol: TCP
+
+  - id: 'Readiness Probe 1'
+    spec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            readinessProbe:
+              exec:
+                command:
+                  - cat
+                  - /tmp/healthy
+                initialDelaySeconds: 5
+                periodSeconds: 5
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              exec:
+                command:
+                  - cat
+                  - /tmp/healthy
+                initialDelaySeconds: 5
+                periodSeconds: 5
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 1
+                memory: 1Gi
+
+  - id: 'Liveness Probe 1'
+    spec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            livenessProbe:
+              exec:
+                command:
+                  - cat
+                  - /tmp/live
+                initialDelaySeconds: 5
+                periodSeconds: 5
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              exec:
+                command:
+                  - cat
+                  - /tmp/live
+                initialDelaySeconds: 5
+                periodSeconds: 5
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 1
+                memory: 1Gi
+
+  - id: 'Requests 1'
+    spec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            resources:
+              requests:
+                cpu: 750m
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 750m
+              limits:
+                cpu: 1
+                memory: 1Gi
+
+  - id: 'Limits 1'
+    spec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            resources:
+              limits:
+                cpu: 750m
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: 750m

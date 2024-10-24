@@ -8,9 +8,14 @@ import io.apicurio.registry.operator.OperatorException;
 
 public class Mapper {
 
+    private static final ObjectMapper MAPPER;
+
     public static final ObjectMapper YAML_MAPPER;
 
     static {
+        MAPPER = new ObjectMapper();
+        MAPPER.registerModule(new JavaTimeModule());
+
         YAML_MAPPER = new YAMLMapper();
         YAML_MAPPER.registerModule(new JavaTimeModule());
     }

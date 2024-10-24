@@ -17,7 +17,7 @@ import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_U
 import static io.apicurio.registry.operator.resource.ResourceFactory.UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
-import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainer;
+import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
@@ -57,7 +57,7 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
             }));
         });
 
-        var container = getContainer(d, UI_CONTAINER_NAME);
+        var container = getContainerFromDeployment(d, UI_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());
 
         log.debug("Desired {} is {}", UI_DEPLOYMENT_KEY.getId(), toYAML(d));

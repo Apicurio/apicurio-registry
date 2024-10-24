@@ -42,11 +42,12 @@ public class VersionModifiedByOnTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
 
         createArtifact(groupId, artifactId, ArtifactType.OPENAPI, artifactContent,
-            ContentTypes.APPLICATION_JSON, (ca) -> {
-                ca.getFirstVersion().setVersion("1.0");
-            });
+                ContentTypes.APPLICATION_JSON, (ca) -> {
+                    ca.getFirstVersion().setVersion("1.0");
+                });
 
-        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1.0").get();
+        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("1.0").get();
         Assertions.assertNotNull(vmd);
         Assertions.assertNotNull(vmd.getModifiedOn());
     }

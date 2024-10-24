@@ -263,7 +263,7 @@
     <!-- Kiota -->
     <kiota.libs.version>1.7.0</kiota.libs.version>
     <kiota.community.version>0.0.19</kiota.community.version>
-    
+
     <kiota.version>1.19.1</kiota.version>
     <kiota.timeout>60</kiota.timeout>
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
@@ -1141,7 +1141,9 @@
     <profile>
       <id>spotless</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>!skipSpotless</name>
+        </property>
       </activation>
       <build>
         <plugins>

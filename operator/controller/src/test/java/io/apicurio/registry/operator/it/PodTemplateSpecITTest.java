@@ -15,9 +15,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
-public class PTSITTest extends ITBase {
+public class PodTemplateSpecITTest extends ITBase {
 
-    private static final Logger log = LoggerFactory.getLogger(PTSITTest.class);
+    private static final Logger log = LoggerFactory.getLogger(PodTemplateSpecITTest.class);
 
     @Test
     void testPTS() {

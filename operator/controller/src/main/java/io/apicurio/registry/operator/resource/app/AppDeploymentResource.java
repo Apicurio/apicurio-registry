@@ -70,7 +70,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         configureSqlDatasource(envVars, primary.getSpec().getApp().getSql());
         KafkaSql.configureKafkaSQL(primary, envVars);
 
-        var container = getContainer(d, APP_CONTAINER_NAME);
+        var container = getContainerFromDeployment(d, APP_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());
 
         log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(d));
@@ -107,12 +107,12 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
      *
      * @throws OperatorException if container was not found
      */
-    public static Container getContainer(Deployment d, String name) {
+    public static Container getContainerFromDeployment(Deployment d, String name) {
         requireNonNull(d);
         requireNonNull(name);
         log.debug("Getting container {} in Deployment {}", name, ResourceID.fromResource(d));
         if (d.getSpec() != null & d.getSpec().getTemplate() != null) {
-            var c = getContainer(d.getSpec().getTemplate(), name);
+            var c = getContainerFromPodTemplateSpec(d.getSpec().getTemplate(), name);
             if (c != null) {
                 return c;
             }
@@ -126,7 +126,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
      *
      * @return null when container was not found
      */
-    public static Container getContainer(PodTemplateSpec pts, String name) {
+    public static Container getContainerFromPodTemplateSpec(PodTemplateSpec pts, String name) {
         requireNonNull(pts);
         requireNonNull(name);
         if (pts.getSpec() != null && pts.getSpec().getContainers() != null) {

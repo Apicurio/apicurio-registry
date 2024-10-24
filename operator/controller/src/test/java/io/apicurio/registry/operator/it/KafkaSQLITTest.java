@@ -2,13 +2,11 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.PodCondition;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.quarkus.test.junit.QuarkusTest;
-import io.strimzi.api.kafka.model.kafka.Kafka;
-import io.strimzi.api.kafka.model.kafka.listener.ListenerStatus;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -20,7 +18,6 @@ import java.net.URL;
 import java.util.List;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
-import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -31,28 +28,23 @@ public class KafkaSQLITTest extends ITBase {
 
     @BeforeAll
     public static void beforeAll() throws Exception {
-        ITBase.before();
         applyStrimziResources();
     }
 
     @Test
     void testKafkaSQLPlain() {
-        var kafka = deserialize("/k8s/examples/kafkasql/plain/ephemeral.kafka.yaml", Kafka.class);
-        client.resource(kafka).create();
+        client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/plain/ephemeral.kafka.yaml"))
+                .create();
+        final var clusterNAme = "my-cluster";
 
-        await().ignoreExceptions().until(() -> {
-            var status = client.resources(Kafka.class).inNamespace(namespace).withName("my-cluster").get()
-                    .getStatus();
-            assertThat(status.getConditions()).filteredOn(c -> "Ready".equals(c.getType())).singleElement()
-                    .extracting("status", as(InstanceOfAssertFactories.STRING)).isEqualTo("True");
-            return true;
-        });
+        await().ignoreExceptions().untilAsserted(() ->
+        // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
+        assertThat(client.pods().inNamespace(namespace).withName(clusterNAme + "-kafka-0").get().getStatus()
+                .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
+                .containsOnly("True"));
 
-        // get plain bootstrap servers
-        var status = client.resources(Kafka.class).inNamespace(namespace).withName("my-cluster").get()
-                .getStatus();
-        var bootstrapServers = status.getListeners().stream().filter(l -> "plain".equals(l.getName()))
-                .map(ListenerStatus::getBootstrapServers).findFirst().get();
+        // We're guessing the value here to avoid using Strimzi Java model, and relying on retries below.
+        var bootstrapServers = clusterNAme + "-kafka-bootstrap." + namespace + ".svc:9092";
 
         var registry = deserialize("k8s/examples/kafkasql/plain/kafka-plain.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);

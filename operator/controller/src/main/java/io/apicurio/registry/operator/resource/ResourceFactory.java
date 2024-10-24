@@ -12,11 +12,10 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainer;
+import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromPodTemplateSpec;
 import static io.apicurio.registry.operator.utils.Mapper.YAML_MAPPER;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static io.apicurio.registry.operator.utils.Utils.mergeNotOverride;
@@ -39,157 +38,125 @@ public class ResourceFactory {
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
         var r = new Deployment();
-
-        // Metadata
-        if (r.getMetadata() == null) {
-            r.setMetadata(new ObjectMeta());
-        }
-        if (r.getMetadata().getLabels() == null) {
-            r.getMetadata().setLabels(new HashMap<>());
-        }
+        r.setMetadata(new ObjectMeta());
         r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
         r.getMetadata().setName(
                 primary.getMetadata().getName() + "-" + COMPONENT_APP + "-" + RESOURCE_TYPE_DEPLOYMENT);
-        addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_APP);
-
-        // Spec
         r.setSpec(new DeploymentSpec());
         r.getSpec().setReplicas(1);
         r.getSpec().setSelector(new LabelSelector());
-        addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_APP);
         if (primary.getSpec().getApp().getPodTemplateSpec() != null) {
             r.getSpec().setTemplate(primary.getSpec().getApp().getPodTemplateSpec());
         } else {
             r.getSpec().setTemplate(new PodTemplateSpec());
         }
-        if (r.getSpec().getTemplate().getMetadata() == null) {
-            r.getSpec().getTemplate().setMetadata(new ObjectMeta());
-        }
+        mergeDeploymentPodTemplateSpec(
+                // spotless:off
+                r.getSpec().getTemplate(),
+                APP_CONTAINER_NAME,
+                "quay.io/apicurio/apicurio-registry:latest-snapshot",
+                List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
+                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/ready").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
+                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
+                Map.of("cpu", new Quantity("500m"), "memory", new Quantity("512Mi")),
+                Map.of("cpu", new Quantity("1"), "memory", new Quantity("1Gi"))
+                // spotless:on
+        );
+        addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_APP);
+        addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_APP);
         addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_APP);
-        var c = getContainer(r.getSpec().getTemplate(), APP_CONTAINER_NAME);
-        if (c == null) {
-            if (r.getSpec().getTemplate().getSpec() == null) {
-                r.getSpec().getTemplate().setSpec(new PodSpec());
-            }
-            c = new Container();
-            c.setName(APP_CONTAINER_NAME);
-            if (r.getSpec().getTemplate().getSpec().getContainers() == null) {
-                r.getSpec().getTemplate().getSpec().setContainers(new ArrayList<>());
-            }
-            r.getSpec().getTemplate().getSpec().getContainers().add(c);
-        }
-        if (isBlank(c.getImage())) {
-            c.setImage("quay.io/apicurio/apicurio-registry:latest-snapshot");
-        }
-        if (c.getEnv() != null && !c.getEnv().isEmpty()) {
-            throw new OperatorException("""
-                    Field spec.(app/ui).podTemplateSpec.spec.containers[name = %s].env must be empty.  \
-                    Use spec.(app/ui).env to configure environment variables."""
-                    .formatted(APP_CONTAINER_NAME));
-        }
-        if (c.getPorts() == null) {
-            c.setPorts(new ArrayList<>());
-        }
-        mergeNotOverride(c.getPorts(), List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP")
-                .withContainerPort(8080).build()), ContainerPort::getName);
-        if (c.getReadinessProbe() == null) {
-            c.setReadinessProbe(
-                    new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/ready")
-                            .withPort(new IntOrString(8080)).withScheme("HTTP").build()).build());
-        }
-        if (c.getLivenessProbe() == null) {
-            c.setLivenessProbe(
-                    new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live")
-                            .withPort(new IntOrString(8080)).withScheme("HTTP").build()).build());
-        }
-        if (c.getResources() == null) {
-            c.setResources(new ResourceRequirements());
-        }
-        if (c.getResources().getRequests() == null || c.getResources().getRequests().isEmpty()) {
-            c.getResources()
-                    .setRequests(Map.of("cpu", new Quantity("500m"), "memory", new Quantity("512Mi")));
-        }
-        if (c.getResources().getLimits() == null || c.getResources().getLimits().isEmpty()) {
-            c.getResources().setLimits(Map.of("cpu", new Quantity("1"), "memory", new Quantity("1Gi")));
-        }
-
         return r;
     }
 
     public Deployment getDefaultUIDeployment(ApicurioRegistry3 primary) {
         var r = new Deployment();
-
-        // Metadata
-        if (r.getMetadata() == null) {
-            r.setMetadata(new ObjectMeta());
-        }
+        r.setMetadata(new ObjectMeta());
         r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
         r.getMetadata().setName(
                 primary.getMetadata().getName() + "-" + COMPONENT_UI + "-" + RESOURCE_TYPE_DEPLOYMENT);
-        addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_UI);
-
-        // Spec
         r.setSpec(new DeploymentSpec());
         r.getSpec().setReplicas(1);
         r.getSpec().setSelector(new LabelSelector());
-        addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
         if (primary.getSpec().getUi().getPodTemplateSpec() != null) {
             r.getSpec().setTemplate(primary.getSpec().getUi().getPodTemplateSpec());
         } else {
             r.getSpec().setTemplate(new PodTemplateSpec());
         }
-        if (r.getSpec().getTemplate().getMetadata() == null) {
-            r.getSpec().getTemplate().setMetadata(new ObjectMeta());
-        }
+        mergeDeploymentPodTemplateSpec(
+                // spotless:off
+                r.getSpec().getTemplate(),
+                UI_CONTAINER_NAME,
+                "quay.io/apicurio/apicurio-registry-ui:latest-snapshot",
+                List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
+                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
+                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
+                Map.of("cpu", new Quantity("100m"), "memory", new Quantity("256Mi")),
+                Map.of("cpu", new Quantity("200m"), "memory", new Quantity("512Mi"))
+                // spotless:on
+        );
+        addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_UI);
+        addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
         addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_UI);
-        var c = getContainer(r.getSpec().getTemplate(), UI_CONTAINER_NAME);
+        return r;
+    }
+
+    /**
+     * Merge default values for a Deployment into the target PTS (from spec).
+     */
+    private static void mergeDeploymentPodTemplateSpec(
+            // spotless:off
+            PodTemplateSpec target,
+            String containerName,
+            String image,
+            List<ContainerPort> ports,
+            Probe readinessProbe,
+            Probe livenessProbe,
+            Map<String, Quantity> requests,
+            Map<String, Quantity> limits
+            // spotless:on
+    ) {
+        if (target.getMetadata() == null) {
+            target.setMetadata(new ObjectMeta());
+        }
+        var c = getContainerFromPodTemplateSpec(target, containerName);
         if (c == null) {
-            if (r.getSpec().getTemplate().getSpec() == null) {
-                r.getSpec().getTemplate().setSpec(new PodSpec());
+            if (target.getSpec() == null) {
+                target.setSpec(new PodSpec());
             }
             c = new Container();
-            c.setName(UI_CONTAINER_NAME);
-            if (r.getSpec().getTemplate().getSpec().getContainers() == null) {
-                r.getSpec().getTemplate().getSpec().setContainers(new ArrayList<>());
+            c.setName(containerName);
+            if (target.getSpec().getContainers() == null) {
+                target.getSpec().setContainers(new ArrayList<>());
             }
-            r.getSpec().getTemplate().getSpec().getContainers().add(c);
+            target.getSpec().getContainers().add(c);
         }
         if (isBlank(c.getImage())) {
-            c.setImage("quay.io/apicurio/apicurio-registry-ui:latest-snapshot");
+            c.setImage(image);
         }
         if (c.getEnv() != null && !c.getEnv().isEmpty()) {
             throw new OperatorException("""
-                    Field spec.(app/ui).podTemplateSpec.spec.containers[name = %s].env must be empty.  \
-                    Use spec.(app/ui).env to configure environment variables."""
-                    .formatted(UI_CONTAINER_NAME));
+                    Field spec.(app/ui).podTemplateSpec.spec.containers[name = %s].env must be empty. \
+                    Use spec.(app/ui).env to configure environment variables.""".formatted(containerName));
         }
         if (c.getPorts() == null) {
             c.setPorts(new ArrayList<>());
         }
-        mergeNotOverride(c.getPorts(), List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP")
-                .withContainerPort(8080).build()), ContainerPort::getName);
+        mergeNotOverride(c.getPorts(), ports, ContainerPort::getName);
         if (c.getReadinessProbe() == null) {
-            c.setReadinessProbe(
-                    new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js")
-                            .withPort(new IntOrString(8080)).withScheme("HTTP").build()).build());
+            c.setReadinessProbe(readinessProbe);
         }
         if (c.getLivenessProbe() == null) {
-            c.setLivenessProbe(
-                    new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js")
-                            .withPort(new IntOrString(8080)).withScheme("HTTP").build()).build());
+            c.setLivenessProbe(livenessProbe);
         }
         if (c.getResources() == null) {
             c.setResources(new ResourceRequirements());
         }
         if (c.getResources().getRequests() == null || c.getResources().getRequests().isEmpty()) {
-            c.getResources()
-                    .setRequests(Map.of("cpu", new Quantity("100m"), "memory", new Quantity("256Mi")));
+            c.getResources().setRequests(requests);
         }
         if (c.getResources().getLimits() == null || c.getResources().getLimits().isEmpty()) {
-            c.getResources().setLimits(Map.of("cpu", new Quantity("200m"), "memory", new Quantity("512Mi")));
+            c.getResources().setLimits(limits);
         }
-
-        return r;
     }
 
     public Service getDefaultAppService(ApicurioRegistry3 primary) {

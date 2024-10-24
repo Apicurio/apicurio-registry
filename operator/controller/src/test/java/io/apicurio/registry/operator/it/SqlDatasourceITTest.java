@@ -19,7 +19,9 @@ public class SqlDatasourceITTest extends ITBase {
 
     @Test
     void testSqlDatasource() {
-        client.load(SqlDatasourceITTest.class.getResourceAsStream("/k8s/example-postgres.yaml")).create();
+        client.load(
+                SqlDatasourceITTest.class.getResourceAsStream("/k8s/examples/postgres/example-postgres.yaml"))
+                .create();
         // await for postgres to be available
         await().ignoreExceptions().until(() -> (1 == client.apps().statefulSets().inNamespace(namespace)
                 .withName("postgresql-db").get().getStatus().getReadyReplicas()));

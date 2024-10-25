@@ -14,12 +14,14 @@ public class KafkaSql {
     public static String ENV_STORAGE_KIND = "APICURIO_STORAGE_KIND";
     public static String ENV_KAFKASQL_BOOTSTRAP_SERVERS = "APICURIO_KAFKASQL_BOOTSTRAP_SERVERS";
 
-    public static void configureKafkaSQL(ApicurioRegistry3 primary, Map<String, EnvVar> env) {
+    public static boolean configureKafkaSQL(ApicurioRegistry3 primary, Map<String, EnvVar> env) {
         if (primary.getSpec().getApp().getKafkasql() != null
                 && !isBlank(primary.getSpec().getApp().getKafkasql().getBootstrapServers())) {
             addEnvVar(env, new EnvVarBuilder().withName(ENV_STORAGE_KIND).withValue("kafkasql").build());
             addEnvVar(env, new EnvVarBuilder().withName(ENV_KAFKASQL_BOOTSTRAP_SERVERS)
                     .withValue(primary.getSpec().getApp().getKafkasql().getBootstrapServers()).build());
+            return true;
         }
+        return false;
     }
 }

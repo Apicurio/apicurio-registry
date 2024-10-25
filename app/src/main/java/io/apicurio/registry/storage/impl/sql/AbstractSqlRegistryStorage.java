@@ -13,6 +13,7 @@ import io.apicurio.registry.events.ArtifactRuleConfigured;
 import io.apicurio.registry.events.ArtifactVersionCreated;
 import io.apicurio.registry.events.ArtifactVersionDeleted;
 import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
+import io.apicurio.registry.events.ArtifactVersionStateChanged;
 import io.apicurio.registry.events.GlobalRuleConfigured;
 import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
@@ -2063,6 +2064,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 createOrUpdateSemverBranchesRaw(handle, gav);
                 removeVersionFromBranchRaw(handle, gav, BranchId.DRAFTS);
             }
+
+            outboxEvent.fire(SqlOutboxEvent
+                    .of(ArtifactVersionStateChanged.of(groupId, artifactId, version, currentState, newState)));
 
             return null;
         });

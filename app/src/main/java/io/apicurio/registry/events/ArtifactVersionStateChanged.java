@@ -18,12 +18,11 @@ public class ArtifactVersionStateChanged extends OutboxEvent {
     }
 
     public static ArtifactVersionStateChanged of(String groupId, String artifactId, String version,
-                                                 VersionState oldState, VersionState newState) {
+            VersionState oldState, VersionState newState) {
         String id = UUID.randomUUID().toString();
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupId).put("artifactId", artifactId).put("version", version)
-                .put("oldState", oldState.name())
-                .put("newDate", newState.name())
+                .put("oldState", oldState.name()).put("newDate", newState.name())
                 .put("eventType", ARTIFACT_VERSION_STATE_CHANGED.name());
 
         return new ArtifactVersionStateChanged(id, groupId + "-" + artifactId + "-" + version, jsonObject);

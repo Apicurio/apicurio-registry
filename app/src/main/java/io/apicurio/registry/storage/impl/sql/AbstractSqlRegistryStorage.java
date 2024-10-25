@@ -2065,8 +2065,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 removeVersionFromBranchRaw(handle, gav, BranchId.DRAFTS);
             }
 
-            outboxEvent.fire(SqlOutboxEvent
-                    .of(ArtifactVersionStateChanged.of(groupId, artifactId, version, currentState, newState)));
+            outboxEvent.fire(SqlOutboxEvent.of(
+                    ArtifactVersionStateChanged.of(groupId, artifactId, version, currentState, newState)));
 
             return null;
         });

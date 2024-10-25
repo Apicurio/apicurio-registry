@@ -18,7 +18,6 @@ import java.util.Map;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromPodTemplateSpec;
 import static io.apicurio.registry.operator.utils.Mapper.YAML_MAPPER;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
-import static io.apicurio.registry.operator.utils.Utils.mergeNotOverride;
 
 public class ResourceFactory {
 
@@ -141,7 +140,12 @@ public class ResourceFactory {
         if (c.getPorts() == null) {
             c.setPorts(new ArrayList<>());
         }
-        mergeNotOverride(c.getPorts(), ports, ContainerPort::getName);
+        var targetPorts = c.getPorts();
+        ports.forEach(sourcePort -> {
+            if (!targetPorts.stream().anyMatch(targetPort -> sourcePort.getName().equals(targetPort.getName()))) {
+                targetPorts.add(sourcePort);
+            }
+        });
         if (c.getReadinessProbe() == null) {
             c.setReadinessProbe(readinessProbe);
         }

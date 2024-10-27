@@ -126,6 +126,12 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String selectTableTemplate(String columns, String tableName, String alias, String whereClause, String orderBy) {
+        return "SELECT %s FROM %s %s %s %s OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+                .formatted(columns, tableName, alias, whereClause, orderBy);
+    }
+
+    @Override
     public String deleteAllOrphanedContent() {
         return "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId )";
     }

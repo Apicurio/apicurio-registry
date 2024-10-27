@@ -943,13 +943,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
-            StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
-            StringBuilder limitOffset = new StringBuilder();
-
-            // Formulate the SELECT clause for the artifacts query
-            selectTemplate.append("SELECT {{selectColumns}} FROM artifacts a ");
 
             // Formulate the WHERE clause for both queries
             String op;
@@ -1081,19 +1076,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-            // Add limit and offset to artifact query
-            if ("mssql".equals(sqlStatements.dbType())) {
-                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-            } else {
-                limitOffset.append(" LIMIT ? OFFSET ?");
-            }
 
             // Query for the artifacts
-            String artifactsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
-                    .append(limitOffset).toString().replace("{{selectColumns}}", "a.*");
+            String artifactsQuerySql = sqlStatements.selectTableTemplate("a.*", "artifacts", "a",
+                    where.toString(), orderByQuery.toString());
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
-            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
-                    .replace("{{selectColumns}}", "count(a.artifactId)");
+
+            String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts", "a",
+                    where.toString());
             Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
@@ -2803,13 +2793,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
             String op;
 
-            StringBuilder selectTemplate = new StringBuilder();
+
             StringBuilder where = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
-            StringBuilder limitOffset = new StringBuilder();
-
-            // Formulate the SELECT clause for the artifacts query
-            selectTemplate.append("SELECT {{selectColumns}} FROM `groups` g ");
 
             // Formulate the WHERE clause for both queries
             where.append(" WHERE (1 = 1)");
@@ -2872,20 +2858,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-            // Add limit and offset to query
-            if ("mssql".equals(sqlStatements.dbType())) {
-                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-            } else {
-                limitOffset.append(" LIMIT ? OFFSET ?");
-            }
 
             // Query for the group
-            String groupsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
-                    .append(limitOffset).toString().replace("{{selectColumns}}", "*");
+            String groupsQuerySql = sqlStatements.selectTableTemplate("*", "groups", "g",
+                            where.toString(), orderByQuery.toString());
             Query groupsQuery = handle.createQuery(groupsQuerySql);
             // Query for the total row count
-            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
-                    .replace("{{selectColumns}}", "count(g.groupId)");
+            String countQuerySql = sqlStatements.selectCountTableTemplate("g.groupId", "groups", "g",
+                            where.toString());
             Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
@@ -3393,13 +3373,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
-            StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
-            StringBuilder limitOffset = new StringBuilder();
-
-            // Formulate the SELECT clause for the artifacts query
-            selectTemplate.append("SELECT {{selectColumns}} FROM branches b ");
 
             // Formulate the WHERE clause for both queries
             where.append(" WHERE b.groupId = ? AND b.artifactId = ?");
@@ -3413,20 +3388,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // Add order by to artifact query
             orderByQuery.append(" ORDER BY b.branchId ASC");
 
-            // Add limit and offset to query
-            if ("mssql".equals(sqlStatements.dbType())) {
-                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-            } else {
-                limitOffset.append(" LIMIT ? OFFSET ?");
-            }
 
-            // Query for the branc
-            String branchesQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
-                    .append(limitOffset).toString().replace("{{selectColumns}}", "*");
+            // Query for the artifacts
+            String branchesQuerySql = sqlStatements.selectTableTemplate("*", "branches", "b",
+                    where.toString(), orderByQuery.toString());
             Query branchesQuery = handle.createQuery(branchesQuerySql);
-            // Query for the total row count
-            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
-                    .replace("{{selectColumns}}", "count(b.branchId)");
+
+            String countQuerySql = sqlStatements.selectCountTableTemplate("b.branchId", "branches", "b",
+                    where.toString());
             Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters

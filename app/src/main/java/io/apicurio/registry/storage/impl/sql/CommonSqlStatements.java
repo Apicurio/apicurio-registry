@@ -581,7 +581,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGroupCountById() {
-        return "SELECT COUNT(g.groupId) FROM `groups` g WHERE g.groupId = ?";
+        return "SELECT COUNT(g.groupId) FROM " + groupsTable() + " g WHERE g.groupId = ?";
     }
 
     /**
@@ -669,7 +669,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertGroup() {
-        return "INSERT INTO `groups` (groupId, description, artifactsType, owner, createdOn, modifiedBy, modifiedOn, labels) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO " + groupsTable() + " (groupId, description, artifactsType, owner, createdOn, modifiedBy, modifiedOn, labels) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -677,7 +677,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateGroup() {
-        return "UPDATE `groups` SET description = ? , modifiedBy = ? , modifiedOn = ? , labels = ? WHERE groupId = ?";
+        return "UPDATE " + groupsTable() + " SET description = ? , modifiedBy = ? , modifiedOn = ? , labels = ? WHERE groupId = ?";
     }
 
     /**
@@ -685,7 +685,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteGroup() {
-        return "DELETE FROM `groups` WHERE groupId = ?";
+        return "DELETE FROM " + groupsTable() + " WHERE groupId = ?";
     }
 
     /**
@@ -693,7 +693,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String deleteAllGroups() {
-        return "DELETE FROM `groups` ";
+        return "DELETE FROM " + groupsTable() + " ";
     }
 
     /**
@@ -701,7 +701,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGroups() {
-        return "SELECT g.* FROM `groups` g ORDER BY g.groupId ASC LIMIT ?";
+        return "SELECT g.* FROM " + groupsTable() + " g ORDER BY g.groupId ASC LIMIT ?";
     }
 
     /**
@@ -709,7 +709,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGroupByGroupId() {
-        return "SELECT g.* FROM `groups` g WHERE g.groupId = ?";
+        return "SELECT g.* FROM " + groupsTable() + " g WHERE g.groupId = ?";
     }
 
     @Override
@@ -767,7 +767,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String exportGroups() {
-        return "SELECT * FROM `groups` g ";
+        return "SELECT * FROM " + groupsTable() + " g ";
     }
 
     @Override
@@ -818,7 +818,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importGroup() {
-        return "INSERT INTO `groups` (groupId, description, artifactsType, owner, createdOn, modifiedBy, modifiedOn, labels) "
+        return "INSERT INTO " + groupsTable() + " (groupId, description, artifactsType, owner, createdOn, modifiedBy, modifiedOn, labels) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
@@ -1209,5 +1209,20 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String deleteOutboxEvent() {
         return "DELETE FROM outbox WHERE id = ?";
+    }
+
+    @Override
+    public String selectCountTableTemplate(String countBy, String tableName, String alias, String whereClause) {
+        return "SELECT COUNT(%s) FROM %s %s %s".formatted(countBy, tableName, alias, whereClause);
+    }
+
+    @Override
+    public String selectTableTemplate(String columns, String tableName, String alias, String whereClause, String orderBy) {
+        return "SELECT %s FROM %s %s %s %s LIMIT ? OFFSET ?".formatted(columns, tableName, alias, whereClause, orderBy);
+    }
+
+
+    protected String groupsTable() {
+        return "groups";
     }
 }

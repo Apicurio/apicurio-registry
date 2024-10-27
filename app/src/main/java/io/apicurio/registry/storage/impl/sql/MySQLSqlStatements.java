@@ -70,6 +70,21 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String selectCountTableTemplate(String countBy, String tableName, String alias, String whereClause) {
+        return super.selectCountTableTemplate(countBy, "`" + tableName + "`", alias, whereClause);
+    }
+
+    @Override
+    public String selectTableTemplate(String columns, String tableName, String alias, String whereClause, String orderBy) {
+        return super.selectTableTemplate(columns, "`" + tableName + "`", alias, whereClause, orderBy);
+    }
+
+    @Override
+    public String groupsTable() {
+        return "`groups`";
+    }
+
+    @Override
     public String createDataSnapshot() {
         throw new IllegalStateException("Snapshot creation is not supported for MySQL storage");
     }

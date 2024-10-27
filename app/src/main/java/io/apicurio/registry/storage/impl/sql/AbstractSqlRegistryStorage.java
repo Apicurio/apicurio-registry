@@ -2809,7 +2809,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             StringBuilder limitOffset = new StringBuilder();
 
             // Formulate the SELECT clause for the artifacts query
-            selectTemplate.append("SELECT {{selectColumns}} FROM groups g ");
+            selectTemplate.append("SELECT {{selectColumns}} FROM `groups` g ");
 
             // Formulate the WHERE clause for both queries
             where.append(" WHERE (1 = 1)");

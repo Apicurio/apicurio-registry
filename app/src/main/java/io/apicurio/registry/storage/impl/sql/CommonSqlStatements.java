@@ -162,8 +162,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String selectArtifactVersionsNotDisabled() {
-        return "SELECT version FROM versions WHERE groupId = ? AND artifactId = ? AND state != 'DISABLED'";
+    public String selectArtifactVersionsFilteredByState() {
+        return "SELECT version FROM versions WHERE groupId = ? AND artifactId = ? AND state IN (?)";
     }
 
     /**
@@ -174,6 +174,18 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "SELECT v.*, a.type FROM versions v "
                 + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
+    }
+
+    @Override
+    public String selectArtifactVersionState() {
+        return "SELECT v.state FROM versions v "
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
+    }
+
+    @Override
+    public String selectArtifactVersionStateForUpdate() {
+        return "SELECT v.state FROM versions v "
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? FOR UPDATE";
     }
 
     /**
@@ -282,6 +294,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String updateArtifactModifiedByOn() {
         return "UPDATE artifacts SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ?";
+    }
+
+    @Override
+    public String updateArtifactVersionModifiedByOn() {
+        return "UPDATE versions SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
     }
 
     /**
@@ -596,7 +613,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentById() {
-        return "SELECT c.content, c.contentType, c.refs FROM content c " + "WHERE c.contentId = ?";
+        return "SELECT c.content, c.contentType, c.refs, c.contentHash FROM content c "
+                + "WHERE c.contentId = ?";
     }
 
     /**
@@ -604,7 +622,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentByContentHash() {
-        return "SELECT c.content, c.contentType, c.refs FROM content c " + "WHERE c.contentHash = ?";
+        return "SELECT c.content, c.contentType, c.refs, c.contentHash FROM content c "
+                + "WHERE c.contentHash = ?";
     }
 
     @Override
@@ -1052,6 +1071,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String updateArtifactVersionContent() {
+        return "UPDATE versions SET contentId = ?, modifiedBy = ?, modifiedOn = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
+    }
+
+    @Override
     public String selectGAVByGlobalId() {
         return "SELECT groupId, artifactId, version FROM versions " + "WHERE globalId = ?";
     }
@@ -1102,10 +1126,10 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String selectBranchTipNotDisabled() {
-        return "SELECT bv.groupId, bv.artifactId, bv.version " + "FROM branch_versions bv "
+    public String selectBranchTipFilteredByState() {
+        return "SELECT bv.groupId, bv.artifactId, bv.version FROM branch_versions bv "
                 + "JOIN versions v ON bv.groupId = v.groupId AND bv.artifactId = v.artifactId AND bv.version = v.version "
-                + "WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ? AND v.state != 'DISABLED' "
+                + "WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ? AND v.state IN (?) "
                 + "ORDER BY bv.branchOrder DESC LIMIT 1";
     }
 
@@ -1124,12 +1148,22 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String deleteBranchVersions() {
-        return "DELETE FROM branch_versions " + "WHERE groupId = ? AND artifactId = ? AND branchId = ?";
+        return "DELETE FROM branch_versions WHERE groupId = ? AND artifactId = ? AND branchId = ?";
+    }
+
+    @Override
+    public String deleteVersionFromBranch() {
+        return "DELETE FROM branch_versions WHERE groupId = ? AND artifactId = ? AND branchId = ? AND version = ?";
     }
 
     @Override
     public String deleteBranch() {
-        return "DELETE FROM branches " + "WHERE groupId = ? AND artifactId = ? AND branchId = ?";
+        return "DELETE FROM branches WHERE groupId = ? AND artifactId = ? AND branchId = ?";
+    }
+
+    @Override
+    public String deleteAllBranchVersions() {
+        return "DELETE FROM branch_versions";
     }
 
     @Override
@@ -1169,17 +1203,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String createOutboxEvent() {
-        return """
-                INSERT INTO outbox (id, aggregatetype, aggregateid, type, payload) \
-                VALUES (?, ?, ?, ?, ?::jsonb)\
-                """;
+        return "INSERT INTO outbox (id, aggregatetype, aggregateid, type, payload) VALUES (?, ?, ?, ?, ?)";
     }
 
     @Override
     public String deleteOutboxEvent() {
-        return """
-                DELETE FROM outbox o \
-                WHERE o.id= ?\
-                """;
+        return "DELETE FROM outbox WHERE id = ?";
     }
 }

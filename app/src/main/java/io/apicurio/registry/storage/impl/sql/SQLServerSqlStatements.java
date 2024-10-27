@@ -25,7 +25,8 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public boolean isPrimaryKeyViolation(Exception error) {
-        return error.getMessage().contains("Violation of PRIMARY KEY constraint");
+        return error.getMessage().contains("Violation of PRIMARY KEY constraint")
+                || error.getMessage().contains("Violation of UNIQUE KEY constraint");
     }
 
     /**
@@ -52,7 +53,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 ON (target.groupId = source.groupId AND target.artifactId = source.artifactId AND target.branchId = source.branchId)
                 WHEN NOT MATCHED THEN
                 INSERT (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn)
-                VALUES (source.groupId, source.artifactId, source.branchId, source.description, source.systemDefined, source.owner, source.createdOn, source.modifiedBy, source.modifiedOn)
+                VALUES (source.groupId, source.artifactId, source.branchId, source.description, source.systemDefined, source.owner, source.createdOn, source.modifiedBy, source.modifiedOn);
                 """;
     }
 
@@ -70,7 +71,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 WHEN NOT MATCHED THEN
                 INSERT (seqName, seqValue)
                 VALUES (source.seqName, 1)
-                OUTPUT INSERTED.seqValue
+                OUTPUT INSERTED.seqValue;
                 """;
     }
 
@@ -88,7 +89,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 WHEN NOT MATCHED THEN
                 INSERT (seqName, seqValue)
                 VALUES (source.seqName, source.seqValue)
-                OUTPUT INSERTED.seqValue
+                OUTPUT INSERTED.seqValue;
                 """;
     }
 
@@ -111,22 +112,28 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
 
     @Override
     public String selectBranchTip() {
-        return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab "
-                + "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? "
-                + "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+        return "SELECT bv.groupId, bv.artifactId, bv.version FROM branch_versions bv "
+                + "WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ? "
+                + "ORDER BY bv.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
     }
 
     @Override
-    public String selectBranchTipNotDisabled() {
-        return "SELECT ab.groupId, ab.artifactId, ab.version FROM artifact_branches ab "
-                + "JOIN versions v ON ab.groupId = v.groupId AND ab.artifactId = v.artifactId AND ab.version = v.version "
-                + "WHERE ab.groupId = ? AND ab.artifactId = ? AND ab.branchId = ? AND v.state != 'DISABLED' "
-                + "ORDER BY ab.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+    public String selectBranchTipFilteredByState() {
+        return "SELECT bv.groupId, bv.artifactId, bv.version FROM branch_versions bv "
+                + "JOIN versions v ON bv.groupId = v.groupId AND bv.artifactId = v.artifactId AND bv.version = v.version "
+                + "WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ? AND v.state IN (?) "
+                + "ORDER BY bv.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
     }
 
     @Override
     public String deleteAllOrphanedContent() {
         return "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId )";
+    }
+
+    @Override
+    public String selectArtifactVersionStateForUpdate() {
+        return "SELECT v.state FROM versions v WITH (UPDLOCK, ROWLOCK)"
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
     }
 
     @Override

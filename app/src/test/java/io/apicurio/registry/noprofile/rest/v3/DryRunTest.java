@@ -17,7 +17,7 @@ import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.utils.tests.DeletionEnabledProfile;
+import io.apicurio.registry.utils.tests.MutabilityEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@TestProfile(DeletionEnabledProfile.class)
+@TestProfile(MutabilityEnabledProfile.class)
 public class DryRunTest extends AbstractResourceTestBase {
 
     private static final String SCHEMA_SIMPLE = """

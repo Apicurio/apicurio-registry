@@ -29,6 +29,7 @@ public class ContentMapper implements RowMapper<ContentWrapperDto> {
         contentWrapperDto.setContent(content);
         contentWrapperDto.setContentType(rs.getString("contentType"));
         contentWrapperDto.setReferences(RegistryContentUtils.deserializeReferences(rs.getString("refs")));
+        contentWrapperDto.setContentHash(rs.getString("contentHash"));
         return contentWrapperDto;
     }
 

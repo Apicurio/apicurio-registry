@@ -9,6 +9,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.util.Date;
+import java.util.Map;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,4 +29,6 @@ public class SearchedArtifactDto {
     private String artifactType;
     private Date modifiedOn;
     private String modifiedBy;
+    private Map<String, String> labels;
+
 }

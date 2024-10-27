@@ -14,7 +14,7 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
     RegistryStorage storage;
 
     /**
-     * @see io.apicurio.registry.storage.AbstractRegistryStorageTest#storage()
+     * @see AbstractRegistryStorageTest#storage()
      */
     @Override
     protected RegistryStorage storage() {

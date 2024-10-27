@@ -1,4 +1,4 @@
-package io.apicurio.registry.operator.util;
+package io.apicurio.registry.operator.utils;
 
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
@@ -14,13 +14,13 @@ import java.util.function.Consumer;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
-import static io.apicurio.registry.operator.util.Util.isBlank;
+import static io.apicurio.registry.operator.utils.Utils.isBlank;
 
-public class IngressUtil {
+public class IngressUtils {
 
-    private static final Logger log = LoggerFactory.getLogger(IngressUtil.class);
+    private static final Logger log = LoggerFactory.getLogger(IngressUtils.class);
 
-    private IngressUtil() {
+    private IngressUtils() {
     }
 
     public static String getHost(String component, ApicurioRegistry3 p) {

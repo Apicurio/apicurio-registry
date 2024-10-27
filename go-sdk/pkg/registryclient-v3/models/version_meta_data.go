@@ -24,6 +24,10 @@ type VersionMetaData struct {
 	groupId *string
 	// User-defined name-value pairs. Name and value must be strings.
 	labels Labelsable
+	// The modifiedBy property
+	modifiedBy *string
+	// The modifiedOn property
+	modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The name property
 	name *string
 	// The owner property
@@ -167,6 +171,26 @@ func (m *VersionMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		return nil
 	}
+	res["modifiedBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetModifiedBy(val)
+		}
+		return nil
+	}
+	res["modifiedOn"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetTimeValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetModifiedOn(val)
+		}
+		return nil
+	}
 	res["name"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -226,6 +250,18 @@ func (m *VersionMetaData) GetGroupId() *string {
 // returns a Labelsable when successful
 func (m *VersionMetaData) GetLabels() Labelsable {
 	return m.labels
+}
+
+// GetModifiedBy gets the modifiedBy property value. The modifiedBy property
+// returns a *string when successful
+func (m *VersionMetaData) GetModifiedBy() *string {
+	return m.modifiedBy
+}
+
+// GetModifiedOn gets the modifiedOn property value. The modifiedOn property
+// returns a *Time when successful
+func (m *VersionMetaData) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
+	return m.modifiedOn
 }
 
 // GetName gets the name property value. The name property
@@ -298,6 +334,18 @@ func (m *VersionMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 	}
 	{
 		err := writer.WriteObjectValue("labels", m.GetLabels())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteStringValue("modifiedBy", m.GetModifiedBy())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteTimeValue("modifiedOn", m.GetModifiedOn())
 		if err != nil {
 			return err
 		}
@@ -381,6 +429,16 @@ func (m *VersionMetaData) SetLabels(value Labelsable) {
 	m.labels = value
 }
 
+// SetModifiedBy sets the modifiedBy property value. The modifiedBy property
+func (m *VersionMetaData) SetModifiedBy(value *string) {
+	m.modifiedBy = value
+}
+
+// SetModifiedOn sets the modifiedOn property value. The modifiedOn property
+func (m *VersionMetaData) SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
+	m.modifiedOn = value
+}
+
 // SetName sets the name property value. The name property
 func (m *VersionMetaData) SetName(value *string) {
 	m.name = value
@@ -412,6 +470,8 @@ type VersionMetaDataable interface {
 	GetGlobalId() *int64
 	GetGroupId() *string
 	GetLabels() Labelsable
+	GetModifiedBy() *string
+	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetName() *string
 	GetOwner() *string
 	GetState() *VersionState
@@ -424,6 +484,8 @@ type VersionMetaDataable interface {
 	SetGlobalId(value *int64)
 	SetGroupId(value *string)
 	SetLabels(value Labelsable)
+	SetModifiedBy(value *string)
+	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetName(value *string)
 	SetOwner(value *string)
 	SetState(value *VersionState)

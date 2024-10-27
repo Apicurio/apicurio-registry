@@ -23,6 +23,12 @@ type SearchedVersion struct {
 	globalId *int64
 	// An ID of a single artifact group.
 	groupId *string
+	// User-defined name-value pairs. Name and value must be strings.
+	labels Labelsable
+	// The modifiedBy property
+	modifiedBy *string
+	// The modifiedOn property
+	modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The name property
 	name *string
 	// The owner property
@@ -156,6 +162,36 @@ func (m *SearchedVersion) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		return nil
 	}
+	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetLabels(val.(Labelsable))
+		}
+		return nil
+	}
+	res["modifiedBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetModifiedBy(val)
+		}
+		return nil
+	}
+	res["modifiedOn"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetTimeValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetModifiedOn(val)
+		}
+		return nil
+	}
 	res["name"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -209,6 +245,24 @@ func (m *SearchedVersion) GetGlobalId() *int64 {
 // returns a *string when successful
 func (m *SearchedVersion) GetGroupId() *string {
 	return m.groupId
+}
+
+// GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
+// returns a Labelsable when successful
+func (m *SearchedVersion) GetLabels() Labelsable {
+	return m.labels
+}
+
+// GetModifiedBy gets the modifiedBy property value. The modifiedBy property
+// returns a *string when successful
+func (m *SearchedVersion) GetModifiedBy() *string {
+	return m.modifiedBy
+}
+
+// GetModifiedOn gets the modifiedOn property value. The modifiedOn property
+// returns a *Time when successful
+func (m *SearchedVersion) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
+	return m.modifiedOn
 }
 
 // GetName gets the name property value. The name property
@@ -275,6 +329,24 @@ func (m *SearchedVersion) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 	}
 	{
 		err := writer.WriteStringValue("groupId", m.GetGroupId())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteObjectValue("labels", m.GetLabels())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteStringValue("modifiedBy", m.GetModifiedBy())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteTimeValue("modifiedOn", m.GetModifiedOn())
 		if err != nil {
 			return err
 		}
@@ -353,6 +425,21 @@ func (m *SearchedVersion) SetGroupId(value *string) {
 	m.groupId = value
 }
 
+// SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
+func (m *SearchedVersion) SetLabels(value Labelsable) {
+	m.labels = value
+}
+
+// SetModifiedBy sets the modifiedBy property value. The modifiedBy property
+func (m *SearchedVersion) SetModifiedBy(value *string) {
+	m.modifiedBy = value
+}
+
+// SetModifiedOn sets the modifiedOn property value. The modifiedOn property
+func (m *SearchedVersion) SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
+	m.modifiedOn = value
+}
+
 // SetName sets the name property value. The name property
 func (m *SearchedVersion) SetName(value *string) {
 	m.name = value
@@ -383,6 +470,9 @@ type SearchedVersionable interface {
 	GetDescription() *string
 	GetGlobalId() *int64
 	GetGroupId() *string
+	GetLabels() Labelsable
+	GetModifiedBy() *string
+	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetName() *string
 	GetOwner() *string
 	GetState() *VersionState
@@ -394,6 +484,9 @@ type SearchedVersionable interface {
 	SetDescription(value *string)
 	SetGlobalId(value *int64)
 	SetGroupId(value *string)
+	SetLabels(value Labelsable)
+	SetModifiedBy(value *string)
+	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetName(value *string)
 	SetOwner(value *string)
 	SetState(value *VersionState)

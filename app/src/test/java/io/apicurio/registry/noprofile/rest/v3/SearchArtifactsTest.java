@@ -1,10 +1,13 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -95,7 +98,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
 
     @Test
     public void testSearchArtifactsByLabels() throws Exception {
-        String group = UUID.randomUUID().toString();
+        String group = TestUtils.generateGroupId();
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create 5 artifacts with various labels
@@ -152,6 +155,19 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
                 .statusCode(400);
         given().when().queryParam("labels", "all-key:").get("/registry/v3/search/artifacts").then()
                 .statusCode(400);
+
+        // Test that search results contain the labels
+        ArtifactSearchResults results = clientV3.search().artifacts().get(conf -> {
+            conf.queryParameters.groupId = group;
+            conf.queryParameters.labels = new String[] { "key-1:value-1" };
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getArtifacts().size());
+        Assertions.assertNotNull(results.getArtifacts().get(0).getLabels());
+        Assertions.assertEquals(
+                Map.of("key-1", "value-1", "another-key-1", "another-value-1", "all-key", "all-value",
+                        "a-key-1", "lorem ipsum", "extra-key-1", "lorem ipsum"),
+                results.getArtifacts().get(0).getLabels().getAdditionalData());
     }
 
     @Test

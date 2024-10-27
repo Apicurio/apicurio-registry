@@ -19,17 +19,14 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.2-SNAPSHOT</version>
+    <version>3.0.4-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>apicurio-registry-java-sdk</artifactId>
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
-    <kiota.libs.version>1.5.1</kiota.libs.version>
-    <kiota.community.version>0.0.18</kiota.community.version>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
   </properties>
   <dependencies>
     <dependency>
@@ -78,7 +75,8 @@
         <artifactId>kiota-maven-plugin</artifactId>
         <version>${kiota.community.version}</version>
         <configuration>
-          <kiotaVersion>1.18.0</kiotaVersion>
+          <kiotaVersion>${kiota.version}</kiotaVersion>
+          <kiotaTimeout>${kiota.timeout}</kiotaTimeout>
           <baseURL>${kiota.base.url}</baseURL>
           <file>../common/src/main/resources/META-INF/openapi.json</file>
           <namespace>io.apicurio.registry.rest.client</namespace>

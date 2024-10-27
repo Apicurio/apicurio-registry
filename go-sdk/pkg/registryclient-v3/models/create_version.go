@@ -13,6 +13,8 @@ type CreateVersion struct {
 	content VersionContentable
 	// The description property
 	description *string
+	// The isDraft property
+	isDraft *bool
 	// User-defined name-value pairs. Name and value must be strings.
 	labels Labelsable
 	// The name property
@@ -98,6 +100,16 @@ func (m *CreateVersion) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 		}
 		return nil
 	}
+	res["isDraft"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetIsDraft(val)
+		}
+		return nil
+	}
 	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
 		if err != nil {
@@ -129,6 +141,12 @@ func (m *CreateVersion) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 		return nil
 	}
 	return res
+}
+
+// GetIsDraft gets the isDraft property value. The isDraft property
+// returns a *bool when successful
+func (m *CreateVersion) GetIsDraft() *bool {
+	return m.isDraft
 }
 
 // GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
@@ -165,6 +183,12 @@ func (m *CreateVersion) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0
 	}
 	{
 		err := writer.WriteStringValue("description", m.GetDescription())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteBoolValue("isDraft", m.GetIsDraft())
 		if err != nil {
 			return err
 		}
@@ -216,6 +240,11 @@ func (m *CreateVersion) SetDescription(value *string) {
 	m.description = value
 }
 
+// SetIsDraft sets the isDraft property value. The isDraft property
+func (m *CreateVersion) SetIsDraft(value *bool) {
+	m.isDraft = value
+}
+
 // SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
 func (m *CreateVersion) SetLabels(value Labelsable) {
 	m.labels = value
@@ -237,12 +266,14 @@ type CreateVersionable interface {
 	GetBranches() []string
 	GetContent() VersionContentable
 	GetDescription() *string
+	GetIsDraft() *bool
 	GetLabels() Labelsable
 	GetName() *string
 	GetVersion() *string
 	SetBranches(value []string)
 	SetContent(value VersionContentable)
 	SetDescription(value *string)
+	SetIsDraft(value *bool)
 	SetLabels(value Labelsable)
 	SetName(value *string)
 	SetVersion(value *string)

@@ -23,6 +23,7 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @ToString
+@Deprecated
 public class CreateArtifactVersion8Message extends AbstractMessage {
 
     private String groupId;
@@ -46,7 +47,7 @@ public class CreateArtifactVersion8Message extends AbstractMessage {
                 .content(handle).references(references).build()
             : null;
         return storage.createArtifactVersion(groupId, artifactId, version, artifactType, contentDto, metaData,
-                branches, dryRun);
+                branches, false, dryRun);
     }
 
 }

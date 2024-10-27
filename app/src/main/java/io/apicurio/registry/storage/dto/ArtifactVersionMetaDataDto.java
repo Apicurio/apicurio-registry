@@ -30,6 +30,8 @@ public class ArtifactVersionMetaDataDto {
     private String description;
     private String owner;
     private long createdOn;
+    private String modifiedBy;
+    private long modifiedOn;
     private String artifactType;
     private VersionState state;
     private Map<String, String> labels;

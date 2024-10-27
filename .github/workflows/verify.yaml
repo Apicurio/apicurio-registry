@@ -24,7 +24,7 @@ concurrency:
 jobs:
   build-verify:
     name: Verify Application Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -103,7 +103,7 @@ jobs:
 
   build-verify-ui:
     name: Verify UI Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -203,7 +203,7 @@ jobs:
 
   build-native-images:
     name: Build and Test Native images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -241,7 +241,7 @@ jobs:
           docker build --push -f ./distro/docker/target/docker/Dockerfile.native -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d app/
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
+        uses: manusa/actions-setup-minikube@v2.13.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -307,7 +307,7 @@ jobs:
 
   build-verify-python-sdk:
     name: Verify Python SDK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -344,7 +344,7 @@ jobs:
 
   build-verify-go-sdk:
     name: Verify Go SDK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -371,7 +371,7 @@ jobs:
 
   notify-sdk:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         language: [ js ]

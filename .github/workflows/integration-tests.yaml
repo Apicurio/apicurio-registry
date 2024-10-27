@@ -24,7 +24,7 @@ concurrency:
 jobs:
   prepare-integration-tests:
     name: Prepare for Integration Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
@@ -67,7 +67,7 @@ jobs:
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
@@ -119,7 +119,7 @@ jobs:
 
   integration-tests-h2:
     name: Integration Tests H2
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code
@@ -132,7 +132,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
+        uses: manusa/actions-setup-minikube@v2.13.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -164,7 +164,7 @@ jobs:
 
   integration-tests-postgresql:
     name: Integration Tests Postgresql
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code
@@ -177,7 +177,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
+        uses: manusa/actions-setup-minikube@v2.13.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -210,7 +210,7 @@ jobs:
 
   integration-tests-kafkasql:
     name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code
@@ -223,7 +223,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
+        uses: manusa/actions-setup-minikube@v2.13.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -258,7 +258,7 @@ jobs:
 
   integration-tests-ui:
     name: Integration Tests UI
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [prepare-ui-tests, prepare-integration-tests]
     steps:
       - name: Checkout Code
@@ -331,7 +331,7 @@ jobs:
 
   integration-tests-legacy-v2:
     name: Integration Tests Legacy V2
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Registry 2.5
@@ -369,7 +369,7 @@ jobs:
 
   build-examples:
     name: Build and Run Application examples
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'

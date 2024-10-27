@@ -10,7 +10,7 @@ type ContentIdsRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
-// ByContentId access artifact content utilizing the unique content identifier for that content.
+// ByContentId gets an item from the github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v2.ids.contentIds.item collection
 // Deprecated: This indexer is deprecated and will be removed in the next major version. Use the one with the typed parameter instead.
 // returns a *ContentIdsWithContentItemRequestBuilder when successful
 func (m *ContentIdsRequestBuilder) ByContentId(contentId string) *ContentIdsWithContentItemRequestBuilder {
@@ -24,7 +24,7 @@ func (m *ContentIdsRequestBuilder) ByContentId(contentId string) *ContentIdsWith
 	return NewContentIdsWithContentItemRequestBuilderInternal(urlTplParams, m.BaseRequestBuilder.RequestAdapter)
 }
 
-// ByContentIdInt64 access artifact content utilizing the unique content identifier for that content.
+// ByContentIdInt64 gets an item from the github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v2.ids.contentIds.item collection
 // returns a *ContentIdsWithContentItemRequestBuilder when successful
 func (m *ContentIdsRequestBuilder) ByContentIdInt64(contentId int64) *ContentIdsWithContentItemRequestBuilder {
 	urlTplParams := make(map[string]string)
@@ -48,4 +48,10 @@ func NewContentIdsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
 	return NewContentIdsRequestBuilderInternal(urlParams, requestAdapter)
+}
+
+// WithContentId access artifact content utilizing the unique content identifier for that content.
+// returns a *ContentIdsItemWithContentIdRequestBuilder when successful
+func (m *ContentIdsRequestBuilder) WithContentId(contentId *int64) *ContentIdsItemWithContentIdRequestBuilder {
+	return NewContentIdsItemWithContentIdRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter, contentId)
 }

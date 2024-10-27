@@ -11,7 +11,7 @@ import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import java.nio.charset.Charset;
 import java.util.Map;
 
-import static io.apicurio.registry.operator.Mapper.YAML_MAPPER;
+import static io.apicurio.registry.operator.utils.Mapper.YAML_MAPPER;
 
 public class ResourceFactory {
 
@@ -110,7 +110,7 @@ public class ResourceFactory {
         }
     }
 
-    private static String load(String path) {
+    public static String load(String path) {
         try (var stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(path)) {
             return new String(stream.readAllBytes(), Charset.defaultCharset());
         } catch (Exception ex) {

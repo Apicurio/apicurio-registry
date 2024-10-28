@@ -1,6 +1,6 @@
 {
   "name": "@apicurio/registry-ui-app",
-  "version": "3.0.4",
+  "version": "3.0.4-Dev",
   "description": "Apicurio Registry UI",
   "repository": "https://github.com/Apicurio/apicurio-registry.git",
   "license": "Apache-2.0",
@@ -12,6 +12,9 @@
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives"
   },
+  "workspaces": [
+    "../../typescript-sdk"
+  ],
   "devDependencies": {
     "@apicurio/eslint-config": "0.3.0",
     "@kiota-community/kiota-wasm": "^0.0.3",
@@ -33,7 +36,7 @@
     "vite-tsconfig-paths": "5.0.1"
   },
   "dependencies": {
-    "@apicurio/apicurio-registry-sdk": "file:../../typescript-sdk",
+    "@apicurio/apicurio-registry-sdk": "3.0.4-Dev",
     "@apicurio/common-ui-components": "2.0.4",
     "@apicurio/data-models": "1.1.27",
     "@microsoft/kiota-abstractions": "1.0.0-preview.68",

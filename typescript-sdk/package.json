@@ -1,7 +1,7 @@
 {
   "name": "@apicurio/apicurio-registry-sdk",
   "private": false,
-  "version": "3.0.4",
+  "version": "3.0.4-Dev",
   "type": "module",
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
@@ -11,7 +11,7 @@
   "scripts": {
     "clean": "rimraf dist lib/generated-client .kiota",
     "kiota-info": "cross-env KIOTA_VERSION=v1.19.1 kiota info -l typescript",
-    "generate-registry-sdk": "cross-env KIOTA_VERSION=v1.19.1 kiota generate --serializer none --deserializer none -l typescript -d ../common/src/main/resources/META-INF/openapi.json -c ApicurioRegistryClient -o ./lib/generated-client",
+    "generate-sources": "cross-env KIOTA_VERSION=v1.19.1 kiota generate --serializer none --deserializer none -l typescript -d ../common/src/main/resources/META-INF/openapi.json -c ApicurioRegistryClient -o ./lib/generated-client",
     "dev": "vite",
     "build": "tsc --p ./tsconfig-build.json && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"

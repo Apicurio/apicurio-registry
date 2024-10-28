@@ -11,7 +11,6 @@ import io.apicurio.registry.maven.refs.IndexedResource;
 import io.apicurio.registry.maven.refs.ReferenceIndex;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
-import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
@@ -156,10 +155,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         registerDirectory(artifact);
                     } else {
 
-                        List<io.apicurio.registry.rest.client.models.ArtifactReference> references = new ArrayList<>();
+                        List<ArtifactReference> references = new ArrayList<>();
                         // First, we check if the artifact being processed has references defined
                         if (hasReferences(artifact)) {
-                            references = registerArtifactReferences(artifact.getReferences());
+                            references = processArtifactReferences(artifact.getReferences());
                         }
                         registerArtifact(artifact, references);
                     }
@@ -177,7 +176,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private CreateArtifactResponse registerWithAutoRefs(RegisterArtifact artifact, ReferenceIndex index,
+    private VersionMetaData registerWithAutoRefs(RegisterArtifact artifact, ReferenceIndex index,
             Stack<RegisterArtifact> registrationStack)
             throws IOException, ExecutionException, InterruptedException {
         if (loopDetected(artifact, registrationStack)) {
@@ -221,8 +220,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 refArtifact.setContentType(getContentTypeByExtension(localFile.getName()));
                 try {
                     var car = registerWithAutoRefs(refArtifact, index, registrationStack);
-                    VersionMetaData amd = car.getVersion();
-                    iresource.setRegistration(amd);
+                    iresource.setRegistration(car);
                 } catch (IOException | ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -273,13 +271,29 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private CreateArtifactResponse registerArtifact(RegisterArtifact artifact,
-            List<ArtifactReference> references)
+    private VersionMetaData registerArtifact(RegisterArtifact artifact, List<ArtifactReference> references)
             throws FileNotFoundException, ExecutionException, InterruptedException {
-        return registerArtifact(artifact, new FileInputStream(artifact.getFile()), references);
+        if (artifact.getFile() != null) {
+            return registerArtifact(artifact, new FileInputStream(artifact.getFile()), references);
+        } else {
+            return getArtifactVersionMetadata(artifact);
+        }
     }
 
-    private CreateArtifactResponse registerArtifact(RegisterArtifact artifact, InputStream artifactContent,
+    private VersionMetaData getArtifactVersionMetadata(RegisterArtifact artifact) {
+        String groupId = artifact.getGroupId();
+        String artifactId = artifact.getArtifactId();
+        String version = artifact.getVersion();
+
+        VersionMetaData amd = getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression(version).get();
+        getLog().info(String.format("Successfully processed artifact [%s] / [%s].  GlobalId is [%d]", groupId,
+                artifactId, amd.getGlobalId()));
+
+        return amd;
+    }
+
+    private VersionMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent,
             List<ArtifactReference> references) throws ExecutionException, InterruptedException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
@@ -334,7 +348,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]",
                     groupId, artifactId, vmd.getVersion().getGlobalId()));
 
-            return vmd;
+            return vmd.getVersion();
         } catch (ProblemDetails e) {
             throw new RuntimeException(e.getDetail());
         }
@@ -344,7 +358,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return artifact.getReferences() != null && !artifact.getReferences().isEmpty();
     }
 
-    private List<io.apicurio.registry.rest.client.models.ArtifactReference> registerArtifactReferences(
+    private List<ArtifactReference> processArtifactReferences(
             List<RegisterArtifactReference> referencedArtifacts)
             throws FileNotFoundException, ExecutionException, InterruptedException {
         List<ArtifactReference> references = new ArrayList<>();
@@ -353,11 +367,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             // First, we check if the artifact being processed has references defined, and register them if
             // needed
             if (hasReferences(artifact)) {
-                nestedReferences = registerArtifactReferences(artifact.getReferences());
+                nestedReferences = processArtifactReferences(artifact.getReferences());
             }
-            CreateArtifactResponse car = registerArtifact(artifact, nestedReferences);
-            final VersionMetaData metaData = car.getVersion();
-            references.add(buildReferenceFromMetadata(metaData, artifact.getName()));
+            final VersionMetaData artifactMetaData = registerArtifact(artifact, nestedReferences);
+            references.add(buildReferenceFromMetadata(artifactMetaData, artifact.getName()));
         }
         return references;
     }

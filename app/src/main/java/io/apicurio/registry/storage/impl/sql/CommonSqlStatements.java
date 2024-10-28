@@ -669,7 +669,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertGroup() {
-        return "INSERT INTO " + groupsTable() + " (groupId, description, artifactsType, owner, createdOn, modifiedBy, modifiedOn, labels) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO " + groupsTable()
+                + " (groupId, description, artifactsType, owner, createdOn, modifiedBy, modifiedOn, labels) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -677,7 +678,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateGroup() {
-        return "UPDATE " + groupsTable() + " SET description = ? , modifiedBy = ? , modifiedOn = ? , labels = ? WHERE groupId = ?";
+        return "UPDATE " + groupsTable()
+                + " SET description = ? , modifiedBy = ? , modifiedOn = ? , labels = ? WHERE groupId = ?";
     }
 
     /**
@@ -818,7 +820,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importGroup() {
-        return "INSERT INTO " + groupsTable() + " (groupId, description, artifactsType, owner, createdOn, modifiedBy, modifiedOn, labels) "
+        return "INSERT INTO " + groupsTable()
+                + " (groupId, description, artifactsType, owner, createdOn, modifiedBy, modifiedOn, labels) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
@@ -1212,15 +1215,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String selectCountTableTemplate(String countBy, String tableName, String alias, String whereClause) {
+    public String selectCountTableTemplate(String countBy, String tableName, String alias,
+            String whereClause) {
         return "SELECT COUNT(%s) FROM %s %s %s".formatted(countBy, tableName, alias, whereClause);
     }
 
     @Override
-    public String selectTableTemplate(String columns, String tableName, String alias, String whereClause, String orderBy) {
-        return "SELECT %s FROM %s %s %s %s LIMIT ? OFFSET ?".formatted(columns, tableName, alias, whereClause, orderBy);
+    public String selectTableTemplate(String columns, String tableName, String alias, String whereClause,
+            String orderBy) {
+        return "SELECT %s FROM %s %s %s %s LIMIT ? OFFSET ?".formatted(columns, tableName, alias, whereClause,
+                orderBy);
     }
-
 
     protected String groupsTable() {
         return "groups";

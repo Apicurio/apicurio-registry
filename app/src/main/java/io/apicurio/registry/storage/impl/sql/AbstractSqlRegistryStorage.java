@@ -1076,7 +1076,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-
             // Query for the artifacts
             String artifactsQuerySql = sqlStatements.selectTableTemplate("a.*", "artifacts", "a",
                     where.toString(), orderByQuery.toString());
@@ -2793,7 +2792,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
             String op;
 
-
             StringBuilder where = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
 
@@ -2858,14 +2856,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-
             // Query for the group
-            String groupsQuerySql = sqlStatements.selectTableTemplate("*", "groups", "g",
-                            where.toString(), orderByQuery.toString());
+            String groupsQuerySql = sqlStatements.selectTableTemplate("*", "groups", "g", where.toString(),
+                    orderByQuery.toString());
             Query groupsQuery = handle.createQuery(groupsQuerySql);
             // Query for the total row count
             String countQuerySql = sqlStatements.selectCountTableTemplate("g.groupId", "groups", "g",
-                            where.toString());
+                    where.toString());
             Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
@@ -3387,7 +3384,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Add order by to artifact query
             orderByQuery.append(" ORDER BY b.branchId ASC");
-
 
             // Query for the artifacts
             String branchesQuerySql = sqlStatements.selectTableTemplate("*", "branches", "b",

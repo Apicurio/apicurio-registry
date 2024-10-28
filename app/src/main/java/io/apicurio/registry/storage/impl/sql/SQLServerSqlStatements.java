@@ -126,9 +126,10 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     @Override
-    public String selectTableTemplate(String columns, String tableName, String alias, String whereClause, String orderBy) {
-        return "SELECT %s FROM %s %s %s %s OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
-                .formatted(columns, tableName, alias, whereClause, orderBy);
+    public String selectTableTemplate(String columns, String tableName, String alias, String whereClause,
+            String orderBy) {
+        return "SELECT %s FROM %s %s %s %s OFFSET ? ROWS FETCH NEXT ? ROWS ONLY".formatted(columns, tableName,
+                alias, whereClause, orderBy);
     }
 
     @Override

@@ -4821,6 +4821,10 @@
           "deleteVersion": {
             "description": "",
             "type": "boolean"
+          },
+          "draftMutability": {
+            "description": "",
+            "type": "boolean"
           }
         },
         "example": {

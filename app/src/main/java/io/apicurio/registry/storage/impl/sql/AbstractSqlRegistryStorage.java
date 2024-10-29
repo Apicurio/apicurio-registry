@@ -983,6 +983,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             query.bind(idx, normalizeGroupId(filter.getStringValue()));
                         });
                         break;
+                    case artifactId:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("a.artifactId " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        break;
                     case contentHash:
                         op = filter.isNot() ? "!=" : "=";
                         where.append(
@@ -1053,6 +1060,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         where.append(")");
                         break;
+                    default:
+                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
                 where.append(")");
             }
@@ -1663,7 +1672,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     default:
-                        break;
+                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
                 where.append(")");
             }
@@ -2838,8 +2847,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(" AND l.groupId = g.groupId)");
                         break;
                     default:
-
-                        break;
+                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
                 where.append(")");
             }

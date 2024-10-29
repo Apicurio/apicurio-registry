@@ -466,6 +466,42 @@ cases:
                 cpu: 1
                 memory: 1Gi
 
+  - id: 'Resources 1'
+    spec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            resources: { }
+    expected:
+      metadata:
+        labels:
+          app.kubernetes.io/name: apicurio-registry
+          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/instance: test
+          app.kubernetes.io/part-of: apicurio-registry
+          app.kubernetes.io/component: app
+          app.kubernetes.io/managed-by: apicurio-registry-operator
+          app: test
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:latest-snapshot
+            ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: 8080
+                scheme: HTTP
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: 8080
+                scheme: HTTP
+            resources: { }
+
   - id: 'Requests 1'
     spec:
       spec:
@@ -505,9 +541,6 @@ cases:
             resources:
               requests:
                 cpu: 750m
-              limits:
-                cpu: 1
-                memory: 1Gi
 
   - id: 'Limits 1'
     spec:
@@ -546,8 +579,5 @@ cases:
                 port: 8080
                 scheme: HTTP
             resources:
-              requests:
-                cpu: 500m
-                memory: 512Mi
               limits:
                 cpu: 750m

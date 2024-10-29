@@ -142,7 +142,8 @@ public class ResourceFactory {
         }
         var targetPorts = c.getPorts();
         ports.forEach(sourcePort -> {
-            if (!targetPorts.stream().anyMatch(targetPort -> sourcePort.getName().equals(targetPort.getName()))) {
+            if (!targetPorts.stream()
+                    .anyMatch(targetPort -> sourcePort.getName().equals(targetPort.getName()))) {
                 targetPorts.add(sourcePort);
             }
         });

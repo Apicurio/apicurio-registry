@@ -142,8 +142,8 @@ public class ResourceFactory {
         }
         var targetPorts = c.getPorts();
         ports.forEach(sourcePort -> {
-            if (!targetPorts.stream()
-                    .anyMatch(targetPort -> sourcePort.getName().equals(targetPort.getName()))) {
+            if (targetPorts.stream()
+                    .noneMatch(targetPort -> sourcePort.getName().equals(targetPort.getName()))) {
                 targetPorts.add(sourcePort);
             }
         });
@@ -155,11 +155,7 @@ public class ResourceFactory {
         }
         if (c.getResources() == null) {
             c.setResources(new ResourceRequirements());
-        }
-        if (c.getResources().getRequests() == null || c.getResources().getRequests().isEmpty()) {
             c.getResources().setRequests(requests);
-        }
-        if (c.getResources().getLimits() == null || c.getResources().getLimits().isEmpty()) {
             c.getResources().setLimits(limits);
         }
     }

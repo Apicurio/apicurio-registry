@@ -35,8 +35,11 @@ jobs:
         with:
           node-version: 18
 
+      - name: Set up json CLI
+        run: npm install -g json
+
       - name: Set up Gren
-        run: npm install github-release-notes -g
+        run: npm install -g github-release-notes
 
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
@@ -78,6 +81,7 @@ jobs:
           npm version $UI_VERSION --allow-same-version
           cd ui-app
           npm version $UI_VERSION --allow-same-version
+          json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"$UI_VERSION\""
           cd ../ui-docs
           npm version $UI_VERSION --allow-same-version
           cd ../tests
@@ -94,7 +98,7 @@ jobs:
         run: |
           cd registry/typescript-sdk
           npm install
-          npm run generate-registry-sdk
+          npm run generate-sources
           npm run lint
           npm run build
 
@@ -151,11 +155,12 @@ jobs:
           sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
 
           # take only the major, minor and patch
-          UI_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
+          UI_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}-Dev')
           cd ui
           npm version $UI_VERSION --allow-same-version
           cd ui-app
           npm version $UI_VERSION --allow-same-version
+          json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"$UI_VERSION\""
           cd ../ui-docs
           npm version $UI_VERSION --allow-same-version
           cd ../tests

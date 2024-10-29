@@ -140,7 +140,7 @@ jobs:
         working-directory: typescript-sdk
         run: |
           npm install
-          npm run generate-registry-sdk
+          npm run generate-sources
           npm run lint
           npm run build
 

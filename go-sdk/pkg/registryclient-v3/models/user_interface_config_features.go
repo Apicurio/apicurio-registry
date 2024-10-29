@@ -15,6 +15,8 @@ type UserInterfaceConfigFeatures struct {
 	deleteGroup *bool
 	// The deleteVersion property
 	deleteVersion *bool
+	// The draftMutability property
+	draftMutability *bool
 	// The readOnly property
 	readOnly *bool
 	// The roleManagement property
@@ -66,6 +68,12 @@ func (m *UserInterfaceConfigFeatures) GetDeleteVersion() *bool {
 	return m.deleteVersion
 }
 
+// GetDraftMutability gets the draftMutability property value. The draftMutability property
+// returns a *bool when successful
+func (m *UserInterfaceConfigFeatures) GetDraftMutability() *bool {
+	return m.draftMutability
+}
+
 // GetFieldDeserializers the deserialization information for the current model
 // returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -107,6 +115,16 @@ func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i8
 		}
 		if val != nil {
 			m.SetDeleteVersion(val)
+		}
+		return nil
+	}
+	res["draftMutability"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetDraftMutability(val)
 		}
 		return nil
 	}
@@ -188,6 +206,12 @@ func (m *UserInterfaceConfigFeatures) Serialize(writer i878a80d2330e89d26896388a
 		}
 	}
 	{
+		err := writer.WriteBoolValue("draftMutability", m.GetDraftMutability())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteBoolValue("readOnly", m.GetReadOnly())
 		if err != nil {
 			return err
@@ -239,6 +263,11 @@ func (m *UserInterfaceConfigFeatures) SetDeleteVersion(value *bool) {
 	m.deleteVersion = value
 }
 
+// SetDraftMutability sets the draftMutability property value. The draftMutability property
+func (m *UserInterfaceConfigFeatures) SetDraftMutability(value *bool) {
+	m.draftMutability = value
+}
+
 // SetReadOnly sets the readOnly property value. The readOnly property
 func (m *UserInterfaceConfigFeatures) SetReadOnly(value *bool) {
 	m.readOnly = value
@@ -261,6 +290,7 @@ type UserInterfaceConfigFeaturesable interface {
 	GetDeleteArtifact() *bool
 	GetDeleteGroup() *bool
 	GetDeleteVersion() *bool
+	GetDraftMutability() *bool
 	GetReadOnly() *bool
 	GetRoleManagement() *bool
 	GetSettings() *bool
@@ -268,6 +298,7 @@ type UserInterfaceConfigFeaturesable interface {
 	SetDeleteArtifact(value *bool)
 	SetDeleteGroup(value *bool)
 	SetDeleteVersion(value *bool)
+	SetDraftMutability(value *bool)
 	SetReadOnly(value *bool)
 	SetRoleManagement(value *bool)
 	SetSettings(value *bool)

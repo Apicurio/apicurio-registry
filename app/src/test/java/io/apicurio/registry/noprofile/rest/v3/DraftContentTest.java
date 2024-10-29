@@ -10,6 +10,7 @@ import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.UserInterfaceConfig;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
@@ -460,4 +461,12 @@ public class DraftContentTest extends AbstractResourceTestBase {
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions/latest").then()
                 .statusCode(200);
     }
+
+    @Test
+    public void testUiConfig() throws Exception {
+        UserInterfaceConfig config = clientV3.system().uiConfig().get();
+        Assertions.assertNotNull(config);
+        Assertions.assertTrue(config.getFeatures().getDraftMutability());
+    }
+
 }

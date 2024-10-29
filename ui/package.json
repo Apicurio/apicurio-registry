@@ -20,8 +20,5 @@
     "devDependencies": {
         "rimraf": "5.0.7",
         "shelljs": "0.8.5"
-    },
-    "dependencies": {
-        "@apicurio/apicurio-registry-client": "file:../typescript-sdk"
     }
 }

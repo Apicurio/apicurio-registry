@@ -87,6 +87,9 @@ public class SearchResourceImpl implements SearchResource {
         if (!StringUtil.isEmpty(groupId)) {
             filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
         }
+        if (!StringUtil.isEmpty(artifactId)) {
+            filters.add(SearchFilter.ofArtifactId(artifactId));
+        }
 
         if (labels != null && !labels.isEmpty()) {
             labels.stream().map(prop -> {
@@ -95,11 +98,11 @@ public class SearchResourceImpl implements SearchResource {
                 String labelValue;
                 if (delimiterIndex == 0) {
                     throw new BadRequestException(
-                            "label search filter wrong formatted, missing left side of ':' delimiter");
+                            "label search filter wrong format, missing left side of ':' delimiter");
                 }
                 if (delimiterIndex == (prop.length() - 1)) {
                     throw new BadRequestException(
-                            "label search filter wrong formatted, missing right side of ':' delimiter");
+                            "label search filter wrong format, missing right side of ':' delimiter");
                 }
                 if (delimiterIndex < 0) {
                     labelKey = prop;

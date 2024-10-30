@@ -1,0 +1,32 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: apicurio
+  labels:
+    strimzi.io/cluster: example-cluster
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: kafkasql-journal
+        operations:
+          - All
+      - resource:
+          type: topic
+          name: kafkasql-snapshots
+        operations:
+          - All
+      - resource:
+          type: topic
+          name: registry-events
+        operations:
+          - All
+      - resource:
+          type: group
+          name: '*'
+        operations:
+          - All

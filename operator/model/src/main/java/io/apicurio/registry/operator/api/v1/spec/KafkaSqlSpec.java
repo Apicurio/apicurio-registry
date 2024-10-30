@@ -12,7 +12,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "bootstrapServers" })
+@JsonPropertyOrder({ "bootstrapServers", "tls" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -20,7 +20,7 @@ import static lombok.AccessLevel.PRIVATE;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class KafkasqlSpec {
+public class KafkaSqlSpec {
 
     /**
      * Configure Kafka bootstrap servers.
@@ -34,4 +34,13 @@ public class KafkasqlSpec {
             Required if `app.storage.type` is `kafkasql`.""")
     @JsonSetter(nulls = SKIP)
     private String bootstrapServers;
+
+    /**
+     * Configure KafkaSQL storage when the access to the Kafka cluster is secured using TLS.
+     */
+    @JsonProperty("tls")
+    @JsonPropertyDescription("""
+            Configure KafkaSQL storage when the access to the Kafka cluster is secured using TLS.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private KafkaSqlTLSSpec tls;
 }

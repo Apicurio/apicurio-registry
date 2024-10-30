@@ -63,7 +63,7 @@ public class StorageSpec {
     @JsonPropertyDescription("""
             Configure KafkaSQL storage type.""")
     @JsonSetter(nulls = SKIP)
-    private KafkasqlSpec kafkasql;
+    private KafkaSqlSpec kafkasql;
 
     public SqlSpec withSql() {
         if (sql == null) {
@@ -72,9 +72,9 @@ public class StorageSpec {
         return sql;
     }
 
-    public KafkasqlSpec withKafkasql() {
+    public KafkaSqlSpec withKafkasql() {
         if (kafkasql == null) {
-            kafkasql = new KafkasqlSpec();
+            kafkasql = new KafkaSqlSpec();
         }
         return kafkasql;
     }

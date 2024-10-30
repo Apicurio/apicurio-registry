@@ -93,7 +93,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                 .map(StorageSpec::getType).ifPresent(storageType -> {
                     switch (storageType) {
                         case POSTGRESQL -> PostgresSql.configureDatasource(primary, envVars);
-                        case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, envVars);
+                        case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, d, envVars);
                     }
                 });
 
@@ -109,6 +109,10 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         if (!map.containsKey(envVar.getName())) {
             map.put(envVar.getName(), envVar);
         }
+    }
+
+    public static void addEnvVar(Map<String, EnvVar> map, String name, String value) {
+        addEnvVar(map, new EnvVarBuilder().withName(name).withValue(value).build());
     }
 
     /**

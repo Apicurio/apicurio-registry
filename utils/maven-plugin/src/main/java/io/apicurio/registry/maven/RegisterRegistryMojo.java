@@ -17,6 +17,27 @@
 
 package io.apicurio.registry.maven;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.Descriptors.FileDescriptor;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.refs.ExternalReference;
+import io.apicurio.registry.content.refs.ReferenceFinder;
+import io.apicurio.registry.maven.refs.IndexedResource;
+import io.apicurio.registry.maven.refs.ReferenceIndex;
+import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
+import org.apache.avro.Schema;
+import org.apache.commons.io.FileUtils;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,29 +54,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
-
-import org.apache.avro.Schema;
-import org.apache.commons.io.FileUtils;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Descriptors.FileDescriptor;
-
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.refs.ExternalReference;
-import io.apicurio.registry.content.refs.ReferenceFinder;
-import io.apicurio.registry.maven.refs.IndexedResource;
-import io.apicurio.registry.maven.refs.ReferenceIndex;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
-import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 
 /**
  * Register artifacts against registry.
@@ -85,7 +83,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     protected void validate() throws MojoExecutionException {
         if (artifacts == null || artifacts.isEmpty()) {
             getLog().warn("No artifacts are configured for registration.");
-        } else {
+        }
+        else {
             int idx = 0;
             int errorCount = 0;
             for (RegisterArtifact artifact : artifacts) {
@@ -100,7 +99,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 if (artifact.getFile() == null) {
                     getLog().error(String.format("File is required when registering an artifact.  Missing from artifacts[%s].", idx));
                     errorCount++;
-                } else if (!artifact.getFile().exists()) {
+                }
+                else if (!artifact.getFile().exists()) {
                     getLog().error(String.format("Artifact file to register is configured but file does not exist: %s", artifact.getFile().getPath()));
                     errorCount++;
                 }
@@ -133,18 +133,22 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         Stack<RegisterArtifact> registrationStack = new Stack<>();
 
                         registerWithAutoRefs(artifact, index, registrationStack);
-                    } else if (artifact.getAnalyzeDirectory() != null && artifact.getAnalyzeDirectory()) { //Auto register selected, we must figure out if the artifact has reference using the directory structure
+                    }
+                    else if (artifact.getAnalyzeDirectory() != null
+                            && artifact.getAnalyzeDirectory()) { //Auto register selected, we must figure out if the artifact has reference using the directory structure
                         registerDirectory(artifact);
-                    } else {
+                    }
+                    else {
 
                         List<ArtifactReference> references = new ArrayList<>();
                         //First, we check if the artifact being processed has references defined
                         if (hasReferences(artifact)) {
-                            references = registerArtifactReferences(artifact.getReferences());
+                            references = processArtifactReferences(artifact.getReferences());
                         }
                         registerArtifact(artifact, references);
                     }
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     errorCount++;
                     getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId, artifactId), e);
                 }
@@ -193,7 +197,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 try {
                     ArtifactMetaData amd = registerWithAutoRefs(refArtifact, index, registrationStack);
                     iresource.setRegistration(amd);
-                } catch (IOException e) {
+                }
+                catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -236,7 +241,22 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     private ArtifactMetaData registerArtifact(RegisterArtifact artifact, List<ArtifactReference> references) throws
             FileNotFoundException {
-        return registerArtifact(artifact, new FileInputStream(artifact.getFile()), references);
+        if (artifact.getFile() != null) {
+            return registerArtifact(artifact, new FileInputStream(artifact.getFile()), references);
+        }
+        else {
+            return getArtifactMetadata(artifact);
+        }
+    }
+
+    private ArtifactMetaData getArtifactMetadata(RegisterArtifact artifact) {
+        String groupId = artifact.getGroupId();
+        String artifactId = artifact.getArtifactId();
+
+        ArtifactMetaData amd = this.getClient().getArtifactMetaData(groupId, artifactId);
+        getLog().info(String.format("Successfully processed artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
+
+        return amd;
     }
 
     private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) {
@@ -268,14 +288,14 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return artifact.getReferences() != null && !artifact.getReferences().isEmpty();
     }
 
-    private List<ArtifactReference> registerArtifactReferences
+    private List<ArtifactReference> processArtifactReferences
             (List<RegisterArtifactReference> referencedArtifacts) throws FileNotFoundException {
         List<ArtifactReference> references = new ArrayList<>();
         for (RegisterArtifactReference artifact : referencedArtifacts) {
             List<ArtifactReference> nestedReferences = new ArrayList<>();
             //First, we check if the artifact being processed has references defined, and register them if needed
             if (hasReferences(artifact)) {
-                nestedReferences = registerArtifactReferences(artifact.getReferences());
+                nestedReferences = processArtifactReferences(artifact.getReferences());
             }
             final ArtifactMetaData artifactMetaData = registerArtifact(artifact, nestedReferences);
             references.add(buildReferenceFromMetadata(artifactMetaData, artifact.getName()));

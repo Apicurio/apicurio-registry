@@ -14,6 +14,7 @@ import { ClientGeneration } from "@services/useGroupsService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
 import { CheckCircleIcon } from "@patternfly/react-icons";
 import { CodeEditor } from "@patternfly/react-code-editor";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
 /**
@@ -44,6 +45,7 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
     const [isGenerated, setIsGenerated] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
 
+    const config: ConfigService = useConfigService();
     const download: DownloadService = useDownloadService();
 
     useEffect(() => {
@@ -72,8 +74,8 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
         setIsGenerating(true);
         setIsGenerated(false);
 
-        // @ts-expect-error unsafe inclusion of the wasm assets
-        const { generate } = await import("/kiota-wasm/main.js?url");
+        const kiotaWasmUrl: string = `${config.uiContextPath() || "/"}kiota-wasm/main.js?url`;
+        const { generate } = await import(kiotaWasmUrl);
 
         try {
             console.debug("GENERATING USING KIOTA:");

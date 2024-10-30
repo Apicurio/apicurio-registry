@@ -2,6 +2,7 @@ import React, { FunctionComponent, useState } from "react";
 import { Avatar, Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from "@patternfly/react-core";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
 import { UserService, useUserService } from "@services/useUserService.ts";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
 export type AvatarDropdownProps = {
@@ -12,8 +13,11 @@ export type AvatarDropdownProps = {
 export const AvatarDropdown: FunctionComponent<AvatarDropdownProps> = () => {
     const [isOpen, setIsOpen] = useState(false);
 
+    const config: ConfigService = useConfigService();
     const auth: AuthService = useAuth();
     const user: UserService = useUserService();
+
+    const avatarSrc: string = `${config.uiContextPath() || "/"}avatar.png`;
 
     const onSelect = (): void => {
         setIsOpen(!isOpen);
@@ -24,7 +28,7 @@ export const AvatarDropdown: FunctionComponent<AvatarDropdownProps> = () => {
     };
 
     const icon = (
-        <Avatar src="/avatar.png" alt="User" />
+        <Avatar src={avatarSrc} alt="User" />
     );
 
     return (

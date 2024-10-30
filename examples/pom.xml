@@ -54,6 +54,7 @@
         <module>simple-validation</module>
         <module>serdes-with-references</module>
         <module>avro-maven-with-references</module>
+        <module>json-maven-with-references</module>
         <module>avro-maven-with-references-auto</module>
         <module>json-maven-with-references-auto</module>
         <module>protobuf-validation</module>

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "FLIBusinessUnitBaseTypes.json",
+  "type": "object",
+  "$defs": {
+    "buCodeType": {
+      "type": "string",
+      "pattern": "(^[0-9A-Z]{3,5})|AP"
+    },
+    "buTypeType": {
+      "type": "string",
+      "pattern": "(^[A-Z]{2,3})"
+    },
+    "BusinessUnitReferenceType": {
+      "type": "object",
+      "required": [
+        "BusinessUnitCode",
+        "BusinessUnitType"
+      ],
+      "properties": {
+        "BusinessUnitCode": {
+          "$ref": "#/$defs/buCodeType"
+        },
+        "BusinessUnitType": {
+          "$ref": "#/$defs/buTypeType"
+        }
+      },
+      "additionalProperties": false
+    },
+    "BusinessUnitAddressReferenceType": {
+      "type": "object",
+      "required": [
+        "BusinessUnitCode",
+        "BusinessUnitType",
+        "BusinessUnitSequence"
+      ],
+      "properties": {
+        "BusinessUnitCode": {
+          "$ref": "#/$defs/buCodeType"
+        },
+        "BusinessUnitType": {
+          "$ref": "#/$defs/buTypeType"
+        },
+        "BusinessUnitSequence": {
+          "$ref": "../../common/jsd/FLIServiceTypes.json#/$defs/positiveInteger4"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/BusinessUnitReferenceType"
+    },
+    {
+      "$ref": "#/$defs/BusinessUnitAddressReferenceType"
+    }
+  ]
+}

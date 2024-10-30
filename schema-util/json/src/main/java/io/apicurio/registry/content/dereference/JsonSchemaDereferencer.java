@@ -140,6 +140,13 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
             String $ref = node.get("$ref").asText();
             if (resolvedReferenceUrls.containsKey($ref)) {
                 node.put("$ref", resolvedReferenceUrls.get($ref));
+            } else {
+                //The reference in the file might be using just a component, use just the resource for the lookup.
+                JsonPointerExternalReference externalReference = new JsonPointerExternalReference($ref);
+                if (resolvedReferenceUrls.containsKey(externalReference.getResource())) {
+                    JsonPointerExternalReference rewrittenRef = new JsonPointerExternalReference(resolvedReferenceUrls.get(externalReference.getResource()), externalReference.getComponent());
+                    node.put("$ref", rewrittenRef.getFullReference());
+                }
             }
         }
         Iterator<String> fieldNames = node.fieldNames();

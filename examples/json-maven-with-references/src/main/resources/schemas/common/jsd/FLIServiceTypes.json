@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "FLIServiceTypes.json",
+  "$defs": {
+    "fliDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "fliDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$"
+    },
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "positiveInteger4": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9999
+    },
+    "positiveIntegerMax100": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "integer2": {
+      "type": "integer",
+      "minimum": -99,
+      "maximum": 99
+    },
+    "integer3": {
+      "type": "integer",
+      "minimum": -999,
+      "maximum": 999
+    },
+    "integer4": {
+      "type": "integer",
+      "minimum": -9999,
+      "maximum": 9999
+    },
+    "integer6": {
+      "type": "integer",
+      "minimum": -999999,
+      "maximum": 999999
+    },
+    "integer11": {
+      "type": "integer",
+      "minimum": -99999999999,
+      "maximum": 99999999999
+    },
+    "decimal7-3": {
+      "type": "number",
+      "minimum": -9999.999,
+      "maximum": 9999.999,
+      "multipleOf": 0.001
+    },
+    "decimal9-2": {
+      "type": "number",
+      "minimum": -9999999.99,
+      "maximum": 9999999.99,
+      "multipleOf": 0.01
+    },
+    "decimal9-5": {
+      "type": "number",
+      "minimum": -9999.99999,
+      "maximum": 9999.99999,
+      "multipleOf": 0.00001
+    },
+    "decimal11-2": {
+      "type": "number",
+      "minimum": -999999999.99,
+      "maximum": 999999999.99,
+      "multipleOf": 0.01
+    },
+    "decimal15-5": {
+      "type": "number",
+      "minimum": -9999999999.99999,
+      "maximum": 9999999999.99999,
+      "multipleOf": 0.00001
+    },
+    "string1": {
+      "type": "string",
+      "maxLength": 1
+    },
+    "string2": {
+      "type": "string",
+      "maxLength": 2
+    },
+    "string4": {
+      "type": "string",
+      "maxLength": 4
+    },
+    "string8": {
+      "type": "string",
+      "maxLength": 8
+    },
+    "string10": {
+      "type": "string",
+      "maxLength": 10
+    },
+    "string24": {
+      "type": "string",
+      "maxLength": 24
+    },
+    "string35": {
+      "type": "string",
+      "maxLength": 35
+    },
+    "string36": {
+      "type": "string",
+      "maxLength": 36
+    },
+    "string40": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "string50": {
+      "type": "string",
+      "maxLength": 50
+    },
+    "string70": {
+      "type": "string",
+      "maxLength": 70
+    },
+    "string100": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "string160": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "string500": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "nonEmptyString4000": {
+      "type": "string",
+      "maxLength": 4000,
+      "minLength": 1
+    },
+    "nonEmptyString1000": {
+      "type": "string",
+      "maxLength": 1000,
+      "minLength": 1
+    },
+    "nonEmptyString500": {
+      "type": "string",
+      "maxLength": 500,
+      "minLength": 1
+    },
+    "nonEmptyString200": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 1
+    },
+    "nonEmptyString160": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 1
+    },
+    "nonEmptyString150": {
+      "type": "string",
+      "maxLength": 150,
+      "minLength": 1
+    },
+    "nonEmptyString100": {
+      "type": "string",
+      "maxLength": 100,
+      "minLength": 1
+    },
+    "nonEmptyString80": {
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1
+    },
+    "nonEmptyString70": {
+      "type": "string",
+      "maxLength": 70,
+      "minLength": 1
+    },
+    "nonEmptyString50": {
+      "type": "string",
+      "maxLength": 50,
+      "minLength": 1
+    },
+    "nonEmptyString40": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1
+    },
+    "nonEmptyString36": {
+      "type": "string",
+      "maxLength": 36,
+      "minLength": 1
+    },
+    "nonEmptyString35": {
+      "type": "string",
+      "maxLength": 35,
+      "minLength": 1
+    },
+    "nonEmptyString30": {
+      "type": "string",
+      "maxLength": 30,
+      "minLength": 1
+    },
+    "nonEmptyString25": {
+      "type": "string",
+      "maxLength": 25,
+      "minLength": 1
+    },
+    "nonEmptyString24": {
+      "type": "string",
+      "maxLength": 24,
+      "minLength": 1
+    },
+    "nonEmptyString20": {
+      "type": "string",
+      "maxLength": 20,
+      "minLength": 1
+    },
+    "nonEmptyString18": {
+      "type": "string",
+      "maxLength": 18,
+      "minLength": 1
+    },
+    "nonEmptyString15": {
+      "type": "string",
+      "maxLength": 15,
+      "minLength": 1
+    },
+    "nonEmptyString10": {
+      "type": "string",
+      "maxLength": 10,
+      "minLength": 1
+    },
+    "nonEmptyString8": {
+      "type": "string",
+      "maxLength": 8,
+      "minLength": 1
+    },
+    "nonEmptyString5": {
+      "type": "string",
+      "maxLength": 5,
+      "minLength": 1
+    },
+    "nonEmptyString4": {
+      "type": "string",
+      "maxLength": 4,
+      "minLength": 1
+    },
+    "nonEmptyString3": {
+      "type": "string",
+      "maxLength": 3,
+      "minLength": 1
+    },
+    "nonEmptyString2": {
+      "type": "string",
+      "maxLength": 2,
+      "minLength": 1
+    },
+    "nonEmptyString1": {
+      "type": "string",
+      "maxLength": 1,
+      "minLength": 1
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "CountryCodeType": {
+      "type": "string",
+      "pattern": "(^[A-Z]{2}$)"
+    },
+    "ServiceResponseType": {
+      "type": "object",
+      "properties": {
+        "ServiceName": {
+          "$ref": "#/$defs/nonEmptyString100"
+        },
+        "MessageReference": {
+          "$ref": "#/$defs/nonEmptyString36"
+        },
+        "ReturnCode": {
+          "$ref": "#/$defs/nonEmptyString4"
+        },
+        "ErrorMessage": {
+          "$ref": "#/$defs/nonEmptyString100"
+        },
+        "ErrorDetails": {
+          "$ref": "#/$defs/nonEmptyString500"
+        }
+      },
+      "required": [
+        "ServiceName",
+        "MessageReference",
+        "ReturnCode"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "anyOf": [
+    { "$ref": "#/$defs/ServiceResponseType" }
+  ]
+}

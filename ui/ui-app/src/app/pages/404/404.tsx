@@ -13,19 +13,13 @@ import {
 } from "@patternfly/react-core";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { PageProperties } from "@app/pages";
 
-
-/**
- * Properties
- */
-export type NotFoundPageProps = {
-    // No page properties.
-};
 
 /**
  * The "not found" page.
  */
-export const NotFoundPage: FunctionComponent<NotFoundPageProps> = () => {
+export const NotFoundPage: FunctionComponent<PageProperties> = () => {
     const appNavigation: AppNavigation = useAppNavigation();
 
     return  (

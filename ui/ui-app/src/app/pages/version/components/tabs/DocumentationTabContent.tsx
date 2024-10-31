@@ -23,14 +23,14 @@ const parseContent = (artifactContent: string): any => {
     // Try as JSON
     try {
         return JSON.parse(artifactContent);
-    } catch (e) {
+    } catch {
         // Do nothing
     }
 
     // Try as YAML
     try {
         return YAML.parse(artifactContent);
-    } catch (e) {
+    } catch {
         // Do nothing
     }
     return {};

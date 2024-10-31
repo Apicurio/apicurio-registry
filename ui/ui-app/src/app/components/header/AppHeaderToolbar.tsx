@@ -8,9 +8,7 @@ import { SystemService, useSystemService } from "@services/useSystemService.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
-export type AppHeaderToolbarProps = {
-    // No properties.
-};
+export type AppHeaderToolbarProps = object;
 
 
 export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => {

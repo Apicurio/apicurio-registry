@@ -8,11 +8,13 @@ import {
     PageDataLoader,
     PageError,
     PageErrorHandler,
+    PageProperties,
     toPageError
 } from "@app/pages";
 import {
     ChangeOwnerModal,
-    ConfirmDeleteModal, CreateArtifactModal,
+    ConfirmDeleteModal,
+    CreateArtifactModal,
     EditMetaDataModal,
     IfFeature,
     InvalidContentModal,
@@ -33,14 +35,10 @@ import {
 } from "@sdk/lib/generated-client/models";
 
 
-export type GroupPageProps = {
-    // No properties
-}
-
 /**
  * The group page.
  */
-export const GroupPage: FunctionComponent<GroupPageProps> = () => {
+export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [group, setGroup] = useState<GroupMetaData>();

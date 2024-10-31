@@ -2,7 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
+import { PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import {
     ChangeOwnerModal,
     ConfirmDeleteModal,
@@ -37,14 +37,10 @@ import {
 import { AddVersionToBranchModal } from "@app/components/modals/AddVersionToBranchModal.tsx";
 
 
-export type ArtifactPageProps = {
-    // No properties
-}
-
 /**
  * The artifact version page.
  */
-export const ArtifactPage: FunctionComponent<ArtifactPageProps> = () => {
+export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [artifact, setArtifact] = useState<ArtifactMetaData>();

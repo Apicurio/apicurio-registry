@@ -18,7 +18,11 @@ You can use the {registry} web console to upload schema and API artifacts to {re
 
 . On the *Explore* tab, click *Create artifact*, and complete the *Create artifact* wizard:
 +
-NOTE: You can create a placeholder artifact without content, but you must specify the artifact type, as {registry} cannot automatically detect the content type.
+[NOTE]
+====
+You can create a placeholder artifact without content, but you must specify the artifact type, as {registry} cannot automatically detect the content type.
+Creating a placeholder allows you create rules first and add content later.
+====
 
 .. Specify the *Artifact Coordinates* and click *Next*:
 +

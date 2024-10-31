@@ -5,6 +5,7 @@ import { AvatarDropdown, IfAuth } from "@app/components";
 import { AppAboutModal, BackendInfo, FrontendInfo } from "@apicurio/common-ui-components";
 import { useVersionService, VersionService } from "@services/useVersionService.ts";
 import { SystemService, useSystemService } from "@services/useSystemService.ts";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
 export type AppHeaderToolbarProps = {
@@ -16,6 +17,7 @@ export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => 
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
     const version: VersionService = useVersionService();
     const system: SystemService = useSystemService();
+    const config: ConfigService = useConfigService();
 
     const frontendInfo: FrontendInfo = {
         ...version.getVersion()
@@ -33,13 +35,15 @@ export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => 
         });
     };
 
+    const logoSrc: string = `${config.uiContextPath() || "/"}apicurio_registry_logo_reverse.svg`;
+
     return (
         <>
             <AppAboutModal
                 frontendInfo={frontendInfo}
                 backendInfo={fetchBackendInfo}
                 backendLabel="Registry API info"
-                brandImageSrc="/apicurio_registry_logo_reverse.svg"
+                brandImageSrc={logoSrc}
                 brandImageAlt={version.getVersion().name}
                 isOpen={isAboutModalOpen}
                 onClose={() => setIsAboutModalOpen(false)} />

@@ -5,6 +5,7 @@ import {
     PageDataLoader,
     PageError,
     PageErrorHandler,
+    PageProperties,
     RoleList,
     RoleMappingsEmptyState,
     RoleToolbar,
@@ -20,16 +21,11 @@ import { Paging } from "@models/paging.model.ts";
 import { RoleMapping } from "@sdk/lib/generated-client/models";
 
 
-export type RolesPageProps = {
-    // No props.
-}
-
-
 /**
  * The roles/access page.
  */
 // export class RolesPage extends PageComponent<RolesPageProps, RolesPageState> {
-export const RolesPage: FunctionComponent<RolesPageProps> = () => {
+export const RolesPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [isGrantAccessOpen, setIsGrantAccessOpen] = useState(false);

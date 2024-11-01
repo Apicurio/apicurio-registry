@@ -13,9 +13,7 @@ import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { ApplicationAuth, AuthConfig, AuthConfigContext } from "@apicurio/common-ui-components";
 import { ArtifactPage } from "@app/pages/artifact";
 
-export type AppProps = {
-    // No props
-};
+export type AppProps = object;
 
 /**
  * The main application class.

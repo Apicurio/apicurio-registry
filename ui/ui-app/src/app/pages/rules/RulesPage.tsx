@@ -2,20 +2,16 @@ import React, { FunctionComponent, useEffect, useState } from "react";
 import "./RulesPage.css";
 import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
 import { RootPageHeader, RuleList, RuleListType } from "@app/components";
-import { PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
+import { PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { Rule, RuleType } from "@sdk/lib/generated-client/models";
 
 
-export type RulesPageProps = {
-    // No properties.
-}
-
 /**
  * The global rules page.
  */
-export const RulesPage: FunctionComponent<RulesPageProps> = () => {
+export const RulesPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [rules, setRules] = useState<Rule[]>([]);

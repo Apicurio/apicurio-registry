@@ -5,9 +5,7 @@ import { UserService, useUserService } from "@services/useUserService.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
-export type AvatarDropdownProps = {
-    // No props
-};
+export type AvatarDropdownProps = object;
 
 
 export const AvatarDropdown: FunctionComponent<AvatarDropdownProps> = () => {

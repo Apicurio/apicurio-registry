@@ -6,9 +6,7 @@ import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
-export type AppHeaderProps = {
-    // No properties.
-};
+export type AppHeaderProps = object;
 
 
 export const AppHeader: FunctionComponent<AppHeaderProps> = () => {

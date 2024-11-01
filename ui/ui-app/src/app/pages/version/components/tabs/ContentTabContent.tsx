@@ -26,7 +26,7 @@ const formatJsonContent = (artifactContent: string): string => {
         if (pval) {
             return JSON.stringify(pval, null, 2);
         }
-    } catch (e) {
+    } catch {
         // Do nothing
     }
     return artifactContent;

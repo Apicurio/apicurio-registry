@@ -11,6 +11,7 @@ import {
     PageDataLoader,
     PageError,
     PageErrorHandler,
+    PageProperties,
     toPageError
 } from "@app/pages";
 import { CreateArtifactModal, CreateGroupModal, InvalidContentModal, RootPageHeader } from "@app/components";
@@ -34,13 +35,6 @@ import {
     SortOrderObject
 } from "@sdk/lib/generated-client/models";
 
-/**
- * Properties
- */
-export type ExplorePageProps = {
-    // No properties.
-}
-
 const EMPTY_RESULTS: ArtifactSearchResults = {
     artifacts: [],
     count: 0
@@ -54,7 +48,7 @@ const DEFAULT_PAGING: Paging = {
 /**
  * The Explore page.
  */
-export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
+export const ExplorePage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [exploreType, setExploreType] = useState(ExploreType.ARTIFACT);

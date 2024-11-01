@@ -11,4 +11,5 @@ export * from "./PageDataLoader";
 export * from "./PageError";
 export * from "./PageErrorHandler";
 export * from "./PageErrorType";
+export * from "./PageProperties";
 export * from "./toPageError";

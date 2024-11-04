@@ -1,0 +1,14 @@
+# DO NOT COMMIT AUTOMATIC MODIFICATIONS TO THIS FILE
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: apicurio-registry-operator-catalog
+  namespace: PLACEHOLDER_CATALOG_NAMESPACE
+spec:
+  sourceType: grpc
+  displayName: Apicurio Registry Catalog
+  publisher: Apicurio
+  image: PLACEHOLDER_CATALOG_IMAGE
+  updateStrategy:
+    registryPoll:
+      interval: 30s # Development value

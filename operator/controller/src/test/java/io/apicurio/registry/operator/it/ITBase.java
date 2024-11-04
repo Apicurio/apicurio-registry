@@ -5,6 +5,8 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesList;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.ServiceAccount;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.*;
 
 import java.io.FileInputStream;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,6 +41,8 @@ public class ITBase {
     public static final String CLEANUP = "test.operator.cleanup";
     public static final String GENERATED_RESOURCES_FOLDER = "target/kubernetes/";
     public static final String CRD_FILE = "../model/target/classes/META-INF/fabric8/apicurioregistries3.registry.apicur.io-v1.yml";
+    public static final String REMOTE_TESTS_INSTALL_FILE = "test.operator.install-file";
+    public static final String REMOTE_TESTS_INSTALL_FILE_DEFAULT = "test.operator.install-file.default";
 
     public enum OperatorDeployment {
         local, remote
@@ -63,7 +68,7 @@ public class ITBase {
                 .getOptionalValue(OPERATOR_DEPLOYMENT_PROP, OperatorDeployment.class)
                 .orElse(OperatorDeployment.local);
         deploymentTarget = ConfigProvider.getConfig().getOptionalValue(DEPLOYMENT_TARGET, String.class)
-                .orElse("k8s");
+                .orElse("kubernetes");
         cleanup = ConfigProvider.getConfig().getOptionalValue(CLEANUP, Boolean.class).orElse(true);
 
         setDefaultAwaitilityTimings();
@@ -78,6 +83,7 @@ public class ITBase {
         if (operatorDeployment == OperatorDeployment.remote) {
             createGeneratedResources();
         } else {
+            configureLocalOperator();
             createOperator();
             registerReconcilers();
             operator.start();
@@ -101,20 +107,20 @@ public class ITBase {
 
     private static void createGeneratedResources() throws Exception {
         Log.info("Creating generated resources into Namespace " + namespace);
-        try (var fis = new FileInputStream(GENERATED_RESOURCES_FOLDER + deploymentTarget + ".json")) {
-            KubernetesList resources = Serialization.unmarshal(fis);
-
-            resources.getItems().stream().forEach(r -> {
-                if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
-                    var crb = (ClusterRoleBinding) r;
+        var config = ConfigProvider.getConfig();
+        var installFilePath = config.getOptionalValue(REMOTE_TESTS_INSTALL_FILE, String.class)
+                .orElse(config.getValue(REMOTE_TESTS_INSTALL_FILE_DEFAULT, String.class));
+        try (var fis = new FileInputStream(installFilePath)) {
+            List<HasMetadata> resources = Serialization.unmarshal(fis);
+            resources.forEach(r -> {
+                if (r.getKind().equals("ServiceAccount") && r instanceof ServiceAccount sa) {
+                    sa.getMetadata().setNamespace(namespace);
+                }
+                if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding crb) {
                     crb.getSubjects().stream().forEach(s -> s.setNamespace(namespace));
-                    // TODO: We need to patch the generated resources, because the referenced ClusterRole name
-                    // is
-                    // wrong.
-                    if ("apicurioregistry3reconciler-cluster-role-binding"
-                            .equals(crb.getMetadata().getName())) {
-                        crb.getRoleRef().setName("apicurioregistry3reconciler-cluster-role");
-                    }
+                }
+                if (r.getKind().equals("Deployment") && r instanceof Deployment d) {
+                    d.getMetadata().setNamespace(namespace);
                 }
                 client.resource(r).inNamespace(namespace).createOrReplace();
             });
@@ -159,6 +165,15 @@ public class ITBase {
         for (Reconciler<?> reconciler : reconcilers) {
             Log.info("Register and apply : " + reconciler.getClass().getName());
             operator.register(reconciler);
+        }
+    }
+
+    public static void configureLocalOperator() {
+        if (ConfigProvider.getConfig().getOptionalValue("registry.app.image", String.class).isEmpty()) {
+            System.setProperty("registry.app.image", "quay.io/apicurio/apicurio-registry:latest-snapshot");
+        }
+        if (ConfigProvider.getConfig().getOptionalValue("registry.ui.image", String.class).isEmpty()) {
+            System.setProperty("registry.ui.image", "quay.io/apicurio/apicurio-registry-ui:latest-snapshot");
         }
     }
 

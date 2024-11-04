@@ -113,9 +113,41 @@
               <goal>test</goal>
             </goals>
             <phase>verify</phase>
+            <configuration>
+              <systemProperties>
+                <test.operator.install-file.default>${projectRoot}/operator/install/apicurio-registry-operator-${project.version}.yaml</test.operator.install-file.default>
+              </systemProperties>
+            </configuration>
           </execution>
         </executions>
       </plugin>
+
+      <plugin>
+        <!-- Must be defined after quarkus-maven-plugin. -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-resource-one</id>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <outputDirectory>${basedir}/../deploy/crd</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${projectRoot}/operator/model/target/classes/META-INF/fabric8</directory>
+                  <includes>
+                    <include>apicurioregistries3.registry.apicur.io-v1.yml</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
   </build>
 </project>

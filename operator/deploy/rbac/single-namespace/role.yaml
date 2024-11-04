@@ -1,0 +1,66 @@
+# Note: Do not forget to update deploy/rbac/cluster/kustomization.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: apicurio-registry-operator-role
+  namespace: PLACEHOLDER_NAMESPACE
+
+rules:
+
+  - apiGroups:
+      - registry.apicur.io
+    resources:
+      - apicurioregistries3
+      - apicurioregistries3/status
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - services
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - routes
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - clusterversions
+    verbs:
+      - get
+
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - "*"

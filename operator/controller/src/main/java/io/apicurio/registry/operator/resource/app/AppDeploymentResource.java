@@ -2,7 +2,7 @@ package io.apicurio.registry.operator.resource.app;
 
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.feat.KafkaSql;
+import io.apicurio.registry.operator.feat.KafkaSQL;
 import io.apicurio.registry.operator.feat.PostgresSql;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
@@ -62,7 +62,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         // spotless:on
 
         if (!PostgresSql.configureDatasource(primary, envVars)) {
-            KafkaSql.configureKafkaSQL(primary, envVars);
+            KafkaSQL.configureKafkaSQL(primary, d, envVars);
         }
 
         var container = getContainerFromDeployment(d, APP_CONTAINER_NAME);
@@ -76,6 +76,10 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         if (!map.containsKey(envVar.getName())) {
             map.put(envVar.getName(), envVar);
         }
+    }
+
+    public static void addEnvVar(Map<String, EnvVar> map, String name, String value) {
+        addEnvVar(map, new EnvVarBuilder().withName(name).withValue(value).build());
     }
 
     /**

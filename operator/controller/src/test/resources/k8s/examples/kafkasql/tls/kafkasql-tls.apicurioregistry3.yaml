@@ -1,0 +1,18 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: kafkasql-tls
+spec:
+  app:
+    kafkasql:
+      bootstrapServers: "<service name>.<namespace>.svc:9093"
+      # Try using Strimzi/Red Hat AMQ Streams Operator!
+      security:
+        tls:
+          keystoreSecretName: apicurio
+          truststoreSecretName: example-cluster-cluster-ca-cert
+    env:
+      - name: QUARKUS_LOG_LEVEL
+        value: debug
+      - name: QUARKUS_LOG_CATEGORY_IO_APICURIO_LEVEL
+        value: debug

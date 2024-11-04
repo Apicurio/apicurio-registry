@@ -255,6 +255,7 @@
     <version.clean.plugin>3.4.0</version.clean.plugin>
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
     <version.spotless>2.43.0</version.spotless>
+    <version.license-maven-plugin>2.4.0</version.license-maven-plugin>
 
     <!-- Plugin Deps -->
     <version.puppycrawl>8.45.1</version.puppycrawl>
@@ -950,6 +951,11 @@
               <phase>process-test-resources</phase>
             </execution>
           </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>license-maven-plugin</artifactId>
+          <version>${version.license-maven-plugin}</version>
         </plugin>
       </plugins>
     </pluginManagement>

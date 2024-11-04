@@ -1,0 +1,17 @@
+apiVersion: builtin
+kind: LabelTransformer
+metadata:
+  name: labels
+
+labels:
+  app: apicurio-registry-operator
+  app.kubernetes.io/name: apicurio-registry-operator
+  app.kubernetes.io/version: PLACEHOLDER_VERSION
+  app.kubernetes.io/component: operator
+  app.kubernetes.io/part-of: apicurio-registry
+
+fieldSpecs:
+  - path: metadata/labels
+    create: true
+  - path: spec/template/metadata/labels
+    create: true

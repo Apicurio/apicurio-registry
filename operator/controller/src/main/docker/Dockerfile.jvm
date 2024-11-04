@@ -1,0 +1,19 @@
+FROM registry.access.redhat.com/ubi8/openjdk-17-runtime:latest
+
+ENV JAVA_APP_DIR=/deployments \
+    APP_URL="quarkus-app" \
+    JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager" \
+    AB_ENABLED=jmx_exporter
+
+ADD "$APP_URL" /deployments
+
+USER root
+
+# Set appropriate permissions and ownership
+RUN chmod -R "ug=rwx" /deployments \
+    && chown -R 1001:0 /deployments
+
+# Set user for running the container, according to OpenShift best practices
+USER 1001
+
+EXPOSE 8080 8778 9779

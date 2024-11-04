@@ -1,0 +1,104 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+    categories: Streaming & Messaging
+    certified: "false"
+    # DO NOT COMMIT AUTOMATIC MODIFICATIONS TO THIS FILE
+    containerImage: quay.io/apicurio/apicurio-registry-operator:latest-snapshot
+    createdAt: "0000-00-00"
+    description: Deploy and manage Apicurio Registry 3 on Kubernetes.
+    repository: https://github.com/Apicurio/apicurio-registry/tree/main/operator
+    support: Apicurio
+    operators.openshift.io/infrastructure-features: '[]'
+    features.operators.openshift.io/disconnected: "false" # TODO: Support disconnected install
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+  name: apicurio-registry.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: ApicurioRegistry3 represents an instance of Apicurio Registry version 3.
+        displayName: Apicurio Registry 3
+        kind: ApicurioRegistry3
+        name: apicurioregistries3.registry.apicur.io
+        version: v1
+  description: |
+    ## Apicurio Registry 3
+
+    Apicurio Registry stores and retrieves API designs and event schemas,
+    and gives you control of their evolution.
+
+    **Features**
+    - TODO
+
+    ## Apicurio Registry 3 Operator
+
+    Provides a quick and easy way to deploy and manage Apicurio Registry 3 on Kubernetes.
+
+    **Features**
+    - Supports installation and configuration of Apicurio Registry 3
+    - Perform a rolling upgrade of Apicurio Registry 3
+
+    ## Prerequisites
+
+    This operator does not deploy storage for Apicurio Registry 3. Therefore, some storage options require that the chosen persistence service is already set up.
+
+    ## License
+
+    Apicurio Registry 3 and Apicurio Registry 3 Operator are licensed under the [Apache 2.0 license](https://github.com/Apicurio/apicurio-registry/blob/main/LICENSE)
+  displayName: Apicurio Registry 3
+  icon:
+    - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI3LjEuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxODAgMjAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxODAgMjAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6Izc1OEVCRjt9Cgkuc3Qxe2VuYWJsZS1iYWNrZ3JvdW5kOm5ldyAgICA7fQo8L3N0eWxlPgo8cGF0aCBkPSJNODEuOCwxMTIuOGMtMC4xLDAtMC4yLDAtMC4yLDB2MGMtOS43LTAuNi0xOC4xLTEwLjktMTguMS0xOC40YzAuMi01LjgsMC41LTEyLjgsMC44LTEzLjljNS40LTMwLjIsMjguMS01NC40LDU3LjQtNjIKCWMtMTAuNS01LjQtMjIuNC04LjUtMzUtOC41QzQ0LjQsMTAsMTAsNDQuNCwxMCw4Ni43VjE1NWMwLDE0LjgsMTIsMjYuNywyNi43LDI2LjdzMjYuNy0xMiwyNi43LTI2Ljd2LTE0LjNjMC0xMC40LDgtMTguOCwxOC4yLTE5LjUKCXYwYzAuMSwwLDAuMiwwLDAuMiwwYzIuMywwLDQuMi0xLjksNC4yLTQuMlM4NC4xLDExMi44LDgxLjgsMTEyLjhMODEuOCwxMTIuOHoiLz4KPGc+Cgk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTQ2LjcsNDdjNC4xLDAsOC4xLDAuMywxMiwwLjljLTQuOS04LjMtMTEuMi0xNS42LTE4LjctMjEuNUMxMTIuNSwyOSw4OS4yLDQ1LjcsNzcuMyw2OS4xCgkJYzQuMS0zLjUsOS40LTUuNywxNS4yLTUuN2MxLjcsMCwzLjMsMC4yLDQuOSwwLjVDMTExLDUzLjQsMTI4LjEsNDcsMTQ2LjcsNDdMMTQ2LjcsNDd6Ii8+Cgk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTY1LjMsNjIuN2MtNi45LTEuOS0xNC4xLTIuOS0yMS41LTIuOWMtMTMuMiwwLTI1LjcsMy4yLTM2LjcsOC45YzUuMyw0LjMsOC43LDEwLjgsOC43LDE4LjF2Ny44CgkJYzAsNy41LTguNCwxNy43LTE4LjEsMTguNHYwYy0wLjEsMC0wLjIsMC0wLjIsMGMtMi4zLDAtNC4yLDEuOS00LjIsNC4yczEuOSw0LjIsNC4yLDQuMmMwLjEsMCwwLjIsMCwwLjIsMHYwCgkJYzkuOCwwLjcsMTcuNiw4LjUsMTguMSwxOC40VjE1NWMwLDE0LjgsMTIsMjYuNywyNi43LDI2LjdzMjYuNy0xMiwyNi43LTI2LjdWODYuN0MxNjkuMiw3OC4zLDE2Ny44LDcwLjIsMTY1LjMsNjIuN0wxNjUuMyw2Mi43eiIKCQkvPgo8L2c+Cjwvc3ZnPgo=
+      mediatype: image/svg+xml
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: true
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - integration
+    - streaming
+    - messaging
+    - api
+    - schemas
+    - registry
+    - apicurio
+    - apicurio-registry
+  links:
+    - name: Website
+      url: https://www.apicur.io/
+    - name: GitHub
+      url: https://github.com/Apicurio/apicurio-registry/
+    - name: Issues
+      url: https://github.com/Apicurio/apicurio-registry/issues
+    - name: Twitter
+      url: https://twitter.com/Apicurio
+  maintainers:
+    - email: apicurio@lists.jboss.org
+      name: Apicurio
+  maturity: alpha
+  provider:
+    name: Apicurio
+  selector: {}
+  version: 0.0.0
+  minKubeVersion: 1.25.0

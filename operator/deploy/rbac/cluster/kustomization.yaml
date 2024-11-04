@@ -1,0 +1,15 @@
+# DO NOT COMMIT AUTOMATIC MODIFICATIONS TO THIS FILE
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../base
+  - cluster-role.yaml
+  - cluster-role-binding.yaml
+
+commonLabels:
+  app: apicurio-registry-operator
+  app.kubernetes.io/name: apicurio-registry-operator
+  app.kubernetes.io/version: PLACEHOLDER_VERSION
+  app.kubernetes.io/component: operator
+  app.kubernetes.io/part-of: apicurio-registry

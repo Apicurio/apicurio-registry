@@ -1,0 +1,14 @@
+---
+schema: olm.package
+name: apicurio-registry
+defaultChannel: 1.x
+---
+schema: olm.channel
+package: apicurio-registry
+name: 1.x
+entries:
+  - name: apicurio-registry.vPLACEHOLDER_LC_VERSION
+  # TODO: Replaces
+---
+schema: olm.bundle
+image: PLACEHOLDER_BUNDLE_IMAGE

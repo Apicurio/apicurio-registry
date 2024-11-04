@@ -1,0 +1,44 @@
+# DO NOT COMMIT AUTOMATIC MODIFICATIONS TO THIS FILE
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - operator.yaml
+
+# TODO:
+#transformers:
+#  - labels.yaml
+
+commonLabels:
+  app: apicurio-registry-operator
+  app.kubernetes.io/name: apicurio-registry-operator
+  app.kubernetes.io/version: PLACEHOLDER_VERSION
+  app.kubernetes.io/component: operator
+  app.kubernetes.io/part-of: apicurio-registry
+
+images:
+  - name: PLACEHOLDER_IMAGE
+    newName: quay.io/apicurio/apicurio-registry-operator
+    newTag: latest-snapshot
+
+patches:
+  - patch: |-
+      - op: add
+        path: "/spec/template/spec/containers/0/env/-"
+        value:
+          name: REGISTRY_VERSION
+          value: PLACEHOLDER_VERSION
+      - op: add
+        path: "/spec/template/spec/containers/0/env/-"
+        value:
+          name: REGISTRY_APP_IMAGE
+          value: quay.io/apicurio/apicurio-registry:latest-snapshot
+      - op: add
+        path: "/spec/template/spec/containers/0/env/-"
+        value:
+          name: REGISTRY_UI_IMAGE
+          value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    target:
+      kind: Deployment
+      name: apicurio-registry-operator
+      namespace: PLACEHOLDER_NAMESPACE

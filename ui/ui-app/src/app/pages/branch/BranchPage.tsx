@@ -2,7 +2,14 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./BranchPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { BranchVersionsTabContent, PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
+import {
+    BranchVersionsTabContent,
+    PageDataLoader,
+    PageError,
+    PageErrorHandler,
+    PageProperties,
+    toPageError
+} from "@app/pages";
 import { ConfirmDeleteModal, EditMetaDataModal, IfFeature, MetaData } from "@app/components";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
@@ -12,14 +19,10 @@ import { ArtifactMetaData, BranchMetaData, SearchedVersion } from "@sdk/lib/gene
 import { BranchInfoTabContent, BranchPageHeader } from "@app/pages/branch/components";
 
 
-export type BranchPageProps = {
-    // No properties
-}
-
 /**
  * The artifact branch page.
  */
-export const BranchPage: FunctionComponent<BranchPageProps> = () => {
+export const BranchPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [artifact, setArtifact] = useState<ArtifactMetaData>();

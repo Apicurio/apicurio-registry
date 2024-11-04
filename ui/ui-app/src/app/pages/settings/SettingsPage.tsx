@@ -10,7 +10,7 @@ import {
     TextContent
 } from "@patternfly/react-core";
 import { RootPageHeader } from "@app/components";
-import { ConfigProperty, PageDataLoader, PageError, PageErrorHandler, toPageError } from "@app/pages";
+import { ConfigProperty, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import { If, IfNotEmpty } from "@apicurio/common-ui-components";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { AlertsService, useAlertsService } from "@services/useAlertsService.tsx";
@@ -70,15 +70,10 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
     },
 ];
 
-
-export type SettingsPageProps = {
-    // No props
-}
-
 /**
  * The settings page.
  */
-export const SettingsPage: FunctionComponent<SettingsPageProps> = () => {
+export const SettingsPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [properties, setProperties] = useState<ConfigurationProperty[]>([]);

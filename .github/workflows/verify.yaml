@@ -136,39 +136,29 @@ jobs:
           echo "Flags:     ${{ steps.buildx.outputs.flags }}"
           echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
 
-      - name: Build and verify the typescript-sdk
-        working-directory: typescript-sdk
-        run: |
-          npm install
-          npm run generate-registry-sdk
-          npm run lint
-          npm run build
-
       - name: Install Dependencies
-        run: |
-          cd ui
-          npm install
+        working-directory: ui
+        run: npm install
 
       - name: Lint
-        run: |
-          cd ui
-          npm run lint
+        working-directory: ui
+        run: npm run lint
 
-      - name: Build and Package
-        run: |
-          cd ui
-          npm run build
-          npm run package
+      - name: Build
+        working-directory: ui
+        run: npm run build
+
+      - name: Package
+        working-directory: ui
+        run: npm run package
 
       - name: Install Test Dependencies
-        run: |
-          cd ui/tests
-          npm install
+        working-directory: ui/tests
+        run: npm install
 
       - name: Lint Tests
-        run: |
-          cd ui/tests
-          npm run lint
+        working-directory: ui/tests
+        run: npm run lint
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -180,9 +170,8 @@ jobs:
 
       - name: Build and Push UI Multi-arch Images
         if: github.event_name == 'push'
-        run: |
-          cd ui
-          docker buildx build --push -f ./Dockerfile -t quay.io/apicurio/apicurio-registry-ui:latest-snapshot -t docker.io/apicurio/apicurio-registry-ui:latest-snapshot --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
+        working-directory: ui
+        run: docker buildx build --push -f ./Dockerfile -t quay.io/apicurio/apicurio-registry-ui:latest-snapshot -t docker.io/apicurio/apicurio-registry-ui:latest-snapshot --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
 
       - name: Google Chat Notification (Always)
         if: github.event_name == 'push' && always()

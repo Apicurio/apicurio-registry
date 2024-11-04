@@ -3676,6 +3676,7 @@
       "ArtifactSortBy": {
         "description": "",
         "enum": [
+          "groupId",
           "artifactId",
           "createdOn",
           "modifiedOn",
@@ -3934,6 +3935,10 @@
           "artifactId": {
             "$ref": "#/components/schemas/ArtifactId",
             "description": ""
+          },
+          "labels": {
+            "$ref": "#/components/schemas/Labels",
+            "description": ""
           }
         },
         "example": {
@@ -4007,6 +4012,15 @@
           "artifactId": {
             "$ref": "#/components/schemas/ArtifactId",
             "description": ""
+          },
+          "modifiedBy": {
+            "description": "",
+            "type": "string"
+          },
+          "modifiedOn": {
+            "format": "date-time",
+            "description": "",
+            "type": "string"
           }
         },
         "example": {
@@ -4095,6 +4109,10 @@
             "format": "date-time",
             "description": "",
             "type": "string"
+          },
+          "labels": {
+            "$ref": "#/components/schemas/Labels",
+            "description": ""
           }
         },
         "example": {
@@ -4341,6 +4359,10 @@
           },
           "groupId": {
             "$ref": "#/components/schemas/GroupId",
+            "description": ""
+          },
+          "labels": {
+            "$ref": "#/components/schemas/Labels",
             "description": ""
           }
         },
@@ -4799,6 +4821,10 @@
           "deleteVersion": {
             "description": "",
             "type": "boolean"
+          },
+          "draftMutability": {
+            "description": "",
+            "type": "boolean"
           }
         },
         "example": {
@@ -5071,6 +5097,8 @@
       "VersionSortBy": {
         "description": "",
         "enum": [
+          "groupId",
+          "artifactId",
           "version",
           "name",
           "createdOn",
@@ -5083,7 +5111,8 @@
         "description": "",
         "enum": [
           "groupId",
-          "createdOn"
+          "createdOn",
+          "modifiedOn"
         ],
         "type": "string"
       },

@@ -83,37 +83,29 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
 
-      - name: Build and verify the typescript-sdk
-        working-directory: typescript-sdk
-        run: |
-          npm install
-          npm run generate-registry-sdk
-          npm run lint
-          npm run build
-
       - name: Install UI Dependencies
-        run: |
-          cd ui
-          npm install
+        working-directory: ui
+        run: npm install
 
       - name: Lint UI Code
-        run: |
-          cd ui
-          npm run lint
+        working-directory: ui
+        run: npm run lint
 
-      - name: Build and Package UI
-        run: |
-          cd ui
-          npm run build
-          npm run package
+      - name: Build the UI
+        working-directory: ui
+        run: npm run build
 
-      - name: Build and Push UI image
+      - name: Package the UI
+        working-directory: ui
+        run: npm run package
+
+      - name: Build and Push UI container image
+        working-directory: ui
         env:
           IMAGE_REPO: ttl.sh/${{ github.sha }}
           # maximum allowed
           IMAGE_TAG: 1d
         run: |
-          cd ui
           docker build -t $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG .
           docker push $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG
 

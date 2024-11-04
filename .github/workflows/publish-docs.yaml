@@ -53,6 +53,7 @@ jobs:
           cd website
           git add .
           git commit -m "Automated Publishing of Documentation for Apicurio Registry"
+          git pull origin main
           git push
 
       - name: Google Chat Notification

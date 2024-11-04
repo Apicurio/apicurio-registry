@@ -60,18 +60,17 @@ jobs:
 
       # Needs special tagging to use submodules: https://stackoverflow.com/a/64705638/7898052
       - name: Release Typescript SDK
+        working-directory: registry/typescript-sdk
         run: |
-          cd registry/typescript-sdk
           npm install
-          npm run generate-registry-sdk
+          npm run generate-sources
           npm run build
 
       - name: Publish to npmjs.com
+        working-directory: registry/typescript-sdk
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          cd registry/typescript-sdk
-          npm publish --access public
+        run: npm publish --access public
 
       - name: Google Chat Notification
         if: ${{ failure() }}

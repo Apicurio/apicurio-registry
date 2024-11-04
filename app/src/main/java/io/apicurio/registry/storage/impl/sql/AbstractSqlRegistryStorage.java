@@ -13,6 +13,7 @@ import io.apicurio.registry.events.ArtifactRuleConfigured;
 import io.apicurio.registry.events.ArtifactVersionCreated;
 import io.apicurio.registry.events.ArtifactVersionDeleted;
 import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
+import io.apicurio.registry.events.ArtifactVersionStateChanged;
 import io.apicurio.registry.events.GlobalRuleConfigured;
 import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
@@ -23,6 +24,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -218,6 +220,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     SemVerConfigProperties semVerConfigProps;
+
+    @Inject
+    RestConfig restConfig;
 
     @Inject
 
@@ -938,13 +943,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
-            StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
-            StringBuilder limitOffset = new StringBuilder();
-
-            // Formulate the SELECT clause for the artifacts query
-            selectTemplate.append("SELECT {{selectColumns}} FROM artifacts a ");
 
             // Formulate the WHERE clause for both queries
             String op;
@@ -981,6 +981,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append("a.groupId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, normalizeGroupId(filter.getStringValue()));
+                        });
+                        break;
+                    case artifactId:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("a.artifactId " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
                         });
                         break;
                     case contentHash:
@@ -1053,6 +1060,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         where.append(")");
                         break;
+                    default:
+                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
                 where.append(")");
             }
@@ -1062,36 +1071,27 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 case name:
                     orderByQuery.append(" ORDER BY coalesce(a.name, a.artifactId)");
                     break;
-                case artifactId:
-                    orderByQuery.append(" ORDER BY a.artifactId");
-                    break;
-                case createdOn:
-                    orderByQuery.append(" ORDER BY a.createdOn");
-                    break;
-                case modifiedOn:
-                    orderByQuery.append(" ORDER BY a.modifiedOn");
-                    break;
                 case artifactType:
                     orderByQuery.append(" ORDER BY a.type");
+                    break;
+                case groupId:
+                case artifactId:
+                case createdOn:
+                case modifiedOn:
+                    orderByQuery.append(" ORDER BY a." + orderBy.name());
                     break;
                 default:
                     throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-            // Add limit and offset to artifact query
-            if ("mssql".equals(sqlStatements.dbType())) {
-                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-            } else {
-                limitOffset.append(" LIMIT ? OFFSET ?");
-            }
-
             // Query for the artifacts
-            String artifactsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
-                    .append(limitOffset).toString().replace("{{selectColumns}}", "a.*");
+            String artifactsQuerySql = sqlStatements.selectTableTemplate("a.*", "artifacts", "a",
+                    where.toString(), orderByQuery.toString());
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
-            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
-                    .replace("{{selectColumns}}", "count(a.artifactId)");
+
+            String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts", "a",
+                    where.toString());
             Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
@@ -1112,6 +1112,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Execute artifact query
             List<SearchedArtifactDto> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
+            limitReturnedLabelsInArtifacts(artifacts);
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
 
@@ -1671,33 +1672,26 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     default:
-                        break;
+                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
                 where.append(")");
             }
 
-            // Add order by to artifact query
+            // Add order by to query
             switch (orderBy) {
-                case globalId:
-                    orderByQuery.append(" ORDER BY v.globalId");
+                case name:
+                    orderByQuery.append(" ORDER BY coalesce(v.name, v.version)");
                     break;
                 case groupId:
-                    orderByQuery.append(" ORDER BY v.groupId");
-                    break;
+                case artifactId:
                 case version:
-                    orderByQuery.append(" ORDER BY v.version");
-                    break;
-                case name:
-                    orderByQuery.append(" ORDER BY v.name");
-                    break;
+                case globalId:
                 case createdOn:
-                    orderByQuery.append(" ORDER BY v.createdOn");
-                    break;
                 case modifiedOn:
-                    orderByQuery.append(" ORDER BY v.modifiedOn");
+                    orderByQuery.append(" ORDER BY v." + orderBy.name());
                     break;
                 default:
-                    break;
+                    throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
@@ -1736,6 +1730,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Execute query
             List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
+            limitReturnedLabelsInVersions(versions);
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
 
@@ -2067,6 +2062,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 createOrUpdateSemverBranchesRaw(handle, gav);
                 removeVersionFromBranchRaw(handle, gav, BranchId.DRAFTS);
             }
+
+            outboxEvent.fire(SqlOutboxEvent.of(
+                    ArtifactVersionStateChanged.of(groupId, artifactId, version, currentState, newState)));
 
             return null;
         });
@@ -2803,13 +2801,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
             String op;
 
-            StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
-            StringBuilder limitOffset = new StringBuilder();
-
-            // Formulate the SELECT clause for the artifacts query
-            selectTemplate.append("SELECT {{selectColumns}} FROM groups g ");
 
             // Formulate the WHERE clause for both queries
             where.append(" WHERE (1 = 1)");
@@ -2854,8 +2847,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(" AND l.groupId = g.groupId)");
                         break;
                     default:
-
-                        break;
+                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
                 where.append(")");
             }
@@ -2863,30 +2855,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // Add order by to artifact query
             switch (orderBy) {
                 case groupId:
-                    orderByQuery.append(" ORDER BY g.groupId");
-                    break;
                 case createdOn:
+                case modifiedOn:
                     orderByQuery.append(" ORDER BY g.").append(orderBy.name());
                     break;
                 default:
-                    break;
+                    throw new RuntimeException("Sort by " + orderBy.name() + " not supported.");
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-            // Add limit and offset to query
-            if ("mssql".equals(sqlStatements.dbType())) {
-                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-            } else {
-                limitOffset.append(" LIMIT ? OFFSET ?");
-            }
-
             // Query for the group
-            String groupsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
-                    .append(limitOffset).toString().replace("{{selectColumns}}", "*");
+            String groupsQuerySql = sqlStatements.selectTableTemplate("*", "groups", "g", where.toString(),
+                    orderByQuery.toString());
             Query groupsQuery = handle.createQuery(groupsQuerySql);
             // Query for the total row count
-            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
-                    .replace("{{selectColumns}}", "count(g.groupId)");
+            String countQuerySql = sqlStatements.selectCountTableTemplate("g.groupId", "groups", "g",
+                    where.toString());
             Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
@@ -2907,6 +2891,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Execute query
             List<SearchedGroupDto> groups = groupsQuery.map(SearchedGroupMapper.instance).list();
+            limitReturnedLabelsInGroups(groups);
+
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
 
@@ -3253,6 +3239,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     private long nextSequenceValueRaw(Handle handle, String sequenceName) {
         if (isH2()) {
             return sequenceCounters.get(sequenceName).incrementAndGet();
+        } else if (isMysql()) {
+            handle.createUpdate(sqlStatements.getNextSequenceValue()).bind(0, sequenceName).execute();
+            return handle.createQuery(sqlStatements.selectCurrentSequenceValue()).bind(0, sequenceName)
+                    .mapTo(Long.class).one();
         } else {
             return handle.createQuery(sqlStatements.getNextSequenceValue()).bind(0, sequenceName)
                     .mapTo(Long.class).one(); // TODO Handle non-existing sequence (see resetSequence)
@@ -3388,13 +3378,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
-            StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
-            StringBuilder limitOffset = new StringBuilder();
-
-            // Formulate the SELECT clause for the artifacts query
-            selectTemplate.append("SELECT {{selectColumns}} FROM branches b ");
 
             // Formulate the WHERE clause for both queries
             where.append(" WHERE b.groupId = ? AND b.artifactId = ?");
@@ -3408,20 +3393,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // Add order by to artifact query
             orderByQuery.append(" ORDER BY b.branchId ASC");
 
-            // Add limit and offset to query
-            if ("mssql".equals(sqlStatements.dbType())) {
-                limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-            } else {
-                limitOffset.append(" LIMIT ? OFFSET ?");
-            }
-
-            // Query for the branc
-            String branchesQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
-                    .append(limitOffset).toString().replace("{{selectColumns}}", "*");
+            // Query for the artifacts
+            String branchesQuerySql = sqlStatements.selectTableTemplate("*", "branches", "b",
+                    where.toString(), orderByQuery.toString());
             Query branchesQuery = handle.createQuery(branchesQuerySql);
-            // Query for the total row count
-            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
-                    .replace("{{selectColumns}}", "count(b.branchId)");
+
+            String countQuerySql = sqlStatements.selectCountTableTemplate("b.branchId", "branches", "b",
+                    where.toString());
             Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
@@ -3539,6 +3517,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             // Execute query
             List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
+            limitReturnedLabelsInVersions(versions);
             // Execute count query
             Integer count = countQuery.mapTo(Integer.class).one();
 
@@ -3644,7 +3623,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     /**
      * Removes a version from the given branch.
-     * 
+     *
      * @param handle
      * @param gav
      * @param branchId
@@ -3788,4 +3767,56 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     private boolean isH2() {
         return sqlStatements.dbType().equals("h2");
     }
+
+    private boolean isMysql() {
+        return sqlStatements.dbType().equals("mysql");
+    }
+
+    /*
+     * Ensures that only a reasonable number/size of labels for each item in the list are returned. This is to
+     * guard against an unexpectedly enormous response size to a REST API search operation.
+     */
+
+    private Map<String, String> limitReturnedLabels(Map<String, String> labels) {
+        int maxBytes = restConfig.getLabelsInSearchResultsMaxSize();
+        if (labels != null && !labels.isEmpty()) {
+            Map<String, String> cappedLabels = new HashMap<>();
+            int totalBytes = 0;
+            for (String key : labels.keySet()) {
+                if (totalBytes < maxBytes) {
+                    String value = labels.get(key);
+                    cappedLabels.put(key, value);
+                    totalBytes += key.length() + (value != null ? value.length() : 0);
+                }
+            }
+            return cappedLabels;
+        }
+
+        return null;
+    }
+
+    private void limitReturnedLabelsInGroups(List<SearchedGroupDto> groups) {
+        groups.forEach(group -> {
+            Map<String, String> labels = group.getLabels();
+            Map<String, String> cappedLabels = limitReturnedLabels(labels);
+            group.setLabels(cappedLabels);
+        });
+    }
+
+    private void limitReturnedLabelsInArtifacts(List<SearchedArtifactDto> artifacts) {
+        artifacts.forEach(artifact -> {
+            Map<String, String> labels = artifact.getLabels();
+            Map<String, String> cappedLabels = limitReturnedLabels(labels);
+            artifact.setLabels(cappedLabels);
+        });
+    }
+
+    private void limitReturnedLabelsInVersions(List<SearchedVersionDto> versions) {
+        versions.forEach(version -> {
+            Map<String, String> labels = version.getLabels();
+            Map<String, String> cappedLabels = limitReturnedLabels(labels);
+            version.setLabels(cappedLabels);
+        });
+    }
+
 }

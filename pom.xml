@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.0.2-SNAPSHOT</version>
+  <version>3.0.4-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -156,17 +156,17 @@
 
     <!-- Schema types -->
     <avro.version>1.12.0</avro.version>
-    <json-schema-validator.version>1.5.2</json-schema-validator.version>
+    <json-schema-validator.version>1.5.3</json-schema-validator.version>
     <wire-schema.version>4.9.9</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <wire-compiler.version>4.9.9</wire-compiler.version>
     <okio-jvm.version>3.9.1</okio-jvm.version>
     <okio.version>3.9.1</okio.version>
     <okio-fake-file-system.version>3.9.1</okio-fake-file-system.version>
-    <icu4j.version>75.1</icu4j.version>
+    <icu4j.version>76.1</icu4j.version>
     <protobuf.version>3.25.5</protobuf.version>
     <xmlsec.version>4.0.2</xmlsec.version>
-    <protobuf.googleapi.types.version>2.46.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.48.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.4</google.truth.extension.version>
 
@@ -198,13 +198,13 @@
     <org.everit.json.schema.version>1.14.4</org.everit.json.schema.version>
     <!-- TODO unification -->
     <org.json.version>20240303</org.json.version>
-    <jackson-datatype-json-org.version>2.18.0</jackson-datatype-json-org.version>
+    <jackson-datatype-json-org.version>2.18.1</jackson-datatype-json-org.version>
     <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
     <openapi-diff.version>2.0.1</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.22</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.23</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.34</lombok.version>
@@ -220,10 +220,10 @@
     <nats.version>2.20.2</nats.version>
     <snakeyaml.version>2.3</snakeyaml.version>
     <guava.version>33.3.1-jre</guava.version>
-    <woodstox-core.version>7.0.0</woodstox-core.version>
+    <woodstox-core.version>7.1.0</woodstox-core.version>
     <jgit.version>7.0.0.202409031743-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>
-    <semver4j.version>5.4.0</semver4j.version>
+    <semver4j.version>5.4.1</semver4j.version>
 
     <!-- Kafka Connect -->
     <connect.version>3.7.0</connect.version>
@@ -244,9 +244,9 @@
     <version.source.plugin>3.3.1</version.source.plugin>
     <version.surefire.plugin>3.5.1</version.surefire.plugin>
     <version.jar.plugin>3.4.2</version.jar.plugin>
-    <version.checkstyle.plugin>3.5.0</version.checkstyle.plugin>
+    <version.checkstyle.plugin>3.6.0</version.checkstyle.plugin>
     <version.properties.plugin>1.2.1</version.properties.plugin>
-    <version.dependency.plugin>3.8.0</version.dependency.plugin>
+    <version.dependency.plugin>3.8.1</version.dependency.plugin>
     <version.assembly.plugin>3.7.1</version.assembly.plugin>
     <version.resources.plugin>3.3.1</version.resources.plugin>
     <version.clean.plugin>3.4.0</version.clean.plugin>
@@ -259,6 +259,14 @@
     <!-- Protocol Buffers -->
     <proto-plugin.version>0.6.1</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
+
+    <!-- Kiota -->
+    <kiota.libs.version>1.7.0</kiota.libs.version>
+    <kiota.community.version>0.0.19</kiota.community.version>
+
+    <kiota.version>1.19.1</kiota.version>
+    <kiota.timeout>60</kiota.timeout>
+    <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <test-containers.version>1.20.2</test-containers.version>
@@ -916,11 +924,6 @@
           <version>${version.clean.plugin}</version>
         </plugin>
         <plugin>
-          <groupId>io.gatling</groupId>
-          <artifactId>gatling-maven-plugin</artifactId>
-          <version>${version.gatling.plugin}</version>
-        </plugin>
-        <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
           <version>4.9.2</version>
@@ -1116,58 +1119,6 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>com.diffplug.spotless</groupId>
-        <artifactId>spotless-maven-plugin</artifactId>
-        <version>${version.spotless}</version>
-        <configuration>
-          <formats>
-            <format>
-              <includes>
-                <include>*.md</include>
-                <include>.gitignore</include>
-              </includes>
-              <trimTrailingWhitespace/>
-              <endWithNewline/>
-              <indent>
-                <spaces>true</spaces>
-                <spacesPerTab>2</spacesPerTab>
-              </indent>
-            </format>
-          </formats>
-          <java>
-            <includes>
-              <include>**/src/main/java/**/*.java</include>
-              <include>**/src/test/java/**/*.java</include>
-            </includes>
-            <eclipse>
-              <file>${projectRoot}/ide-config/eclipse-format.xml</file>
-            </eclipse>
-            <importOrder>
-              <file>${projectRoot}/ide-config/eclipse.importorder</file>
-            </importOrder>
-            <removeUnusedImports/>
-            <toggleOffOn/>
-          </java>
-          <pom>
-            <includes>
-              <include>**/pom.xml</include>
-            </includes>
-            <sortPom>
-              <expandEmptyElements>false</expandEmptyElements>
-            </sortPom>
-          </pom>
-        </configuration>
-        <executions>
-          <execution>
-            <id>format</id>
-            <goals>
-              <goal>check</goal>
-            </goals>
-            <phase>process-sources</phase>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
@@ -1186,6 +1137,70 @@
       <modules>
         <module>integration-tests</module>
       </modules>
+    </profile>
+    <profile>
+      <id>spotless</id>
+      <activation>
+        <property>
+          <name>!skipSpotless</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.diffplug.spotless</groupId>
+            <artifactId>spotless-maven-plugin</artifactId>
+            <version>${version.spotless}</version>
+            <configuration>
+              <formats>
+                <format>
+                  <includes>
+                    <include>*.md</include>
+                    <include>.gitignore</include>
+                  </includes>
+                  <trimTrailingWhitespace/>
+                  <endWithNewline/>
+                  <indent>
+                    <spaces>true</spaces>
+                    <spacesPerTab>2</spacesPerTab>
+                  </indent>
+                </format>
+              </formats>
+              <java>
+                <includes>
+                  <include>**/src/main/java/**/*.java</include>
+                  <include>**/src/test/java/**/*.java</include>
+                </includes>
+                <eclipse>
+                  <file>${projectRoot}/ide-config/eclipse-format.xml</file>
+                </eclipse>
+                <importOrder>
+                  <file>${projectRoot}/ide-config/eclipse.importorder</file>
+                </importOrder>
+                <removeUnusedImports/>
+                <toggleOffOn/>
+              </java>
+              <pom>
+                <includes>
+                  <include>**/pom.xml</include>
+                </includes>
+                <sortPom>
+                  <expandEmptyElements>false</expandEmptyElements>
+                </sortPom>
+              </pom>
+            </configuration>
+            <executions>
+              <execution>
+                <id>format</id>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+                <phase>process-sources</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
     <profile>
       <id>examples</id>

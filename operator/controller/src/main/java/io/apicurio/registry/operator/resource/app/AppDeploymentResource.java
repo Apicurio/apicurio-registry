@@ -2,9 +2,12 @@ package io.apicurio.registry.operator.resource.app;
 
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.feat.KafkaSql;
+import io.apicurio.registry.operator.feat.PostgresSql;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import io.fabric8.kubernetes.api.model.PodTemplateSpec;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
@@ -58,7 +61,11 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_APIS_V2_DATE_FORMAT").withValue("yyyy-MM-dd''T''HH:mm:ssZ").build());
         // spotless:on
 
-        var container = getContainer(d, APP_CONTAINER_NAME);
+        if (!PostgresSql.configureDatasource(primary, envVars)) {
+            KafkaSql.configureKafkaSQL(primary, envVars);
+        }
+
+        var container = getContainerFromDeployment(d, APP_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());
 
         log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(d));
@@ -71,15 +78,40 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         }
     }
 
-    public static Container getContainer(Deployment d, String name) {
+    /**
+     * Get container with a given name from the given Deployment.
+     *
+     * @throws OperatorException if container was not found
+     */
+    public static Container getContainerFromDeployment(Deployment d, String name) {
         requireNonNull(d);
         requireNonNull(name);
-        for (var c : d.getSpec().getTemplate().getSpec().getContainers()) {
-            if (name.equals(c.getName())) {
+        log.debug("Getting container {} in Deployment {}", name, ResourceID.fromResource(d));
+        if (d.getSpec() != null & d.getSpec().getTemplate() != null) {
+            var c = getContainerFromPodTemplateSpec(d.getSpec().getTemplate(), name);
+            if (c != null) {
                 return c;
             }
         }
         throw new OperatorException(
                 "Container %s not found in Deployment %s".formatted(name, ResourceID.fromResource(d)));
+    }
+
+    /**
+     * Get container with a given name from the given PTS.
+     *
+     * @return null when container was not found
+     */
+    public static Container getContainerFromPodTemplateSpec(PodTemplateSpec pts, String name) {
+        requireNonNull(pts);
+        requireNonNull(name);
+        if (pts.getSpec() != null && pts.getSpec().getContainers() != null) {
+            for (var c : pts.getSpec().getContainers()) {
+                if (name.equals(c.getName())) {
+                    return c;
+                }
+            }
+        }
+        return null;
     }
 }

@@ -9,28 +9,39 @@
 You can store and manage a wide range of schema and API artifact types in {registry}.
 
 .{registry} artifact types
-[%header,cols=2*] 
+[%header,cols=3*]
 |===
 |Type
 |Description
+|Supported versions
 |`ASYNCAPI`
 |AsyncAPI specification
+|`2.0.0` -> `2.0.6`, `3.0.0`
 |`AVRO`
 |Apache Avro schema
+|`1.0` -> `1.12`,
 |`GRAPHQL`
 |GraphQL schema
+|*
 |`JSON`
 |JSON Schema
+|`draft-04`, `draft-07`, `2019-09`, `2020-12`
 |`KCONNECT`
 |Apache Kafka Connect schema
+|`2.0.0`
 |`OPENAPI`
 |OpenAPI specification
+|`2.0.0`, `3.0.0` -> `3.0.3`, `3.1.0`
 |`PROTOBUF`
 |Google protocol buffers schema
+|`proto2`, `proto3`
 |`WSDL`
 |Web Services Definition Language
+|http://schemas.xmlsoap.org/wsdl/
 |`XML`
 |Extensible Markup Language
+|
 |`XSD`
 |XML Schema Definition
+|http://www.w3.org/2001/XMLSchema
 |===

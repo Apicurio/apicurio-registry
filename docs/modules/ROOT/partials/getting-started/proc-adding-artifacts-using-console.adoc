@@ -15,22 +15,38 @@ You can use the {registry} web console to upload schema and API artifacts to {re
 `{registry-url}`
 
 .Procedure
-. On the *Explore* tab, click *Create artifact*, and specify the following details:
-** *Artifact Coordinates* / *Group ID & Artifact ID*: Use the default empty settings to automatically generate an artifact ID and add the artifact to the `default` artifact group. Alternatively, you can enter an optional artifact group or artifact ID.
-** *Artifact Coordinates* / *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type (not allowed if creating an empty artifact), or select the artifact type from the list, for example, *Avro Schema* or *OpenAPI*. You must manually select the *Kafka Connect Schema* artifact type, which cannot be automatically detected.
+
+. On the *Explore* tab, click *Create artifact*, and complete the *Create artifact* wizard:
 +
-** *Artifact Metadata* / *Name*: Enter an optional friendly name for the new artifact.
-** *Artifact Metadata* / *Description*: Enter an optional description for the new artifact.
-** *Artifact Metadata* / *Labels*: Optionally add one or more label (name/value pair) for the new artifact.
+[NOTE]
+====
+You can create a placeholder artifact without content, but you must specify the artifact type, as {registry} cannot automatically detect the content type.
+Creating a placeholder allows you create rules first and add content later.
+====
+
+.. Specify the *Artifact Coordinates* and click *Next*:
 +
-** *Version Content* / *Version Number*: Optionally add a version string if creating a first version.
-** *Version Content* / *Content*: Specify the content using either of the following options:
-*** *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
-*** *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
+*  *Group ID & Artifact ID*: Use the default empty settings to automatically generate an artifact ID and add the artifact to the `default` artifact group. Alternatively, you can enter an optional artifact group or artifact ID.
+* *Type*: Use the default *Auto-Detect* setting to automatically detect the artifact type (not allowed if creating an empty artifact), or select the artifact type from the list, for example, *Avro Schema* or *OpenAPI*. You must manually select the *Kafka Connect Schema* artifact type, which cannot be automatically detected.
+
+.. Specify the *Artifact Metadata* and click *Next*:
 +
-** *Version Metadata* / *Name*: Enter an optional friendly name for the first artifact version.
-** *Version Metadata* / *Description*: Enter an optional description for the first artifact version.
-** *Version Metadata* / *Labels*: Optionally add one or more label (name/value pair) for the first artifact version.
+* *Name*: Enter an optional friendly name for the new artifact.
+* *Description*: Enter an optional description for the new artifact.
+* *Labels*: Optionally add one or more label (name/value pair) for the new artifact.
+
+.. Specify the *Version Content* and click *Next*:
++
+* *Version Number*: Optionally add a version string if creating a first version.
+* *Content*: Specify the content using either of the following options:
+** *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
+** *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
+
+.. Specify the *Version Metadata*:
++
+** *Name*: Enter an optional friendly name for the first artifact version.
+** *Description*: Enter an optional description for the first artifact version.
+** *Labels*: Optionally add one or more label (name/value pair) for the first artifact version.
 
 . Click *Create* and view the artifact details:
 +

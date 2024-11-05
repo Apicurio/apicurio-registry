@@ -97,10 +97,13 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     };
 
     const handleTabClick = (_event: any, tabIndex: any): void => {
+        const gid: string = encodeURIComponent(groupId as string);
+        const aid: string = encodeURIComponent(artifactId as string);
+
         if (tabIndex === "overview") {
-            appNavigation.navigateTo(`/explore/${groupId}/${artifactId}`);
+            appNavigation.navigateTo(`/explore/${gid}/${aid}`);
         } else {
-            appNavigation.navigateTo(`/explore/${groupId}/${artifactId}/${tabIndex}`);
+            appNavigation.navigateTo(`/explore/${gid}/${aid}/${tabIndex}`);
         }
     };
 

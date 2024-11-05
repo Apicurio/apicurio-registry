@@ -83,10 +83,12 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     };
 
     const handleTabClick = (_event: any, tabIndex: any): void => {
+        const gid: string = encodeURIComponent(groupId as string);
+
         if (tabIndex === "overview") {
-            appNavigation.navigateTo(`/explore/${groupId}`);
+            appNavigation.navigateTo(`/explore/${gid}`);
         } else {
-            appNavigation.navigateTo(`/explore/${groupId}/${tabIndex}`);
+            appNavigation.navigateTo(`/explore/${gid}/${tabIndex}`);
         }
     };
 

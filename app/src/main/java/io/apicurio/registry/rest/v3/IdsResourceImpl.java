@@ -63,7 +63,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    public Response getContentByGlobalId(long globalId, HandleReferencesType references) {
+    public Response getContentByGlobalId(long globalId, HandleReferencesType references,
+            Boolean returnArtifactType) {
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
         if (VersionState.DISABLED.equals(metaData.getState())
                 || VersionState.DRAFT.equals(metaData.getState())) {
@@ -82,6 +83,9 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(),
                 contentToReturn.getContentType());
+        if (returnArtifactType != null && returnArtifactType) {
+            builder.header("X-Registry-ArtifactType", metaData.getArtifactType());
+        }
         checkIfDeprecated(metaData::getState, metaData.getArtifactId(), metaData.getVersion(), builder);
         return builder.build();
     }

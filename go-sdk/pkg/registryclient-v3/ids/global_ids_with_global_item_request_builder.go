@@ -18,6 +18,8 @@ type GlobalIdsWithGlobalItemRequestBuilderGetQueryParameters struct {
 	References *string `uriparametername:"references"`
 	// Allows the user to specify how references in the content should be treated.
 	ReferencesAsHandleReferencesType *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.HandleReferencesType `uriparametername:"references"`
+	// When set to `true`, the HTTP response will include a header named `X-Registry-ArtifactType`that contains the type of the artifact being returned.
+	ReturnArtifactType *bool `uriparametername:"returnArtifactType"`
 }
 
 // GlobalIdsWithGlobalItemRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
@@ -33,7 +35,7 @@ type GlobalIdsWithGlobalItemRequestBuilderGetRequestConfiguration struct {
 // NewGlobalIdsWithGlobalItemRequestBuilderInternal instantiates a new GlobalIdsWithGlobalItemRequestBuilder and sets the default values.
 func NewGlobalIdsWithGlobalItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *GlobalIdsWithGlobalItemRequestBuilder {
 	m := &GlobalIdsWithGlobalItemRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/ids/globalIds/{globalId}{?references*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/ids/globalIds/{globalId}{?references*,returnArtifactType*}", pathParameters),
 	}
 	return m
 }

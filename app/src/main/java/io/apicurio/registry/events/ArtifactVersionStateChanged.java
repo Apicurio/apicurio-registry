@@ -22,7 +22,7 @@ public class ArtifactVersionStateChanged extends OutboxEvent {
         String id = UUID.randomUUID().toString();
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupId).put("artifactId", artifactId).put("version", version)
-                .put("oldState", oldState.name()).put("newDate", newState.name())
+                .put("oldState", oldState.name()).put("newState", newState.name())
                 .put("eventType", ARTIFACT_VERSION_STATE_CHANGED.name());
 
         return new ArtifactVersionStateChanged(id, groupId + "-" + artifactId + "-" + version, jsonObject);

@@ -20,11 +20,12 @@
     "@kiota-community/kiota-wasm": "0.0.3",
     "@monaco-editor/react": "4.6.0",
     "@types/luxon": "3.4.2",
+    "@types/node": "22.9.0",
     "@types/pluralize": "0.0.33",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
-    "@typescript-eslint/eslint-plugin": "8.12.2",
-    "@typescript-eslint/parser": "8.12.2",
+    "@typescript-eslint/eslint-plugin": "8.13.0",
+    "@typescript-eslint/parser": "8.13.0",
     "@vitejs/plugin-react-swc": "3.7.1",
     "copyfiles": "2.4.1",
     "eslint": "8.57.1",
@@ -33,7 +34,7 @@
     "rimraf": "6.0.1",
     "typescript": "5.6.3",
     "vite": "5.4.10",
-    "vite-tsconfig-paths": "5.0.1"
+    "vite-tsconfig-paths": "5.1.0"
   },
   "dependencies": {
     "@apicurio/apicurio-registry-sdk": "3.0.4-Dev",

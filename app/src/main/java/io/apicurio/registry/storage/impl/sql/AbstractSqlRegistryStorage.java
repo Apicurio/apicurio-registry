@@ -23,6 +23,7 @@ import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
@@ -3068,6 +3069,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void importArtifact(ArtifactEntity entity) {
+        GroupId groupId = new GroupId(entity.groupId);
+        if (!groupId.isDefaultGroup()) {
+            String owner = securityIdentity.getPrincipal().getName();
+            GroupMetaDataDto group = GroupMetaDataDto.builder().groupId(groupId.getRawGroupId()).owner(owner)
+                    .modifiedBy(owner).build();
+            ensureGroup(group);
+        }
+
         handles.withHandleNoException(handle -> {
             if (!isArtifactExistsRaw(handle, entity.groupId, entity.artifactId)) {
                 String labelsStr = RegistryContentUtils.serializeLabels(entity.labels);

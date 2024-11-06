@@ -89,6 +89,10 @@ public class KafkaSqlFactory {
             "ssl.endpoint.identification.algorithm=" })
     Properties consumerProperties;
 
+    @ConfigProperty(name = "apicurio.kafkasql.consumer.group-prefix", defaultValue = "apicurio-")
+    @Info(category = "storage", description = "Kafka sql storage prefix for consumer group name")
+    String groupPrefix;
+
     @Inject
     @RegistryProperties(value = { "apicurio.kafka.common", "apicurio.kafkasql.admin" }, empties = {
             "ssl.endpoint.identification.algorithm=" })
@@ -256,8 +260,10 @@ public class KafkaSqlFactory {
     public KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaJournalConsumer() {
         Properties props = (Properties) consumerProperties.clone();
 
+        String consumerGroupId = groupPrefix + UUID.randomUUID().toString();
+
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
+        props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
         props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -305,8 +311,10 @@ public class KafkaSqlFactory {
     public KafkaConsumer<String, String> createKafkaSnapshotsConsumer() {
         Properties props = (Properties) consumerProperties.clone();
 
+        String consumerGroupId = groupPrefix + UUID.randomUUID().toString();
+
         props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
+        props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
         props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");

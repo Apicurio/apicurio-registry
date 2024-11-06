@@ -3072,11 +3072,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         GroupId groupId = new GroupId(entity.groupId);
         if (!groupId.isDefaultGroup()) {
             String owner = securityIdentity.getPrincipal().getName();
-            GroupMetaDataDto group = GroupMetaDataDto.builder()
-                    .groupId(groupId.getRawGroupId())
-                    .owner(owner)
-                    .modifiedBy(owner)
-                    .build();
+            GroupMetaDataDto group = GroupMetaDataDto.builder().groupId(groupId.getRawGroupId()).owner(owner)
+                    .modifiedBy(owner).build();
             ensureGroup(group);
         }
 

@@ -4,7 +4,11 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Status;
 import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
 import io.apicurio.registry.operator.api.v1.status.Conditions;
+import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.quarkus.logging.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -13,7 +17,12 @@ import java.util.stream.Collectors;
 
 public class StatusUpdater {
 
+    private static final Logger log = LoggerFactory.getLogger(StatusUpdater.class);
+
     public static final String ERROR_TYPE = "ERROR";
+    public static final String READY_TYPE = "READY";
+    public static final String STARTED_TYPE = "STARTED";
+    public static final String UNKNOWN_TYPE = "UNKNOWN";
 
     private ApicurioRegistry3 registry;
 
@@ -21,25 +30,21 @@ public class StatusUpdater {
         this.registry = registry;
     }
 
-    public ApicurioRegistry3Status errorStatus(Exception e) {
-        Instant lastTransitionTime = Instant.now();
-        if (registry != null && registry.getStatus() != null
-                && registry.getStatus().getConditions().size() > 0 &&
-                // TODO: better `lastTransitionTime` handling
-                registry.getStatus().getConditions().get(0).getLastTransitionTime() != null) {
-            lastTransitionTime = registry.getStatus().getConditions().get(0).getLastTransitionTime();
-        }
+    private Conditions defaultCondition() {
+        var conditions = new Conditions();
+        conditions.setStatus(ConditionStatus.TRUE);
+        conditions.setObservedGeneration(
+                registry.getMetadata() == null ? null : registry.getMetadata().getGeneration());
+        conditions.setLastTransitionTime(Instant.now());
+        return conditions;
+    }
 
-        var generation = registry.getMetadata() == null ? null : registry.getMetadata().getGeneration();
-        var newLastTransitionTime = Instant.now();
-        var errorCondition = new Conditions();
-        errorCondition.setStatus(ConditionStatus.TRUE);
+    public ApicurioRegistry3Status errorStatus(Exception e) {
+        var errorCondition = defaultCondition();
         errorCondition.setType(ERROR_TYPE);
-        errorCondition.setObservedGeneration(generation);
-        errorCondition.setLastTransitionTime(newLastTransitionTime);
         errorCondition.setMessage(
                 Arrays.stream(e.getStackTrace()).map(st -> st.toString()).collect(Collectors.joining("\n")));
-        errorCondition.setReason("reasons");
+        errorCondition.setReason("ERROR_STATUS");
 
         var status = new ApicurioRegistry3Status();
         status.setConditions(List.of(errorCondition));
@@ -48,26 +53,50 @@ public class StatusUpdater {
     }
 
     public ApicurioRegistry3Status next(Deployment deployment) {
-        var lastTransitionTime = Instant.now();
-        if (registry != null && registry.getStatus() != null
-                && registry.getStatus().getConditions().size() > 0 &&
-                // TODO: should we sort the conditions before taking the first?
-                registry.getStatus().getConditions().get(0).getLastTransitionTime() != null) {
-            lastTransitionTime = registry.getStatus().getConditions().get(0).getLastTransitionTime();
+        log.debug("Setting status based on Deployment: " + deployment);
+        if (deployment != null && deployment.getStatus() != null) {
+            if (deployment.getStatus().getConditions().stream()
+                    .anyMatch(condition -> condition.getStatus().equalsIgnoreCase(
+                            ConditionStatus.TRUE.getValue()) && condition.getType().equals("Available"))
+                    && !registry.getStatus().getConditions().stream()
+                            .anyMatch(condition -> condition.getType().equals(READY_TYPE))) {
+                var readyCondition = defaultCondition();
+                readyCondition.setType(READY_TYPE);
+                readyCondition.setMessage("Deployment is available");
+                readyCondition.setReason("READY_STATUS");
+                var conditions = registry.getStatus().getConditions();
+                conditions.add(readyCondition);
+                return registry.getStatus();
+            } else if (deployment.getStatus().getConditions().size() > 0
+                    && !registry.getStatus().getConditions().stream()
+                            .anyMatch(condition -> condition.getStatus().getValue().equals(STARTED_TYPE))) {
+                var generation = registry.getMetadata() == null ? null
+                    : registry.getMetadata().getGeneration();
+                var nextCondition = defaultCondition();
+                nextCondition.setType(STARTED_TYPE);
+                nextCondition.setMessage("Deployment conditions:\n" + deployment.getStatus().getConditions().stream()
+                        .map(dc -> dc.getType()).collect(Collectors.joining("\n")));
+                nextCondition.setReason("DEPLOYMENT_STARTED");
+
+                var status = new ApicurioRegistry3Status();
+                status.setConditions(List.of(nextCondition));
+
+                return status;
+            } else {
+                var nextCondition = defaultCondition();
+                nextCondition.setType(UNKNOWN_TYPE);
+                nextCondition.setMessage("Deployment conditions:\n" + deployment.getStatus().getConditions()
+                        .stream().map(dc -> dc.getType()).collect(Collectors.joining("\n")));
+                nextCondition.setReason("UNKNOWN_STATUS");
+
+                var status = new ApicurioRegistry3Status();
+                status.setConditions(List.of(nextCondition));
+
+                return status;
+            }
+
+        } else {
+            return errorStatus(new OperatorException("Expected deployment not found"));
         }
-
-        var generation = registry.getMetadata() == null ? null : registry.getMetadata().getGeneration();
-        var nextCondition = new Conditions();
-        nextCondition.setStatus(ConditionStatus.TRUE);
-        nextCondition.setType(ERROR_TYPE);
-        nextCondition.setObservedGeneration(generation);
-        nextCondition.setLastTransitionTime(lastTransitionTime);
-        nextCondition.setMessage("TODO");
-        nextCondition.setReason("reasons");
-
-        var status = new ApicurioRegistry3Status();
-        status.setConditions(List.of(nextCondition));
-
-        return status;
     }
 }

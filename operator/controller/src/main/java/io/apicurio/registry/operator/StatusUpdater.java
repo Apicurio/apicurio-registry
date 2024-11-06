@@ -4,9 +4,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Status;
 import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
 import io.apicurio.registry.operator.api.v1.status.Conditions;
-import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.quarkus.logging.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,8 +72,8 @@ public class StatusUpdater {
                     : registry.getMetadata().getGeneration();
                 var nextCondition = defaultCondition();
                 nextCondition.setType(STARTED_TYPE);
-                nextCondition.setMessage("Deployment conditions:\n" + deployment.getStatus().getConditions().stream()
-                        .map(dc -> dc.getType()).collect(Collectors.joining("\n")));
+                nextCondition.setMessage("Deployment conditions:\n" + deployment.getStatus().getConditions()
+                        .stream().map(dc -> dc.getType()).collect(Collectors.joining("\n")));
                 nextCondition.setReason("DEPLOYMENT_STARTED");
 
                 var status = new ApicurioRegistry3Status();

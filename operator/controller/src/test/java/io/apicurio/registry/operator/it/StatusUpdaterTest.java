@@ -4,18 +4,9 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.spec.Sql;
 import io.apicurio.registry.operator.api.v1.spec.sql.Datasource;
 import io.apicurio.registry.operator.resource.ResourceFactory;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
-import static io.apicurio.registry.operator.resource.ResourceFactory.APP_CONTAINER_NAME;
-import static io.apicurio.registry.operator.resource.ResourceFactory.UI_CONTAINER_NAME;
-import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -33,8 +24,10 @@ public class StatusUpdaterTest extends ITBase {
         await().ignoreExceptions().until(() -> {
             var status = client.resource(registry).inNamespace(namespace).get().getStatus();
             assertThat(status.getConditions().size()).isEqualTo(2);
-            assertThat(status.getConditions().stream().anyMatch(c -> c.getType().equalsIgnoreCase("ready"))).isTrue();
-            assertThat(status.getConditions().stream().anyMatch(c -> c.getType().equalsIgnoreCase("started"))).isTrue();
+            assertThat(status.getConditions().stream().anyMatch(c -> c.getType().equalsIgnoreCase("ready")))
+                    .isTrue();
+            assertThat(status.getConditions().stream().anyMatch(c -> c.getType().equalsIgnoreCase("started")))
+                    .isTrue();
             return true;
         });
     }
@@ -58,7 +51,8 @@ public class StatusUpdaterTest extends ITBase {
         await().ignoreExceptions().until(() -> {
             var status = client.resource(registry).inNamespace(namespace).get().getStatus();
             assertThat(status.getConditions().size()).isEqualTo(1);
-            assertThat(status.getConditions().stream().anyMatch(c -> c.getType().equalsIgnoreCase("started"))).isTrue();
+            assertThat(status.getConditions().stream().anyMatch(c -> c.getType().equalsIgnoreCase("started")))
+                    .isTrue();
             return true;
         });
     }

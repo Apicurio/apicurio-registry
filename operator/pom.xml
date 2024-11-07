@@ -27,9 +27,6 @@
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <assertj.core.version>3.26.3</assertj.core.version>
-    <bouncycastle.version>1.70</bouncycastle.version>
-    <quarkus.container-image.group>apicurio</quarkus.container-image.group>
   </properties>
 
   <dependencyManagement>

@@ -2,6 +2,9 @@
 
 ########## Config
 
+SHELL = /usr/bin/env bash -o pipefail
+.SHELLFLAGS = -ec
+
 VERSION ?= $(shell mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 LC_VERSION ?= $(shell echo "$(VERSION)" | tr A-Z a-z)
 LC_VERSION_SUFFIX ?= $(shell echo "$(LC_VERSION)" | sed -n 's/[^-]*\(-.*\)/\1/p')
@@ -13,11 +16,10 @@ ifneq ($(SKIP_TESTS),true)
 	override BUILD_OPTS += -DskipOperatorTests=false
 endif
 
-BUILDX_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
-
 IMAGE_REGISTRY ?= quay.io/apicurio
 IMAGE_NAME ?= apicurio-registry-operator
 IMAGE_TAG ?= $(LC_VERSION)
+
 IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 ADDITIONAL_IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(ADDITIONAL_IMAGE_TAG)
 
@@ -26,76 +28,77 @@ REGISTRY_UI_IMAGE ?= quay.io/apicurio/apicurio-registry-ui:latest-snapshot
 
 NAMESPACE ?= default
 
-### Install
-
-INSTALL_NAMESPACE ?= PLACEHOLDER_NAMESPACE
-INSTALL_FILE ?= install/apicurio-registry-operator-$(VERSION).yaml
-
 ### Bundle
 
-BUNDLE_DIR ?= deploy/bundle/$(LC_VERSION)
 PACKAGE_NAME ?= apicurio-registry
-CHANNELS ?= 1.x
+PACKAGE= ?= $(PACKAGE_NAME).v$(LC_VERSION)
+
+CHANNELS ?= 3.x
 DEFAULT_CHANNEL ?= $(CHANNELS)
-BUNDLE_OPTS ?= --package $(PACKAGE_NAME) --channels=$(CHANNELS) --default-channel=$(DEFAULT_CHANNEL)
+
+BUNDLE_OPTS ?= --package $(PACKAGE_NAME) --version $(LC_VERSION) --channels=$(CHANNELS) --default-channel=$(DEFAULT_CHANNEL)
+BUNDLE_DIR ?= target/bundle/$(PACKAGE_NAME)/$(LC_VERSION)
+
 # TODO Replaces:
 # PREVIOUS_PACKAGE_VERSION =
-# REPLACES = apicurio-registry.v$(PREVIOUS_PACKAGE_VERSION)
+# REPLACES = $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 BUNDLE_IMAGE_NAME ?= $(IMAGE_NAME)-bundle
-BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(IMAGE_TAG)
+BUNDLE_IMAGE_TAG ?= $(LC_VERSION)
+BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(BUNDLE_IMAGE_TAG)
 ADDITIONAL_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(ADDITIONAL_BUNDLE_TAG)
 
 ### Catalog
 
 CATALOG_NAMESPACE ?= openshift-marketplace
 
-CATALOG_DIR ?= deploy/catalog
+CATALOG_DIR ?= controller/src/test/deploy/catalog
+CATALOG_TARGET_DIR ?= target/catalog
+
 CATALOG_IMAGE_NAME ?= $(IMAGE_NAME)-catalog
-CATALOG_IMAGE_TAG ?= v3-latest$(LC_VERSION_SUFFIX)
-ADDITIONAL_CATALOG_IMAGE_TAG ?= $(shell date --utc +'%Y-%m-%d-%H-%M')
+CATALOG_IMAGE_TAG ?= $(LC_VERSION)
 CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/$(CATALOG_IMAGE_NAME):$(CATALOG_IMAGE_TAG)
+ADDITIONAL_CATALOG_IMAGE_TAG ?= latest$(LC_VERSION_SUFFIX)
 ADDITIONAL_CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/$(CATALOG_IMAGE_NAME):$(ADDITIONAL_CATALOG_IMAGE_TAG)
+
+### Install
+
+INSTALL_NAMESPACE ?= PLACEHOLDER_NAMESPACE
+INSTALL_FILE ?= install/apicurio-registry-operator-$(VERSION).yaml
+
+DIST_TARGET_DIR ?= target/dist
 
 ### Other
 
-ifeq ($(OS),Windows_NT)
-	OS = win32
-	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
-		ARCH = amd64
-	endif
-	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
-		ARCH = ia32
-	endif
-else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		OS = linux
-	endif
-	ifeq ($(UNAME_S),Darwin)
-		OS = osx
-	endif
-	UNAME_M := $(shell uname -m)
-	ifeq ($(UNAME_M),x86_64)
-		ARCH = amd64
-	endif
-	ifneq ($(filter %86,$(UNAME_M)),)
-		ARCH = ia32
-	endif
-	ifneq ($(filter arm%,$(UNAME_M)),)
-		ARCH = arm
-	endif
-endif
+OS ?= linux
+ARCH ?= amd64
 
 DATE=$(shell date -Idate)
-
-SHELL = /usr/bin/env bash -o pipefail
-.SHELLFLAGS = -ec
 
 CC_RED = $(shell echo -e "\033[0;31m")
 CC_YELLOW = $(shell echo -e "\033[0;33m")
 CC_CYAN = $(shell echo -e "\033[0;36m")
 CC_END = $(shell echo -e "\033[0m")
+
+### Kustomize variables
+
+export PLACEHOLDER_NAMESPACE := $(NAMESPACE)
+
+export PLACEHOLDER_VERSION := $(VERSION)
+export PLACEHOLDER_LC_VERSION := $(LC_VERSION)
+
+export PLACEHOLDER_IMAGE := $(IMAGE)
+export PLACEHOLDER_REGISTRY_APP_IMAGE := $(REGISTRY_APP_IMAGE)
+export PLACEHOLDER_REGISTRY_UI_IMAGE := $(REGISTRY_UI_IMAGE)
+
+export PLACEHOLDER_DATE := $(DATE)
+
+export PLACEHOLDER_PACKAGE := $(PACKAGE)
+export PLACEHOLDER_BUNDLE_IMAGE := $(BUNDLE_IMAGE)
+
+export PLACEHOLDER_CATALOG_NAMESPACE := $(CATALOG_NAMESPACE)
+export PLACEHOLDER_CATALOG_IMAGE := $(CATALOG_IMAGE)
+
 
 
 ########## Help
@@ -105,7 +108,6 @@ CC_END = $(shell echo -e "\033[0m")
 .PHONY: help
 help: ## TODO
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(CC_CYAN)%-30s$(CC_END) %s\n", $$1, $$2}'
-
 
 
 .PHONY: config-show
@@ -153,7 +155,6 @@ endif
 endif
 	@echo ""
 	@echo "$(CC_CYAN)Other$(CC_END)"
-	@echo "BUILDX_PLATFORMS=$(BUILDX_PLATFORMS)"
 	@echo "OS=$(OS)"
 	@echo "ARCH=$(ARCH)"
 	@echo "DATE=$(DATE)"
@@ -163,10 +164,38 @@ endif
 ########## Tools
 
 
+define target_dir
+    @{ \
+		if [ -d $(1) ]; \
+		then \
+			if  [[ $(1) == target/* ]]; \
+			then \
+				rm -rf "$(1)"; \
+			fi; \
+		fi; \
+		mkdir -p $(1); \
+   	}
+endef
+
+
+OPERATOR_SDK_VERSION ?= 1.37.0
+OPERATOR_SDK = $(shell pwd)/target/bin/operator-sdk
+.PHONY: install-operator-sdk
+install-operator-sdk: ## Install operator-sdk v1.37.0
+	@{ \
+		if [ ! -f $(OPERATOR_SDK) ]; \
+		then \
+			mkdir -p $(dir $(OPERATOR_SDK)); \
+			curl -sSLo $(OPERATOR_SDK) "https://github.com/operator-framework/operator-sdk/releases/download/v$(OPERATOR_SDK_VERSION)/operator-sdk_$(OS)_$(ARCH)"; \
+			chmod +x $(OPERATOR_SDK); \
+		fi; \
+	}
+
+
 .PHONY: install-opm
-OPM_VERSION ?= 1.29.0
-OPM = $(shell pwd)/bin/opm
-install-opm: ## Install opm v1.29.0
+OPM_VERSION ?= 1.48.0
+OPM = $(shell pwd)/target/bin/opm
+install-opm: ## Install opm v1.48.0
 	@{ \
 		if [ ! -f $(OPM) ]; \
 		then \
@@ -178,7 +207,7 @@ install-opm: ## Install opm v1.29.0
 
 
 YQ_VERSION ?= 4.27.5
-YQ = $(shell pwd)/bin/yq
+YQ = $(shell pwd)/target/bin/yq
 .PHONY: install-yq
 install-yq: ## Install yq v4.27.5
 	@{ \
@@ -191,70 +220,12 @@ install-yq: ## Install yq v4.27.5
 	}
 
 
-OPERATOR_SDK_VERSION ?= 1.14.0
-OPERATOR_SDK = $(shell pwd)/bin/operator-sdk
-.PHONY: install-operator-sdk
-install-operator-sdk: ## Install operator-sdk v1.14.0
-	@{ \
-		if [ ! -f $(OPERATOR_SDK) ]; \
-		then \
-			mkdir -p $(dir $(OPERATOR_SDK)); \
-			curl -sSLo $(OPERATOR_SDK) "https://github.com/operator-framework/operator-sdk/releases/download/v$(OPERATOR_SDK_VERSION)/operator-sdk_$(OS)_$(ARCH)"; \
-			chmod +x $(OPERATOR_SDK); \
-		fi; \
-	}
-
-
-KUSTOMIZE_VERSION ?= 5.4.3
-KUSTOMIZE = $(shell pwd)/bin/kustomize
-.PHONY: install-kustomize
-install-kustomize: ## Install kustomize v5.4.3
-	@{ \
-		if [ ! -f $(KUSTOMIZE) ]; \
-		then \
-			mkdir -p $(dir $(KUSTOMIZE)); \
-			cd $(shell pwd)/bin; \
-			curl -sSLo $(KUSTOMIZE).tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_$(OS)_$(ARCH).tar.gz"; \
-			tar -xf $(KUSTOMIZE).tar.gz; \
-			rm $(KUSTOMIZE).tar.gz; \
-			chmod +x $(KUSTOMIZE); \
-		fi; \
-	}
-
-
-KIND_VERSION ?= 0.23.0
-KIND = $(shell pwd)/bin/kind
-.PHONY: install-kind
-install-kind: ## Install kind v0.23.0
-	@{ \
-		if [ ! -f $(KIND) ]; \
-		then \
-			mkdir -p $(dir $(KIND)); \
-			curl -sSLo $(KIND) "https://kind.sigs.k8s.io/dl/v$(KIND_VERSION)/kind-$(OS)-$(ARCH)"; \
-			chmod +x $(KIND); \
-		fi; \
-	}
-
-
 ########## Targets
 
 
 .PHONY: build
 build: ## TODO
 	mvn clean install $(BUILD_OPTS)
-
-
-.PHONY: image-buildx-build-push
-image-buildx-build-push: ## TODO
-ifneq ($(ADDITIONAL_IMAGE),)
-ifneq ($(ADDITIONAL_IMAGE_TAG),)
-	docker buildx build --push --platform $(BUILDX_PLATFORM) -f controller/src/main/docker/Dockerfile.jvm -t $(IMAGE) -t $(ADDITIONAL_IMAGE) controller/target
-else
-	docker buildx build --push --platform $(BUILDX_PLATFORM) -f controller/src/main/docker/Dockerfile.jvm -t $(IMAGE) controller/target
-endif
-else
-	docker buildx build --push --platform $(BUILDX_PLATFORM) -f controller/src/main/docker/Dockerfile.jvm -t $(IMAGE) controller/target
-endif
 
 
 .PHONY: image-build
@@ -277,62 +248,44 @@ endif
 endif
 
 
-.PHONY: prepare-resources
-prepare-resources: install-yq install-kustomize
-	$(YQ) '.commonLabels."app.kubernetes.io/version" = "$(VERSION)"' -i deploy/crd/kustomization.yaml
-	$(YQ) '.commonLabels."app.kubernetes.io/version" = "$(VERSION)"' -i deploy/rbac/cluster/kustomization.yaml
-	$(YQ) '.commonLabels."app.kubernetes.io/version" = "$(VERSION)"' -i deploy/rbac/single-namespace/kustomization.yaml
-	# Operator
-	cd deploy/operator && $(KUSTOMIZE) edit set image PLACEHOLDER_IMAGE=$(IMAGE)
-	$(YQ) '.commonLabels."app.kubernetes.io/version" = "$(VERSION)"' -i deploy/operator/kustomization.yaml
-	$(YQ) '.patches[0].patch = (.patches[0].patch | from_yaml | with(.[]; select(.value.name == "REGISTRY_VERSION") | .value.value = "$(VERSION)") | to_yaml)' -i deploy/operator/kustomization.yaml
-	$(YQ) '.patches[0].patch = (.patches[0].patch | from_yaml | with(.[]; select(.value.name == "REGISTRY_APP_IMAGE") | .value.value = "$(REGISTRY_APP_IMAGE)") | to_yaml)' -i deploy/operator/kustomization.yaml
-	$(YQ) '.patches[0].patch = (.patches[0].patch | from_yaml | with(.[]; select(.value.name == "REGISTRY_UI_IMAGE") | .value.value = "$(REGISTRY_UI_IMAGE)") | to_yaml)' -i deploy/operator/kustomization.yaml
-	# Install
-	cd deploy/install && $(KUSTOMIZE) edit set namespace $(NAMESPACE)
-
-
-.PHONY: prepare-csv
-prepare-csv: install-yq
-	$(YQ) '.metadata.annotations.createdAt = "$(DATE)"' -i deploy/csv/apicurio-registry.clusterserviceversion.yaml
-	$(YQ) '.metadata.annotations.containerImage = "$(IMAGE)"' -i deploy/csv/apicurio-registry.clusterserviceversion.yaml
-	# TODO:
-	#$(YQ) '.spec.replaces = "$(REPLACES)"' -i deploy/csv/apicurio-registry.clusterserviceversion.yaml
+.PHONY: image
+image: image-build image-push ## TODO
 
 
 .PHONY: deploy
-deploy: prepare-resources ## Deploy the Operator to a cluster using kubectl
+deploy: ## Deploy the Operator to a cluster using kubectl
 	kubectl create namespace $(NAMESPACE) || true
-	$(KUSTOMIZE) build deploy/install | kubectl -n $(NAMESPACE) apply -f -
+	kubectl kustomize controller/src/main/deploy/install | envsubst | kubectl -n $(NAMESPACE) apply -f -
 
 
 .PHONY: undeploy
-undeploy: prepare-resources ## TODO
-	$(KUSTOMIZE) build deploy/install | kubectl -n $(NAMESPACE) delete -f -
+undeploy: ## TODO
+	kubectl kustomize controller/src/main/deploy/install | envsubst | kubectl -n $(NAMESPACE) delete -f -
 
 
 .PHONY: dist-install-file
-dist-install-file: prepare-resources ## TODO
-	cd deploy/install && $(KUSTOMIZE) edit set namespace $(INSTALL_NAMESPACE)
-	$(KUSTOMIZE) build deploy/install >$(INSTALL_FILE)
+dist-install-file: ## TODO
+	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
+	kubectl kustomize controller/src/main/deploy/install | envsubst >$(INSTALL_FILE)
 
 
 .PHONY: dist
 dist: dist-install-file ## TODO
-	mkdir -p dist
-	cp -rt dist dist-template/*
+	$(call target_dir, $(DIST_TARGET_DIR))
+	cp -rt $(DIST_TARGET_DIR) controller/src/main/deploy/dist-template/*
 	# Licenses
-	cp -t dist target/generated-resources/licenses.xml
-	sed -i '\|^.*<file>.*</file>.*$$|d' dist/licenses.xml
+	cp -t $(DIST_TARGET_DIR) target/generated-resources/licenses.xml
+	sed -i '\|^.*<file>.*</file>.*$$|d' $(DIST_TARGET_DIR)/licenses.xml
 	# Examples
-	cp -t dist/examples deploy/examples/*
-	rm dist/examples/kustomization.yaml
-	cp -rt dist/examples controller/src/main/resources/k8s/examples/*
-	cp -rt dist/examples controller/src/test/resources/k8s/examples/*
+	mkdir -p $(DIST_TARGET_DIR)/examples
+	cp -t $(DIST_TARGET_DIR)/examples controller/src/main/deploy/examples/*
+	rm $(DIST_TARGET_DIR)/examples/kustomization.yaml
+	cp -rt $(DIST_TARGET_DIR)/examples controller/src/main/resources/k8s/examples/*
+	cp -rt $(DIST_TARGET_DIR)/examples controller/src/test/resources/k8s/examples/*
 	# Install
-	cp $(INSTALL_FILE) dist/install.yaml
+	cp $(INSTALL_FILE) $(DIST_TARGET_DIR)/install.yaml
 	# Archive
-	tar -zcf apicurio-registry-operator-$(VERSION).tar.gz -C dist .
+	cd $(DIST_TARGET_DIR) && tar -zcf ../apicurio-registry-operator-$(VERSION).tar.gz *
 
 
 .PHONY: quickstart
@@ -340,23 +293,18 @@ quickstart: build image-build image-push deploy ## TODO
 
 
 .PHONY: bundle-build
-bundle-build: install-operator-sdk prepare-csv prepare-resources ## Generate bundle metadata
-	$(KUSTOMIZE) build deploy/csv | $(OPERATOR_SDK) generate bundle -q --kustomize-dir deploy/csv --overwrite --version $(LC_VERSION) --output-dir $(BUNDLE_DIR) $(BUNDLE_OPTS)
-	# Workaround for https://github.com/operator-framework/operator-lifecycle-manager/issues/1608
-	# See https://github.com/operator-framework/operator-lifecycle-manager/issues/952#issuecomment-639657949
-	$(YQ) '.spec.install.spec.deployments[0].name = .spec.install.spec.deployments[0].name + "-v$(LC_VERSION)"' -i $(BUNDLE_DIR)/manifests/apicurio-registry.clusterserviceversion.yaml
+bundle-build: install-operator-sdk install-yq ## Generate bundle metadata
+	$(call target_dir, $(BUNDLE_DIR))
+	kubectl kustomize controller/src/main/deploy/csv | envsubst | $(OPERATOR_SDK) generate bundle -q --output-dir $(BUNDLE_DIR) $(BUNDLE_OPTS)
 	# Post-process annotations.yaml
 	$(YQ) '... comments = ""' -i $(BUNDLE_DIR)/metadata/annotations.yaml
 	$(YQ) '.annotations = (.annotations | to_entries | del(.[] | select(.key == "operators.operatorframework.io.metrics.*")) | from_entries)' -i $(BUNDLE_DIR)/metadata/annotations.yaml
-	$(YQ) '.annotations = (.annotations | to_entries | del(.[] | select(.key == "operators.operatorframework.io.test.*")) | from_entries)' -i $(BUNDLE_DIR)/metadata/annotations.yaml
 	$(YQ) '.annotations."com.redhat.openshift.versions" = "v4.12"' -i $(BUNDLE_DIR)/metadata/annotations.yaml
 	$(YQ) 'sort_keys(..)' -i $(BUNDLE_DIR)/metadata/annotations.yaml
 	# Post-process bundle.Dockerfile
 	mv bundle.Dockerfile $(BUNDLE_DIR)
 	sed -i '\|^# .*$$|d' $(BUNDLE_DIR)/bundle.Dockerfile
 	sed -i '\|^LABEL operators\.operatorframework.io\.metrics\..*$$|d' $(BUNDLE_DIR)/bundle.Dockerfile
-	sed -i '\|^LABEL operators\.operatorframework.io\.test\..*$$|d' $(BUNDLE_DIR)/bundle.Dockerfile
-	sed -i '\|^COPY .*tests\/scorecard.*$$|d' $(BUNDLE_DIR)/bundle.Dockerfile
 	sed -i 's|^FROM scratch$$|FROM scratch\n\nLABEL com.redhat.openshift.versions=v4.12|g' $(BUNDLE_DIR)/bundle.Dockerfile
 	# Validate
 	$(OPERATOR_SDK) bundle validate $(BUNDLE_DIR)
@@ -388,20 +336,18 @@ bundle: bundle-build bundle-image-build bundle-image-push ## TODO
 
 .PHONY: catalog-build
 catalog-build: install-opm ## TODO
+	$(call target_dir, $(CATALOG_TARGET_DIR))
 	# Create catalog.yaml
-	mkdir -p $(CATALOG_DIR)/configs
-	cp $(CATALOG_DIR)/catalog.template.yaml $(CATALOG_DIR)/catalog.yaml
-	# Post-process catalog.yaml
-	sed -i 's|PLACEHOLDER_LC_VERSION|$(LC_VERSION)|g' $(CATALOG_DIR)/catalog.yaml
-	sed -i 's|PLACEHOLDER_BUNDLE_IMAGE|$(BUNDLE_IMAGE)|g' $(CATALOG_DIR)/catalog.yaml
+	mkdir -p $(CATALOG_TARGET_DIR)/configs
+	cat $(CATALOG_DIR)/catalog.template.yaml | envsubst > $(CATALOG_TARGET_DIR)/catalog.yaml
 	# Build
-	cd $(CATALOG_DIR) && $(OPM) alpha render-template basic catalog.yaml --output=yaml >configs/index.yaml
-	cd $(CATALOG_DIR) && $(OPM) generate dockerfile configs
+	cd $(CATALOG_TARGET_DIR) && $(OPM) alpha render-template basic catalog.yaml --output=yaml > configs/index.yaml
+	cd $(CATALOG_TARGET_DIR) && $(OPM) generate dockerfile configs
 
 
 .PHONY: catalog-image-build
 catalog-image-build: ## TODO
-	cd $(CATALOG_DIR) && docker build -f configs.Dockerfile -t $(CATALOG_IMAGE) .
+	docker build -f $(CATALOG_TARGET_DIR)/configs.Dockerfile -t $(CATALOG_IMAGE) $(CATALOG_TARGET_DIR)
 ifneq ($(ADDITIONAL_CATALOG_IMAGE),)
 ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
 	docker tag $(CATALOG_IMAGE) $(ADDITIONAL_CATALOG_IMAGE)
@@ -418,74 +364,36 @@ ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
 endif
 endif
 
+.PHONY: catalog-image-get
+catalog-image-get: ## TODO
+	@echo -n $(CATALOG_IMAGE)
 
 .PHONY: catalog
 catalog: catalog-build catalog-image-build catalog-image-push ## TODO
 
 
-.PHONY: prepare-catalog-deploy
-prepare-catalog-deploy: install-yq
-	kubectl create namespace $(CATALOG_NAMESPACE) || true
-	# Post-process
-	$(YQ) '.metadata.namespace = "$(CATALOG_NAMESPACE)"' -i $(CATALOG_DIR)/catalog-source.yaml
-	$(YQ) '.spec.image = "$(CATALOG_IMAGE)"' -i $(CATALOG_DIR)/catalog-source.yaml
-
-
 .PHONY: catalog-deploy
-catalog-deploy: prepare-catalog-deploy ## TODO
-	kubectl -n $(CATALOG_NAMESPACE) apply -f $(CATALOG_DIR)/catalog-source.yaml
+catalog-deploy: ## TODO
+	kubectl create namespace $(CATALOG_NAMESPACE) || true
+	cat $(CATALOG_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) apply -f -
 
 
 .PHONY: catalog-undeploy
-catalog-undeploy: prepare-catalog-deploy ## TODO
-	kubectl -n $(CATALOG_NAMESPACE) delete -f $(CATALOG_DIR)/catalog-source.yaml
-
-
-.PHONY: prepare-catalog-subscription-deploy
-prepare-catalog-subscription-deploy: install-yq
-	kubectl create namespace $(NAMESPACE) || true
-	# Post-process
-	$(YQ) '.metadata.namespace = "$(NAMESPACE)"' -i $(CATALOG_DIR)/subscription.yaml
-	$(YQ) '.spec.sourceNamespace = "$(CATALOG_NAMESPACE)"' -i $(CATALOG_DIR)/subscription.yaml
-	$(YQ) '.spec.startingCSV = "apicurio-registry.v$(LC_VERSION)"' -i $(CATALOG_DIR)/subscription.yaml
+catalog-undeploy: ## TODO
+	cat $(CATALOG_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) delete -f -
 
 
 .PHONY: catalog-subscription-deploy
-catalog-subscription-deploy: prepare-catalog-subscription-deploy ## TODO
-	kubectl -n $(NAMESPACE) apply -f $(CATALOG_DIR)/subscription.yaml
+catalog-subscription-deploy: ## TODO
+	kubectl create namespace $(NAMESPACE) || true
+	cat $(CATALOG_DIR)/operator-group.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	cat $(CATALOG_DIR)/subscription.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
 
 
 .PHONY: catalog-subscription-undeploy
-catalog-subscription-undeploy: prepare-catalog-subscription-deploy ## TODO
-	kubectl -n $(NAMESPACE) delete -f $(CATALOG_DIR)/subscription.yaml
-	kubectl -n $(NAMESPACE) delete clusterserviceversion apicurio-registry.v$(LC_VERSION)
-
-
-.PHONY: clean
-clean: ## TODO
-	mvn clean
-	# Remove ignored files
-	rm apicurio-registry-operator-*.tar.gz || true
-	rm -rf bin || true
-	rm bundle.Dockerfile || true
-	rm cluster.crt || true
-	rm cluster.truststore || true
-	rm -rf deploy/bundle || true
-	rm deploy/catalog/catalog.yaml || true
-	rm deploy/catalog/configs.Dockerfile || true
-	rm -rf deploy/catalog/configs || true
-	rm deploy/crd/apicurioregistries3.registry.apicur.io-v1.yml || true
-	rm -rf dist || true
-	rm install/*-SNAPSHOT.yaml || true
-	# Reset automatic modifications
-	git checkout HEAD -- deploy/catalog/catalog-source.yaml || true
-	git checkout HEAD -- deploy/catalog/subscription.yaml || true
-	git checkout HEAD -- deploy/csv/apicurio-registry.clusterserviceversion.yaml || true
-	git checkout HEAD -- deploy/crd/kustomization.yaml || true
-	git checkout HEAD -- deploy/install/kustomization.yaml || true
-	git checkout HEAD -- deploy/operator/kustomization.yaml || true
-	git checkout HEAD -- deploy/rbac/cluster/kustomization.yaml || true
-	git checkout HEAD -- deploy/rbac/single-namespace/kustomization.yaml || true
+catalog-subscription-undeploy: ## TODO
+	cat $(CATALOG_DIR)/subscription.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f -
+	kubectl -n $(NAMESPACE) delete clusterserviceversion $(PACKAGE)
 
 
 .PHONY: dev

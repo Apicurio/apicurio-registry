@@ -41,7 +41,7 @@ OpenShift). Alternatively, you can use the following steps:
 4. Run:
    ```shell
    curl -sSL "https://raw.githubusercontent.com/Apicurio/apicurio-registry/$VERSION/operator/install/install.yaml" | sed "s/PLACEHOLDER_NAMESPACE/$NAMESPACE/g" | kubectl -n $NAMESPACE apply -f -
-   kubectl -n $NAMESPACE apply -f deploy/examples/simple-apicurioregistry3.yaml
+   kubectl -n $NAMESPACE apply -f controller/src/main/deploy/examples/simple-apicurioregistry3.yaml
    ```
 
 ### Local Development Quickstart
@@ -53,19 +53,13 @@ The following steps have been tested for OpenShift:
 1. Log in to your OpenShift cluster with `kubectl` or `oc`.
 2. Choose a namespace where the operator will be deployed:
    ```shell
-   kubectl config set-context --current --namespace=apicurio-registry
-   ```
-   or
-   ```shell
-   oc project apicurio-registry
+   export NAMESPACE=apicurio-registry
    ```
 3. Build the operator:
    ```shell
    make SKIP_TESTS=true build
    ```
    *NOTE: This step only has to be repeated when the API model changes.*
-
-   *TODO: Add information about tests and their configuration.*
 
 4. Run:
    ```shell
@@ -75,7 +69,7 @@ The following steps have been tested for OpenShift:
 
 5. Apply an example Apicurio Registry CR:
    ```shell
-   kubectl apply -f controller/src/test/resources/k8s/examples/simple.apicurioregistry3.yaml
+   kubectl apply -f controller/src/main/deploy/examples/simple.apicurioregistry3.yaml
    ```
 
 ### On-cluster Development Quickstart
@@ -95,7 +89,7 @@ The following steps have been tested for OpenShift:
     ```
 5. Deploy Apicurio Registry:
     ```shell
-   kubectl -n $NAMESPACE apply -f deploy/examples/simple-apicurioregistry3.yaml
+   kubectl apply -f controller/src/main/deploy/examples/simple.apicurioregistry3.yaml
     ```
 
 After you're done, run `make undeploy`.
@@ -173,10 +167,10 @@ Available options:
 
 There are 2 ways to run the operator tests, and they should stay interchangeable.
 
-- `local` runs the operator on the developer machine (**the default**)
-- `remote` runs the operator in a cluster (requires additional prerequisites, see below)
+- `local` runs the operator on the developer machine (**the default**). OLM tests cannot be run locally.
+- `remote` runs the operator in a cluster (requires additional prerequisites, see below).
 
-The Maven property `-DskipOperatorTests` is used to explicitly enable the testing of the operator modules, since they require a cluster to run against.
+The Maven property `-DskipOperatorTests=false` is used to explicitly enable the testing of the operator modules, since they require a cluster to run against.
 
 ### Local Tests
 
@@ -202,13 +196,12 @@ The Maven property `-DskipOperatorTests` is used to explicitly enable the testin
 
 Available Maven options:
 
-| Option                          | Type                                    | Default value | Description                                                                                                                                                                                               |
-|---------------------------------|-----------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| test.operator.deployment        | `local` / `remote`                      | `local`       | The way that the operator is deployed for testing.                                                                                                                                                        |
-| test.operator.deployment-target | `kubernetes` / `minikube` / `openshift` | `kubernetes`  | The deployment file specific to the given cluster type. *TODO: This might not be necessary, since kubernetes deployment file should work on all clusters. Please report to us if you find out otherwise.* |
-| test.operator.cleanup           | `true` / `false`                        | `true`        | Clean test namespaces from the cluster after the tests finish.                                                                                                                                            |
-| test.operator.ingress-host      | string                                  | -             | Used when testing Ingresses. For some clusters, you might need to provide the base hostname from where the applications on your cluster are accessible.                                                   |
-| test.operator.ingress-skip      | `true` / `false`                        | `false`       | Skip testing of Ingresses. Useful when testing on clusters without an Ingress controller or without an accessible base hostname.                                                                          |
+| Option                          | Type                      | Default value | Description                                                                                                                                             |
+|---------------------------------|---------------------------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| test.operator.deployment        | `local` / `remote`        | `local`       | Specifies the way that the operator is deployed for testing.                                                                                            |
+| test.operator.ingress-skip      | `true` / `false`          | `false`       | Skip testing of Ingresses. Useful when testing on clusters without an Ingress controller or without an accessible base hostname.                        |
+| test.operator.ingress-host      | string                    | -             | Used when testing Ingresses. For some clusters, you might need to provide the base hostname from where the applications on your cluster are accessible. |
+| test.operator.cleanup           | `true` / `false`          | `true`        | Clean test namespaces from the cluster after the tests finish.                                                                                          |
 
 ### Remote Tests
 
@@ -217,33 +210,31 @@ Available Maven options:
    minikube start
     ```
 
-2. To enable testing of Ingresses on Minikube, run (in a separate terminal):
+2. To enable testing of Ingresses and OLM on Minikube, run (in a separate terminal):
    ```shell
    minikube addons enable ingress
+   minikybe addons enable olm
    minikube tunnel
    ```
 
-3. If you are testing on Minikube, you can avoid pushing the image in the next step by running:
+3. Build and push the operator image, bundle image, and catalog image (for OLM tests):
    ```shell
-   eval $(minikube -p minikube docker-env)
+   make SKIP_TESTS=true build image-build image-push bundle catalog
    ```
 
-4. Build the operator, the operator image, and the install file:
+4. Run:
    ```shell
-   make SKIP_TESTS=true build image-build image-push dist-install-file
-   ```
-   *NOTE: More information about the install file are below in the __Distribution and Release__ section.*
-
-5. Run:
-   ```shell
-   mvn clean verify -DskipOperatorTests=false -Dtest.operator.deployment=remote
+   mvn clean verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.deployment-target=minikube -Dtest.operator.catalog-image=$(make catalog-image-get)
    ```
 
-Maven options for the remote tests are similar to those for the local tests. The option `test.operator.deployment-target` is not used, and the following options are additionally available:
+Maven options for the remote tests are same as those for the local tests, but the following options are additionally available:
 
-| Option                     | Type   | Default value                                                   | Description                                                       |
-|----------------------------|--------|-----------------------------------------------------------------|-------------------------------------------------------------------|
-| test.operator.install-file | string | `install/apicurio-registry-operator-`*(current version)*`.yaml` | The install file that is used to deploy the operator for testing. |
+| Option                          | Type                      | Default value                                                         | Description                                                                                                                                                                                                                                                                       |
+|---------------------------------|---------------------------|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| test.operator.deployment-target | `kubernetes` / `minikube` | `kubernetes`                                                          | Modify the deployment for the given cluster type. *NOTE: This should only be necessary for minikube with a shared docker daemon, but the OLM tests still require the bundle and catalog images to be pushed to a remote registry. Please report to us if you find out otherwise.* |
+| test.operator.install-file      | string                    | `operator/controller/target/test-install.yaml`                        | The install file that is used to deploy the operator for testing, generated during build. *NOTE: More information about the install file are below in the __Distribution and Release__ section.*                                                                                  |
+| test.operator.olm-skip          | `true` / `false`          | `false`                                                               | Skip OLM tests.                                                                                                                                                                                                                                                                   |
+| test.operator.catalog-image     | string                    | `quay.io/apicurio/apicurio-registry-operator-catalog:latest-snapshot` | Catalog image that is used to deploy the operator for testing with OLM.                                                                                                                                                                                                           |
 
 ## Distribution and Release
 
@@ -282,7 +273,6 @@ Available options:
 
 | Option             | Type   | Default value                                                  | Description |
 |--------------------|--------|----------------------------------------------------------------|-------------|
-| DIST_FILE          | string | `dist/apicurio-registry-operator-`*(current version)*`.tar.gz` | -           |
 | IMAGE_REGISTRY     | string | `quay.io/apicurio`                                             | -           |
 | IMAGE_NAME         | string | `apicurio-registry-operator`                                   | -           |
 | IMAGE_TAG          | string | *(current version, lowercase)*                                 | -           |
@@ -303,12 +293,11 @@ make bundle-build
 
 Available options:
 
-| Option                  | Type             | Default value                  | Description |
-|-------------------------|------------------|--------------------------------|-------------|
-| BUNDLE_CHANNEL          | string           | `1.x`                          | -           |
-| BUNDLE_VERSION          | string           | *(current version, lowercase)* | -           |
-| BUNDLE_REPLACES_VERSION | string           | **TODO**                       | -           |
-| UPDATE_CATALOG          | `true` / `false` | **TODO**                       | -           |
+| Option                   | Type             | Default value                  | Description |
+|--------------------------|------------------|--------------------------------|-------------|
+| BUNDLE_CHANNEL           | string           | `3.x`                          | -           |
+| BUNDLE_VERSION           | string           | *(current version, lowercase)* | -           |
+| PREVIOUS_PACKAGE_VERSION | string           | **TODO**                       | -           |
 
 *NOTE: The CRD file must have been generated using `make build`.*
 
@@ -339,6 +328,8 @@ make bundle-image-push
 
 After you have built and pushed the bundle image, you can build a catalog to use with OLM:
 
+*NOTE: We do not currently release our own upstream catalog image, we only build one for testing.*
+
 ```shell
 make catalog-build
 ```
@@ -351,12 +342,12 @@ make catalog-image-build
 
 Available options:
 
-| Option                 | Type   | Default value                                                             | Description                           |
-|------------------------|--------|---------------------------------------------------------------------------|---------------------------------------|
-| IMAGE_REGISTRY         | string | `quay.io/apicurio`                                                        | -                                     |
-| CATALOG_IMAGE_NAME     | string | `apicurio-registry-operator-catalog`                                      | -                                     |
-| CATALOG_IMAGE_TAG      | string | `v3-latest` *(with version suffix, lowercase, e.g. `v3-latest-snapshot`)* | -                                     |
-| ADDITIONAL_CATALOG_TAG | string | `$(date --utc +'%Y-%m-%d-%H-%M')`                                         | Tag the image with an additional tag. |
+| Option                 | Type   | Default value                                                       | Description                           |
+|------------------------|--------|---------------------------------------------------------------------|---------------------------------------|
+| IMAGE_REGISTRY         | string | `quay.io/apicurio`                                                  | -                                     |
+| CATALOG_IMAGE_NAME     | string | `apicurio-registry-operator-catalog`                                | -                                     |
+| CATALOG_IMAGE_TAG      | string | *(current version, lowercase)*                                      | -                                     |
+| ADDITIONAL_CATALOG_TAG | string | `latest` *(with version suffix, lowercase, e.g. `latest-snapshot`)* | Tag the image with an additional tag. |
 
 After the catalog image is built, push it by running:
 
@@ -377,12 +368,13 @@ make catalog-subscription-deploy
 
 Available options:
 
-| Option            | Type   | Default value           | Description |
-|-------------------|--------|-------------------------|-------------|
-| CATALOG_NAMESPACE | string | `openshift-marketplace` | -           |
+| Option            | Type   | Default value           | Description                                       |
+|-------------------|--------|-------------------------|---------------------------------------------------|
+| NAMESPACE         | string | `default`               | Namespace to which the operator will be deployed. |
+| CATALOG_NAMESPACE | string | `openshift-marketplace` | -                                                 |
 
-*NOTE: If you encounter a pod security error on OpenShift, run with `NAMESPACE=openshift-marketplace`.*
+## Notes
 
-## Additional Features
+### Watched Namespaces
 
-- Run `make clean` to remove ignored files and reset automatically modified files.
+Namespace that are watched by the operator are configured using `QUARKUS_OPERATOR_SDK_CONTROLLERS_APICURIOREGISTRY3RECONCILER_NAMESPACES` environment variable. Its value is configured to reflect the OLM annotation `olm.targetNamespaces` by default. This means that if the operator is not installed by OLM (e.g. using the install file), the annotation is empty, which means the operator will watch **all namespaces**. Because of this, cluster-level RBAC resources are used by default. In the future, we may release additional install file with reduced permissions, intended to be used when the operator only manages its own namespace.

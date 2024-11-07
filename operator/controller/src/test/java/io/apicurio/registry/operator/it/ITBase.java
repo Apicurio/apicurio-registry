@@ -3,11 +3,8 @@ package io.apicurio.registry.operator.it;
 import io.apicurio.registry.operator.Constants;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.KubernetesList;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
-import io.fabric8.kubernetes.api.model.ServiceAccount;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -25,6 +22,9 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.*;
 
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -32,7 +32,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-public class ITBase {
+public abstract class ITBase {
 
     public static final String DEPLOYMENT_TARGET = "test.operator.deployment-target";
     public static final String OPERATOR_DEPLOYMENT_PROP = "test.operator.deployment";
@@ -42,7 +42,6 @@ public class ITBase {
     public static final String GENERATED_RESOURCES_FOLDER = "target/kubernetes/";
     public static final String CRD_FILE = "../model/target/classes/META-INF/fabric8/apicurioregistries3.registry.apicur.io-v1.yml";
     public static final String REMOTE_TESTS_INSTALL_FILE = "test.operator.install-file";
-    public static final String REMOTE_TESTS_INSTALL_FILE_DEFAULT = "test.operator.install-file.default";
 
     public enum OperatorDeployment {
         local, remote
@@ -64,26 +63,23 @@ public class ITBase {
         configuration = CDI.current().select(QuarkusConfigurationService.class).get();
         reconcilers = CDI.current().select(new TypeLiteral<>() {
         });
-        operatorDeployment = ConfigProvider.getConfig()
-                .getOptionalValue(OPERATOR_DEPLOYMENT_PROP, OperatorDeployment.class)
-                .orElse(OperatorDeployment.local);
-        deploymentTarget = ConfigProvider.getConfig().getOptionalValue(DEPLOYMENT_TARGET, String.class)
-                .orElse("kubernetes");
-        cleanup = ConfigProvider.getConfig().getOptionalValue(CLEANUP, Boolean.class).orElse(true);
+        operatorDeployment = ConfigProvider.getConfig().getValue(OPERATOR_DEPLOYMENT_PROP,
+                OperatorDeployment.class);
+        deploymentTarget = ConfigProvider.getConfig().getValue(DEPLOYMENT_TARGET, String.class);
+        cleanup = ConfigProvider.getConfig().getValue(CLEANUP, Boolean.class);
 
         setDefaultAwaitilityTimings();
-        calculateNamespace();
-        createK8sClient();
+        namespace = calculateNamespace();
+        client = createK8sClient(namespace);
         createCRDs();
-        createNamespace();
+        createNamespace(client, namespace);
 
         portForwardManager = new PortForwardManager(client, namespace);
         ingressManager = new IngressManager(client, namespace);
 
         if (operatorDeployment == OperatorDeployment.remote) {
-            createGeneratedResources();
+            createTestResources();
         } else {
-            configureLocalOperator();
             createOperator();
             registerReconcilers();
             operator.start();
@@ -99,48 +95,39 @@ public class ITBase {
                 + "------- Deployment target: " + deploymentTarget);
     }
 
-    private static void createK8sClient() {
-        client = new KubernetesClientBuilder()
+    static KubernetesClient createK8sClient(String namespace) {
+        return new KubernetesClientBuilder()
                 .withConfig(new ConfigBuilder(Config.autoConfigure(null)).withNamespace(namespace).build())
                 .build();
     }
 
-    private static void createGeneratedResources() throws Exception {
-        Log.info("Creating generated resources into Namespace " + namespace);
-        var config = ConfigProvider.getConfig();
-        var installFilePath = config.getOptionalValue(REMOTE_TESTS_INSTALL_FILE, String.class)
-                .orElse(config.getValue(REMOTE_TESTS_INSTALL_FILE_DEFAULT, String.class));
-        try (var fis = new FileInputStream(installFilePath)) {
-            List<HasMetadata> resources = Serialization.unmarshal(fis);
-            resources.forEach(r -> {
-                if (r.getKind().equals("ServiceAccount") && r instanceof ServiceAccount sa) {
-                    sa.getMetadata().setNamespace(namespace);
-                }
-                if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding crb) {
-                    crb.getSubjects().stream().forEach(s -> s.setNamespace(namespace));
-                }
-                if (r.getKind().equals("Deployment") && r instanceof Deployment d) {
-                    d.getMetadata().setNamespace(namespace);
-                }
-                client.resource(r).inNamespace(namespace).createOrReplace();
-            });
-        }
+    private static List<HasMetadata> loadTestResources() throws IOException {
+        var installFilePath = Path
+                .of(ConfigProvider.getConfig().getValue(REMOTE_TESTS_INSTALL_FILE, String.class));
+        var installFileRaw = Files.readString(installFilePath);
+        // We're not editing the deserialized resources to replicate the user experience
+        installFileRaw = installFileRaw.replace("PLACEHOLDER_NAMESPACE", namespace);
+        return Serialization.unmarshal(installFileRaw);
     }
 
-    private static void cleanGeneratedResources() throws Exception {
+    private static void createTestResources() throws Exception {
+        Log.info("Creating generated resources into Namespace " + namespace);
+        loadTestResources().forEach(r -> {
+            if ("minikube".equals(deploymentTarget) && r instanceof Deployment d) {
+                // See https://stackoverflow.com/a/46101923
+                d.getSpec().getTemplate().getSpec().getContainers()
+                        .forEach(c -> c.setImagePullPolicy("IfNotPresent"));
+            }
+            client.resource(r).inNamespace(namespace).createOrReplace();
+        });
+    }
+
+    private static void cleanTestResources() throws Exception {
         if (cleanup) {
             Log.info("Deleting generated resources from Namespace " + namespace);
-            try (var fis = new FileInputStream(GENERATED_RESOURCES_FOLDER + deploymentTarget + ".json")) {
-                KubernetesList resources = Serialization.unmarshal(fis);
-
-                resources.getItems().stream().forEach(r -> {
-                    if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
-                        var crb = (ClusterRoleBinding) r;
-                        crb.getSubjects().stream().forEach(s -> s.setNamespace(namespace));
-                    }
-                    client.resource(r).inNamespace(namespace).delete();
-                });
-            }
+            loadTestResources().forEach(r -> {
+                client.resource(r).inNamespace(namespace).delete();
+            });
         }
     }
 
@@ -168,22 +155,13 @@ public class ITBase {
         }
     }
 
-    public static void configureLocalOperator() {
-        if (ConfigProvider.getConfig().getOptionalValue("registry.app.image", String.class).isEmpty()) {
-            System.setProperty("registry.app.image", "quay.io/apicurio/apicurio-registry:latest-snapshot");
-        }
-        if (ConfigProvider.getConfig().getOptionalValue("registry.ui.image", String.class).isEmpty()) {
-            System.setProperty("registry.ui.image", "quay.io/apicurio/apicurio-registry-ui:latest-snapshot");
-        }
-    }
-
     private static void createOperator() {
         operator = new Operator(configurationServiceOverrider -> {
             configurationServiceOverrider.withKubernetesClient(client);
         });
     }
 
-    private static void createNamespace() {
+    static void createNamespace(KubernetesClient client, String namespace) {
         Log.info("Creating Namespace " + namespace);
         client.resource(
                 new NamespaceBuilder().withNewMetadata().addToLabels("app", "apicurio-registry-operator-test")
@@ -191,11 +169,11 @@ public class ITBase {
                 .create();
     }
 
-    private static void calculateNamespace() {
-        namespace = ("apicurio-registry-operator-test-" + UUID.randomUUID()).substring(0, 63);
+    static String calculateNamespace() {
+        return ("apicurio-registry-operator-test-" + UUID.randomUUID()).substring(0, 63);
     }
 
-    private static void setDefaultAwaitilityTimings() {
+    static void setDefaultAwaitilityTimings() {
         Awaitility.setDefaultPollInterval(Duration.ofSeconds(5));
         Awaitility.setDefaultTimeout(Duration.ofSeconds(5 * 60));
     }
@@ -222,9 +200,9 @@ public class ITBase {
 
             Log.info("Creating new K8s Client");
             // create a new client bc operator has closed the old one
-            createK8sClient();
+            client = createK8sClient(namespace);
         } else {
-            cleanGeneratedResources();
+            cleanTestResources();
         }
 
         if (cleanup) {

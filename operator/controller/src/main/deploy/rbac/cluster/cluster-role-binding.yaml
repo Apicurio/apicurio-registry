@@ -5,6 +5,7 @@ metadata:
 
 subjects:
   - kind: ServiceAccount
+    namespace: ${PLACEHOLDER_NAMESPACE}
     name: apicurio-registry-operator
 
 roleRef:

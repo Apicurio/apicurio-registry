@@ -30,5 +30,5 @@ To create a new Apicurio Registry deployment, the fastest way is to use one of t
 
 [source,bash]
 ----
-kubectl -n $NAMESPACE apply -f examples/simple-apicurioregistry3.yaml
+kubectl -n $NAMESPACE apply -f examples/simple.apicurioregistry3.yaml
 ----

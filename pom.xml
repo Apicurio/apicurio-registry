@@ -226,6 +226,7 @@
     <woodstox-core.version>7.1.0</woodstox-core.version>
     <jgit.version>7.0.0.202409031743-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>
+    <assertj.core.version>3.26.3</assertj.core.version>
     <semver4j.version>5.4.1</semver4j.version>
 
     <!-- Kafka Connect -->
@@ -256,6 +257,7 @@
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
     <version.spotless>2.43.0</version.spotless>
     <version.license-maven-plugin>2.4.0</version.license-maven-plugin>
+    <version.exec-maven-plugin>3.5.0</version.exec-maven-plugin>
 
     <!-- Plugin Deps -->
     <version.puppycrawl>8.45.1</version.puppycrawl>
@@ -515,6 +517,11 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-resolver</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-operator-model</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -839,6 +846,12 @@
         <artifactId>awaitility</artifactId>
         <version>${awaitility.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.core.version}</version>
+        <scope>test</scope>
+      </dependency>
 
     </dependencies>
   </dependencyManagement>
@@ -956,6 +969,11 @@
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>license-maven-plugin</artifactId>
           <version>${version.license-maven-plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>${version.exec-maven-plugin}</version>
         </plugin>
       </plugins>
     </pluginManagement>

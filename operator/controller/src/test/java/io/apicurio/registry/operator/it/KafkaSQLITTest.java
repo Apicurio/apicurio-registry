@@ -33,7 +33,8 @@ public class KafkaSQLITTest extends ITBase {
 
     @Test
     void testKafkaSQLPlain() {
-        client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/plain/ephemeral.kafka.yaml"))
+        client.load(
+                KafkaSQLITTest.class.getResourceAsStream("/k8s/examples/kafkasql/plain/ephemeral.kafka.yaml"))
                 .create();
         final var clusterNAme = "my-cluster";
 
@@ -80,8 +81,12 @@ public class KafkaSQLITTest extends ITBase {
                     var crb = (RoleBinding) r;
                     crb.getSubjects().forEach(s -> s.setNamespace(namespace));
                 }
-                log.info("Creating Strimzi in namespace {}", namespace);
+                log.info("Creating Strimzi resource kind {} in namespace {}", r.getKind(), namespace);
                 client.resource(r).inNamespace(namespace).createOrReplace();
+                await().ignoreExceptions().until(() -> {
+                    assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
+                    return true;
+                });
             });
         }
     }

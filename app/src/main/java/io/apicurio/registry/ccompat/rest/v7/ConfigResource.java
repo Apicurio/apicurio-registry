@@ -53,6 +53,7 @@ public interface ConfigResource {
     @Path("/{subject}")
     @GET
     CompatibilityLevelParamDto getSubjectCompatibilityLevel(@PathParam("subject") String subject,
+            @QueryParam("defaultToGlobal") Boolean defaultToGlobal,
             @HeaderParam(Headers.GROUP_ID) String groupId);
 
     /**

@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class ITBase {
 
@@ -142,6 +143,10 @@ public class ITBase {
         try {
             var crd = client.load(new FileInputStream(CRD_FILE));
             crd.createOrReplace();
+            await().ignoreExceptions().until(() -> {
+                crd.resources().forEach(r -> assertThat(r.get()).isNotNull());
+                return true;
+            });
         } catch (Exception e) {
             Log.warn("Failed to create the CRD, retrying", e);
             createCRDs();
@@ -185,7 +190,7 @@ public class ITBase {
         if (cleanup) {
             Log.info("Deleting CRs");
             client.resources(ApicurioRegistry3.class).delete();
-            Awaitility.await().untilAsserted(() -> {
+            await().untilAsserted(() -> {
                 var registryDeployments = client.apps().deployments().inNamespace(namespace)
                         .withLabels(Constants.BASIC_LABELS).list().getItems();
                 assertThat(registryDeployments.size()).isZero();

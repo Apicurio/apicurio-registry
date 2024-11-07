@@ -1,0 +1,13 @@
+schema: olm.template.basic
+entries:
+  - schema: olm.package
+    name: apicurio-registry
+    defaultChannel: 3.x
+  - schema: olm.channel
+    package: apicurio-registry
+    name: 3.x
+    entries:
+      - name: apicurio-registry.v${PLACEHOLDER_LC_VERSION}
+      # TODO: Replaces
+  - schema: olm.bundle
+    image: ${PLACEHOLDER_BUNDLE_IMAGE}

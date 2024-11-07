@@ -37,7 +37,7 @@ public class IngressManager {
     }
 
     private static boolean isSkipIngress() {
-        return ConfigProvider.getConfig().getOptionalValue(INGRESS_SKIP_PROP, Boolean.class).orElse(false);
+        return ConfigProvider.getConfig().getValue(INGRESS_SKIP_PROP, Boolean.class);
     }
 
     private static Optional<String> getBaseIngressHost() {

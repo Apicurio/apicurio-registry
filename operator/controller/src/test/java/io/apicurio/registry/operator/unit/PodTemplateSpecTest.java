@@ -8,24 +8,17 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3SpecUI;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.apicurio.registry.operator.unit.PodTemplateSpecArgumentProviders.*;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.it.ITBase.configureLocalOperator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class PodTemplateSpecTest {
 
     private static final Logger log = LoggerFactory.getLogger(PodTemplateSpecTest.class);
-
-    @BeforeAll
-    public static void beforeAll() {
-        configureLocalOperator();
-    }
 
     @ParameterizedTest
     @ArgumentsSource(AppPositiveTestCases.class)

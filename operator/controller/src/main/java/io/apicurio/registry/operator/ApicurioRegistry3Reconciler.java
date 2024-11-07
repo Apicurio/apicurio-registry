@@ -56,6 +56,8 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
         }
 )
 // spotless:on
+// TODO: When renaming, do not forget to rename
+// `QUARKUS_OPERATOR_SDK_CONTROLLERS_APICURIOREGISTRY3RECONCILER_NAMESPACES` (until we have a test for this).
 public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>,
         ErrorStatusHandler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {
 

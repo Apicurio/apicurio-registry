@@ -5,26 +5,23 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     categories: Streaming & Messaging
-    certified: "false"
-    # DO NOT COMMIT AUTOMATIC MODIFICATIONS TO THIS FILE
-    containerImage: quay.io/apicurio/apicurio-registry-operator:latest-snapshot
-    createdAt: "0000-00-00"
+    certified: 'false'
     description: Deploy and manage Apicurio Registry 3 on Kubernetes.
     repository: https://github.com/Apicurio/apicurio-registry/tree/main/operator
     support: Apicurio
     operators.openshift.io/infrastructure-features: '[]'
-    features.operators.openshift.io/disconnected: "false" # TODO: Support disconnected install
-    features.operators.openshift.io/proxy-aware: "false"
-    features.operators.openshift.io/fips-compliant: "false"
-    features.operators.openshift.io/tls-profiles: "false"
-    features.operators.openshift.io/token-auth-aws: "false"
-    features.operators.openshift.io/token-auth-azure: "false"
-    features.operators.openshift.io/token-auth-gcp: "false"
-    features.operators.openshift.io/cnf: "false"
-    features.operators.openshift.io/cni: "false"
-    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/disconnected: 'false' # TODO: Support disconnected install
+    features.operators.openshift.io/proxy-aware: 'false'
+    features.operators.openshift.io/fips-compliant: 'false'
+    features.operators.openshift.io/tls-profiles: 'false'
+    features.operators.openshift.io/token-auth-aws: 'false'
+    features.operators.openshift.io/token-auth-azure: 'false'
+    features.operators.openshift.io/token-auth-gcp: 'false'
+    features.operators.openshift.io/cnf: 'false'
+    features.operators.openshift.io/cni: 'false'
+    features.operators.openshift.io/csi: 'false'
   name: apicurio-registry.v0.0.0
-  namespace: placeholder
+  namespace: PLACEHOLDER_NAMESPACE
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -65,7 +62,7 @@ spec:
   install:
     spec:
       deployments: null
-    strategy: ""
+    strategy: ''
   installModes:
     - supported: true
       type: OwnNamespace

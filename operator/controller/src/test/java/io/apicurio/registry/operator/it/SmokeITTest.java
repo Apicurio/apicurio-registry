@@ -5,10 +5,12 @@ import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.test.junit.QuarkusTest;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
+import org.junit.jupiter.api.condition.DisabledIf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +27,11 @@ public class SmokeITTest extends ITBase {
     private static final Logger log = LoggerFactory.getLogger(SmokeITTest.class);
 
     @Test
-    void demoDeployment() {
+    void runSmoke() {
+        smoke(client, namespace, ingressManager);
+    }
+
+    static void smoke(KubernetesClient client, String namespace, IngressManager ingressManager) {
 
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
@@ -110,7 +116,7 @@ public class SmokeITTest extends ITBase {
     }
 
     @Test
-    @DisabledIfSystemProperty(named = INGRESS_SKIP_PROP, matches = "true")
+    @DisabledIf("io.apicurio.registry.operator.it.SmokeITTest#ingressDisabled")
     void testIngress() {
 
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
@@ -162,9 +168,11 @@ public class SmokeITTest extends ITBase {
         });
 
         // Check that REGISTRY_API_URL is set
-        var uiDeployment = client.apps().deployments().inNamespace(namespace)
-                .withName(registry.getMetadata().getName() + "-ui-deployment").get();
-        verify_REGISTRY_API_URL_isSet(registry, uiDeployment);
+        await().ignoreExceptions().untilAsserted(() -> {
+            var uiDeployment = client.apps().deployments().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-deployment").get();
+            verify_REGISTRY_API_URL_isSet(registry, uiDeployment);
+        });
 
         // Disable host and therefore Ingress
         registry.getSpec().getApp().setHost("");
@@ -188,7 +196,7 @@ public class SmokeITTest extends ITBase {
                     .withName(registry.getMetadata().getName() + "-ui-ingress").get()).isNull();
         });
 
-        uiDeployment = client.apps().deployments().inNamespace(namespace)
+        var uiDeployment = client.apps().deployments().inNamespace(namespace)
                 .withName(registry.getMetadata().getName() + "-ui-deployment").get();
         assertThat(uiDeployment).isNotNull();
         // spotless:off
@@ -213,9 +221,11 @@ public class SmokeITTest extends ITBase {
         });
 
         // Check that REGISTRY_API_URL is set again
-        uiDeployment = client.apps().deployments().inNamespace(namespace)
-                .withName(registry.getMetadata().getName() + "-ui-deployment").get();
-        verify_REGISTRY_API_URL_isSet(registry, uiDeployment);
+        await().ignoreExceptions().untilAsserted(() -> {
+            var uiDeployment2 = client.apps().deployments().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-deployment").get();
+            verify_REGISTRY_API_URL_isSet(registry, uiDeployment2);
+        });
     }
 
     private void verify_REGISTRY_API_URL_isSet(ApicurioRegistry3 registry, Deployment deployment) {
@@ -231,5 +241,9 @@ public class SmokeITTest extends ITBase {
                 .asInstanceOf(InstanceOfAssertFactories.STRING)
                 .startsWith("http://" + registry.getSpec().getApp().getHost());
         // spotless:on
+    }
+
+    static boolean ingressDisabled() {
+        return ConfigProvider.getConfig().getValue(INGRESS_SKIP_PROP, Boolean.class);
     }
 }

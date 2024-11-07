@@ -21,48 +21,17 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-operator-model</artifactId>
-      <version>${project.version}</version>
     </dependency>
-
     <dependency>
       <groupId>io.quarkiverse.operatorsdk</groupId>
       <artifactId>quarkus-operator-sdk</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-resteasy-jackson</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-openshift</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-minikube</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
       <artifactId>quarkus-kubernetes-client</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk15on</artifactId>
-      <version>${bouncycastle.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpkix-jdk15on</artifactId>
-      <version>${bouncycastle.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-container-image-jib</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-test-common</artifactId>
-      <scope>test</scope>
-    </dependency>
+
+    <!-- Test -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit5</artifactId>
@@ -71,12 +40,11 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>${assertj.core.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <version>${awaitility.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -89,10 +57,30 @@
       <artifactId>lombok</artifactId>
       <scope>provided</scope>
     </dependency>
+
   </dependencies>
 
   <build>
+
+    <testResources>
+      <testResource>
+        <filtering>true</filtering>
+        <directory>src/test/resources</directory>
+        <includes>
+          <include>application.properties</include>
+        </includes>
+      </testResource>
+      <testResource>
+        <filtering>false</filtering>
+        <directory>src/test/resources</directory>
+        <excludes>
+          <exclude>application.properties</exclude>
+        </excludes>
+      </testResource>
+    </testResources>
+
     <plugins>
+
       <plugin>
         <groupId>io.quarkus</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
@@ -104,23 +92,6 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>default-test</id>
-            <goals>
-              <goal>test</goal>
-            </goals>
-            <phase>verify</phase>
-            <configuration>
-              <systemProperties>
-                <test.operator.install-file.default>${projectRoot}/operator/install/apicurio-registry-operator-${project.version}.yaml</test.operator.install-file.default>
-              </systemProperties>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
 
       <plugin>
         <!-- Must be defined after quarkus-maven-plugin. -->
@@ -128,13 +99,13 @@
         <artifactId>maven-resources-plugin</artifactId>
         <executions>
           <execution>
-            <id>copy-resource-one</id>
+            <id>copy-crd</id>
             <goals>
               <goal>copy-resources</goal>
             </goals>
-            <phase>package</phase>
+            <phase>generate-resources</phase>
             <configuration>
-              <outputDirectory>${basedir}/../deploy/crd</outputDirectory>
+              <outputDirectory>${projectRoot}/operator/controller/src/main/deploy/crd</outputDirectory>
               <resources>
                 <resource>
                   <directory>${projectRoot}/operator/model/target/classes/META-INF/fabric8</directory>
@@ -148,6 +119,61 @@
         </executions>
       </plugin>
 
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-test</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
+
   </build>
+
+  <profiles>
+    <profile>
+      <id>prepare-operator-tests</id>
+      <activation>
+        <property>
+          <name>skipOperatorTests</name>
+          <value>false</value>
+          <!-- TODO: Invert the property, so we can test on presence instead of value. -->
+        </property>
+      </activation>
+      <build>
+        <plugins>
+
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>create-test-install-file</id>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <phase>pre-integration-test</phase>
+                <configuration>
+                  <workingDirectory>${projectRoot}/operator</workingDirectory>
+                  <executable>make</executable>
+                  <arguments>
+                    <argument>INSTALL_FILE=${build.directory}/test-install.yaml</argument>
+                    <argument>dist-install-file</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>

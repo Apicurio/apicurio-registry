@@ -709,6 +709,11 @@ The following {registry} configuration options are available for each component 
 |
 |
 |Kafka sql storage bootstrap servers
+|`apicurio.kafkasql.consumer.group-prefix`
+|`string`
+|`apicurio-`
+|
+|Kafka sql storage prefix for consumer group name
 |`apicurio.kafkasql.consumer.poll.timeout`
 |`integer`
 |`5000`

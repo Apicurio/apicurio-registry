@@ -106,11 +106,23 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject, String groupId) {
+    public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject, Boolean defaultToGlobal,
+            String groupId) {
         final GA ga = getGA(groupId, subject);
-        return getCompatibilityLevel(() -> storage
-                .getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY)
-                .getConfiguration());
+        return getCompatibilityLevel(() -> {
+            String level;
+            try {
+                level = storage.getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                        RuleType.COMPATIBILITY).getConfiguration();
+            } catch (RuleNotFoundException e) {
+                if (defaultToGlobal != null && defaultToGlobal) {
+                    level = storage.getGlobalRule(RuleType.COMPATIBILITY).getConfiguration();
+                } else {
+                    throw e;
+                }
+            }
+            return level;
+        });
     }
 
     @Override

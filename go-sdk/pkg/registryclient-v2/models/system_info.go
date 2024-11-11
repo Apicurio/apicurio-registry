@@ -5,7 +5,6 @@ import (
 	i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e "time"
 )
 
-// SystemInfo
 type SystemInfo struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -27,26 +26,31 @@ func NewSystemInfo() *SystemInfo {
 }
 
 // CreateSystemInfoFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateSystemInfoFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewSystemInfo(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *SystemInfo) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetBuiltOn gets the builtOn property value. The builtOn property
+// returns a *Time when successful
 func (m *SystemInfo) GetBuiltOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.builtOn
 }
 
 // GetDescription gets the description property value. The description property
+// returns a *string when successful
 func (m *SystemInfo) GetDescription() *string {
 	return m.description
 }
 
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *SystemInfo) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["builtOn"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -93,11 +97,13 @@ func (m *SystemInfo) GetFieldDeserializers() map[string]func(i878a80d2330e89d268
 }
 
 // GetName gets the name property value. The name property
+// returns a *string when successful
 func (m *SystemInfo) GetName() *string {
 	return m.name
 }
 
 // GetVersion gets the version property value. The version property
+// returns a *string when successful
 func (m *SystemInfo) GetVersion() *string {
 	return m.version
 }
@@ -162,7 +168,6 @@ func (m *SystemInfo) SetVersion(value *string) {
 	m.version = value
 }
 
-// SystemInfoable
 type SystemInfoable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable

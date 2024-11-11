@@ -1,18 +1,15 @@
 package models
 
-import (
-	"errors"
-)
-
 type GroupSortBy int
 
 const (
 	GROUPID_GROUPSORTBY GroupSortBy = iota
 	CREATEDON_GROUPSORTBY
+	MODIFIEDON_GROUPSORTBY
 )
 
 func (i GroupSortBy) String() string {
-	return []string{"groupId", "createdOn"}[i]
+	return []string{"groupId", "createdOn", "modifiedOn"}[i]
 }
 func ParseGroupSortBy(v string) (any, error) {
 	result := GROUPID_GROUPSORTBY
@@ -21,8 +18,10 @@ func ParseGroupSortBy(v string) (any, error) {
 		result = GROUPID_GROUPSORTBY
 	case "createdOn":
 		result = CREATEDON_GROUPSORTBY
+	case "modifiedOn":
+		result = MODIFIEDON_GROUPSORTBY
 	default:
-		return 0, errors.New("Unknown GroupSortBy value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

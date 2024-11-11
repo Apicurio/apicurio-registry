@@ -79,6 +79,10 @@ public class SearchGroupsTest extends AbstractResourceTestBase {
             request.queryParameters.groupId = groupId + "1";
         });
         Assertions.assertEquals(1, results.getGroups().size());
+        // Note: ensure that labels are returned in the search results
+        Assertions.assertNotNull(results.getGroups().get(0).getLabels());
+        Assertions.assertEquals(Map.of("byLabels", "byLabels-value-1", "byLabels-1", "byLabels-value-1"),
+                results.getGroups().get(0).getLabels().getAdditionalData());
 
         results = clientV3.search().groups().get(request -> {
             request.queryParameters.labels = new String[] { "byLabels" };
@@ -109,5 +113,4 @@ public class SearchGroupsTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, results.getGroups().size());
         Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
     }
-
 }

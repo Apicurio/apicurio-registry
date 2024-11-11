@@ -24,7 +24,7 @@ concurrency:
 jobs:
   prepare-integration-tests:
     name: Prepare for Integration Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
@@ -67,7 +67,7 @@ jobs:
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
@@ -83,43 +83,35 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
 
-      - name: Build and verify the typescript-sdk
-        working-directory: typescript-sdk
-        run: |
-          npm install
-          npm run generate-registry-sdk
-          npm run lint
-          npm run build
-
       - name: Install UI Dependencies
-        run: |
-          cd ui
-          npm install
+        working-directory: ui
+        run: npm install
 
       - name: Lint UI Code
-        run: |
-          cd ui
-          npm run lint
+        working-directory: ui
+        run: npm run lint
 
-      - name: Build and Package UI
-        run: |
-          cd ui
-          npm run build
-          npm run package
+      - name: Build the UI
+        working-directory: ui
+        run: npm run build
 
-      - name: Build and Push UI image
+      - name: Package the UI
+        working-directory: ui
+        run: npm run package
+
+      - name: Build and Push UI container image
+        working-directory: ui
         env:
           IMAGE_REPO: ttl.sh/${{ github.sha }}
           # maximum allowed
           IMAGE_TAG: 1d
         run: |
-          cd ui
           docker build -t $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG .
           docker push $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG
 
   integration-tests-h2:
     name: Integration Tests H2
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code
@@ -132,7 +124,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
+        uses: manusa/actions-setup-minikube@v2.13.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -164,7 +156,7 @@ jobs:
 
   integration-tests-postgresql:
     name: Integration Tests Postgresql
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code
@@ -177,7 +169,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
+        uses: manusa/actions-setup-minikube@v2.13.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -210,7 +202,7 @@ jobs:
 
   integration-tests-kafkasql:
     name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code
@@ -223,7 +215,7 @@ jobs:
           cache: 'maven'
 
       - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.9.0
+        uses: manusa/actions-setup-minikube@v2.13.0
         with:
           minikube version: 'v1.31.1'
           kubernetes version: 'v1.26.3'
@@ -258,7 +250,7 @@ jobs:
 
   integration-tests-ui:
     name: Integration Tests UI
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [prepare-ui-tests, prepare-integration-tests]
     steps:
       - name: Checkout Code
@@ -331,7 +323,7 @@ jobs:
 
   integration-tests-legacy-v2:
     name: Integration Tests Legacy V2
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Registry 2.5
@@ -369,7 +361,7 @@ jobs:
 
   build-examples:
     name: Build and Run Application examples
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'

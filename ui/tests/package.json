@@ -1,6 +1,6 @@
 {
   "name": "@apicurio/registry-ui-tests",
-  "version": "3.0.1",
+  "version": "3.0.4",
   "description": "UI tests (playwright) for Apicurio Registry UI",
   "repository": "https://github.com/Apicurio/apicurio-registry.git",
   "main": "index.js",
@@ -12,12 +12,12 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "0.3.0",
-    "@playwright/test": "1.47.2",
-    "@types/node": "22.7.4",
-    "@typescript-eslint/eslint-plugin": "8.8.0",
-    "@typescript-eslint/parser": "8.8.0",
+    "@playwright/test": "1.48.2",
+    "@types/node": "22.9.0",
+    "@typescript-eslint/eslint-plugin": "8.13.0",
+    "@typescript-eslint/parser": "8.13.0",
     "eslint": "8.57.1",
-    "eslint-plugin-react-hooks": "4.6.2",
-    "eslint-plugin-react-refresh": "0.4.12"
+    "eslint-plugin-react-hooks": "5.0.0",
+    "eslint-plugin-react-refresh": "0.4.14"
   }
 }

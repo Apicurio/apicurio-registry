@@ -8,6 +8,7 @@ import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -110,8 +111,14 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         // Get by globalId
         given().when().contentType(CT_JSON).pathParam("globalId", globalId)
                 .get("/registry/v3/ids/globalIds/{globalId}").then().statusCode(200)
-                .body("openapi", equalTo("3.0.2")).body("info.title", equalTo(title));
+                .header("X-Registry-ArtifactType", Matchers.nullValue()).body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo(title));
 
+        // Get by globalId with artifactType
+        given().when().contentType(CT_JSON).pathParam("globalId", globalId)
+                .queryParam("returnArtifactType", true).get("/registry/v3/ids/globalIds/{globalId}").then()
+                .statusCode(200).header("X-Registry-ArtifactType", "OPENAPI")
+                .body("openapi", equalTo("3.0.2")).body("info.title", equalTo(title));
     }
 
     @Test
@@ -134,7 +141,6 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         // Get by globalId should not fail
         clientV3.ids().globalIds().byGlobalId(globalId1).get();
         clientV3.ids().globalIds().byGlobalId(globalId2).get();
-
     }
 
     @Test

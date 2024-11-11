@@ -10,29 +10,13 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RoleMappingDto;
-import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.gitops.sql.BlueSqlStorage;
 import io.apicurio.registry.storage.impl.gitops.sql.GreenSqlStorage;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PreDestroy;
@@ -43,7 +27,6 @@ import org.slf4j.Logger;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -71,7 +54,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     GitManager gitManager;
 
     @ConfigProperty(name = "apicurio.storage.kind")
-    @Info(category = "storage", description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0.Final")
+    @Info(category = "storage", description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0")
     String registryStorageType;
 
     // Fair lock, so we ensure the writer does not wait indefinitely under high throughput.
@@ -288,7 +271,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
-    public List<String> getArtifactVersions(String groupId, String artifactId, RetrievalBehavior behavior) {
+    public List<String> getArtifactVersions(String groupId, String artifactId, Set<VersionState> behavior) {
         return proxy(storage -> storage.getArtifactVersions(groupId, artifactId, behavior));
     }
 
@@ -392,6 +375,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
+    public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
+        return proxy(storage -> storage.getContentByReference(reference));
+    }
+
+    @Override
     public boolean isContentExists(String contentHash) {
         return proxy(storage -> storage.isContentExists(contentHash));
     }
@@ -409,11 +397,6 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Override
     public boolean isRoleMappingExists(String principalId) {
         return proxy(storage -> storage.isRoleMappingExists(principalId));
-    }
-
-    @Override
-    public Map<String, TypedContent> resolveReferences(List<ArtifactReferenceDto> references) {
-        return proxy(storage -> storage.resolveReferences(references));
     }
 
     @Override
@@ -472,6 +455,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
+    public VersionState getArtifactVersionState(String groupId, String artifactId, String version) {
+        return proxy(storage -> storage.getArtifactVersionState(groupId, artifactId, version));
+    }
+
+    @Override
     public DynamicConfigPropertyDto getConfigProperty(String propertyName) {
         return proxy(storage -> storage.getConfigProperty(propertyName));
     }
@@ -497,7 +485,7 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
-    public GAV getBranchTip(GA ga, BranchId branchId, RetrievalBehavior behavior) {
+    public GAV getBranchTip(GA ga, BranchId branchId, Set<VersionState> behavior) {
         return proxy(storage -> storage.getBranchTip(ga, branchId, behavior));
     }
 
@@ -509,5 +497,15 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Override
     public String createSnapshot(String snapshotLocation) throws RegistryStorageException {
         return proxy((storage -> storage.createSnapshot(snapshotLocation)));
+    }
+
+    @Override
+    public String createEvent(OutboxEvent event) {
+        return proxy((storage -> storage.createEvent(event)));
+    }
+
+    @Override
+    public boolean supportsDatabaseEvents() {
+        return proxy((RegistryStorage::supportsDatabaseEvents));
     }
 }

@@ -25,6 +25,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.Current;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -86,6 +87,9 @@ public class SearchResourceImpl implements SearchResource {
         if (!StringUtil.isEmpty(groupId)) {
             filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
         }
+        if (!StringUtil.isEmpty(artifactId)) {
+            filters.add(SearchFilter.ofArtifactId(artifactId));
+        }
 
         if (labels != null && !labels.isEmpty()) {
             labels.stream().map(prop -> {
@@ -94,11 +98,11 @@ public class SearchResourceImpl implements SearchResource {
                 String labelValue;
                 if (delimiterIndex == 0) {
                     throw new BadRequestException(
-                            "label search filter wrong formatted, missing left side of ':' delimiter");
+                            "label search filter wrong format, missing left side of ':' delimiter");
                 }
                 if (delimiterIndex == (prop.length() - 1)) {
                     throw new BadRequestException(
-                            "label search filter wrong formatted, missing right side of ':' delimiter");
+                            "label search filter wrong format, missing right side of ':' delimiter");
                 }
                 if (delimiterIndex < 0) {
                     labelKey = prop;
@@ -172,6 +176,7 @@ public class SearchResourceImpl implements SearchResource {
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public GroupSearchResults searchGroups(BigInteger offset, BigInteger limit, SortOrder order,
             GroupSortBy orderby, List<String> labels, String description, String groupId) {
         if (orderby == null) {
@@ -226,9 +231,10 @@ public class SearchResourceImpl implements SearchResource {
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public VersionSearchResults searchVersions(String version, BigInteger offset, BigInteger limit,
             SortOrder order, VersionSortBy orderby, List<String> labels, String description, String groupId,
-            Long globalId, Long contentId, String artifactId, String name) {
+            Long globalId, Long contentId, String artifactId, String name, VersionState state) {
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
         }
@@ -253,7 +259,6 @@ public class SearchResourceImpl implements SearchResource {
         if (!StringUtil.isEmpty(version)) {
             filters.add(SearchFilter.ofVersion(version));
         }
-
         if (!StringUtil.isEmpty(name)) {
             filters.add(SearchFilter.ofName(name));
         }
@@ -289,6 +294,9 @@ public class SearchResourceImpl implements SearchResource {
         if (contentId != null && contentId > 0) {
             filters.add(SearchFilter.ofContentId(contentId));
         }
+        if (state != null) {
+            filters.add(SearchFilter.ofState(state));
+        }
 
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
@@ -296,6 +304,7 @@ public class SearchResourceImpl implements SearchResource {
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public VersionSearchResults searchVersionsByContent(Boolean canonical, String artifactType,
             BigInteger offset, BigInteger limit, SortOrder order, VersionSortBy orderby, String groupId,
             String artifactId, InputStream data) {

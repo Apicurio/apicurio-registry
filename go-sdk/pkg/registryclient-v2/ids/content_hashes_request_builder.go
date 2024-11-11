@@ -9,7 +9,8 @@ type ContentHashesRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
-// ByContentHash access artifact content utilizing the SHA-256 hash of the content.
+// ByContentHash gets an item from the github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v2.ids.contentHashes.item collection
+// returns a *ContentHashesWithContentHashItemRequestBuilder when successful
 func (m *ContentHashesRequestBuilder) ByContentHash(contentHash string) *ContentHashesWithContentHashItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {
@@ -34,4 +35,10 @@ func NewContentHashesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
 	return NewContentHashesRequestBuilderInternal(urlParams, requestAdapter)
+}
+
+// WithContentHash access artifact content utilizing the SHA-256 hash of the content.
+// returns a *ContentHashesItemWithContentHashRequestBuilder when successful
+func (m *ContentHashesRequestBuilder) WithContentHash(contentHash *string) *ContentHashesItemWithContentHashRequestBuilder {
+	return NewContentHashesItemWithContentHashRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter, contentHash)
 }

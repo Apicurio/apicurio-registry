@@ -90,6 +90,12 @@ public interface SqlStatements {
     public String insertVersion(boolean firstVersion);
 
     /**
+     * A statement used when updating artifact version content. Updates the versions table with a new
+     * contentId, modifiedBy, and modifiedOn.
+     */
+    public String updateArtifactVersionContent();
+
+    /**
      * A statement used to select a single row in the versions table by globalId.
      */
     public String selectArtifactVersionMetaDataByGlobalId();
@@ -122,7 +128,7 @@ public interface SqlStatements {
     /**
      * A statement used to select non-disabled version numbers (only) for a given artifactId.
      */
-    public String selectArtifactVersionsNotDisabled();
+    public String selectArtifactVersionsFilteredByState();
 
     /**
      * A statement used to select all versions for a given artifactId.
@@ -219,6 +225,11 @@ public interface SqlStatements {
      * A statement to update the modified by and modified on for an artifact.
      */
     public String updateArtifactModifiedByOn();
+
+    /**
+     * A statement to update the modified by and modified on for an artifact version.
+     */
+    public String updateArtifactVersionModifiedByOn();
 
     /**
      * A statement to update a single artifact owner.
@@ -439,6 +450,16 @@ public interface SqlStatements {
      */
     public String selectGroupByGroupId();
 
+    /**
+     * A statement used to select the state of a version.
+     */
+    public String selectArtifactVersionState();
+
+    /**
+     * A statement used to select the state of a version.
+     */
+    public String selectArtifactVersionStateForUpdate();
+
     /*
      * The next few statements support globalId and contentId management.
      */
@@ -601,7 +622,7 @@ public interface SqlStatements {
 
     public String selectBranchTip();
 
-    public String selectBranchTipNotDisabled();
+    public String selectBranchTipFilteredByState();
 
     public String updateBranchModifiedTime();
 
@@ -613,10 +634,26 @@ public interface SqlStatements {
 
     public String deleteBranch();
 
+    public String deleteAllBranchVersions();
+
     public String deleteAllBranches();
+
+    public String deleteVersionFromBranch();
+
+    // ========== Snapshots ==========
 
     public String createDataSnapshot();
 
     public String restoreFromSnapshot();
 
+    // ========== Events ==========
+
+    public String createOutboxEvent();
+
+    public String deleteOutboxEvent();
+
+    String selectCountTableTemplate(String countBy, String tableName, String alias, String whereClause);
+
+    String selectTableTemplate(String columns, String tableName, String alias, String whereClause,
+            String orderBy);
 }

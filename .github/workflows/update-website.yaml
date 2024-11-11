@@ -7,7 +7,7 @@ on:
 jobs:
   update-website:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
 
       - name: Apicurio Website Checkout
@@ -42,6 +42,7 @@ jobs:
           cd website
           git add .
           git commit -m "Automated Update For Apicurio Registry Release Version: ${{ env.RELEASE_VERSION }}"
+          git pull origin main
           git push
 
       - name: Google Chat Notification

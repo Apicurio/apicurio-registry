@@ -16,6 +16,7 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.VersionState;
@@ -47,7 +48,11 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public Response getContentById(long contentId) {
-        ContentHandle content = storage.getContentById(contentId).getContent();
+        ContentWrapperDto dto = storage.getContentById(contentId);
+        if (dto.getContentHash() != null && dto.getContentHash().startsWith("draft:")) {
+            throw new ContentNotFoundException(contentId);
+        }
+        ContentHandle content = dto.getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
         return builder.build();
     }
@@ -58,9 +63,11 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    public Response getContentByGlobalId(long globalId, HandleReferencesType references) {
+    public Response getContentByGlobalId(long globalId, HandleReferencesType references,
+            Boolean returnArtifactType) {
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
-        if (VersionState.DISABLED.equals(metaData.getState())) {
+        if (VersionState.DISABLED.equals(metaData.getState())
+                || VersionState.DRAFT.equals(metaData.getState())) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
 
@@ -76,6 +83,9 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
         Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(),
                 contentToReturn.getContentType());
+        if (returnArtifactType != null && returnArtifactType) {
+            builder.header("X-Registry-ArtifactType", metaData.getArtifactType());
+        }
         checkIfDeprecated(metaData::getState, metaData.getArtifactId(), metaData.getVersion(), builder);
         return builder.build();
     }

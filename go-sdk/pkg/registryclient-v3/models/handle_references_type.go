@@ -1,9 +1,5 @@
 package models
 
-import (
-	"errors"
-)
-
 // How to handle references when retrieving content.  References can either beleft unchanged (`PRESERVE`), re-written so they are valid in the context of theregistry (`REWRITE`), or fully dereferenced such that all externally referencedcontent is internalized (`DEREFERENCE`).
 type HandleReferencesType int
 
@@ -26,7 +22,7 @@ func ParseHandleReferencesType(v string) (any, error) {
 	case "REWRITE":
 		result = REWRITE_HANDLEREFERENCESTYPE
 	default:
-		return 0, errors.New("Unknown HandleReferencesType value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

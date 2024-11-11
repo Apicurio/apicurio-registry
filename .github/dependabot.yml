@@ -25,6 +25,10 @@ updates:
     directory: "/python-sdk"
     schedule:
       interval: daily
+  - package-ecosystem: nuget
+    directory: "/go-sdk"
+    schedule:
+      interval: daily
 
   - package-ecosystem: maven
     directory: "/"
@@ -57,9 +61,16 @@ updates:
           - "*"
         exclude-patterns:
           - "eslint"
+          - "@patternfly/*"
       eslint:
         patterns:
           - "eslint"
+        update-types:
+          - "patch"
+          - "minor"
+      patternfly:
+        patterns:
+          - "@patternfly/*"
         update-types:
           - "patch"
           - "minor"

@@ -36,6 +36,7 @@ type ItemRulesRequestBuilderPostRequestConfiguration struct {
 }
 
 // ByRuleType manage the configuration of a single group rule.
+// returns a *ItemRulesWithRuleTypeItemRequestBuilder when successful
 func (m *ItemRulesRequestBuilder) ByRuleType(ruleType string) *ItemRulesWithRuleTypeItemRequestBuilder {
 	urlTplParams := make(map[string]string)
 	for idx, item := range m.BaseRequestBuilder.PathParameters {
@@ -47,7 +48,7 @@ func (m *ItemRulesRequestBuilder) ByRuleType(ruleType string) *ItemRulesWithRule
 	return NewItemRulesWithRuleTypeItemRequestBuilderInternal(urlTplParams, m.BaseRequestBuilder.RequestAdapter)
 }
 
-// NewItemRulesRequestBuilderInternal instantiates a new RulesRequestBuilder and sets the default values.
+// NewItemRulesRequestBuilderInternal instantiates a new ItemRulesRequestBuilder and sets the default values.
 func NewItemRulesRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemRulesRequestBuilder {
 	m := &ItemRulesRequestBuilder{
 		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/rules", pathParameters),
@@ -55,7 +56,7 @@ func NewItemRulesRequestBuilderInternal(pathParameters map[string]string, reques
 	return m
 }
 
-// NewItemRulesRequestBuilder instantiates a new RulesRequestBuilder and sets the default values.
+// NewItemRulesRequestBuilder instantiates a new ItemRulesRequestBuilder and sets the default values.
 func NewItemRulesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemRulesRequestBuilder {
 	urlParams := make(map[string]string)
 	urlParams["request-raw-url"] = rawUrl
@@ -63,6 +64,8 @@ func NewItemRulesRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee2633
 }
 
 // Delete deletes all of the rules configured for the group.  After this is done, the globalrules apply to artifacts in the group again.This operation can fail for the following reasons:* No group with this `groupId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a ProblemDetails error when the service returns a 404 status code
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemRulesRequestBuilder) Delete(ctx context.Context, requestConfiguration *ItemRulesRequestBuilderDeleteRequestConfiguration) error {
 	requestInfo, err := m.ToDeleteRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -80,6 +83,9 @@ func (m *ItemRulesRequestBuilder) Delete(ctx context.Context, requestConfigurati
 }
 
 // Get returns a list of all rules configured for the group.  The set of rules determineshow the content of an artifact in the group can evolve over time.  If no rules are configured for a group, the set of globally configured rules are used.This operation can fail for the following reasons:* No group with this `groupId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a []RuleType when successful
+// returns a ProblemDetails error when the service returns a 404 status code
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemRulesRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemRulesRequestBuilderGetRequestConfiguration) ([]i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.RuleType, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -103,6 +109,10 @@ func (m *ItemRulesRequestBuilder) Get(ctx context.Context, requestConfiguration 
 }
 
 // Post adds a rule to the list of rules that get applied to an artifact in the group when adding newversions.  All configured rules must pass to successfully add a new artifact version.This operation can fail for the following reasons:* No group with this `groupId` exists (HTTP error `404`)* Rule (named in the request body) is unknown (HTTP error `400`)* Rule is already configured (HTTP error `409`)* A server error occurred (HTTP error `500`)
+// returns a ProblemDetails error when the service returns a 400 status code
+// returns a ProblemDetails error when the service returns a 404 status code
+// returns a ProblemDetails error when the service returns a 409 status code
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemRulesRequestBuilder) Post(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateRuleable, requestConfiguration *ItemRulesRequestBuilderPostRequestConfiguration) error {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
 	if err != nil {
@@ -122,6 +132,7 @@ func (m *ItemRulesRequestBuilder) Post(ctx context.Context, body i00eb2e63d15692
 }
 
 // ToDeleteRequestInformation deletes all of the rules configured for the group.  After this is done, the globalrules apply to artifacts in the group again.This operation can fail for the following reasons:* No group with this `groupId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemRulesRequestBuilder) ToDeleteRequestInformation(ctx context.Context, requestConfiguration *ItemRulesRequestBuilderDeleteRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.DELETE, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -133,6 +144,7 @@ func (m *ItemRulesRequestBuilder) ToDeleteRequestInformation(ctx context.Context
 }
 
 // ToGetRequestInformation returns a list of all rules configured for the group.  The set of rules determineshow the content of an artifact in the group can evolve over time.  If no rules are configured for a group, the set of globally configured rules are used.This operation can fail for the following reasons:* No group with this `groupId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemRulesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemRulesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -144,6 +156,7 @@ func (m *ItemRulesRequestBuilder) ToGetRequestInformation(ctx context.Context, r
 }
 
 // ToPostRequestInformation adds a rule to the list of rules that get applied to an artifact in the group when adding newversions.  All configured rules must pass to successfully add a new artifact version.This operation can fail for the following reasons:* No group with this `groupId` exists (HTTP error `404`)* Rule (named in the request body) is unknown (HTTP error `400`)* Rule is already configured (HTTP error `409`)* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *ItemRulesRequestBuilder) ToPostRequestInformation(ctx context.Context, body i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateRuleable, requestConfiguration *ItemRulesRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -159,6 +172,7 @@ func (m *ItemRulesRequestBuilder) ToPostRequestInformation(ctx context.Context, 
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *ItemRulesRequestBuilder when successful
 func (m *ItemRulesRequestBuilder) WithUrl(rawUrl string) *ItemRulesRequestBuilder {
 	return NewItemRulesRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

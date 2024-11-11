@@ -78,4 +78,13 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     public String restoreFromSnapshot() {
         throw new IllegalStateException("Restoring from snapshot is not supported for Postgresql storage");
     }
+
+    @Override
+    public String createOutboxEvent() {
+        return """
+                INSERT INTO outbox (id, aggregatetype, aggregateid, type, payload)
+                VALUES (?, ?, ?, ?, ?::jsonb)
+                """;
+    }
+
 }

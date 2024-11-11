@@ -17,11 +17,6 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.1.4.Final`
 |Include stack trace in errors responses
-|`apicurio.apis.v2.base-href`
-|`string`
-|`_`
-|`2.5.0.Final`
-|API base href (URI)
 |`apicurio.apis.v3.base-href`
 |`string`
 |`_`
@@ -76,7 +71,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.auth.admin-override.user`
 |`string`
 |`admin`
-|`3.0.0.Final`
+|`3.0.0`
 |Auth admin override user name
 |`apicurio.auth.anonymous-read-access.enabled`
 |`boolean [dynamic]`
@@ -535,17 +530,17 @@ The following {registry} configuration options are available for each component 
 |`apicurio.rest.artifact.download.max-size.bytes`
 |`int`
 |`1000000`
-|`2.2.6-SNAPSHOT`
+|`2.2.6`
 |Max size of the artifact allowed to be downloaded from URL
 |`apicurio.rest.artifact.download.ssl-validation.disabled`
 |`boolean`
 |`false`
-|`2.2.6-SNAPSHOT`
+|`2.2.6`
 |Skip SSL validation when downloading artifacts from URL
 |`apicurio.rest.deletion.artifact-version.enabled`
 |`boolean [dynamic]`
 |`false`
-|`2.4.2-SNAPSHOT`
+|`2.4.2`
 |Enables artifact version deletion
 |`apicurio.rest.deletion.artifact.enabled`
 |`boolean [dynamic]`
@@ -557,6 +552,16 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.0`
 |Enables group deletion
+|`apicurio.rest.mutability.artifact-version-content.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.2`
+|Enables artifact version mutability
+|`apicurio.rest.search-results.labels.max-size.bytes`
+|`int`
+|`512`
+|`3.0.3`
+|Max size of the labels (in bytes) per item from within search results
 |===
 
 == semver
@@ -597,103 +602,108 @@ The following {registry} configuration options are available for each component 
 |`apicurio.datasource.blue.db-kind`
 |`string`
 |`h2`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops blue datasource db kind
 |`apicurio.datasource.blue.jdbc.initial-size`
 |`string`
 |`20`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops blue datasource pool initial size
 |`apicurio.datasource.blue.jdbc.max-size`
 |`string`
 |`100`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops blue datasource pool max size
 |`apicurio.datasource.blue.jdbc.min-size`
 |`string`
 |`20`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops blue datasource pool minimum size
 |`apicurio.datasource.blue.jdbc.url`
 |`string`
 |`jdbc:h2:mem:registry_db`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops blue datasource jdbc url
 |`apicurio.datasource.blue.password`
 |`string`
 |`sa`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops blue datasource password
 |`apicurio.datasource.blue.username`
 |`string`
 |`sa`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops blue datasource username
 |`apicurio.datasource.green.db-kind`
 |`string`
 |`h2`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops green datasource db kind
 |`apicurio.datasource.green.jdbc.initial-size`
 |`string`
 |`20`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops green datasource pool initial size
 |`apicurio.datasource.green.jdbc.max-size`
 |`string`
 |`100`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops green datasource pool max size
 |`apicurio.datasource.green.jdbc.min-size`
 |`string`
 |`20`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops green datasource pool minimum size
 |`apicurio.datasource.green.jdbc.url`
 |`string`
 |`jdbc:h2:mem:registry_db`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops green datasource jdbc url
 |`apicurio.datasource.green.password`
 |`string`
 |`sa`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops green datasource password
 |`apicurio.datasource.green.username`
 |`string`
 |`sa`
-|`3.0.0.Final`
+|`3.0.0`
 |Gitops green datasource username
 |`apicurio.datasource.jdbc.initial-size`
 |`string`
 |`20`
-|`3.0.0.Final`
+|`3.0.0`
 |Application datasource pool initial size
 |`apicurio.datasource.jdbc.max-size`
 |`string`
 |`100`
-|`3.0.0.Final`
+|`3.0.0`
 |Application datasource pool maximum size
 |`apicurio.datasource.jdbc.min-size`
 |`string`
 |`20`
-|`3.0.0.Final`
+|`3.0.0`
 |Application datasource pool minimum size
 |`apicurio.datasource.password`
 |`string`
 |`sa`
-|`3.0.0.Final`
+|`3.0.0`
 |Application datasource password
 |`apicurio.datasource.url`
 |`string`
 |`jdbc:h2:mem:registry_db`
-|`3.0.0.Final`
+|`3.0.0`
 |Application datasource jdbc url
 |`apicurio.datasource.username`
 |`string`
 |`sa`
-|`3.0.0.Final`
+|`3.0.0`
 |Application datasource username
+|`apicurio.events.kafka.topic`
+|`string`
+|`registry-events`
+|
+|Storage event topic
 |`apicurio.kafkasql.bootstrap.servers`
 |`string`
 |
@@ -757,12 +767,12 @@ The following {registry} configuration options are available for each component 
 |`apicurio.kafkasql.snapshot.every.seconds`
 |`string`
 |`86400s`
-|
+|`3.0.0`
 |Kafka sql journal topic snapshot every
 |`apicurio.kafkasql.snapshots.topic`
 |`string`
 |`kafkasql-snapshots`
-|
+|`3.0.0`
 |Kafka sql storage topic name
 |`apicurio.kafkasql.ssl.key.password`
 |`optional<string>`
@@ -807,7 +817,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.storage.kind`
 |`string`
 |
-|`3.0.0.Final`
+|`3.0.0`
 |Application storage variant, for example, sql, kafkasql, or gitops
 |`apicurio.storage.read-only.enabled`
 |`boolean [dynamic]`
@@ -817,17 +827,17 @@ The following {registry} configuration options are available for each component 
 |`apicurio.storage.snapshot.location`
 |`string`
 |`./`
-|
+|`3.0.0`
 |Kafka sql snapshots store location
 |`apicurio.storage.sql.kind`
 |`string`
 |`h2`
-|`3.0.0.Final`
+|`3.0.0`
 |Application datasource database type
 |`artifacts.skip.disabled.latest`
 |`boolean`
 |`true`
-|`2.4.2-SNAPSHOT`
+|`2.4.2`
 |Skip artifact versions with DISABLED state when retrieving latest artifact version
 |===
 

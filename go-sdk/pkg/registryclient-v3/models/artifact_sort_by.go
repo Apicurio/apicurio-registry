@@ -1,13 +1,10 @@
 package models
 
-import (
-	"errors"
-)
-
 type ArtifactSortBy int
 
 const (
-	ARTIFACTID_ARTIFACTSORTBY ArtifactSortBy = iota
+	GROUPID_ARTIFACTSORTBY ArtifactSortBy = iota
+	ARTIFACTID_ARTIFACTSORTBY
 	CREATEDON_ARTIFACTSORTBY
 	MODIFIEDON_ARTIFACTSORTBY
 	ARTIFACTTYPE_ARTIFACTSORTBY
@@ -15,11 +12,13 @@ const (
 )
 
 func (i ArtifactSortBy) String() string {
-	return []string{"artifactId", "createdOn", "modifiedOn", "artifactType", "name"}[i]
+	return []string{"groupId", "artifactId", "createdOn", "modifiedOn", "artifactType", "name"}[i]
 }
 func ParseArtifactSortBy(v string) (any, error) {
-	result := ARTIFACTID_ARTIFACTSORTBY
+	result := GROUPID_ARTIFACTSORTBY
 	switch v {
+	case "groupId":
+		result = GROUPID_ARTIFACTSORTBY
 	case "artifactId":
 		result = ARTIFACTID_ARTIFACTSORTBY
 	case "createdOn":
@@ -31,7 +30,7 @@ func ParseArtifactSortBy(v string) (any, error) {
 	case "name":
 		result = NAME_ARTIFACTSORTBY
 	default:
-		return 0, errors.New("Unknown ArtifactSortBy value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

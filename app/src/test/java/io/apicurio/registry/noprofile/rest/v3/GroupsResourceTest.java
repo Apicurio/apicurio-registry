@@ -3,19 +3,20 @@ package io.apicurio.registry.noprofile.rest.v3;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
-import io.apicurio.registry.rest.v3.beans.EditableVersionMetaData;
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
 import io.apicurio.registry.rest.v3.beans.NewComment;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
+import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
 import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
-import io.apicurio.registry.storage.impl.sql.SqlUtil;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
@@ -201,6 +202,10 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact(group2, "testMultipleGroups/EmptyAPI/2", ArtifactType.OPENAPI, jsonArtifactContent,
                 ContentTypes.APPLICATION_JSON);
 
+        // Get the list of groups - should have AT LEAST 2
+        GroupSearchResults results = clientV3.groups().get();
+        Assertions.assertTrue(results.getCount() >= 2);
+
         // Get group 1 metadata
         given().when().pathParam("groupId", group1).get("/registry/v3/groups/{groupId}").then()
                 .statusCode(200).body("groupId", equalTo("testMultipleGroups_1"));
@@ -368,7 +373,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/MissingAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
                 .statusCode(404).body("status", equalTo(404)).body("title", equalTo(
-                        "No version '<tip of the branch 'latest' that does not have disabled status>' found for artifact with ID 'testGetArtifact/MissingAPI' in group 'GroupsResourceTest'."));
+                        "No version '<tip of the branch 'latest'>' found for artifact with ID 'testGetArtifact/MissingAPI' in group 'GroupsResourceTest'."));
     }
 
     @Test
@@ -446,56 +451,24 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createArtifact("testUpdateVersionState", "testUpdateVersionState/EmptyAPI/1", ArtifactType.OPENAPI,
                 oaiArtifactContent, ContentTypes.APPLICATION_JSON);
 
-        EditableVersionMetaData body = new EditableVersionMetaData();
-        body.setState(VersionState.DEPRECATED);
+        WrappedVersionState newState = WrappedVersionState.builder().state(VersionState.DEPRECATED).build();
 
         // Update the artifact state to DEPRECATED.
         given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateVersionState")
-                .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1").body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
-                .statusCode(204);
+                .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1").body(newState)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/state")
+                .then().statusCode(204);
 
         // Update the artifact state to DEPRECATED again.
         given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateVersionState")
-                .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1").body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
-                .statusCode(204);
+                .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1").body(newState)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/state")
+                .then().statusCode(204);
 
         // Send a GET request to check if the artifact state is DEPRECATED.
         given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateVersionState")
                 .pathParam("artifactId", "testUpdateVersionState/EmptyAPI/1")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
-                .then().statusCode(200).header("X-Registry-Deprecated", "true");
-    }
-
-    @Test
-    public void testUpdateArtifactVersionState() throws Exception {
-        String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateArtifactVersionState", "testUpdateArtifactVersionState/EmptyAPI",
-                ArtifactType.OPENAPI, oaiArtifactContent, ContentTypes.APPLICATION_JSON);
-
-        EditableVersionMetaData body = new EditableVersionMetaData();
-        body.setState(VersionState.DEPRECATED);
-
-        // Update the artifact state to DEPRECATED.
-        given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateArtifactVersionState")
-                .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
-                .pathParam("versionId", "1").body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}").then()
-                .statusCode(204);
-
-        // Update the artifact state to DEPRECATED again.
-        given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateArtifactVersionState")
-                .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
-                .pathParam("versionId", "1").body(body)
-                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}").then()
-                .statusCode(204);
-
-        // Send a GET request to check if the artifact state is DEPRECATED.
-        given().when().contentType(CT_JSON).pathParam("groupId", "testUpdateArtifactVersionState")
-                .pathParam("artifactId", "testUpdateArtifactVersionState/EmptyAPI")
-                .pathParam("versionId", "1")
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionId}/content")
                 .then().statusCode(200).header("X-Registry-Deprecated", "true");
     }
 
@@ -1613,7 +1586,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .extract().as(new TypeRef<List<ArtifactReference>>() {
                 });
 
-        final String referencesSerialized = SqlUtil.serializeReferences(toReferenceDtos(references));
+        final String referencesSerialized = RegistryContentUtils
+                .serializeReferences(toReferenceDtos(references));
 
         // We calculate the hash using the content itself and the references
         String contentHash = DigestUtils
@@ -1804,10 +1778,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(reference));
         CreateVersion f_createVersion = createVersion;
 
-        var exception_1 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
-            clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
-                    .post(f_createVersion);
-        });
+        var exception_1 = assertThrows(
+                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
+                    clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                            .post(f_createVersion);
+                });
         Assertions.assertEquals(409, exception_1.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_1.getName());
 
@@ -1830,10 +1805,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(validRef, invalidRef));
         CreateVersion f_createVersion2 = createVersion;
 
-        var exception_2 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
-            clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
-                    .post(f_createVersion2);
-        });
+        var exception_2 = assertThrows(
+                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
+                    clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                            .post(f_createVersion2);
+                });
         Assertions.assertEquals(409, exception_2.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_2.getName());
 
@@ -1843,10 +1819,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         createVersion.getContent().setReferences(List.of(validRef, validRef));
         CreateVersion f_createVersion3 = createVersion;
 
-        var exception_3 = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
-            clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
-                    .post(f_createVersion3);
-        });
+        var exception_3 = assertThrows(
+                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
+                    clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                            .post(f_createVersion3);
+                });
         Assertions.assertEquals(409, exception_3.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_3.getName());
     }
@@ -1890,8 +1867,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .queryParam("references", "DEREFERENCE")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200).body("openapi", equalTo("3.0.2"))
-                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref",
-                        equalTo("#/components/schemas/Widget"));
+                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo(
+                        "GroupsResourceTest:testGetArtifactVersionWithReferences/ReferencedTypes:1:./referenced-types.json#/components/schemas/Widget"));
     }
 
 }

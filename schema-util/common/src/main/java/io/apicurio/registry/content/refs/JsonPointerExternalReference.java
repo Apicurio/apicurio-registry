@@ -2,6 +2,16 @@ package io.apicurio.registry.content.refs;
 
 public class JsonPointerExternalReference extends ExternalReference {
 
+    private static String toFullReference(String resource, String component) {
+        if (resource == null) {
+            return component;
+        }
+        if (component == null) {
+            return resource;
+        }
+        return resource + component;
+    }
+
     /**
      * Constructor.
      * 
@@ -9,6 +19,10 @@ public class JsonPointerExternalReference extends ExternalReference {
      */
     public JsonPointerExternalReference(String jsonPointer) {
         super(jsonPointer, resourceFrom(jsonPointer), componentFrom(jsonPointer));
+    }
+
+    public JsonPointerExternalReference(String resource, String component) {
+        super(toFullReference(resource, component), resource, component);
     }
 
     private static String componentFrom(String jsonPointer) {

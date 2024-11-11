@@ -4,7 +4,6 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
-// UserInterfaceConfigFeatures
 type UserInterfaceConfigFeatures struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
@@ -16,6 +15,8 @@ type UserInterfaceConfigFeatures struct {
 	deleteGroup *bool
 	// The deleteVersion property
 	deleteVersion *bool
+	// The draftMutability property
+	draftMutability *bool
 	// The readOnly property
 	readOnly *bool
 	// The roleManagement property
@@ -32,36 +33,49 @@ func NewUserInterfaceConfigFeatures() *UserInterfaceConfigFeatures {
 }
 
 // CreateUserInterfaceConfigFeaturesFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
+// returns a Parsable when successful
 func CreateUserInterfaceConfigFeaturesFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
 	return NewUserInterfaceConfigFeatures(), nil
 }
 
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+// returns a map[string]any when successful
 func (m *UserInterfaceConfigFeatures) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
 // GetBreadcrumbs gets the breadcrumbs property value. The breadcrumbs property
+// returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetBreadcrumbs() *bool {
 	return m.breadcrumbs
 }
 
 // GetDeleteArtifact gets the deleteArtifact property value. The deleteArtifact property
+// returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetDeleteArtifact() *bool {
 	return m.deleteArtifact
 }
 
 // GetDeleteGroup gets the deleteGroup property value. The deleteGroup property
+// returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetDeleteGroup() *bool {
 	return m.deleteGroup
 }
 
 // GetDeleteVersion gets the deleteVersion property value. The deleteVersion property
+// returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetDeleteVersion() *bool {
 	return m.deleteVersion
 }
 
+// GetDraftMutability gets the draftMutability property value. The draftMutability property
+// returns a *bool when successful
+func (m *UserInterfaceConfigFeatures) GetDraftMutability() *bool {
+	return m.draftMutability
+}
+
 // GetFieldDeserializers the deserialization information for the current model
+// returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
 	res["breadcrumbs"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -104,6 +118,16 @@ func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i8
 		}
 		return nil
 	}
+	res["draftMutability"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetDraftMutability(val)
+		}
+		return nil
+	}
 	res["readOnly"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetBoolValue()
 		if err != nil {
@@ -138,16 +162,19 @@ func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i8
 }
 
 // GetReadOnly gets the readOnly property value. The readOnly property
+// returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetReadOnly() *bool {
 	return m.readOnly
 }
 
 // GetRoleManagement gets the roleManagement property value. The roleManagement property
+// returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetRoleManagement() *bool {
 	return m.roleManagement
 }
 
 // GetSettings gets the settings property value. The settings property
+// returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetSettings() *bool {
 	return m.settings
 }
@@ -174,6 +201,12 @@ func (m *UserInterfaceConfigFeatures) Serialize(writer i878a80d2330e89d26896388a
 	}
 	{
 		err := writer.WriteBoolValue("deleteVersion", m.GetDeleteVersion())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteBoolValue("draftMutability", m.GetDraftMutability())
 		if err != nil {
 			return err
 		}
@@ -230,6 +263,11 @@ func (m *UserInterfaceConfigFeatures) SetDeleteVersion(value *bool) {
 	m.deleteVersion = value
 }
 
+// SetDraftMutability sets the draftMutability property value. The draftMutability property
+func (m *UserInterfaceConfigFeatures) SetDraftMutability(value *bool) {
+	m.draftMutability = value
+}
+
 // SetReadOnly sets the readOnly property value. The readOnly property
 func (m *UserInterfaceConfigFeatures) SetReadOnly(value *bool) {
 	m.readOnly = value
@@ -245,7 +283,6 @@ func (m *UserInterfaceConfigFeatures) SetSettings(value *bool) {
 	m.settings = value
 }
 
-// UserInterfaceConfigFeaturesable
 type UserInterfaceConfigFeaturesable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
@@ -253,6 +290,7 @@ type UserInterfaceConfigFeaturesable interface {
 	GetDeleteArtifact() *bool
 	GetDeleteGroup() *bool
 	GetDeleteVersion() *bool
+	GetDraftMutability() *bool
 	GetReadOnly() *bool
 	GetRoleManagement() *bool
 	GetSettings() *bool
@@ -260,6 +298,7 @@ type UserInterfaceConfigFeaturesable interface {
 	SetDeleteArtifact(value *bool)
 	SetDeleteGroup(value *bool)
 	SetDeleteVersion(value *bool)
+	SetDraftMutability(value *bool)
 	SetReadOnly(value *bool)
 	SetRoleManagement(value *bool)
 	SetSettings(value *bool)

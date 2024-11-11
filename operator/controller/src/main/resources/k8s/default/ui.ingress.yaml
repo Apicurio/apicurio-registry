@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: { }
+spec:
+  rules:
+    - host: placeholder-ui.cluster.example
+      http:
+        paths:
+          - backend:
+              service:
+                name: PLACEHOLDER_SERVICE_NAME
+                port:
+                  name: http
+            path: /
+            pathType: Prefix

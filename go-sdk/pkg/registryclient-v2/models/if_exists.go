@@ -1,15 +1,11 @@
 package models
 
-import (
-	"errors"
-)
-
 type IfExists int
 
 const (
 	FAIL_IFEXISTS IfExists = iota
 	UPDATE_IFEXISTS
-	RETURNESCAPED_IFEXISTS
+	RETURN_IFEXISTS
 	RETURN_OR_UPDATE_IFEXISTS
 )
 
@@ -24,11 +20,11 @@ func ParseIfExists(v string) (any, error) {
 	case "UPDATE":
 		result = UPDATE_IFEXISTS
 	case "RETURN":
-		result = RETURNESCAPED_IFEXISTS
+		result = RETURN_IFEXISTS
 	case "RETURN_OR_UPDATE":
 		result = RETURN_OR_UPDATE_IFEXISTS
 	default:
-		return 0, errors.New("Unknown IfExists value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.1-SNAPSHOT</version>
+    <version>3.0.4-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -71,9 +71,9 @@
               <headerLocation>../../.checkstyle/java.header</headerLocation>
               <suppressionsLocation>../../.checkstyle/suppressions.xml</suppressionsLocation>
               <includeTestSourceDirectory>true</includeTestSourceDirectory>
-              <encoding>UTF-8</encoding>
               <consoleOutput>true</consoleOutput>
               <failsOnError>true</failsOnError>
+              <inputEncoding>UTF-8</inputEncoding>
             </configuration>
           </execution>
         </executions>

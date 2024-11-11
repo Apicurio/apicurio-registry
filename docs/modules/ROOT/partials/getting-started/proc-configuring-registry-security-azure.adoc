@@ -48,7 +48,7 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |`QUARKUS_OIDC_CLIENT_ID`
 |The client application ID for the {registry} REST API
 |Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
-|`APICURIO_OIDC_UI_CLIENT_ID`
+|`APICURIO_UI_AUTH_OIDC_CLIENT_ID`
 |The client application ID for the {registry} web console.
 |Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
 |`QUARKUS_OIDC_AUTH_SERVER_URL`
@@ -73,7 +73,7 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |`QUARKUS_HTTP_CORS_ORIGINS`
 |The host for your {registry} deployment for cross-origin resource sharing (CORS).
 |For example: `\https://test-registry.com`
-|`APICURIO_OIDC_UI_REDIRECT_URL`
+|`APICURIO_UI_AUTH_OIDC_REDIRECT_URI`
 |The host for your {registry} web console.
 |For example: `\https://test-registry.com/ui`
 |`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`

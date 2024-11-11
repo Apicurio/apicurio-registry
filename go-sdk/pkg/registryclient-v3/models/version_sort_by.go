@@ -1,13 +1,11 @@
 package models
 
-import (
-	"errors"
-)
-
 type VersionSortBy int
 
 const (
-	VERSION_VERSIONSORTBY VersionSortBy = iota
+	GROUPID_VERSIONSORTBY VersionSortBy = iota
+	ARTIFACTID_VERSIONSORTBY
+	VERSION_VERSIONSORTBY
 	NAME_VERSIONSORTBY
 	CREATEDON_VERSIONSORTBY
 	MODIFIEDON_VERSIONSORTBY
@@ -15,11 +13,15 @@ const (
 )
 
 func (i VersionSortBy) String() string {
-	return []string{"version", "name", "createdOn", "modifiedOn", "globalId"}[i]
+	return []string{"groupId", "artifactId", "version", "name", "createdOn", "modifiedOn", "globalId"}[i]
 }
 func ParseVersionSortBy(v string) (any, error) {
-	result := VERSION_VERSIONSORTBY
+	result := GROUPID_VERSIONSORTBY
 	switch v {
+	case "groupId":
+		result = GROUPID_VERSIONSORTBY
+	case "artifactId":
+		result = ARTIFACTID_VERSIONSORTBY
 	case "version":
 		result = VERSION_VERSIONSORTBY
 	case "name":
@@ -31,7 +33,7 @@ func ParseVersionSortBy(v string) (any, error) {
 	case "globalId":
 		result = GLOBALID_VERSIONSORTBY
 	default:
-		return 0, errors.New("Unknown VersionSortBy value: " + v)
+		return nil, nil
 	}
 	return &result, nil
 }

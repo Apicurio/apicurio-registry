@@ -1,0 +1,40 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "address.json",
+    "version": "1.0.0",
+    "description": ""
+  },
+  "paths": {
+    "/": {}
+  },
+  "components": {
+    "schemas": {
+      "Address": {
+        "title": "Root Type for Address",
+        "description": "",
+        "type": "object",
+        "properties": {
+          "address1": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "zip": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "address1": "225 West South St",
+          "city": "Springfield",
+          "state": "Massiginia",
+          "zip": "11556"
+        }
+      }
+    }
+  }
+}

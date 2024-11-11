@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.storage.dto.SearchedGroupDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 import java.sql.ResultSet;
@@ -28,6 +29,7 @@ public class SearchedGroupMapper implements RowMapper<SearchedGroupDto> {
         dto.setDescription(rs.getString("description"));
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn"));
+        dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
         return dto;
     }
 }

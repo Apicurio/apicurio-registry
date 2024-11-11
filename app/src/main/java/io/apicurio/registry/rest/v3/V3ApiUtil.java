@@ -38,6 +38,7 @@ import io.apicurio.registry.types.RoleType;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public final class V3ApiUtil {
@@ -76,6 +77,8 @@ public final class V3ApiUtil {
         metaData.setArtifactId(dto.getArtifactId());
         metaData.setOwner(dto.getOwner());
         metaData.setCreatedOn(new Date(dto.getCreatedOn()));
+        metaData.setModifiedBy(dto.getModifiedBy());
+        metaData.setModifiedOn(new Date(dto.getModifiedOn()));
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
         metaData.setArtifactType(dto.getArtifactType());
@@ -141,6 +144,7 @@ public final class V3ApiUtil {
             sa.setModifiedOn(artifact.getModifiedOn());
             sa.setName(artifact.getName());
             sa.setArtifactType(artifact.getArtifactType());
+            sa.setLabels(artifact.getLabels());
             results.getArtifacts().add(sa);
         });
         return results;
@@ -158,6 +162,7 @@ public final class V3ApiUtil {
             sg.setGroupId(group.getId());
             sg.setModifiedBy(group.getModifiedBy());
             sg.setModifiedOn(group.getModifiedOn());
+            sg.setLabels(group.getLabels());
             results.getGroups().add(sg);
         });
         return results;
@@ -192,12 +197,15 @@ public final class V3ApiUtil {
             sv.setVersion(version.getVersion());
             sv.setOwner(version.getOwner());
             sv.setCreatedOn(version.getCreatedOn());
+            sv.setModifiedBy(version.getModifiedBy());
+            sv.setModifiedOn(version.getModifiedOn());
             sv.setDescription(version.getDescription());
             sv.setGlobalId(version.getGlobalId());
             sv.setContentId(version.getContentId());
             sv.setName(version.getName());
             sv.setState(version.getState());
             sv.setArtifactType(version.getArtifactType());
+            sv.setLabels(version.getLabels());
             results.getVersions().add(sv);
         });
         return results;
@@ -210,6 +218,10 @@ public final class V3ApiUtil {
         artifactReference.setVersion(reference.getVersion());
         artifactReference.setArtifactId(reference.getArtifactId());
         return artifactReference;
+    }
+
+    public static List<ArtifactReference> referenceDtosToReferences(List<ArtifactReferenceDto> dtos) {
+        return dtos.stream().map(dto -> referenceDtoToReference(dto)).collect(Collectors.toList());
     }
 
     public static ArtifactReference referenceDtoToReference(ArtifactReferenceDto reference) {

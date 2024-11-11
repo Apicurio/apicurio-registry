@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 100);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 101);
 
 CREATE TABLE sequences (seqName NVARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -97,8 +97,11 @@ ALTER TABLE branches ADD CONSTRAINT FK_branches_1 FOREIGN KEY (groupId, artifact
 
 CREATE TABLE branch_versions (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, branchId NVARCHAR(256) NOT NULL, branchOrder INT NOT NULL, version NVARCHAR(256) NOT NULL);
 ALTER TABLE branch_versions ADD PRIMARY KEY (groupId, artifactId, branchId, version);
-ALTER TABLE branch_versions ADD CONSTRAINT FK_branch_versions_1 FOREIGN KEY (groupId, artifactId, branchId) REFERENCES branches(groupId, artifactId, branchId) ON DELETE CASCADE;
+ALTER TABLE branch_versions ADD CONSTRAINT FK_branch_versions_1 FOREIGN KEY (groupId, artifactId, branchId) REFERENCES branches(groupId, artifactId, branchId);
 ALTER TABLE branch_versions ADD CONSTRAINT FK_branch_versions_2 FOREIGN KEY (groupId, artifactId, version) REFERENCES versions(groupId, artifactId, version) ON DELETE CASCADE;
 CREATE INDEX IDX_branch_versions_1 ON branch_versions(groupId, artifactId, branchId, branchOrder);
 CREATE INDEX IDX_branch_versions_2 ON branch_versions(branchId);
 CREATE INDEX IDX_branch_versions_3 ON branch_versions(branchOrder);
+
+CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(255) NOT NULL, type VARCHAR(255) NOT NULL, payload TEXT NOT NULL);
+ALTER TABLE outbox ADD PRIMARY KEY (id);

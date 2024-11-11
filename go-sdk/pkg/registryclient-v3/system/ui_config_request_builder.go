@@ -35,6 +35,8 @@ func NewUiConfigRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee26337
 }
 
 // Get returns the UI configuration properties for this server.  The registry UI can beconnected to a backend using just a URL.  The rest of the UI configuration can thenbe fetched from the backend using this operation.  This allows UI and backend toboth be configured in the same place.This operation may fail for one of the following reasons:* A server error occurred (HTTP error `500`)
+// returns a UserInterfaceConfigable when successful
+// returns a ProblemDetails error when the service returns a 500 status code
 func (m *UiConfigRequestBuilder) Get(ctx context.Context, requestConfiguration *UiConfigRequestBuilderGetRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.UserInterfaceConfigable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
@@ -54,6 +56,7 @@ func (m *UiConfigRequestBuilder) Get(ctx context.Context, requestConfiguration *
 }
 
 // ToGetRequestInformation returns the UI configuration properties for this server.  The registry UI can beconnected to a backend using just a URL.  The rest of the UI configuration can thenbe fetched from the backend using this operation.  This allows UI and backend toboth be configured in the same place.This operation may fail for one of the following reasons:* A server error occurred (HTTP error `500`)
+// returns a *RequestInformation when successful
 func (m *UiConfigRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *UiConfigRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
@@ -65,6 +68,7 @@ func (m *UiConfigRequestBuilder) ToGetRequestInformation(ctx context.Context, re
 }
 
 // WithUrl returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+// returns a *UiConfigRequestBuilder when successful
 func (m *UiConfigRequestBuilder) WithUrl(rawUrl string) *UiConfigRequestBuilder {
 	return NewUiConfigRequestBuilder(rawUrl, m.BaseRequestBuilder.RequestAdapter)
 }

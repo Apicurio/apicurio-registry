@@ -9,7 +9,7 @@ on:
 jobs:
   publish-docs:
     if: github.repository_owner == 'Apicurio'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
 
       - name: Apicurio Website Checkout
@@ -53,6 +53,7 @@ jobs:
           cd website
           git add .
           git commit -m "Automated Publishing of Documentation for Apicurio Registry"
+          git pull origin main
           git push
 
       - name: Google Chat Notification

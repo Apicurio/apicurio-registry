@@ -110,4 +110,28 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
         Assertions.assertEquals(normalizeMultiLineString(expectedContent),
                 normalizeMultiLineString(modifiedContent.getContent().content()));
     }
+
+    @Test
+    public void testMultipleRefsUseSingleFile() throws Exception {
+        TypedContent content = TypedContent.create(
+                resourceToContentHandle("json-schema-to-deref-property-level.json"),
+                ContentTypes.APPLICATION_JSON);
+        JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
+        // Note: order is important. The JSON schema dereferencer needs to convert the ContentHandle Map
+        // to a JSONSchema map. So it *must* resolve the leaves of the dependency tree before the branches.
+        Map<String, TypedContent> resolvedReferences = new LinkedHashMap<>();
+        resolvedReferences.put("types/city/qualification.json", TypedContent.create(
+                resourceToContentHandle("types/city/qualification.json"), ContentTypes.APPLICATION_JSON));
+        resolvedReferences.put("city/qualification.json", TypedContent.create(
+                resourceToContentHandle("types/city/qualification.json"), ContentTypes.APPLICATION_JSON));
+        resolvedReferences.put("identifier/qualification.json",
+                TypedContent.create(resourceToContentHandle("types/identifier/qualification.json"),
+                        ContentTypes.APPLICATION_JSON));
+        resolvedReferences.put("types/all-types.json", TypedContent
+                .create(resourceToContentHandle("types/all-types.json"), ContentTypes.APPLICATION_JSON));
+        TypedContent modifiedContent = dereferencer.dereference(content, resolvedReferences);
+        String expectedContent = resourceToString("expected-testDereference-property-level-json.json");
+        Assertions.assertEquals(normalizeMultiLineString(expectedContent),
+                normalizeMultiLineString(modifiedContent.getContent().content()));
+    }
 }

@@ -58,8 +58,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.IdsResource#getContentByGlobalId(long,
-     *      io.apicurio.registry.rest.v3.beans.HandleReferencesType)
+     * @see io.apicurio.registry.rest.v3.IdsResource#getContentByGlobalId(long, HandleReferencesType, Boolean)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
@@ -105,6 +104,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      * @see io.apicurio.registry.rest.v3.IdsResource#referencesByContentHash(java.lang.String)
      */
     @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
         return common.getReferencesByContentHash(contentHash);
     }
@@ -113,6 +113,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      * @see io.apicurio.registry.rest.v3.IdsResource#referencesByContentId(long)
      */
     @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<ArtifactReference> referencesByContentId(long contentId) {
         ContentWrapperDto artifact = storage.getContentById(contentId);
         return artifact.getReferences().stream().map(V3ApiUtil::referenceDtoToReference)
@@ -124,6 +125,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      *      io.apicurio.registry.types.ReferenceType)
      */
     @Override
+    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public List<ArtifactReference> referencesByGlobalId(long globalId, ReferenceType refType) {
         if (refType == ReferenceType.OUTBOUND || refType == null) {
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);

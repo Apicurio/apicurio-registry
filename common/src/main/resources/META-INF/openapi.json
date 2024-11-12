@@ -29,6 +29,14 @@
               "$ref": "#/components/schemas/HandleReferencesType"
             },
             "in": "query"
+          },
+          {
+            "name": "returnArtifactType",
+            "description": "When set to `true`, the HTTP response will include a header named `X-Registry-ArtifactType`\nthat contains the type of the artifact being returned.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
           }
         ],
         "responses": {
@@ -4821,6 +4829,10 @@
           "deleteVersion": {
             "description": "",
             "type": "boolean"
+          },
+          "draftMutability": {
+            "description": "",
+            "type": "boolean"
           }
         },
         "example": {
@@ -5435,6 +5447,13 @@
         "description": "Common response used when an input conflicts with existing data."
       },
       "ArtifactContent": {
+        "headers": {
+          "X-Registry-ArtifactType": {
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactType"
+            }
+          }
+        },
         "content": {
           "*/*": {
             "schema": {

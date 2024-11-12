@@ -98,6 +98,7 @@ public class SystemResourceImpl implements SystemResource {
                         .deleteGroup(restConfig.isGroupDeletionEnabled())
                         .deleteArtifact(restConfig.isArtifactDeletionEnabled())
                         .deleteVersion(restConfig.isArtifactVersionDeletionEnabled())
+                        .draftMutability(restConfig.isArtifactVersionMutabilityEnabled())
                         .settings("true".equals(uiConfig.featureSettings)).build())
                 .build();
     }

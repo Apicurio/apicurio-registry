@@ -4,6 +4,7 @@ import io.apicurio.registry.maven.DownloadRegistryMojo;
 import io.apicurio.registry.maven.RegisterArtifact;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.HandleReferencesType;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
 import io.apicurio.registry.types.ArtifactType;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -148,6 +150,62 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         validateStructure(groupId, artifactId, 3, 4, protoFiles);
     }
 
+    @Test
+    public void autoRegisterJsonSchemaWithReferencesDeref() throws Exception {
+        // Preparation
+        String groupId = "autoRegisterJsonSchemaWithReferencesDeref";
+        String artifactId = "stock";
+        String version = "1.0.0";
+
+        File stockFile = new File(getClass().getResource("./stock/FLIStockAdjustment.json").getFile());
+
+        Set<String> jsonFiles = Arrays.stream(Objects.requireNonNull(
+                stockFile.getParentFile().listFiles((dir, name) -> name.endsWith(JSON_SCHEMA_EXTENSION))))
+                .map(file -> {
+                    FileInputStream fis = null;
+                    try {
+                        fis = new FileInputStream(file);
+                    } catch (FileNotFoundException e) {
+                    }
+                    return IoUtil.toString(fis).trim();
+                }).collect(Collectors.toSet());
+
+        RegisterArtifact stock = new RegisterArtifact();
+        stock.setAutoRefs(true);
+        stock.setGroupId(groupId);
+        stock.setArtifactId(artifactId);
+        stock.setVersion(version);
+        stock.setArtifactType(ArtifactType.JSON);
+        stock.setFile(stockFile);
+        stock.setIfExists(IfArtifactExists.FIND_OR_CREATE_VERSION);
+
+        registerMojo.setArtifacts(Collections.singletonList(stock));
+
+        // Execution
+        registerMojo.execute();
+
+        // Assertions
+        validateStructure(groupId, artifactId, 9, 6, jsonFiles);
+
+        final VersionMetaData artifactWithReferences = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).versions().byVersionExpression(version).get();
+        InputStream contentByGlobalId = clientV3.ids().globalIds()
+                .byGlobalId(artifactWithReferences.getGlobalId()).get(getRequestConfiguration -> {
+                    getRequestConfiguration.queryParameters.references = HandleReferencesType.DEREFERENCE;
+                });
+
+        File stockFileDeref = new File(
+                getClass().getResource("./stock/FLIStockAdjustment_deref.json").getFile());
+
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(stockFileDeref);
+        } catch (FileNotFoundException e) {
+        }
+
+        Assertions.assertEquals(IoUtil.toString(fis).trim(), IoUtil.toString(contentByGlobalId));
+    }
+
     private void validateStructure(String groupId, String artifactId, int expectedMainReferences,
             int expectedTotalArtifacts, Set<String> originalContents) throws Exception {
         final VersionMetaData artifactWithReferences = clientV3.groups().byGroupId(groupId).artifacts()
@@ -157,7 +215,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                 .content().get().readAllBytes(), StandardCharsets.UTF_8);
 
         Assertions.assertTrue(originalContents.contains(mainContent)); // The main content has been registered
-                                                                       // as-is.
+        // as-is.
 
         final List<ArtifactReference> mainArtifactReferences = clientV3.ids().globalIds()
                 .byGlobalId(artifactWithReferences.getGlobalId()).references().get();

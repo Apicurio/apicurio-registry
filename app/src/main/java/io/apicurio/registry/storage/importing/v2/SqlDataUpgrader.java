@@ -46,7 +46,7 @@ import static io.apicurio.registry.types.ArtifactType.XSD;
 
 /**
  * This class takes a stream of Registry v2 entities and imports them into the application using
- * {@link SqlDataUpgrader#importData(EntityInputStream, Runnable)} as it's entry point. It must be used in the
+ * {@link SqlDataUpgrader#importData(EntityInputStream, Runnable)} as its entry point. It must be used in the
  * upgrade process from v2 to v3.
  */
 public class SqlDataUpgrader extends AbstractDataImporter {

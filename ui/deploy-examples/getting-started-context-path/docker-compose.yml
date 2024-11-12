@@ -1,0 +1,31 @@
+services:
+  # Define the Apicurio Registry API service
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: apicurio-registry-getting-started-context-path_api
+    environment:
+      - apicurio.rest.deletion.group.enabled=true
+      - apicurio.rest.deletion.artifact.enabled=true
+      - apicurio.rest.deletion.artifact-version.enabled=true
+      - QUARKUS_HTTP_CORS_ORIGINS=*
+
+  # Define the Apicurio Registry UI service
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: apicurio-registry-getting-started-context-path_ui
+    environment:
+      - REGISTRY_CONTEXT_PATH=/ui/
+    depends_on:
+      - apicurio-registry
+
+  # Define the Nginx reverse proxy service
+  nginx:
+    image: nginx
+    container_name: apicurio-registry-getting-started-context-path_proxy
+    ports:
+      - "8080:8080" # Expose the reverse proxy on port 8080
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro # Mount custom Nginx config
+    depends_on:
+      - apicurio-registry
+      - apicurio-registry-ui

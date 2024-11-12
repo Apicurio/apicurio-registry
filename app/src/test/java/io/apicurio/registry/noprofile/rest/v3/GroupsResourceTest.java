@@ -3,6 +3,7 @@ package io.apicurio.registry.noprofile.rest.v3;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.Comment;
@@ -200,6 +201,10 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 ContentTypes.APPLICATION_JSON);
         createArtifact(group2, "testMultipleGroups/EmptyAPI/2", ArtifactType.OPENAPI, jsonArtifactContent,
                 ContentTypes.APPLICATION_JSON);
+
+        // Get the list of groups - should have AT LEAST 2
+        GroupSearchResults results = clientV3.groups().get();
+        Assertions.assertTrue(results.getCount() >= 2);
 
         // Get group 1 metadata
         given().when().pathParam("groupId", group1).get("/registry/v3/groups/{groupId}").then()

@@ -8,11 +8,13 @@ import {
     PageDataLoader,
     PageError,
     PageErrorHandler,
+    PageProperties,
     toPageError
 } from "@app/pages";
 import {
     ChangeOwnerModal,
-    ConfirmDeleteModal, CreateArtifactModal,
+    ConfirmDeleteModal,
+    CreateArtifactModal,
     EditMetaDataModal,
     IfFeature,
     InvalidContentModal,
@@ -33,14 +35,10 @@ import {
 } from "@sdk/lib/generated-client/models";
 
 
-export type GroupPageProps = {
-    // No properties
-}
-
 /**
  * The group page.
  */
-export const GroupPage: FunctionComponent<GroupPageProps> = () => {
+export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [group, setGroup] = useState<GroupMetaData>();
@@ -85,10 +83,12 @@ export const GroupPage: FunctionComponent<GroupPageProps> = () => {
     };
 
     const handleTabClick = (_event: any, tabIndex: any): void => {
+        const gid: string = encodeURIComponent(groupId as string);
+
         if (tabIndex === "overview") {
-            appNavigation.navigateTo(`/explore/${groupId}`);
+            appNavigation.navigateTo(`/explore/${gid}`);
         } else {
-            appNavigation.navigateTo(`/explore/${groupId}/${tabIndex}`);
+            appNavigation.navigateTo(`/explore/${gid}/${tabIndex}`);
         }
     };
 

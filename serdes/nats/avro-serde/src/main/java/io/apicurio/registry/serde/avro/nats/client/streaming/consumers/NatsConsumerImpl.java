@@ -58,19 +58,19 @@ public class NatsConsumerImpl<DATA> implements NatsConsumer<DATA> {
     }
 
     @Override
-    public NatsConsumerRecord<DATA> receive() throws JetStreamApiException, IOException {
-        return receive(Duration.ofSeconds(3));
+    public NatsConsumerRecord<DATA> fetch() throws JetStreamApiException, IOException {
+        return fetch(Duration.ofSeconds(3));
     }
 
     @Override
-    public NatsConsumerRecord<DATA> receive(Duration timeout) throws JetStreamApiException, IOException {
-        Collection<NatsConsumerRecord<DATA>> messages = receive(1, timeout);
+    public NatsConsumerRecord<DATA> fetch(Duration timeout) throws JetStreamApiException, IOException {
+        Collection<NatsConsumerRecord<DATA>> messages = fetch(1, timeout);
         Optional<NatsConsumerRecord<DATA>> record = messages.stream().findFirst();
         return record.orElse(null);
     }
 
     @Override
-    public List<NatsConsumerRecord<DATA>> receive(int batchSize, Duration timeout)
+    public List<NatsConsumerRecord<DATA>> fetch(int batchSize, Duration timeout)
             throws JetStreamApiException, IOException {
         List<Message> messages = getLazySubscription().fetch(batchSize, timeout);
 

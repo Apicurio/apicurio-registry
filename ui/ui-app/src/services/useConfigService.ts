@@ -118,9 +118,7 @@ export interface ConfigType {
     ui?: UiConfig;
 }
 
-export interface ApicurioRegistryConfig extends ConfigType {
-    // Rename
-}
+export type ApicurioRegistryConfig = ConfigType
 
 
 function _getRegistryConfig(): ApicurioRegistryConfig {

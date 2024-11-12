@@ -10,7 +10,7 @@ import {
     PageError,
     PageErrorHandler,
     toPageError,
-    VersionPageHeader
+    VersionPageHeader, PageProperties
 } from "@app/pages";
 import { ReferencesTabContent } from "@app/pages/version/components/tabs/ReferencesTabContent.tsx";
 import { ConfirmDeleteModal, EditMetaDataModal, GenerateClientModal, IfFeature, MetaData } from "@app/components";
@@ -24,14 +24,10 @@ import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 import { ArtifactMetaData, Labels, VersionMetaData } from "@sdk/lib/generated-client/models";
 
 
-export type ArtifactVersionPageProps = {
-    // No properties
-}
-
 /**
  * The artifact version page.
  */
-export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
+export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [artifact, setArtifact] = useState<ArtifactMetaData>();
@@ -66,7 +62,7 @@ export const VersionPage: FunctionComponent<ArtifactVersionPageProps> = () => {
                 if (eo && eo.status && eo.status === 404) {
                     return true;
                 }
-            } catch (e) {
+            } catch {
                 // Do nothing
             }
         }

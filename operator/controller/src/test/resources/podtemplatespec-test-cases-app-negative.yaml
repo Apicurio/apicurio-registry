@@ -1,0 +1,10 @@
+cases:
+
+  - id: 'Env 1'
+    spec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            env:
+              - name: foo
+                value: bar

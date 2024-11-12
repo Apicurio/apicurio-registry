@@ -23,6 +23,7 @@ import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
@@ -983,6 +984,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             query.bind(idx, normalizeGroupId(filter.getStringValue()));
                         });
                         break;
+                    case artifactId:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("a.artifactId " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        break;
                     case contentHash:
                         op = filter.isNot() ? "!=" : "=";
                         where.append(
@@ -1053,6 +1061,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         where.append(")");
                         break;
+                    default:
+                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
                 where.append(")");
             }
@@ -1663,7 +1673,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     default:
-                        break;
+                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
                 where.append(")");
             }
@@ -2838,8 +2848,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(" AND l.groupId = g.groupId)");
                         break;
                     default:
-
-                        break;
+                        throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
                 where.append(")");
             }
@@ -3060,6 +3069,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void importArtifact(ArtifactEntity entity) {
+        GroupId groupId = new GroupId(entity.groupId);
+        if (!groupId.isDefaultGroup()) {
+            String owner = securityIdentity.getPrincipal().getName();
+            GroupMetaDataDto group = GroupMetaDataDto.builder().groupId(groupId.getRawGroupId()).owner(owner)
+                    .modifiedBy(owner).build();
+            ensureGroup(group);
+        }
+
         handles.withHandleNoException(handle -> {
             if (!isArtifactExistsRaw(handle, entity.groupId, entity.artifactId)) {
                 String labelsStr = RegistryContentUtils.serializeLabels(entity.labels);

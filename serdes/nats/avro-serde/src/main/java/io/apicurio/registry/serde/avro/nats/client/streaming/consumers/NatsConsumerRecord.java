@@ -9,4 +9,10 @@ public interface NatsConsumerRecord<T> {
     T getPayload();
 
     void ack();
+
+    void nak();
+
+    void term();
+
+    void inProgress();
 }

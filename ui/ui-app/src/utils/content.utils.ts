@@ -10,7 +10,7 @@ export function isJson(content: string): boolean {
     try {
         JSON.parse(content);
         return true;
-    } catch (e) {
+    } catch {
         return false;
     }
 }
@@ -32,7 +32,7 @@ export function isYaml(content: string): boolean {
         if (typeof result === "object") {
             return true;
         }
-    } catch (e) {
+    } catch {
         // Do nothing - it's not a YAML file.
     }
     return false;
@@ -54,7 +54,7 @@ export function isXml(content: string): boolean {
         const dom: Document = xmlParser.parseFromString(content, "application/xml");
         const isParseError: boolean = dom.getElementsByTagName("parsererror").length !== 0;
         return !isParseError;
-    } catch (e) {
+    } catch {
         return false;
     }
 }
@@ -67,7 +67,7 @@ function isXmlWithRootNode(content: string, namespace: string, localName: string
         return !isParseError &&
                dom.documentElement.namespaceURI === namespace &&
                dom.documentElement.localName === localName;
-    } catch (e) {
+    } catch {
         return false;
     }
 }

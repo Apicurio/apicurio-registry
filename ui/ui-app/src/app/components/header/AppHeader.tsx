@@ -6,9 +6,7 @@ import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
-export type AppHeaderProps = {
-    // No properties.
-};
+export type AppHeaderProps = object;
 
 
 export const AppHeader: FunctionComponent<AppHeaderProps> = () => {
@@ -19,11 +17,13 @@ export const AppHeader: FunctionComponent<AppHeaderProps> = () => {
         return <></>;
     }
 
+    const logoSrc: string = `${config.uiContextPath() || "/"}apicurio_registry_logo_reverse.svg`;
+
     return (
         <Masthead id="icon-router-link">
             <MastheadMain>
                 <MastheadBrand component={props => <Link {...props} to={ appNavigation.createLink("/explore") } />}>
-                    <Brand src="/apicurio_registry_logo_reverse.svg" alt="Apicurio Registry" heights={{ default: "36px" }} />
+                    <Brand src={logoSrc} alt="Apicurio Registry" heights={{ default: "36px" }} />
                 </MastheadBrand>
             </MastheadMain>
             <MastheadContent>

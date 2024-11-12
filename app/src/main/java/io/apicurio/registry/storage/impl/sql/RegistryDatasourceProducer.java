@@ -81,8 +81,6 @@ public class RegistryDatasourceProducer {
         props.put(AgroalPropertiesReader.FLUSH_ON_CLOSE, "true");
         props.put(AgroalPropertiesReader.MAX_LIFETIME_S, maxLifeTime);
 
-
-
         AgroalDataSource datasource = AgroalDataSource
                 .from(new AgroalPropertiesReader().readProperties(props).get());
 

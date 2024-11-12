@@ -363,6 +363,7 @@ jobs:
 
           cd typescript-sdk
           npm install
+          npm run generate-sources
           npm run test
 
   build-examples:

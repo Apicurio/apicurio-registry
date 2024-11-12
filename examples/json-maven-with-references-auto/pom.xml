@@ -28,7 +28,7 @@
             </goals>
             <phase>process-test-resources</phase>
             <configuration>
-              <registryUrl>http://localhost:8080/apis/registry/v2</registryUrl>
+              <registryUrl>http://localhost:8080/apis/registry/v3</registryUrl>
               <artifacts>
                 <artifact>
                   <groupId>json-maven-with-references-auto</groupId>
@@ -36,7 +36,7 @@
                   <version>1.0.0</version>
                   <artifactType>JSON</artifactType>
                   <file>${project.basedir}/src/main/resources/schemas/FLIStockAdjustment.json</file>
-                  <ifExists>RETURN_OR_UPDATE</ifExists>
+                  <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                   <canonicalize>true</canonicalize>
                   <analyzeDirectory>true</analyzeDirectory>
                   <autoRefs>true</autoRefs>

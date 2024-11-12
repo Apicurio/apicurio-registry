@@ -310,17 +310,6 @@ jobs:
           path: ui/tests/playwright-report/
           retention-days: 30
 
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: tests-logs-ui
-          path: artifacts
-
   integration-tests-legacy-v2:
     name: Integration Tests Legacy V2
     runs-on: ubuntu-22.04
@@ -358,6 +347,24 @@ jobs:
         with:
           name: tests-logs-legacy-v2
           path: artifacts
+
+  integration-tests-typescript-sdk:
+    name: Integration Tests Typescript SDK
+    runs-on: ubuntu-22.04
+    needs: prepare-integration-tests
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Run SDK tests
+        run: |
+          echo "Starting Registry App (In Memory)"
+          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+
+          cd typescript-sdk
+          npm install
+          npm run generate-sources
+          npm run test
 
   build-examples:
     name: Build and Run Application examples

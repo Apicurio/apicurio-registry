@@ -156,6 +156,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      java.lang.String, java.lang.String, io.apicurio.registry.types.ReferenceType)
      */
     @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId,
             String versionExpression, ReferenceType refType) {
 
@@ -244,6 +245,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
+    @Audited(extractParameters = { "0", KEY_GROUP_ID })
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroupById(String groupId) {
         if (!restConfig.isGroupDeletionEnabled()) {
@@ -259,6 +261,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      io.apicurio.registry.rest.v3.beans.EditableGroupMetaData)
      */
     @Override
+    @Audited(extractParameters = { "0", KEY_GROUP_ID })
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void updateGroupById(String groupId, EditableGroupMetaData data) {
         requireParameter("groupId", groupId);
@@ -295,6 +298,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
     public GroupMetaData createGroup(CreateGroup data) {
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder().groupId(data.getGroupId())
@@ -309,6 +313,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public List<RuleType> listGroupRules(String groupId) {
         requireParameter("groupId", groupId);
 
@@ -316,6 +321,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
+    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_RULE })
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void createGroupRule(String groupId, CreateRule data) {
         requireParameter("groupId", groupId);
         requireParameter("ruleType", data.getRuleType());
@@ -340,6 +347,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
+    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_RULE_TYPE, "2", KEY_RULE })
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public Rule updateGroupRuleConfig(String groupId, RuleType ruleType, Rule data) {
         requireParameter("groupId", groupId);
         requireParameter("ruleType", ruleType);
@@ -354,6 +363,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
+    @Audited(extractParameters = { "0", KEY_GROUP_ID })
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroupRules(String groupId) {
         requireParameter("groupId", groupId);
 
@@ -361,6 +372,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public Rule getGroupRuleConfig(String groupId, RuleType ruleType) {
         requireParameter("groupId", groupId);
         requireParameter("ruleType", ruleType);
@@ -374,6 +386,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
+    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_RULE_TYPE })
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroupRule(String groupId, RuleType rule) {
         requireParameter("groupId", groupId);
         requireParameter("rule", rule);
@@ -528,6 +542,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
+    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION })
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionContent(String groupId, String artifactId, String versionExpression,
             VersionContent data) {
@@ -574,6 +589,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      java.lang.String, java.lang.String)
      */
     @Override
+    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION })
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactVersion(String groupId, String artifactId, String version) {
         if (!restConfig.isArtifactVersionDeletionEnabled()) {
@@ -654,7 +670,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Override
     @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "dryRun" })
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write, dryRunParam = 3)
     public void updateArtifactVersionState(String groupId, String artifactId, String versionExpression,
             Boolean dryRun, WrappedVersionState data) {
         requireParameter("groupId", groupId);

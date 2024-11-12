@@ -687,7 +687,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.datasource.jdbc.max-life-time`
 |`string`
 |`0`
-|`3.0.5`
+|`3.0.4`
 |Maximum lifetime of a connection in seconds
 |`apicurio.datasource.password`
 |`string`

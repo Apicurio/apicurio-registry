@@ -27,4 +27,19 @@ public class NatsConsumerRecordImpl<T> implements NatsConsumerRecord<T> {
     public void ack() {
         natsMessage.ack();
     }
+
+    @Override
+    public void nak() {
+        natsMessage.nak();
+    }
+
+    @Override
+    public void term() {
+        natsMessage.term();
+    }
+
+    @Override
+    public void inProgress() {
+        natsMessage.inProgress();
+    }
 }

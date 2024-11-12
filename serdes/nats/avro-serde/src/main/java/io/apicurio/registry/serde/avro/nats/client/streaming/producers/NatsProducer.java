@@ -4,5 +4,5 @@ import io.apicurio.registry.serde.avro.nats.client.exceptions.ApicurioNatsExcept
 
 public interface NatsProducer<T> extends AutoCloseable {
 
-    void send(T message) throws ApicurioNatsException;
+    void publish(T message) throws ApicurioNatsException;
 }

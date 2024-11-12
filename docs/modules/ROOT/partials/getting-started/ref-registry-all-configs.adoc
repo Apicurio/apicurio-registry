@@ -684,6 +684,11 @@ The following {registry} configuration options are available for each component 
 |`20`
 |`3.0.0`
 |Application datasource pool minimum size
+|`apicurio.datasource.jdbc.max-life-time`
+|`string`
+|`0`
+|`3.0.5`
+|Maximum lifetime of a connection in seconds
 |`apicurio.datasource.password`
 |`string`
 |`sa`

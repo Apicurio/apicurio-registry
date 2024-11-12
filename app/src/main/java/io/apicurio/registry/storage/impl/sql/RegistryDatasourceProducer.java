@@ -49,6 +49,10 @@ public class RegistryDatasourceProducer {
     @Info(category = "storage", description = "Application datasource pool maximum size", availableSince = "3.0.0")
     String maxSize;
 
+    @ConfigProperty(name = "apicurio.datasource.jdbc.max-life-time", defaultValue = "0")
+    @Info(category = "storage", description = "Maximum lifetime of a connection in seconds", availableSince = "3.0.5")
+    String maxLifeTime;
+
     @Produces
     @ApplicationScoped
     @Named("application")
@@ -75,6 +79,9 @@ public class RegistryDatasourceProducer {
         props.put(AgroalPropertiesReader.TRANSACTION_ISOLATION, TransactionIsolation.READ_COMMITTED.name());
         props.put(AgroalPropertiesReader.TRANSACTION_REQUIREMENT, TransactionRequirement.WARN.name());
         props.put(AgroalPropertiesReader.FLUSH_ON_CLOSE, "true");
+        props.put(AgroalPropertiesReader.MAX_LIFETIME_S, maxLifeTime);
+
+
 
         AgroalDataSource datasource = AgroalDataSource
                 .from(new AgroalPropertiesReader().readProperties(props).get());

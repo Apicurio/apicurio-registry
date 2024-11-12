@@ -18,12 +18,12 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@microsoft/kiota-abstractions": "1.0.0-preview.74",
-    "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.74",
-    "@microsoft/kiota-serialization-form": "1.0.0-preview.74",
-    "@microsoft/kiota-serialization-json": "1.0.0-preview.74",
-    "@microsoft/kiota-serialization-multipart": "1.0.0-preview.74",
-    "@microsoft/kiota-serialization-text": "1.0.0-preview.74"
+    "@microsoft/kiota-abstractions": "1.0.0-preview.75",
+    "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.75",
+    "@microsoft/kiota-serialization-form": "1.0.0-preview.75",
+    "@microsoft/kiota-serialization-json": "1.0.0-preview.75",
+    "@microsoft/kiota-serialization-multipart": "1.0.0-preview.75",
+    "@microsoft/kiota-serialization-text": "1.0.0-preview.75"
   },
   "devDependencies": {
     "@apicurio/eslint-config": "0.3.0",

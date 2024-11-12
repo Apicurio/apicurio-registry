@@ -62,6 +62,7 @@ updates:
         exclude-patterns:
           - "eslint"
           - "@patternfly/*"
+          - "@microsoft/*"
       eslint:
         patterns:
           - "eslint"
@@ -106,6 +107,26 @@ updates:
           - "*"
         exclude-patterns:
           - "eslint"
+      eslint:
+        patterns:
+          - "eslint"
+        update-types:
+          - "patch"
+          - "minor"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+
+  - package-ecosystem: npm
+    directory: "/typescript-sdk"
+    schedule:
+      interval: daily
+    groups:
+      typescript-sdk-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "eslint"
+          - "@microsoft/*"
       eslint:
         patterns:
           - "eslint"

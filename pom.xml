@@ -688,8 +688,8 @@
       </dependency>
 
       <dependency>
-        <groupId>com.github.everit-org.json-schema</groupId>
-        <artifactId>org.everit.json.schema</artifactId>
+        <groupId>com.github.erosb</groupId>
+        <artifactId>everit-json-schema</artifactId>
         <version>${org.everit.json.schema.version}</version>
       </dependency>
       <dependency>
@@ -1326,6 +1326,11 @@
         <repository>
           <id>jgit-repository</id>
           <url>https://repo.eclipse.org/content/groups/releases/</url>
+        </repository>
+        <repository>
+          <id>confluent</id>
+          <name>Confluent</name>
+          <url>https://packages.confluent.io/maven/</url>
         </repository>
       </repositories>
     </profile>

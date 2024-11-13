@@ -1324,15 +1324,6 @@
       </activation>
       <repositories>
         <repository>
-          <id>confluent</id>
-          <name>Confluent</name>
-          <url>https://packages.confluent.io/maven/</url>
-        </repository>
-        <repository>
-          <id>jitpack.io</id>
-          <url>https://jitpack.io</url>
-        </repository>
-        <repository>
           <id>jgit-repository</id>
           <url>https://repo.eclipse.org/content/groups/releases/</url>
         </repository>

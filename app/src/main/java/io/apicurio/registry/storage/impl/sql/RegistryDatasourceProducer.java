@@ -49,7 +49,7 @@ public class RegistryDatasourceProducer {
     @Info(category = "storage", description = "Application datasource pool maximum size", availableSince = "3.0.0")
     String maxSize;
 
-    @ConfigProperty(name = "apicurio.datasource.jdbc.max-life-time", defaultValue = "0")
+    @ConfigProperty(name = "apicurio.datasource.jdbc.max-life-time.seconds", defaultValue = "0")
     @Info(category = "storage", description = "Maximum lifetime of a connection in seconds", availableSince = "3.0.5")
     String maxLifeTime;
 

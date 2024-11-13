@@ -84,7 +84,7 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
                         <file>
                             ${project.basedir}/src/main/resources/schemas/TradeKey.avsc
                         </file>
-                        <ifExists>RETURN_OR_UPDATE</ifExists>
+                        <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                         <canonicalize>true</canonicalize>
                         <references>
                             <reference> <5>
@@ -96,7 +96,7 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
                                 <file>
                                     ${project.basedir}/src/main/resources/schemas/Exchange.avsc
                                 </file>
-                                <ifExists>RETURN_OR_UPDATE</ifExists>
+                                <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                                 <canonicalize>true</canonicalize>
                             </reference>
                         </references>

@@ -134,7 +134,6 @@ import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -2905,7 +2904,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    @Transactional
     public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
         try {
             var meta = getArtifactVersionMetaData(reference.getGroupId(), reference.getArtifactId(),

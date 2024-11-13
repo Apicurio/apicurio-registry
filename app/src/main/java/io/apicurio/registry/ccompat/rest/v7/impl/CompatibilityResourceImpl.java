@@ -63,7 +63,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String versionString,
             SchemaContent request, Boolean verbose, String groupId) throws Exception {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;

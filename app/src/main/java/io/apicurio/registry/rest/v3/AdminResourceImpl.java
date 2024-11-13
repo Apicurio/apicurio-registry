@@ -80,6 +80,7 @@ import java.util.zip.ZipInputStream;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_PROPERTY_CONFIGURATION;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
 import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
@@ -146,6 +147,7 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     @Override
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public SnapshotMetaData triggerSnapshot() {
         storage.triggerSnapshotCreation();
@@ -477,6 +479,7 @@ public class AdminResourceImpl implements AdminResource {
      *      io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty)
      */
     @Override
+    @Audited(extractParameters = { "0", KEY_NAME, "1", KEY_PROPERTY_CONFIGURATION })
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void updateConfigProperty(String propertyName, UpdateConfigurationProperty data) {
         DynamicConfigPropertyDef propertyDef = resolveConfigProperty(propertyName);
@@ -499,10 +502,6 @@ public class AdminResourceImpl implements AdminResource {
         resolveConfigProperty(propertyName);
         // Delete it in the storage.
         storage.deleteConfigProperty(propertyName);
-    }
-
-    private static boolean isNullOrTrue(Boolean value) {
-        return value == null || value;
     }
 
     private String createDownloadHref(String downloadId) {

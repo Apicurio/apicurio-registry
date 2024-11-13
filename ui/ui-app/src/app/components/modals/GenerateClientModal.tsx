@@ -75,7 +75,7 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
         setIsGenerated(false);
 
         const kiotaWasmUrl: string = `${config.uiContextPath() || "/"}kiota-wasm/main.js?url`;
-        const { generate } = await import(kiotaWasmUrl);
+        const { generate } = await import(/* @vite-ignore */ kiotaWasmUrl);
 
         try {
             console.debug("GENERATING USING KIOTA:");

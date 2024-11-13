@@ -93,7 +93,7 @@ This section shows a simple example of using the Maven plug-in to register an Av
                         <file>
                             ${project.basedir}/src/main/resources/schemas/TradeKey.avsc <5>
                         </file>
-                        <ifExists>RETURN_OR_UPDATE</ifExists>
+                        <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                         <canonicalize>true</canonicalize>
                         <autoRefs>true</autoRefs> <6>
                     </artifact>

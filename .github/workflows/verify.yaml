@@ -84,6 +84,11 @@ jobs:
         run: |
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm -t docker.io/apicurio/apicurio-registry:latest-snapshot -t quay.io/apicurio/apicurio-registry:latest-snapshot --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
+      - name: List docker images (debug)
+        if: github.event_name == 'push' && failure()
+        run: |
+          docker images
+
       - name: Google Chat Notification (Always)
         if: github.event_name == 'push' && always()
         uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1

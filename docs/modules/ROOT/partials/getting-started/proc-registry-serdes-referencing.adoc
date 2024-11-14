@@ -1,0 +1,127 @@
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+:my-reg-url: 
+[id='dereferencing-json-schema_{context}']
+= Dereferencing a JSON Schema in {registry}
+
+[role="_abstract"]
+Working with JSON Schemas that include references can be challenging, especially when managing schema hierarchies and optimizing HTTP requests. {registry}  introduces a dereferencing feature that allows you to fetch a fully inlined schema, simplifying schema management and reducing the number of HTTP requests needed.
+
+
+.Prerequisites
+
+* A complex JSON schema
+
+.Procedure
+
+. Populate the {registry} with your complex schema.
++
+--
+Consider the following schema hierarchy:
+
+.address.json
+[source,json,subs="+quotes,attributes"]
+----
+include::address.json[]
+----
+
+.person.json
+[source,json,subs="+quotes,attributes"]
+----
+include::person.json[]
+----
+
+The `person` schema references the `address` schema.
+
+
+.. Register `address.json`:
++
+[source,shell,subs="+quotes,attributes"]
+----
+curl -X POST 'http://localhost:8080/apis/registry/v2/groups/default/artifacts' \
+  -H 'Content-Type: application/json' \
+  -H 'X-Registry-ArtifactId: address' \
+  --data-binary @address.json
+----
+
+.. Register `person.json` including the reference to `address.json`:
++
+[source,shell,subs="+quotes,attributes"]
+----
+curl -X POST 'http://localhost:8080/apis/registry/v2/groups/default/artifacts' \
+  -H 'Content-Type: application/create.extended+json' \
+  -H 'X-Registry-ArtifactId: person' \
+  --data '{
+    "content": "{\"$id\":\"https:\/\/example.com\/person.json\",\"$schema\":\"http:\/\/json-schema.org\/draft-07\/schema#\",\"title\":\"Person\",\"type\":\"object\",\"properties\":{\"firstName\":{\"type\":\"string\",\"description\":\"first name\"},\"lastName\":{\"type\":\"string\",\"description\":\"last name\"},\"address\":{\"$ref\":\"address.json\"}}}",
+    "references": [
+      {
+        "name": "address.json",
+        "groupId": "default",
+        "artifactId": "address",
+        "version": "1"
+      }
+    ]
+  }'
+
+
+----
+NOTE: You must escape the content of the `person.json` and add the references when posting this artifact.
+
+--
+. View the artifact in the console.
++
+--
+.. Navigate to the `person` schema. For example `<MY-REGISTRY-URL>/explore/default/person`.
+.. Click *Versions* and click the version `1` of the `person` schema.
+.. Click *References* to view the schemas referenced in the `person` schema.
+You can now see the references:
+* *Reference Name* is `address.json`
+* *ID* is `address`
+* *Version* is `1`.
+
+{registry} resolves any reference to `address.json` in the `person` schema to version 1 of the schema with ID `address`.
+
+NOTE: You can also navigate to a version of the `address` schema and see that the `person` schema reference `address` by clicking *View artifacts that reference this artifact*.
+--
+
+. Retrieve the dereferenced schema
++
+--
+[source,shell,subs="+quotes,attributes"]
+----
+$ curl --location 'http://localhost:8080/apis/registry/v2/groups/default/artifacts/person?dereference=true'
+{
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "title" : "Person",
+  "type" : "object",
+  "properties" : {
+    "firstName" : {
+      "description" : "first name",
+      "type" : "string"
+    },
+    "lastName" : {
+      "description" : "last name",
+      "type" : "string"
+    },
+    "address" : {
+      "title" : "Address",
+      "type" : "object",
+      "properties" : {
+        "city" : {
+          "description" : "The city name.",
+          "type" : "string"
+        },
+        "street" : {
+          "description" : "The street name.",
+          "type" : "string"
+        }
+      }
+    }
+  },
+  "$id" : "https://example.com/person.json"
+
+----
+
+You can also retrieve the dereferenced artifact using GlobalID or specifying a specific version
+
+--

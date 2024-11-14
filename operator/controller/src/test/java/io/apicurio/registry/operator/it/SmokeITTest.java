@@ -5,7 +5,6 @@ import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.test.junit.QuarkusTest;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -27,11 +26,7 @@ public class SmokeITTest extends ITBase {
     private static final Logger log = LoggerFactory.getLogger(SmokeITTest.class);
 
     @Test
-    void runSmoke() {
-        smoke(client, namespace, ingressManager);
-    }
-
-    static void smoke(KubernetesClient client, String namespace, IngressManager ingressManager) {
+    void smoke() {
 
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);

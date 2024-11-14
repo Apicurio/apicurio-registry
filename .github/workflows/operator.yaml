@@ -126,11 +126,6 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Show config
-        run: |
-          cd operator
-          make config-show
-
       - name: Build
         run: |
           cd operator
@@ -165,11 +160,6 @@ jobs:
           java-version: '17'
           distribution: temurin
           cache: maven
-
-      - name: Show config
-        run: |
-          cd operator
-          make config-show
 
       - name: Build
         run: |

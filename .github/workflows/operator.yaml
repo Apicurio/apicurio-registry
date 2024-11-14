@@ -116,6 +116,12 @@ jobs:
     if: github.event_name == 'push'
     steps:
 
+      # Do not publish (version)-snapshot tag, instead use `latest-snapshot`.
+      - name: Configure env. variables
+        run: |
+          echo "IMAGE_TAG=latest-snapshot" >> $GITHUB_ENV
+          echo "BUNDLE_IMAGE_TAG=latest-snapshot" >> $GITHUB_ENV
+
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@v4
 

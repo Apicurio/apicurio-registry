@@ -78,11 +78,6 @@ jobs:
         run: |
           minikube tunnel &   
 
-      - name: Show config
-        run: |
-          cd operator
-          make config-show
-
       - name: Build and run local tests on Minikube
         run: |
           cd operator

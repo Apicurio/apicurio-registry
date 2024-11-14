@@ -1,12 +1,12 @@
 package io.apicurio.registry.operator.utils;
 
+import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPath;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRule;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,11 +37,8 @@ public class IngressUtils {
             throw new OperatorException("Unexpected value: " + component);
         }
         if (host == null) {
-            var defaultBaseHost = ConfigProvider.getConfig()
-                    .getOptionalValue("apicurio.operator.default-base-host", String.class).map(v -> "." + v)
-                    .orElse("");
             host = "%s-%s.%s%s".formatted(p.getMetadata().getName(), component,
-                    p.getMetadata().getNamespace(), defaultBaseHost);
+                    p.getMetadata().getNamespace(), Configuration.getDefaultBaseHost());
         }
         log.debug("Host for component {} is {}", component, host);
         return host;

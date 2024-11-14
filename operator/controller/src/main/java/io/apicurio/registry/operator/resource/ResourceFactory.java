@@ -1,13 +1,13 @@
 package io.apicurio.registry.operator.resource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,16 +51,11 @@ public class ResourceFactory {
             r.getSpec().setTemplate(new PodTemplateSpec());
         }
 
-        var imageOpt = ConfigProvider.getConfig().getOptionalValue("registry.app.image", String.class);
-        if (imageOpt.isEmpty()) {
-            throw new OperatorException("Required configuration option 'registry.app.image' is not set.");
-        }
-
         mergeDeploymentPodTemplateSpec(
                 // spotless:off
                 r.getSpec().getTemplate(),
                 APP_CONTAINER_NAME,
-                imageOpt.get(),
+                Configuration.getAppImage(),
                 List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/ready").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
@@ -89,16 +84,11 @@ public class ResourceFactory {
             r.getSpec().setTemplate(new PodTemplateSpec());
         }
 
-        var imageOpt = ConfigProvider.getConfig().getOptionalValue("registry.ui.image", String.class);
-        if (imageOpt.isEmpty()) {
-            throw new OperatorException("Required configuration option 'registry.ui.image' is not set.");
-        }
-
         mergeDeploymentPodTemplateSpec(
                 // spotless:off
                 r.getSpec().getTemplate(),
                 UI_CONTAINER_NAME,
-                imageOpt.get(),
+                Configuration.getUIImage(),
                 List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),

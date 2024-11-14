@@ -16,7 +16,7 @@ spec:
           image: PLACEHOLDER_IMAGE
           imagePullPolicy: Always
           env:
-            - name: QUARKUS_OPERATOR_SDK_CONTROLLERS_APICURIOREGISTRY3RECONCILER_NAMESPACES
+            - name: APICURIO_OPERATOR_WATCHED_NAMESPACES
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['olm.targetNamespaces']

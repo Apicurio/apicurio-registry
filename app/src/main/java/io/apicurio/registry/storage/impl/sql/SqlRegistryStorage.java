@@ -7,7 +7,6 @@ import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadiness
 import io.apicurio.registry.storage.RegistryStorage;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 
 /**
  * An in-memory SQL implementation of the {@link RegistryStorage} interface.
@@ -40,7 +39,6 @@ public class SqlRegistryStorage extends AbstractSqlRegistryStorage {
                 .bind(0, snapshotLocation).execute());
     }
 
-    @Transactional
     public void executeSqlStatement(String sqlStatement) {
         handleFactory.withHandle(handle -> handle.createUpdate(sqlStatement).execute());
     }

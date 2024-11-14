@@ -7,6 +7,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.HandleCallback;
 import io.apicurio.registry.storage.impl.sql.jdb.HandleImpl;
 import org.slf4j.Logger;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +35,10 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         try {
             // Create a new handle if necessary. Increment the "level" if a handle already exists.
             if (state.handle == null) {
-                state.handle = new HandleImpl(dataSource.getConnection());
+                Connection connection = dataSource.getConnection();
+                // We must disable autocommit since we're managing the transactions ourselves.
+                connection.setAutoCommit(false);
+                state.handle = new HandleImpl(connection);
                 state.level = 0;
             } else {
                 state.level++;

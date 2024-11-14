@@ -11,7 +11,7 @@ public class MysqlTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Collections.singletonMap("apicurio.storage.sql.kind", "mysql");
+        return Map.of("apicurio.storage.sql.kind", "mysql");
     }
 
     @Override

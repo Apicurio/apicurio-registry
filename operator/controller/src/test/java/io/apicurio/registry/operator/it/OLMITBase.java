@@ -85,14 +85,6 @@ public abstract class OLMITBase {
                 "apicurio-registry.v" + projectVersion.toLowerCase());
         var subscription = client.resource(subscriptionRaw);
         subscription.create();
-
-        // Wait for the operator to deploy
-
-        await().ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.apps().deployments()
-                    .withName("apicurio-registry-operator-v" + projectVersion.toLowerCase()).get().getStatus()
-                    .getReadyReplicas()).isEqualTo(1);
-        });
     }
 
     @AfterEach

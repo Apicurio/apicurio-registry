@@ -118,7 +118,7 @@
                   <args>
                     <arg>${project.version}</arg>
                     <arg>${project.basedir}</arg>
-                    <arg>${apicurio-common-app-components.version}</arg>
+                    <arg>${project.version}</arg>
                   </args>
                 </configuration>
               </execution>

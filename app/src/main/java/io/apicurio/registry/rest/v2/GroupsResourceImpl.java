@@ -111,23 +111,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_ARTIFACT_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_CANONICAL;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_DESCRIPTION_ENCODED;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_FROM_URL;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_GROUP_ID;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_IF_EXISTS;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_NAME_ENCODED;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_SHA;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_UPDATE_STATE;
-import static io.apicurio.common.apps.logging.audit.AuditingConstants.KEY_VERSION;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_OWNER;
+import static io.apicurio.common.apps.logging.audit.AuditingConstants.*;
 import static io.apicurio.registry.rest.v2.V2ApiUtil.defaultGroupIdToNull;
 
 /**

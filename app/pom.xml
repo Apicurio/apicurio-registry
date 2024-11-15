@@ -409,7 +409,6 @@
       <plugin>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-common-app-components-maven-plugin</artifactId>
-        <version>${apicurio-common-app-components.version}</version>
         <executions>
           <execution>
             <id>merge-test-properties</id>

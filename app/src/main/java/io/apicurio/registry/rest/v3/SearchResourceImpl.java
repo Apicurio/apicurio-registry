@@ -62,7 +62,7 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit,
             SortOrder order, ArtifactSortBy orderby, List<String> labels, String description, String groupId,
-            Long globalId, Long contentId, String artifactId) {
+            Long globalId, Long contentId, String artifactId, String artifactType) {
         if (orderby == null) {
             orderby = ArtifactSortBy.name;
         }
@@ -89,6 +89,9 @@ public class SearchResourceImpl implements SearchResource {
         }
         if (!StringUtil.isEmpty(artifactId)) {
             filters.add(SearchFilter.ofArtifactId(artifactId));
+        }
+        if (!StringUtil.isEmpty(artifactType)) {
+            filters.add(SearchFilter.ofArtifactType(artifactType));
         }
 
         if (labels != null && !labels.isEmpty()) {
@@ -234,7 +237,8 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public VersionSearchResults searchVersions(String version, BigInteger offset, BigInteger limit,
             SortOrder order, VersionSortBy orderby, List<String> labels, String description, String groupId,
-            Long globalId, Long contentId, String artifactId, String name, VersionState state) {
+            Long globalId, Long contentId, String artifactId, String name, VersionState state,
+            String artifactType) {
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
         }
@@ -264,6 +268,9 @@ public class SearchResourceImpl implements SearchResource {
         }
         if (!StringUtil.isEmpty(description)) {
             filters.add(SearchFilter.ofDescription(description));
+        }
+        if (!StringUtil.isEmpty(artifactType)) {
+            filters.add(SearchFilter.ofArtifactType(artifactType));
         }
         if (labels != null && !labels.isEmpty()) {
             labels.stream().map(prop -> {

@@ -8,6 +8,7 @@ import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -195,4 +196,31 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, propertiesSearch.getCount());
     }
 
+    @Test
+    void testFilterByArtifactType() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createArtifact(groupId, "avro-artifact", ArtifactType.AVRO, "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, "json-artifact", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+
+        ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(2, results.getCount());
+
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactType = ArtifactType.AVRO;
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactType = ArtifactType.JSON;
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+    }
 }

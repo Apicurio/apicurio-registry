@@ -15,6 +15,8 @@ type ArtifactsRequestBuilder struct {
 type ArtifactsRequestBuilderGetQueryParameters struct {
 	// Filter by artifactId.
 	ArtifactId *string `uriparametername:"artifactId"`
+	// Filter by artifact type (`AVRO`, `JSON`, etc).
+	ArtifactType *string `uriparametername:"artifactType"`
 	// Filter by contentId.
 	ContentId *int64 `uriparametername:"contentId"`
 	// Filter by description.

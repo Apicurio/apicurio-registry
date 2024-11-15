@@ -376,6 +376,14 @@
               "type": "string"
             },
             "in": "query"
+          },
+          {
+            "name": "artifactType",
+            "description": "Filter by artifact type (`AVRO`, `JSON`, etc).",
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactType"
+            },
+            "in": "query"
           }
         ],
         "responses": {
@@ -2928,6 +2936,14 @@
             "description": "Filter by version state.",
             "schema": {
               "$ref": "#/components/schemas/VersionState"
+            },
+            "in": "query"
+          },
+          {
+            "name": "artifactType",
+            "description": "Filter by artifact type (`AVRO`, `JSON`, etc).",
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactType"
             },
             "in": "query"
           }

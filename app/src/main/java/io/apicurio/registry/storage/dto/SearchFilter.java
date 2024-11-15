@@ -62,6 +62,10 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.version, value);
     }
 
+    public static SearchFilter ofArtifactType(String value) {
+        return new SearchFilter(SearchFilterType.artifactType, value);
+    }
+
     public static SearchFilter ofCanonicalHash(String value) {
         return new SearchFilter(SearchFilterType.canonicalHash, value);
     }

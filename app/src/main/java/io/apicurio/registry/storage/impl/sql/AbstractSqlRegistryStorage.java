@@ -990,6 +990,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             query.bind(idx, filter.getStringValue());
                         });
                         break;
+                    case artifactType:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("a.type " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        break;
                     case contentHash:
                         op = filter.isNot() ? "!=" : "=";
                         where.append(
@@ -1601,9 +1608,17 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             query.bind(idx, normalizeGroupId(filter.getStringValue()));
                         });
                         break;
+                    case artifactType:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("a.type " + op + " ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getStringValue());
+                        });
+                        break;
                     case artifactId:
                     case contentId:
                     case globalId:
+                    case state:
                     case version:
                         op = filter.isNot() ? "!=" : "=";
                         where.append("v.");
@@ -1663,13 +1678,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                             query.bind(idx, filter.getStringValue());
                         });
                         where.append(")");
-                        break;
-                    case state:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("v.state " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
-                        });
                         break;
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());

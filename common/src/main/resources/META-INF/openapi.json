@@ -5053,6 +5053,7 @@
             "version": "1.0.0",
             "content": {
               "content": "{\"type\":\"record\",\"name\":\"ExampleType\",\"fields\":[{\"name\":\"sdfgfsdgsdg\",\"type\":\"string\"}]}",
+              "contentType": "application/json",
               "references": []
             },
             "name": "ExampleType",

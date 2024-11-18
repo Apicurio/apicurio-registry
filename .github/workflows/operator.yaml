@@ -79,30 +79,45 @@ jobs:
           minikube tunnel &   
 
       - name: Build and run local tests on Minikube
+        working-directory: operator
         run: |
-          cd operator
           make BUILD_OPTS="--no-transfer-progress" build
 
       - name: Build temporary operator image
+        working-directory: operator
         run: |
-          cd operator
           make image-build image-push
 
       - name: Build temporary operator bundle
+        working-directory: operator
         run: |
-          cd operator
           make bundle
 
       - name: Build temporary operator catalog
+        working-directory: operator
         run: |
-          cd operator
           make catalog
 
       - name: Run remote tests on Minikube
+        working-directory: operator
         run: |
-          cd operator
           mvn clean verify --no-transfer-progress -DskipOperatorTests=false -Dtest.operator.deployment=remote \
             -Dtest.operator.deployment-target=minikube -Dtest.operator.catalog-image=$(make catalog-image-get)
+
+      - name: Update install file
+        working-directory: operator
+        run: |
+          make INSTALL_FILE=install/install.yaml dist-install-file
+
+      - name: Check install file
+        run: |
+          git add operator/install/install.yaml || true
+          if ! git diff --cached --exit-code &> /dev/null; then
+            echo 'Install file needs to be updated. Please run "cd operator; make INSTALL_FILE=install/install.yaml dist-install-file" and commit the result.';
+            exit 1;
+          else
+            echo "No changes to the install file.";            
+          fi
 
   operator-publish:
     name: Publish Operator
@@ -128,8 +143,8 @@ jobs:
           cache: maven
 
       - name: Build
+        working-directory: operator
         run: |
-          cd operator
           make BUILD_OPTS="--no-transfer-progress" SKIP_TESTS=true build
 
       - name: Login to quay.io registry
@@ -137,47 +152,11 @@ jobs:
           docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
       - name: Build and publish operator image # TODO: Also push to DockerHub Registry
+        working-directory: operator
         run: |
-          cd operator
           make image-build image-push
 
       - name: Build and publish operator bundle
+        working-directory: operator
         run: |
-          cd operator
           make bundle
-
-  operator-check-install-file:
-    name: Check Operator Install file
-    runs-on: ubuntu-latest
-    needs: operator-publish
-    steps:
-
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: temurin
-          cache: maven
-
-      - name: Build
-        run: |
-          cd operator
-          make BUILD_OPTS="--no-transfer-progress" SKIP_TESTS=true build
-
-      - name: Update install file
-        run: |
-          cd operator
-          make INSTALL_FILE=install/install.yaml dist-install-file
-
-      - name: Check install file
-        run: |
-          git add operator/install/install.yaml || true
-          if ! git diff --cached --exit-code &> /dev/null; then
-            echo 'Install file needs to be updated. Please run "cd operator; make INSTALL_FILE=install/install.yaml dist-install-file" and commit the result.';
-            exit 1;
-          else
-            echo "No changes to the install file.";            
-          fi

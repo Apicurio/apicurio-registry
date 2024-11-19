@@ -1,1 +1,2 @@
 io.apicurio.registry.services.RegistryConfigSource
+io.apicurio.registry.config.config.impl.DynamicConfigSource

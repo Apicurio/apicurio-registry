@@ -232,9 +232,10 @@ build: ## TODO
 
 .PHONY: remote-tests-all
 remote-tests-all: ## TODO
+	mvn clean # Running `mvn clean` will delete controller/target/test-install.yaml, so it has to be run first, if needed.
 	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 	$(eval BUILD_OPTS_EXT := $(subst "-pl controller -am",,$(BUILD_OPTS_EXT)))
-	mvn clean verify $(BUILD_OPTS_EXT) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
+	mvn verify $(BUILD_OPTS_EXT) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
 
 .PHONY: image-build

@@ -37,11 +37,6 @@
       <groupId>com.squareup.wire</groupId>
       <artifactId>wire-schema</artifactId>
     </dependency>
-
-    <dependency>
-      <groupId>com.squareup.wire</groupId>
-      <artifactId>wire-compiler</artifactId>
-    </dependency>
   </dependencies>
 
   <build>

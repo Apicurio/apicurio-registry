@@ -52,6 +52,22 @@ You can set the following environment variables to configure authentication for 
 |The client ID for the {registry} web console.
 |String
 |`apicurio-registry`
+
+|`QUARKUS_OIDC_TLS_TRUST_STORE_FILE`
+| Specifies the file path to the TLS trust store used by Quarkus for securing OpenID Connect (OIDC) communications. The trust store can be populated with the trusted certificates needed to establish secure TLS connections with the OIDC provider.
+|String
+|- 
+
+|`QUARKUS_OIDC_TLS_TRUST_STORE_PASSWORD`
+|The password required to access the TLS trust store file. 
+|String
+|-
+
+|`ROLE_BASED_AUTHZ_ENABLED`
+|Enables or disables role-based authorization.
+|Boolean
+|False
+
 |===
 
 [discrete]

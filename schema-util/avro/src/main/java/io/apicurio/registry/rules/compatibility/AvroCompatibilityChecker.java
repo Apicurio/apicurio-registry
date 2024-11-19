@@ -1,6 +1,5 @@
 package io.apicurio.registry.rules.compatibility;
 
-import com.google.common.collect.ImmutableSet;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.UnprocessableSchemaException;
 import org.apache.avro.Schema;
@@ -8,6 +7,7 @@ import org.apache.avro.SchemaCompatibility;
 import org.apache.avro.SchemaCompatibility.Incompatibility;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,8 +35,9 @@ public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incom
                 case COMPATIBLE:
                     return Collections.emptySet();
                 case INCOMPATIBLE: {
-                    return ImmutableSet.<Incompatibility> builder().addAll(result.getIncompatibilities())
-                            .build();
+                    Set<Incompatibility> all = new HashSet<>();
+                    all.addAll(result.getIncompatibilities());
+                    return Collections.unmodifiableSet(all);
                 }
                 default:
                     throw new IllegalStateException(

@@ -66,7 +66,7 @@ class AvroCompatibilityTest {
      */
     @Test
     void testBasicBackwardsCompatibility() {
-        AvroCompatibilityChecker checker = AvroCompatibilityChecker.BACKWARD_CHECKER;
+        TestAvroCompatibilityChecker checker = TestAvroCompatibilityChecker.BACKWARD_CHECKER;
         assertTrue(checker.isCompatible(schema2, Collections.singletonList(schema1)),
                 "adding a field with default is a backward compatible change");
         assertFalse(checker.isCompatible(schema3, Collections.singletonList(schema1)),
@@ -93,7 +93,7 @@ class AvroCompatibilityTest {
      */
     @Test
     void testBasicBackwardsTransitiveCompatibility() {
-        AvroCompatibilityChecker checker = AvroCompatibilityChecker.BACKWARD_TRANSITIVE_CHECKER;
+        TestAvroCompatibilityChecker checker = TestAvroCompatibilityChecker.BACKWARD_TRANSITIVE_CHECKER;
         // All compatible
         assertTrue(checker.isCompatible(schema8, Arrays.asList(schema1, schema2)),
                 "iteratively adding fields with defaults is a compatible change");
@@ -113,7 +113,7 @@ class AvroCompatibilityTest {
      */
     @Test
     void testBasicForwardsCompatibility() {
-        AvroCompatibilityChecker checker = AvroCompatibilityChecker.FORWARD_CHECKER;
+        TestAvroCompatibilityChecker checker = TestAvroCompatibilityChecker.FORWARD_CHECKER;
         assertTrue(checker.isCompatible(schema2, Collections.singletonList(schema1)),
                 "adding a field is a forward compatible change");
         assertTrue(checker.isCompatible(schema3, Collections.singletonList(schema1)),
@@ -134,7 +134,7 @@ class AvroCompatibilityTest {
      */
     @Test
     void testBasicForwardsTransitiveCompatibility() {
-        AvroCompatibilityChecker checker = AvroCompatibilityChecker.FORWARD_TRANSITIVE_CHECKER;
+        TestAvroCompatibilityChecker checker = TestAvroCompatibilityChecker.FORWARD_TRANSITIVE_CHECKER;
         // All compatible
         assertTrue(checker.isCompatible(schema1, Arrays.asList(schema8, schema2)),
                 "iteratively removing fields with defaults is a compatible change");
@@ -153,7 +153,7 @@ class AvroCompatibilityTest {
      */
     @Test
     void testBasicFullCompatibility() {
-        AvroCompatibilityChecker checker = AvroCompatibilityChecker.FULL_CHECKER;
+        TestAvroCompatibilityChecker checker = TestAvroCompatibilityChecker.FULL_CHECKER;
         assertTrue(checker.isCompatible(schema2, Collections.singletonList(schema1)),
                 "adding a field with default is a backward and a forward compatible change");
 
@@ -171,7 +171,7 @@ class AvroCompatibilityTest {
      */
     @Test
     void testBasicFullTransitiveCompatibility() {
-        AvroCompatibilityChecker checker = AvroCompatibilityChecker.FULL_TRANSITIVE_CHECKER;
+        TestAvroCompatibilityChecker checker = TestAvroCompatibilityChecker.FULL_TRANSITIVE_CHECKER;
 
         // Simple check
         assertTrue(checker.isCompatible(schema8, Arrays.asList(schema1, schema2)),

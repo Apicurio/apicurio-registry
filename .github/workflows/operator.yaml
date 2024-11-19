@@ -103,6 +103,12 @@ jobs:
         run: |
           make BUILD_OPTS="--no-transfer-progress" remote-tests-all
 
+      - name: Configure env. variables 3
+        run: |
+          sed -i "/IMAGE=/d" $GITHUB_ENV
+          sed -i "/BUNDLE_IMAGE=/d" $GITHUB_ENV
+          sed -i "/CATALOG_IMAGE=/d" $GITHUB_ENV
+
       - name: Update install file
         working-directory: operator
         run: |

@@ -4,7 +4,6 @@ import io.apicurio.registry.operator.Constants;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.quarkus.logging.Log;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -86,7 +85,7 @@ public abstract class OLMITBase {
     @AfterEach
     public void cleanup() {
         if (cleanup) {
-            Log.info("Deleting CRs");
+            log.info("Deleting CRs");
             client.resources(ApicurioRegistry3.class).delete();
             Awaitility.await().untilAsserted(() -> {
                 var registryDeployments = client.apps().deployments().inNamespace(namespace)
@@ -99,7 +98,7 @@ public abstract class OLMITBase {
     @AfterAll
     public static void afterAll() {
         if (cleanup) {
-            Log.info("Deleting namespace : " + namespace);
+            log.info("Deleting namespace : {}", namespace);
             Assertions.assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
         }
         client.close();

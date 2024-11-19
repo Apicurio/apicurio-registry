@@ -118,7 +118,7 @@ jobs:
         run: |
           git add operator/install/install.yaml || true
           if ! git diff --cached --exit-code &> /dev/null; then
-            echo 'Install file needs to be updated. Please run "cd operator; make INSTALL_FILE=install/install.yaml dist-install-file" and commit the result.';
+            echo 'Install file needs to be updated. Please run "cd operator; make SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file" and commit the result.';
             exit 1;
           else
             echo "No changes to the install file.";            

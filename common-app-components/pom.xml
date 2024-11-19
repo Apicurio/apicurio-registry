@@ -22,13 +22,10 @@
     <module>config-index/deployment</module>
     <module>config-index/runtime</module>
     <module>config-index/integration-tests</module>
-    <module>util</module>
     <module>logging</module>
     <module>maven-plugin</module>
-    <module>web</module>
     <module>storage</module>
     <module>storage-spi</module>
-    <module>test</module>
   </modules>
 
   <properties>

@@ -149,6 +149,10 @@ public class generateAllConfigPartial {
         List<AnnotationInstance> configAnnotations = index.getAnnotations(configProperty);
 
         for (AnnotationInstance annotation : configAnnotations) {
+            if (annotation.value("name") == null) {
+                continue;
+            }
+
             var configName = annotation.value("name").value().toString();
             if (allConfiguration.containsKey(configName)) {
                 continue;

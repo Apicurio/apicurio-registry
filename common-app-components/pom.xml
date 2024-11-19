@@ -14,18 +14,12 @@
   <name>apicurio-common-app-components</name>
 
   <modules>
-    <module>content</module>
     <module>core</module>
     <module>config/definitions</module>
-    <module>config/impl</module>
-    <module>config/all</module>
     <module>config-index/deployment</module>
     <module>config-index/runtime</module>
-    <module>config-index/integration-tests</module>
     <module>logging</module>
     <module>maven-plugin</module>
-    <module>storage</module>
-    <module>storage-spi</module>
   </modules>
 
   <properties>

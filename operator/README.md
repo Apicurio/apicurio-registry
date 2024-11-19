@@ -222,17 +222,22 @@ Available configuration options:
    make SKIP_TESTS=true build image-build image-push
    ```
 
-4. Run:
+4. Generate operator test install file:
+   ```shell
+   make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
+   ```
+
+5. Run:
    ```shell
    mvn clean verify -pl controller -am -DskipOperatorTests=false -Dtest.operator.deployment=remote
    ```
 
 Configuration options for the remote tests are same as those for the local tests, but the following options are additionally available:
 
-| Option                          | Type                      | Default value                                                         | Description                                                                                                                                                                                                                                                                       |
-|---------------------------------|---------------------------|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| test.operator.deployment-target | `kubernetes` / `minikube` | `kubernetes`                                                          | Modify the deployment for the given cluster type. *NOTE: This should only be necessary for minikube with a shared docker daemon, but the OLM tests still require the bundle and catalog images to be pushed to a remote registry. Please report to us if you find out otherwise.* |
-| test.operator.install-file      | string                    | `operator/controller/target/test-install.yaml`                        | The install file that is used to deploy the operator for testing, generated during build. *NOTE: More information about the install file are below in the __Distribution and Release__ section.*                                                                                  |
+| Option                          | Type                      | Default value                                                 | Description                                                                                                                                                                                                                                                                       |
+|---------------------------------|---------------------------|---------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| test.operator.deployment-target | `kubernetes` / `minikube` | `kubernetes`                                                  | Modify the deployment for the given cluster type. *NOTE: This should only be necessary for minikube with a shared docker daemon, but the OLM tests still require the bundle and catalog images to be pushed to a remote registry. Please report to us if you find out otherwise.* |
+| test.operator.install-file      | string                    | `${projectRoot}/operator/controller/target/test-install.yaml` | The install file that is used to deploy the operator for testing, must be generated before testing. *NOTE: More information about the install file are below in the __Distribution and Release__ section.*                                                                        |
                                                                                 |
 
 ### Remote Tests with OLM Tests
@@ -258,6 +263,7 @@ OLM tests are similar to the remote tests in that the operator is deployed into 
 
 4. Run:
    ```shell
+   make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
    mvn clean verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(make catalog-image-get)
    ```
    or

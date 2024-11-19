@@ -230,6 +230,7 @@ build: ## TODO
 
 .PHONY: remote-tests-all
 remote-tests-all: ## TODO
+	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 	$(eval BUILD_OPTS := $(subst "-pl controller -am",,$(BUILD_OPTS)))
 	mvn clean verify $(BUILD_OPTS) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
@@ -271,6 +272,7 @@ undeploy: ## TODO
 
 .PHONY: dist-install-file
 dist-install-file: ## TODO
+	mkdir -p $(dir $(INSTALL_FILE))
 	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
 	kubectl kustomize controller/src/main/deploy/install | envsubst >$(INSTALL_FILE)
 

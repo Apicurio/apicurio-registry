@@ -229,8 +229,10 @@ Available configuration options:
 
 5. Run:
    ```shell
-   mvn clean verify -pl controller -am -DskipOperatorTests=false -Dtest.operator.deployment=remote
+   mvn verify -pl controller -am -DskipOperatorTests=false -Dtest.operator.deployment=remote
    ```
+
+*NOTE: Running `mvn clean` will delete controller/target/test-install.yaml, so it has to be run before step 3, if needed.*
 
 Configuration options for the remote tests are same as those for the local tests, but the following options are additionally available:
 

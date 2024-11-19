@@ -33,17 +33,15 @@ NAMESPACE ?= default
 ### Bundle
 
 PACKAGE_NAME ?= apicurio-registry
-PACKAGE= ?= $(PACKAGE_NAME).v$(LC_VERSION)
+PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
+# TODO Replaces:
+# PREVIOUS_PACKAGE_VERSION =
+# REPLACES = $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 CHANNELS ?= 3.x
 DEFAULT_CHANNEL ?= $(CHANNELS)
 
-BUNDLE_OPTS ?= --package $(PACKAGE_NAME) --version $(LC_VERSION) --channels=$(CHANNELS) --default-channel=$(DEFAULT_CHANNEL)
 BUNDLE_DIR ?= target/bundle/$(PACKAGE_NAME)/$(LC_VERSION)
-
-# TODO Replaces:
-# PREVIOUS_PACKAGE_VERSION =
-# REPLACES = $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 BUNDLE_IMAGE_NAME ?= $(IMAGE_NAME)-bundle
 BUNDLE_IMAGE_TAG ?= $(LC_VERSION)
@@ -71,6 +69,8 @@ INSTALL_FILE ?= install/apicurio-registry-operator-$(VERSION).yaml
 DIST_TARGET_DIR ?= target/dist
 
 ### Other
+
+CURRENT_DIR = $(shell pwd)
 
 OS ?= linux
 ARCH ?= amd64
@@ -172,6 +172,7 @@ define target_dir
 		then \
 			if  [[ $(1) == target/* ]]; \
 			then \
+				echo "Cleaning $(1)"; \
 				rm -rf "$(1)"; \
 			fi; \
 		fi; \
@@ -180,23 +181,9 @@ define target_dir
 endef
 
 
-OPERATOR_SDK_VERSION ?= 1.37.0
-OPERATOR_SDK = $(shell pwd)/target/bin/operator-sdk
-.PHONY: install-operator-sdk
-install-operator-sdk: ## Install operator-sdk v1.37.0
-	@{ \
-		if [ ! -f $(OPERATOR_SDK) ]; \
-		then \
-			mkdir -p $(dir $(OPERATOR_SDK)); \
-			curl -sSLo $(OPERATOR_SDK) "https://github.com/operator-framework/operator-sdk/releases/download/v$(OPERATOR_SDK_VERSION)/operator-sdk_$(OS)_$(ARCH)"; \
-			chmod +x $(OPERATOR_SDK); \
-		fi; \
-	}
-
-
 .PHONY: install-opm
 OPM_VERSION ?= 1.48.0
-OPM = $(shell pwd)/target/bin/opm
+OPM = $(CURRENT_DIR)/target/bin/opm
 install-opm: ## Install opm v1.48.0
 	@{ \
 		if [ ! -f $(OPM) ]; \
@@ -209,7 +196,7 @@ install-opm: ## Install opm v1.48.0
 
 
 YQ_VERSION ?= 4.27.5
-YQ = $(shell pwd)/target/bin/yq
+YQ = $(CURRENT_DIR)/target/bin/yq
 .PHONY: install-yq
 install-yq: ## Install yq v4.27.5
 	@{ \
@@ -218,6 +205,25 @@ install-yq: ## Install yq v4.27.5
 			mkdir -p $(dir $(YQ)); \
 			curl -sSLo $(YQ) "https://github.com/mikefarah/yq/releases/download/v$(YQ_VERSION)/yq_$(OS)_$(ARCH)"; \
 			chmod +x $(YQ); \
+		fi; \
+	}
+
+
+# Why do we need this?
+# Because it was decided that I can't use operator-sdk to generate bundle files for some reason.
+# I have to use opm, which only supports generating bundle annotations and dockerfile.
+# As a result, I have to install this tool instead, as suggested in
+# https://olm.operatorframework.io/docs/tasks/creating-operator-manifests/#installation-metadata-required .
+FAQ_VERSION ?= 0.0.7
+FAQ = $(CURRENT_DIR)/target/bin/faq
+.PHONY: install-faq
+install-faq: ## Install faq v0.0.7
+	@{ \
+		if [ ! -f $(FAQ) ]; \
+		then \
+			mkdir -p $(dir $(FAQ)); \
+			curl -sSLo $(FAQ) "https://github.com/jzelinskie/faq/releases/download/$(FAQ_VERSION)/faq-$(OS)-$(ARCH)"; \
+			chmod +x $(FAQ); \
 		fi; \
 	}
 
@@ -282,7 +288,7 @@ dist-install-file: ## TODO
 
 .PHONY: dist
 dist: dist-install-file ## TODO
-	$(call target_dir, $(DIST_TARGET_DIR))
+	$(call target_dir,$(DIST_TARGET_DIR))
 	cp -rt $(DIST_TARGET_DIR) controller/src/main/deploy/dist-template/*
 	# Licenses
 	cp -t $(DIST_TARGET_DIR) target/generated-resources/licenses.xml
@@ -303,22 +309,47 @@ dist: dist-install-file ## TODO
 quickstart: build image-build image-push deploy ## TODO
 
 
+# Why all this?
+# Because it was decided that I can't use operator-sdk to generate bundle files for some reason.
+# I have to use opm, which only supports generating bundle annotations and dockerfile.
+# As a result, I had to invent a way to generate the manifests manually and this is the result.
 .PHONY: bundle-build
-bundle-build: install-operator-sdk install-yq ## Generate bundle metadata
-	$(call target_dir, $(BUNDLE_DIR))
-	kubectl kustomize controller/src/main/deploy/csv | envsubst | $(OPERATOR_SDK) generate bundle -q --output-dir $(BUNDLE_DIR) $(BUNDLE_OPTS)
+bundle-build: install-opm install-faq install-yq ## Generate bundle files
+	$(call target_dir,$(BUNDLE_DIR))
+	mkdir -p $(BUNDLE_DIR)/manifests
+	# Create CRD
+	kubectl kustomize controller/src/main/deploy/crd | envsubst >$(BUNDLE_DIR)/manifests/registry.apicur.io_apicurioregistries3.yaml
+	# Prepare tmp_* files with resources that will be included in the CSV
+	cd $(BUNDLE_DIR)/manifests && \
+	  kubectl kustomize $(CURRENT_DIR)/controller/src/main/deploy/csv | envsubst | \
+	  $(YQ) --no-doc -s '"tmp_" + (.kind | downcase) + "_" + .metadata.name + ".yaml"' -
+	# Set CSV name and version in "template" CSV
+	cd $(BUNDLE_DIR)/manifests && \
+	  $(YQ) '.metadata.name = "$(PACKAGE)"' -i tmp_clusterserviceversion_apicurio-registry.v0.0.0.yaml
+	cd $(BUNDLE_DIR)/manifests && \
+      $(YQ) '.spec.version = "$(LC_VERSION)"' -i tmp_clusterserviceversion_apicurio-registry.v0.0.0.yaml
+	# Add examples to "template" CSV
+	cd $(BUNDLE_DIR)/manifests && \
+	  $(YQ) -o=json '[.]' tmp_apicurioregistry3_simple-apicurioregistry3.yaml >tmp_examples.json
+	cd $(BUNDLE_DIR)/manifests && \
+		$(YQ) '.metadata.annotations.alm-examples = load_str("tmp_examples.json")' -i tmp_clusterserviceversion_apicurio-registry.v0.0.0.yaml
+	# Create CSV from the "template CSV" and tmp files
+	cd $(BUNDLE_DIR)/manifests && \
+	  $(FAQ) -f yaml -o yaml --slurp '.[0].spec.install = {strategy: "deployment", spec:{ deployments: [{name: .[1].metadata.name, label: .[1].metadata.labels, spec: .[1].spec }], clusterPermissions: [{serviceAccountName: .[3].metadata.name, rules: .[2].rules }]}} | .[0]' \
+	  tmp_clusterserviceversion_apicurio-registry.v0.0.0.yaml tmp_deployment_apicurio-registry-operator-v$(LC_VERSION).yaml \
+	  tmp_clusterrole_apicurio-registry-operator-clusterrole.yaml tmp_serviceaccount_apicurio-registry-operator.yaml \
+	  >apicurio-registry.clusterserviceversion.yaml
+	# Remove tmp_* files
+	cd $(BUNDLE_DIR)/manifests && rm tmp_*
+	$(OPM) alpha bundle generate -c $(CHANNELS) -e $(DEFAULT_CHANNEL) -p $(PACKAGE_NAME) -d $(BUNDLE_DIR)/manifests
 	# Post-process annotations.yaml
-	$(YQ) '... comments = ""' -i $(BUNDLE_DIR)/metadata/annotations.yaml
-	$(YQ) '.annotations = (.annotations | to_entries | del(.[] | select(.key == "operators.operatorframework.io.metrics.*")) | from_entries)' -i $(BUNDLE_DIR)/metadata/annotations.yaml
 	$(YQ) '.annotations."com.redhat.openshift.versions" = "v4.12"' -i $(BUNDLE_DIR)/metadata/annotations.yaml
 	$(YQ) 'sort_keys(..)' -i $(BUNDLE_DIR)/metadata/annotations.yaml
 	# Post-process bundle.Dockerfile
 	mv bundle.Dockerfile $(BUNDLE_DIR)
-	sed -i '\|^# .*$$|d' $(BUNDLE_DIR)/bundle.Dockerfile
-	sed -i '\|^LABEL operators\.operatorframework.io\.metrics\..*$$|d' $(BUNDLE_DIR)/bundle.Dockerfile
 	sed -i 's|^FROM scratch$$|FROM scratch\n\nLABEL com.redhat.openshift.versions=v4.12|g' $(BUNDLE_DIR)/bundle.Dockerfile
-	# Validate
-	$(OPERATOR_SDK) bundle validate $(BUNDLE_DIR)
+	# No validation since opm does not support it, and I can't use operator-sdk.
+	# $(OPERATOR_SDK) bundle validate $(BUNDLE_DIR)
 
 
 .PHONY: bundle-image-build
@@ -347,7 +378,7 @@ bundle: bundle-build bundle-image-build bundle-image-push ## TODO
 
 .PHONY: catalog-build
 catalog-build: install-opm ## TODO
-	$(call target_dir, $(CATALOG_TARGET_DIR))
+	$(call target_dir,$(CATALOG_TARGET_DIR))
 	# Create catalog.yaml
 	mkdir -p $(CATALOG_TARGET_DIR)/configs
 	cat $(CATALOG_DIR)/catalog.template.yaml | envsubst > $(CATALOG_TARGET_DIR)/catalog.yaml

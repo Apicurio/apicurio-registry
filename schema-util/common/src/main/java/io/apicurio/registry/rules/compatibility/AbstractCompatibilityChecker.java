@@ -1,6 +1,5 @@
 package io.apicurio.registry.rules.compatibility;
 
-import com.google.common.collect.ImmutableSet;
 import io.apicurio.registry.content.TypedContent;
 
 import java.util.HashSet;
@@ -50,22 +49,20 @@ public abstract class AbstractCompatibilityChecker<D> implements CompatibilityCh
                         proposed) -> isBackwardsCompatibleWith(proposed, existing, resolvedReferences));
                 break;
             case FULL:
-                incompatibleDiffs = ImmutableSet.<D> builder()
-                        .addAll(isBackwardsCompatibleWith(lastExistingSchema, proposedArtifactContent,
-                                resolvedReferences))
-                        .addAll(isBackwardsCompatibleWith(proposedArtifactContent, lastExistingSchema,
-                                resolvedReferences))
-                        .build();
+                incompatibleDiffs = unionOf(
+                        isBackwardsCompatibleWith(lastExistingSchema, proposedArtifactContent,
+                                resolvedReferences),
+                        isBackwardsCompatibleWith(proposedArtifactContent, lastExistingSchema,
+                                resolvedReferences));
                 break;
             case FULL_TRANSITIVE:
-                incompatibleDiffs = ImmutableSet.<D> builder()
-                        .addAll(transitively(existingArtifacts, proposedArtifactContent,
+                incompatibleDiffs = unionOf(
+                        transitively(existingArtifacts, proposedArtifactContent,
                                 (existing, proposed) -> isBackwardsCompatibleWith(existing, proposed,
-                                        resolvedReferences))) // Backward
-                        .addAll(transitively(existingArtifacts, proposedArtifactContent,
+                                        resolvedReferences)),
+                        transitively(existingArtifacts, proposedArtifactContent,
                                 (existing, proposed) -> isBackwardsCompatibleWith(proposed, existing,
-                                        resolvedReferences))) // Backward
-                        .build();
+                                        resolvedReferences)));
                 break;
             case NONE:
                 break;
@@ -97,4 +94,13 @@ public abstract class AbstractCompatibilityChecker<D> implements CompatibilityCh
             Map<String, TypedContent> resolvedReferences);
 
     protected abstract CompatibilityDifference transform(D original);
+
+    private Set<D> unionOf(Set<D>... from) {
+        Set<D> rval = new HashSet<>();
+        for (Set<D> f : from) {
+            rval.addAll(f);
+        }
+        return rval;
+    }
+
 }

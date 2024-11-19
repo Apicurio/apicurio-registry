@@ -1,4 +1,4 @@
-package io.apicurio.common.apps.logging.audit;
+package io.apicurio.registry.logging.audit;
 
 import java.util.Map;
 

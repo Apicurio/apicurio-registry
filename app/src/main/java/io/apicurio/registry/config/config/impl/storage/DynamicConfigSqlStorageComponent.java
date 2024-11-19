@@ -19,7 +19,7 @@ package io.apicurio.registry.config.config.impl.storage;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigSqlStorageStatements;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
-import io.apicurio.common.apps.logging.LoggerProducer;
+import io.apicurio.registry.logging.LoggerProducer;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import jakarta.enterprise.context.ApplicationScoped;

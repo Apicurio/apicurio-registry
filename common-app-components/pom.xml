@@ -14,30 +14,15 @@
   <name>apicurio-common-app-components</name>
 
   <modules>
-    <module>core</module>
-    <module>config/definitions</module>
+    <module>config-index/definitions</module>
     <module>config-index/deployment</module>
     <module>config-index/runtime</module>
-    <module>logging</module>
     <module>maven-plugin</module>
   </modules>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
   </properties>
-
-  <dependencyManagement>
-    <dependencies>
-
-      <!-- Apache Commons -->
-      <dependency>
-        <groupId>commons-beanutils</groupId>
-        <artifactId>commons-beanutils</artifactId>
-        <version>${commons-beanutils.version}</version>
-      </dependency>
-
-    </dependencies>
-  </dependencyManagement>
 
   <build>
     <plugins>

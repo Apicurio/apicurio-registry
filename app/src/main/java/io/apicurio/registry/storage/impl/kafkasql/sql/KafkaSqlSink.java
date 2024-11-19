@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.impl.kafkasql.sql;
 
-import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;

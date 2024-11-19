@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.common.apps.logging.audit;
+package io.apicurio.registry.logging.audit;
 
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;

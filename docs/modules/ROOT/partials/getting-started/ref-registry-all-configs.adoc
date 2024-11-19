@@ -3,6 +3,37 @@
 
 The following {registry} configuration options are available for each component category:
 
+== 
+. configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.app.date`
+|`string`
+|
+|`3.0.4`
+|
+|`apicurio.app.description`
+|`string`
+|
+|`3.0.4`
+|
+|`apicurio.app.name`
+|`string`
+|
+|`3.0.4`
+|
+|`apicurio.app.version`
+|`string`
+|
+|`3.0.4`
+|
+|===
+
 == api
 .api configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]

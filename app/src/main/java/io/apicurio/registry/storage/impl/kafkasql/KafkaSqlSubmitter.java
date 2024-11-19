@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
-import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.utils.kafka.ProducerActions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;

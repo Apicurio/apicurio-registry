@@ -34,17 +34,6 @@
       <artifactId>apicurio-registry-schema-util-provider</artifactId>
     </dependency>
 
-    <!-- Common App Components -->
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-core</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-logging</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-common-app-components-config-definitions</artifactId>
@@ -204,6 +193,15 @@
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
       <version>${snakeyaml.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>${commons-beanutils.version}</version>
     </dependency>
 
     <!-- Test Only -->

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.common.apps.core;
+package io.apicurio.registry.core;
 
 /**
  * Generic application exception.

@@ -14,11 +14,20 @@
  * limitations under the License.
  */
 
-package io.apicurio.common.apps.logging;
+package io.apicurio.registry.logging;
+
+import jakarta.interceptor.InterceptorBinding;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-public class DefaultLoggerClass {
-
+@InterceptorBinding
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.TYPE, ElementType.METHOD })
+public @interface Logged {
 }

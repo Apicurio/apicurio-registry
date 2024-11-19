@@ -429,11 +429,6 @@
 
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-common-app-components-core</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.apicurio</groupId>
         <artifactId>apicurio-common-app-components-logging</artifactId>
         <version>${project.version}</version>
       </dependency>

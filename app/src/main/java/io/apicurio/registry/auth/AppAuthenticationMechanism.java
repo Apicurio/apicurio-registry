@@ -18,9 +18,9 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.common.apps.logging.audit.AuditHttpRequestContext;
-import io.apicurio.common.apps.logging.audit.AuditHttpRequestInfo;
-import io.apicurio.common.apps.logging.audit.AuditLogService;
+import io.apicurio.registry.logging.audit.AuditHttpRequestContext;
+import io.apicurio.registry.logging.audit.AuditHttpRequestInfo;
+import io.apicurio.registry.logging.audit.AuditLogService;
 import io.apicurio.rest.client.VertxHttpClientProvider;
 import io.apicurio.rest.client.auth.OidcAuth;
 import io.apicurio.rest.client.auth.exception.AuthErrorHandler;

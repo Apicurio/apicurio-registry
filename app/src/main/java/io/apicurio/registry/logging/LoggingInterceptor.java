@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.common.apps.logging;
+package io.apicurio.registry.logging;
 
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;

@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package io.apicurio.common.apps.core;
+package io.apicurio.registry.core;
 
+import io.apicurio.common.apps.config.Info;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -32,18 +33,22 @@ public class System {
 
     @Inject
     @ConfigProperty(name = "apicurio.app.name")
+    @Info(registryAvailableSince = "3.0.4")
     String name;
 
     @Inject
     @ConfigProperty(name = "apicurio.app.description")
+    @Info(registryAvailableSince = "3.0.4")
     String description;
 
     @Inject
     @ConfigProperty(name = "apicurio.app.version")
+    @Info(registryAvailableSince = "3.0.4")
     String version;
 
     @Inject
     @ConfigProperty(name = "apicurio.app.date")
+    @Info(registryAvailableSince = "3.0.4")
     String date;
 
     public String getName() {

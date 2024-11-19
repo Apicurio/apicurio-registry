@@ -159,7 +159,6 @@
     <json-schema-validator.version>1.5.3</json-schema-validator.version>
     <wire-schema.version>4.9.9</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <wire-compiler.version>4.9.9</wire-compiler.version>
     <okio-jvm.version>3.9.1</okio-jvm.version>
     <okio.version>3.9.1</okio.version>
     <okio-fake-file-system.version>3.9.1</okio-fake-file-system.version>
@@ -576,15 +575,8 @@
       </dependency>
       <dependency>
         <groupId>com.squareup.wire</groupId>
-        <artifactId>wire-compiler</artifactId>
-        <version>${wire-compiler.version}</version>
-        <!-- Excluding as the latest version is not present and this is not required -->
-        <exclusions>
-          <exclusion>
-            <groupId>com.squareup.wire</groupId>
-            <artifactId>wire-grpc-client</artifactId>
-          </exclusion>
-        </exclusions>
+        <artifactId>wire-schema-jvm</artifactId>
+        <version>${wire-schema.version}</version>
       </dependency>
       <dependency>
         <groupId>org.jetbrains.kotlinx</groupId>

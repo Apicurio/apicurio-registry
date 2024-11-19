@@ -103,21 +103,20 @@ jobs:
         run: |
           make BUILD_OPTS="--no-transfer-progress" remote-tests-all
 
-      - name: Configure env. variables 3
-        run: |
-          sed -i "/IMAGE=/d" $GITHUB_ENV
-          sed -i "/BUNDLE_IMAGE=/d" $GITHUB_ENV
-          sed -i "/CATALOG_IMAGE=/d" $GITHUB_ENV
-
       - name: Update install file
         working-directory: operator
         run: |
+          # We need to remove unset the variables to generate a clean install file.
+          # See https://stackoverflow.com/questions/70137245/how-to-remove-an-environment-variable-on-github-actions
+          unset IMAGE
+          unset BUNDLE_IMAGE
+          unset CATALOG_IMAGE
           make INSTALL_FILE=install/install.yaml dist-install-file
 
       - name: Check install file
         run: |
           git add operator/install/install.yaml || true
-          if ! git diff --cached --exit-code &> /dev/null; then
+          if ! git diff --staged --exit-code; then
             echo 'Install file needs to be updated. Please run "cd operator; make SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file" and commit the result.';
             exit 1;
           else

@@ -31,6 +31,12 @@
     <dependency>
       <groupId>org.openapitools.openapidiff</groupId>
       <artifactId>openapi-diff-core</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.mozilla</groupId>
+          <artifactId>rhino</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>

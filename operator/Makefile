@@ -9,11 +9,13 @@ VERSION ?= $(shell mvn help:evaluate -Dexpression=project.version -q -DforceStdo
 LC_VERSION ?= $(shell echo "$(VERSION)" | tr A-Z a-z)
 LC_VERSION_SUFFIX ?= $(shell echo "$(LC_VERSION)" | sed -n 's/[^-]*\(-.*\)/\1/p')
 
-BUILD_OPTS ?= -pl controller -am
+BUILD_OPTS_EXT += $(BUILD_OPTS)
+
+BUILD_OPTS_EXT += -pl controller -am
 
 SKIP_TESTS ?= false
 ifneq ($(SKIP_TESTS),true)
-	override BUILD_OPTS += -DskipOperatorTests=false
+	override BUILD_OPTS_EXT += -DskipOperatorTests=false
 endif
 
 IMAGE_REGISTRY ?= quay.io/apicurio
@@ -225,14 +227,14 @@ install-yq: ## Install yq v4.27.5
 
 .PHONY: build
 build: ## TODO
-	mvn clean install $(BUILD_OPTS)
+	mvn clean install $(BUILD_OPTS_EXT)
 
 
 .PHONY: remote-tests-all
 remote-tests-all: ## TODO
 	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
-	$(eval BUILD_OPTS := $(subst "-pl controller -am",,$(BUILD_OPTS)))
-	mvn clean verify $(BUILD_OPTS) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
+	$(eval BUILD_OPTS_EXT := $(subst "-pl controller -am",,$(BUILD_OPTS_EXT)))
+	mvn clean verify $(BUILD_OPTS_EXT) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
 
 .PHONY: image-build

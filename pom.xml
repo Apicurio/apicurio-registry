@@ -525,6 +525,17 @@
         <artifactId>apicurio-registry-operator-model</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-operator-controller</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-operator-controller</artifactId>
+        <version>${project.version}</version>
+        <classifier>tests</classifier>
+      </dependency>
 
       <!-- Quarkus Dependencies -->
       <dependency>

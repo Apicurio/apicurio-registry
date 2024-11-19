@@ -163,12 +163,13 @@ Available options:
 
 ## Testing
 
-*NOTE: This section is mostly specific to the `operator/controller` module, since the tests in the `operator/model` are very simple.*
+*NOTE: This section is specific to the `operator/controller` and `operator/olm-tests` modules, since the tests in the `operator/model` are very simple.*
 
-There are 2 ways to run the operator tests, and they should stay interchangeable.
+There are 3 ways to run the operator tests:
 
-- `local` runs the operator on the developer machine (**the default**). OLM tests cannot be run locally.
+- `local` runs the operator on the developer machine (**the default**).
 - `remote` runs the operator in a cluster (requires additional prerequisites, see below).
+- `olm` runs the OLM tests with the operator deployed in a cluster (these are located in a separate Maven module `operator/olm-tests`).
 
 The Maven property `-DskipOperatorTests=false` is used to explicitly enable the testing of the operator modules, since they require a cluster to run against.
 
@@ -187,14 +188,14 @@ The Maven property `-DskipOperatorTests=false` is used to explicitly enable the 
 
 3. Run:
    ```shell
-   mvn clean verify -DskipOperatorTests=false
+   mvn clean verify -pl controller -am -DskipOperatorTests=false
    ```
    or
    ```shell
    make build
    ```
 
-Available Maven options:
+Available configuration options:
 
 | Option                          | Type                      | Default value | Description                                                                                                                                             |
 |---------------------------------|---------------------------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -210,31 +211,66 @@ Available Maven options:
    minikube start
     ```
 
-2. To enable testing of Ingresses and OLM on Minikube, run (in a separate terminal):
+2. To enable testing of Ingresses on Minikube, run (in a separate terminal):
    ```shell
    minikube addons enable ingress
-   minikybe addons enable olm
    minikube tunnel
    ```
 
-3. Build and push the operator image, bundle image, and catalog image (for OLM tests):
+3. Build and push the operator image:
+   ```shell
+   make SKIP_TESTS=true build image-build image-push
+   ```
+
+4. Run:
+   ```shell
+   mvn clean verify -pl controller -am -DskipOperatorTests=false -Dtest.operator.deployment=remote
+   ```
+
+Configuration options for the remote tests are same as those for the local tests, but the following options are additionally available:
+
+| Option                          | Type                      | Default value                                                         | Description                                                                                                                                                                                                                                                                       |
+|---------------------------------|---------------------------|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| test.operator.deployment-target | `kubernetes` / `minikube` | `kubernetes`                                                          | Modify the deployment for the given cluster type. *NOTE: This should only be necessary for minikube with a shared docker daemon, but the OLM tests still require the bundle and catalog images to be pushed to a remote registry. Please report to us if you find out otherwise.* |
+| test.operator.install-file      | string                    | `operator/controller/target/test-install.yaml`                        | The install file that is used to deploy the operator for testing, generated during build. *NOTE: More information about the install file are below in the __Distribution and Release__ section.*                                                                                  |
+                                                                                |
+
+### Remote Tests with OLM Tests
+
+OLM tests are similar to the remote tests in that the operator is deployed into the target cluster. However, they are located in a separate Maven module `operator/olm-tests`, and require the bundle and catalog images to have been built. You can control whether they are executed by using Maven options `-pl` and `-am`. The following steps will run both the remote tests and the OLM tests:
+
+1. Create a Minikube cluster, unless you already have a cluster available:
+    ```shell
+   minikube start
+    ```
+
+2. To enable testing of Ingresses and OLM on Minikube, run (in a separate terminal):
+   ```shell
+   minikube addons enable ingress
+   minikube addons enable olm
+   minikube tunnel
+   ```
+
+3. Build and push the operator image, bundle image, and catalog image:
    ```shell
    make SKIP_TESTS=true build image-build image-push bundle catalog
    ```
 
 4. Run:
    ```shell
-   mvn clean verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.deployment-target=minikube -Dtest.operator.catalog-image=$(make catalog-image-get)
+   mvn clean verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(make catalog-image-get)
    ```
+   or
+   ```shell
+   make remote-tests-all
+   ```
+   for convenience.
 
-Maven options for the remote tests are same as those for the local tests, but the following options are additionally available:
+Configuration options for the remote + OLM tests are same as those for the remote tests, but the following options are additionally available:
 
-| Option                          | Type                      | Default value                                                         | Description                                                                                                                                                                                                                                                                       |
-|---------------------------------|---------------------------|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| test.operator.deployment-target | `kubernetes` / `minikube` | `kubernetes`                                                          | Modify the deployment for the given cluster type. *NOTE: This should only be necessary for minikube with a shared docker daemon, but the OLM tests still require the bundle and catalog images to be pushed to a remote registry. Please report to us if you find out otherwise.* |
-| test.operator.install-file      | string                    | `operator/controller/target/test-install.yaml`                        | The install file that is used to deploy the operator for testing, generated during build. *NOTE: More information about the install file are below in the __Distribution and Release__ section.*                                                                                  |
-| test.operator.olm-skip          | `true` / `false`          | `false`                                                               | Skip OLM tests.                                                                                                                                                                                                                                                                   |
-| test.operator.catalog-image     | string                    | `quay.io/apicurio/apicurio-registry-operator-catalog:latest-snapshot` | Catalog image that is used to deploy the operator for testing with OLM.                                                                                                                                                                                                           |
+| Option                      | Type             | Default value                                                         | Description                                                             |
+|-----------------------------|------------------|-----------------------------------------------------------------------|-------------------------------------------------------------------------|
+| test.operator.catalog-image | string           | `quay.io/apicurio/apicurio-registry-operator-catalog:latest-snapshot` | Catalog image that is used to deploy the operator for testing with OLM. |
 
 ## Distribution and Release
 

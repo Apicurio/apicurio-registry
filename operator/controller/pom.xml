@@ -22,14 +22,17 @@
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-operator-model</artifactId>
     </dependency>
+
     <dependency>
       <groupId>io.quarkiverse.operatorsdk</groupId>
       <artifactId>quarkus-operator-sdk</artifactId>
     </dependency>
+
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-kubernetes-client</artifactId>
     </dependency>
+
     <!--
     TODO: This version is vulnerable (medium):
     https://osv.dev/vulnerability/GHSA-v435-xc8x-wvr9
@@ -43,6 +46,7 @@
       <artifactId>bcprov-jdk15on</artifactId>
       <version>${bouncycastle.version}</version>
     </dependency>
+
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
@@ -55,21 +59,25 @@
       <artifactId>quarkus-junit5</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
@@ -81,6 +89,7 @@
   <build>
 
     <resources>
+
       <resource>
         <filtering>true</filtering>
         <directory>src/main/resources</directory>
@@ -88,6 +97,7 @@
           <include>application.properties</include>
         </includes>
       </resource>
+
       <resource>
         <filtering>false</filtering>
         <directory>src/main/resources</directory>
@@ -95,6 +105,7 @@
           <exclude>application.properties</exclude>
         </excludes>
       </resource>
+
     </resources>
 
     <plugins>

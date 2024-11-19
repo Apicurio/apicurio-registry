@@ -13,13 +13,14 @@ import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.quarkiverse.operatorsdk.runtime.QuarkusConfigurationService;
-import io.quarkus.logging.Log;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.CDI;
 import jakarta.enterprise.util.TypeLiteral;
 import org.awaitility.Awaitility;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -33,6 +34,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 public abstract class ITBase {
+
+    private static final Logger log = LoggerFactory.getLogger(ITBase.class);
 
     public static final String DEPLOYMENT_TARGET = "test.operator.deployment-target";
     public static final String OPERATOR_DEPLOYMENT_PROP = "test.operator.deployment";
@@ -89,10 +92,17 @@ public abstract class ITBase {
     @BeforeEach
     public void beforeEach(TestInfo testInfo) {
         String testClassName = testInfo.getTestClass().map(c -> c.getSimpleName() + ".").orElse("");
-        Log.info("\n------- STARTING: " + testClassName + testInfo.getDisplayName() + "\n"
-                + "------- Namespace: " + namespace + "\n" + "------- Mode: "
-                + ((operatorDeployment == OperatorDeployment.remote) ? "remote" : "local") + "\n"
-                + "------- Deployment target: " + deploymentTarget);
+        // spotless:off
+        log.info("\n" +
+                 "------- STARTING: {}{}\n" +
+                 "------- Namespace: {}\n" +
+                 "------- Mode: {}\n" +
+                 "------- Deployment target: {}",
+                testClassName, testInfo.getDisplayName(),
+                namespace,
+                ((operatorDeployment == OperatorDeployment.remote) ? "remote" : "local"),
+                deploymentTarget);
+        // spotless:on
     }
 
     static KubernetesClient createK8sClient(String namespace) {
@@ -111,7 +121,7 @@ public abstract class ITBase {
     }
 
     private static void createTestResources() throws Exception {
-        Log.info("Creating generated resources into Namespace " + namespace);
+        log.info("Creating generated resources into Namespace {}", namespace);
         loadTestResources().forEach(r -> {
             if ("minikube".equals(deploymentTarget) && r instanceof Deployment d) {
                 // See https://stackoverflow.com/a/46101923
@@ -124,7 +134,7 @@ public abstract class ITBase {
 
     private static void cleanTestResources() throws Exception {
         if (cleanup) {
-            Log.info("Deleting generated resources from Namespace " + namespace);
+            log.info("Deleting generated resources from Namespace {}", namespace);
             loadTestResources().forEach(r -> {
                 client.resource(r).inNamespace(namespace).delete();
             });
@@ -132,7 +142,7 @@ public abstract class ITBase {
     }
 
     private static void createCRDs() {
-        Log.info("Creating CRDs");
+        log.info("Creating CRDs");
         try {
             var crd = client.load(new FileInputStream(CRD_FILE));
             crd.createOrReplace();
@@ -141,16 +151,16 @@ public abstract class ITBase {
                 return true;
             });
         } catch (Exception e) {
-            Log.warn("Failed to create the CRD, retrying", e);
+            log.warn("Failed to create the CRD, retrying", e);
             createCRDs();
         }
     }
 
     private static void registerReconcilers() {
-        Log.info("Registering reconcilers for operator : " + operator + " [" + operatorDeployment + "]");
+        log.info("Registering reconcilers for operator : {} [{}]", operator, operatorDeployment);
 
         for (Reconciler<?> reconciler : reconcilers) {
-            Log.info("Register and apply : " + reconciler.getClass().getName());
+            log.info("Register and apply : {}", reconciler.getClass().getName());
             operator.register(reconciler);
         }
     }
@@ -162,7 +172,7 @@ public abstract class ITBase {
     }
 
     static void createNamespace(KubernetesClient client, String namespace) {
-        Log.info("Creating Namespace " + namespace);
+        log.info("Creating Namespace {}", namespace);
         client.resource(
                 new NamespaceBuilder().withNewMetadata().addToLabels("app", "apicurio-registry-operator-test")
                         .withName(namespace).endMetadata().build())
@@ -181,7 +191,7 @@ public abstract class ITBase {
     @AfterEach
     public void cleanup() {
         if (cleanup) {
-            Log.info("Deleting CRs");
+            log.info("Deleting CRs");
             client.resources(ApicurioRegistry3.class).delete();
             await().untilAsserted(() -> {
                 var registryDeployments = client.apps().deployments().inNamespace(namespace)
@@ -195,10 +205,10 @@ public abstract class ITBase {
     public static void after() throws Exception {
         portForwardManager.stop();
         if (operatorDeployment == OperatorDeployment.local) {
-            Log.info("Stopping Operator");
+            log.info("Stopping Operator");
             operator.stop();
 
-            Log.info("Creating new K8s Client");
+            log.info("Creating new K8s Client");
             // create a new client bc operator has closed the old one
             client = createK8sClient(namespace);
         } else {
@@ -206,7 +216,7 @@ public abstract class ITBase {
         }
 
         if (cleanup) {
-            Log.info("Deleting namespace : " + namespace);
+            log.info("Deleting namespace : {}", namespace);
             assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
         }
         client.close();

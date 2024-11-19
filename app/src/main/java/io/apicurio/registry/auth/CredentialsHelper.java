@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package io.apicurio.common.apps.auth.authn;
+package io.apicurio.registry.auth;
 
-import io.apicurio.common.apps.util.Pair;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -52,7 +52,7 @@ public class CredentialsHelper {
                     if ((colonPos = plainChallenge.indexOf(COLON)) > -1) {
                         String userName = plainChallenge.substring(0, colonPos);
                         String password = plainChallenge.substring(colonPos + 1);
-                        return new Pair<>(userName, password);
+                        return Pair.of(userName, password);
                     }
                 }
             }

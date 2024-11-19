@@ -16,7 +16,6 @@
   <modules>
     <module>content</module>
     <module>core</module>
-    <module>auth</module>
     <module>config/definitions</module>
     <module>config/impl</module>
     <module>config/all</module>

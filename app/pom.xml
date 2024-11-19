@@ -57,10 +57,6 @@
 
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-auth</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-common-rest-client-jdk</artifactId>
       <scope>test</scope>
     </dependency>

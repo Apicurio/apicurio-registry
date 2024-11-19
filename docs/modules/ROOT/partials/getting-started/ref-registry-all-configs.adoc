@@ -151,7 +151,7 @@ The following {registry} configuration options are available for each component 
 |`quarkus.http.auth.basic`
 |`boolean`
 |`false`
-|`3.X.X.Final`
+|`3.0.0`
 |Enable basic auth
 |`quarkus.oidc.client-id`
 |`string`

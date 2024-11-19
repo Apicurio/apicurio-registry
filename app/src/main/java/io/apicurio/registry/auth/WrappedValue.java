@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.apicurio.common.apps.auth.authn;
+package io.apicurio.registry.auth;
 
 import java.time.Duration;
 import java.time.Instant;

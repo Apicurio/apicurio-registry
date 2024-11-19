@@ -98,11 +98,10 @@ jobs:
         run: |
           make catalog
 
-      - name: Run remote tests on Minikube
+      - name: Run remote and OLM tests on Minikube
         working-directory: operator
         run: |
-          mvn clean verify --no-transfer-progress -DskipOperatorTests=false -Dtest.operator.deployment=remote \
-            -Dtest.operator.deployment-target=minikube -Dtest.operator.catalog-image=$(make catalog-image-get)
+          make BUILD_OPTS="--no-transfer-progress" remote-tests-all
 
       - name: Update install file
         working-directory: operator

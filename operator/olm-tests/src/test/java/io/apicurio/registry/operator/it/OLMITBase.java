@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.logging.Log;
+import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterAll;
@@ -16,15 +17,10 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static io.apicurio.registry.operator.it.ITBase.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-
 public abstract class OLMITBase {
 
     private static final Logger log = LoggerFactory.getLogger(OLMITBase.class);
 
-    public static final String OLM_SKIP_PROP = "test.operator.olm-skip";
     public static final String PROJECT_VERSION_PROP = "test.operator.project-version";
     public static final String PROJECT_ROOT_PROP = "test.operator.project-root";
     public static final String CATALOG_IMAGE_PROP = "test.operator.catalog-image";
@@ -36,12 +32,12 @@ public abstract class OLMITBase {
 
     @BeforeAll
     public static void beforeAll() throws Exception {
-        setDefaultAwaitilityTimings();
-        namespace = calculateNamespace();
-        client = createK8sClient(namespace);
-        createNamespace(client, namespace);
+        ITBase.setDefaultAwaitilityTimings();
+        namespace = ITBase.calculateNamespace();
+        client = ITBase.createK8sClient(namespace);
+        ITBase.createNamespace(client, namespace);
         ingressManager = new IngressManager(client, namespace);
-        cleanup = ConfigProvider.getConfig().getValue(CLEANUP, Boolean.class);
+        cleanup = ConfigProvider.getConfig().getValue(ITBase.CLEANUP, Boolean.class);
 
         if (client.apiextensions().v1().customResourceDefinitions()
                 .withName("catalogsources.operators.coreos.com").get() == null) {
@@ -62,7 +58,7 @@ public abstract class OLMITBase {
         var catalogSource = client.resource(catalogSourceRaw);
         catalogSource.create();
 
-        await().ignoreExceptions().until(() -> {
+        Awaitility.await().ignoreExceptions().until(() -> {
             return client.pods().inNamespace(namespace).list().getItems().stream().filter(
                     pod -> pod.getMetadata().getName().startsWith("apicurio-registry-operator-catalog"))
                     .anyMatch(pod -> pod.getStatus().getConditions().stream()
@@ -95,7 +91,7 @@ public abstract class OLMITBase {
             Awaitility.await().untilAsserted(() -> {
                 var registryDeployments = client.apps().deployments().inNamespace(namespace)
                         .withLabels(Constants.BASIC_LABELS).list().getItems();
-                assertThat(registryDeployments.size()).isZero();
+                Assertions.assertThat(registryDeployments.size()).isZero();
             });
         }
     }
@@ -104,13 +100,8 @@ public abstract class OLMITBase {
     public static void afterAll() {
         if (cleanup) {
             Log.info("Deleting namespace : " + namespace);
-            assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
+            Assertions.assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
         }
         client.close();
-    }
-
-    static boolean disabledIf() {
-        return "local".equals(ConfigProvider.getConfig().getValue(OPERATOR_DEPLOYMENT_PROP, String.class))
-                || ConfigProvider.getConfig().getValue(OLM_SKIP_PROP, Boolean.class);
     }
 }

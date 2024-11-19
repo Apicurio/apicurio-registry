@@ -16,6 +16,7 @@
   <modules>
     <module>model</module>
     <module>controller</module>
+    <module>olm-tests</module>
   </modules>
 
   <properties>

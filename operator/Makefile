@@ -9,7 +9,7 @@ VERSION ?= $(shell mvn help:evaluate -Dexpression=project.version -q -DforceStdo
 LC_VERSION ?= $(shell echo "$(VERSION)" | tr A-Z a-z)
 LC_VERSION_SUFFIX ?= $(shell echo "$(LC_VERSION)" | sed -n 's/[^-]*\(-.*\)/\1/p')
 
-BUILD_OPTS ?=
+BUILD_OPTS ?= -pl controller -am
 
 SKIP_TESTS ?= false
 ifneq ($(SKIP_TESTS),true)
@@ -52,7 +52,7 @@ ADDITIONAL_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(ADDITIONAL_B
 
 CATALOG_NAMESPACE ?= openshift-marketplace
 
-CATALOG_DIR ?= controller/src/test/deploy/catalog
+CATALOG_DIR ?= olm-tests/src/test/deploy/catalog
 CATALOG_TARGET_DIR ?= target/catalog
 
 CATALOG_IMAGE_NAME ?= $(IMAGE_NAME)-catalog
@@ -226,6 +226,12 @@ install-yq: ## Install yq v4.27.5
 .PHONY: build
 build: ## TODO
 	mvn clean install $(BUILD_OPTS)
+
+
+.PHONY: remote-tests-all
+remote-tests-all: ## TODO
+	$(eval BUILD_OPTS := $(subst "-pl controller -am",,$(BUILD_OPTS)))
+	mvn clean verify $(BUILD_OPTS) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
 
 .PHONY: image-build

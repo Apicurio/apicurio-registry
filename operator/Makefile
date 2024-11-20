@@ -51,7 +51,7 @@ ADDITIONAL_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(ADDITIONAL_B
 
 ### Catalog
 
-CATALOG_NAMESPACE ?= openshift-marketplace
+CATALOG_NAMESPACE ?= olm
 
 CATALOG_DIR ?= olm-tests/src/test/deploy/catalog
 CATALOG_TARGET_DIR ?= target/catalog
@@ -96,6 +96,7 @@ export PLACEHOLDER_REGISTRY_UI_IMAGE := $(REGISTRY_UI_IMAGE)
 
 export PLACEHOLDER_DATE := $(DATE)
 
+export PLACEHOLDER_PACKAGE_NAME := $(PACKAGE_NAME)
 export PLACEHOLDER_PACKAGE := $(PACKAGE)
 export PLACEHOLDER_BUNDLE_IMAGE := $(BUNDLE_IMAGE)
 
@@ -272,7 +273,7 @@ deploy: ## Deploy the Operator to a cluster using kubectl
 
 .PHONY: undeploy
 undeploy: ## TODO
-	kubectl kustomize controller/src/main/deploy/install | envsubst | kubectl -n $(NAMESPACE) delete -f -
+	kubectl kustomize controller/src/main/deploy/install | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
 
 
 .PHONY: dist-install-file
@@ -393,7 +394,7 @@ catalog-deploy: ## TODO
 
 .PHONY: catalog-undeploy
 catalog-undeploy: ## TODO
-	cat $(CATALOG_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) delete -f -
+	cat $(CATALOG_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) delete -f - || true
 
 
 .PHONY: catalog-subscription-deploy
@@ -405,8 +406,9 @@ catalog-subscription-deploy: ## TODO
 
 .PHONY: catalog-subscription-undeploy
 catalog-subscription-undeploy: ## TODO
-	cat $(CATALOG_DIR)/subscription.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f -
-	kubectl -n $(NAMESPACE) delete clusterserviceversion $(PACKAGE)
+	cat $(CATALOG_DIR)/subscription.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	cat $(CATALOG_DIR)/operator-group.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	kubectl -n $(NAMESPACE) delete clusterserviceversion $(PACKAGE) || true
 
 
 .PHONY: dev

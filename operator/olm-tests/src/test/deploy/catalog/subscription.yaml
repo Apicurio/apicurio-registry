@@ -6,7 +6,7 @@ metadata:
 spec:
   sourceNamespace: ${PLACEHOLDER_CATALOG_NAMESPACE}
   source: apicurio-registry-operator-catalog
-  name: apicurio-registry
+  name: ${PLACEHOLDER_PACKAGE_NAME}
   channel: 3.x
   startingCSV: ${PLACEHOLDER_PACKAGE}
   installPlanApproval: Automatic

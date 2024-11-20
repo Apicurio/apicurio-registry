@@ -406,16 +406,16 @@ make catalog-image-push
 After you have built and pushed the bundle and catalog images, to deploy the operator to the cluster using OLM, run:
 
 ```shell
-make catalog-deploy
-make catalog-subscription-deploy
+make catalog-deploy # Use CATALOG_NAMESPACE=openshift-marketplace for OpenShift.
+make catalog-subscription-deploy # Same here.
 ```
 
 Available options:
 
-| Option            | Type   | Default value           | Description                                       |
-|-------------------|--------|-------------------------|---------------------------------------------------|
-| NAMESPACE         | string | `default`               | Namespace to which the operator will be deployed. |
-| CATALOG_NAMESPACE | string | `openshift-marketplace` | -                                                 |
+| Option            | Type   | Default value | Description                                                                                                                       |
+|-------------------|--------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| NAMESPACE         | string | `default`     | Namespace to which the operator will be deployed.                                                                                 |
+| CATALOG_NAMESPACE | string | `olm`         | Namespace to which the catalog will be deployed. Usually `olm` for Minikube/Kubernetes and `openshift-marketplace` for OpenShift. |
 
 ## Notes
 

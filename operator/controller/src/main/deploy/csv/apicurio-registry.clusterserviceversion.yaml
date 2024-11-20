@@ -20,7 +20,7 @@ metadata:
     features.operators.openshift.io/cnf: 'false'
     features.operators.openshift.io/cni: 'false'
     features.operators.openshift.io/csi: 'false'
-  name: apicurio-registry.v0.0.0
+  name: ${PLACEHOLDER_PACKAGE_NAME}.v0.0.0
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   apiservicedefinitions: {}

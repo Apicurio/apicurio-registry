@@ -1,9 +1,9 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
-import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.events.*;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;

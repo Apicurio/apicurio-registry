@@ -149,6 +149,10 @@ public class generateAllConfigPartial {
         List<AnnotationInstance> configAnnotations = index.getAnnotations(configProperty);
 
         for (AnnotationInstance annotation : configAnnotations) {
+            if (annotation.value("name") == null) {
+                continue;
+            }
+
             var configName = annotation.value("name").value().toString();
             if (allConfiguration.containsKey(configName)) {
                 continue;
@@ -216,7 +220,6 @@ public class generateAllConfigPartial {
 
         // TODO: include all the relevant jars, to be determined
         // Extract configuration from Jandex
-        extractConfigurations(baseDir + "/../app/target/lib/io.apicurio.apicurio-common-app-components-auth-" + commonComponentsVersion + ".jar", allConfiguration);
         extractConfigurations(baseDir + "/../app/target/apicurio-registry-app-" + currentVersion + ".jar", allConfiguration);
 
         // TODO

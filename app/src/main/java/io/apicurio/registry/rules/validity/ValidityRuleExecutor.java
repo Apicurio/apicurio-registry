@@ -1,6 +1,6 @@
 package io.apicurio.registry.rules.validity;
 
-import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
 import io.apicurio.registry.rules.RuleViolationException;

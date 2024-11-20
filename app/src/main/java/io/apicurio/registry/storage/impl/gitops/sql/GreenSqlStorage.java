@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.impl.gitops.sql;
 
 import io.agroal.api.AgroalDataSource;
-import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

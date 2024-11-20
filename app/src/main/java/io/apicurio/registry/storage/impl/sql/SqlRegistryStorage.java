@@ -1,6 +1,6 @@
 package io.apicurio.registry.storage.impl.sql;
 
-import io.apicurio.common.apps.logging.Logged;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;

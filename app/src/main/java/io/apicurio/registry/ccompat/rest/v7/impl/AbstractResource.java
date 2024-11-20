@@ -1,6 +1,5 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import io.apicurio.common.apps.util.Pair;
 import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
@@ -38,6 +37,7 @@ import jakarta.ws.rs.BadRequestException;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.SchemaParseException;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
 import java.util.Collections;
@@ -83,7 +83,7 @@ public abstract class AbstractResource {
         }
         String groupId = subject.substring(0, sepIdx);
         String artifactId = subject.substring(sepIdx + cconfig.groupConcatSeparator.length());
-        return new Pair<>(groupId, artifactId);
+        return Pair.of(groupId, artifactId);
     }
 
     protected GA getGA(String groupId, String artifactId) {

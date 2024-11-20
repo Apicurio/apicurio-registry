@@ -1,7 +1,7 @@
 package io.apicurio.registry.rules.integrity;
 
-import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;

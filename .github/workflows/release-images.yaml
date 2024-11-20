@@ -101,7 +101,7 @@ jobs:
       - name: Build Registry
         run: |
           cd registry
-          ./mvnw clean package -pl app,distro/docker -am --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 -Dspotless.check.skip=true
+          ./mvnw clean package -am --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5 -Dspotless.check.skip=true
 
       - name: Build Registry UI
         working-directory: registry/ui

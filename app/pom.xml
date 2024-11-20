@@ -34,31 +34,16 @@
       <artifactId>apicurio-registry-schema-util-provider</artifactId>
     </dependency>
 
-    <!-- Common App Components -->
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-core</artifactId>
+      <artifactId>apicurio-registry-config-definitions</artifactId>
     </dependency>
 
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-logging</artifactId>
+      <artifactId>apicurio-registry-config-index</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-config</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-config-index</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-auth</artifactId>
-    </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-common-rest-client-jdk</artifactId>
@@ -208,6 +193,15 @@
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
       <version>${snakeyaml.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>${commons-beanutils.version}</version>
     </dependency>
 
     <!-- Test Only -->
@@ -408,8 +402,7 @@
       </plugin>
       <plugin>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-common-app-components-maven-plugin</artifactId>
-        <version>${apicurio-common-app-components.version}</version>
+        <artifactId>apicurio-registry-maven-plugin</artifactId>
         <executions>
           <execution>
             <id>merge-test-properties</id>

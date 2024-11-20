@@ -32,7 +32,7 @@ NAMESPACE ?= default
 
 ### Bundle
 
-PACKAGE_NAME ?= apicurio-registry
+PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 # TODO Replaces:
 # PREVIOUS_PACKAGE_VERSION =

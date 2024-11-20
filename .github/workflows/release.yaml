@@ -92,7 +92,7 @@ jobs:
       - name: Build Registry (All Variants)
         run: |
           cd registry
-          ./mvnw clean package -pl distro/docker -am --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Registry UI
         working-directory: registry/ui

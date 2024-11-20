@@ -6,7 +6,7 @@ resources:
   - ../crd
   - ../operator
   - ../examples
-  - apicurio-registry.clusterserviceversion.yaml
+  - apicurio-registry-3.clusterserviceversion.yaml
 
 patches:
   - target:

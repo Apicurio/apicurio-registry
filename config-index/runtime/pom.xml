@@ -3,21 +3,21 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.apicurio</groupId>
-    <artifactId>apicurio-common-app-components</artifactId>
+    <artifactId>apicurio-registry</artifactId>
     <version>3.0.4-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
-  <artifactId>apicurio-common-app-components-config-index</artifactId>
+  <artifactId>apicurio-registry-config-index</artifactId>
 
   <properties>
-    <projectRoot>${project.basedir}/../../..</projectRoot>
+    <projectRoot>${project.basedir}/../..</projectRoot>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-config-definitions</artifactId>
+      <artifactId>apicurio-registry-config-definitions</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

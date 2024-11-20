@@ -36,12 +36,12 @@
 
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-config-definitions</artifactId>
+      <artifactId>apicurio-registry-config-definitions</artifactId>
     </dependency>
 
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-config-index</artifactId>
+      <artifactId>apicurio-registry-config-index</artifactId>
     </dependency>
 
     <dependency>
@@ -402,7 +402,7 @@
       </plugin>
       <plugin>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-common-app-components-maven-plugin</artifactId>
+        <artifactId>apicurio-registry-maven-plugin</artifactId>
         <executions>
           <execution>
             <id>merge-test-properties</id>

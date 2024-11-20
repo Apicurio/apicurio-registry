@@ -70,7 +70,9 @@
 
   <modules>
     <module>common</module>
-    <module>common-app-components</module>
+    <module>config-index/definitions</module>
+    <module>config-index/deployment</module>
+    <module>config-index/runtime</module>
     <module>app</module>
     <module>utils/converter</module>
     <module>utils/kafka</module>
@@ -256,6 +258,7 @@
 
     <!-- Plugin Deps -->
     <version.puppycrawl>8.45.1</version.puppycrawl>
+    <apicurio-maven-plugin.version>0.0.1</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
     <proto-plugin.version>0.6.1</proto-plugin.version>
@@ -430,33 +433,23 @@
 
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-common-app-components-logging</artifactId>
+        <artifactId>apicurio-registry-config-definitions</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-common-app-components-config-definitions</artifactId>
+        <artifactId>apicurio-registry-config-index</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-common-app-components-config-index</artifactId>
+        <artifactId>apicurio-registry-config-index-deployment</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-common-app-components-config-index-deployment</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-common-app-components-storage-spi</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-common-app-components-maven-plugin</artifactId>
-        <version>${project.version}</version>
+        <artifactId>apicurio-maven-plugin</artifactId>
+        <version>${apicurio-maven-plugin.version}</version>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>

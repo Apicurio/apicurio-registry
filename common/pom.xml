@@ -64,7 +64,7 @@
 
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-app-components-config-definitions</artifactId>
+      <artifactId>apicurio-registry-config-definitions</artifactId>
       <scope>provided</scope>
     </dependency>
 

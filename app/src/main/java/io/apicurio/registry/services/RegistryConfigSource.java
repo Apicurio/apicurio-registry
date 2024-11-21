@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.services;
 
-import io.quarkus.runtime.configuration.ProfileManager;
+import io.quarkus.runtime.LaunchMode;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
 import java.util.HashMap;
@@ -39,7 +39,7 @@ public class RegistryConfigSource implements ConfigSource {
             properties = new HashMap<>();
             String prefix = System.getenv("REGISTRY_PROPERTIES_PREFIX");
             if (prefix != null) {
-                String profile = ProfileManager.getActiveProfile();
+                String profile = LaunchMode.current().getProfileKey();
                 String profilePrefix = "%" + profile + ".";
                 Map<String, String> envMap = System.getenv();
                 for (Map.Entry<String, String> entry : envMap.entrySet()) {

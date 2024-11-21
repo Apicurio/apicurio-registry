@@ -45,7 +45,7 @@
     "@microsoft/kiota-serialization-form": "1.0.0-preview.75",
     "@microsoft/kiota-serialization-json": "1.0.0-preview.75",
     "@microsoft/kiota-serialization-multipart": "1.0.0-preview.75",
-    "@microsoft/kiota-serialization-text": "1.0.0-preview.75",
+    "@microsoft/kiota-serialization-text": "1.0.0-preview.76",
     "@patternfly/patternfly": "5.4.2",
     "@patternfly/react-code-editor": "5.4.11",
     "@patternfly/react-core": "5.4.9",

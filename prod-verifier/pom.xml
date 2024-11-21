@@ -35,7 +35,7 @@
     <plugins>
       <plugin>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry-maven-plugin</artifactId>
+        <artifactId>apicurio-maven-plugin</artifactId>
         <version>${apicurio-maven-plugin.version}</version>
         <executions>
           <execution>

@@ -76,7 +76,7 @@ export class AuthService implements Service {
         const configOptions: any = only(KC_CONFIG_OPTIONS, this.config.authOptions());
         const initOptions: any = only(KC_INIT_OPTIONS, this.config.authOptions());
 
-        this.keycloak = Keycloak(configOptions);
+        this.keycloak = new Keycloak(configOptions);
 
         const addRoles: ((user: AuthenticatedUser) => void) = (user) => {
             if (this.keycloak.resourceAccess) {
@@ -182,7 +182,7 @@ export class AuthService implements Service {
     public getToken = () => this.keycloak.token;
 
     public getOidcToken = () => {
-        return this.oidcUser.id_token;
+        return this.oidcUser.access_token;
     };
 
     public isAuthenticationEnabled(): boolean {

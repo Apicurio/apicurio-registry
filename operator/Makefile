@@ -33,17 +33,16 @@ NAMESPACE ?= default
 ### Bundle
 
 PACKAGE_NAME ?= apicurio-registry
-PACKAGE= ?= $(PACKAGE_NAME).v$(LC_VERSION)
+PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
+# TODO Replaces:
+# PREVIOUS_PACKAGE_VERSION =
+# REPLACES = $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 CHANNELS ?= 3.x
 DEFAULT_CHANNEL ?= $(CHANNELS)
 
 BUNDLE_OPTS ?= --package $(PACKAGE_NAME) --version $(LC_VERSION) --channels=$(CHANNELS) --default-channel=$(DEFAULT_CHANNEL)
 BUNDLE_DIR ?= target/bundle/$(PACKAGE_NAME)/$(LC_VERSION)
-
-# TODO Replaces:
-# PREVIOUS_PACKAGE_VERSION =
-# REPLACES = $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 BUNDLE_IMAGE_NAME ?= $(IMAGE_NAME)-bundle
 BUNDLE_IMAGE_TAG ?= $(LC_VERSION)
@@ -71,6 +70,8 @@ INSTALL_FILE ?= install/apicurio-registry-operator-$(VERSION).yaml
 DIST_TARGET_DIR ?= target/dist
 
 ### Other
+
+CURRENT_DIR = $(shell pwd)
 
 OS ?= linux
 ARCH ?= amd64
@@ -172,6 +173,7 @@ define target_dir
 		then \
 			if  [[ $(1) == target/* ]]; \
 			then \
+				echo "Cleaning $(1)"; \
 				rm -rf "$(1)"; \
 			fi; \
 		fi; \
@@ -196,7 +198,7 @@ install-operator-sdk: ## Install operator-sdk v1.37.0
 
 .PHONY: install-opm
 OPM_VERSION ?= 1.48.0
-OPM = $(shell pwd)/target/bin/opm
+OPM = $(CURRENT_DIR)/target/bin/opm
 install-opm: ## Install opm v1.48.0
 	@{ \
 		if [ ! -f $(OPM) ]; \
@@ -209,7 +211,7 @@ install-opm: ## Install opm v1.48.0
 
 
 YQ_VERSION ?= 4.27.5
-YQ = $(shell pwd)/target/bin/yq
+YQ = $(CURRENT_DIR)/target/bin/yq
 .PHONY: install-yq
 install-yq: ## Install yq v4.27.5
 	@{ \
@@ -282,7 +284,7 @@ dist-install-file: ## TODO
 
 .PHONY: dist
 dist: dist-install-file ## TODO
-	$(call target_dir, $(DIST_TARGET_DIR))
+	$(call target_dir,$(DIST_TARGET_DIR))
 	cp -rt $(DIST_TARGET_DIR) controller/src/main/deploy/dist-template/*
 	# Licenses
 	cp -t $(DIST_TARGET_DIR) target/generated-resources/licenses.xml
@@ -305,7 +307,7 @@ quickstart: build image-build image-push deploy ## TODO
 
 .PHONY: bundle-build
 bundle-build: install-operator-sdk install-yq ## Generate bundle metadata
-	$(call target_dir, $(BUNDLE_DIR))
+	$(call target_dir,$(BUNDLE_DIR))
 	kubectl kustomize controller/src/main/deploy/csv | envsubst | $(OPERATOR_SDK) generate bundle -q --output-dir $(BUNDLE_DIR) $(BUNDLE_OPTS)
 	# Post-process annotations.yaml
 	$(YQ) '... comments = ""' -i $(BUNDLE_DIR)/metadata/annotations.yaml
@@ -347,7 +349,7 @@ bundle: bundle-build bundle-image-build bundle-image-push ## TODO
 
 .PHONY: catalog-build
 catalog-build: install-opm ## TODO
-	$(call target_dir, $(CATALOG_TARGET_DIR))
+	$(call target_dir,$(CATALOG_TARGET_DIR))
 	# Create catalog.yaml
 	mkdir -p $(CATALOG_TARGET_DIR)/configs
 	cat $(CATALOG_DIR)/catalog.template.yaml | envsubst > $(CATALOG_TARGET_DIR)/catalog.yaml

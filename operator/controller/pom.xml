@@ -33,23 +33,15 @@
       <artifactId>quarkus-kubernetes-client</artifactId>
     </dependency>
 
-    <!--
-    TODO: This version is vulnerable (medium):
-    https://osv.dev/vulnerability/GHSA-v435-xc8x-wvr9
-    https://osv.dev/vulnerability/GHSA-wjxj-5m7g-mg7q
-    https://osv.dev/vulnerability/GHSA-8xfc-gm6g-vgpv
-    https://osv.dev/vulnerability/GHSA-m44j-cfrm-g8qc
-    https://osv.dev/vulnerability/GHSA-hr8g-6v94-x4m9
-    -->
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk15on</artifactId>
+      <artifactId>bcprov-jdk15to18</artifactId>
       <version>${bouncycastle.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpkix-jdk15on</artifactId>
+      <artifactId>bcpkix-jdk15to18</artifactId>
       <version>${bouncycastle.version}</version>
     </dependency>
 

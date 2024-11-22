@@ -134,4 +134,35 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
         Assertions.assertEquals(normalizeMultiLineString(expectedContent),
                 normalizeMultiLineString(modifiedContent.getContent().content()));
     }
+
+    @Test
+    public void testDerefAllOf() throws Exception {
+        TypedContent content = TypedContent.create(resourceToContentHandle("order.json"),
+                ContentTypes.APPLICATION_JSON);
+        JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
+
+        Map<String, TypedContent> resolvedReferences = new LinkedHashMap<>();
+
+        resolvedReferences.put("customer.json",
+                TypedContent.create(resourceToContentHandle("customer.json"), ContentTypes.APPLICATION_JSON));
+
+        TypedContent modifiedContent = dereferencer.dereference(content, resolvedReferences);
+
+        String expectedContent = resourceToString("expected-order-deref.json");
+        Assertions.assertEquals(normalizeMultiLineString(expectedContent),
+                normalizeMultiLineString(modifiedContent.getContent().content()));
+    }
+
+    @Test
+    public void testRewriteAllOfReferences() {
+        TypedContent content = resourceToTypedContentHandle("order.json");
+        JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
+        TypedContent modifiedContent = dereferencer.rewriteReferences(content,
+                Map.of("customer.json", "https://www.example.org/schemas/customer.json"));
+
+        ReferenceFinder finder = new JsonSchemaReferenceFinder();
+        Set<ExternalReference> externalReferences = finder.findExternalReferences(modifiedContent);
+        Assertions.assertTrue(externalReferences
+                .contains(new JsonPointerExternalReference("https://www.example.org/schemas/customer.json")));
+    }
 }

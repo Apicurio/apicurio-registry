@@ -26,6 +26,13 @@ public class Configuration {
         // spotless:on
     }
 
+    public static String getRegistryVersion() {
+        // spotless:off
+        return config.getOptionalValue("registry.version", String.class)
+                .orElseThrow(() -> new OperatorException("Required configuration option 'registry.version' is not set."));
+        // spotless:on
+    }
+
     public static String getDefaultBaseHost() {
         // spotless:off
         return config.getOptionalValue("apicurio.operator.default-base-host", String.class)

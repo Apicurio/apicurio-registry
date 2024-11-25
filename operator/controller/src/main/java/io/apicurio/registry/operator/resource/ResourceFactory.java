@@ -205,7 +205,7 @@ public class ResourceFactory {
                 "app.kubernetes.io/name", "apicurio-registry",
                 "app.kubernetes.io/component", component,
                 "app.kubernetes.io/instance", primary.getMetadata().getName(),
-                "app.kubernetes.io/version", "1.0.0", // TODO
+                "app.kubernetes.io/version", Configuration.getRegistryVersion(),
                 "app.kubernetes.io/part-of", "apicurio-registry",
                 "app.kubernetes.io/managed-by", "apicurio-registry-operator"
         ));

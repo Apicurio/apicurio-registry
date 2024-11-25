@@ -8,6 +8,8 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3SpecUI;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.apicurio.registry.operator.unit.PodTemplateSpecArgumentProviders.*;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.PodTemplateSpec;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.slf4j.Logger;
@@ -27,6 +29,7 @@ public class PodTemplateSpecTest {
         var primary = getPrimary();
         primary.getSpec().getApp().setPodTemplateSpec(testCase.getSpec());
         var expected = ResourceFactory.INSTANCE.getDefaultAppDeployment(primary).getSpec().getTemplate();
+        preprocessTestCaseExpected(testCase.getExpected());
         // spotless:off
         assertThat(expected)
                 .usingRecursiveComparison()
@@ -57,6 +60,7 @@ public class PodTemplateSpecTest {
         var primary = getPrimary();
         primary.getSpec().getUi().setPodTemplateSpec(testCase.getSpec());
         var expected = ResourceFactory.INSTANCE.getDefaultUIDeployment(primary).getSpec().getTemplate();
+        preprocessTestCaseExpected(testCase.getExpected());
         // spotless:off
         assertThat(expected)
                 .usingRecursiveComparison()
@@ -89,5 +93,10 @@ public class PodTemplateSpecTest {
         primary.getSpec().setApp(new ApicurioRegistry3SpecApp());
         primary.getSpec().setUi(new ApicurioRegistry3SpecUI());
         return primary;
+    }
+
+    private static void preprocessTestCaseExpected(PodTemplateSpec expected) {
+        expected.getMetadata().getLabels().computeIfPresent("app.kubernetes.io/version",
+                (k, v) -> ConfigProvider.getConfig().getValue("registry.version", String.class));
     }
 }

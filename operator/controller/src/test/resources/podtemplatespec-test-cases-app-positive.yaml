@@ -6,7 +6,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -50,7 +50,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -95,7 +95,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -137,7 +137,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -184,7 +184,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -234,7 +234,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -279,7 +279,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -328,7 +328,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -382,7 +382,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -432,7 +432,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -476,7 +476,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -514,7 +514,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app
@@ -554,7 +554,7 @@ cases:
       metadata:
         labels:
           app.kubernetes.io/name: apicurio-registry
-          app.kubernetes.io/version: 1.0.0
+          app.kubernetes.io/version: placeholder
           app.kubernetes.io/instance: test
           app.kubernetes.io/part-of: apicurio-registry
           app.kubernetes.io/component: app

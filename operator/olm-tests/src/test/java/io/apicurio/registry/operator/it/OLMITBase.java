@@ -20,7 +20,7 @@ public abstract class OLMITBase {
 
     private static final Logger log = LoggerFactory.getLogger(OLMITBase.class);
 
-    public static final String PROJECT_VERSION_PROP = "test.operator.project-version";
+    public static final String PROJECT_VERSION_PROP = "registry.version";
     public static final String PROJECT_ROOT_PROP = "test.operator.project-root";
     public static final String CATALOG_IMAGE_PROP = "test.operator.catalog-image";
 

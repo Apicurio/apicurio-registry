@@ -52,13 +52,10 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
 
         // spotless:off
         addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_PROFILE").withValue("prod").build());
-        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_CONFIG_CACHE_ENABLED").withValue("true").build());
         addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_HTTP_ACCESS_LOG_ENABLED").withValue("true").build());
         addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_HTTP_CORS_ORIGINS").withValue("*").build());
-        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_REST_DELETION_GROUP_ENABLED").withValue("true").build());
-        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_REST_DELETION_ARTIFACT_ENABLED").withValue("true").build());
-        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_REST_DELETION_ARTIFACTVERSION_ENABLED").withValue("true").build());
-        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_APIS_V2_DATE_FORMAT").withValue("yyyy-MM-dd''T''HH:mm:ssZ").build());
+        // TODO: Enable this conditionally for Studio?
+        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_REST_MUTABILITY_ARTIFACT-VERSION-CONTENT_ENABLED").withValue("true").build());
         // spotless:on
 
         if (!PostgresSql.configureDatasource(primary, envVars)) {

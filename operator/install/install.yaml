@@ -6199,8 +6199,6 @@ spec:
               fieldPath: metadata.annotations['olm.targetNamespaces']
         - name: QUARKUS_PROFILE
           value: prod
-        - name: REGISTRY_VERSION
-          value: 3.0.5-SNAPSHOT
         - name: REGISTRY_APP_IMAGE
           value: quay.io/apicurio/apicurio-registry:latest-snapshot
         - name: REGISTRY_UI_IMAGE

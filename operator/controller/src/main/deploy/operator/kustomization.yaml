@@ -31,11 +31,6 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value:
-          name: REGISTRY_VERSION
-          value: ${PLACEHOLDER_VERSION}
-      - op: add
-        path: /spec/template/spec/containers/0/env/-
-        value:
           name: REGISTRY_APP_IMAGE
           value: ${PLACEHOLDER_REGISTRY_APP_IMAGE}
       - op: add

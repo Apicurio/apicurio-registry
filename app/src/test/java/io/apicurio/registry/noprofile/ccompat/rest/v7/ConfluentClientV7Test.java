@@ -25,6 +25,7 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.BaseHttpUtils;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.CompatibilityLevel;
@@ -52,6 +53,7 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializerConfig;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializerConfig;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.response.Response;
 import jakarta.enterprise.inject.Typed;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
@@ -62,6 +64,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1530,6 +1535,41 @@ public class ConfluentClientV7Test extends AbstractResourceTestBase {
             assertEquals(ErrorCode.SUBJECT_COMPATIBILITY_NOT_CONFIGURED.value(), rce.getErrorCode(), "Compatibility Level doesn't exist");
         }
         assertEquals(FULL.name, confluentClient.getConfig(null).getCompatibilityLevel(), "Top Compatibility Level Exists");
-
     }
+
+    @Test
+    void compatibilityGlobalRules() throws Exception {
+        var first = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        // Adding a default value to the new field to keep full compatibility
+        var second = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}, {\"name\":\"bar\",\"type\":\"string\", \"default\": \"42\"}]}";
+        var invalid = "{\"type\": \"bloop\"}";
+
+        confluentClient.updateCompatibility("FULL", null);
+
+        String schemeSubject = TestUtils.generateArtifactId();
+        confluentClient.registerSchema(first, schemeSubject);
+
+        confluentClient.registerSchema(second, schemeSubject);
+
+        testCompatibility(wrap(invalid), schemeSubject, 422);
+
+        confluentClient.deleteSubject(Collections.emptyMap(), schemeSubject);
+        confluentClient.deleteSubject(Collections.emptyMap(), schemeSubject, true);
+    }
+
+    private static String wrap(String schema) {
+        return "{\"schema\": \"" + schema.replace("\"", "\\\"") + "\"}";
+    }
+
+    public Response testCompatibility(String body, String schemaName, int returnCode) {
+        try {
+            URL url = new URL("http://localhost:" + testPort + "/apis/ccompat/v7/compatibility/subjects/" + schemaName + "/versions/latest");
+            return BaseHttpUtils.rulesPostRequest(SR, body, url, returnCode);
+        } catch (MalformedURLException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public static final String SR = "application/vnd.schemaregistry.v1+json";
+
 }

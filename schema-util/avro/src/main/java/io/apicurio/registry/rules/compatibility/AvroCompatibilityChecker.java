@@ -62,6 +62,9 @@ public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incom
             }
         } catch (AvroRuntimeException ex) {
             throw new UnprocessableSchemaException("Could not execute compatibility rule on invalid Avro schema", ex);
+        } catch (NullPointerException ex) {
+            //I hate this, but Avro is throwing this exception for invalid schemas...
+            throw new UnprocessableSchemaException("Could not execute compatibility rule on invalid Avro schema", ex);
         }
     }
 

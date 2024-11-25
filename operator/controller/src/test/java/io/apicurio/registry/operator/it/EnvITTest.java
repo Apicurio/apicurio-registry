@@ -25,13 +25,9 @@ public class EnvITTest extends ITBase {
     // spotless:off
     private static final String[] defaultAppEnv = new String[]{
             "QUARKUS_PROFILE",
-            "APICURIO_CONFIG_CACHE_ENABLED",
             "QUARKUS_HTTP_ACCESS_LOG_ENABLED",
             "QUARKUS_HTTP_CORS_ORIGINS",
-            "APICURIO_REST_DELETION_GROUP_ENABLED",
-            "APICURIO_REST_DELETION_ARTIFACT_ENABLED",
-            "APICURIO_REST_DELETION_ARTIFACTVERSION_ENABLED",
-            "APICURIO_APIS_V2_DATE_FORMAT"
+            "APICURIO_REST_MUTABILITY_ARTIFACT-VERSION-CONTENT_ENABLED"
     };
     // spotless:on
 

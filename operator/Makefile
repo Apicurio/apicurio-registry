@@ -288,8 +288,10 @@ dist: dist-install-file ## TODO
 	$(call target_dir,$(DIST_TARGET_DIR))
 	cp -rt $(DIST_TARGET_DIR) controller/src/main/deploy/dist-template/*
 	# Licenses
-	cp -t $(DIST_TARGET_DIR) target/generated-resources/licenses.xml
-	sed -i '\|^.*<file>.*</file>.*$$|d' $(DIST_TARGET_DIR)/licenses.xml
+	cp -t $(DIST_TARGET_DIR) $(CURRENT_DIR)/../LICENSE
+	mkdir -p $(DIST_TARGET_DIR)/licenses
+	cp -t $(DIST_TARGET_DIR)/licenses target/generated-resources/licenses.xml
+	sed -i '\|^.*<file>.*</file>.*$$|d' $(DIST_TARGET_DIR)/licenses/licenses.xml
 	# Examples
 	mkdir -p $(DIST_TARGET_DIR)/examples
 	cp -t $(DIST_TARGET_DIR)/examples controller/src/main/deploy/examples/*
@@ -297,7 +299,8 @@ dist: dist-install-file ## TODO
 	cp -rt $(DIST_TARGET_DIR)/examples controller/src/main/resources/k8s/examples/*
 	cp -rt $(DIST_TARGET_DIR)/examples controller/src/test/resources/k8s/examples/*
 	# Install
-	cp $(INSTALL_FILE) $(DIST_TARGET_DIR)/install.yaml
+	mkdir -p $(DIST_TARGET_DIR)/install
+	cp $(INSTALL_FILE) $(DIST_TARGET_DIR)/install/install.yaml
 	# Archive
 	cd $(DIST_TARGET_DIR) && tar -zcf ../apicurio-registry-operator-$(VERSION).tar.gz *
 

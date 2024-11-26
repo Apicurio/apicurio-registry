@@ -84,6 +84,37 @@ public class PodTemplateSpecTest {
         }).isInstanceOf(OperatorException.class);
     }
 
+    @ParameterizedTest
+    @ArgumentsSource(StudioUIPositiveTestCases.class)
+    void testStudioUIPositive(TestCase testCase) {
+        log.info("Running test case: {}", testCase.getId());
+        var primary = getPrimary();
+        primary.getSpec().getStudioUi().setPodTemplateSpec(testCase.getSpec());
+        var expected = ResourceFactory.INSTANCE.getDefaultStudioUIDeployment(primary).getSpec().getTemplate();
+        preprocessTestCaseExpected(testCase.getExpected());
+        // spotless:off
+        assertThat(expected)
+                .usingRecursiveComparison()
+                .ignoringCollectionOrderInFields("spec.containers", "spec.containers.ports")
+                .isEqualTo(testCase.getExpected());
+        assertThat(testCase.getExpected())
+                .usingRecursiveComparison()
+                .ignoringCollectionOrderInFields("spec.containers", "spec.containers.ports")
+                .isEqualTo(expected);
+        // spotless:on
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(StudioUINegativeTestCases.class)
+    void testStudioUINegative(TestCase testCase) {
+        log.info("Running test case: {}", testCase.getId());
+        assertThatThrownBy(() -> {
+            var primary = getPrimary();
+            primary.getSpec().getStudioUi().setPodTemplateSpec(testCase.getSpec());
+            ResourceFactory.INSTANCE.getDefaultStudioUIDeployment(primary).getSpec().getTemplate();
+        }).isInstanceOf(OperatorException.class);
+    }
+
     private static ApicurioRegistry3 getPrimary() {
         var primary = new ApicurioRegistry3();
         primary.setMetadata(new ObjectMeta());

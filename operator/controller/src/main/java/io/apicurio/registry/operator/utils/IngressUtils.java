@@ -12,8 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
-import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
-import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
+import static io.apicurio.registry.operator.resource.ResourceFactory.*;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 
 public class IngressUtils {
@@ -33,10 +32,15 @@ public class IngressUtils {
             if (!isBlank(p.getSpec().getUi().getHost())) {
                 host = p.getSpec().getUi().getHost();
             }
+        } else if (COMPONENT_STUDIO_UI.equals(component)) {
+            if (!isBlank(p.getSpec().getStudioUi().getHost())) {
+                host = p.getSpec().getStudioUi().getHost();
+            }
         } else {
             throw new OperatorException("Unexpected value: " + component);
         }
         if (host == null) {
+            // TODO: This is not used because of the current activation conditions.
             host = "%s-%s.%s%s".formatted(p.getMetadata().getName(), component,
                     p.getMetadata().getNamespace(), Configuration.getDefaultBaseHost());
         }

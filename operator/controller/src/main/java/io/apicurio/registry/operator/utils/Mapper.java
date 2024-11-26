@@ -6,6 +6,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.apicurio.registry.operator.OperatorException;
 
+import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
+
 public class Mapper {
 
     private static final ObjectMapper MAPPER;
@@ -15,9 +17,11 @@ public class Mapper {
     static {
         MAPPER = new ObjectMapper();
         MAPPER.registerModule(new JavaTimeModule());
+        MAPPER.configure(FAIL_ON_UNKNOWN_PROPERTIES, true);
 
         YAML_MAPPER = new YAMLMapper();
         YAML_MAPPER.registerModule(new JavaTimeModule());
+        YAML_MAPPER.configure(FAIL_ON_UNKNOWN_PROPERTIES, true);
     }
 
     public static String toYAML(Object value) {

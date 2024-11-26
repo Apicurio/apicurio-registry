@@ -26,6 +26,14 @@ public class Configuration {
         // spotless:on
     }
 
+    public static String getStudioUIImage() {
+        // spotless:off
+        return config.getOptionalValue("studio.ui.image", String.class)
+                .or(() -> config.getOptionalValue("related.image.studio.ui.image", String.class))
+                .orElseThrow(() -> new OperatorException("Required configuration option 'studio.ui.image' is not set."));
+        // spotless:on
+    }
+
     public static String getRegistryVersion() {
         // spotless:off
         return config.getOptionalValue("registry.version", String.class)

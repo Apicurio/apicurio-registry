@@ -8,7 +8,7 @@ import io.fabric8.kubernetes.api.model.KubernetesResource;
 import lombok.*;
 
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "app", "ui" })
+@JsonPropertyOrder({ "app", "ui", "studioUi" })
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -33,4 +33,12 @@ public class ApicurioRegistry3Spec implements KubernetesResource {
     @JsonPropertyDescription("Configuration specific to Apicurio Registry UI component.")
     @JsonSetter(nulls = Nulls.SKIP)
     private ApicurioRegistry3SpecUI ui = new ApicurioRegistry3SpecUI();
+
+    /**
+     * Configuration specific to Apicurio Registry UI component.
+     */
+    @JsonProperty("studioUi")
+    @JsonPropertyDescription("Configuration specific to Apicurio Studio UI component.")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private ApicurioRegistry3SpecStudioUI studioUi = new ApicurioRegistry3SpecStudioUI();
 }

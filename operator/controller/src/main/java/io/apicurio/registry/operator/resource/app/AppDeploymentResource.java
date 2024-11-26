@@ -23,6 +23,7 @@ import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppDepl
 import static io.apicurio.registry.operator.resource.ResourceFactory.APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
+import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_SERVICE_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Objects.requireNonNull;
 
@@ -54,9 +55,17 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_PROFILE").withValue("prod").build());
         addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_HTTP_ACCESS_LOG_ENABLED").withValue("true").build());
         addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_HTTP_CORS_ORIGINS").withValue("*").build());
-        // TODO: Enable this conditionally for Studio?
-        addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_REST_MUTABILITY_ARTIFACT-VERSION-CONTENT_ENABLED").withValue("true").build());
         // spotless:on
+
+        // This is enabled only if Studio is deployed. It is based on Service in case a custom Ingress is
+        // used.
+        var sOpt = context.getSecondaryResource(STUDIO_UI_SERVICE_KEY.getKlass(),
+                STUDIO_UI_SERVICE_KEY.getDiscriminator());
+        sOpt.ifPresent(s -> {
+            addEnvVar(envVars,
+                    new EnvVarBuilder().withName("APICURIO_REST_MUTABILITY_ARTIFACT-VERSION-CONTENT_ENABLED")
+                            .withValue("true").build());
+        });
 
         if (!PostgresSql.configureDatasource(primary, envVars)) {
             KafkaSql.configureKafkaSQL(primary, envVars);

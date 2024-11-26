@@ -1,0 +1,12 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple-with-studio-apicurioregistry3
+spec:
+  app:
+    host: simple-with-studio-apicurioregistry3-app.apps.yourcluster.example
+  ui:
+    host: simple-with-studio-apicurioregistry3-ui.apps.yourcluster.example
+  studioUi:
+    enabled: true
+    host: simple-with-studio-apicurioregistry3-studio-ui.apps.yourcluster.example

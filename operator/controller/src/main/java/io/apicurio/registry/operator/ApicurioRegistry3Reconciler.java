@@ -6,6 +6,9 @@ import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentD
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.AppServiceResource;
+import io.apicurio.registry.operator.resource.studioui.StudioUIDeploymentResource;
+import io.apicurio.registry.operator.resource.studioui.StudioUIIngressResource;
+import io.apicurio.registry.operator.resource.studioui.StudioUIServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UIServiceResource;
@@ -21,7 +24,7 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
 // spotless:off
 @ControllerConfiguration(
         dependents = {
-                // App
+                // ===== Registry App
                 @Dependent(
                         type = AppDeploymentResource.class,
                         name = APP_DEPLOYMENT_ID
@@ -37,7 +40,7 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                         dependsOn = {APP_SERVICE_ID},
                         activationCondition = AppIngressActivationCondition.class
                 ),
-                // UI
+                // ===== Registry UI
                 @Dependent(
                         type = UIDeploymentResource.class,
                         name = UI_DEPLOYMENT_ID
@@ -52,6 +55,23 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                         name = UI_INGRESS_ID,
                         dependsOn = {UI_SERVICE_ID},
                         activationCondition = UIIngressActivationCondition.class
+                ),
+                // ===== Studio UI
+                @Dependent(
+                        type = StudioUIDeploymentResource.class,
+                        name = STUDIO_UI_DEPLOYMENT_ID,
+                        activationCondition = StudioUIDeploymentActivationCondition.class
+                ),
+                @Dependent(
+                        type = StudioUIServiceResource.class,
+                        name = STUDIO_UI_SERVICE_ID,
+                        dependsOn = {STUDIO_UI_DEPLOYMENT_ID}
+                ),
+                @Dependent(
+                        type = StudioUIIngressResource.class,
+                        name = STUDIO_UI_INGRESS_ID,
+                        dependsOn = {STUDIO_UI_SERVICE_ID},
+                        activationCondition = StudioUIIngressActivationCondition.class
                 )
         }
 )

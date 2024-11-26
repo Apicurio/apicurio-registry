@@ -28,6 +28,7 @@ public class ResourceFactory {
 
     public static final String COMPONENT_APP = "app";
     public static final String COMPONENT_UI = "ui";
+    public static final String COMPONENT_STUDIO_UI = "studio-ui";
 
     public static final String RESOURCE_TYPE_DEPLOYMENT = "deployment";
     public static final String RESOURCE_TYPE_SERVICE = "service";
@@ -35,22 +36,11 @@ public class ResourceFactory {
 
     public static final String APP_CONTAINER_NAME = "apicurio-registry-app";
     public static final String UI_CONTAINER_NAME = "apicurio-registry-ui";
+    public static final String STUDIO_UI_CONTAINER_NAME = "apicurio-studio-ui";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
-        var r = new Deployment();
-        r.setMetadata(new ObjectMeta());
-        r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
-        r.getMetadata().setName(
-                primary.getMetadata().getName() + "-" + COMPONENT_APP + "-" + RESOURCE_TYPE_DEPLOYMENT);
-        r.setSpec(new DeploymentSpec());
-        r.getSpec().setReplicas(1);
-        r.getSpec().setSelector(new LabelSelector());
-        if (primary.getSpec().getApp().getPodTemplateSpec() != null) {
-            r.getSpec().setTemplate(primary.getSpec().getApp().getPodTemplateSpec());
-        } else {
-            r.getSpec().setTemplate(new PodTemplateSpec());
-        }
-
+        var r = initDefaultDeployment(primary, COMPONENT_APP, 1,
+                primary.getSpec().getApp().getPodTemplateSpec()); // TODO: Replicas
         mergeDeploymentPodTemplateSpec(
                 // spotless:off
                 r.getSpec().getTemplate(),
@@ -70,20 +60,8 @@ public class ResourceFactory {
     }
 
     public Deployment getDefaultUIDeployment(ApicurioRegistry3 primary) {
-        var r = new Deployment();
-        r.setMetadata(new ObjectMeta());
-        r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
-        r.getMetadata().setName(
-                primary.getMetadata().getName() + "-" + COMPONENT_UI + "-" + RESOURCE_TYPE_DEPLOYMENT);
-        r.setSpec(new DeploymentSpec());
-        r.getSpec().setReplicas(1);
-        r.getSpec().setSelector(new LabelSelector());
-        if (primary.getSpec().getUi().getPodTemplateSpec() != null) {
-            r.getSpec().setTemplate(primary.getSpec().getUi().getPodTemplateSpec());
-        } else {
-            r.getSpec().setTemplate(new PodTemplateSpec());
-        }
-
+        var r = initDefaultDeployment(primary, COMPONENT_UI, 1,
+                primary.getSpec().getUi().getPodTemplateSpec()); // TODO: Replicas
         mergeDeploymentPodTemplateSpec(
                 // spotless:off
                 r.getSpec().getTemplate(),
@@ -99,6 +77,45 @@ public class ResourceFactory {
         addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_UI);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
         addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_UI);
+        return r;
+    }
+
+    public Deployment getDefaultStudioUIDeployment(ApicurioRegistry3 primary) {
+        var r = initDefaultDeployment(primary, COMPONENT_STUDIO_UI, 1,
+                primary.getSpec().getStudioUi().getPodTemplateSpec()); // TODO: Replicas
+        mergeDeploymentPodTemplateSpec(
+                // spotless:off
+                r.getSpec().getTemplate(),
+                STUDIO_UI_CONTAINER_NAME,
+                Configuration.getStudioUIImage(),
+                List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
+                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
+                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
+                Map.of("cpu", new Quantity("100m"), "memory", new Quantity("256Mi")),
+                Map.of("cpu", new Quantity("200m"), "memory", new Quantity("512Mi"))
+                // spotless:on
+        );
+        addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_STUDIO_UI);
+        addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_STUDIO_UI);
+        addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_STUDIO_UI);
+        return r;
+    }
+
+    private static Deployment initDefaultDeployment(ApicurioRegistry3 primary, String componentId,
+            int replicas, PodTemplateSpec pts) {
+        var r = new Deployment();
+        r.setMetadata(new ObjectMeta());
+        r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
+        r.getMetadata().setName(
+                primary.getMetadata().getName() + "-" + componentId + "-" + RESOURCE_TYPE_DEPLOYMENT);
+        r.setSpec(new DeploymentSpec());
+        r.getSpec().setReplicas(replicas);
+        r.getSpec().setSelector(new LabelSelector());
+        if (pts != null) {
+            r.getSpec().setTemplate(pts);
+        } else {
+            r.getSpec().setTemplate(new PodTemplateSpec());
+        }
         return r;
     }
 
@@ -175,6 +192,12 @@ public class ResourceFactory {
         return r;
     }
 
+    public Service getDefaultStudioUIService(ApicurioRegistry3 primary) {
+        var r = getDefaultResource(primary, Service.class, RESOURCE_TYPE_SERVICE, COMPONENT_STUDIO_UI);
+        addSelectorLabels(r.getSpec().getSelector(), primary, COMPONENT_STUDIO_UI);
+        return r;
+    }
+
     public Ingress getDefaultAppIngress(ApicurioRegistry3 primary) {
         var r = getDefaultResource(primary, Ingress.class, RESOURCE_TYPE_INGRESS, COMPONENT_APP);
         r.getSpec().getRules().get(0).getHttp().getPaths().get(0).getBackend().getService()
@@ -186,6 +209,13 @@ public class ResourceFactory {
         var r = getDefaultResource(primary, Ingress.class, RESOURCE_TYPE_INGRESS, COMPONENT_UI);
         r.getSpec().getRules().get(0).getHttp().getPaths().get(0).getBackend().getService()
                 .setName(primary.getMetadata().getName() + "-" + COMPONENT_UI + "-" + RESOURCE_TYPE_SERVICE);
+        return r;
+    }
+
+    public Ingress getDefaultStudioUIIngress(ApicurioRegistry3 primary) {
+        var r = getDefaultResource(primary, Ingress.class, RESOURCE_TYPE_INGRESS, COMPONENT_STUDIO_UI);
+        r.getSpec().getRules().get(0).getHttp().getPaths().get(0).getBackend().getService().setName(
+                primary.getMetadata().getName() + "-" + COMPONENT_STUDIO_UI + "-" + RESOURCE_TYPE_SERVICE);
         return r;
     }
 

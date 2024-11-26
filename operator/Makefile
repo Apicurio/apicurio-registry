@@ -27,6 +27,7 @@ ADDITIONAL_IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(ADDITIONAL_IMAGE_TAG)
 
 REGISTRY_APP_IMAGE ?= quay.io/apicurio/apicurio-registry:latest-snapshot
 REGISTRY_UI_IMAGE ?= quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+STUDIO_UI_IMAGE ?= quay.io/apicurio/apicurio-studio-ui:latest-snapshot
 
 NAMESPACE ?= default
 
@@ -93,6 +94,7 @@ export PLACEHOLDER_LC_VERSION := $(LC_VERSION)
 export PLACEHOLDER_IMAGE := $(IMAGE)
 export PLACEHOLDER_REGISTRY_APP_IMAGE := $(REGISTRY_APP_IMAGE)
 export PLACEHOLDER_REGISTRY_UI_IMAGE := $(REGISTRY_UI_IMAGE)
+export PLACEHOLDER_STUDIO_UI_IMAGE := $(STUDIO_UI_IMAGE)
 
 export PLACEHOLDER_DATE := $(DATE)
 
@@ -138,6 +140,7 @@ endif
 	@echo "$(CC_CYAN)Operand$(CC_END)"
 	@echo "REGISTRY_APP_IMAGE=$(REGISTRY_APP_IMAGE)"
 	@echo "REGISTRY_UI_IMAGE=$(REGISTRY_UI_IMAGE)"
+	@echo "STUDIO_UI_IMAGE=$(STUDIO_UI_IMAGE)"
 	@echo ""
 	@echo "$(CC_CYAN)Bundle$(CC_END)"
 	@echo "PACKAGE_NAME=$(PACKAGE_NAME)"

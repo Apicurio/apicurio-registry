@@ -1,0 +1,15 @@
+﻿apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: keycloak-http
+  labels:
+    app: keycloak
+spec:
+  path: /
+  to:
+    kind: Service
+    name: keycloak-http
+    weight: 100
+  port:
+    targetPort: keycloak-http
+  wildcardPolicy: None

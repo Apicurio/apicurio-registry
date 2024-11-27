@@ -1,0 +1,55 @@
+[id="registry-quickstart"]
+= Quickstart {registry} instance deployment
+
+To create your {registry} instance deployment, use the SQL database storage option to connect to an existing PostgreSQL database. 
+
+.Prerequisites
+* Ensure that the {operator} is installed.
+* You have a PostgreSQL database that is reachable from your OpenShift cluster.  
+
+.Procedure
+. Open the `examples/apicurioregistry_sql_cr.yaml` file in an editor and view the `ApicurioRegistry` custom resource (CR):
++
+.Example CR for SQL storage
+[source,yaml]
+----
+include::example$/apicurioregistry_sql_cr.yaml[]
+----
+
+. In the `dataSource` section, replace the example settings with your database connection details. For example:
++
+[source,yaml]
+----
+dataSource:
+    url: "jdbc:postgresql://postgresql.apicurio-registry.svc:5432/registry"
+    userName: "pgadmin"
+    password: "pgpass"
+----
+
+. Enter the following commands to apply the updated `ApicurioRegistry` CR in the namespace with the {registry} Operator, and wait for the {registry} instance to deploy:
++
+[source,bash]
+----
+oc project "$NAMESPACE"
+oc apply -f ./examples/apicurioregistry_sql_cr.yaml
+----
+
+. Enter `oc get deployment` to check the readiness of the {registry} instance. For example, the output should be as follows:
++
+[source,bash]
+----
+NAME                     	        READY UP-TO-DATE AVAILABLE AGE
+example-apicurioregistry-sql-deployment 1/1   1          1         XmYs
+----
+
+. Enter `oc get routes` to get the `HOST/PORT` URL to launch the {registry} web console in your browser. For example: 
++
+[source,bash]
+----
+example-apicurioregistry-sql.apicurio-registry.router-default.apps.mycluster.myorg.mycompany.com
+----
+
+ifdef::apicurio-registry[]
+.Additional resources
+* xref:assembly-registry-storage.adoc[]
+endif::[]

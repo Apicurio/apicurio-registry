@@ -1,0 +1,25 @@
+include::partial$shared/all-attributes.adoc[]
+
+[id="managing-the-registry"]
+= Configuring and managing {registry} deployment
+
+This chapter explains how to configure and manage your {registry} deployment:
+
+* xref:registry-security-keycloak[]
+* xref:manage-registry-environment-variables[]
+* xref:registry-liveness-and-readiness[]
+* xref:pod-spec[]
+* xref:registry-https-in-cluster[]
+* xref:registry-https-outside-cluster[]
+* xref:registry-sql-backup[]
+* xref:registry-sql-restore[]
+
+// INCLUDES
+include::partial$proc-registry-security-keycloak.adoc[leveloffset=+1]
+include::partial$proc-manage-environment-variables.adoc[leveloffset=+1]
+include::partial$ref-liveness-and-readiness.adoc[leveloffset=+1]
+include::partial$ref-registry-pod-template-spec.adoc[leveloffset=+1]
+include::partial$proc-registry-https-in-cluster.adoc[leveloffset=+1]
+include::partial$proc-registry-https-outside-cluster.adoc[leveloffset=+1]
+include::partial$proc-registry-sql-backup.adoc[leveloffset=+1]
+include::partial$proc-registry-sql-restore.adoc[leveloffset=+1]

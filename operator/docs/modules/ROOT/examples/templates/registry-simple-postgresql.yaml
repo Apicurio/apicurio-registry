@@ -1,0 +1,139 @@
+# This example template deploys Registry with PostgreSQL database.
+#
+# Steps:
+#
+# 1. Create or select a namespace:
+#
+# oc new-project registry-simple-postgresql
+#
+# 2. Install the operator(s):
+#
+#  - Red Hat Integration - Service Registry Operator
+#
+# 3. Apply the template:
+#
+# oc process -f registry-simple-postgresql.yaml \
+#   -p NAMESPACE=registry-simple-postgresql \
+#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry registry-simple-postgresql --timeout=60s
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: registry-simple-postgresql-template
+labels:
+  template: registry-simple-postgresql-template
+objects:
+  # PostgreSQL storage
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: registry-simple-postgresql-postgresql
+      namespace: ${NAMESPACE}
+      labels:
+        app: registry-simple-postgresql-postgresql
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: registry-simple-postgresql-postgresql
+      template:
+        metadata:
+          labels:
+            app: registry-simple-postgresql-postgresql
+        spec:
+          containers:
+            - resources:
+                limits:
+                  cpu: 1000m
+                  memory: 1024Mi
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+              readinessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 5
+                timeoutSeconds: 1
+                periodSeconds: 10
+                successThreshold: 1
+                failureThreshold: 3
+              terminationMessagePath: /dev/termination-log
+              name: postgresql
+              livenessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 15
+                timeoutSeconds: 1
+                periodSeconds: 20
+                successThreshold: 1
+                failureThreshold: 3
+              env:
+                - name: POSTGRESQL_PASSWORD
+                  value: ${POSTGRESQL_PASSWORD}
+                - name: POSTGRESQL_USER
+                  value: ${POSTGRESQL_USER}
+                - name: POSTGRESQL_DATABASE
+                  value: ${POSTGRESQL_DATABASE}
+              ports:
+                - containerPort: 5432
+                  protocol: TCP
+              imagePullPolicy: IfNotPresent
+              terminationMessagePolicy: File
+              image: quay.io/centos7/postgresql-12-centos7:1
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          securityContext: { }
+          schedulerName: default-scheduler
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 25%
+          maxSurge: 25%
+      revisionHistoryLimit: 10
+      progressDeadlineSeconds: 600
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: registry-simple-postgresql-postgresql
+      namespace: ${NAMESPACE}
+      labels:
+        app: registry-simple-postgresql-postgresql
+    spec:
+      ports:
+        - protocol: TCP
+          port: 5432
+          targetPort: 5432
+      type: ClusterIP
+      selector:
+        app: registry-simple-postgresql-postgresql
+  # Registry
+  - apiVersion: registry.apicur.io/v1
+    kind: ApicurioRegistry
+    metadata:
+      name: registry-simple-postgresql
+      namespace: ${NAMESPACE}
+    spec:
+      configuration:
+        persistence: sql
+        sql:
+          dataSource:
+            url: jdbc:postgresql://registry-simple-postgresql-postgresql.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
+            userName: ${POSTGRESQL_USER}
+            password: ${POSTGRESQL_PASSWORD}
+parameters:
+  - name: NAMESPACE
+    required: true
+  - name: POSTGRESQL_DATABASE
+    value: registry
+  - name: POSTGRESQL_USER
+    value: apicurio
+  - name: POSTGRESQL_PASSWORD
+    value: password

@@ -1,0 +1,259 @@
+# This example template deploys Registry, and a Red Hat Single Sign-On (Keycloak) instance with an edge-terminated HTTPS route.
+#
+# Steps:
+#
+# 1. Create or select a namespace:
+#
+# oc new-project registry-keycloak-default-edge
+#
+# 2. Install the operator(s):
+#
+#  - Red Hat Integration - Service Registry Operator
+#  - Red Hat Single Sign-On Operator
+#
+# 3. Prepare a truststore with certificates for the Keycloak URL. In this example,
+# I'm using the default ingress router certificates on my OpenShift cluster:
+#
+# oc get secret -n openshift-ingress --field-selector=type=kubernetes.io/tls | grep -v metrics
+#
+# will list something like:
+#
+# NAME                                           TYPE                DATA   AGE
+# 0b9c209b-0566-4e3b-a2e2-c93e27e90eb2-ingress   kubernetes.io/tls   2      20m
+#
+# oc get secret -n openshift-ingress 0b9c209b-0566-4e3b-a2e2-c93e27e90eb2-ingress -o jsonpath="{.data['tls\.crt']}" | base64 -d > tls.crt
+# echo "y" | keytool -import -alias IngressCertificate -file tls.crt -keystore tls.truststore -storepass password
+# oc create secret generic keycloak-truststore-secret --from-file=tls.truststore
+#
+# 4. Apply the template:
+#
+# oc process -f registry-keycloak-default-edge.yaml \
+#   -p NAMESPACE=registry-keycloak-default-edge \
+#   -p INGRESS_ROUTER_CANONICAL_HOSTNAME=router-default.apps.apicur.eastus.aroapp.io \
+#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry registry-keycloak-default-edge --timeout=120s
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: registry-keycloak-default-edge-template
+labels:
+  template: registry-keycloak-default-edge-template
+objects:
+  # PostgreSQL storage
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: registry-keycloak-default-edge-postgres
+      namespace: ${NAMESPACE}
+      labels:
+        app: registry-keycloak-default-edge-postgres
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: registry-keycloak-default-edge-postgres
+      template:
+        metadata:
+          labels:
+            app: registry-keycloak-default-edge-postgres
+        spec:
+          containers:
+            - resources:
+                limits:
+                  cpu: 1000m
+                  memory: 1024Mi
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+              readinessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 5
+                timeoutSeconds: 1
+                periodSeconds: 10
+                successThreshold: 1
+                failureThreshold: 3
+              terminationMessagePath: /dev/termination-log
+              name: postgresql
+              livenessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 15
+                timeoutSeconds: 1
+                periodSeconds: 20
+                successThreshold: 1
+                failureThreshold: 3
+              env:
+                - name: POSTGRESQL_PASSWORD
+                  value: ${POSTGRESQL_PASSWORD}
+                - name: POSTGRESQL_USER
+                  value: ${POSTGRESQL_USER}
+                - name: POSTGRESQL_DATABASE
+                  value: ${POSTGRESQL_DATABASE}
+              ports:
+                - containerPort: 5432
+                  protocol: TCP
+              imagePullPolicy: IfNotPresent
+              terminationMessagePolicy: File
+              image: quay.io/centos7/postgresql-12-centos7:1
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          securityContext: { }
+          schedulerName: default-scheduler
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 25%
+          maxSurge: 25%
+      revisionHistoryLimit: 10
+      progressDeadlineSeconds: 600
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: registry-keycloak-default-edge-postgres
+      namespace: ${NAMESPACE}
+      labels:
+        app: registry-keycloak-default-edge-postgres
+    spec:
+      ports:
+        - protocol: TCP
+          port: 5432
+          targetPort: 5432
+      type: ClusterIP
+      selector:
+        app: registry-keycloak-default-edge-postgres
+  # Keycloak
+  - apiVersion: keycloak.org/v1alpha1
+    kind: Keycloak
+    metadata:
+      labels:
+        app: sso
+      name: registry-keycloak-default-edge-keycloak
+      namespace: ${NAMESPACE}
+    spec:
+      externalAccess:
+        enabled: true
+      instances: 1
+  - apiVersion: keycloak.org/v1alpha1
+    kind: KeycloakRealm
+    metadata:
+      name: registry-keycloak-default-edge-keycloakrealm
+      namespace: ${NAMESPACE}
+    spec:
+      instanceSelector:
+        matchLabels:
+          app: sso
+      realm:
+        clients:
+          - clientId: registry-client-ui
+            directAccessGrantsEnabled: false
+            implicitFlowEnabled: true
+            publicClient: true
+            redirectUris:
+              - '*'
+            standardFlowEnabled: true
+            webOrigins:
+              - '*'
+          - clientId: registry-client-api
+            directAccessGrantsEnabled: false
+            implicitFlowEnabled: true
+            publicClient: true
+            redirectUris:
+              - '*'
+            standardFlowEnabled: true
+            webOrigins:
+              - '*'
+        displayName: Registry
+        enabled: true
+        id: registry
+        realm: registry
+        roles:
+          realm:
+            - name: sr-admin
+            - name: sr-developer
+            - name: sr-readonly
+        sslRequired: none
+        users:
+          - credentials:
+              - type: password
+                value: changeme
+            enabled: true
+            realmRoles:
+              - sr-admin
+            username: registry-admin
+          - credentials:
+              - type: password
+                value: changeme
+            enabled: true
+            realmRoles:
+              - sr-developer
+            username: registry-developer
+          - credentials:
+              - type: password
+                value: changeme
+            enabled: true
+            realmRoles:
+              - sr-readonly
+            username: registry-user
+  # Registry
+  - apiVersion: registry.apicur.io/v1
+    kind: ApicurioRegistry
+    metadata:
+      name: registry-keycloak-default-edge
+      namespace: ${NAMESPACE}
+    spec:
+      configuration:
+        persistence: sql
+        sql:
+          dataSource:
+            url: jdbc:postgresql://registry-keycloak-default-edge-postgres.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
+            userName: ${POSTGRESQL_USER}
+            password: ${POSTGRESQL_PASSWORD}
+        env:
+          - name: QUARKUS_OIDC_TLS_TRUST_STORE_FILE
+            value: /mnt/truststore/tls.truststore
+          - name: QUARKUS_OIDC_TLS_TRUST_STORE_PASSWORD
+            value: password
+          - name: ROLE_BASED_AUTHZ_ENABLED
+            value: "true"
+        security:
+          keycloak:
+            url: https://keycloak-${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}/auth
+            realm: registry
+      deployment:
+        podTemplateSpecPreview:
+          spec:
+            containers:
+              - name: registry
+                volumeMounts:
+                  - mountPath: /mnt/truststore
+                    name: truststore
+                    readOnly: true
+            volumes:
+              - name: truststore
+                secret:
+                  secretName: keycloak-truststore-secret
+parameters:
+  - name: NAMESPACE
+    required: true
+  - name: POSTGRESQL_DATABASE
+    value: registry
+  - name: POSTGRESQL_USER
+    value: apicurio
+  - name: POSTGRESQL_PASSWORD
+    value: password
+  - name: INGRESS_ROUTER_CANONICAL_HOSTNAME
+    # Find out from a status block of any Ingress or Route resource, e.g.:
+    # status:
+    #  loadBalancer:
+    #    ingress:
+    #      - hostname: router-default.apps.apicur.eastus.aroapp.io
+    required: true

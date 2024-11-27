@@ -1,0 +1,106 @@
+[id="registry-persistence-kafkasql-plain"]
+= Configuring plain Kafka storage with no security
+
+You can configure the {kafka-streams} Operator and {operator} to use a default connection with no security.
+
+.Prerequisites
+
+* You have installed the {operator} using the OperatorHub or command line.
+* You have installed the {kafka-streams} Operator or have Kafka accessible from your OpenShift cluster.
+
+.Procedure 
+
+. In the OpenShift web console, click *Installed Operators*, select the *{kafka-streams}* Operator details, and then the *Kafka* tab. 
+
+. Click *Create Kafka* to provision a new Kafka cluster for {registry} storage. You can use the default value, for example:
++
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: registry-example-kafkasql-plain
+  # Change or remove the explicit namespace
+spec:
+  kafka:
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      log.message.format.version: '2.7'
+      inter.broker.protocol.version: '2.7'
+    version: 2.7.0
+    storage:
+      type: ephemeral
+    replicas: 3
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+  zookeeper:
+    storage:
+      type: ephemeral
+    replicas: 3
+----
++
+NOTE: Your OpenShift project namespace might be different.
+
+. When the cluster is ready, open the *Kafka* resource, examine the `status` block, and copy the `bootstrapServers` value for later use when deploying {registry}. For example:
++
+[source,yaml]
+----
+status:
+  conditions:
+    ...
+  listeners:
+    - addresses:
+        - host: my-cluster-kafka-bootstrap.registry-example-kafkasql-plain.svc
+          port: 9092
+      bootstrapServers: 'my-cluster-kafka-bootstrap.registry-example-kafkasql-plain.svc:9092'
+      type: plain
+  ...
+----
++
+The default Kafka topic name automatically created by {registry} to store data is `kafkasql-journal`. You can override this behavior or the default topic name by setting environment variables. The default values are as follows:
+
+ ** `REGISTRY_KAFKASQL_TOPIC_AUTO_CREATE=true`
+ ** `REGISTRY_KAFKASQL_TOPIC=kafkasql-journal`
+
++
+If you decide not to create the Kafka topic manually, skip the next step.
+
+. Click the *Kafka Topic* tab, and then *Create Kafka Topic* to create the `kafkasql-journal` topic:
++
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: kafkasql-journal
+  labels:
+    strimzi.io/cluster: my-cluster
+  namespace: registry-example-kafkasql-plain
+spec:
+  partitions: 2
+  replicas: 1
+  config:
+    cleanup.policy: compact
+----
+
+. Select the *{operator}*, and in the *ApicurioRegistry* tab, click *Create ApicurioRegistry*, using the following example, but replace your value in the `bootstrapServers` field.
++
+[source,yaml]
+----
+include::example$apicurioregistry_kafkasql_plain_cr.yaml[]
+----
+
+. Wait a few minutes to see the *Route* being created, where you can access the application.

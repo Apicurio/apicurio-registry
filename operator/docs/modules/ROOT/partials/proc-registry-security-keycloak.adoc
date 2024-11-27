@@ -1,0 +1,104 @@
+[id="registry-security-keycloak"]
+= Securing {registry} using the {keycloak} Operator
+
+The following procedure shows how to configure a {registry} REST API and web console to be protected by {keycloak}.
+
+{registry} supports the following user roles:
+
+.{registry} user roles
+[%header,cols=2*]
+|===
+| Name | Capabilities
+
+| `sr-admin`
+| Full access, no restrictions.
+
+| `sr-developer`
+| Create artifacts and configure artifact rules. Cannot modify global rules, perform import/export, or use `/admin` REST API endpoint.
+
+| `sr-readonly`
+| View and search only. Cannot modify artifacts or rules, perform import/export, or use `/admin` REST API endpoint.
+|===
+
+NOTE: There is a related configuration option in the `ApicurioRegistry` CRD that you can use to set the web console to read-only mode. However, this configuration does not affect the REST API.
+
+.Prerequisites
+* You must have already installed the {operator}.
+* You must install the {keycloak} Operator or have {keycloak} accessible from your OpenShift cluster.
+
+IMPORTANT: The example configuration in this procedure is intended for development and testing only. To keep the procedure simple, it does not use HTTPS and other defenses recommended for a production environment. For more details, see the {keycloak} documentation. 
+
+ifdef::apicurio-registry[]
+
+.Procedure
+. In the OpenShift web console, click *Installed Operators* and *{keycloak} Operator*, and then the *Keycloak* tab.
+
+. To create the {keycloak} instance, see the https://www.keycloak.org/operator/basic-deployment[Keycloak documentation on how to create a basic deployment].
+
+. When your {keycloak} instance is available, you can import the following example realm by using the steps in the https://www.keycloak.org/operator/realm-import[Keycloak Operator documentation]:
+
++
+[source,yaml]
+----
+include::example$/keycloak/keycloak_realm_import.yaml[]
+----
++
+IMPORTANT: You must customize this `KeycloakRealmImport` resource with values suitable for your environment if you are deploying to production. You can also create and manage realms using the {keycloak} web console.
+endif::[]
+ifdef::service-registry[]
+
+.Procedure
+. In the OpenShift web console, click *Installed Operators* and *{keycloak} Operator*, and then the *Keycloak* tab.
+
+. Click *Create Keycloak* to provision a new {keycloak} instance for securing a {registry} deployment. You can use the default value, for example:
++
+[source,yaml]
+----
+include::example$/keycloak/keycloak.yaml[]
+----
+
+. Wait until the instance has been created, and click *Networking*  and then *Routes* to access the new route for the *keycloak* instance. 
+
+. Click the *Location* URL and copy the displayed URL value for later use when deploying {registry}.
+
+. Click *Installed Operators* and *{keycloak} Operator*, and click the *Keycloak Realm* tab, and then *Create Keycloak Realm* to create a `registry` example realm:
++
+[source,yaml]
+----
+include::example$/keycloak/keycloak_realm.yaml[]
+----
++
+IMPORTANT: You must customize this `KeycloakRealm` resource with values suitable for your environment if you are deploying to production. You can also create and manage realms using the {keycloak} web console.
+endif::[]
+
+. If your cluster does not have a valid HTTPS certificate configured, you can create the following HTTP `Service` and `Ingress` resources as a temporary workaround:
+
+.. Click *Networking* and then *Services*, and click *Create Service* using the following example:
++
+[source,yaml]
+----
+include::example$/keycloak/keycloak_http_service.yaml[]
+----
+.. Click *Networking* and then *Ingresses*, and click *Create Ingress* using the following example::
++
+----    
+include::example$/keycloak/keycloak_http_ingress.yaml[]
+----
++
+Modify the `host` value to create a route accessible for the {registry} user, and use it instead of the HTTPS route created by {keycloak} Operator.
+
+. Click the *{operator}*, and on the *ApicurioRegistry* tab, click *Create ApicurioRegistry*, using the following example, but replace your values in the `keycloak` section.
+ifdef::apicurio-registry[]
++
+[source,yaml]
+----    
+include::example$/keycloak/apicurioregistry_mem_keycloak_cr.yaml[]
+----
+endif::[]
+ifdef::service-registry[]
++
+[source,yaml]
+----    
+include::example$/keycloak/apicurioregistry_kafkasql_keycloak_cr.yaml[]
+----
+endif::[]

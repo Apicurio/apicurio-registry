@@ -1,0 +1,9 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry-kafkasql
+spec:
+  configuration:
+    persistence: "kafkasql"
+    kafkasql:
+      bootstrapServers: "my-cluster-kafka-bootstrap.registry-example-kafkasql-plain.svc:9092"

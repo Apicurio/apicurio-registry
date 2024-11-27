@@ -1,0 +1,363 @@
+[#spec]
+= {registry} CR spec
+
+The `spec` is the part of the `ApicurioRegistry` CR that is used to provide the desired state or configuration for the Operator to achieve.
+
+.ApicurioRegistry CR spec contents
+The following example block contains the full tree of possible `spec` configuration options.
+Some fields might not be required or should not be defined at the same time.
+
+ifdef::apicurio-registry[]
+[source,yaml]
+----
+spec:
+  configuration:
+    persistence: <string>
+    sql:
+      dataSource:
+        url: <string>
+        userName: <string>
+        password: <string>
+    kafkasql:
+      bootstrapServers: <string>
+      security:
+        tls:
+          truststoreSecretName: <string>
+          keystoreSecretName: <string>
+        scram:
+          mechanism: <string>
+          truststoreSecretName: <string>
+          user: <string>
+          passwordSecretName: <string>
+    ui:
+      readOnly: <string>
+    logLevel: <string>
+    registryLogLevel: <string>
+    security:
+      keycloak:
+        url: <string>
+        realm: <string>
+        apiClientId: <string>
+        uiClientId: <string>
+      https:
+        disableHttp: <bool>
+        secretName: <string>
+    env: <k8s.io/api/core/v1 []EnvVar>
+  deployment:
+    replicas: <int32>
+    host: <string>
+    affinity: <k8s.io/api/core/v1 Affinity>
+    tolerations: <k8s.io/api/core/v1 []Toleration>
+    imagePullSecrets: <k8s.io/api/core/v1 []LocalObjectReference>
+    metadata:
+      annotations: <map[string]string>
+      labels: <map[string]string>
+    image: <string>
+    managedResources:
+      disableIngress: <bool>
+      disableNetworkPolicy: <bool>
+	  disablePodDisruptionBudget: <bool>
+    podTemplateSpecPreview: <k8s.io/api/core/v1 PodTemplateSpec>
+----
+endif::[]
+
+ifdef::service-registry[]
+// Currently, the only difference is the absence of the `image` field.
+// We want to control which image is being used in the product, and
+// `ifdef` can't be used in source blocks.
+[source,yaml]
+----
+spec:
+  configuration:
+    persistence: <string>
+    sql:
+      dataSource:
+        url: <string>
+        userName: <string>
+        password: <string>
+    kafkasql:
+      bootstrapServers: <string>
+      security:
+        tls:
+          truststoreSecretName: <string>
+          keystoreSecretName: <string>
+        scram:
+          mechanism: <string>
+          truststoreSecretName: <string>
+          user: <string>
+          passwordSecretName: <string>
+    ui:
+      readOnly: <string>
+    logLevel: <string>
+    registryLogLevel: <string>
+    security:
+      keycloak:
+        url: <string>
+        realm: <string>
+        apiClientId: <string>
+        uiClientId: <string>
+      https:
+        disableHttp: <bool>
+        secretName: <string>
+    env: <k8s.io/api/core/v1 []EnvVar>
+  deployment:
+    replicas: <int32>
+    host: <string>
+    affinity: <k8s.io/api/core/v1 Affinity>
+    tolerations: <k8s.io/api/core/v1 []Toleration>
+    imagePullSecrets: <k8s.io/api/core/v1 []LocalObjectReference>
+    metadata:
+      annotations: <map[string]string>
+      labels: <map[string]string>
+    managedResources:
+      disableIngress: <bool>
+      disableNetworkPolicy: <bool>
+	  disablePodDisruptionBudget: <bool>
+    podTemplateSpecPreview: <k8s.io/api/core/v1 PodTemplateSpec>
+----
+endif::[]
+
+The following table describes each configuration option:
+
+.ApicurioRegistry CR spec configuration options
+[%header,cols="4,2,2,3"]
+|===
+| Configuration option | type | Default value | Description
+
+| `configuration`
+| -
+| -
+| Section for configuration of {registry} application
+
+| `configuration/persistence`
+| string
+ifdef::service-registry[]
+| _required_
+| Storage backend. One of `sql`, `kafkasql`
+endif::[]
+ifdef::apicurio-registry[]
+| `mem`
+| Storage backend. One of `mem`, `sql`, `kafkasql`
+endif::[]
+
+| `configuration/sql`
+| -
+| -
+| SQL storage backend configuration
+
+| `configuration/sql/dataSource`
+| -
+| -
+| Database connection configuration for SQL storage backend
+
+| `configuration/sql/dataSource/url`
+| string
+| _required_
+| Database connection URL string
+
+| `configuration/sql/dataSource/userName`
+| string
+| _required_
+| Database connection user
+
+| `configuration/sql/dataSource/password`
+| string
+| _empty_
+| Database connection password
+
+| `configuration/kafkasql`
+| -
+| -
+| Kafka storage backend configuration
+
+| `configuration/kafkasql/bootstrapServers`
+| string
+| _required_
+| Kafka bootstrap server URL, for Streams storage backend
+
+| `configuration/kafkasql/security/tls`
+| -
+| -
+| Section to configure TLS authentication for Kafka storage backend
+
+| `configuration/kafkasql/security/tls/truststoreSecretName`
+| string
+| _required_
+| Name of a secret containing TLS truststore for Kafka
+
+| `configuration/kafkasql/security/tls/keystoreSecretName`
+| string
+| _required_
+| Name of a secret containing user TLS keystore
+
+| `configuration/kafkasql/security/scram/truststoreSecretName`
+| string
+| _required_
+| Name of a secret containing TLS truststore for Kafka
+
+| `configuration/kafkasql/security/scram/user`
+| string
+| _required_
+| SCRAM user name
+
+| `configuration/kafkasql/security/scram/passwordSecretName`
+| string
+| _required_
+| Name of a secret containing SCRAM user password
+
+| `configuration/kafkasql/security/scram/mechanism`
+| string
+| `SCRAM-SHA-512`
+| SASL mechanism
+
+| `configuration/ui`
+| -
+| -
+| {registry} web console settings
+
+| `configuration/ui/readOnly`
+| string
+| `false`
+| Set {registry} web console to read-only mode
+
+| `configuration/logLevel`
+| string
+| `INFO`
+| {registry} log level, for non-Apicurio components and libraries. One of `INFO`, `DEBUG`
+
+| `configuration/registryLogLevel`
+| string
+| `INFO`
+| {registry} log level, for Apicurio application components (excludes non-Apicurio components and libraries). One of `INFO`, `DEBUG`
+
+| `configuration/security`
+| -
+| -
+| {registry} web console and REST API security settings
+
+| `configuration/security/keycloak`
+| -
+| -
+| Web console and REST API security configuration using {Keycloak}
+
+| `configuration/security/keycloak/url`
+| string
+| _required_
+| {keycloak} URL
+
+| `configuration/security/keycloak/realm`
+| string
+| _required_
+|  {keycloak} realm
+
+| `configuration/security/keycloak/apiClientId`
+| string
+| `registry-client-api`
+|  {keycloak} client for REST API
+
+| `configuration/security/keycloak/uiClientId`
+| string
+| `registry-client-ui`
+|  {keycloak} client for web console
+
+| `configuration/security/https`
+| -
+| -
+| Configuration for HTTPS. For more details, see xref:ROOT:assembly-registry-maintenance.adoc#registry-https-in-cluster[Configuring an HTTPS connection to {registry} from inside the OpenShift cluster].
+
+| `configuration/security/https/sercretName`
+| string
+| _empty_
+| Name of a Kubernetes Secret that contains the HTTPS certificate and key, which must be named `tls.crt` and `tls.key`, respectively. Setting this field enables HTTPS, and vice versa.
+
+| `configuration/security/https/disableHttp`
+| bool
+| `false`
+| Disable HTTP port and Ingress. HTTPS must be enabled as a prerequisite.
+
+| `configuration/env`
+| k8s.io/api/core/v1 []EnvVar
+| _empty_
+| Configure a list of environment variables to be provided to the {registry} pod. For more details, see xref:ROOT:assembly-registry-maintenance.adoc#manage-registry-environment-variables[Managing {registry} environment variables].
+
+| `deployment`
+| -
+| -
+| Section for {registry} deployment settings
+
+| `deployment/replicas`
+| positive integer
+| `1`
+| Number of {registry} pods to deploy
+
+| `deployment/host`
+| string
+| _auto-generated_
+| Host/URL where the {registry} console and API are available. If possible, {operator} attempts to determine the correct value based on the settings of your cluster router. The value is auto-generated only once, so user can override it afterwards.
+
+| `deployment/affinity`
+| k8s.io/api/core/v1 Affinity
+| _empty_
+| {registry} deployment affinity configuration
+
+| `deployment/tolerations`
+| k8s.io/api/core/v1 []Toleration
+| _empty_
+| {registry} deployment tolerations configuration
+
+| `deployment/imagePullSecrets`
+| k8s.io/api/core/v1 []LocalObjectReference
+| _empty_
+| Configure image pull secrets for {registry} deployment
+
+| `deployment/metadata`
+| -
+| -
+| Configure a set of labels or annotations for the {registry} pod.
+
+| `deployment/metadata/labels`
+| map[string]string
+| _empty_
+| Configure a set of labels for {registry} pod
+
+| `deployment/metadata/annotations`
+| map[string]string
+| _empty_
+| Configure a set of annotations for {registry} pod
+
+ifdef::apicurio-registry[]
+| `deployment/image`
+| string
+| _empty_
+| Override the default image being used to deploy {registry}
+endif::[]
+
+// TODO vvv
+| `deployment/managedResources`
+| -
+| -
+| Section to configure how the {operator} manages Kubernetes resources. For more details, see xref:ROOT:assembly-operator-configuration.adoc#managed-resources[{registry} managed resources].
+
+| `deployment/managedResources/disableIngress`
+| bool
+| `false`
+| If set, the operator will not create and manage an `Ingress` resource for {registry} deployment.
+
+| `deployment/managedResources/disableNetworkPolicy`
+| bool
+| `false`
+| If set, the operator will not create and manage a `NetworkPolicy` resource for {registry} deployment.
+
+| `deployment/managedResources/disablePodDisruptionBudget`
+| bool
+| `false`
+| If set, the operator will not create and manage an `PodDisruptionBudget` resource for {registry} deployment.
+
+| `deployment/podTemplateSpecPreview`
+| k8s.io/api/core/v1 PodTemplateSpec
+| _empty_
+| Configure parts of the {registry} deployment resource. For more details, see xref:ROOT:assembly-registry-maintenance.adoc#pod-spec[Configuring {registry} deployment using PodTemplate].
+|===
+
+NOTE: If an option is marked as _required_, it might be conditional on other configuration options being enabled.
+Empty values might be accepted, but the Operator does not perform the specified action.

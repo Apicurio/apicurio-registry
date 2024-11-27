@@ -1,0 +1,35 @@
+[id="registry-quickstart"]
+= Quickstart {registry} instance deployment
+
+To quickly create a new {registry} instance deployment, use the in-memory storage option,
+which does not require an external storage to be configured as a prerequisite.
+
+ifdef::apicurio-registry-operator-dev[]
+NOTE: This procedure deploys the latest {operator} development version. To deploy a version that has already been released, see install files in https://github.com/Apicurio/apicurio-registry-operator/tree/main/install[{operator} GitHub repository].
+endif::[]
+
+.Prerequisites
+* Ensure that the {operator} is already installed.
+
+.Procedure
+. Use a `$NAMESPACE` where the {operator} is deployed:
++
+[source,bash]
+----
+export NAMESPACE="default"
+----
+
+. Create an `ApicurioRegistry` custom resource (CR):
++
+[source,bash,subs="attributes"]
+----
+kubectl apply -f https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/{operator-version-latest-release-tag}/docs/modules/ROOT/examples/apicurioregistry_mem_cr.yaml -n $NAMESPACE
+----
++
+.Example CR for in-memory storage
+[source,yaml]
+----
+include::example$apicurioregistry_mem_cr.yaml[]
+----
++
+NOTE: To deploy an older release of {operator}, follow the documentation for that version. If you are deploying to OpenShift, use the `oc` command with the same arguments.

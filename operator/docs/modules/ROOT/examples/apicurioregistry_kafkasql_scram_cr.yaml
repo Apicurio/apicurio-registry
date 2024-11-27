@@ -1,0 +1,14 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry-kafkasql-scram
+spec:
+  configuration:
+    persistence: "kafkasql"
+    kafkasql:
+      bootstrapServers: "my-cluster-kafka-bootstrap.registry-example-kafkasql-scram.svc:9093"
+      security:
+        scram:
+          truststoreSecretName: my-cluster-cluster-ca-cert
+          user: my-user
+          passwordSecretName: my-user

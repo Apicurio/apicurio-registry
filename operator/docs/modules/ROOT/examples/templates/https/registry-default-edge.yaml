@@ -1,0 +1,211 @@
+# This example template deploys Registry with an edge-terminated HTTPS route, with a default ingress router certificate.
+#
+# Steps:
+#
+# 1. Create or select a namespace:
+#
+# oc new-project registry-default-edge
+#
+# 2. Install the operator(s):
+#
+#  - Red Hat Integration - Service Registry Operator
+#
+# 3. Find and copy the default ingress router certificate to the ${NAMESPACE}:
+#
+# oc get secret -n openshift-ingress --field-selector=type=kubernetes.io/tls | grep -v metrics
+#
+# will list something like:
+#
+# NAME                                           TYPE                DATA   AGE
+# 0b9c209b-0566-4e3b-a2e2-c93e27e90eb2-ingress   kubernetes.io/tls   2      20m
+#
+# oc get secret -n openshift-ingress <NAME> -o json \
+#  | jq 'del(.metadata["namespace", "creationTimestamp", "resourceVersion", "selfLink", "uid", "ownerReferences", "managedFields"]) | .metadata.name="registry-default-edge-tls-secret"' \
+#  | oc create -f -
+#
+# 4. Apply the template:
+#
+# oc process -f registry-default-edge.yaml \
+#   -p NAMESPACE=registry-default-edge \
+#   -p INGRESS_ROUTER_CANONICAL_HOSTNAME=router-default.apps.apicur.eastus.aroapp.io \
+#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry registry-default-edge --timeout=120s
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: registry-default-edge-template
+labels:
+  template: registry-default-edge-template
+objects:
+  # PostgreSQL storage
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: registry-default-edge-postgres
+      namespace: ${NAMESPACE}
+      labels:
+        app: registry-default-edge-postgres
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: registry-default-edge-postgres
+      template:
+        metadata:
+          labels:
+            app: registry-default-edge-postgres
+        spec:
+          containers:
+            - resources:
+                limits:
+                  cpu: 1000m
+                  memory: 1024Mi
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+              readinessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 5
+                timeoutSeconds: 1
+                periodSeconds: 10
+                successThreshold: 1
+                failureThreshold: 3
+              terminationMessagePath: /dev/termination-log
+              name: postgresql
+              livenessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 15
+                timeoutSeconds: 1
+                periodSeconds: 20
+                successThreshold: 1
+                failureThreshold: 3
+              env:
+                - name: POSTGRESQL_PASSWORD
+                  value: ${POSTGRESQL_PASSWORD}
+                - name: POSTGRESQL_USER
+                  value: ${POSTGRESQL_USER}
+                - name: POSTGRESQL_DATABASE
+                  value: ${POSTGRESQL_DATABASE}
+              ports:
+                - containerPort: 5432
+                  protocol: TCP
+              imagePullPolicy: IfNotPresent
+              terminationMessagePolicy: File
+              image: quay.io/centos7/postgresql-12-centos7:1
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          securityContext: { }
+          schedulerName: default-scheduler
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 25%
+          maxSurge: 25%
+      revisionHistoryLimit: 10
+      progressDeadlineSeconds: 600
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: registry-default-edge-postgres
+      namespace: ${NAMESPACE}
+      labels:
+        app: registry-default-edge-postgres
+    spec:
+      ports:
+        - protocol: TCP
+          port: 5432
+          targetPort: 5432
+      type: ClusterIP
+      selector:
+        app: registry-default-edge-postgres
+  # Registry
+  - apiVersion: registry.apicur.io/v1
+    kind: ApicurioRegistry
+    metadata:
+      name: registry-default-edge
+      namespace: ${NAMESPACE}
+    spec:
+      configuration:
+        persistence: sql
+        sql:
+          dataSource:
+            url: jdbc:postgresql://registry-default-edge-postgres.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
+            userName: ${POSTGRESQL_USER}
+            password: ${POSTGRESQL_PASSWORD}
+        env:
+          - name: CORS_ALLOWED_ORIGINS
+            value: >-
+              http://registry-http.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME},
+              https://registry-https.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+      deployment:
+        managedResources:
+          disableIngress: true
+  # HTTP Ingress
+  - kind: Ingress
+    apiVersion: networking.k8s.io/v1
+    metadata:
+      name: registry-default-edge-http-ingress
+      namespace: ${NAMESPACE}
+    spec:
+      rules:
+        - host: >-
+            registry-http.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: registry-default-edge-service
+                    port:
+                      number: 8080
+  # HTTPS Ingress
+  - kind: Ingress
+    apiVersion: networking.k8s.io/v1
+    metadata:
+      name: registry-default-edge-https-ingress
+      namespace: ${NAMESPACE}
+      annotations:
+        cert-manager.io/issuer: selfsigned-ca-issuer
+    spec:
+      tls:
+        - hosts:
+            - registry-https.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+          secretName: registry-default-edge-tls-secret
+      rules:
+        - host: registry-https.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: registry-default-edge-service
+                    port:
+                      number: 8080
+parameters:
+  - name: NAMESPACE
+    required: true
+  - name: POSTGRESQL_DATABASE
+    value: registry
+  - name: POSTGRESQL_USER
+    value: apicurio
+  - name: POSTGRESQL_PASSWORD
+    value: password
+  - name: INGRESS_ROUTER_CANONICAL_HOSTNAME
+    # Find out from a status block of any Ingress or Route resource, e.g.:
+    # status:
+    #  loadBalancer:
+    #    ingress:
+    #      - hostname: router-default.apps.apicur.eastus.aroapp.io
+    required: true

@@ -1,0 +1,85 @@
+[id="registry-https-in-cluster"]
+// Do not forget to update link text in related xref(s). Antora does not support automatic name if the link has a fragment.
+= Configuring an HTTPS connection to {registry} from inside the OpenShift cluster
+
+The following procedure shows how to configure {registry} deployment to expose a port for HTTPS connections from inside the OpenShift cluster.
+
+WARNING: This kind of connection is not directly available outside of the cluster.
+Routing is based on hostname, which is encoded in the case of an HTTPS connection.
+Therefore, edge termination or other configuration is still needed.
+See xref:registry-https-outside-cluster[].
+
+.Prerequisites
+* You must have already installed the {operator}.
+
+.Procedure
+. Generate a `keystore` with a self-signed certificate.
+You can skip this step if you are using your own certificates.
++
+[source,bash]
+----
+openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout tls.key -out tls.crt
+----
+
+. Create a new secret to hold the certificate and the private key.
+.. In the left navigation menu of the OpenShift web console, click *Workloads* > *Secrets* > *Create Key/Value Secret*.
+.. Use the following values: +
+Name: `https-cert-secret` +
+Key 1: `tls.key` +
+Value 1: _tls.key_ (uploaded file) +
+Key 2: `tls.crt` +
+Value 2: _tls.crt_ (uploaded file)
+
++
+--
+or create the secret using the following command:
+
+[source,bash]
+----
+oc create secret generic https-cert-secret --from-file=tls.key --from-file=tls.crt
+----
+--
+
+. Edit the `spec.configuration.security.https` section of the `ApicurioRegistry` CR for your {registry} deployment, for example:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry
+spec:
+  configuration:
+    # ...
+    security:
+      https:
+        secretName: https-cert-secret
+----
+
+. Verify that the connection is working:
+.. Connect into a pod on the cluster using SSH (you can use the {registry} pod):
++
+[source,bash]
+----
+oc rsh example-apicurioregistry-deployment-6f788db977-2wzpw
+----
+
+.. Find the cluster IP of the {registry} pod from the *Service* resource (see the *Location* column in the web console).
+Afterwards, execute a test request (we are using self-signed certificate, so an insecure flag is required):
++
+[source,bash]
+----
+curl -k https://172.30.230.78:8443/health
+----
+
+NOTE: In the Kubernetes secret containing the HTTPS certificate and key, the names `tls.crt` and `tls.key` must be used for the provided values.
+This is currently not configurable.
+
+.Disabling HTTP
+If you enabled HTTPS using the procedure in this section, you can also disable the default HTTP connection by setting the `spec.security.https.disableHttp` to `true`. This removes the HTTP port 8080 from the {registry} pod container, `Service`, and the `NetworkPolicy`  (if present).
+
+Importantly, `Ingress` is also removed because the {operator} currently does not support configuring HTTPS in `Ingress`.
+Users must create an `Ingress` for HTTPS connections manually.
+
+.Additional resources
+* link:https://developers.redhat.com/blog/2021/01/06/how-to-enable-https-and-ssl-termination-in-a-quarkus-app[How to enable HTTPS and SSL termination in a Quarkus app]

@@ -1,0 +1,59 @@
+[id="apicurio-registry-custom-resource"]
+= {registry} Custom Resource
+
+The {operator} defines an `ApicurioRegistry` link:https://docs.openshift.com/container-platform/latest/operators/understanding/crds/crd-extending-api-with-crds.html[custom resource (CR)] that represents a single deployment of {registry} on OpenShift.
+
+These resource objects are created and maintained by users to instruct the {operator} how to deploy and configure {registry}.
+
+.Example ApicurioRegistry CR
+The following command displays the `ApicurioRegistry` resource:
+
+[source,bash,subs="attributes"]
+----
+{cli-client} get apicurioregistry
+{cli-client} edit apicurioregistry example-apicurioregistry
+----
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry
+  namespace: demo-kafka
+  # ...
+spec:
+  configuration:
+    persistence: kafkasql
+    kafkasql:
+      bootstrapServers: 'my-cluster-kafka-bootstrap.demo-kafka.svc:9092'
+  deployment:
+    host: >-
+      example-apicurioregistry.demo-kafka.example.com
+status:
+  conditions:
+  - lastTransitionTime: "2021-05-03T10:47:11Z"
+    message: ""
+    reason: Reconciled
+    status: "True"
+    type: Ready
+  info:
+    host: example-apicurioregistry.demo-kafka.example.com
+  managedResources:
+  - kind: Deployment
+    name: example-apicurioregistry-deployment
+    namespace: demo-kafka
+  - kind: Service
+    name: example-apicurioregistry-service
+    namespace: demo-kafka
+  - kind: Ingress
+    name: example-apicurioregistry-ingress
+    namespace: demo-kafka
+----
+
+IMPORTANT: By default, the {operator} watches its own project namespace only.
+Therefore, you must create the `ApicurioRegistry` CR in the same namespace, if you are deploying the Operator manually.
+You can modify this behavior by updating `WATCH_NAMESPACE` environment variable in the Operator `Deployment` resource.
+
+.Additional resources
+* link:https://docs.openshift.com/container-platform/4.6/operators/understanding/crds/crd-extending-api-with-crds.html[Extending the Kubernetes API with Custom Resource Definitions]

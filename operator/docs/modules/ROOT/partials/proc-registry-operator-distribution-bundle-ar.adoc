@@ -1,0 +1,8 @@
+[id="registry-operator-distribution-bundle"]
+= {operator} distribution bundle
+
+Since version `1.0.0`, the {operator} project is distributed with an additional archive file containing installation files for the Operator, with example `ApicurioRegistry` custom resource files. In addition, full {operator} documentation and license information are included. 
+
+Docker images for the Operator and the Operand are distributed using a public registry.
+
+For released versions, you can find the distribution on the https://github.com/Apicurio/apicurio-registry-operator/tags[{operator} releases page]. For information about how to build the bundle for development versions, see the https://github.com/Apicurio/apicurio-registry-operator/[{operator} GitHub repository]. 

@@ -1,0 +1,174 @@
+[id="registry-persistence-kafkasql-scram"]
+= Configuring Kafka storage with SCRAM security
+
+You can configure the {kafka-streams} Operator and {operator} to use Salted Challenge Response Authentication Mechanism (SCRAM-SHA-512) for the Kafka cluster.
+
+
+.Prerequisites
+
+* You have installed the {operator} using the OperatorHub or command line.
+* You have installed the {kafka-streams} Operator or have Kafka accessible from your OpenShift cluster.
+
+NOTE: This section assumes that {kafka-streams} Operator is available, however you can use any Kafka deployment.
+In that case, you must manually create the Openshift secrets that the {operator} expects.
+
+.Procedure 
+
+. In the OpenShift web console, click *Installed Operators*, select the *{kafka-streams}* Operator details, and then the *Kafka* tab. 
+
+. Click *Create Kafka* to provision a new Kafka cluster for {registry} storage. 
+
+. Configure the `authorization` and `tls` fields to use SCRAM-SHA-512 authentication for the Kafka cluster, for example:
++
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: registry-example-kafkasql-scram
+  # Change or remove the explicit namespace
+spec:
+  kafka:
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      log.message.format.version: '2.7'
+      inter.broker.protocol.version: '2.7'
+    version: 2.7.0
+    storage:
+      type: ephemeral
+    replicas: 3
+    listeners:
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: scram-sha-512
+    authorization:
+      type: simple
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+  zookeeper:
+    storage:
+      type: ephemeral
+    replicas: 3
+----
++
+The default Kafka topic name automatically created by {registry} to store data is `kafkasql-journal`. You can override this behavior or the default topic name by setting environment variables. The default values are as follows:
+
+** `REGISTRY_KAFKASQL_TOPIC_AUTO_CREATE=true`
+** `REGISTRY_KAFKASQL_TOPIC=kafkasql-journal`
+
++
+If you decide not to create the Kafka topic manually, skip the next step.
+
+. Click the *Kafka Topic* tab, and then *Create Kafka Topic* to create the `kafkasql-journal` topic:
++
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: kafkasql-journal
+  labels:
+    strimzi.io/cluster: my-cluster
+  namespace: registry-example-kafkasql-scram
+spec:
+  partitions: 2
+  replicas: 1
+  config:
+    cleanup.policy: compact
+----
+
+. Create a *Kafka User* resource to configure SCRAM authentication and authorization for the {registry} user. You can specify a user name in the `metadata` section or use the default `my-user`.
++
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+  namespace: registry-example-kafkasql-scram
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    acls:
+      - operation: All
+        resource:
+          name: '*'
+          patternType: literal
+          type: topic
+      - operation: All
+        resource:
+          name: '*'
+          patternType: literal
+          type: cluster
+      - operation: All
+        resource:
+          name: '*'
+          patternType: literal
+          type: transactionalId
+      - operation: All
+        resource:
+          name: '*'
+          patternType: literal
+          type: group
+    type: simple
+----
++
+NOTE: This simple example assumes admin permissions and creates the Kafka topic automatically. You must configure the `authorization` section specifically for the topics and resources that the {registry} requires. 
++
+The following example shows the minimum configuration required when the Kafka topic is created manually:
++
+[source,yaml]
+----
+ ...
+  authorization:
+    acls:
+    - operations: 
+        - Read
+        - Write
+      resource:
+        name: kafkasql-journal
+        patternType: literal
+        type: topic
+    - operations: 
+        - Read
+        - Write
+      resource:
+        name: apicurio-registry-
+        patternType: prefix
+        type: group
+    type: simple
+----
+
+. Click *Workloads* and then *Secrets* to find two secrets that {kafka-streams} creates for {registry} to connect to the Kafka cluster:
++
+* `my-cluster-cluster-ca-cert` - contains the PKCS12 truststore for the Kafka cluster
+* `my-user` - contains the user's keystore
++
+NOTE: The name of the secret can vary based on your cluster or user name.
+
+. If you create the secrets manually, they must contain the following key-value pairs:
++
+* *my-cluster-ca-cert*
+** `ca.p12` - the truststore in PKCS12 format
+** `ca.password` - truststore password
+* *my-user*
+** `password` - user password
+
+. Configure the following example settings to deploy the {registry}:
++
+[source,yaml]
+----
+include::example$apicurioregistry_kafkasql_scram_cr.yaml[]
+----
+
+IMPORTANT: You must use a different `bootstrapServers` address than in the plain insecure use case. The address must support TLS connections, and is found in the specified *Kafka* resource under the `type: tls` field.

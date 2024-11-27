@@ -1,0 +1,46 @@
+[id=install-kafka-operatorhub]
+= Installing {kafka-streams} storage using OpenShift OperatorHub
+
+The recommended Kafka storage option requires that you provide connection information to a Kafka cluster. You can use any Kafka cluster with Kafka support. However, it is recommended to use the {kafka-streams} Operator to provide and maintain a Kafka cluster for you.
+
+If you do not already have Kafka installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the link:{LinkOperatorHub}[{NameOperatorHub}].
+
+.Prerequisites
+
+* You must have cluster administrator access to an OpenShift cluster
+ifdef::service-registry[]
+* See link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.7/html/using_amq_streams_on_openshift/getting-started-str[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
+endif::[]
+
+.Procedure
+
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
+. Change to the OpenShift project in which {registry} is installed. For example, from the *Project* drop-down, select `my-project`.
+
+. In the left navigation menu, click *Operators* > *OperatorHub*.
+ifdef::apicurio-registry[]
+. In the *Filter by keyword* text box, enter `Strimzi` to find the *{kafka-streams}* Operator.
+endif::[]
+ifdef::service-registry[]
+. In the *Filter by keyword* text box, enter `AMQ` to find the *Red Hat Integration - {kafka-streams}* Operator.
+endif::[]
+. Read the information about the Operator, and click *Install*. This displays the *Create Operator Subscription* page.
+
+. Select your subscription settings, for example:
+** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
+ifdef::apicurio-registry[]
+** *Update Channel* > *stable*
+endif::[]
+ifdef::service-registry[]
+** *Update Channel* > *amq-streams-1.5.x*
+endif::[]
+** *Approval Strategy* > *Manual*
+
+. Click *Subscribe*. This displays the *Operators* > *Installed Operators* page.
+
+. Wait a few moments until the *Status* for the {kafka-streams} Operator displays *Succeeded* and the subscription is *Up to Date*.
+
+.Additional resources
+* link:https://docs.openshift.com/container-platform/4.6/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]
+* link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.7/html/using_amq_streams_on_openshift/index?[Using AMQ Streams on OpenShift]

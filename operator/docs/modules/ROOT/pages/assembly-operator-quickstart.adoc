@@ -1,0 +1,30 @@
+include::partial$shared/all-attributes.adoc[]
+
+[id="operator-quickstart"]
+= {operator} quickstart
+
+You can quickly install the {operator} on the command line by using Custom Resource Definitions (CRDs).
+
+The quickstart example deploys your {registry} instance with 
+ifdef::service-registry[]
+storage in an SQL database:
+endif::[]
+ifdef::apicurio-registry[]
+in-memory storage:
+endif::[]
+
+* xref:registry-operator-quickstart[]
+* xref:registry-quickstart[]
+
+NOTE: The recommended installation option for production environments is the OpenShift OperatorHub. The recommended storage option is an SQL database for performance, stability, and data management. 
+
+// INCLUDES
+ifdef::service-registry[]
+include::partial$proc-registry-operator-quickstart-sr.adoc[leveloffset=+1]
+include::partial$proc-registry-quickstart-sr.adoc[leveloffset=+1]
+endif::[]
+ifdef::apicurio-registry[]
+include::partial$proc-registry-operator-quickstart-ar.adoc[leveloffset=+1]
+include::partial$proc-registry-quickstart-ar.adoc[leveloffset=+1]
+include::partial$proc-registry-operator-distribution-bundle-ar.adoc[leveloffset=+1]
+endif::[]

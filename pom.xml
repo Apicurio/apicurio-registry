@@ -191,7 +191,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.1.0</apicurio-data-models.version>
+    <apicurio-data-models.version>2.2.0</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.3</graphql.version>

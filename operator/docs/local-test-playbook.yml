@@ -3,11 +3,11 @@ site:
   url: https://www.apicur.io/registry/docs
   start_page: apicurio-registry-operator::index.adoc
 content:
-  edit_url: https://github.com/Apicurio/apicurio-registry-operator/tree/main/docs
+  edit_url: https://github.com/Apicurio/apicurio-registry/tree/main/docs
   sources:
-    - url: ../
+    - url: ../../
       branches: HEAD
-      start_path: docs
+      start_path: operator/docs
 
 ui:
   bundle:

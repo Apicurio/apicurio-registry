@@ -33,11 +33,11 @@ This displays the *Create Operator Subscription* page.
 ** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
 ifdef::service-registry[]
 * *Update Channel*: Select one of the following:
-*** *2.0.x*: Includes patch updates only, such as 2.0.1 and 2.0.2. For example, an installation on 2.0.x automatically ignores 2.1.x.
-*** *2.x*: Includes all minor and patch updates, such as 2.1.0 and 2.0.1. For example, an installation on 2.0.x automatically upgrades to 2.1.x. 
+*** *3.0.x*: Includes patch updates only, such as 3.0.1 and 3.0.2. For example, an installation on 3.0.x automatically ignores 3.1.x.
+*** *3.x*: Includes all minor and patch updates, such as 3.1.0 and 3.0.1. For example, an installation on 3.0.x automatically upgrades to 3.1.x. 
 endif::[]
 ifdef::apicurio-registry[]
-** *Update Channel* > *2.x*
+** *Update Channel* > *3.x*
 endif::[]
 ifdef::service-registry[]
 ** *Approval Strategy* > *Manual*

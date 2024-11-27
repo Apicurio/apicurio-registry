@@ -19,8 +19,8 @@ ifndef::apicurio-registry-operator-downstream[]
 :operator: {registry} Operator
 :operator-full: {operator}
 
-:registry-version: 2.x
-:operator-version: 1.2.0-dev
+:registry-version: 3.x
+:operator-version: 3.0.0-dev
 
 // IMPORTANT: This value may be used as a tag when linking to content on GitHub.
 :operator-version-latest-release-tag: main
@@ -46,7 +46,7 @@ ifdef::apicurio-registry-operator-downstream[]
 :operator: {registry} Operator
 :operator-full: {org-name} Integration - {operator}
 
-:registry-version: 2.x
+:registry-version: 3.x
 :operator-version: 1.2.0-dev
 
 :platform: OpenShift

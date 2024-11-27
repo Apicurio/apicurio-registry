@@ -222,7 +222,6 @@
 
     <nats.version>2.20.4</nats.version>
     <snakeyaml.version>2.3</snakeyaml.version>
-    <guava.version>33.3.1-jre</guava.version>
     <woodstox-core.version>7.1.0</woodstox-core.version>
     <jgit.version>7.0.0.202409031743-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>
@@ -723,12 +722,6 @@
         <groupId>com.fasterxml.jackson.dataformat</groupId>
         <artifactId>jackson-dataformat-yaml</artifactId>
         <version>${jackson-dataformat-yaml.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${guava.version}</version>
       </dependency>
 
       <dependency>

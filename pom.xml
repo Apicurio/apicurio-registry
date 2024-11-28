@@ -211,7 +211,6 @@
     <!-- Dependency versions -->
     <lombok.version>1.18.36</lombok.version>
     <commons-codec.version>1.17.1</commons-codec.version>
-    <commons-logging.version>1.2</commons-logging.version>
     <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
     <httpclient.version>4.5.14</httpclient.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
@@ -659,11 +658,6 @@
         <version>${commons-codec.version}</version>
       </dependency>
       <dependency>
-        <groupId>commons-logging</groupId>
-        <artifactId>commons-logging</artifactId>
-        <version>1.0.4</version>
-      </dependency>
-      <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
         <version>${httpclient.version}</version>
@@ -682,6 +676,12 @@
         <groupId>commons-beanutils</groupId>
         <artifactId>commons-beanutils</artifactId>
         <version>${commons-beanutils.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <!-- GraphQL -->

@@ -3,10 +3,7 @@ package io.apicurio.registry;
 import io.apicurio.rest.client.auth.AccessTokenResponse;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
-@RegisterForReflection(targets = { AccessTokenResponse.class,
-        // Needed for the JAXRSClient
-        org.apache.commons.logging.LogFactory.class, org.apache.commons.logging.impl.LogFactoryImpl.class,
-        org.apache.commons.logging.impl.SimpleLog.class, io.agroal.pool.ConnectionHandler[].class,
+@RegisterForReflection(targets = { AccessTokenResponse.class, io.agroal.pool.ConnectionHandler[].class,
         // The following list is generated running `jbang cli/tools/extractRegisterForReflection.java`
         io.apicurio.datamodels.models.Components.class, io.apicurio.datamodels.models.Contact.class,
         io.apicurio.datamodels.models.Document.class,

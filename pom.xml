@@ -212,7 +212,6 @@
     <lombok.version>1.18.36</lombok.version>
     <commons-codec.version>1.17.1</commons-codec.version>
     <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
-    <httpclient.version>4.5.14</httpclient.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>
@@ -656,11 +655,6 @@
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
         <version>${commons-codec.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpclient</artifactId>
-        <version>${httpclient.version}</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jgit</groupId>

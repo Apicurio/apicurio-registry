@@ -41,7 +41,7 @@ OpenShift). Alternatively, you can use the following steps:
 4. Run:
    ```shell
    curl -sSL "https://raw.githubusercontent.com/Apicurio/apicurio-registry/$VERSION/operator/install/install.yaml" | sed "s/PLACEHOLDER_NAMESPACE/$NAMESPACE/g" | kubectl -n $NAMESPACE apply -f -
-   kubectl -n $NAMESPACE apply -f controller/src/main/deploy/examples/simple-apicurioregistry3.yaml
+   kubectl -n $NAMESPACE apply -f controller/src/main/deploy/examples/simple.apicurioregistry3.yaml
    ```
 
 ### Local Development Quickstart

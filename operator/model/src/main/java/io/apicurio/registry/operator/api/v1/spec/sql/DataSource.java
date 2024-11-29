@@ -18,7 +18,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class Datasource {
+public class DataSource {
 
     @JsonProperty("url")
     @JsonPropertyDescription("""

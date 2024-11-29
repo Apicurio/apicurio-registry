@@ -2,7 +2,7 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.spec.Sql;
-import io.apicurio.registry.operator.api.v1.spec.sql.Datasource;
+import io.apicurio.registry.operator.api.v1.spec.sql.DataSource;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -13,14 +13,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
-public class SqlDatasourceITTest extends ITBase {
+public class SqlDataSourceITTest extends ITBase {
 
-    private static final Logger log = LoggerFactory.getLogger(SqlDatasourceITTest.class);
+    private static final Logger log = LoggerFactory.getLogger(SqlDataSourceITTest.class);
 
     @Test
     void testSqlDatasource() {
         client.load(
-                SqlDatasourceITTest.class.getResourceAsStream("/k8s/examples/postgres/example-postgres.yaml"))
+                SqlDataSourceITTest.class.getResourceAsStream("/k8s/examples/postgres/example-postgres.yaml"))
                 .create();
         // await for postgres to be available
         await().ignoreExceptions().until(() -> (1 == client.apps().statefulSets().inNamespace(namespace)
@@ -31,8 +31,8 @@ public class SqlDatasourceITTest extends ITBase {
         registry.getMetadata().setNamespace(namespace);
         var sql = new Sql();
         registry.getSpec().getApp().setSql(sql);
-        var datasource = new Datasource();
-        sql.setDatasource(datasource);
+        var datasource = new DataSource();
+        sql.setDataSource(datasource);
         datasource.setUrl("jdbc:postgresql://postgres-db:5432/apicurio");
         datasource.setUsername("postgres-username");
         datasource.setPassword("postgres-password");

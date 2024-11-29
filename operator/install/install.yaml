@@ -3012,7 +3012,7 @@ spec:
                   sql:
                     description: Configuration of Apicurio Registry SQL storage.
                     properties:
-                      datasource:
+                      dataSource:
                         description: SQL data source.
                         properties:
                           password:
@@ -9184,7 +9184,7 @@ spec:
           value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
         - name: STUDIO_UI_IMAGE
           value: quay.io/apicurio/apicurio-studio-ui:latest-snapshot
-        image: quay.io/apicurio/apicurio-registry-operator:3.0.5-snapshot
+        image: quay.io/apicurio/apicurio-registry-operator:latest-snapshot
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

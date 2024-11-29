@@ -8,23 +8,23 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.apicurio.registry.operator.api.v1.spec.sql.Datasource;
+import io.apicurio.registry.operator.api.v1.spec.sql.DataSource;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({ "datasource" })
+@JsonPropertyOrder({ "dataSource" })
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @Getter
 @Setter
 @ToString
 public class Sql {
 
-    @JsonProperty("datasource")
+    @JsonProperty("dataSource")
     @JsonPropertyDescription("""
             SQL data source.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Datasource datasource;
+    private DataSource dataSource;
 
 }

@@ -18,8 +18,8 @@ public class PostgresSql {
 
     public static boolean configureDatasource(ApicurioRegistry3 primary, Map<String, EnvVar> env) {
         if (primary.getSpec().getApp().getSql() != null
-                && primary.getSpec().getApp().getSql().getDatasource() != null) {
-            var datasource = primary.getSpec().getApp().getSql().getDatasource();
+                && primary.getSpec().getApp().getSql().getDataSource() != null) {
+            var datasource = primary.getSpec().getApp().getSql().getDataSource();
 
             addEnvVar(env, new EnvVarBuilder().withName(ENV_APICURIO_STORAGE_KIND).withValue("sql").build());
             addEnvVar(env, new EnvVarBuilder().withName(ENV_APICURIO_STORAGE_SQL_KIND).withValue("postgresql")

@@ -37,15 +37,15 @@
     "cross-env": "7.0.3",
     "eslint": "8.57.1",
     "eslint-plugin-react-hooks": "5.0.0",
-    "eslint-plugin-react-refresh": "0.4.14",
+    "eslint-plugin-react-refresh": "0.4.16",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "7.0.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.2",
     "uuid": "11.0.3",
-    "vite": "6.0.1",
+    "vite": "6.0.2",
     "vite-plugin-dts": "4.3.0",
-    "vitest": "2.1.6"
+    "vitest": "2.1.8"
   }
 }

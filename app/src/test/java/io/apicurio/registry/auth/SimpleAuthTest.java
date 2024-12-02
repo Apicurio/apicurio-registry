@@ -256,6 +256,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             clientDev.updateArtifactMetaData(groupId, artifactId, updatedMetaData);
         });
 
+        // Dev user cannot update with ifExists the same artifact because Dev user is not the owner
+        Assertions.assertThrows(ForbiddenException.class, () -> {
+            clientDev.createArtifact(groupId, artifactId, ArtifactType.JSON, IfExists.RETURN_OR_UPDATE, new ByteArrayInputStream("{fffff}".getBytes()));
+        });
+
         // But the admin user CAN make the change.
         clientAdmin.updateArtifactMetaData(groupId, artifactId, updatedMetaData);
 

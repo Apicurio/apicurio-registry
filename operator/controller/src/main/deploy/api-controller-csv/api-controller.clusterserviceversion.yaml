@@ -4,13 +4,13 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    categories: Streaming & Messaging
+    categories: Integration & Delivery
     certified: 'false'
-    description: Deploy and manage Apicurio Registry 3 on Kubernetes.
+    description: Deploy and manage Apicurio API Controller on Kubernetes.
     features.operators.openshift.io/cnf: 'false'
     features.operators.openshift.io/cni: 'false'
     features.operators.openshift.io/csi: 'false'
-    features.operators.openshift.io/disconnected: 'false' # TODO: Support disconnected install
+    features.operators.openshift.io/disconnected: 'false'
     features.operators.openshift.io/fips-compliant: 'false'
     features.operators.openshift.io/proxy-aware: 'false'
     features.operators.openshift.io/tls-profiles: 'false'
@@ -20,49 +20,42 @@ metadata:
     operators.openshift.io/infrastructure-features: '[]'
     repository: https://github.com/Apicurio/apicurio-registry/tree/main/operator
     support: Apicurio
-  name: ${PLACEHOLDER_PACKAGE_NAME}.v0.0.0
+  name: ${PLACEHOLDER_AC_PACKAGE_NAME}.v0.0.0
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-      - description: ApicurioRegistry3 represents an instance of Apicurio Registry version 3.
+      - description: ApicurioRegistry3 represents an instance of Apicurio API Controller.
         displayName: Apicurio Registry 3
         kind: ApicurioRegistry3
         name: apicurioregistries3.registry.apicur.io
         version: v1
   description: |
-    ## Apicurio Registry 3
+    ## Apicurio API Controller
 
-    Apicurio Registry stores and retrieves API designs and event schemas,
-    and gives you control of their evolution.
+    Apicurio API Controller consists of 2 components:
+     - Apicurio Registry 3
+     - Apicurio Studio
 
-    **Features**
-    - Supports: Apache Avro, AsyncAPI, GraphQL, JSON Schema, Kafka Connect Schema, OpenAPI, Protobuf
-    - Allows you manage event schemas and API designs using the Apicurio Registry web console, 
-      REST API, Maven plug-in, or Java client
-    - Includes Serializers and Deserializers for Kafka client integration
-    - Configurable rules to control schema validity and evolution (compatibility)
-    - Storage options: Kafka, PostgreSQL, MySQL, SQL Server, in-memory
-    - Compatible with Confluent APIs
-    - Runs on a lightweight Quarkus platform
+    Storage options: PostgreSQL, Kafka, MySQL, SQL Server, in-memory.
 
-    ## Apicurio Registry 3 Operator
+    ## Apicurio API Controller Operator
 
-    Provides a quick and easy way to deploy and manage Apicurio Registry 3 on Kubernetes.
+    Provides a quick and easy way to deploy and manage Apicurio API Controller on Kubernetes.
 
     **Features**
-    - Supports installation and configuration of Apicurio Registry 3
-    - Perform a rolling upgrade of Apicurio Registry 3
+    - Supports installation and configuration of Apicurio API Controller
+    - Perform a rolling upgrade of Apicurio API Controller
 
     ## Prerequisites
 
-    This operator does not deploy storage for Apicurio Registry 3. Therefore, some storage options require that the chosen persistence service is already set up.
+    This operator does not deploy storage for Apicurio API Controller. Therefore, some storage options require that the chosen persistence service is already set up.
 
     ## License
-
-    Apicurio Registry 3 and Apicurio Registry 3 Operator are licensed under the [Apache 2.0 license](https://github.com/Apicurio/apicurio-registry/blob/main/LICENSE)
-  displayName: Apicurio Registry 3
+    
+    Apicurio API Controller and Apicurio API Controller Operator are licensed under the [Apache 2.0 license](https://github.com/Apicurio/apicurio-registry/blob/main/LICENSE)
+  displayName: Apicurio API Controller
   icon:
     - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgMTAyNCAxMDI0Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2MwMDt9PC9zdHlsZT48L2RlZnM+PHBhdGggZD0ibTQ2Niw2MTEuOTdjLS40NSwwLS44Ny4xMS0xLjMyLjEzdi0uMTNjLTU3LjI2LTMuNzctMTA3LTY0LjItMTA3LjA2LTEwOC41Ljk2LTM0LjMxLDMuMDItNzUuNDYsNC44Ny04Mi4xOCwzMS44Ny0xNzguMjQsMTY1LjYzLTMyMS4xNSwzMzguOTYtMzY2LjEyLTYyLjAyLTMxLjk5LTEzMi4yOC01MC4xNy0yMDYuNzQtNTAuMTdDMjQ1LjA5LDUsNDIuMDIsMjA4LjA3LDQyLjAyLDQ1Ny42OXY0MDMuNjFjMCw4Ny4xLDcwLjYxLDE1Ny43LDE1Ny43MSwxNTcuN3MxNTcuNzEtNzAuNjEsMTU3LjcxLTE1Ny43di04NC4zNGMwLTYxLjEyLDQ3LjEzLTExMSwxMDcuMjUtMTE0Ljk2di0uMTRjLjQ1LjAyLjg3LjEzLDEuMzIuMTMsMTMuODEsMCwyNS4wMS0xMS4yLDI1LjAxLTI1LjAxcy0xMS4yLTI1LjAxLTI1LjAxLTI1LjAxWiIvPjxnPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0ibTg0OS4xMSwyMjMuNzZjMjQsMCw0Ny41OCwxLjgyLDcwLjYyLDUuMjYtMjguNzQtNDguODMtNjYuMzQtOTEuODUtMTEwLjYyLTEyNi43OC0xNjEuNzgsMTUuMDgtMjk5LjMsMTEzLjQxLTM2OS40NywyNTEuNzMsMjQuMDgtMjAuODQsNTUuMzgtMzMuNTUsODkuNjUtMzMuNTUsOS44NywwLDE5LjQ4LDEuMSwyOC43NywzLjA5LDgwLjQtNjIuNDcsMTgxLjM0LTk5Ljc0LDI5MS4wNC05OS43NFoiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Im05NTkuMTksMzE1Ljg1Yy00MC40OC0xMS4yMi04My4wOC0xNy4zNS0xMjcuMTQtMTcuMzUtNzguMTIsMC0xNTEuNzksMTguOTItMjE2Ljc5LDUyLjMzLDMxLjI0LDI1LjE4LDUxLjMsNjMuNyw1MS4zLDEwNi44NnY0NS43NmMtLjA0LDQ0LjMtNDkuOCwxMDQuNzUtMTA3LjA2LDEwOC41MnYuMTNjLS40NS0uMDItLjg3LS4xMy0xLjMyLS4xMy0xMy44MSwwLTI1LjAxLDExLjItMjUuMDEsMjUuMDFzMTEuMiwyNS4wMSwyNS4wMSwyNS4wMWMuNDUsMCwuODctLjExLDEuMzItLjEzdi4xNGM1OC4wMywzLjgyLDEwMy45NSw1MC40NCwxMDcuMDYsMTA4LjY0djkwLjY1YzAsODcuMSw3MC42MSwxNTcuNywxNTcuNzEsMTU3LjdzMTU3LjcxLTcwLjYxLDE1Ny43MS0xNTcuN3YtNDAzLjYxYzAtNDkuNTMtOC4wMS05Ny4yMS0yMi43OS0xNDEuODRaIi8+PC9nPjwvc3ZnPg==
       mediatype: image/svg+xml
@@ -80,14 +73,9 @@ spec:
     - supported: true
       type: AllNamespaces
   keywords:
-    - integration
-    - streaming
-    - messaging
-    - api
-    - schemas
-    - registry
-    - apicurio
-    - apicurio-registry
+    - API Management
+    - Apicurio Registry
+    - Apicurio Studio
   links:
     - name: Website
       url: https://www.apicur.io/

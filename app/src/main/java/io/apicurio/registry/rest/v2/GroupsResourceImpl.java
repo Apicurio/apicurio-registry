@@ -1162,7 +1162,11 @@ public class GroupsResourceImpl implements GroupsResource {
         return updateArtifactInternal(groupId, artifactId, version, artifactName, artifactDescription, content, contentType, references);
     }
 
-    private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
+    /**
+     * Internally updates the artifact. This method has to be annotated with @Authorized because it's used by the ifExists feature. This has been refactored in 3.0.
+     */
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    protected ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
                                                     String name, String description,
                                                     ContentHandle content, String contentType, List<ArtifactReference> references) {
 

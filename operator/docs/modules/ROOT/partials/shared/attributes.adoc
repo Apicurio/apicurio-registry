@@ -1,0 +1,81 @@
+// Standard document attributes to be used in the documentation.
+
+// The following are shared by all documents:
+
+// ===== High-level Parameters:
+
+//:apicurio-registry-operator-downstream:
+//     - If set, downstream documentation is generated. (Inclusion parameter)
+
+:apicurio-registry-operator-dev:
+//     - If set, documentation for the upstream development version is generated.
+
+// ===== Upstream
+ifndef::apicurio-registry-operator-downstream[]
+
+:apicurio-registry:
+
+:registry: Apicurio Registry
+:operator: {registry} Operator
+:operator-full: {operator}
+
+:registry-version: 3.x
+:operator-version: 3.0.0-dev
+
+// IMPORTANT: This value may be used as a tag when linking to content on GitHub.
+:operator-version-latest-release-tag: main
+
+:platform: Kubernetes
+:cli-client: kubectl
+
+:kafka-streams: Strimzi
+
+:keycloak: Keycloak
+
+endif::[]
+
+// ===== Downstream
+ifdef::apicurio-registry-operator-downstream[]
+
+:service-registry:
+
+:org-name: Red Hat
+:prodnamefull: {org-name} Integration
+:registry-name-full: {prodnamefull} - Service Registry
+:registry: Service Registry
+:operator: {registry} Operator
+:operator-full: {org-name} Integration - {operator}
+
+:registry-version: 3.x
+:operator-version: 1.2.0-dev
+
+:platform: OpenShift
+:cli-client: oc
+:kafka-streams: AMQ Streams
+:keycloak: {org-name} Single Sign-On
+
+
+ifdef::RHAF[]
+:prodnamefull: {org-name} Application Foundations
+:registry-name-full: {org-name} build of Apicurio Registry
+:registry: Apicurio Registry
+:operator: {registry} Operator
+endif::[]
+
+endif::[]
+
+// ===== Common
+:registry-ocp-version: 4.13
+
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:  
+:ndash: –
+:reg: ®
+:trade: ™
+:star: *
+:curlyleft: {
+:curlyright: }

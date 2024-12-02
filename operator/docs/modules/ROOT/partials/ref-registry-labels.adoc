@@ -1,0 +1,55 @@
+[id="registry-labels"]
+// Do not forget to update link text in related xref(s). Antora does not support automatic name if the link has a fragment.
+
+= {operator} labels
+
+Resources managed by the {operator} are usually labeled as follows:
+
+.{operator} labels for managed resources
+[%header,cols="1,2"]
+|===
+| Label | Description
+
+| `app`
+| Name of the {registry} deployment that the resource belongs to, based on the name of the specified `ApicurioRegistry` CR.
+
+| `apicur.io/type`
+| Type of the deployment: `apicurio-registry` or `operator`
+
+| `apicur.io/name`
+| Name of the deployment: same value as `app` or `apicurio-registry-operator`
+
+| `apicur.io/version`
+| Version of the {registry} or the {operator}
+
+| `app.kubernetes.io/{star}`
+| A set of recommended Kubernetes labels for application deployments.
+
+ifdef::service-registry[]
+| `com.company` and `rht.{star}``
+| Metering labels for Red Hat products.
+endif::[]
+|===
+
+.Custom labels and annotations
+You can provide custom labels and annotation for the {registry} pod, using the `spec.deployment.metadata.labels` and `spec.deployment.metadata.annotations` fields, for example:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry
+spec:
+  configuration:
+    # ...
+  deployment:
+    metadata:
+      labels:
+        example.com/environment: staging
+      annotations:
+        example.com/owner: my-team
+----
+
+.Additional resources
+* https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/[Recommended Kubernetes labels for application deployments]

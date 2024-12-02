@@ -1,0 +1,56 @@
+[id="registry-https-outside-cluster"]
+= Configuring an HTTPS connection to {registry} from outside the OpenShift cluster
+
+The following procedure shows how to configure {registry} deployment to expose an HTTPS edge-terminated route for connections from outside the OpenShift cluster.
+
+.Prerequisites
+* You must have already installed the {operator}.
+* Read the https://docs.openshift.com/container-platform/latest/networking/routes/secured-routes.html[OpenShift documentation for creating secured routes].
+
+.Procedure
+. Add a second *Route* in addition to the HTTP route created by the {operator}. For example:
++
+[source,yaml]
+----
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  [...]
+  labels:
+    app: example-apicurioregistry
+    [...]
+spec:
+  host: example-apicurioregistry-default.apps.example.com
+  to:
+    kind: Service
+    name: example-apicurioregistry-service-9whd7
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+----
++
+NOTE: Make sure the `insecureEdgeTerminationPolicy: Redirect` configuration property is set.
++
+If you do not specify a certificate, OpenShift will use a default. Alternatively, you can generate a custom self-signed certificate using the following commands:
++
+[source,bash]
+----
+openssl genrsa 2048 > tls.key &&
+openssl req -new -x509 -nodes -sha256 -days 365 -key tls.key -out tls.crt
+----
++
+Then create a route using the OpenShift CLI:
++
+[source,bash]
+----
+oc create route edge \
+  --service=example-apicurioregistry-service-9whd7 \
+  --cert=tls.crt --key=tls.key \
+  --hostname=example-apicurioregistry-default.apps.example.com \
+  --insecure-policy=Redirect \
+  -n default
+----

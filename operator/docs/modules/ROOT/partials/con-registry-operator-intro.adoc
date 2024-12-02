@@ -1,0 +1,14 @@
+[id="registry-operator-intro"]
+= {operator}
+
+{operator} provides a quick and easy way to deploy and manage {registry} on
+ifdef::apicurio-registry[]
+Kubernetes or
+endif::[]
+OpenShift.
+
+The Operator supports basic installation and configuration of {registry}, so you can access the {registry} API and web console in a few minutes.
+
+ifdef::service-registry[]
+{operator} is based on the https://github.com/apicurio/apicurio-registry-operator[Apicurio Registry Operator] open source community project.
+endif::[]

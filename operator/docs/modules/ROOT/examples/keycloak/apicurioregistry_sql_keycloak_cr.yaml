@@ -1,0 +1,23 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry-sql-keycloak
+spec:
+  configuration:
+    persistence: "sql"
+    sql:
+      dataSource:
+        url: "jdbc:postgresql://<service name>.<namespace>.svc:5432/<database name>"
+        userName: "postgres"
+        password: "<password>"
+        # ^ Optional
+    security:
+      keycloak:
+        url: "http://keycloak-http-<namespace>.apps.<cluster host>"
+        # ^ Required
+        # Use an HTTP URL in development.
+        realm: "registry"
+        # apiClientId: "registry-client-api"
+        # ^ Optional (default value)
+        # uiClientId: "registry-client-ui"
+        # ^ Optional (default value)

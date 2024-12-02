@@ -1,0 +1,13 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry-kafkasql-tls
+spec:
+  configuration:
+    persistence: "kafkasql"
+    kafkasql:
+      bootstrapServers: "my-cluster-kafka-bootstrap.registry-example-kafkasql-tls.svc:9093"
+      security:
+        tls:
+          keystoreSecretName: my-user
+          truststoreSecretName: my-cluster-cluster-ca-cert

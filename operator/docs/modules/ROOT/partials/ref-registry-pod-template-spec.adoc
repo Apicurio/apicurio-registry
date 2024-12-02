@@ -1,0 +1,76 @@
+[id="pod-spec"]
+// Do not forget to update link text in related xref(s). Antora does not support automatic name if the link has a fragment.
+= Configuring {registry} deployment using PodTemplate
+
+ifdef::apicurio-registry[]
+IMPORTANT: This is a Technology Preview feature only, which might evolve in future releases. Before using this feature in production, make sure to test that your deployment works as expected. Review the Release Notes in future releases for updates.
+endif::[]
+
+ifdef::service-registry[]
+[IMPORTANT]
+====
+This is a Technology Preview feature only.
+Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete.
+Red Hat does not recommend using them in production. 
+
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Red Hat Technology Preview features, see https://access.redhat.com/support/offerings/techpreview.
+====
+endif::[]
+
+The `ApicurioRegistry` CRD contains the `spec.deployment.podTemplateSpecPreview` field, which has the same structure as the field `spec.template` in a Kubernetes `Deployment` resource (the `PodTemplateSpec` struct).
+
+With some restrictions, the {operator} forwards the data from this field to the corresponding field in the {registry} deployment.
+This provides greater configuration flexibility, without the need for the {operator} to natively support each use case.
+
+The following table contains a list of subfields that are not accepted by the {operator}, and result in a configuration error:
+
+.Restrictions on the `podTemplateSpecPreview` subfields
+[%header,cols="4,3,4"]
+|===
+| `podTemplateSpecPreview` subfield | Status | Details
+
+| `metadata.annotations`
+| alternative exists
+| `spec.deployment.metadata.annotations`
+
+| `metadata.labels`
+| alternative exists
+| `spec.deployment.metadata.labels`
+
+| `spec.affinity`
+| alternative exists
+| `spec.deployment.affinity`
+
+| `spec.containers[*]`
+| warning
+| To configure the {registry} container, `name: registry` must be used
+
+| `spec.containers[name = "registry"].env`
+| alternative exists
+| `spec.configuration.env`
+
+ifdef::apicurio-registry[]
+| `spec.containers[name = "registry"].image`
+| alternative exists
+| `spec.deployment.image`
+endif::[]
+ifdef::service-registry[]
+| `spec.containers[name = "registry"].image`
+| reserved
+| -
+endif::[]
+
+| `spec.imagePullSecrets`
+| alternative exists
+| `spec.deployment.imagePullSecrets`
+
+| `spec.tolerations`
+| alternative exists
+| `spec.deployment.tolerations`
+
+|===
+
+WARNING: If you set a field in `podTemplateSpecPreview`, its value must be valid, as if you configured it in the {registry} `Deployment` directly. The {operator} might still modify the values you provided, but it will not fix an invalid value or make sure a default value is present.
+
+.Additional resources
+* link:https://kubernetes.io/docs/concepts/workloads/pods/#pod-templates[Kubernetes documentation on Pod templates]

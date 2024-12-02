@@ -1,0 +1,6 @@
+name: apicurio-registry-operator
+title: Apicurio Registry Operator
+version: '3.0.0-dev-v1.x'
+start_ROOT: ROOT:index.adoc
+nav:
+  - modules/ROOT/nav.adoc

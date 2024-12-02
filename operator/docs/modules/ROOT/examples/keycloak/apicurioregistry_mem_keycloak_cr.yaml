@@ -1,0 +1,16 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry-keycloak
+spec:
+  configuration:
+    security:
+      keycloak:
+        url: "http://keycloak-http-<namespace>.apps.<cluster host>"
+        # ^ Required
+        # Use an HTTP URL in development.
+        realm: "registry"
+        # apiClientId: "registry-client-api"
+        # ^ Optional (default value)
+        # uiClientId: "registry-client-ui"
+        # ^ Optional (default value)

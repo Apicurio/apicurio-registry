@@ -1,0 +1,16 @@
+[id="install-registry-operator-olm-on-kubernetes"]
+= Installing {operator} using the OperatorHub on Kubernetes
+
+This chapter focuses on installation procedures for OpenShift using OperatorHub UI.
+If you are deploying to Kubernetes, you can use command line tools to install Operator Lifecycle Manager (OLM), and instruct it to deploy the {registry} or other Operators.
+
+image::operator-hub-search-ar.png[]
+
+.Prerequisites
+* You must have cluster administrator access to a Kubernetes cluster.
+
+.Procedure
+. Go to https://operatorhub.io/operator/apicurio-registry[OperatorHub.io - Apicurio Registry] page.
+. Select the *Version* you want to install
+. Read the information about the Operator, and click *Install*.
+. Follow the instructions on the installation page.

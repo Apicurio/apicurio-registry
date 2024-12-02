@@ -1,0 +1,12 @@
+[id="getting-registry-operator-help"]
+= Getting help with {operator} 
+
+See the link:https://github.com/Apicurio/apicurio-registry[Apicurio Registry] and https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator] projects on GitHub.
+Any contributions, suggestions, and issue reports are welcome.
+
+ifdef::apicurio-registry[]
+link:https://github.com/Apicurio/apicurio-registry-operator/issues/new[Create an issue] on GitHub if you find any problems.
+
+//Add back when these pages exist
+//You can find more help and information about the project in the Troubleshooting and About pages.
+endif::[]

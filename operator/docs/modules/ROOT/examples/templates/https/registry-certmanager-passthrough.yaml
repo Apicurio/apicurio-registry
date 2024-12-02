@@ -1,0 +1,236 @@
+# This example template deploys Registry with a passthrough HTTPS route, using cert-manager operator.
+#
+# Steps:
+#
+# 1. Create or select a namespace:
+#
+# oc new-project registry-certmanager-passthrough
+#
+# 2. Install the operator(s):
+#
+#  - Red Hat Integration - Service Registry Operator
+#  - cert-manager Operator for Red Hat OpenShift
+#
+# 3. Apply the template:
+#
+# oc process -f registry-certmanager-passthrough.yaml \
+#  -p NAMESPACE=registry-certmanager-passthrough \
+#  -p INGRESS_ROUTER_CANONICAL_HOSTNAME=router-default.apps.apicur.eastus.aroapp.io \
+#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry registry-certmanager-passthrough --timeout=120s
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: registry-certmanager-passthrough-template
+labels:
+  template: registry-certmanager-passthrough-template
+objects:
+  # PostgreSQL storage
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: registry-certmanager-passthrough-postgres
+      namespace: ${NAMESPACE}
+      labels:
+        app: registry-certmanager-passthrough-postgres
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: registry-certmanager-passthrough-postgres
+      template:
+        metadata:
+          labels:
+            app: registry-certmanager-passthrough-postgres
+        spec:
+          containers:
+            - resources:
+                limits:
+                  cpu: 1000m
+                  memory: 1024Mi
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+              readinessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 5
+                timeoutSeconds: 1
+                periodSeconds: 10
+                successThreshold: 1
+                failureThreshold: 3
+              terminationMessagePath: /dev/termination-log
+              name: postgresql
+              livenessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 15
+                timeoutSeconds: 1
+                periodSeconds: 20
+                successThreshold: 1
+                failureThreshold: 3
+              env:
+                - name: POSTGRESQL_PASSWORD
+                  value: ${POSTGRESQL_PASSWORD}
+                - name: POSTGRESQL_USER
+                  value: ${POSTGRESQL_USER}
+                - name: POSTGRESQL_DATABASE
+                  value: ${POSTGRESQL_DATABASE}
+              ports:
+                - containerPort: 5432
+                  protocol: TCP
+              imagePullPolicy: IfNotPresent
+              terminationMessagePolicy: File
+              image: quay.io/centos7/postgresql-12-centos7:1
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          securityContext: { }
+          schedulerName: default-scheduler
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 25%
+          maxSurge: 25%
+      revisionHistoryLimit: 10
+      progressDeadlineSeconds: 600
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: registry-certmanager-passthrough-postgres
+      namespace: ${NAMESPACE}
+      labels:
+        app: registry-certmanager-passthrough-postgres
+    spec:
+      ports:
+        - protocol: TCP
+          port: 5432
+          targetPort: 5432
+      type: ClusterIP
+      selector:
+        app: registry-certmanager-passthrough-postgres
+  # Registry
+  - apiVersion: registry.apicur.io/v1
+    kind: ApicurioRegistry
+    metadata:
+      name: registry-certmanager-passthrough
+      namespace: ${NAMESPACE}
+    spec:
+      configuration:
+        persistence: sql
+        sql:
+          dataSource:
+            url: jdbc:postgresql://registry-certmanager-passthrough-postgres.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
+            userName: ${POSTGRESQL_USER}
+            password: ${POSTGRESQL_PASSWORD}
+        env:
+          - name: REGISTRY_URL_OVERRIDE_HOST
+            value: registry.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+          - name: REGISTRY_URL_OVERRIDE_PORT
+            value: "443"
+          - name: CORS_ALLOWED_ORIGINS
+            value: https://registry.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+        security:
+          https:
+            secretName: registry-certmanager-passthrough-tls-secret
+            disableHttp: true
+  # Certificates
+  # Self-signed cluster issuer for the "root CA certificate"
+  - apiVersion: cert-manager.io/v1
+    kind: ClusterIssuer
+    metadata:
+      name: selfsigned-cluster-issuer
+    spec:
+      selfSigned: { }
+  # Create the "root CA certificate"
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: selfsigned-ca
+      namespace: ${NAMESPACE}
+    spec:
+      secretName: ca-root-secret
+      duration: 17520h # 2*365*24h ~= 2 years      
+      isCA: true
+      privateKey:
+        algorithm: RSA
+        encoding: PKCS1
+        size: 2048
+      commonName: selfsigned-ca
+      issuerRef:
+        group: cert-manager.io
+        kind: ClusterIssuer
+        name: selfsigned-cluster-issuer
+  # Issuer for Ingress
+  - apiVersion: cert-manager.io/v1
+    kind: Issuer
+    metadata:
+      name: selfsigned-ca-issuer
+      namespace: ${NAMESPACE}
+    spec:
+      ca:
+        secretName: ca-root-secret
+  # Certificate for Registry
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: registry-certmanager-passthrough-tls
+      namespace: ${NAMESPACE}
+    spec:
+      secretName: registry-certmanager-passthrough-tls-secret
+      duration: 17520h # 2*365*24h ~= 2 years
+      isCA: false
+      privateKey:
+        algorithm: RSA
+        encoding: PKCS1
+        size: 2048
+      dnsNames:
+        - registry.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+      issuerRef:
+        group: cert-manager.io
+        kind: Issuer
+        name: selfsigned-ca-issuer
+  # A separate HTTP Ingress is not available because of the REGISTRY_URL_OVERRIDE_HOST configuration.
+  # HTTPS Ingress
+  - kind: Ingress
+    apiVersion: networking.k8s.io/v1
+    metadata:
+      name: registry-certmanager-passthrough-https-ingress
+      namespace: ${NAMESPACE}
+      annotations:
+        route.openshift.io/termination: passthrough
+    spec:
+      rules:
+        - host: registry.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+          http:
+            paths:
+              - path: ""
+                pathType: ImplementationSpecific
+                backend:
+                  service:
+                    name: registry-certmanager-passthrough-service
+                    port:
+                      number: 8443
+parameters:
+  - name: NAMESPACE
+    required: true
+  - name: POSTGRESQL_DATABASE
+    value: registry
+  - name: POSTGRESQL_USER
+    value: apicurio
+  - name: POSTGRESQL_PASSWORD
+    value: password
+  - name: INGRESS_ROUTER_CANONICAL_HOSTNAME
+    # Find out from a status block of any Ingress or Route resource, e.g.:
+    # status:
+    #  loadBalancer:
+    #    ingress:
+    #      - hostname: router-default.apps.apicur.eastus.aroapp.io
+    required: true

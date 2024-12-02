@@ -1,0 +1,374 @@
+# This example template deploys Registry, and a Red Hat Single Sign-On (Keycloak) instance with an edge-terminated HTTPS route,
+# and with a Let's Encrypt certificate using cert-manager operator.
+#
+# Steps:
+#
+# 1. Create or select a namespace:
+#
+# oc new-project registry-keycloak-certmanager-letsencrypt-edge
+#
+# 2. Install the operator(s):
+#
+#  - Red Hat Integration - Service Registry Operator
+#  - Red Hat Single Sign-On Operator
+#  - cert-manager Operator for Red Hat OpenShift
+#
+# 3. Apply the template:
+#
+# oc process -f registry-keycloak-certmanager-letsencrypt-edge.yaml \
+#   -p NAMESPACE=registry-keycloak-certmanager-letsencrypt-edge \
+#   -p INGRESS_ROUTER_CANONICAL_HOSTNAME=router-default.apps.apicur.eastus.aroapp.io \
+#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry registry-keycloak-certmanager-letsencrypt-edge --timeout=120s
+#
+# 4. Registry will not be available, until you have created a truststore secret with the Keycloak certificate:
+#
+# oc get secret registry-keycloak-certmanager-letsencrypt-edge-keycloak-tls-secret -o jsonpath="{.data['tls\.crt']}" | base64 -d > tls.crt
+# echo "y" | keytool -import -alias IngressCertificate -file tls.crt -keystore tls.truststore -storepass password
+# oc create secret generic keycloak-truststore-secret --from-file=tls.truststore
+#
+# IMPORTANT NOTES:
+#
+# 1. Before you apply the template, make sure the ingress/route hostname will be shorter than 64 characters, due to this limitation
+# https://community.letsencrypt.org/t/a-certificate-for-a-63-character-domain/78870 .
+#
+# The resulting hostname will be:
+#
+# - keycloak.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+#
+# You can choose a shorter namespace name, or edit the Ingress below to make the prefix even shorter.
+# Alternatively, you can use your custom domain as the Common Name (CN) field in the certificate
+# (equivalent to the first item in the dnsNames list) if it's shorter than 64 characters,
+# and include the full ingress/route hostname in the Subject Alt Names (SAN) field.
+# See the `registry-certmanager-letsencrypt-custom-domain-edge.yaml` example.
+#
+# 2. By default, this template uses the staging Let's Encrypt issuer, suitable for testing (see https://letsencrypt.org/docs/rate-limits).
+# You can try the letsencrypt-production-cluster-issuer instead. In this case, you don't have to create and provide
+# a truststore to the Registry, since the certificate is accepted by default.
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: registry-keycloak-certmanager-letsencrypt-edge-template
+labels:
+  template: registry-keycloak-certmanager-letsencrypt-edge-template
+objects:
+  # PostgreSQL storage
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: registry-keycloak-certmanager-letsencrypt-edge-postgres
+      namespace: ${NAMESPACE}
+      labels:
+        app: registry-keycloak-certmanager-letsencrypt-edge-postgres
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: registry-keycloak-certmanager-letsencrypt-edge-postgres
+      template:
+        metadata:
+          labels:
+            app: registry-keycloak-certmanager-letsencrypt-edge-postgres
+        spec:
+          containers:
+            - resources:
+                limits:
+                  cpu: 1000m
+                  memory: 1024Mi
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+              readinessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 5
+                timeoutSeconds: 1
+                periodSeconds: 10
+                successThreshold: 1
+                failureThreshold: 3
+              terminationMessagePath: /dev/termination-log
+              name: postgresql
+              livenessProbe:
+                tcpSocket:
+                  port: 5432
+                initialDelaySeconds: 15
+                timeoutSeconds: 1
+                periodSeconds: 20
+                successThreshold: 1
+                failureThreshold: 3
+              env:
+                - name: POSTGRESQL_PASSWORD
+                  value: ${POSTGRESQL_PASSWORD}
+                - name: POSTGRESQL_USER
+                  value: ${POSTGRESQL_USER}
+                - name: POSTGRESQL_DATABASE
+                  value: ${POSTGRESQL_DATABASE}
+              ports:
+                - containerPort: 5432
+                  protocol: TCP
+              imagePullPolicy: IfNotPresent
+              terminationMessagePolicy: File
+              image: quay.io/centos7/postgresql-12-centos7:1
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          securityContext: { }
+          schedulerName: default-scheduler
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 25%
+          maxSurge: 25%
+      revisionHistoryLimit: 10
+      progressDeadlineSeconds: 600
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: registry-keycloak-certmanager-letsencrypt-edge-postgres
+      namespace: ${NAMESPACE}
+      labels:
+        app: registry-keycloak-certmanager-letsencrypt-edge-postgres
+    spec:
+      ports:
+        - protocol: TCP
+          port: 5432
+          targetPort: 5432
+      type: ClusterIP
+      selector:
+        app: registry-keycloak-certmanager-letsencrypt-edge-postgres
+  # Keycloak
+  - apiVersion: keycloak.org/v1alpha1
+    kind: Keycloak
+    metadata:
+      labels:
+        app: sso
+      name: registry-keycloak-certmanager-letsencrypt-edge-keycloak
+      namespace: ${NAMESPACE}
+    spec:
+      externalAccess:
+        enabled: false
+      instances: 1
+  - apiVersion: keycloak.org/v1alpha1
+    kind: KeycloakRealm
+    metadata:
+      name: registry-keycloak-certmanager-letsencrypt-edge-keycloakrealm
+      namespace: ${NAMESPACE}
+    spec:
+      instanceSelector:
+        matchLabels:
+          app: sso
+      realm:
+        clients:
+          - clientId: registry-client-ui
+            directAccessGrantsEnabled: false
+            implicitFlowEnabled: true
+            publicClient: true
+            redirectUris:
+              - '*'
+            standardFlowEnabled: true
+            webOrigins:
+              - '*'
+          - clientId: registry-client-api
+            directAccessGrantsEnabled: false
+            implicitFlowEnabled: true
+            publicClient: true
+            redirectUris:
+              - '*'
+            standardFlowEnabled: true
+            webOrigins:
+              - '*'
+        displayName: Registry
+        enabled: true
+        id: registry
+        realm: registry
+        roles:
+          realm:
+            - name: sr-admin
+            - name: sr-developer
+            - name: sr-readonly
+        sslRequired: none
+        users:
+          - credentials:
+              - type: password
+                value: changeme
+            enabled: true
+            realmRoles:
+              - sr-admin
+            username: registry-admin
+          - credentials:
+              - type: password
+                value: changeme
+            enabled: true
+            realmRoles:
+              - sr-developer
+            username: registry-developer
+          - credentials:
+              - type: password
+                value: changeme
+            enabled: true
+            realmRoles:
+              - sr-readonly
+            username: registry-user
+  # Registry
+  - apiVersion: registry.apicur.io/v1
+    kind: ApicurioRegistry
+    metadata:
+      name: registry-keycloak-certmanager-letsencrypt-edge
+      namespace: ${NAMESPACE}
+    spec:
+      configuration:
+        persistence: sql
+        sql:
+          dataSource:
+            url: jdbc:postgresql://registry-keycloak-certmanager-letsencrypt-edge-postgres.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
+            userName: ${POSTGRESQL_USER}
+            password: ${POSTGRESQL_PASSWORD}
+        env:
+          - name: QUARKUS_OIDC_TLS_TRUST_STORE_FILE
+            value: /mnt/truststore/tls.truststore
+          - name: QUARKUS_OIDC_TLS_TRUST_STORE_PASSWORD
+            value: password
+          - name: ROLE_BASED_AUTHZ_ENABLED
+            value: "true"
+        security:
+          keycloak:
+            url: https://keycloak.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}/auth
+            realm: registry
+      deployment:
+        podTemplateSpecPreview:
+          spec:
+            containers:
+              - name: registry
+                volumeMounts:
+                  - mountPath: /mnt/truststore
+                    name: truststore
+                    readOnly: true
+            volumes:
+              - name: truststore
+                secret:
+                  secretName: keycloak-truststore-secret
+  # cert-manager
+  - apiVersion: cert-manager.io/v1
+    kind: ClusterIssuer
+    metadata:
+      name: letsencrypt-staging-cluster-issuer
+    spec:
+      acme:
+        privateKeySecretRef:
+          name: registry-certmanager-letsencrypt-edge-staging-key-secret
+        server: https://acme-staging-v02.api.letsencrypt.org/directory
+        solvers:
+          - http01:
+              ingress:
+                class: openshift-default
+  - apiVersion: cert-manager.io/v1
+    kind: ClusterIssuer
+    metadata:
+      name: letsencrypt-production-cluster-issuer
+    spec:
+      acme:
+        privateKeySecretRef:
+          name: registry-certmanager-letsencrypt-edge-production-key-secret
+        server: https://acme-v02.api.letsencrypt.org/directory
+        solvers:
+          - http01:
+              ingress:
+                class: openshift-default
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: registry-keycloak-certmanager-letsencrypt-edge-keycloak-ingress-certificate
+      namespace: ${NAMESPACE}
+    spec:
+      secretName: registry-keycloak-certmanager-letsencrypt-edge-keycloak-tls-secret
+      duration: 17520h # 2*365*24h ~= 2 years
+      isCA: false
+      privateKey:
+        algorithm: RSA
+        encoding: PKCS1
+        size: 2048
+      dnsNames:
+        - keycloak.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+      issuerRef:
+        # Using a staging Let's encrypt issuer for testing:
+        name: letsencrypt-staging-cluster-issuer
+        # See https://letsencrypt.org/docs/rate-limits
+        # name: letsencrypt-production-cluster-issuer
+        kind: ClusterIssuer
+  # Keycloak HTTPS Ingress
+  - kind: Ingress
+    apiVersion: networking.k8s.io/v1
+    metadata:
+      name: registry-keycloak-certmanager-letsencrypt-edge-keycloak-ingress
+      namespace: ${NAMESPACE}
+      annotations:
+        haproxy.router.openshift.io/balance: source
+        route.openshift.io/termination: reencrypt
+      labels:
+        app: keycloak
+    spec:
+      tls:
+        - hosts:
+            - keycloak.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+          secretName: registry-keycloak-certmanager-letsencrypt-edge-keycloak-tls-secret
+      rules:
+        - host: keycloak.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: keycloak
+                    port:
+                      name: keycloak
+  - kind: Ingress
+    apiVersion: networking.k8s.io/v1
+    metadata:
+      name: registry-keycloak-certmanager-letsencrypt-edge-keycloak-metrics-rewrite-ingress
+      namespace: ${NAMESPACE}
+      annotations:
+        haproxy.router.openshift.io/balance: source
+        haproxy.router.openshift.io/rewrite-target: /auth/realms/master
+        route.openshift.io/termination: reencrypt
+      labels:
+        app: keycloak
+    spec:
+      tls:
+        - hosts:
+            - keycloak.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+          secretName: registry-keycloak-certmanager-letsencrypt-edge-keycloak-tls-secret
+      rules:
+        - host: keycloak.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
+          http:
+            paths:
+              - path: /auth/realms/master/metrics
+                pathType: Prefix
+                backend:
+                  service:
+                    name: keycloak
+                    port:
+                      name: keycloak
+parameters:
+  - name: NAMESPACE
+    required: true
+  - name: POSTGRESQL_DATABASE
+    value: registry
+  - name: POSTGRESQL_USER
+    value: apicurio
+  - name: POSTGRESQL_PASSWORD
+    value: password
+  - name: INGRESS_ROUTER_CANONICAL_HOSTNAME
+    # Find out from a status block of any Ingress or Route resource, e.g.:
+    # status:
+    #  loadBalancer:
+    #    ingress:
+    #      - hostname: router-default.apps.apicur.eastus.aroapp.io
+    required: true

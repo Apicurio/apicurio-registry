@@ -1,0 +1,77 @@
+[#status]
+= {registry} CR status
+
+The `status` is the section of the CR managed by the {operator} that contains a description of the current deployment and application state.
+
+.ApicurioRegistry CR status contents
+The `status` section contains the following fields:
+[source,yaml]
+----
+status:
+  info:
+    host: <string>
+  conditions: <list of:>
+  - type: <string>
+    status: <string, one of: True, False, Unknown>
+    reason: <string>
+    message: <string>
+    lastTransitionTime: <string, RFC-3339 timestamp>
+  managedResources: <list of:>
+  - kind: <string>
+    namespace: <string>
+    name: <string>
+----
+
+.ApicurioRegistry CR status fields
+[%header,cols="2,1,3"]
+|===
+| Status field | Type | Description
+
+| `info`
+| -
+| Section with information about the deployed {registry}.
+
+| `info/host`
+| string
+| URL where the {registry} UI and REST API are accessible.
+
+| `conditions`
+| -
+| List of conditions that report the status of the {registry}, or the Operator with respect to that deployment.
+
+| `conditions/type`
+| string
+| Type of the condition.
+
+| `conditions/status`
+| string
+| Status of the condition, one of `True`, `False`, `Unknown`.
+
+| `conditions/reason`
+| string
+| A programmatic identifier indicating the reason for the condition's last transition.
+
+| `conditions/message`
+| string
+| A human-readable message indicating details about the transition.
+
+| `conditions/lastTransitionTime`
+| string
+| The last time the condition transitioned from one status to another.
+
+| `managedResources`
+| -
+| List of {platform} resources managed by {operator}
+
+| `managedResources/kind`
+| string
+| Resource kind.
+
+| `managedResources/namespace`
+| string
+| Resource namespace.
+
+| `managedResources/name`
+| string
+| Resource name.
+|===

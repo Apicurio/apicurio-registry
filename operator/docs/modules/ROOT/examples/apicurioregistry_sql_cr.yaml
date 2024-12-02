@@ -1,0 +1,12 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry-sql
+spec:
+  configuration:
+    persistence: "sql"
+    sql:
+      dataSource:
+        url: "jdbc:postgresql://<service name>.<namespace>.svc:5432/<database name>"
+        userName: "postgres"
+        password: "<password>" # Optional

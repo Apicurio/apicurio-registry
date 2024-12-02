@@ -1,0 +1,38 @@
+[id="registry-persistence-sql"]
+= Configuring SQL (PostgreSQL) storage
+
+.Prerequisites
+* You must have an OpenShift cluster with cluster administrator access.
+* You must have already installed {operator} 
+* You have a PostgreSQL database reachable from your OpenShift cluster. See xref:assembly-operator-installation.adoc[].
+
+ifdef::service-registry[]
+IMPORTANT: The PostgreSQL storage option is a https://access.redhat.com/support/offerings/techpreview[Technology Preview] feature and is currently not suitable for production environments.
+endif::[]
+
+.Procedure
+. In the OpenShift Container Platform web console, log in with cluster administrator privileges.
+
+. Change to the OpenShift project in which {registry} and your PostgreSQL Operator are installed.
+For example, from the *Project* drop-down, select `my-project`.
+
+ifdef::apicurio-registry[]
+. Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
+endif::[]
+ifdef::service-registry[]
+. Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
+endif::[]
+
+. Paste in the following `ApicurioRegistry` CR, and edit the values for the database `url` and credentials to match your environment:
++
+[source,yaml]
+----
+include::example$apicurioregistry_sql_cr.yaml[]
+----
+
+. Click *Create* and wait for the {registry} route to be created on OpenShift.
+
+. Click *Networking* > *Route* to access the new route for the {registry} web console.
+
+.Additional resources
+* link:https://access.crunchydata.com/documentation/postgres-operator/4.5.0/quickstart/[Crunchy PostgreSQL Operator QuickStart]

@@ -1,0 +1,55 @@
+[id="registry-liveness-and-readiness"]
+= {registry} liveness and readiness environment variables
+
+{registry} provides readiness and liveness probes for OpenShift to ensure application health. These settings are configured to use reasonable defaults, but if you want to adjust them, this section provides details on the environment variables that you can configure.
+
+OpenShift liveness and readiness errors are explained as follows:
+
+* *Liveness error* - the application cannot make progress, OpenShift restarts the failing pod.
+* *Readiness error* - the application is not ready, for example, it is overwhelmed by requests. OpenShift stops sending requests to the pod for the time the probe fails. If other pods are OK, they still receive requests.
+
+
+.{registry} liveness environment variables
+[%header,cols="2,1,3"]
+|===
+| Name | Value type | Description
+
+| `LIVENESS_ERROR_THRESHOLD`
+| Positive integer
+| Number of liveness errors that  can occur before the liveness probe fails.
+
+| `LIVENESS_COUNTER_RESET`
+| Positive integer, seconds
+| Period in which the _threshold_ number of errors  must occur. For example, if this value is `60` and the threshold is `1`, the check fails after two errors occur in 1 minute.
+
+| `LIVENESS_STATUS_RESET`
+| Positive integer, seconds
+| Number of seconds that must elapse without any more errors for the liveness probe to reset to _OK_ status. Because OpenShift restarts the pod that fails the liveness check, this value, unlike readiness, does not actually affect what happens.
+
+| `LIVENESS_ERRORS_IGNORED`
+| Comma-separated list of fully qualified exception class names.
+| List of errors that are ignored for liveness checking purposes.
+|===
+
+
+.{registry} readiness environment variables
+[%header,cols="2,1,3"]
+|===
+| Name | Value type | Description
+
+| `READINESS_ERROR_THRESHOLD`
+| Positive integer
+| Number of readiness errors that  can occur before the readiness probe fails.
+
+| `READINESS_COUNTER_RESET`
+| Positive integer, seconds
+| Period in which the threshold number of errors must occur. For example, if this value is 60 and the threshold is 1, the check fails  after two errors occur in 1 minute.
+
+| `READINESS_STATUS_RESET`
+| Positive integer, seconds
+| Number of seconds that must elapse without any more errors for the readiness probe to reset to OK status. In practice, this value means how long the pod remains in an unready state until it returns to normal operation.
+
+| `READINESS_TIMEOUT`
+| positive integer, seconds
+| The readiness system tracks the timeout of two operations: how long it takes for a storage request to complete, and how long it takes for an HTTP REST API request to return a response. If the operation takes more time, it is counted as a readiness error. This value controls those timeouts.
+|===

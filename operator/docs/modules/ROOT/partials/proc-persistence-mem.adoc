@@ -1,0 +1,27 @@
+[id="registry-persistence-mem"]
+= Configuring {registry} In-Memory storage using CLI
+
+The in-memory storage option uses RAM to store the data on nodes where {registry} is deployed, and it is the simplest persistence option to use.
+The {operator} will deploy {registry} in this way if you do not provide any configuration in the `ApicurioRegistry` CR:
+
+[source,yaml]
+----
+include::example$apicurioregistry_mem_cr.yaml[]
+----
+
+.Prerequisites
+* You must have an Kubernetes cluster with cluster administrator access.
+* You must have already installed the {operator}.
+
+.Procedure
+. Deploy the example CR using following commands:
++
+[source,bash,subs="attributes"]
+----
+export NAMESPACE="default"
+curl -sSL "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/{operator-version-latest-release-tag}/docs/modules/ROOT/examples/apicurioregistry_mem_cr.yaml" | kubectl apply -f - -n $NAMESPACE
+----
+
+IMPORTANT: This persistence option does not support data distribution across {registry} nodes.
+Therefore, it is only recommended for development environments using a single replica (`Pod`).
+Use embedded Infinispan persistence option when deploying multiple replicas.

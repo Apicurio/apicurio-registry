@@ -55,4 +55,4 @@ endif::[]
 [role="_additional-resources"]
 .Additional resources
 * For more details, see the `admin` endpoint in the {registry-rest-api}.
-* For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportV1[Apicurio Registry export utility for 1.x versions].
+//* For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportV1[Apicurio Registry export utility for 1.x versions].

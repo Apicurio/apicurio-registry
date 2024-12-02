@@ -1,0 +1,65 @@
+[id="manage-registry-environment-variables"]
+// Do not forget to update link text in related xref(s). Antora does not support automatic name if the link has a fragment.
+= Managing {registry} environment variables
+
+{operator} manages most common {registry} configuration, but there are some options that it does not support yet. If a high-level configuration option is not available in the `ApicurioRegistry` CR, you can use an environment variable to adjust it. You can update these by setting an environment variable directly in the `ApicurioRegistry` CR, in the `spec.configuration.env` field. These are then forwarded to the `Deployment` resource of {registry}.
+
+.Procedure
+
+You can manage {registry} environment variables by using the OpenShift web console or CLI.
+
+OpenShift web console::
+
+ifdef::apicurio-registry[]
+. Select the *Installed Operators* tab, and then *{registry} Operator*.
+endif::[]
+ifdef::service-registry[]
+. Select the *Installed Operators* tab, and then *Red Hat Integration - Service Registry Operator*.
+endif::[]
+. On the *Apicurio Registry* tab, click the `ApicurioRegistry` CR for your {registry} deployment.
+. Click the *YAML* tab and then edit the `spec.configuration.env` section as needed. The following example shows how to set default global content rules:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry
+spec:
+  configuration:
+    # ...
+    env:
+      - name: REGISTRY_RULES_GLOBAL_VALIDITY
+        value: FULL # One of: NONE, SYNTAX_ONLY, FULL
+      - name: REGISTRY_RULES_GLOBAL_COMPATIBILITY
+        value: FULL # One of: NONE, BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE
+----
+
+OpenShift CLI::
+
+. Select the project where {registry} is installed.
+. Run `oc get apicurioregistry` to get the list of `ApicurioRegistry` CRs
+. Run `oc edit apicurioregistry` on the CR representing the {registry} instance that you want to configure.
+. Add or modify the environment variable in the `spec.configuration.env` section.
++
+The {operator} might attempt to set an environment variable that is already explicitly specified in the `spec.configuration.env` field. If an environment variable configuration has a conflicting value, the value set by {operator} takes precedence. 
++
+You can avoid this conflict by either using the high-level configuration for the feature, or only using the explicitly specified environment variables. The following is an example of a conflicting configuration:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: example-apicurioregistry
+spec:
+  configuration:
+    # ...
+    ui:
+      readOnly: true
+    env:
+      - name: REGISTRY_UI_FEATURES_READONLY
+        value: false
+----
++
+This configuration results in the {registry} web console being in read-only mode.

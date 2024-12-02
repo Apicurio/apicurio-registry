@@ -74,6 +74,10 @@ public class JsonSchemaReferenceFinder implements ReferenceFinder {
                 Entry<String, JsonNode> field = fields.next();
                 findExternalTypesIn(field.getValue(), externalTypes);
             }
+        } else if (schema.isArray()) {
+            schema.forEach(innerNode -> {
+                findExternalTypesIn(innerNode, externalTypes);
+            });
         }
     }
 

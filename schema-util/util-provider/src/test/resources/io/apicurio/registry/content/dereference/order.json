@@ -1,0 +1,42 @@
+{
+  "$id": "https://test/schemas/OrderSchema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Order",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "customer.json"
+    }
+  ],
+  "anyOf": [
+    {
+      "$ref": "customer.json"
+    }
+  ],
+  "oneOf": [
+    {
+      "$ref": "customer.json"
+    }
+  ],
+  "properties": {
+    "orderId": {
+      "type": "string",
+      "description": "A unique identifier for the order."
+    },
+    "orderDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date when the order was placed."
+    },
+    "orderTotal": {
+      "type": "number",
+      "format": "float",
+      "description": "The total amount of the order."
+    }
+  },
+  "required": [
+    "orderId",
+    "customer",
+    "orderTotal"
+  ]
+}

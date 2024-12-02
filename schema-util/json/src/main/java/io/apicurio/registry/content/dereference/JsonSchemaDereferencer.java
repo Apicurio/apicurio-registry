@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -132,6 +133,8 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
     private void rewriteIn(JsonNode node, Map<String, String> resolvedReferenceUrls) {
         if (node.isObject()) {
             rewriteInObject((ObjectNode) node, resolvedReferenceUrls);
+        } else if (node.isArray()) {
+            rewriteInArray((ArrayNode) node, resolvedReferenceUrls);
         }
     }
 
@@ -155,7 +158,15 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
             JsonNode fieldValue = node.get(fieldName);
             if (fieldValue.isObject()) {
                 rewriteInObject((ObjectNode) fieldValue, resolvedReferenceUrls);
+            } else if (fieldValue.isArray()) {
+                rewriteInArray((ArrayNode) fieldValue, resolvedReferenceUrls);
             }
         }
+    }
+
+    private void rewriteInArray(ArrayNode node, Map<String, String> resolvedReferenceUrls) {
+        node.forEach(innerNode -> {
+            rewriteIn(innerNode, resolvedReferenceUrls);
+        });
     }
 }

@@ -3,8 +3,12 @@ package io.apicurio.registry.utils.converter.avro;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class AvroDataTest {
 
@@ -115,5 +119,40 @@ public class AvroDataTest {
         AvroData avroData = new AvroData(0);
         org.apache.avro.Schema aSchema = avroData.fromConnectSchema(avroData.toConnectSchema(bSchema));
         Assertions.assertEquals(bSchema.toString(), aSchema.toString());
+    }
+
+    @Test
+    void testCacheDistinguishesByParameters() {
+        AvroData avroData = new AvroData(5);
+        // Create two Connect schemas with the same name but different parameters
+        Schema schemaWithPrecision10 = createConnectSchema("io.debezium.data.VariableScaleDecimal", "10");
+        Schema schemaWithPrecision15 = createConnectSchema("io.debezium.data.VariableScaleDecimal", "15");
+
+        // Generate Avro schemas for both
+        org.apache.avro.Schema avroSchema1 = avroData.fromConnectSchema(schemaWithPrecision10);
+        org.apache.avro.Schema avroSchema2 = avroData.fromConnectSchema(schemaWithPrecision15);
+
+        // Verify that the two schemas are different
+        assertNotEquals(avroSchema1, avroSchema2, "Avro schemas with different parameters should not be equal");
+
+        // Verify that repeated calls with the same schema return the same instance (cache hit)
+        org.apache.avro.Schema avroSchema1Again = avroData.fromConnectSchema(schemaWithPrecision10);
+        assertSame(avroSchema1, avroSchema1Again, "Repeated calls with the same schema should return the cached instance");
+
+        org.apache.avro.Schema avroSchema2Again = avroData.fromConnectSchema(schemaWithPrecision15);
+        assertSame(avroSchema2, avroSchema2Again, "Repeated calls with the same schema should return the cached instance");
+    }
+
+    private Schema createConnectSchema(String name, String precision) {
+        // Create a struct schema similar to the example provided
+        return SchemaBuilder.struct()
+                .name(name)
+                .version(1)
+                .doc("Variable scaled decimal")
+                .field("scale", Schema.INT32_SCHEMA)
+                .field("value", Schema.BYTES_SCHEMA)
+                .parameter("precision", precision)
+                .optional()
+                .build();
     }
 }

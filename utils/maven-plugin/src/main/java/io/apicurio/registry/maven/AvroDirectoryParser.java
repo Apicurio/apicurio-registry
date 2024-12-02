@@ -20,6 +20,7 @@ package io.apicurio.registry.maven;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.slf4j.Logger;
@@ -110,7 +111,7 @@ public class AvroDirectoryParser extends AbstractDirectoryParser<Schema> {
                     processed.put(schema.getFullName(), schema);
                     schemaContents.put(schema.getFullName(), schemaContent);
                     fileParsed = true;
-                } catch (SchemaParseException ex) {
+                } catch (SchemaParseException | AvroTypeException ex) {
                     log.warn("Error processing Avro schema with name {}. This usually means that the references are not ready yet to parse it", typeToAdd.getName());
                 }
             }

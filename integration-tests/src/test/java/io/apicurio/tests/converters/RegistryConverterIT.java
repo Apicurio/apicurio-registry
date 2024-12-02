@@ -72,7 +72,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testConfiguration() throws Exception {
-        String groupId = TestUtils.generateGroupId();
+        String groupId = TestUtils.generateSubject();
         String topic = TestUtils.generateArtifactId();
         String recordName = "myrecord4";
         AvroGenericRecordSchemaFactory schemaFactory = new AvroGenericRecordSchemaFactory(groupId, recordName, List.of("bar"));

@@ -89,7 +89,7 @@ public class AvroContentValidator implements ContentValidator {
         } catch (Exception e) {
             // This is terrible, but I don't know how else to detect if the reason for the parse failure
             // is because of a missing defined type or some OTHER parse exception.
-            if (e.getMessage().contains("is not a defined name")) {
+            if (e.getMessage().contains("Undefined schema")) {
                 RuleViolation violation = new RuleViolation("Missing reference detected.", e.getMessage());
                 throw new RuleViolationException("Missing reference detected in Avro artifact.", RuleType.INTEGRITY, 
                         IntegrityLevel.ALL_REFS_MAPPED.name(), Collections.singleton(violation));

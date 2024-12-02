@@ -213,7 +213,7 @@
     <commons-codec.version>1.17.1</commons-codec.version>
     <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
-    <kafka-clients.version>3.6.0</kafka-clients.version>
+    <kafka-clients.version>7.8.0-ce</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>
     <pulsar-clients.version>3.3.1</pulsar-clients.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>

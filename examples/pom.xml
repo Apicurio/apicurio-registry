@@ -74,7 +74,7 @@
     <maven.compiler.target>17</maven.compiler.target>
 
     <!-- Kafka -->
-    <kafka.version>3.5.0</kafka.version>
+    <kafka.version>7.8.0-ce</kafka.version>
 
     <!-- RestEasy -->
     <resteasy.version>4.5.8.Final</resteasy.version>

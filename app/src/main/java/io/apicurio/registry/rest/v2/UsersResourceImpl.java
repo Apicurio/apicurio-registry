@@ -61,7 +61,7 @@ public class UsersResourceImpl implements UsersResource {
      * @see io.apicurio.registry.rest.v2.UsersResource#getCurrentUserInfo()
      */
     @Override
-    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.None)
+    @Authorized(style=AuthorizedStyle.None, level=AuthorizedLevel.Read)
     public UserInfo getCurrentUserInfo() {
         UserInfo info = new UserInfo();
         info.setUsername(securityIdentity.getPrincipal().getName());

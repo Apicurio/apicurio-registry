@@ -313,7 +313,7 @@ public class AvroData {
 
     private int unionIndex = 0;
 
-    private Cache<Schema, org.apache.avro.Schema> fromConnectSchemaCache;
+    private Cache<AvroDataSchemaCacheKey, org.apache.avro.Schema> fromConnectSchemaCache;
     private Cache<AvroSchemaAndVersion, Schema> toConnectSchemaCache;
     private boolean connectMetaData;
     private boolean generalizedSumTypeSupport;
@@ -793,14 +793,15 @@ public class AvroData {
             return ANYTHING_SCHEMA;
         }
 
-        org.apache.avro.Schema cached = fromConnectSchemaCache.get(schema);
+        AvroDataSchemaCacheKey cacheKey = new AvroDataSchemaCacheKey(schema);
+        org.apache.avro.Schema cached = fromConnectSchemaCache.get(cacheKey);
         if (cached != null) {
             return cached;
         }
 
         FromConnectContext fromConnectContext = new FromConnectContext(schemaMap);
         org.apache.avro.Schema finalSchema = fromConnectSchema(schema, fromConnectContext, false);
-        fromConnectSchemaCache.put(schema, finalSchema);
+        fromConnectSchemaCache.put(cacheKey, finalSchema);
         return finalSchema;
     }
 

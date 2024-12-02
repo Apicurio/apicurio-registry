@@ -1,0 +1,13 @@
+schema: olm.template.basic
+entries:
+  - schema: olm.package
+    name: ${PLACEHOLDER_AC_PACKAGE_NAME}
+    defaultChannel: 0.x
+  - schema: olm.channel
+    package: ${PLACEHOLDER_AC_PACKAGE_NAME}
+    name: 0.x
+    entries:
+      - name: ${PLACEHOLDER_AC_PACKAGE}
+      # TODO: Replaces
+  - schema: olm.bundle
+    image: ${PLACEHOLDER_AC_BUNDLE_IMAGE}

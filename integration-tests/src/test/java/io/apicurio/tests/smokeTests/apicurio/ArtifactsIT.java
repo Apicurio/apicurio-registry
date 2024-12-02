@@ -132,7 +132,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
     @Test
     void createAndDeleteMultipleArtifacts() throws Exception {
         LOGGER.info("Creating some artifacts...");
-        String groupId = TestUtils.generateGroupId();
+        String groupId = TestUtils.generateSubject();
 
         List<ArtifactMetaData> artifacts = IntStream.range(0, 10)
                 .mapToObj(i -> {

@@ -152,19 +152,19 @@ public class AvroSerdeTest extends AbstractResourceTestBase {
 
     @Test
     public void testAvro() throws Exception {
-        testAvroAutoRegisterIdInBody(RecordIdStrategy.class, () -> restClient.getArtifactMetaData("test-group-avro", "myrecord3"));
+        testAvroAutoRegisterIdInBody(RecordIdStrategy.class, () -> restClient.getArtifactMetaData("test_group_avro", "myrecord3"));
 
     }
 
     @Test
     public void testAvroQualifiedRecordIdStrategy() throws Exception {
-        testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> restClient.getArtifactMetaData(null, "test-group-avro.myrecord3"));
+        testAvroAutoRegisterIdInBody(QualifiedRecordIdStrategy.class, () -> restClient.getArtifactMetaData(null, "test_group_avro.myrecord3"));
     }
 
     private void testAvroAutoRegisterIdInBody(Class<? extends ArtifactReferenceResolverStrategy<?, ?>> strategy, Supplier<ArtifactMetaData> artifactFinder)
             throws Exception {
         Schema schema = new Schema.Parser().parse(
-                "{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test-group-avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+                "{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test_group_avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(restClient);
                 Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(restClient)) {
 

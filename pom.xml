@@ -591,11 +591,6 @@
         <version>${wire-schema.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.jetbrains.kotlinx</groupId>
-        <artifactId>kotlinx-serialization-core</artifactId>
-        <version>1.7.3</version>
-      </dependency>
-      <dependency>
         <groupId>com.ibm.icu</groupId>
         <artifactId>icu4j</artifactId>
         <version>${icu4j.version}</version>

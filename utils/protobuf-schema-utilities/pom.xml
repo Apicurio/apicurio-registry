@@ -38,10 +38,6 @@
       <artifactId>wire-schema-jvm</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jetbrains.kotlinx</groupId>
-      <artifactId>kotlinx-serialization-core</artifactId>
-    </dependency>
-    <dependency>
       <groupId>com.ibm.icu</groupId>
       <artifactId>icu4j</artifactId>
     </dependency>

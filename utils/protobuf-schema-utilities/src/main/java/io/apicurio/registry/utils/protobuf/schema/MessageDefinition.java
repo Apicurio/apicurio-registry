@@ -136,6 +136,11 @@ public class MessageDefinition {
             // Note: changed
             if (label != null) {
                 fieldBuilder.setLabel(label);
+                // If this field is a regular optional field, then force the "optional" keyword in the schema output.
+                // Ignore if the field is part of a oneOf.
+                if (oneofBuilder == null && label.equals(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL)) {
+                    fieldBuilder.setProto3Optional(true);
+                }
             }
             DescriptorProtos.FieldDescriptorProto.Type primType = sTypeMap.get(type);
             if (primType != null) {

@@ -1,7 +1,7 @@
 {
   "name": "@apicurio/apicurio-registry-sdk",
   "private": false,
-  "version": "3.0.5",
+  "version": "3.0.6",
   "type": "module",
   "main": "dist/main.js",
   "types": "dist/main.d.ts",

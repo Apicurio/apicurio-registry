@@ -117,6 +117,14 @@ jobs:
       - name: Login to Quay.io Registry
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
+      # Do this first in case something goes wrong.
+      # TODO: Push to DockerHub
+      - name: Build and Push Operator Image
+        working-directory: registry/operator
+        run: |
+          make config-show
+          make ADDITIONAL_IMAGE_TAG=latest image-build image-push          
+
       - name: Build and Push Multi-arch Application Images
         run: |
           cd registry

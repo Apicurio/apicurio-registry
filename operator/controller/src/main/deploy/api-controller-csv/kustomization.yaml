@@ -6,7 +6,7 @@ resources:
   - ../crd
   - ../operator
   - ../api-controller-examples
-  - api-controller.clusterserviceversion.yaml
+  - apicurio-api-controller.clusterserviceversion.yaml
 
 patches:
   - target:

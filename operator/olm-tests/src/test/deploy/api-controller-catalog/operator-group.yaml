@@ -1,7 +1,7 @@
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: api-controller-operator-group
+  name: apicurio-api-controller-operator-group
   namespace: ${PLACEHOLDER_NAMESPACE}
 spec:
   targetNamespaces:

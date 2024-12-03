@@ -1,7 +1,7 @@
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
-  name: api-controller-operator-catalog
+  name: apicurio-api-controller-operator-catalog
   namespace: ${PLACEHOLDER_CATALOG_NAMESPACE}
 spec:
   sourceType: grpc

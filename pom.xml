@@ -259,7 +259,7 @@
 
     <!-- Plugin Deps -->
     <version.puppycrawl>8.45.1</version.puppycrawl>
-    <apicurio-maven-plugin.version>0.0.1</apicurio-maven-plugin.version>
+    <apicurio-maven-plugin.version>0.0.3</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
     <proto-plugin.version>0.6.1</proto-plugin.version>

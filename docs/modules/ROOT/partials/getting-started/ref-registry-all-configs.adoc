@@ -816,10 +816,10 @@ The following {registry} configuration options are available for each component 
 |
 |Kafka sql storage topic auto create
 |`apicurio.sql.db-schema`
-|`boolean`
+|`string`
 |
 |`3.0.6`
-|Database schema
+|Database schema name (only needed when running two instances of Registry against the same database, in multiple schemas)
 |`apicurio.sql.init`
 |`boolean`
 |`true`

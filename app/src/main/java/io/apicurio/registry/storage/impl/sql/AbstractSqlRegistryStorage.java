@@ -234,8 +234,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     boolean initDB;
 
     @ConfigProperty(name = "apicurio.sql.db-schema", defaultValue = "")
-    @Info(category = "storage", description = "Database schema", availableSince = "3.0.6")
-    boolean dbSchema;
+    @Info(category = "storage", description = "Database schema name (only needed when running two instances of Registry against the same database, in multiple schemas)", availableSince = "3.0.6")
+    String dbSchema;
 
     @Inject
     @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")

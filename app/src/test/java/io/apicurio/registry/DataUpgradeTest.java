@@ -166,25 +166,30 @@ public class DataUpgradeTest extends AbstractResourceTestBase {
                 if (artifact.getGroupId() != null) {
                     groupId = artifact.getGroupId();
                 }
-                BranchMetaData branchMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifact.getArtifactId()).branches().byBranchId("latest").get();
+                BranchMetaData branchMetaData = clientV3.groups().byGroupId(groupId).artifacts()
+                        .byArtifactId(artifact.getArtifactId()).branches().byBranchId("latest").get();
                 Assertions.assertNotNull(branchMetaData);
                 Assertions.assertEquals(artifact.getGroupId(), branchMetaData.getGroupId());
                 Assertions.assertEquals(artifact.getArtifactId(), branchMetaData.getArtifactId());
                 Assertions.assertEquals("latest", branchMetaData.getBranchId());
 
-                VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifact.getArtifactId()).versions().byVersionExpression("branch=latest").get();
+                VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts()
+                        .byArtifactId(artifact.getArtifactId()).versions()
+                        .byVersionExpression("branch=latest").get();
                 Assertions.assertNotNull(versionMetaData);
                 Assertions.assertEquals(artifact.getGroupId(), versionMetaData.getGroupId());
                 Assertions.assertEquals(artifact.getArtifactId(), versionMetaData.getArtifactId());
             });
 
             // Make sure the latest version of "MixAvroExample/Farewell" is version "2"
-            VersionMetaData versionMetaData = clientV3.groups().byGroupId("MixAvroExample").artifacts().byArtifactId("Farewell").versions().byVersionExpression("branch=latest").get();
+            VersionMetaData versionMetaData = clientV3.groups().byGroupId("MixAvroExample").artifacts()
+                    .byArtifactId("Farewell").versions().byVersionExpression("branch=latest").get();
             Assertions.assertNotNull(versionMetaData);
             Assertions.assertEquals("2", versionMetaData.getVersion());
 
             // Make sure the latest version of "default/city" is version "2"
-            versionMetaData = clientV3.groups().byGroupId("default").artifacts().byArtifactId("city").versions().byVersionExpression("branch=latest").get();
+            versionMetaData = clientV3.groups().byGroupId("default").artifacts().byArtifactId("city")
+                    .versions().byVersionExpression("branch=latest").get();
             Assertions.assertNotNull(versionMetaData);
             Assertions.assertEquals("2", versionMetaData.getVersion());
         } catch (ProblemDetails e) {

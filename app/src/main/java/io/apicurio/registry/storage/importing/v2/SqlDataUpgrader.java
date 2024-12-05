@@ -130,14 +130,9 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                 storage.importArtifact(artifactEntity);
 
                 // Also create the "latest" branch.
-                BranchEntity branchEntity = BranchEntity.builder()
-                        .groupId(entity.groupId)
-                        .artifactId(entity.artifactId)
-                        .branchId("latest")
-                        .createdOn(entity.createdOn)
-                        .owner(entity.createdBy)
-                        .modifiedOn(entity.createdOn)
-                        .modifiedBy(entity.createdBy)
+                BranchEntity branchEntity = BranchEntity.builder().groupId(entity.groupId)
+                        .artifactId(entity.artifactId).branchId("latest").createdOn(entity.createdOn)
+                        .owner(entity.createdBy).modifiedOn(entity.createdOn).modifiedBy(entity.createdBy)
                         .build();
                 storage.importBranch(branchEntity);
             }
@@ -161,7 +156,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             if (entityVersion == null) {
                 entityVersion = String.valueOf(entity.versionId);
             }
-            storage.appendVersionToBranch(new GA(entity.groupId, entity.artifactId), new BranchId("latest"), new VersionId(entityVersion));
+            storage.appendVersionToBranch(new GA(entity.groupId, entity.artifactId), new BranchId("latest"),
+                    new VersionId(entityVersion));
         } catch (VersionAlreadyExistsException ex) {
             if (ex.getGlobalId() != null) {
                 log.warn("Duplicate globalId {} detected, skipping import of artifact version: {}",

@@ -47,7 +47,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Override
     protected RegistryClient createRegistryClient(Vertx vertx) {
-        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
+        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID,
+                "test1");
         return createClient(auth);
     }
 
@@ -70,8 +71,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testReadOnly() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
+                JWKSMockServer.READONLY_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -90,8 +91,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         });
         assertForbidden(exception3);
 
-        var devAdapter = new VertXRequestAdapter(
-                buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var devAdapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
+                JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient devClient = new RegistryClient(devAdapter);
 
@@ -113,8 +114,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testDevRole() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
+                JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();

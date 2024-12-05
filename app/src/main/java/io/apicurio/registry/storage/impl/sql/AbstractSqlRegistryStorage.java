@@ -177,7 +177,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     private static int DB_VERSION = Integer
             .valueOf(IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version")))
             .intValue();
-    private static final Object inmemorySequencesMutex = new Object();
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -233,6 +232,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @ConfigProperty(name = "apicurio.sql.init", defaultValue = "true")
     @Info(category = "storage", description = "SQL init", availableSince = "2.0.0.Final")
     boolean initDB;
+
+    @ConfigProperty(name = "apicurio.sql.db-schema", defaultValue = "")
+    @Info(category = "storage", description = "Database schema", availableSince = "3.0.6")
+    boolean dbSchema;
 
     @Inject
     @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
@@ -327,8 +330,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private boolean isDatabaseInitializedRaw(Handle handle) {
         log.info("Checking to see if the DB is initialized.");
-        int count = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class).one();
-        return count > 0;
+        if ("".equals(dbSchema)) {
+            int count = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class)
+                    .one();
+            return count > 0;
+        } else {
+            int count = handle.createQuery(this.sqlStatements.isDatabaseSchemaInitialized()).bind(0, dbSchema)
+                    .mapTo(Integer.class).one();
+            return count > 0;
+        }
     }
 
     /**

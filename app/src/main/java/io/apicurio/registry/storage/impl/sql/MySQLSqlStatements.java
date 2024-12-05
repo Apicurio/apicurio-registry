@@ -37,14 +37,6 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isDatabaseInitialized()
-     */
-    @Override
-    public String isDatabaseInitialized() {
-        return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'artifacts'";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */
     @Override

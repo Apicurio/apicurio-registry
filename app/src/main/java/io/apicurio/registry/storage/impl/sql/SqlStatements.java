@@ -29,6 +29,11 @@ public interface SqlStatements {
     public String isDatabaseInitialized();
 
     /**
+     * A statement that returns 'true' if the database (with schema) has already been initialized.
+     */
+    public String isDatabaseSchemaInitialized();
+
+    /**
      * A sequence of statements needed to initialize the database.
      */
     public List<String> databaseInitialization();

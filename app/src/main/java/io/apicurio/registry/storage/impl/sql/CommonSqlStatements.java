@@ -17,6 +17,19 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see SqlStatements#isDatabaseInitialized()
+     */
+    @Override
+    public String isDatabaseInitialized() {
+        return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'apicurio'";
+    }
+
+    @Override
+    public String isDatabaseSchemaInitialized() {
+        return "SELECT count(*) AS count FROM information_schema.tables WHERE table_schema = ? AND table_name = 'apicurio'";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#databaseInitialization()
      */
     @Override

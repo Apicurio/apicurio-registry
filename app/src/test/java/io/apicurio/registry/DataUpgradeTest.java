@@ -2,7 +2,11 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
+import io.apicurio.registry.rest.client.models.BranchMetaData;
 import io.apicurio.registry.rest.client.models.HandleReferencesType;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.IoUtil;
@@ -152,4 +156,46 @@ public class DataUpgradeTest extends AbstractResourceTestBase {
          * HandleReferencesType.DEREFERENCE; }));
          */
     }
+
+    @Test
+    public void testLatestBranch() {
+        try {
+            ArtifactSearchResults results = clientV3.search().artifacts().get();
+            results.getArtifacts().forEach(artifact -> {
+                String groupId = "default";
+                if (artifact.getGroupId() != null) {
+                    groupId = artifact.getGroupId();
+                }
+                BranchMetaData branchMetaData = clientV3.groups().byGroupId(groupId).artifacts()
+                        .byArtifactId(artifact.getArtifactId()).branches().byBranchId("latest").get();
+                Assertions.assertNotNull(branchMetaData);
+                Assertions.assertEquals(artifact.getGroupId(), branchMetaData.getGroupId());
+                Assertions.assertEquals(artifact.getArtifactId(), branchMetaData.getArtifactId());
+                Assertions.assertEquals("latest", branchMetaData.getBranchId());
+
+                VersionMetaData versionMetaData = clientV3.groups().byGroupId(groupId).artifacts()
+                        .byArtifactId(artifact.getArtifactId()).versions()
+                        .byVersionExpression("branch=latest").get();
+                Assertions.assertNotNull(versionMetaData);
+                Assertions.assertEquals(artifact.getGroupId(), versionMetaData.getGroupId());
+                Assertions.assertEquals(artifact.getArtifactId(), versionMetaData.getArtifactId());
+            });
+
+            // Make sure the latest version of "MixAvroExample/Farewell" is version "2"
+            VersionMetaData versionMetaData = clientV3.groups().byGroupId("MixAvroExample").artifacts()
+                    .byArtifactId("Farewell").versions().byVersionExpression("branch=latest").get();
+            Assertions.assertNotNull(versionMetaData);
+            Assertions.assertEquals("2", versionMetaData.getVersion());
+
+            // Make sure the latest version of "default/city" is version "2"
+            versionMetaData = clientV3.groups().byGroupId("default").artifacts().byArtifactId("city")
+                    .versions().byVersionExpression("branch=latest").get();
+            Assertions.assertNotNull(versionMetaData);
+            Assertions.assertEquals("2", versionMetaData.getVersion());
+        } catch (ProblemDetails e) {
+            System.err.println("ERROR: " + e.getDetail());
+            throw e;
+        }
+    }
+
 }

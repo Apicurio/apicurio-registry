@@ -159,6 +159,25 @@ public class EntityReader {
             }
         }
 
+        if (manifest == null) {
+            throw new RuntimeException("No manifest found");
+        }
+        try {
+            readManifest(manifest);
+        } catch (IOException e) {
+            throw new RuntimeException("Invalid manifest: ", e);
+        }
+
+        // Make sure we sort the versions when upgrading from v2 to v3 - this is
+        // so that the "latest" branch contains the versions in the correct order.
+        if (majorVersion == 2) {
+            versions.sort((v1, v2) -> {
+                long v1GlobalId = getArtifactVersionOrder(v1);
+                long v2GlobalId = getArtifactVersionOrder(v2);
+                return (int) (v1GlobalId - v2GlobalId);
+            });
+        }
+
         entities = new LinkedList<>();
         if (manifest != null) {
             entities.add(manifest);
@@ -267,6 +286,16 @@ public class EntityReader {
         byte[] bytes = IoUtil.toBytes(file);
         T entity = mapper.readerFor(theClass).readValue(bytes);
         return entity;
+    }
+
+    private long getArtifactVersionOrder(EntityInfo artifactVersionEntityInfo) {
+        try {
+            Entity entity = readArtifactVersion(artifactVersionEntityInfo);
+            return ((io.apicurio.registry.utils.impexp.v2.ArtifactVersionEntity) entity).globalId;
+        } catch (IOException e) {
+            // Nothing we can do here. :(
+            return 0;
+        }
     }
 
 }

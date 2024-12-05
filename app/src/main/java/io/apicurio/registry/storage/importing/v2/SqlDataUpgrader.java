@@ -2,6 +2,9 @@ package io.apicurio.registry.storage.importing.v2;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -23,6 +26,7 @@ import io.apicurio.registry.utils.impexp.v2.ContentEntity;
 import io.apicurio.registry.utils.impexp.v2.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v2.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
@@ -124,10 +128,17 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                         .modifiedBy(entity.createdBy).modifiedOn(entity.createdOn).name(entity.name)
                         .owner(entity.createdBy).build();
                 storage.importArtifact(artifactEntity);
+
+                // Also create the "latest" branch.
+                BranchEntity branchEntity = BranchEntity.builder().groupId(entity.groupId)
+                        .artifactId(entity.artifactId).branchId("latest").createdOn(entity.createdOn)
+                        .owner(entity.createdBy).modifiedOn(entity.createdOn).modifiedBy(entity.createdBy)
+                        .build();
+                storage.importBranch(branchEntity);
             }
 
+            // If this version is the latest, update the artifact metadata with its metadata
             if (entity.isLatest) {
-                // If this version is the latest, update the artifact metadata with its metadata
                 EditableArtifactMetaDataDto editableArtifactMetaDataDto = EditableArtifactMetaDataDto
                         .builder().name(newEntity.name).owner(newEntity.owner)
                         .description(newEntity.description).labels(newEntity.labels).build();
@@ -139,6 +150,14 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             storage.importArtifactVersion(newEntity);
             log.debug("Artifact version imported successfully: {}", entity);
             globalIdMapping.put(oldGlobalId, entity.globalId);
+
+            // Append this version to the "latest" branch
+            String entityVersion = entity.version;
+            if (entityVersion == null) {
+                entityVersion = String.valueOf(entity.versionId);
+            }
+            storage.appendVersionToBranch(new GA(entity.groupId, entity.artifactId), new BranchId("latest"),
+                    new VersionId(entityVersion));
         } catch (VersionAlreadyExistsException ex) {
             if (ex.getGlobalId() != null) {
                 log.warn("Duplicate globalId {} detected, skipping import of artifact version: {}",

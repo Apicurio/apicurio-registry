@@ -1,6 +1,7 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
 import io.apicurio.registry.noprofile.maven.RegistryMojoTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -11,6 +12,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.vertx.core.Vertx;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -18,8 +20,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
@@ -42,9 +42,9 @@ public class MojoAuthTest extends RegistryMojoTestBase {
     String testPassword = "sr-test-password";
 
     @Override
-    protected RegistryClient createRestClientV3() {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+    protected RegistryClient createRestClientV3(Vertx vertx) {
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -68,8 +68,6 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         System.out.println("Auth is " + authEnabled);
 
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
-        registerRegistryMojo.setClient(null);
-
         registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         registerRegistryMojo.setUsername(testUsername);
         registerRegistryMojo.setPassword(testPassword);

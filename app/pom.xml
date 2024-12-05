@@ -253,6 +253,11 @@
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
       <scope>test</scope>
     </dependency>

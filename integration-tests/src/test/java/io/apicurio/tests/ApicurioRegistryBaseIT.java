@@ -2,7 +2,6 @@ package io.apicurio.tests;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.deployment.PortForwardManager;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
@@ -21,7 +20,9 @@ import io.quarkus.test.common.http.TestHTTPResource;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
+import io.vertx.core.Vertx;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -80,26 +81,33 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     protected Function<Exception, Integer> errorCodeExtractor = e -> ((ApiException) e)
             .getResponseStatusCode();
 
+    protected Vertx vertx;
     protected RegistryClient registryClient;
 
     protected String authServerUrlConfigured;
 
-    protected RegistryClient createRegistryClient() {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+    protected RegistryClient createRegistryClient(Vertx vertx) {
+        var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         return new RegistryClient(adapter);
     }
 
     @BeforeAll
     void prepareRestAssured() {
+        vertx = Vertx.vertx();
         authServerUrlConfigured = Optional
                 .ofNullable(ConfigProvider.getConfig().getConfigValue("quarkus.oidc.token-path").getValue())
                 .orElse("http://localhost:8090/realms/registry/protocol/openid-connect/token");
-        registryClient = createRegistryClient();
+        registryClient = createRegistryClient(vertx);
         RestAssured.baseURI = getRegistryV3ApiUrl();
         logger.info("RestAssured configured with {}", RestAssured.baseURI);
         RestAssured.defaultParser = Parser.JSON;
         RestAssured.urlEncodingEnabled = false;
+    }
+
+    @AfterAll
+    void closeVertx() {
+        vertx.close();
     }
 
     private static String normalizeGroupId(String groupId) {

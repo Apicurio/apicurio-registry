@@ -17,13 +17,13 @@
 package io.apicurio.registry.examples.simple.avro.maven;
 
 import com.microsoft.kiota.ApiException;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -85,7 +85,8 @@ public class SimpleAvroMavenExample {
         String artifactId = topicName + "-value";
 
         // Get the schema from the registry so we can use it to create GenericData.Records later
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        Vertx vertx = Vertx.vertx();
+        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
         vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
 
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
@@ -158,6 +159,7 @@ public class SimpleAvroMavenExample {
             consumer.close();
         }
 
+        vertx.close();
         System.out.println("Done (success).");
     }
 

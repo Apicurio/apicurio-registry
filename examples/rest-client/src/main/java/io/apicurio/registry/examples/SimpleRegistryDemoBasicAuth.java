@@ -1,9 +1,9 @@
 package io.apicurio.registry.examples;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.examples.util.RegistryDemoUtil;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 
 import java.util.UUID;
 
@@ -19,6 +19,7 @@ import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthW
 public class SimpleRegistryDemoBasicAuth {
 
     private static final RegistryClient client;
+    private static final Vertx vertx = Vertx.vertx();
 
     static {
         // Create a Service Registry client
@@ -38,6 +39,7 @@ public class SimpleRegistryDemoBasicAuth {
         RegistryDemoUtil.getSchemaFromRegistry(client, artifactId);
 
         RegistryDemoUtil.deleteSchema(client, artifactId);
+        vertx.close();
     }
 
     public static RegistryClient createProperClient(String registryUrl) {
@@ -45,11 +47,11 @@ public class SimpleRegistryDemoBasicAuth {
         if (tokenEndpoint != null) {
             final String authClient = System.getenv("AUTH_CLIENT_ID");
             final String authSecret = System.getenv("AUTH_CLIENT_SECRET");
-            var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(authClient, authSecret));
+            var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(vertx, authClient, authSecret));
             adapter.setBaseUrl(registryUrl);
             return new RegistryClient(adapter);
         } else {
-            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
             vertXRequestAdapter.setBaseUrl(registryUrl);
             return new RegistryClient(vertXRequestAdapter);
         }

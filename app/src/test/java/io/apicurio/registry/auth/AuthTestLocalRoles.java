@@ -2,6 +2,7 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -20,6 +21,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.vertx.core.Vertx;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -46,9 +48,9 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     String authServerUrlConfigured;
 
     @Override
-    protected RegistryClient createRestClientV3() {
+    protected RegistryClient createRestClientV3(Vertx vertx) {
         var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+                buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -65,13 +67,13 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     @Test
     public void testLocalRoles() throws Exception {
-        var adapterAdmin = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapterAdmin = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapterAdmin.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientAdmin = new RegistryClient(adapterAdmin);
 
-        var adapterAuth = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
+        var adapterAuth = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
         adapterAuth.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapterAuth);
 

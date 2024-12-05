@@ -2,7 +2,6 @@ package io.apicurio.registry;
 
 import com.microsoft.kiota.ApiException;
 import com.microsoft.kiota.RequestAdapter;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -26,6 +25,7 @@ import io.kiota.http.vertx.VertXRequestAdapter;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.ValidatableResponse;
+import io.vertx.core.Vertx;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -60,26 +60,29 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected RegistryClient clientV3;
     protected RestService confluentClient;
 
+    protected Vertx vertx;
+
     @BeforeAll
     protected void beforeAll() throws Exception {
+        vertx = Vertx.vertx();
         String serverUrl = "http://localhost:%s/apis";
         registryApiBaseUrl = String.format(serverUrl, testPort);
         registryV3ApiUrl = registryApiBaseUrl + "/registry/v3";
-        clientV3 = createRestClientV3();
+        clientV3 = createRestClientV3(vertx);
         confluentClient = buildConfluentClient();
     }
 
     @AfterAll
     protected void afterAll() {
+        vertx.close();
     }
 
     protected RestService buildConfluentClient() {
         return new RestService("http://localhost:" + testPort + "/apis/ccompat/v7");
     }
 
-    protected final RequestAdapter anonymousAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
-
-    protected RegistryClient createRestClientV3() {
+    protected RegistryClient createRestClientV3(Vertx vertx) {
+        RequestAdapter anonymousAdapter = new VertXRequestAdapter(vertx);
         anonymousAdapter.setBaseUrl(registryV3ApiUrl);
         var client = new RegistryClient(anonymousAdapter);
         return client;

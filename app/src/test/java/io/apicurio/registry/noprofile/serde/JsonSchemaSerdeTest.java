@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -64,7 +63,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }
@@ -736,7 +735,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
     public void complexObjectValidation() throws Exception {
         final String version = "8";
 
-        RegistryClient client = createRestClientV3();
+        RegistryClient client = clientV3;
 
         InputStream account = getClass().getClassLoader()
                 .getResourceAsStream("/io/apicurio/registry/util/sample.account.json");

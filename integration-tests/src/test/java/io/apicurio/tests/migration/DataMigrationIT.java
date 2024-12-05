@@ -1,6 +1,5 @@
 package io.apicurio.tests.migration;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
@@ -12,6 +11,7 @@ import io.apicurio.tests.utils.Constants;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.vertx.core.Vertx;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -50,32 +50,38 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
      */
     @Test
     public void migrate() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        Vertx vertx = Vertx.vertx();
+        var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);
 
         given().when().contentType("application/zip").body(migrateDataToImport)
                 .post("/apis/registry/v2/admin/import").then().statusCode(204).body(anything());
 
-        for (long gid : migrateGlobalIds) {
-            dest.ids().globalIds().byGlobalId(gid).get();
-            if (migrateReferencesMap.containsKey(gid)) {
-                List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> srcReferences = migrateReferencesMap
-                        .get(gid);
-                List<ArtifactReference> destReferences = dest.ids().globalIds().byGlobalId(gid).references()
-                        .get();
-                assertTrue(matchesReferencesV2V3(srcReferences, destReferences));
-            }
-        }
         try {
-            assertEquals("SYNTAX_ONLY", dest.groups().byGroupId("migrateTest").artifacts()
-                    .byArtifactId("avro-0").rules().byRuleType(RuleType.VALIDITY.name()).get().getConfig());
-            assertEquals("BACKWARD",
-                    dest.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get().getConfig());
-        } catch (ProblemDetails e) {
-            log.error("REST Client error: " + e.getTitle());
-            log.error("                 : " + e.getDetail());
-            throw e;
+            for (long gid : migrateGlobalIds) {
+                dest.ids().globalIds().byGlobalId(gid).get();
+                if (migrateReferencesMap.containsKey(gid)) {
+                    List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> srcReferences = migrateReferencesMap
+                            .get(gid);
+                    List<ArtifactReference> destReferences = dest.ids().globalIds().byGlobalId(gid)
+                            .references().get();
+                    assertTrue(matchesReferencesV2V3(srcReferences, destReferences));
+                }
+            }
+            try {
+                assertEquals("SYNTAX_ONLY",
+                        dest.groups().byGroupId("migrateTest").artifacts().byArtifactId("avro-0").rules()
+                                .byRuleType(RuleType.VALIDITY.name()).get().getConfig());
+                assertEquals("BACKWARD",
+                        dest.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get().getConfig());
+            } catch (ProblemDetails e) {
+                log.error("REST Client error: " + e.getTitle());
+                log.error("                 : " + e.getDetail());
+                throw e;
+            }
+        } finally {
+            vertx.close();
         }
     }
 
@@ -83,10 +89,11 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
         @Override
         public Map<String, String> start() {
+            Vertx vertx = Vertx.vertx();
 
             String registryBaseUrl = startRegistryApplication(
                     "quay.io/apicurio/apicurio-registry-mem:latest-release");
-            var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+            var adapter = new VertXRequestAdapter(vertx);
             adapter.setBaseUrl(getRegistryV2ApiUrl());
             io.apicurio.registry.rest.client.v2.RegistryClient source = new io.apicurio.registry.rest.client.v2.RegistryClient(
                     adapter);
@@ -102,6 +109,8 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
             } catch (Exception ex) {
                 log.error("Error filling origin registry with data:", ex);
+            } finally {
+                vertx.close();
             }
 
             return Map.of("apicurio.rest.deletion.artifact.enabled", "true");

@@ -3,7 +3,6 @@ package io.apicurio.registry.auth;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.types.ArtifactType;
@@ -37,7 +36,7 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
     @Test
     public void testWrongCreds() throws Exception {
         var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
+                buildOIDCWebClient(vertx, authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
@@ -50,7 +49,7 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @Test
     public void testNoCredentials() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         // Read-only operation should work without any credentials.

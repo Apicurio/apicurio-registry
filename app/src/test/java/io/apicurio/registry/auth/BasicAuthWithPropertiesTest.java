@@ -20,6 +20,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.vertx.core.Vertx;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -51,8 +52,9 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public static final String READONLY_PASSWORD = "duncan";
 
     @Override
-    protected RegistryClient createRestClientV3() {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(ADMIN_USERNAME, ADMIN_PASSWORD));
+    protected RegistryClient createRestClientV3(Vertx vertx) {
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, ADMIN_USERNAME, ADMIN_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -75,7 +77,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     @Test
     public void testWrongCreds() throws Exception {
         var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
+                buildSimpleAuthWebClient(vertx, UUID.randomUUID().toString(), UUID.randomUUID().toString()));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var exception = Assertions.assertThrows(ApiException.class, () -> {
@@ -86,7 +88,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testReadOnly() throws Exception {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(READONLY_USERNAME, READONLY_PASSWORD));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, READONLY_USERNAME, READONLY_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -107,7 +110,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         assertForbidden(exception3);
 
         var devAdapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient devClient = new RegistryClient(devAdapter);
 
@@ -130,7 +133,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     @Test
     public void testDevRole() throws Exception {
         var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -168,7 +171,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(ADMIN_USERNAME, ADMIN_PASSWORD));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, ADMIN_USERNAME, ADMIN_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -204,11 +208,12 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
         var devAdapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientDev = new RegistryClient(devAdapter);
 
-        var adminAdapter = new VertXRequestAdapter(buildSimpleAuthWebClient(ADMIN_USERNAME, ADMIN_PASSWORD));
+        var adminAdapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, ADMIN_USERNAME, ADMIN_PASSWORD));
         adminAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientAdmin = new RegistryClient(adminAdapter);
 
@@ -244,7 +249,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     @Test
     public void testGetArtifactOwner() throws Exception {
         var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
@@ -273,7 +278,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateArtifactOwner() throws Exception {
         var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
@@ -319,11 +324,11 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
         var adapter_dev1 = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter_dev1.setBaseUrl(registryV3ApiUrl);
         RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
         var adapter_dev2 = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
+                buildSimpleAuthWebClient(vertx, DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
         adapter_dev2.setBaseUrl(registryV3ApiUrl);
         RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
 

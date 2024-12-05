@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.examples.simple.json;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -29,6 +28,7 @@ import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -91,7 +91,8 @@ public class SimpleJsonSchemaExample {
         String artifactId = TOPIC_NAME + "-value"; // use the topic name as the artifactId because we're going
                                                    // to map topic name to artifactId later on.
 
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        Vertx vertx = Vertx.vertx();
+        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
         vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
 
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
@@ -165,6 +166,7 @@ public class SimpleJsonSchemaExample {
             consumer.close();
         }
 
+        vertx.close();
         System.out.println("Done (success).");
     }
 

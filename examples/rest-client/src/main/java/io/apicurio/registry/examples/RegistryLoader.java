@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.examples;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
@@ -24,6 +23,7 @@ import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 
 import java.util.UUID;
 
@@ -35,7 +35,8 @@ public class RegistryLoader {
     public static void main(String[] args) throws Exception {
         String registryUrl = "http://localhost:8080/apis/registry/v3";
 
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        Vertx vertx = Vertx.vertx();
+        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
         vertXRequestAdapter.setBaseUrl(registryUrl);
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
 
@@ -51,6 +52,8 @@ public class RegistryLoader {
             Task task = new Task(simpleAvro, client, 100, i + 100);
             task.start();
         }
+
+        vertx.close();
     }
 
     protected static class Task extends Thread {

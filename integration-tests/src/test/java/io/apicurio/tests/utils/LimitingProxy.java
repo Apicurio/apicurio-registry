@@ -1,6 +1,5 @@
 package io.apicurio.tests.utils;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
@@ -20,7 +19,7 @@ public abstract class LimitingProxy {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private Vertx vertx;
+    private final Vertx vertx = Vertx.vertx();
     private int port = 30001;
 
     private HttpServer server;
@@ -30,8 +29,6 @@ public abstract class LimitingProxy {
     private int destinationPort;
 
     public LimitingProxy(String destinationHost, int destinationPort) {
-
-        vertx = VertXAuthFactory.defaultVertx;
         client = vertx.createHttpClient(new HttpClientOptions());
         if (destinationHost.endsWith("127.0.0.1.nip.io")) {
             logger.info("Changing proxy destination host to localhost");
@@ -69,6 +66,7 @@ public abstract class LimitingProxy {
         if (server != null) {
             server.close();
         }
+        vertx.close();
     }
 
     abstract protected boolean allowed();

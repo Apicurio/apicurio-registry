@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.examples.validation.json;
 
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -30,15 +31,13 @@ import io.apicurio.schema.validation.json.JsonRecord;
 import io.apicurio.schema.validation.json.JsonValidationResult;
 import io.apicurio.schema.validation.json.JsonValidator;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
-import static io.apicurio.registry.client.auth.VertXAuthFactory.defaultVertx;
 
 /**
  * This example demonstrates how to use Apicurio Registry Schema Validation library for JSON and JSON Schema.
@@ -75,10 +74,11 @@ public class JsonSchemaValidationExample {
 
     public static final void main(String[] args) throws Exception {
         System.out.println("Starting example " + JsonSchemaValidationExample.class.getSimpleName());
+        Vertx vertx = Vertx.vertx();
 
         // Register the schema with the registry (only if it is not already registered)
         String artifactId = JsonSchemaValidationExample.class.getSimpleName();
-        RegistryClient client = createRegistryClient(REGISTRY_URL);
+        RegistryClient client = createRegistryClient(vertx, REGISTRY_URL);
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
@@ -135,24 +135,25 @@ public class JsonSchemaValidationExample {
         JsonValidationResult recordValidationResult = validator.validate(record);
         System.out.println("Validation result: " + recordValidationResult);
         System.out.println();
-
+        vertx.close();
     }
 
     /**
      * Creates the registry client
      */
-    private static RegistryClient createRegistryClient(String registryUrl) {
+    private static RegistryClient createRegistryClient(Vertx vertx, String registryUrl) {
         final String tokenEndpoint = System.getenv(SchemaResolverConfig.AUTH_TOKEN_ENDPOINT);
 
         // Just if security values are present, then we configure them.
         if (tokenEndpoint != null) {
             final String authClient = System.getenv(SchemaResolverConfig.AUTH_CLIENT_ID);
             final String authSecret = System.getenv(SchemaResolverConfig.AUTH_CLIENT_SECRET);
-            var adapter = new VertXRequestAdapter(buildOIDCWebClient(tokenEndpoint, authClient, authSecret));
+            var adapter = new VertXRequestAdapter(
+                    VertXAuthFactory.buildOIDCWebClient(vertx, tokenEndpoint, authClient, authSecret));
             adapter.setBaseUrl(registryUrl);
             return new RegistryClient(adapter);
         } else {
-            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(defaultVertx);
+            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
             vertXRequestAdapter.setBaseUrl(registryUrl);
             return new RegistryClient(vertXRequestAdapter);
         }

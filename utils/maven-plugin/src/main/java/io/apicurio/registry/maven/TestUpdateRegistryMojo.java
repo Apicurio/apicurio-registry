@@ -1,8 +1,10 @@
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.utils.IoUtil;
+import io.vertx.core.Vertx;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -69,37 +71,43 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
     @Override
     protected void executeInternal() throws MojoExecutionException {
         validate();
+        Vertx vertx = Vertx.vertx();
+        RegistryClient registryClient = createClient(vertx);
 
-        int errorCount = 0;
-        if (artifacts != null) {
-            for (TestArtifact artifact : artifacts) {
-                String groupId = artifact.getGroupId();
-                String artifactId = artifact.getArtifactId();
-                String contentType = contentType(artifact);
-                try (InputStream data = new FileInputStream(artifact.getFile())) {
-                    String content = IoUtil.toString(data);
-                    CreateVersion cv = new CreateVersion();
-                    cv.setContent(new VersionContent());
-                    cv.getContent().setContentType(contentType);
-                    cv.getContent().setContent(content);
-                    getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
-                            .post(cv, config -> {
-                                config.queryParameters.dryRun = true;
-                            });
-                    getLog().info(String.format(
-                            "[%s] / [%s] :: Artifact successfully tested (updating is allowed for the given content).",
-                            groupId, artifactId));
-                } catch (Exception e) {
-                    errorCount++;
-                    getLog().error(String.format(
-                            "[%s] / [%s] :: Artifact test FAILED (updating is not allowed for the given content).",
-                            groupId, artifactId), e);
+        try {
+            int errorCount = 0;
+            if (artifacts != null) {
+                for (TestArtifact artifact : artifacts) {
+                    String groupId = artifact.getGroupId();
+                    String artifactId = artifact.getArtifactId();
+                    String contentType = contentType(artifact);
+                    try (InputStream data = new FileInputStream(artifact.getFile())) {
+                        String content = IoUtil.toString(data);
+                        CreateVersion cv = new CreateVersion();
+                        cv.setContent(new VersionContent());
+                        cv.getContent().setContentType(contentType);
+                        cv.getContent().setContent(content);
+                        registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                                .versions().post(cv, config -> {
+                                    config.queryParameters.dryRun = true;
+                                });
+                        getLog().info(String.format(
+                                "[%s] / [%s] :: Artifact successfully tested (updating is allowed for the given content).",
+                                groupId, artifactId));
+                    } catch (Exception e) {
+                        errorCount++;
+                        getLog().error(String.format(
+                                "[%s] / [%s] :: Artifact test FAILED (updating is not allowed for the given content).",
+                                groupId, artifactId), e);
+                    }
                 }
             }
-        }
 
-        if (errorCount > 0) {
-            throw new MojoExecutionException("Errors while testing artifacts for update...");
+            if (errorCount > 0) {
+                throw new MojoExecutionException("Errors while testing artifacts for update...");
+            }
+        } finally {
+            vertx.close();
         }
     }
 

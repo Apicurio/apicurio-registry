@@ -172,9 +172,9 @@ public class EntityReader {
         // so that the "latest" branch contains the versions in the correct order.
         if (majorVersion == 2) {
             versions.sort((v1, v2) -> {
-                int versionId1 = getArtifactVersionOrder(v1);
-                int versionId2 = getArtifactVersionOrder(v1);
-                return versionId1 - versionId2;
+                long v1GlobalId = getArtifactVersionGlobalId(v1);
+                long v2GlobalId = getArtifactVersionGlobalId(v2);
+                return (int) (v1GlobalId - v2GlobalId);
             });
         }
 
@@ -288,10 +288,10 @@ public class EntityReader {
         return entity;
     }
 
-    private int getArtifactVersionOrder(EntityInfo artifactVersionEntityInfo) {
+    private long getArtifactVersionGlobalId(EntityInfo artifactVersionEntityInfo) {
         try {
             Entity entity = readArtifactVersion(artifactVersionEntityInfo);
-            return ((io.apicurio.registry.utils.impexp.v2.ArtifactVersionEntity) entity).versionId;
+            return ((io.apicurio.registry.utils.impexp.v2.ArtifactVersionEntity) entity).globalId;
         } catch (IOException e) {
             // Nothing we can do here. :(
             return 0;

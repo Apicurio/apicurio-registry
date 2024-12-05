@@ -233,7 +233,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Info(category = "storage", description = "SQL init", availableSince = "2.0.0.Final")
     boolean initDB;
 
-    @ConfigProperty(name = "apicurio.sql.db-schema", defaultValue = "")
+    @ConfigProperty(name = "apicurio.sql.db-schema", defaultValue = "*")
     @Info(category = "storage", description = "Database schema name (only needed when running two instances of Registry against the same database, in multiple schemas)", availableSince = "3.0.6")
     String dbSchema;
 
@@ -330,7 +330,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private boolean isDatabaseInitializedRaw(Handle handle) {
         log.info("Checking to see if the DB is initialized.");
-        if ("".equals(dbSchema)) {
+        if ("*".equals(dbSchema)) {
             int count = handle.createQuery(this.sqlStatements.isDatabaseInitialized()).mapTo(Integer.class)
                     .one();
             return count > 0;

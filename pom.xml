@@ -254,7 +254,7 @@
     <version.clean.plugin>3.4.0</version.clean.plugin>
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
     <version.spotless>2.43.0</version.spotless>
-    <version.license-maven-plugin>2.4.0</version.license-maven-plugin>
+    <version.license-maven-plugin>2.5.0</version.license-maven-plugin>
     <version.exec-maven-plugin>3.5.0</version.exec-maven-plugin>
 
     <!-- Plugin Deps -->

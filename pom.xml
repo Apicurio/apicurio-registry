@@ -218,7 +218,7 @@
     <pulsar-clients.version>3.3.1</pulsar-clients.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
 
-    <nats.version>2.20.4</nats.version>
+    <nats.version>2.20.5</nats.version>
     <snakeyaml.version>2.3</snakeyaml.version>
     <woodstox-core.version>7.1.0</woodstox-core.version>
     <jgit.version>7.1.0.202411261347-r</jgit.version>

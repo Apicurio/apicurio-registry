@@ -45,6 +45,11 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_name = 'APICURIO'";
     }
 
+    @Override
+    public String isDatabaseSchemaInitialized() {
+        return "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = ? AND table_name = 'APICURIO'";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */

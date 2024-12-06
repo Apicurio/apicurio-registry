@@ -37,14 +37,6 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         return error.getMessage().contains("conflicted with the FOREIGN KEY constraint");
     }
 
-    /**
-     * @see SqlStatements#isDatabaseInitialized()
-     */
-    @Override
-    public String isDatabaseInitialized() {
-        return "SELECT count(*) AS count FROM information_schema.tables WHERE table_name = 'artifacts'";
-    }
-
     @Override
     public String upsertBranch() {
         return """

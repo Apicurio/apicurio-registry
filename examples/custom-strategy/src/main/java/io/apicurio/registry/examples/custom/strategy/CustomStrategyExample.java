@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.examples.custom.strategy;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -27,6 +26,7 @@ import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.types.ArtifactType;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -72,7 +72,8 @@ public class CustomStrategyExample {
         String topicName = Config.TOPIC_NAME;
         String subjectName = Config.SUBJECT_NAME;
 
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        Vertx vertx = Vertx.vertx();
+        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
         vertXRequestAdapter.setBaseUrl(Config.REGISTRY_URL);
 
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
@@ -150,7 +151,7 @@ public class CustomStrategyExample {
             consumer.close();
         }
 
-        VertXAuthFactory.defaultVertx.close();
+        vertx.close();
         System.out.println("Done (success).");
     }
 

@@ -23,7 +23,7 @@ public class RegistryDemoUtil {
      * @param artifactId
      * @param schema
      */
-    public static void createSchemaInServiceRegistry(RegistryClient service, String artifactId,
+    public static void createSchemaInServiceRegistry(RegistryClient registryClient, String artifactId,
             String schema) {
 
         LOGGER.info("---------------------------------------------------------");
@@ -40,7 +40,7 @@ public class RegistryDemoUtil {
             createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(content));
             createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = service.groups()
+            final io.apicurio.registry.rest.client.models.VersionMetaData metaData = registryClient.groups()
                     .byGroupId("default").artifacts().post(createArtifact, config -> {
                         config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
                     }).getVersion();

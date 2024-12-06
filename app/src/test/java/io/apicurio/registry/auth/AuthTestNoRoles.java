@@ -2,6 +2,7 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -19,12 +20,12 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.vertx.core.Vertx;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,17 +41,17 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
     final String groupId = "authTestGroupId";
 
     @Override
-    protected RegistryClient createRestClientV3() {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+    protected RegistryClient createRestClientV3(Vertx vertx) {
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var exception = Assertions.assertThrows(Exception.class, () -> {
@@ -61,8 +62,8 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();

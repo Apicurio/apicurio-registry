@@ -1,9 +1,11 @@
 package io.apicurio.registry.noprofile.resolver;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
-import io.apicurio.registry.resolver.*;
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
@@ -34,7 +36,7 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }

@@ -1,5 +1,7 @@
 package io.apicurio.registry.maven;
 
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.vertx.core.Vertx;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -74,19 +76,27 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
     protected void executeInternal() throws MojoExecutionException, ExecutionException, InterruptedException {
         validate();
 
-        int errorCount = 0;
-        if (artifacts != null) {
-            for (DownloadArtifact artifact : artifacts) {
-                errorCount += downloadArtifact(artifact);
-            }
-        }
+        Vertx vertx = Vertx.vertx();
+        RegistryClient registryClient = createClient(vertx);
 
-        if (errorCount > 0) {
-            throw new MojoExecutionException("Errors while downloading artifacts ...");
+        try {
+            int errorCount = 0;
+            if (artifacts != null) {
+                for (DownloadArtifact artifact : artifacts) {
+                    errorCount += downloadArtifact(registryClient, artifact);
+                }
+            }
+
+            if (errorCount > 0) {
+                throw new MojoExecutionException("Errors while downloading artifacts ...");
+            }
+        } finally {
+            vertx.close();
         }
     }
 
-    private int downloadArtifact(DownloadArtifact artifact) throws ExecutionException, InterruptedException {
+    private int downloadArtifact(RegistryClient registryClient, DownloadArtifact artifact)
+            throws ExecutionException, InterruptedException {
         int errorCount = 0;
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
@@ -99,7 +109,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
         getLog().info(String.format("Downloading artifact [%s] / [%s] (version %s).", groupId, artifactId,
                 version));
 
-        try (InputStream content = getClient().groups().byGroupId(groupId).artifacts()
+        try (InputStream content = registryClient.groups().byGroupId(groupId).artifacts()
                 .byArtifactId(artifactId).versions().byVersionExpression(version).content().get()) {
 
             if (!artifact.getFile().getParentFile().exists()) {
@@ -123,7 +133,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
         if (artifact.getArtifactReferences() != null && !artifact.getArtifactReferences().isEmpty()) {
             for (DownloadArtifact reference : artifact.getArtifactReferences()) {
-                errorCount += downloadArtifact(reference);
+                errorCount += downloadArtifact(registryClient, reference);
             }
         }
 

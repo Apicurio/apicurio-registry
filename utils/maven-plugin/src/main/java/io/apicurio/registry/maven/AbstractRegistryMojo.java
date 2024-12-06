@@ -4,6 +4,7 @@ import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.types.ContentTypes;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -12,9 +13,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
-
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 
 /**
  * Base class for all Registry Mojo's. It handles RegistryService's (aka client) lifecycle.
@@ -45,28 +43,20 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     @Parameter(property = "password")
     String password;
 
-    private RegistryClient client;
-
-    protected RegistryClient getClient() {
-        if (client == null) {
-            WebClient provider = null;
-            if (authServerUrl != null && clientId != null && clientSecret != null) {
-                provider = buildOIDCWebClient(authServerUrl, clientId, clientSecret, clientScope);
-            } else if (username != null && password != null) {
-                provider = buildSimpleAuthWebClient(username, password);
-            } else {
-                provider = WebClient.create(VertXAuthFactory.defaultVertx);
-            }
-
-            var adapter = new VertXRequestAdapter(provider);
-            adapter.setBaseUrl(registryUrl);
-            client = new RegistryClient(adapter);
+    protected RegistryClient createClient(Vertx vertx) {
+        WebClient provider = null;
+        if (authServerUrl != null && clientId != null && clientSecret != null) {
+            provider = VertXAuthFactory.buildOIDCWebClient(vertx, authServerUrl, clientId, clientSecret,
+                    clientScope);
+        } else if (username != null && password != null) {
+            provider = VertXAuthFactory.buildSimpleAuthWebClient(vertx, username, password);
+        } else {
+            provider = WebClient.create(vertx);
         }
-        return client;
-    }
 
-    public void setClient(RegistryClient client) {
-        this.client = client;
+        var adapter = new VertXRequestAdapter(provider);
+        adapter.setBaseUrl(registryUrl);
+        return new RegistryClient(adapter);
     }
 
     @Override

@@ -2,6 +2,7 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.types.ArtifactType;
@@ -13,12 +14,11 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.vertx.core.Vertx;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 
 @QuarkusTest
 @TestProfile(AuthTestProfileAuthenticatedReadAccess.class)
@@ -32,9 +32,9 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
     final String groupId = getClass().getSimpleName() + "Group";
 
     @Override
-    protected RegistryClient createRestClientV3() {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrl, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+    protected RegistryClient createRestClientV3(Vertx vertx) {
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx, authServerUrl,
+                JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -42,8 +42,8 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
     @Test
     public void testReadOperationWithNoRole() throws Exception {
         // Read-only operation should work with credentials but no role.
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrl, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx, authServerUrl,
+                JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var results = client.search().artifacts().get(config -> config.queryParameters.groupId = groupId);

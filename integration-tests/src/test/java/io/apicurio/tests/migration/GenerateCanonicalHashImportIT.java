@@ -1,6 +1,5 @@
 package io.apicurio.tests.migration;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
@@ -18,6 +17,7 @@ import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
 import io.apicurio.tests.utils.Constants;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.vertx.core.Vertx;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -46,44 +46,50 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testGeneratingCanonicalHashOnImport() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        Vertx vertx = Vertx.vertx();
+        var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
 
-        Map<String, String> artifacts = new HashMap<>();
+        try {
+            Map<String, String> artifacts = new HashMap<>();
 
-        JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
-        for (int i = 0; i < 20; i++) {
-            String artifactId = i + "-" + UUID.randomUUID();
-            String content = jsonSchema.getSchemaString();
-            artifacts.put(artifactId, content);
-        }
-        var importReq = client.admin().importEscaped()
-                .toPostRequestInformation(generateExportedZip(artifacts));
-        importReq.headers.replace("Content-Type", Set.of("application/zip"));
-        adapter.sendPrimitive(importReq, new HashMap<>(), Void.class);
-
-        for (var entry : artifacts.entrySet()) {
-            String groupId = "default";
-            String artifactId = entry.getKey();
-            String content = entry.getValue();
-
-            /*
-             * TODO: Check if the canonical hash is generated correctly. The only way is to generate canonical
-             * hash and then search artifact by it. But that needs apicurio-registry-app module as dependency.
-             */
-
-            try {
-                var registryContent = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
-                        .versions().byVersionExpression("1.0").content().get();
-                assertNotNull(registryContent);
-                assertEquals(content, IoUtil.toString(registryContent));
-            } catch (ProblemDetails e) {
-                System.out.println("---");
-                System.out.println("REST CLIENT ERROR>> " + e.getDetail());
-                System.out.println("---");
-                throw e;
+            JsonSchemaMsgFactory jsonSchema = new JsonSchemaMsgFactory();
+            for (int i = 0; i < 20; i++) {
+                String artifactId = i + "-" + UUID.randomUUID();
+                String content = jsonSchema.getSchemaString();
+                artifacts.put(artifactId, content);
             }
+            var importReq = client.admin().importEscaped()
+                    .toPostRequestInformation(generateExportedZip(artifacts));
+            importReq.headers.replace("Content-Type", Set.of("application/zip"));
+            adapter.sendPrimitive(importReq, new HashMap<>(), Void.class);
+
+            for (var entry : artifacts.entrySet()) {
+                String groupId = "default";
+                String artifactId = entry.getKey();
+                String content = entry.getValue();
+
+                /*
+                 * TODO: Check if the canonical hash is generated correctly. The only way is to generate
+                 * canonical hash and then search artifact by it. But that needs apicurio-registry-app module
+                 * as dependency.
+                 */
+
+                try {
+                    var registryContent = client.groups().byGroupId(groupId).artifacts()
+                            .byArtifactId(artifactId).versions().byVersionExpression("1.0").content().get();
+                    assertNotNull(registryContent);
+                    assertEquals(content, IoUtil.toString(registryContent));
+                } catch (ProblemDetails e) {
+                    System.out.println("---");
+                    System.out.println("REST CLIENT ERROR>> " + e.getDetail());
+                    System.out.println("---");
+                    throw e;
+                }
+            }
+        } finally {
+            vertx.close();
         }
 
     }

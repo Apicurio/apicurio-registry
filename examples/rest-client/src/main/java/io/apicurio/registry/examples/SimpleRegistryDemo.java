@@ -34,9 +34,6 @@ public class SimpleRegistryDemo {
 
         RegistryDemoUtil.createSchemaInServiceRegistry(client, artifactId, Constants.SCHEMA);
 
-        // Wait for the artifact to be available.
-        Thread.sleep(1000);
-
         RegistryDemoUtil.getSchemaFromRegistry(client, artifactId);
 
         RegistryDemoUtil.deleteSchema(client, artifactId);
@@ -49,7 +46,8 @@ public class SimpleRegistryDemo {
         if (tokenEndpoint != null) {
             final String authClient = System.getenv("AUTH_CLIENT_ID");
             final String authSecret = System.getenv("AUTH_CLIENT_SECRET");
-            var adapter = new VertXRequestAdapter(buildOIDCWebClient(tokenEndpoint, authClient, authSecret));
+            var adapter = new VertXRequestAdapter(
+                    buildOIDCWebClient(vertx, tokenEndpoint, authClient, authSecret));
             adapter.setBaseUrl(registryUrl);
             return new RegistryClient(adapter);
         } else {

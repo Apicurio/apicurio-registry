@@ -19,6 +19,7 @@ import io.apicurio.tests.utils.Constants;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
+import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -45,8 +46,9 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     }
 
     @Override
-    protected RegistryClient createRegistryClient() {
-        var auth = buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
+    protected RegistryClient createRegistryClient(Vertx vertx) {
+        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID,
+                "test1");
         return createClient(auth);
     }
 
@@ -58,7 +60,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var auth = buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID,
+        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID,
                 "test55");
         RegistryClient client = createClient(auth);
         var exception = Assertions.assertThrows(Exception.class, () -> {
@@ -69,8 +71,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testReadOnly() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
+                JWKSMockServer.READONLY_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -89,8 +91,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         });
         assertForbidden(exception3);
 
-        var devAdapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var devAdapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
+                JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient devClient = new RegistryClient(devAdapter);
 
@@ -112,8 +114,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testDevRole() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
+                JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -153,7 +155,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testAdminRole() throws Exception {
         var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+                buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();

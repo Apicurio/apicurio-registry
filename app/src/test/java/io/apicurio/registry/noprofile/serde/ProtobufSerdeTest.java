@@ -4,7 +4,6 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.api.sample.TableNotification;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.config.SerdeConfig;
@@ -36,7 +35,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }

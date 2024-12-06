@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.examples.simple.protobuf;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.examples.AddressBookProtos;
 import io.apicurio.registry.examples.AddressBookProtos.AddressBook;
 import io.apicurio.registry.examples.AddressBookProtos.Person;
@@ -26,6 +25,7 @@ import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.utils.IoUtil;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -126,7 +126,8 @@ public class ProtobufBeanExample {
             consumer.close();
         }
 
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        Vertx vertx = Vertx.vertx();
+        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
         vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
         System.out.println("The artifact created in Apicurio Registry is: ");
@@ -135,7 +136,7 @@ public class ProtobufBeanExample {
         System.out.println(IoUtil.toString(client.groups().byGroupId("default").artifacts()
                 .byArtifactId(topicName + "-value").versions().byVersionExpression("1").content().get()));
         System.out.println();
-        VertXAuthFactory.defaultVertx.close();
+        vertx.close();
         System.out.println("Done (success).");
     }
 

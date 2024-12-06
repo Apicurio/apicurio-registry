@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.examples.simple.protobuf;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.examples.AddressBookProtos;
 import io.apicurio.registry.examples.AddressBookProtos.AddressBook;
 import io.apicurio.registry.examples.AddressBookProtos.Person;
@@ -32,6 +31,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -81,7 +81,8 @@ public class ProtobufFindLatestExample {
         String topicName = TOPIC_NAME;
         String key = SCHEMA_NAME;
 
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        Vertx vertx = Vertx.vertx();
+        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
         vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
         RegistryClient client = new RegistryClient(vertXRequestAdapter);
         System.out.println("Manually creating the artifact in Apicurio Registry");
@@ -161,6 +162,7 @@ public class ProtobufFindLatestExample {
             consumer.close();
         }
 
+        vertx.close();
         System.out.println("Done (success).");
     }
 

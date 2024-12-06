@@ -200,7 +200,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testPrettyJson() throws Exception {
-        testJson(createRegistryClient(), new PrettyFormatStrategy(), input -> {
+        testJson(createRegistryClient(vertx), new PrettyFormatStrategy(), input -> {
             try {
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode root = mapper.readTree(input);
@@ -314,7 +314,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testCompactJson() throws Exception {
-        testJson(createRegistryClient(), new CompactFormatStrategy(), input -> {
+        testJson(createRegistryClient(vertx), new CompactFormatStrategy(), input -> {
             ByteBuffer buffer = BaseSerde.getByteBuffer(input);
             return buffer.getInt();
         });

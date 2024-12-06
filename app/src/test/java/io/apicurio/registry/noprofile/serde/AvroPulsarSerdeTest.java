@@ -1,7 +1,6 @@
 package io.apicurio.registry.noprofile.serde;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
@@ -34,7 +33,7 @@ public class AvroPulsarSerdeTest extends AbstractResourceTestBase {
 
     @BeforeEach
     public void createIsolatedClient() {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
     }

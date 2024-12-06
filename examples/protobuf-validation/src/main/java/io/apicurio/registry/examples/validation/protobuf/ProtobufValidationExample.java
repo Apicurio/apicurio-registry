@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.examples.validation.protobuf;
 
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -32,6 +33,7 @@ import io.apicurio.schema.validation.protobuf.ProtobufValidationResult;
 import io.apicurio.schema.validation.protobuf.ProtobufValidator;
 import io.apicurio.schema.validation.protobuf.ref.MessageExampleOuterClass.MessageExample;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -39,8 +41,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
-import static io.apicurio.registry.client.auth.VertXAuthFactory.defaultVertx;
 import static io.apicurio.schema.validation.protobuf.ref.MessageExample2OuterClass.MessageExample2;
 
 /**
@@ -74,10 +74,11 @@ public class ProtobufValidationExample {
 
     public static final void main(String[] args) throws Exception {
         System.out.println("Starting example " + ProtobufValidationExample.class.getSimpleName());
+        Vertx vertx = Vertx.vertx();
 
         // Register the schema with the registry (only if it is not already registered)
         String artifactId = ProtobufValidationExample.class.getSimpleName();
-        RegistryClient client = createRegistryClient(REGISTRY_URL);
+        RegistryClient client = createRegistryClient(vertx, REGISTRY_URL);
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
@@ -132,24 +133,25 @@ public class ProtobufValidationExample {
         ProtobufValidationResult recordValidationResult = validator.validate(record);
         System.out.println("Validation result: " + recordValidationResult);
         System.out.println();
-        defaultVertx.close();
+        vertx.close();
     }
 
     /**
      * Creates the registry client
      */
-    private static RegistryClient createRegistryClient(String registryUrl) {
+    private static RegistryClient createRegistryClient(Vertx vertx, String registryUrl) {
         final String tokenEndpoint = System.getenv(SchemaResolverConfig.AUTH_TOKEN_ENDPOINT);
 
         // Just if security values are present, then we configure them.
         if (tokenEndpoint != null) {
             final String authClient = System.getenv(SchemaResolverConfig.AUTH_CLIENT_ID);
             final String authSecret = System.getenv(SchemaResolverConfig.AUTH_CLIENT_SECRET);
-            var adapter = new VertXRequestAdapter(buildOIDCWebClient(tokenEndpoint, authClient, authSecret));
+            var adapter = new VertXRequestAdapter(
+                    VertXAuthFactory.buildOIDCWebClient(vertx, tokenEndpoint, authClient, authSecret));
             adapter.setBaseUrl(registryUrl);
             return new RegistryClient(adapter);
         } else {
-            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(defaultVertx);
+            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
             vertXRequestAdapter.setBaseUrl(registryUrl);
             return new RegistryClient(vertXRequestAdapter);
         }

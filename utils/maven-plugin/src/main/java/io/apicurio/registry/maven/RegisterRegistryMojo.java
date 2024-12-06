@@ -9,6 +9,7 @@ import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.maven.refs.IndexedResource;
 import io.apicurio.registry.maven.refs.ReferenceIndex;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -20,6 +21,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
+import io.vertx.core.Vertx;
 import org.apache.avro.Schema;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -123,6 +125,9 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     protected void executeInternal() throws MojoExecutionException {
         int errorCount = 0;
         if (validate()) {
+            Vertx vertx = Vertx.vertx();
+            RegistryClient registryClient = createClient(vertx);
+
             for (RegisterArtifact artifact : artifacts) {
                 String groupId = artifact.getGroupId();
                 String artifactId = artifact.getArtifactId();
@@ -131,11 +136,11 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         // If we have references, then we'll need to create the local resource index and then
                         // process all refs.
                         ReferenceIndex index = createIndex(artifact.getFile());
-                        addExistingReferencesToIndex(index, existingReferences);
-                        addExistingReferencesToIndex(index, artifact.getExistingReferences());
+                        addExistingReferencesToIndex(registryClient, index, existingReferences);
+                        addExistingReferencesToIndex(registryClient, index, artifact.getExistingReferences());
                         Stack<RegisterArtifact> registrationStack = new Stack<>();
 
-                        registerWithAutoRefs(artifact, index, registrationStack);
+                        registerWithAutoRefs(registryClient, artifact, index, registrationStack);
                     } else if (artifact.getAnalyzeDirectory() != null && artifact.getAnalyzeDirectory()) { // Auto
                         // register
                         // selected,
@@ -152,15 +157,15 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         // the
                         // directory
                         // structure
-                        registerDirectory(artifact);
+                        registerDirectory(registryClient, artifact);
                     } else {
 
                         List<ArtifactReference> references = new ArrayList<>();
                         // First, we check if the artifact being processed has references defined
                         if (hasReferences(artifact)) {
-                            references = processArtifactReferences(artifact.getReferences());
+                            references = processArtifactReferences(registryClient, artifact.getReferences());
                         }
-                        registerArtifact(artifact, references);
+                        registerArtifact(registryClient, artifact, references);
                     }
                 } catch (Exception e) {
                     errorCount++;
@@ -176,8 +181,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private VersionMetaData registerWithAutoRefs(RegisterArtifact artifact, ReferenceIndex index,
-            Stack<RegisterArtifact> registrationStack)
+    private VersionMetaData registerWithAutoRefs(RegistryClient registryClient, RegisterArtifact artifact,
+            ReferenceIndex index, Stack<RegisterArtifact> registrationStack)
             throws IOException, ExecutionException, InterruptedException {
         if (loopDetected(artifact, registrationStack)) {
             throw new RuntimeException(
@@ -219,7 +224,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 refArtifact.setFile(localFile);
                 refArtifact.setContentType(getContentTypeByExtension(localFile.getName()));
                 try {
-                    var car = registerWithAutoRefs(refArtifact, index, registrationStack);
+                    var car = registerWithAutoRefs(registryClient, refArtifact, index, registrationStack);
                     iresource.setRegistration(car);
                 } catch (IOException | ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
@@ -236,33 +241,33 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }).sorted((ref1, ref2) -> ref1.getName().compareTo(ref2.getName())).collect(Collectors.toList());
 
         registrationStack.pop();
-        return registerArtifact(artifact, registeredReferences);
+        return registerArtifact(registryClient, artifact, registeredReferences);
     }
 
-    private void registerDirectory(RegisterArtifact artifact)
+    private void registerDirectory(RegistryClient registryClient, RegisterArtifact artifact)
             throws IOException, ExecutionException, InterruptedException {
         switch (artifact.getArtifactType()) {
             case ArtifactType.AVRO:
-                final AvroDirectoryParser avroDirectoryParser = new AvroDirectoryParser(getClient());
+                final AvroDirectoryParser avroDirectoryParser = new AvroDirectoryParser(registryClient);
                 final ParsedDirectoryWrapper<Schema> schema = avroDirectoryParser.parse(artifact.getFile());
-                registerArtifact(artifact, avroDirectoryParser.handleSchemaReferences(artifact,
-                        schema.getSchema(), schema.getSchemaContents()));
+                registerArtifact(registryClient, artifact, avroDirectoryParser
+                        .handleSchemaReferences(artifact, schema.getSchema(), schema.getSchemaContents()));
                 break;
             case ArtifactType.PROTOBUF:
                 final ProtobufDirectoryParser protobufDirectoryParser = new ProtobufDirectoryParser(
-                        getClient());
+                        registryClient);
                 final ParsedDirectoryWrapper<FileDescriptor> protoSchema = protobufDirectoryParser
                         .parse(artifact.getFile());
-                registerArtifact(artifact, protobufDirectoryParser.handleSchemaReferences(artifact,
-                        protoSchema.getSchema(), protoSchema.getSchemaContents()));
+                registerArtifact(registryClient, artifact, protobufDirectoryParser.handleSchemaReferences(
+                        artifact, protoSchema.getSchema(), protoSchema.getSchemaContents()));
                 break;
             case ArtifactType.JSON:
                 final JsonSchemaDirectoryParser jsonSchemaDirectoryParser = new JsonSchemaDirectoryParser(
-                        getClient());
+                        registryClient);
                 final ParsedDirectoryWrapper<org.everit.json.schema.Schema> jsonSchema = jsonSchemaDirectoryParser
                         .parse(artifact.getFile());
-                registerArtifact(artifact, jsonSchemaDirectoryParser.handleSchemaReferences(artifact,
-                        jsonSchema.getSchema(), jsonSchema.getSchemaContents()));
+                registerArtifact(registryClient, artifact, jsonSchemaDirectoryParser.handleSchemaReferences(
+                        artifact, jsonSchema.getSchema(), jsonSchema.getSchemaContents()));
                 break;
             default:
                 throw new IllegalArgumentException(
@@ -271,21 +276,24 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private VersionMetaData registerArtifact(RegisterArtifact artifact, List<ArtifactReference> references)
+    private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,
+            List<ArtifactReference> references)
             throws FileNotFoundException, ExecutionException, InterruptedException {
         if (artifact.getFile() != null) {
-            return registerArtifact(artifact, new FileInputStream(artifact.getFile()), references);
+            return registerArtifact(registryClient, artifact, new FileInputStream(artifact.getFile()),
+                    references);
         } else {
-            return getArtifactVersionMetadata(artifact);
+            return getArtifactVersionMetadata(registryClient, artifact);
         }
     }
 
-    private VersionMetaData getArtifactVersionMetadata(RegisterArtifact artifact) {
+    private VersionMetaData getArtifactVersionMetadata(RegistryClient registryClient,
+            RegisterArtifact artifact) {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
 
-        VersionMetaData amd = getClient().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+        VersionMetaData amd = registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(version).get();
         getLog().info(String.format("Successfully processed artifact [%s] / [%s].  GlobalId is [%d]", groupId,
                 artifactId, amd.getGlobalId()));
@@ -293,8 +301,9 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return amd;
     }
 
-    private VersionMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent,
-            List<ArtifactReference> references) throws ExecutionException, InterruptedException {
+    private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,
+            InputStream artifactContent, List<ArtifactReference> references)
+            throws ExecutionException, InterruptedException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
@@ -337,7 +346,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         createVersion.setContent(content);
 
         try {
-            var vmd = getClient().groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
+            var vmd = registryClient.groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
                 if (artifact.getIfExists() != null) {
                     config.queryParameters.ifExists = IfArtifactExists
                             .forValue(artifact.getIfExists().value());
@@ -358,7 +367,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return artifact.getReferences() != null && !artifact.getReferences().isEmpty();
     }
 
-    private List<ArtifactReference> processArtifactReferences(
+    private List<ArtifactReference> processArtifactReferences(RegistryClient registryClient,
             List<RegisterArtifactReference> referencedArtifacts)
             throws FileNotFoundException, ExecutionException, InterruptedException {
         List<ArtifactReference> references = new ArrayList<>();
@@ -367,9 +376,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             // First, we check if the artifact being processed has references defined, and register them if
             // needed
             if (hasReferences(artifact)) {
-                nestedReferences = processArtifactReferences(artifact.getReferences());
+                nestedReferences = processArtifactReferences(registryClient, artifact.getReferences());
             }
-            final VersionMetaData artifactMetaData = registerArtifact(artifact, nestedReferences);
+            final VersionMetaData artifactMetaData = registerArtifact(registryClient, artifact,
+                    nestedReferences);
             references.add(buildReferenceFromMetadata(artifactMetaData, artifact.getName()));
         }
         return references;
@@ -407,13 +417,13 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return index;
     }
 
-    private void addExistingReferencesToIndex(ReferenceIndex index,
+    private void addExistingReferencesToIndex(RegistryClient registryClient, ReferenceIndex index,
             List<ExistingReference> existingReferences) throws ExecutionException, InterruptedException {
         if (existingReferences != null && !existingReferences.isEmpty()) {
             for (ExistingReference ref : existingReferences) {
                 VersionMetaData vmd;
                 if (ref.getVersion() == null || "LATEST".equalsIgnoreCase(ref.getVersion())) {
-                    vmd = getClient().groups().byGroupId(ref.getGroupId()).artifacts()
+                    vmd = registryClient.groups().byGroupId(ref.getGroupId()).artifacts()
                             .byArtifactId(ref.getArtifactId()).versions().byVersionExpression("branch=latest")
                             .get();
                 } else {

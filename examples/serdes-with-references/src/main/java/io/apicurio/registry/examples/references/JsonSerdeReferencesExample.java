@@ -1,6 +1,5 @@
 package io.apicurio.registry.examples.references;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.examples.references.model.Citizen;
 import io.apicurio.registry.examples.references.model.City;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -16,6 +15,7 @@ import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -41,8 +41,9 @@ public class JsonSerdeReferencesExample {
     private static final String TOPIC_NAME = JsonSerdeReferencesExample.class.getSimpleName();
     private static final String SUBJECT_NAME = "Greeting";
 
-    public static void main(String[] args) throws Exception {
+    private static final Vertx vertx = Vertx.vertx();
 
+    public static void main(String[] args) throws Exception {
         System.out.println("Starting example " + JsonSerdeReferencesExample.class.getSimpleName());
         String topicName = TOPIC_NAME;
         String subjectName = SUBJECT_NAME;
@@ -151,6 +152,7 @@ public class JsonSerdeReferencesExample {
             consumer.close();
         }
 
+        vertx.close();
         System.out.println("Done (success).");
     }
 
@@ -250,11 +252,12 @@ public class JsonSerdeReferencesExample {
         if (tokenEndpoint != null) {
             final String authClient = System.getenv(SerdeConfig.AUTH_CLIENT_ID);
             final String authSecret = System.getenv(SerdeConfig.AUTH_CLIENT_SECRET);
-            var adapter = new VertXRequestAdapter(buildOIDCWebClient(tokenEndpoint, authClient, authSecret));
+            var adapter = new VertXRequestAdapter(
+                    buildOIDCWebClient(vertx, tokenEndpoint, authClient, authSecret));
             adapter.setBaseUrl(registryUrl);
             return new RegistryClient(adapter);
         } else {
-            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
             vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
             return new RegistryClient(vertXRequestAdapter);
         }

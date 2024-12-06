@@ -3,7 +3,6 @@ package io.apicurio.registry.rbac;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
@@ -1570,7 +1569,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         TooManyRequestsMock mock = new TooManyRequestsMock();
         mock.start();
         try {
-            var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+            var adapter = new VertXRequestAdapter(vertx);
             adapter.setBaseUrl(mock.getMockUrl());
             io.apicurio.registry.rest.client.RegistryClient client = new io.apicurio.registry.rest.client.RegistryClient(
                     adapter);

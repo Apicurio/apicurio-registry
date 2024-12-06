@@ -12,22 +12,15 @@ import io.vertx.ext.web.client.WebClientSession;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+/**
+ * A factory class to make it easier to create Vertx web clients with authentication enabled. Supports OIDC
+ * and BASIC auth.
+ */
 public class VertXAuthFactory {
-
-    public final static Vertx defaultVertx = Vertx.vertx();
-
-    public static WebClient buildOIDCWebClient(String tokenUrl, String clientId, String clientSecret) {
-        return buildOIDCWebClient(defaultVertx, tokenUrl, clientId, clientSecret, null);
-    }
 
     public static WebClient buildOIDCWebClient(Vertx vertx, String tokenUrl, String clientId,
             String clientSecret) {
-        return buildOIDCWebClient(tokenUrl, clientId, clientSecret, null);
-    }
-
-    public static WebClient buildOIDCWebClient(String tokenUrl, String clientId, String clientSecret,
-            String scope) {
-        return buildOIDCWebClient(defaultVertx, tokenUrl, clientId, clientSecret, scope);
+        return buildOIDCWebClient(vertx, tokenUrl, clientId, clientSecret, null);
     }
 
     public static WebClient buildOIDCWebClient(Vertx vertx, String tokenUrl, String clientId,
@@ -43,10 +36,6 @@ public class VertXAuthFactory {
         oauth2WebClient.withCredentials(oauth2Credentials);
 
         return oauth2WebClient;
-    }
-
-    public static WebClient buildSimpleAuthWebClient(String username, String password) {
-        return buildSimpleAuthWebClient(defaultVertx, username, password);
     }
 
     public static WebClient buildSimpleAuthWebClient(Vertx vertx, String username, String password) {

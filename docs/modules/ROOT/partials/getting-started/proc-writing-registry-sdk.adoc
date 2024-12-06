@@ -29,21 +29,28 @@ You can write a client application to manage artifacts stored in {registry} by u
 +
 [source,java,subs="+quotes,attributes"]
 ----
-public class ClientExample {
+import io.vertx.core.Vertx;public class ClientExample {
 
     public static void main(String[] args) throws Exception {
-       // Create a registry client
-       String registryUrl = "https://my-registry.my-domain.com/apis/registry/v3"; <1>
-       VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
-       vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
+        // Create a registry client
+        String registryUrl = "https://my-registry.my-domain.com/apis/registry/v3"; <1>
+        Vertx vertx = Vertx.vertx(); <2>
+        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
+        vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
 
-       RegistryClient client = new RegistryClient(vertXRequestAdapter); <2>
+        RegistryClient client = new RegistryClient(vertXRequestAdapter); <3>
+
+        // Use client here
+
+        vertx.close(); <4>
     }
 }
 ----
 +
 <1> If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client will automatically append `/apis/registry/v3`.
-<2> For more options when creating a {registry} client, see the Java client configuration in the next section.
+<2> Create a new Vertx object (needed by the VertxRequestAdapter)
+<3> For more options when creating a {registry} client, see the Java client configuration in the next section.
+<4> When you are done with the client, close the Vertx object to free its resources.
 
 When the client is created, you can use all of the operations available in the {registry} REST API in the client. For more details, see the {registry-rest-api}.
 

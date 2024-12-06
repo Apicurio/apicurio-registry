@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.examples.simple.json;
 
+import io.vertx.core.Vertx;
 import org.everit.json.schema.ValidationException;
 
 import java.security.SecureRandom;
@@ -48,6 +49,7 @@ public class SimpleValidationExample {
 
     public static final void main(String[] args) throws Exception {
         System.out.println("Starting example " + SimpleValidationExample.class.getSimpleName());
+        Vertx vertx = Vertx.vertx();
 
         // Start a mock broker
         SimpleBroker broker = new SimpleBroker();
@@ -59,7 +61,7 @@ public class SimpleValidationExample {
         String artifactId = Optional.ofNullable(System.getenv("ARTIFACT_ID")).orElse(ARTIFACT_ID);
 
         // Create a message validator and message publisher
-        MessageValidator validator = new MessageValidator(registryUrl, group, artifactId);
+        MessageValidator validator = new MessageValidator(vertx, registryUrl, group, artifactId);
         MessagePublisher publisher = new MessagePublisher();
 
         // Produce messages in a loop.
@@ -83,6 +85,7 @@ public class SimpleValidationExample {
             Thread.sleep(5000);
         }
 
+        vertx.close();
         System.out.println("Done (success).");
     }
 

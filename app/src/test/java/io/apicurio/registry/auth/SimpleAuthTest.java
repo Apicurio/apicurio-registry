@@ -2,6 +2,7 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -31,8 +32,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,9 +51,9 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     final String groupId = "authTestGroupId";
 
     @Override
-    protected RegistryClient createRestClientV3() {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+    protected RegistryClient createRestClientV3(Vertx vertx) {
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -81,8 +80,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var exception = Assertions.assertThrows(Exception.class, () -> {
@@ -103,8 +102,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testReadOnly() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -127,8 +126,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             config.queryParameters.dryRun = true;
         });
 
-        var devAdapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var devAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient devClient = new RegistryClient(devAdapter);
 
@@ -151,8 +150,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testDevRole() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -190,8 +189,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -226,8 +225,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRoleBasicAuth() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(JWKSMockServer.BASIC_USER, JWKSMockServer.BASIC_PASSWORD));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildSimpleAuthWebClient(vertx,
+                JWKSMockServer.BASIC_USER, JWKSMockServer.BASIC_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -255,8 +254,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRoleBasicAuthWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(JWKSMockServer.WRONG_CREDS_CLIENT_ID, UUID.randomUUID().toString()));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildSimpleAuthWebClient(vertx,
+                JWKSMockServer.WRONG_CREDS_CLIENT_ID, UUID.randomUUID().toString()));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -274,13 +273,13 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
-        var devAdapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var devAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientDev = new RegistryClient(devAdapter);
 
-        var adminAdapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adminAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
         adminAdapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientAdmin = new RegistryClient(adminAdapter);
 
@@ -315,8 +314,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testGetArtifactOwner() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
@@ -344,8 +343,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testUpdateArtifactOwner() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
@@ -388,12 +387,12 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
-        var adapter_dev1 = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        var adapter_dev1 = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
         adapter_dev1.setBaseUrl(registryV3ApiUrl);
         RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
-        var adapter_dev2 = new VertXRequestAdapter(
-                buildOIDCWebClient(authServerUrlConfigured, JWKSMockServer.DEVELOPER_2_CLIENT_ID, "test1"));
+        var adapter_dev2 = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_2_CLIENT_ID, "test1"));
         adapter_dev2.setBaseUrl(registryV3ApiUrl);
         RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
 

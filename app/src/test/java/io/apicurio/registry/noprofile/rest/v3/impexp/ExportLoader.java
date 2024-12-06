@@ -1,6 +1,5 @@
 package io.apicurio.registry.noprofile.rest.v3.impexp;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rbac.AdminResourceTest;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -12,6 +11,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 
 import java.util.UUID;
 
@@ -25,39 +25,44 @@ public class ExportLoader {
             + "        \"description\": \"An example API design using OpenAPI.\"\r\n" + "    }\r\n" + "}";
 
     public static void main(String[] args) throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        Vertx vertx = Vertx.vertx();
+        var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl("http://localhost:8080/apis/registry/v3");
         RegistryClient client = new RegistryClient(adapter);
-        for (int idx = 0; idx < 1000; idx++) {
-            System.out.println("Iteration: " + idx);
-            String data = CONTENT.replace("1.0.0", "1.0." + idx);
-            String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
-                    data, ContentTypes.APPLICATION_JSON);
-            client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
-                    .post(createArtifact);
-            client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
-                    .byArtifactId(artifactId).delete();
+        try {
+            for (int idx = 0; idx < 1000; idx++) {
+                System.out.println("Iteration: " + idx);
+                String data = CONTENT.replace("1.0.0", "1.0." + idx);
+                String artifactId = UUID.randomUUID().toString();
+                CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId,
+                        ArtifactType.OPENAPI, data, ContentTypes.APPLICATION_JSON);
+                client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                        .post(createArtifact);
+                client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                        .byArtifactId(artifactId).delete();
+            }
+
+            String testContent = CONTENT.replace("Empty API", "Test Artifact");
+
+            createVersion(client, "Artifact-1", "1.0.1");
+            createVersion(client, "Artifact-1", "1.0.2");
+            createVersion(client, "Artifact-1", "1.0.3");
+            createVersion(client, "Artifact-2", "1.0.1");
+            createVersion(client, "Artifact-3", "1.0.2");
+
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig("SYNTAX_ONLY");
+            client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules()
+                    .post(createRule);
+
+            createRule = new CreateRule();
+            createRule.setRuleType(RuleType.COMPATIBILITY);
+            createRule.setConfig("BACKWARD");
+            client.admin().rules().post(createRule);
+        } finally {
+            vertx.close();
         }
-
-        String testContent = CONTENT.replace("Empty API", "Test Artifact");
-
-        createVersion(client, "Artifact-1", "1.0.1");
-        createVersion(client, "Artifact-1", "1.0.2");
-        createVersion(client, "Artifact-1", "1.0.3");
-        createVersion(client, "Artifact-2", "1.0.1");
-        createVersion(client, "Artifact-3", "1.0.2");
-
-        CreateRule createRule = new CreateRule();
-        createRule.setRuleType(RuleType.VALIDITY);
-        createRule.setConfig("SYNTAX_ONLY");
-        client.groups().byGroupId("ImportTest").artifacts().byArtifactId("Artifact-1").rules()
-                .post(createRule);
-
-        createRule = new CreateRule();
-        createRule.setRuleType(RuleType.COMPATIBILITY);
-        createRule.setConfig("BACKWARD");
-        client.admin().rules().post(createRule);
     }
 
     private static void createVersion(RegistryClient client, String artifactId, String version) {

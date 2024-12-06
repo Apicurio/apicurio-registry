@@ -1,6 +1,5 @@
 package io.apicurio.deployment;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
@@ -12,6 +11,7 @@ import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
 import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +67,8 @@ public class KafkaSqlDeploymentManager {
         // Create a bunch of artifacts and rules, so they're added to the snapshot.
         String simpleAvro = resourceToString("artifactTypes/avro/multi-field_v1.json");
 
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.defaultVertx);
+        Vertx vertx = Vertx.vertx();
+        var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(registryBaseUrl);
         RegistryClient client = new RegistryClient(adapter);
 
@@ -101,6 +102,8 @@ public class KafkaSqlDeploymentManager {
             client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules()
                     .post(createRule);
         }
+
+        vertx.close();
     }
 
     private static void deleteRegistryDeployment() {

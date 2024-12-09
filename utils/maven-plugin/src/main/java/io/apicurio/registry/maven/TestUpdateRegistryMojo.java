@@ -71,7 +71,7 @@ public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
     @Override
     protected void executeInternal() throws MojoExecutionException {
         validate();
-        Vertx vertx = Vertx.vertx();
+        Vertx vertx = createVertx();
         RegistryClient registryClient = createClient(vertx);
 
         try {

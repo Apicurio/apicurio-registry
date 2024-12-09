@@ -15,8 +15,11 @@ import java.util.List;
 
 /**
  * Test artifact against current artifact rules, if an update is possible / valid.
+ * 
+ * @deprecated In favor of using the "dryRun" option of the "register" mojo.
  */
 @Mojo(name = "test-update")
+@Deprecated
 public class TestUpdateRegistryMojo extends AbstractRegistryMojo {
 
     /**

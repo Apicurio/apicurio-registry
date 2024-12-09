@@ -2,7 +2,7 @@
   "descriptionHash": "7537C173C934421678E3DE186D432112255E25EE6716196674E5B766FF7B6F4324F33454D6EFA106153CC6D43577EF7B8DAD49188FB7F285E8DA577347C90856",
   "descriptionLocation": "../../v3.json",
   "lockFileVersion": "1.0.0",
-  "kiotaVersion": "1.20.0",
+  "kiotaVersion": "1.21.0",
   "clientClassName": "ApiClient",
   "typeAccessModifier": "Public",
   "clientNamespaceName": "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3",

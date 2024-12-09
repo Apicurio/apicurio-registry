@@ -15,6 +15,7 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
@@ -25,6 +26,7 @@ import io.vertx.core.Vertx;
 import org.apache.avro.Schema;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
@@ -54,7 +56,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     /**
      * The list of pre-registered artifacts that can be used as references.
      */
-    @Parameter(required = true)
+    @Parameter(required = false)
     List<ExistingReference> existingReferences;
 
     /**
@@ -68,6 +70,13 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
      */
     @Parameter(property = "skipRegister", defaultValue = "false")
     boolean skip;
+
+    /**
+     * Set this to 'true' to perform the action with the "dryRun" option enabled. This will effectively test
+     * whether registration *would have worked*. But it results in no changes made on the server.
+     */
+    @Parameter(property = "dryRun", defaultValue = "false")
+    boolean dryRun;
 
     DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl();
 
@@ -83,6 +92,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         if (artifacts == null || artifacts.isEmpty()) {
             getLog().warn("No artifacts are configured for registration.");
             return false;
+        }
+
+        if (existingReferences == null) {
+            existingReferences = new ArrayList<>();
         }
 
         int idx = 0;
@@ -182,8 +195,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private VersionMetaData registerWithAutoRefs(RegistryClient registryClient, RegisterArtifact artifact,
-            ReferenceIndex index, Stack<RegisterArtifact> registrationStack)
-            throws IOException, ExecutionException, InterruptedException {
+            ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException,
+            ExecutionException, InterruptedException, MojoExecutionException, MojoFailureException {
         if (loopDetected(artifact, registrationStack)) {
             throw new RuntimeException(
                     "Artifact reference loop detected (not supported): " + printLoop(registrationStack));
@@ -203,7 +216,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 .findExternalReferences(typedArtifactContent);
 
         // Register all of the references first, then register the artifact.
-        List<ArtifactReference> registeredReferences = externalReferences.stream().map(externalRef -> {
+        List<ArtifactReference> registeredReferences = new ArrayList<>(externalReferences.size());
+        for (ExternalReference externalRef : externalReferences) {
             IndexedResource iresource = index.lookup(externalRef.getResource(),
                     Paths.get(artifact.getFile().toURI()));
 
@@ -236,16 +250,17 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             reference.setVersion(iresource.getRegistration().getVersion());
             reference.setGroupId(iresource.getRegistration().getGroupId());
             reference.setArtifactId(iresource.getRegistration().getArtifactId());
-
-            return reference;
-        }).sorted((ref1, ref2) -> ref1.getName().compareTo(ref2.getName())).collect(Collectors.toList());
+            registeredReferences.add(reference);
+        }
+        registeredReferences.sort((ref1, ref2) -> ref1.getName().compareTo(ref2.getName()));
 
         registrationStack.pop();
         return registerArtifact(registryClient, artifact, registeredReferences);
     }
 
     private void registerDirectory(RegistryClient registryClient, RegisterArtifact artifact)
-            throws IOException, ExecutionException, InterruptedException {
+            throws IOException, ExecutionException, InterruptedException, MojoExecutionException,
+            MojoFailureException {
         switch (artifact.getArtifactType()) {
             case ArtifactType.AVRO:
                 final AvroDirectoryParser avroDirectoryParser = new AvroDirectoryParser(registryClient);
@@ -277,8 +292,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,
-            List<ArtifactReference> references)
-            throws FileNotFoundException, ExecutionException, InterruptedException {
+            List<ArtifactReference> references) throws FileNotFoundException, ExecutionException,
+            InterruptedException, MojoExecutionException, MojoFailureException {
         if (artifact.getFile() != null) {
             return registerArtifact(registryClient, artifact, new FileInputStream(artifact.getFile()),
                     references);
@@ -303,7 +318,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,
             InputStream artifactContent, List<ArtifactReference> references)
-            throws ExecutionException, InterruptedException {
+            throws ExecutionException, InterruptedException, MojoFailureException, MojoExecutionException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
@@ -350,6 +365,9 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 if (artifact.getIfExists() != null) {
                     config.queryParameters.ifExists = IfArtifactExists
                             .forValue(artifact.getIfExists().value());
+                    if (dryRun) {
+                        config.queryParameters.dryRun = true;
+                    }
                 }
                 config.queryParameters.canonical = canonicalize;
             });
@@ -358,8 +376,9 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     groupId, artifactId, vmd.getVersion().getGlobalId()));
 
             return vmd.getVersion();
-        } catch (ProblemDetails e) {
-            throw new RuntimeException(e.getDetail());
+        } catch (RuleViolationProblemDetails | ProblemDetails e) {
+            logAndThrow(e);
+            return null;
         }
     }
 
@@ -368,8 +387,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private List<ArtifactReference> processArtifactReferences(RegistryClient registryClient,
-            List<RegisterArtifactReference> referencedArtifacts)
-            throws FileNotFoundException, ExecutionException, InterruptedException {
+            List<RegisterArtifactReference> referencedArtifacts) throws FileNotFoundException,
+            ExecutionException, InterruptedException, MojoExecutionException, MojoFailureException {
         List<ArtifactReference> references = new ArrayList<>();
         for (RegisterArtifactReference artifact : referencedArtifacts) {
             List<ArtifactReference> nestedReferences = new ArrayList<>();
@@ -434,7 +453,6 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 }
                 index.index(ref.getResourceName(), vmd);
             }
-            ;
         }
     }
 

@@ -73,10 +73,9 @@ public class RuleViolationException extends RegistryException {
         this.causes = causes;
     }
 
-    @Override
-    public String getMessage() {
+    public String getDetailMessage() {
         return super.getMessage() + causes.stream().map(rv -> rv.getDescription()
-                + (rv.getContext() != null && !rv.getContext().isBlank() ? " at " + rv.getContext() : ""))
+                        + (rv.getContext() != null && !rv.getContext().isBlank() ? " at " + rv.getContext() : ""))
                 .reduce((left, right) -> left + ", " + right).map(s -> " Causes: " + s).orElse("");
     }
 }

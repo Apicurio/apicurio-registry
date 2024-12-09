@@ -1,7 +1,10 @@
 package io.apicurio.registry.maven;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.types.ContentTypes;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
@@ -141,4 +144,37 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     public void setPassword(String password) {
         this.password = password;
     }
+
+    protected void logAndThrow(ApiException e) throws MojoExecutionException, MojoFailureException {
+        if (e instanceof RuleViolationProblemDetails) {
+            logAndThrow((RuleViolationProblemDetails) e);
+        }
+        if (e instanceof ProblemDetails) {
+            logAndThrow((ProblemDetails) e);
+        }
+    }
+
+    protected void logAndThrow(ProblemDetails e) throws MojoExecutionException {
+        getLog().error("---");
+        getLog().error("Error registering artifact: " + e.getName());
+        getLog().error(e.getTitle());
+        getLog().error(e.getDetail());
+        getLog().error("---");
+        throw new MojoExecutionException("Error registering artifact: " + e.getName(), e);
+    }
+
+    protected void logAndThrow(RuleViolationProblemDetails e) throws MojoFailureException {
+        getLog().error("---");
+        getLog().error("Registry rule validation failure: " + e.getName());
+        getLog().error(e.getTitle());
+        if (e.getCauses() != null) {
+            e.getCauses().forEach(cause -> {
+                getLog().error("\t-> " + cause.getContext());
+                getLog().error("\t   " + cause.getDescription());
+            });
+        }
+        getLog().error("---");
+        throw new MojoFailureException("Registry rule validation failure: " + e.getName(), e);
+    }
+
 }

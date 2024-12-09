@@ -81,19 +81,21 @@ public class CoreRegistryExceptionMapperService {
         if (t instanceof RuleViolationException) {
             RuleViolationException rve = (RuleViolationException) t;
             details = new RuleViolationProblemDetails();
+            ((RuleViolationProblemDetails) details).setTitle(rve.getMessage());
+            ((RuleViolationProblemDetails) details).setDetail(rve.getDetailMessage());
             ((RuleViolationProblemDetails) details).setCauses(toRestCauses(rve.getCauses()));
         } else {
             details = new ProblemDetails();
+            details.setTitle(t.getLocalizedMessage());
+            if (includeStackTrace) {
+                details.setDetail(getStackTrace(t));
+            } else {
+                details.setDetail(getRootMessage(t));
+            }
         }
 
         details.setStatus(code);
-        details.setTitle(t.getLocalizedMessage());
         details.setName(t.getClass().getSimpleName());
-        if (includeStackTrace) {
-            details.setDetail(getStackTrace(t));
-        } else {
-            details.setDetail(getRootMessage(t));
-        }
         return details;
     }
 

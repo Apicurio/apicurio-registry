@@ -44,13 +44,13 @@ $ docker pull apicurio/apicurio-registry:VERSION
 . Run the container image and specify the following environment variable for your Kafka system:
 +
 ** `APICURIO_STORAGE_KIND` - Set this to `kafkasql`
-** `APICURIO_KAFKA_BOOTSTRAP_SERVERS` - The address(es) of your Kafka broker(s).
+** `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS` - The address(es) of your Kafka broker(s).
 +
 For example:  
 +
 [source,bash]
 ----
-$ docker run -it -p 8080:8080 -e "APICURIO_STORAGE_KIND=kafkasql" -e "APICURIO_KAFKA_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry:latest
+$ docker run -it -p 8080:8080 -e "APICURIO_STORAGE_KIND=kafkasql" -e "APICURIO_KAFKASQL_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry:latest
 ----
 endif::[]
 

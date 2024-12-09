@@ -125,7 +125,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     protected void executeInternal() throws MojoExecutionException {
         int errorCount = 0;
         if (validate()) {
-            Vertx vertx = Vertx.vertx();
+            Vertx vertx = createVertx();
             RegistryClient registryClient = createClient(vertx);
 
             for (RegisterArtifact artifact : artifacts) {

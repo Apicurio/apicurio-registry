@@ -5,6 +5,8 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.types.ContentTypes;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
+import io.vertx.core.file.FileSystemOptions;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -42,6 +44,15 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     @Parameter(property = "password")
     String password;
+
+    protected Vertx createVertx() {
+        var options = new VertxOptions();
+        var fsOpts = new FileSystemOptions();
+        fsOpts.setFileCachingEnabled(false);
+        fsOpts.setClassPathResolvingEnabled(false);
+        options.setFileSystemOptions(fsOpts);
+        return Vertx.vertx(options);
+    }
 
     protected RegistryClient createClient(Vertx vertx) {
         WebClient provider = null;

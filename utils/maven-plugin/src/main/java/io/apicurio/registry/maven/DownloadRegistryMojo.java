@@ -76,7 +76,7 @@ public class DownloadRegistryMojo extends AbstractRegistryMojo {
     protected void executeInternal() throws MojoExecutionException, ExecutionException, InterruptedException {
         validate();
 
-        Vertx vertx = Vertx.vertx();
+        Vertx vertx = createVertx();
         RegistryClient registryClient = createClient(vertx);
 
         try {

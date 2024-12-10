@@ -1,0 +1,16 @@
+{
+  "$id": "https://example.com/address.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Address",
+  "type": "object",
+  "properties": {
+    "street": {
+      "type": "string",
+      "description": "The street name."
+    },
+    "city": {
+      "type": "string",
+      "description": "The city name."
+    }
+  }
+}

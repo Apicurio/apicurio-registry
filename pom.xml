@@ -469,6 +469,12 @@
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-common-app-components-multitenancy</artifactId>
                 <version>${apicurio-common-app-components.version}</version>
+                 <exclusions>
+                    <exclusion>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>

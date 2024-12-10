@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "apicurioregistrysdk"
-version = "2.6.5"
+version = "2.6.6"
 description = ""
 authors = ["Andrea Peruffo <andrea.peruffo1982@gmail.com>"]
 readme = "README.md"

@@ -145,13 +145,15 @@
 
     <!--
     WARNING: The following group of dependencies has to be aligned with the corresponding Quarkus version.
-    See notes for each entry.
     -->
     <quarkus.version>3.15.1</quarkus.version>
-    <!-- Go to `io.quarkiverse.operatorsdk:quarkus-operator-sdk-bom` and then to the parent `io.quarkiverse.operatorsdk:quarkus-operator-sdk-parent`. -->
-    <!-- TODO: Fix: Currently, versions are not aligned exactly (3.11.1 vs 3.11.0), because there is no closer version supported by QOSDK. -->
+    <!--
+    Go to `io.quarkiverse.operatorsdk:quarkus-operator-sdk-bom` and then to the parent `io.quarkiverse.operatorsdk:quarkus-operator-sdk-parent`,
+    e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/6.8.4/quarkus-operator-sdk-parent-6.8.4.pom
+    to check that the versions match.
+    -->
     <quarkus-operator-sdk.version>6.8.4</quarkus-operator-sdk.version>
-    <java-operator-sdk.version>4.9.7</java-operator-sdk.version>
+    <java-operator-sdk.version>4.9.6</java-operator-sdk.version>
     <!-- /WARNING -->
 
     <!-- Jandex -->

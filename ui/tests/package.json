@@ -1,6 +1,6 @@
 {
   "name": "@apicurio/registry-ui-tests",
-  "version": "3.0.6",
+  "version": "3.0.7",
   "description": "UI tests (playwright) for Apicurio Registry UI",
   "repository": "https://github.com/Apicurio/apicurio-registry.git",
   "main": "index.js",

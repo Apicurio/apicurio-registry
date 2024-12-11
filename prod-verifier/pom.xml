@@ -20,13 +20,16 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-app</artifactId>
-      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-distro-connect-converter</artifactId>
-      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-operator-controller</artifactId>
       <scope>provided</scope>
     </dependency>
   </dependencies>
@@ -46,10 +49,12 @@
             <phase>package</phase>
             <configuration>
               <directories>
-                <param>${project.basedir}/../app/target/lib</param>
+                <param>${projectRoot}/app/target/lib</param>
+                <param>${projectRoot}/operator/controller/target/quarkus-app/lib/boot</param>
+                <param>${projectRoot}/operator/controller/target/quarkus-app/lib/main</param>
               </directories>
               <distributions>
-                <param>${project.basedir}/../distro/connect-converter/target/apicurio-kafka-connect-converter-${project.version}.zip</param>
+                <param>${projectRoot}/distro/connect-converter/target/apicurio-kafka-connect-converter-${project.version}.zip</param>
               </distributions>
             </configuration>
           </execution>

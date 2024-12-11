@@ -533,6 +533,11 @@
         <version>${project.version}</version>
         <classifier>tests</classifier>
       </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-distro-connect-converter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
 
       <!-- Quarkus Dependencies -->
       <dependency>

@@ -153,7 +153,7 @@
     to check that the versions match.
     -->
     <quarkus-operator-sdk.version>6.8.4</quarkus-operator-sdk.version>
-    <java-operator-sdk.version>4.9.6</java-operator-sdk.version>
+    <java-operator-sdk.version>4.9.7</java-operator-sdk.version>
     <!-- /WARNING -->
 
     <!-- Jandex -->

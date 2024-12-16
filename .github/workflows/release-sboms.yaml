@@ -17,7 +17,7 @@ env:
 
 
 jobs:
-  release-maven:
+  release-sboms:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
     runs-on: ubuntu-22.04
     timeout-minutes: 30
@@ -57,7 +57,7 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: 'ui/**/package-lock.json'
+          cache-dependency-path: 'registry/ui/**/package-lock.json'
 
       - name: Maven Install
         run: |

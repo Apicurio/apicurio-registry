@@ -1,0 +1,85 @@
+name: Release SBOMs
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag name'
+        required: true
+  release:
+    types: [released, prereleased]
+
+
+env:
+  # The values are extracted from the github.event context,
+  # which is only available when the workflow gets triggered by a release event.
+  RELEASE_VERSION: ${{ github.event.release.name }}
+  BRANCH: ${{ github.event.release.target_commitish }}
+
+
+jobs:
+  release-maven:
+    if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    env:
+      RELEASE_TYPE: release
+    steps:
+      - name: Fetch Release Details
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          touch release.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${{ github.event.inputs.tag }} > release.json
+          echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
+
+      - name: Download Source Code
+        run: |
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git clone --branch $RELEASE_VERSION --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
+
+      - name: Checkout SBOMs Repo
+        run: |
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git clone --branch main --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-sboms.git sboms
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Maven Install
+        run: |
+          cd registry
+          mvn install -Pprod -DskipTests -Dspotless.check.skip=true
+
+      - name: Generate Maven SBOMs
+        run: |
+          mkdir -p sboms/apicurio-registry/$RELEASE_VERSION
+          cd registry
+          mvn -f app/pom.xml dependency:tree -DoutputType=dot -Dscope=runtime -DoutputFile=../sboms/apicurio-registry/$RELEASE_VERSION/apicurio-registry-app-$RELEASE_VERSION.runtime.sbom.dot
+
+      - name: Generate npm SBOMs
+        run: |
+          cd registry/ui
+          npm install
+          cd ui-app
+          npm list -prod -depth 10 --json > ../../../sboms/apicurio-registry/$RELEASE_VERSION/apicurio-registry-ui-app-$RELEASE_VERSION.sbom.npm
+          cd ../ui-docs
+          npm list -prod -depth 10 --json > ../../../sboms/apicurio-registry/$RELEASE_VERSION/apicurio-registry-ui-docs-$RELEASE_VERSION.sbom.npm
+
+      - name: Commit SBOMs to Repo
+        run: |
+          cd sboms
+          git add .
+          git commit -m 'Generated SBOMs for release $RELEASE_VERSION'
+          git push origin main
+
+      - name: Google Chat Notification
+        if: ${{ failure() }}
+        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
+        with:
+          name: ${{ github.job }}
+          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          status: ${{ job.status }}

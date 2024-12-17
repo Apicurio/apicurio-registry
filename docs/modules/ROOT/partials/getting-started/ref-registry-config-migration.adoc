@@ -4,7 +4,7 @@
 {registry} v3 has simplified the configuration options, removing duplicates and improving consistency.
 For most options, the only change is ssrenaming of the prefix from `registry` to `apicurio`, for example, changing `registry.kafkasql.bootstrap.servers` to `apicurio.kafkasql.bootstrap.servers`.
 
-NOTE: For each configuration property you can override the value by using the corresponding environment variable, for example, `APICURIO_KAFKA_SQL_BOOTSTRAP_SERVERS`.s
+NOTE: For each configuration property you can override the value by using the corresponding environment variable, for example, `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS`.s
 
 == api
 .api configuration options

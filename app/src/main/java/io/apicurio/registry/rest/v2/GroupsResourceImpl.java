@@ -1371,7 +1371,8 @@ public class GroupsResourceImpl implements GroupsResource {
                 content, contentType, references);
     }
 
-    private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    protected ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
             String name, String description, ContentHandle content, String contentType,
             List<ArtifactReference> references) {
 

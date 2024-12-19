@@ -4,15 +4,7 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactMetaData;
-import io.apicurio.registry.rest.client.models.CreateArtifact;
-import io.apicurio.registry.rest.client.models.CreateRule;
-import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
-import io.apicurio.registry.rest.client.models.RuleType;
-import io.apicurio.registry.rest.client.models.UserInfo;
-import io.apicurio.registry.rest.client.models.VersionContent;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
@@ -310,6 +302,18 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         createRule.setConfig(CompatibilityLevel.BACKWARD.name());
         clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).rules()
                 .post(createRule);
+
+        // Admin user will create an artifact
+        String artifactId1 = TestUtils.generateArtifactId();
+        createArtifact.setArtifactId(artifactId1);
+        clientAdmin.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Dev user cannot update with ifExists the same artifact because Dev user is not the owner
+        Assertions.assertThrows(Exception.class, () -> {
+            clientDev.groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
+                config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
+            });
+        });
     }
 
     @Test

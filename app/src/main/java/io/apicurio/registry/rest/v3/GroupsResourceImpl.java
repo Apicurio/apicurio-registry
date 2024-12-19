@@ -1280,7 +1280,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return updateArtifactInternal(groupId, artifactId, theVersion);
     }
 
-    private CreateArtifactResponse updateArtifactInternal(String groupId, String artifactId,
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    protected CreateArtifactResponse updateArtifactInternal(String groupId, String artifactId,
             CreateVersion theVersion) {
         String version = theVersion.getVersion();
         String name = theVersion.getName();

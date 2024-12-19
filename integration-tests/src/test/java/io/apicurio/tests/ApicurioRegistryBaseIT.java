@@ -609,7 +609,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     protected void assertForbidden(Exception exception) {
-        assertNotNull(exception);
         Assertions.assertEquals(ApiException.class, exception.getClass());
         Assertions.assertEquals(403, ((ApiException) exception).getResponseStatusCode());
     }

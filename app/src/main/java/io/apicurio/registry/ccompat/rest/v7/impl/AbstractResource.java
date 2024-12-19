@@ -32,6 +32,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import org.apache.avro.AvroTypeException;
@@ -66,6 +67,9 @@ public abstract class AbstractResource {
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
+    SecurityIdentity securityIdentity;
 
     protected String toSubjectWithGroupConcat(String groupId, String artifactId) {
         return (groupId == null ? "" : groupId) + cconfig.groupConcatSeparator + artifactId;
@@ -107,6 +111,9 @@ public abstract class AbstractResource {
                 .collect(Collectors.toList());
         final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                 .recursivelyResolveReferences(parsedReferences, storage::getContentByReference);
+
+        String owner = securityIdentity.getPrincipal().getName();
+
         try {
             ContentHandle schemaContent;
             schemaContent = ContentHandle.create(schema);
@@ -126,8 +133,10 @@ public abstract class AbstractResource {
                 ContentWrapperDto firstVersionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();
 
-                res = storage.createArtifact(groupId, artifactId, artifactType, artifactMetaData, null,
-                        firstVersionContent, firstVersionMetaData, null, false, false).getValue();
+                res = storage
+                        .createArtifact(groupId, artifactId, artifactType, artifactMetaData, null,
+                                firstVersionContent, firstVersionMetaData, null, false, false, owner)
+                        .getValue();
             } else {
                 TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
                 rulesService.applyRules(groupId, artifactId, artifactType, typedSchemaContent,
@@ -135,7 +144,7 @@ public abstract class AbstractResource {
                 ContentWrapperDto versionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();
                 res = storage.createArtifactVersion(groupId, artifactId, null, artifactType, versionContent,
-                        EditableVersionMetaDataDto.builder().build(), List.of(), false, false);
+                        EditableVersionMetaDataDto.builder().build(), List.of(), false, false, owner);
             }
         } catch (RuleViolationException ex) {
             if (ex.getRuleType() == RuleType.VALIDITY) {

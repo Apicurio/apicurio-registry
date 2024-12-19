@@ -1,13 +1,17 @@
 package io.apicurio.tests.auth;
 
+import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.UserInfo;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -26,7 +30,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Tag(Constants.AUTH)
 @TestProfile(AuthTestProfile.class)
@@ -187,6 +193,172 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         } finally {
             client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
         }
+    }
+
+    @Test
+    public void testOwnerOnlyAuthorization() throws Exception {
+        var devAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        devAdapter.setBaseUrl(getRegistryV3ApiUrl());
+        RegistryClient clientDev = new RegistryClient(devAdapter);
+
+        var adminAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        adminAdapter.setBaseUrl(getRegistryV3ApiUrl());
+        RegistryClient clientAdmin = new RegistryClient(adminAdapter);
+
+        // Admin user will create an artifact
+        String artifactId = TestUtils.generateArtifactId();
+        createArtifact.setArtifactId(artifactId);
+        clientAdmin.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        EditableArtifactMetaData updatedMetaData = new EditableArtifactMetaData();
+        updatedMetaData.setName("Updated Name");
+        // Dev user cannot edit the same artifact because Dev user is not the owner
+        var exception1 = Assertions.assertThrows(Exception.class, () -> {
+            clientDev.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(updatedMetaData);
+        });
+        assertForbidden(exception1);
+
+        // But the admin user CAN make the change.
+        clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(updatedMetaData);
+
+        // Now the Dev user will create an artifact
+        String artifactId2 = TestUtils.generateArtifactId();
+        createArtifact.setArtifactId(artifactId2);
+        clientDev.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // And the Admin user will modify it (allowed because it's the Admin user)
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).rules()
+                .post(createRule);
+    }
+
+    @Test
+    public void testGetArtifactOwner() throws Exception {
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        adapter.setBaseUrl(getRegistryV3ApiUrl());
+        RegistryClient client = new RegistryClient(adapter);
+
+        // Preparation
+        final String groupId = "testGetArtifactOwner";
+        final String artifactId = generateArtifactId();
+        final String version = "1";
+
+        // Execution
+        createArtifact.setArtifactId(artifactId);
+        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact)
+                .getVersion();
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getArtifactId());
+        assertEquals(version, created.getVersion());
+        assertEquals("developer-client", created.getOwner());
+
+        // Get the artifact owner via the REST API and verify it
+        ArtifactMetaData amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertEquals("developer-client", amd.getOwner());
+    }
+
+    @Test
+    public void testUpdateArtifactOwner() throws Exception {
+        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        adapter.setBaseUrl(getRegistryV3ApiUrl());
+        RegistryClient client = new RegistryClient(adapter);
+
+        // Preparation
+        final String groupId = "testUpdateArtifactOwner";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1.0";
+        final String name = "testUpdateArtifactOwnerName";
+        final String description = "testUpdateArtifactOwnerDescription";
+
+        // Execution
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.getFirstVersion().setVersion(version);
+        createArtifact.getFirstVersion().setName(name);
+        createArtifact.getFirstVersion().setDescription(description);
+        final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact)
+                .getVersion();
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getArtifactId());
+        assertEquals(version, created.getVersion());
+        assertEquals("developer-client", created.getOwner());
+
+        // Get the artifact owner via the REST API and verify it
+        ArtifactMetaData amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertEquals("developer-client", amd.getOwner());
+
+        // Update the owner
+        EditableArtifactMetaData eamd = new EditableArtifactMetaData();
+        eamd.setOwner("developer-2-client");
+        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd);
+
+        // Check that the update worked
+        amd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertEquals("developer-2-client", amd.getOwner());
+    }
+
+    @Test
+    public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
+        var adapter_dev1 = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+        adapter_dev1.setBaseUrl(getRegistryV3ApiUrl());
+        RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
+        var adapter_dev2 = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
+                authServerUrlConfigured, JWKSMockServer.DEVELOPER_2_CLIENT_ID, "test1"));
+        adapter_dev2.setBaseUrl(getRegistryV3ApiUrl());
+        RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
+
+        // Preparation
+        final String groupId = "testUpdateArtifactOwnerOnlyByOwner";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1.0";
+        final String name = "testUpdateArtifactOwnerOnlyByOwnerName";
+        final String description = "testUpdateArtifactOwnerOnlyByOwnerDescription";
+
+        // Execution
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.getFirstVersion().setVersion(version);
+        createArtifact.getFirstVersion().setName(name);
+        createArtifact.getFirstVersion().setDescription(description);
+        final VersionMetaData created = client_dev1.groups().byGroupId(groupId).artifacts()
+                .post(createArtifact).getVersion();
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getArtifactId());
+        assertEquals(version, created.getVersion());
+        assertEquals("developer-client", created.getOwner());
+
+        // Get the artifact owner via the REST API and verify it
+        ArtifactMetaData amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .get();
+        assertEquals("developer-client", amd.getOwner());
+
+        // Try to update the owner by dev2 (should fail)
+        var exception1 = assertThrows(Exception.class, () -> {
+            EditableArtifactMetaData eamd = new EditableArtifactMetaData();
+            eamd.setOwner("developer-2-client");
+            client_dev2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd);
+        });
+        assertForbidden(exception1);
+
+        // Should still be the original owner
+        amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertEquals("developer-client", amd.getOwner());
     }
 
     protected void assertArtifactNotFound(Exception exception) {

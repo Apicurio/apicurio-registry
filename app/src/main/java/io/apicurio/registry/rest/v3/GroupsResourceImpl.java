@@ -913,6 +913,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             String artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, data.getArtifactType(),
                     factory);
 
+            final String owner = securityIdentity.getPrincipal().getName();
+
             // Create the artifact (with optional first version)
             EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
                     .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
@@ -951,7 +953,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> storageResult = storage.createArtifact(
                     new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, artifactMetaData,
                     firstVersion, firstVersionContent, firstVersionMetaData, firstVersionBranches,
-                    firstVersionIsDraft, dryRun != null && dryRun);
+                    firstVersionIsDraft, dryRun != null && dryRun, owner);
 
             // Now return both the artifact metadata and (if available) the version metadata
             CreateArtifactResponse rval = CreateArtifactResponse.builder()
@@ -1035,6 +1037,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     typedContent, RuleApplicationType.UPDATE, data.getContent().getReferences(),
                     resolvedReferences);
         }
+
+        final String owner = securityIdentity.getPrincipal().getName();
+
         EditableVersionMetaDataDto metaDataDto = EditableVersionMetaDataDto.builder()
                 .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(ct).content(content)
@@ -1042,7 +1047,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(
                 new GroupId(groupId).getRawGroupIdWithNull(), artifactId, data.getVersion(), artifactType,
-                contentDto, metaDataDto, data.getBranches(), isDraft, dryRun != null && dryRun);
+                contentDto, metaDataDto, data.getBranches(), isDraft, dryRun != null && dryRun, owner);
 
         return V3ApiUtil.dtoToVersionMetaData(vmd);
     }
@@ -1289,6 +1294,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         String artifactType = lookupArtifactType(groupId, artifactId);
 
+        final String owner = securityIdentity.getPrincipal().getName();
+
         // Transform the given references into dtos and set the contentId, this will also detect if any of the
         // passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
@@ -1307,7 +1314,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(contentType).content(content)
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(groupId, artifactId, version,
-                artifactType, contentDto, metaData, branches, isDraftVersion, false);
+                artifactType, contentDto, metaData, branches, isDraftVersion, false, owner);
         VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
 
         // Need to also return the artifact metadata

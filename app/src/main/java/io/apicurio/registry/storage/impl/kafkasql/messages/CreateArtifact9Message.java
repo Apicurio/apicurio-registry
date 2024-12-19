@@ -49,7 +49,7 @@ public class CreateArtifact9Message extends AbstractMessage {
                 .contentType(contentType).content(handle).references(references).build()
             : null;
         return storage.createArtifact(groupId, artifactId, artifactType, artifactMetaDataDto, version,
-                versionContent, versionMetaData, versionBranches, false, dryRun);
+                versionContent, versionMetaData, versionBranches, false, dryRun, null);
     }
 
 }

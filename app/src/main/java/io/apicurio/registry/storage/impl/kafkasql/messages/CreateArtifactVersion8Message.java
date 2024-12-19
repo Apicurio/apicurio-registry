@@ -47,7 +47,7 @@ public class CreateArtifactVersion8Message extends AbstractMessage {
                 .content(handle).references(references).build()
             : null;
         return storage.createArtifactVersion(groupId, artifactId, version, artifactType, contentDto, metaData,
-                branches, false, dryRun);
+                branches, false, dryRun, null);
     }
 
 }

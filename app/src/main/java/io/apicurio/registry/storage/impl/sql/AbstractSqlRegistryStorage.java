@@ -523,11 +523,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches, boolean versionIsDraft, boolean dryRun)
+            List<String> versionBranches, boolean versionIsDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
         log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
 
-        String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
         EditableArtifactMetaDataDto amd = artifactMetaData == null
@@ -888,11 +887,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches, boolean isDraft, boolean dryRun)
+            List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws VersionAlreadyExistsException, RegistryStorageException {
         log.debug("Creating new artifact version for {} {} (version {}).", groupId, artifactId, version);
 
-        String owner = securityIdentity.getPrincipal().getName();
         Date createdOn = new Date();
 
         // Put the content in the DB and get the unique content ID back.

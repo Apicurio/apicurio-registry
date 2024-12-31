@@ -28,11 +28,11 @@
   "devDependencies": {
     "@apicurio/eslint-config": "0.3.0",
     "@kiota-community/kiota-gen": "1.0.2",
-    "@types/node": "22.10.1",
+    "@types/node": "22.10.2",
     "@types/react": "18.3.14",
     "@types/react-dom": "18.3.2",
-    "@typescript-eslint/eslint-plugin": "8.17.0",
-    "@typescript-eslint/parser": "8.17.0",
+    "@typescript-eslint/eslint-plugin": "8.19.0",
+    "@typescript-eslint/parser": "8.19.0",
     "@vitejs/plugin-react": "4.3.4",
     "cross-env": "7.0.3",
     "eslint": "8.57.1",
@@ -40,12 +40,12 @@
     "eslint-plugin-react-refresh": "0.4.16",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "7.0.2",
+    "react-router-dom": "7.1.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.2",
     "uuid": "11.0.3",
-    "vite": "6.0.3",
-    "vite-plugin-dts": "4.3.0",
+    "vite": "6.0.6",
+    "vite-plugin-dts": "4.4.0",
     "vitest": "2.1.8"
   }
 }

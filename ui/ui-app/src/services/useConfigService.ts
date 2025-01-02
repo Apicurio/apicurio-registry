@@ -268,7 +268,9 @@ export class ConfigServiceImpl implements ConfigService {
     }
 
     public uiOaiDocsUrl(): string {
-        return registryConfig.ui?.oaiDocsUrl || "/docs";
+        console.info("=====> DOCS URL: ", registryConfig.ui?.oaiDocsUrl);
+        console.info("=====> Context Path: ", this.uiContextPath());
+        return registryConfig.ui?.oaiDocsUrl || (this.uiContextPath() + "docs");
     }
 
     public uiNavPrefixPath(): string|undefined {

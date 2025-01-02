@@ -15,6 +15,7 @@ services:
     container_name: apicurio-registry-getting-started-context-path_ui
     environment:
       - REGISTRY_CONTEXT_PATH=/ui/
+      - REGISTRY_DOCS_URL=/ui/docs/
     depends_on:
       - apicurio-registry
 

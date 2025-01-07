@@ -226,7 +226,7 @@
     <jgit.version>7.1.0.202411261347-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>
     <assertj.core.version>3.26.3</assertj.core.version>
-    <semver4j.version>5.4.1</semver4j.version>
+    <semver4j.version>5.5.0</semver4j.version>
     <bouncycastle.version>1.79</bouncycastle.version>
 
     <!-- Kafka Connect -->

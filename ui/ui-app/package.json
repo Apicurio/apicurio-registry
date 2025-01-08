@@ -20,12 +20,12 @@
     "@kiota-community/kiota-wasm": "0.0.3",
     "@monaco-editor/react": "4.6.0",
     "@types/luxon": "3.4.2",
-    "@types/node": "22.10.3",
+    "@types/node": "22.10.5",
     "@types/pluralize": "0.0.33",
     "@types/react": "18.3.18",
     "@types/react-dom": "18.3.5",
-    "@typescript-eslint/eslint-plugin": "8.19.0",
-    "@typescript-eslint/parser": "8.19.0",
+    "@typescript-eslint/eslint-plugin": "8.19.1",
+    "@typescript-eslint/parser": "8.19.1",
     "@vitejs/plugin-react-swc": "3.7.2",
     "copyfiles": "2.4.1",
     "eslint": "8.57.1",
@@ -33,7 +33,7 @@
     "eslint-plugin-react-refresh": "0.4.16",
     "rimraf": "6.0.1",
     "typescript": "5.7.2",
-    "vite": "6.0.6",
+    "vite": "6.0.7",
     "vite-tsconfig-paths": "5.1.4"
   },
   "dependencies": {
@@ -58,7 +58,7 @@
     "pluralize": "8.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "6.28.1",
+    "react-router-dom": "7.1.1",
     "use-resize-observer": "9.1.0",
     "yaml": "2.7.0"
   }

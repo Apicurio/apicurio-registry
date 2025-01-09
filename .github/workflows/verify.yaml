@@ -89,21 +89,23 @@ jobs:
         run: |
           docker images
 
-      - name: Google Chat Notification (Always)
-        if: github.event_name == 'push' && always()
-        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
-        with:
-          name: ${{ github.job }}
-          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
-          status: ${{ job.status }}
+      - name: Slack Notification (Always)
+        if: always()
+        run: |
+          MESSAGE="Registry 'build-verify' job completed with status: ${{ job.status }}"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
 
-      - name: Google Chat Notification (Error)
-        if: github.event_name == 'push' && failure()
-        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
-        with:
-          name: ${{ github.job }}
-          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK_ERRORS }}
-          status: ${{ job.status }}
+      - name: Slack Notification (Error)
+        if: failure()
+        run: |
+          MESSAGE="Registry 'build-verify' job FAILED"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
 
 
   build-verify-ui:
@@ -178,22 +180,23 @@ jobs:
         working-directory: ui
         run: docker buildx build --push -f ./Dockerfile -t quay.io/apicurio/apicurio-registry-ui:latest-snapshot -t docker.io/apicurio/apicurio-registry-ui:latest-snapshot --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
 
-      - name: Google Chat Notification (Always)
-        if: github.event_name == 'push' && always()
-        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
-        with:
-          name: ${{ github.job }}
-          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
-          status: ${{ job.status }}
+      - name: Slack Notification (Always)
+        if: always()
+        run: |
+          MESSAGE="Registry 'build-verify-ui' job completed with status: ${{ job.status }}"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
 
-      - name: Google Chat Notification (Error)
-        if: github.event_name == 'push' && failure()
-        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
-        with:
-          name: ${{ github.job }}
-          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK_ERRORS }}
-          status: ${{ job.status }}
-
+      - name: Slack Notification (Error)
+        if: failure()
+        run: |
+          MESSAGE="Registry 'build-verify-ui' job FAILED"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
 
   build-native-images:
     name: Build and Test Native images
@@ -283,21 +286,23 @@ jobs:
       - name: List All The Images
         run: docker images
 
-      - name: Google Chat Notification (Always)
-        if: github.event_name == 'push' && always()
-        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
-        with:
-          name: ${{ github.job }}
-          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
-          status: ${{ job.status }}
+      - name: Slack Notification (Always)
+        if: always()
+        run: |
+          MESSAGE="Registry 'build-native-images' job completed with status: ${{ job.status }}"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
 
-      - name: Google Chat Notification (Error)
-        if: github.event_name == 'push' && failure()
-        uses: Co-qn/google-chat-notification@b9227d9daa4638c9782a5bd16c4abb86268127a1
-        with:
-          name: ${{ github.job }}
-          url: ${{ secrets.GOOGLE_CHAT_WEBHOOK_ERRORS }}
-          status: ${{ job.status }}
+      - name: Slack Notification (Error)
+        if: failure()
+        run: |
+          MESSAGE="Registry 'build-native-images' job FAILED"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
 
   build-verify-python-sdk:
     name: Verify Python SDK
@@ -336,6 +341,24 @@ jobs:
         working-directory: python-sdk
         run: make test
 
+      - name: Slack Notification (Always)
+        if: always()
+        run: |
+          MESSAGE="Registry 'build-verify-python-sdk' job completed with status: ${{ job.status }}"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
+
+      - name: Slack Notification (Error)
+        if: failure()
+        run: |
+          MESSAGE="Registry 'build-verify-python-sdk' job FAILED"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
+
   build-verify-go-sdk:
     name: Verify Go SDK
     runs-on: ubuntu-22.04
@@ -363,31 +386,23 @@ jobs:
         working-directory: go-sdk
         run: make test
 
-  notify-sdk:
-    if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        language: [ js ]
-    steps:
-      - uses: actions/checkout@v3
+      - name: Slack Notification (Always)
+        if: always()
+        run: |
+          MESSAGE="Registry 'build-verify-go-sdk' job completed with status: ${{ job.status }}"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
 
-      - uses: dorny/paths-filter@b2feaf19c27470162a626bd6fa8438ae5b263721
-        id: changes
-        with:
-          base: main
-          filters: |
-            openapi:
-              - 'app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json'
-
-      - name: Repository Dispatch
-        if: steps.changes.outputs.openapi == 'true'
-        uses: peter-evans/repository-dispatch@ce5485de42c9b2622d2ed064be479e8ed65e76f4
-        with:
-          token: ${{ secrets.ACCESS_TOKEN }}
-          repository: Apicurio/apicurio-registry-client-sdk-${{ matrix.language }}
-          event-type: on-oas-updated
-          client-payload: '{"openapi_file_path": "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json"}'
+      - name: Slack Notification (Error)
+        if: failure()
+        run: |
+          MESSAGE="Registry 'build-verify-go-sdk' job FAILED"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
 
   # Trigger a deployment workflow in the apicurio-operate-first repository, which will
   # deploy the `latest-snapshot` version of registry into the 3scale OpenShift cluster

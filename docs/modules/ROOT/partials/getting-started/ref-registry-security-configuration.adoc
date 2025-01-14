@@ -36,19 +36,19 @@ You can set the following environment variables to configure authentication for 
 |Description
 |Type
 |Default
-|`QUARKUS_OIDC_TENANT_ENABLED`
+|`QUARKUS_OIDC_TENANT-ENABLED`
 |Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication using {keycloak}.
 |String
 |`false`
-|`QUARKUS_OIDC_AUTH_SERVER_URL`
+|`QUARKUS_OIDC_AUTH-SERVER-URL`
 |The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
 |String
 |-
-|`QUARKUS_OIDC_CLIENT_ID`
+|`QUARKUS_OIDC_CLIENT-ID`
 |The client ID for the {registry} REST API.
 |String
 |`registry-api`
-|`APICURIO_UI_AUTH_OIDC_CLIENT_ID`
+|`APICURIO_UI_AUTH_OIDC_CLIENT-ID`
 |The client ID for the {registry} web console.
 |String
 |`apicurio-registry`
@@ -63,7 +63,7 @@ You can set the following environment variables to configure authentication for 
 |String
 |-
 
-|`ROLE_BASED_AUTHZ_ENABLED`
+|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
 |Enables or disables role-based authorization.
 |Boolean
 |False
@@ -83,12 +83,12 @@ By default, {registry} supports authentication by using OpenID Connect. Users or
 |Java system property
 |Type
 |Default value
-|`QUARKUS_OIDC_TENANT_ENABLED`
-|`apicurio.auth.enabled`
+|`QUARKUS_OIDC_TENANT-ENABLED`
+|`quarkus.oidc.tenant-enabled`
 |Boolean
 |`false`
-|`CLIENT_CREDENTIALS_BASIC_ENABLED`
-|`apicurio.auth.basic-auth-client-credentials.enabled`
+|`APICURIO_AUTHN_BASIC-CLIENT-CREDENTIALS.ENABLED`
+|`apicurio.authn.basic-client-credentials.enabled`
 |Boolean
 |`false`
 |===
@@ -107,8 +107,8 @@ When using {keycloak}, it is best to set this configuration to your {keycloak} J
 |Java system property
 |Type
 |Default value
-|`CLIENT_CREDENTIALS_BASIC_CACHE_EXPIRATION`
-|`apicurio.auth.basic-auth-client-credentials.cache-expiration`
+|`APICURIO_AUTHN_BASIC-CLIENT-CREDENTIALS_CACHE-EXPIRATION`
+|`apicurio.authn.basic-client-credentials.cache-expiration`
 |Integer
 |`10`
 |===
@@ -127,11 +127,11 @@ You can set the following options to `true` to enable role-based authorization i
 |Java system property
 |Type
 |Default value
-|`QUARKUS_OIDC_TENANT_ENABLED`
-|`apicurio.auth.enabled`
+|`QUARKUS_OIDC_TENANT-ENABLED`
+|`quarkus.oidc.tenant-enabled`
 |Boolean
 |`false`
-|`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
+|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
 |`apicurio.auth.role-based-authorization`
 |Boolean
 |`false`
@@ -152,7 +152,7 @@ To enable using roles assigned by {keycloak}, set the following environment vari
 |Description
 |Type
 |Default
-|`ROLE_BASED_AUTHZ_SOURCE`
+|`APICURIO_AUTH_ROLE-SOURCE`
 | When set to `token`, user roles are taken from the authentication token.
 |String
 |`token`
@@ -210,7 +210,7 @@ To enable using roles managed internally by {registry}, set the following enviro
 |Description
 |Type
 |Default
-|`ROLE_BASED_AUTHZ_SOURCE`
+|`APICURIO_AUTH_ROLE-SOURCE`
 | When set to `application`, user roles are managed internally by {registry}.
 |String
 |`token`
@@ -235,27 +235,27 @@ Because there are no default admin users in {registry}, it is usually helpful to
 |Description
 |Type
 |Default
-|`APICURIO_AUTH_ADMIN_OVERRIDE_ENABLED`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_ENABLED`
 | Enables the admin-override feature.
 |String
 |`false`
-|`APICURIO_AUTH_ADMIN_OVERRIDE_FROM`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_FROM`
 |Where to look for admin-override information.  Only `token` is currently supported.
 |String
 |`token`
-|`APICURIO_AUTH_ADMIN_OVERRIDE_TYPE`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_TYPE`
 |The type of information used to determine if a user is an admin.  Values depend on the value of the FROM variable, for example, `role` or `claim` when FROM is `token`.
 |String
 |`role`
-|`APICURIO_AUTH_ADMIN_OVERRIDE_ROLE`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_ROLE`
 |The name of the role that indicates a user is an admin.
 |String
 |`sr-admin`
-|`APICURIO_AUTH_ADMIN_OVERRIDE_CLAIM`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_CLAIM`
 |The name of a JWT token claim to use for determining admin-override.
 |String
 |`org-admin`
-|`APICURIO_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE`
 |The value that the JWT token claim indicated by the CLAIM variable must be for the user to be granted admin-override.
 |String
 |`true`
@@ -280,16 +280,16 @@ You can set the following options to `true` to enable owner-only authorization f
 |Default value
 
 |`QUARKUS_OIDC_TENANT_ENABLED`
-|`apicurio.auth.enabled`
+|`quarkus.oidc.tenant-enabled`
 |Boolean
 |`false`
 
-|`APICURIO_AUTH_OBAC_ENABLED`
+|`APICURIO_AUTH_OWNER-ONLY-AUTHORIZATION`
 |`apicurio.auth.owner-only-authorization`
 |Boolean
 |`false`
 
-|`APICURIO_AUTH_OBAC_LIMIT_GROUP_ACCESS`
+|`APICURIO_AUTH_OWNER-ONLY-AUTHORIZATION_LIMIT-GROUP-ACCESS`
 |`apicurio.auth.owner-only-authorization.limit-group-access`
 |Boolean
 |`false`
@@ -314,11 +314,11 @@ To enable authenticated read access, you must first enable role-based authorizat
 |Java system property
 |Type
 |Default value
-|`QUARKUS_OIDC_TENANT_ENABLED`
-|`apicurio.auth.enabled`
+|`QUARKUS_OIDC_TENANT-ENABLED`
+|`quarkus.oidc.tenant-enabled`
 |Boolean
 |`false`
-|`APICURIO_AUTH_AUTHENTICATED_READS_ENABLED`
+|`APICURIO_AUTH_AUTHENTICATED-READ-ACCESS_ENABLED`
 |`apicurio.auth.authenticated-read-access.enabled`
 |Boolean
 |`false`
@@ -343,11 +343,11 @@ calls to the REST API, set the following options to `true`:
 |Java system property
 |Type
 |Default value
-|`QUARKUS_OIDC_TENANT_ENABLED`
-|`apicurio.auth.enabled`
+|`QUARKUS_OIDC_TENANT-ENABLED`
+|`quarkus.oidc.tenant-enabled`
 |Boolean
 |`false`
-|`APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED`
+|`APICURIO_AUTH_ANONYMOUS-READ-ACCESS_ENABLED`
 |`apicurio.auth.anonymous-read-access.enabled`
 |Boolean
 |`false`

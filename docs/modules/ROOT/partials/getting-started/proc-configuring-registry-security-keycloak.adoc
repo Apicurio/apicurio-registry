@@ -81,7 +81,7 @@ You can use the defaults for the other client settings.
 |The client ID for the {registry} REST API.
 |String
 |`registry-api`
-|`APICURIO_UI_AUTH_OIDC_CLIENT_ID`
+|`APICURIO_UI_AUTH_OIDC_CLIENT-ID`
 |The client ID for the {registry} web console.
 |String
 |`apicurio-registry`
@@ -98,7 +98,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 |Java system property
 |Type
 |Default value
-|`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
+|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
 |`apicurio.auth.role-based-authorization`
 |Boolean
 |`false`
@@ -140,8 +140,8 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 |Java system property
 |Type
 |Default value
-|`APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION`
-|`apicurio.auth.owner-only-authorization`
+|`APICURIO_AUTH_OWNER-ONLY-AUTHORIZATION_LIMIT-GROUP-ACCESS`
+|`apicurio.auth.owner-only-authorization.limit-group-access`
 |Boolean
 |`false`
 |===

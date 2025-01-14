@@ -28,13 +28,13 @@ When you set these environment variables, the Kafka producer and consumer applic
 | `APICURIO_KAFKASQL_SECURITY_SASL_ENABLED`
 | Enables SASL OAuth authentication for {registry} storage in Kafka. You must set this variable to `true` for the other variables to have effect.
 | `false`
-| `APICURIO_KAFKASQL_SECURITY_SASL_CLIENT_IDapicurio.kafkasql.security.sasl.client-id`
+| `APICURIO_KAFKASQL_SECURITY_SASL_CLIENT-ID`
 | The client ID used to authenticate to Kafka. 
 | `-`
-| `APICURIO_KAFKASQL_SECURITY_SASL_CLIENT_SECRET`
+| `APICURIO_KAFKASQL_SECURITY_SASL_CLIENT-SECRET`
 | The client secret used to authenticate to Kafka. 
 | `-`
-| `APICURIO_KAFKASQL_SECURITY_SASL_TOKEN_ENDPOINT`
+| `APICURIO_KAFKASQL_SECURITY_SASL_TOKEN-ENDPOINT`
 | The URL of the OAuth identity server.
 | `\http://localhost:8090`
 |===

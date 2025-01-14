@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.0.6-SNAPSHOT</version>
+  <version>3.0.7-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -145,11 +145,13 @@
 
     <!--
     WARNING: The following group of dependencies has to be aligned with the corresponding Quarkus version.
-    See notes for each entry.
     -->
     <quarkus.version>3.15.1</quarkus.version>
-    <!-- Go to `io.quarkiverse.operatorsdk:quarkus-operator-sdk-bom` and then to the parent `io.quarkiverse.operatorsdk:quarkus-operator-sdk-parent`. -->
-    <!-- TODO: Fix: Currently, versions are not aligned exactly (3.11.1 vs 3.11.0), because there is no closer version supported by QOSDK. -->
+    <!--
+    Go to `io.quarkiverse.operatorsdk:quarkus-operator-sdk-bom` and then to the parent `io.quarkiverse.operatorsdk:quarkus-operator-sdk-parent`,
+    e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/6.8.4/quarkus-operator-sdk-parent-6.8.4.pom
+    to check that the versions match.
+    -->
     <quarkus-operator-sdk.version>6.8.4</quarkus-operator-sdk.version>
     <java-operator-sdk.version>4.9.7</java-operator-sdk.version>
     <!-- /WARNING -->
@@ -168,7 +170,7 @@
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>3.25.5</protobuf.version>
     <xmlsec.version>4.0.3</xmlsec.version>
-    <protobuf.googleapi.types.version>2.49.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.50.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.4</google.truth.extension.version>
 
@@ -224,7 +226,7 @@
     <jgit.version>7.1.0.202411261347-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>
     <assertj.core.version>3.26.3</assertj.core.version>
-    <semver4j.version>5.4.1</semver4j.version>
+    <semver4j.version>5.5.0</semver4j.version>
     <bouncycastle.version>1.79</bouncycastle.version>
 
     <!-- Kafka Connect -->
@@ -266,7 +268,7 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.8.0</kiota.libs.version>
+    <kiota.libs.version>1.8.2</kiota.libs.version>
     <kiota.community.version>0.0.19</kiota.community.version>
 
     <kiota.version>1.21.0</kiota.version>
@@ -532,6 +534,11 @@
         <artifactId>apicurio-registry-operator-controller</artifactId>
         <version>${project.version}</version>
         <classifier>tests</classifier>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-distro-connect-converter</artifactId>
+        <version>${project.version}</version>
       </dependency>
 
       <!-- Quarkus Dependencies -->

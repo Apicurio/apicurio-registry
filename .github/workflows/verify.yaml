@@ -90,7 +90,7 @@ jobs:
           docker images
 
       - name: Slack Notification (Always)
-        if: always()
+        if: github.event_name == 'push' && always()
         run: |
           MESSAGE="Registry 'build-verify' job completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
@@ -99,7 +99,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
 
       - name: Slack Notification (Error)
-        if: failure()
+        if: github.event_name == 'push' && failure()
         run: |
           MESSAGE="Registry 'build-verify' job FAILED"
           REPO="${{ github.repository }}"
@@ -181,7 +181,7 @@ jobs:
         run: docker buildx build --push -f ./Dockerfile -t quay.io/apicurio/apicurio-registry-ui:latest-snapshot -t docker.io/apicurio/apicurio-registry-ui:latest-snapshot --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
 
       - name: Slack Notification (Always)
-        if: always()
+        if: github.event_name == 'push' && always()
         run: |
           MESSAGE="Registry 'build-verify-ui' job completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
@@ -190,7 +190,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
 
       - name: Slack Notification (Error)
-        if: failure()
+        if: github.event_name == 'push' && failure()
         run: |
           MESSAGE="Registry 'build-verify-ui' job FAILED"
           REPO="${{ github.repository }}"
@@ -287,7 +287,7 @@ jobs:
         run: docker images
 
       - name: Slack Notification (Always)
-        if: always()
+        if: github.event_name == 'push' && always()
         run: |
           MESSAGE="Registry 'build-native-images' job completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
@@ -296,7 +296,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
 
       - name: Slack Notification (Error)
-        if: failure()
+        if: github.event_name == 'push' && failure()
         run: |
           MESSAGE="Registry 'build-native-images' job FAILED"
           REPO="${{ github.repository }}"
@@ -342,7 +342,7 @@ jobs:
         run: make test
 
       - name: Slack Notification (Always)
-        if: always()
+        if: github.event_name == 'push' && always()
         run: |
           MESSAGE="Registry 'build-verify-python-sdk' job completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
@@ -351,7 +351,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
 
       - name: Slack Notification (Error)
-        if: failure()
+        if: github.event_name == 'push' && failure()
         run: |
           MESSAGE="Registry 'build-verify-python-sdk' job FAILED"
           REPO="${{ github.repository }}"
@@ -387,7 +387,7 @@ jobs:
         run: make test
 
       - name: Slack Notification (Always)
-        if: always()
+        if: github.event_name == 'push' && always()
         run: |
           MESSAGE="Registry 'build-verify-go-sdk' job completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
@@ -396,7 +396,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
 
       - name: Slack Notification (Error)
-        if: failure()
+        if: github.event_name == 'push' && failure()
         run: |
           MESSAGE="Registry 'build-verify-go-sdk' job FAILED"
           REPO="${{ github.repository }}"

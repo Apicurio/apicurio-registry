@@ -3,6 +3,11 @@ package io.apicurio.registry.operator.utils;
 import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
+import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
+import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPath;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
@@ -14,8 +19,9 @@ import java.util.function.Consumer;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.*;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
+import static java.util.Optional.ofNullable;
 
-public class IngressUtils {
+public final class IngressUtils {
 
     private static final Logger log = LoggerFactory.getLogger(IngressUtils.class);
 
@@ -23,22 +29,16 @@ public class IngressUtils {
     }
 
     public static String getHost(String component, ApicurioRegistry3 p) {
-        String host = null;
-        if (COMPONENT_APP.equals(component)) {
-            if (!isBlank(p.getSpec().getApp().getHost())) {
-                host = p.getSpec().getApp().getHost();
-            }
-        } else if (COMPONENT_UI.equals(component)) {
-            if (!isBlank(p.getSpec().getUi().getHost())) {
-                host = p.getSpec().getUi().getHost();
-            }
-        } else if (COMPONENT_STUDIO_UI.equals(component)) {
-            if (!isBlank(p.getSpec().getStudioUi().getHost())) {
-                host = p.getSpec().getStudioUi().getHost();
-            }
-        } else {
-            throw new OperatorException("Unexpected value: " + component);
-        }
+        String host = switch (component) {
+            case COMPONENT_APP -> ofNullable(p.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(AppSpec::getIngress).map(IngressSpec::getHost).filter(h -> !isBlank(h)).orElse(null);
+            case COMPONENT_UI -> ofNullable(p.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(UiSpec::getIngress).map(IngressSpec::getHost).filter(h -> !isBlank(h)).orElse(null);
+            case COMPONENT_STUDIO_UI ->
+                ofNullable(p.getSpec()).map(ApicurioRegistry3Spec::getStudioUi).map(StudioUiSpec::getIngress)
+                        .map(IngressSpec::getHost).filter(h -> !isBlank(h)).orElse(null);
+            default -> throw new OperatorException("Unexpected value: " + component);
+        };
         if (host == null) {
             // TODO: This is not used because of the current activation conditions.
             host = "%s-%s.%s%s".formatted(p.getMetadata().getName(), component,

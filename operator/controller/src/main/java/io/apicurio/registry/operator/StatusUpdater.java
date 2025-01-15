@@ -2,8 +2,8 @@ package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Status;
+import io.apicurio.registry.operator.api.v1.status.Condition;
 import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
-import io.apicurio.registry.operator.api.v1.status.Conditions;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +28,13 @@ public class StatusUpdater {
         this.registry = registry;
     }
 
-    private Conditions defaultCondition() {
-        var conditions = new Conditions();
-        conditions.setStatus(ConditionStatus.TRUE);
-        conditions.setObservedGeneration(
+    private Condition defaultCondition() {
+        var condition = new Condition();
+        condition.setStatus(ConditionStatus.TRUE);
+        condition.setObservedGeneration(
                 registry.getMetadata() == null ? null : registry.getMetadata().getGeneration());
-        conditions.setLastTransitionTime(Instant.now());
-        return conditions;
+        condition.setLastTransitionTime(Instant.now());
+        return condition;
     }
 
     public ApicurioRegistry3Status errorStatus(Exception e) {
@@ -56,7 +56,7 @@ public class StatusUpdater {
             if (deployment.getStatus().getConditions().stream()
                     .anyMatch(condition -> condition.getStatus().equalsIgnoreCase(
                             ConditionStatus.TRUE.getValue()) && condition.getType().equals("Available"))
-                    && !registry.getStatus().getConditions().stream()
+                    && !registry.withStatus().getConditions().stream()
                             .anyMatch(condition -> condition.getType().equals(READY_TYPE))) {
                 var readyCondition = defaultCondition();
                 readyCondition.setType(READY_TYPE);
@@ -66,7 +66,7 @@ public class StatusUpdater {
                 conditions.add(readyCondition);
                 return registry.getStatus();
             } else if (deployment.getStatus().getConditions().size() > 0
-                    && !registry.getStatus().getConditions().stream()
+                    && !registry.withStatus().getConditions().stream()
                             .anyMatch(condition -> condition.getStatus().getValue().equals(STARTED_TYPE))) {
                 var generation = registry.getMetadata() == null ? null
                     : registry.getMetadata().getGeneration();

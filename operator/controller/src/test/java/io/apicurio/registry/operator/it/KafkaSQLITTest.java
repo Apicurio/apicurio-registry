@@ -33,10 +33,9 @@ public class KafkaSQLITTest extends ITBase {
 
     @Test
     void testKafkaSQLPlain() {
-        client.load(
-                KafkaSQLITTest.class.getResourceAsStream("/k8s/examples/kafkasql/plain/ephemeral.kafka.yaml"))
-                .create();
-        final var clusterNAme = "my-cluster";
+        client.load(KafkaSQLITTest.class
+                .getResourceAsStream("/k8s/examples/kafkasql/plain/example-cluster.kafka.yaml")).create();
+        final var clusterNAme = "example-cluster";
 
         await().ignoreExceptions().untilAsserted(() ->
         // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
@@ -47,10 +46,11 @@ public class KafkaSQLITTest extends ITBase {
         // We're guessing the value here to avoid using Strimzi Java model, and relying on retries below.
         var bootstrapServers = clusterNAme + "-kafka-bootstrap." + namespace + ".svc:9092";
 
-        var registry = deserialize("k8s/examples/kafkasql/plain/kafka-plain.apicurioregistry3.yaml",
+        var registry = deserialize(
+                "k8s/examples/kafkasql/plain/example-kafkasql-plain.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
-        registry.getSpec().getApp().getKafkasql().setBootstrapServers(bootstrapServers);
+        registry.getSpec().getApp().getStorage().getKafkasql().setBootstrapServers(bootstrapServers);
 
         client.resource(registry).create();
 

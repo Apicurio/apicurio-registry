@@ -1,0 +1,18 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-postgresql
+spec:
+  app:
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          url: jdbc:postgresql://example-postgresql-database:5432/apicurio
+          username: username
+          password: password
+    ingress:
+      host: example-postgresql-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-postgresql-ui.apps.cluster.example

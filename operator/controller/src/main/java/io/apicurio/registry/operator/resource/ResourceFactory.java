@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
+import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
@@ -16,9 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static io.apicurio.registry.operator.api.v1.ContainerNames.*;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromPodTemplateSpec;
 import static io.apicurio.registry.operator.utils.Mapper.YAML_MAPPER;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
+import static java.util.Optional.ofNullable;
 
 public class ResourceFactory {
 
@@ -34,17 +40,14 @@ public class ResourceFactory {
     public static final String RESOURCE_TYPE_SERVICE = "service";
     public static final String RESOURCE_TYPE_INGRESS = "ingress";
 
-    public static final String APP_CONTAINER_NAME = "apicurio-registry-app";
-    public static final String UI_CONTAINER_NAME = "apicurio-registry-ui";
-    public static final String STUDIO_UI_CONTAINER_NAME = "apicurio-studio-ui";
-
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
-        var r = initDefaultDeployment(primary, COMPONENT_APP, 1,
-                primary.getSpec().getApp().getPodTemplateSpec()); // TODO: Replicas
+        var r = initDefaultDeployment(primary, COMPONENT_APP, 1, ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp).map(AppSpec::getPodTemplateSpec).orElse(null)); // TODO:
+        // Replicas
         mergeDeploymentPodTemplateSpec(
                 // spotless:off
                 r.getSpec().getTemplate(),
-                APP_CONTAINER_NAME,
+                REGISTRY_APP_CONTAINER_NAME,
                 Configuration.getAppImage(),
                 List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/ready").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
@@ -60,12 +63,13 @@ public class ResourceFactory {
     }
 
     public Deployment getDefaultUIDeployment(ApicurioRegistry3 primary) {
-        var r = initDefaultDeployment(primary, COMPONENT_UI, 1,
-                primary.getSpec().getUi().getPodTemplateSpec()); // TODO: Replicas
+        var r = initDefaultDeployment(primary, COMPONENT_UI, 1, ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getUi).map(UiSpec::getPodTemplateSpec).orElse(null)); // TODO:
+        // Replicas
         mergeDeploymentPodTemplateSpec(
                 // spotless:off
                 r.getSpec().getTemplate(),
-                UI_CONTAINER_NAME,
+                REGISTRY_UI_CONTAINER_NAME,
                 Configuration.getUIImage(),
                 List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
@@ -81,8 +85,9 @@ public class ResourceFactory {
     }
 
     public Deployment getDefaultStudioUIDeployment(ApicurioRegistry3 primary) {
-        var r = initDefaultDeployment(primary, COMPONENT_STUDIO_UI, 1,
-                primary.getSpec().getStudioUi().getPodTemplateSpec()); // TODO: Replicas
+        var r = initDefaultDeployment(primary, COMPONENT_STUDIO_UI, 1, ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getStudioUi).map(StudioUiSpec::getPodTemplateSpec).orElse(null)); // TODO:
+                                                                                                              // Replicas
         mergeDeploymentPodTemplateSpec(
                 // spotless:off
                 r.getSpec().getTemplate(),

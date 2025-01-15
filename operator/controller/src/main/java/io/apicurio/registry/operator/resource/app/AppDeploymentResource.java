@@ -2,6 +2,9 @@ package io.apicurio.registry.operator.resource.app;
 
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.PostgresSql;
 import io.fabric8.kubernetes.api.model.Container;
@@ -19,13 +22,14 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
-import static io.apicurio.registry.operator.resource.ResourceFactory.APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
 import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_SERVICE_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.ofNullable;
 
 // spotless:off
 @KubernetesDependent(
@@ -47,9 +51,8 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         var d = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
 
         var envVars = new LinkedHashMap<String, EnvVar>();
-        primary.getSpec().getApp().getEnv().forEach(e -> {
-            envVars.put(e.getName(), e);
-        });
+        ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getEnv)
+                .ifPresent(env -> env.forEach(e -> envVars.put(e.getName(), e)));
 
         // spotless:off
         addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_PROFILE").withValue("prod").build());
@@ -67,11 +70,15 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                             .withValue("true").build());
         });
 
-        if (!PostgresSql.configureDatasource(primary, envVars)) {
-            KafkaSql.configureKafkaSQL(primary, envVars);
-        }
+        ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)
+                .map(StorageSpec::getType).ifPresent(storageType -> {
+                    switch (storageType) {
+                        case POSTGRESQL -> PostgresSql.configureDatasource(primary, envVars);
+                        case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, envVars);
+                    }
+                });
 
-        var container = getContainerFromDeployment(d, APP_CONTAINER_NAME);
+        var container = getContainerFromDeployment(d, REGISTRY_APP_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());
 
         log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(d));

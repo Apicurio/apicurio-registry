@@ -1,9 +1,11 @@
 apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry3
 metadata:
-  name: simple-apicurioregistry3
+  name: simple
 spec:
   app:
-    host: simple-apicurioregistry3-app.apps.yourcluster.example
+    ingress:
+      host: simple-app.apps.cluster.example
   ui:
-    host: simple-apicurioregistry3-ui.apps.yourcluster.example
+    ingress:
+      host: simple-ui.apps.cluster.example

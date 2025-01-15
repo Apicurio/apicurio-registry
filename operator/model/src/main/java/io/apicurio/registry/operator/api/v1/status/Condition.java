@@ -14,20 +14,24 @@ import io.fabric8.crd.generator.annotation.SchemaFrom;
 import io.fabric8.generator.annotation.Min;
 import io.fabric8.generator.annotation.Pattern;
 import io.fabric8.generator.annotation.Required;
-import io.fabric8.kubernetes.api.model.KubernetesResource;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
+
+import static lombok.AccessLevel.PRIVATE;
 
 @JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({ "lastTransitionTime", "message", "observedGeneration", "reason", "status", "type" })
 @JsonDeserialize(using = None.class)
+@NoArgsConstructor
+@AllArgsConstructor(access = PRIVATE)
+@SuperBuilder(toBuilder = true)
 @Getter
 @Setter
+@EqualsAndHashCode
 @ToString
-public class Conditions implements KubernetesResource {
+public class Condition {
 
     /**
      * lastTransitionTime is the last time the condition transitioned from one status to another. This should

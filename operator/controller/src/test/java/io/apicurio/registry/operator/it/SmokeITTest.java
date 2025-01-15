@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
-import static io.apicurio.registry.operator.resource.ResourceFactory.UI_CONTAINER_NAME;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -31,8 +31,8 @@ public class SmokeITTest extends ITBase {
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
-        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
-        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+        registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
 
         client.resource(registry).create();
 
@@ -62,10 +62,10 @@ public class SmokeITTest extends ITBase {
         await().ignoreExceptions().until(() -> {
             assertThat(client.network().v1().ingresses().inNamespace(namespace)
                     .withName(registry.getMetadata().getName() + "-app-ingress").get().getSpec().getRules()
-                    .get(0).getHost()).isEqualTo(registry.getSpec().getApp().getHost());
+                    .get(0).getHost()).isEqualTo(registry.getSpec().getApp().getIngress().getHost());
             assertThat(client.network().v1().ingresses().inNamespace(namespace)
                     .withName(registry.getMetadata().getName() + "-ui-ingress").get().getSpec().getRules()
-                    .get(0).getHost()).isEqualTo(registry.getSpec().getUi().getHost());
+                    .get(0).getHost()).isEqualTo(registry.getSpec().getUi().getIngress().getHost());
             return true;
         });
     }
@@ -76,8 +76,8 @@ public class SmokeITTest extends ITBase {
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
-        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
-        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+        registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
 
         client.resource(registry).create();
 
@@ -117,8 +117,8 @@ public class SmokeITTest extends ITBase {
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
-        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
-        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+        registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
 
         client.resource(registry).create();
 
@@ -149,8 +149,8 @@ public class SmokeITTest extends ITBase {
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
-        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
-        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+        registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
 
         client.resource(registry).create();
 
@@ -170,8 +170,8 @@ public class SmokeITTest extends ITBase {
         });
 
         // Disable host and therefore Ingress
-        registry.getSpec().getApp().setHost("");
-        registry.getSpec().getUi().setHost("");
+        registry.getSpec().getApp().getIngress().setHost("");
+        registry.getSpec().getUi().getIngress().setHost("");
 
         // TODO: The remote test does not work properly. As a workaround the CR will be deleted and recreated
         // instead of updated:
@@ -196,15 +196,15 @@ public class SmokeITTest extends ITBase {
         assertThat(uiDeployment).isNotNull();
         // spotless:off
         assertThat(uiDeployment.getSpec().getTemplate().getSpec().getContainers())
-                .filteredOn(c -> UI_CONTAINER_NAME.equals(c.getName()))
+                .filteredOn(c -> REGISTRY_UI_CONTAINER_NAME.equals(c.getName()))
                 .flatMap(Container::getEnv)
                 .filteredOn(e -> "REGISTRY_API_URL".equals(e.getName()))
                 .isEmpty();
         // spotless:on
 
         // Enable again
-        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
-        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+        registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
         client.resource(registry).update();
 
         // Verify Ingresses are back
@@ -227,14 +227,14 @@ public class SmokeITTest extends ITBase {
         // spotless:off
         assertThat(deployment).isNotNull();
         assertThat(deployment.getSpec().getTemplate().getSpec().getContainers())
-                .filteredOn(c -> UI_CONTAINER_NAME.equals(c.getName()))
+                .filteredOn(c -> REGISTRY_UI_CONTAINER_NAME.equals(c.getName()))
                 .flatMap(Container::getEnv)
                 .filteredOn(e -> "REGISTRY_API_URL".equals(e.getName()))
                 .hasSize(1)
                 .map(EnvVar::getValue)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.STRING)
-                .startsWith("http://" + registry.getSpec().getApp().getHost());
+                .startsWith("http://" + registry.getSpec().getApp().getIngress().getHost());
         // spotless:on
     }
 

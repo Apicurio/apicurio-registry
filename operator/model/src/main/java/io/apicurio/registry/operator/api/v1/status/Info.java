@@ -5,15 +5,20 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.fabric8.kubernetes.api.model.KubernetesResource;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+
+import static lombok.AccessLevel.PRIVATE;
 
 @JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({ "appHost", "uiHost" })
 @JsonDeserialize(using = None.class)
+@NoArgsConstructor
+@AllArgsConstructor(access = PRIVATE)
+@SuperBuilder(toBuilder = true)
 @Getter
 @Setter
+@EqualsAndHashCode
 @ToString
 public class Info implements KubernetesResource {
 

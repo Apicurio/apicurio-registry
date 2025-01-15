@@ -31,8 +31,8 @@ public class StudioSmokeITTest extends ITBase {
         var simpleRegistry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         simpleRegistry.getMetadata().setNamespace(namespace);
-        simpleRegistry.getSpec().getApp().setHost(ingressManager.getIngressHost(COMPONENT_APP));
-        simpleRegistry.getSpec().getUi().setHost(ingressManager.getIngressHost(COMPONENT_UI));
+        simpleRegistry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost(COMPONENT_APP));
+        simpleRegistry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost(COMPONENT_UI));
 
         client.resource(simpleRegistry).create();
 
@@ -49,7 +49,7 @@ public class StudioSmokeITTest extends ITBase {
         checkIngressDoesNotExist(simpleRegistry, COMPONENT_STUDIO_UI);
 
         // Now let's enable the component, but without the host, which should not create an Ingress
-        simpleRegistry.getSpec().getStudioUi().setEnabled(true);
+        simpleRegistry.getSpec().withStudioUi().setEnabled(true);
         client.resource(simpleRegistry).update();
 
         checkDeploymentExists(simpleRegistry, COMPONENT_APP);
@@ -65,7 +65,8 @@ public class StudioSmokeITTest extends ITBase {
         checkIngressDoesNotExist(simpleRegistry, COMPONENT_STUDIO_UI);
 
         // Now add the host
-        simpleRegistry.getSpec().getStudioUi().setHost(ingressManager.getIngressHost(COMPONENT_STUDIO_UI));
+        simpleRegistry.getSpec().withStudioUi().withIngress()
+                .setHost(ingressManager.getIngressHost(COMPONENT_STUDIO_UI));
         client.resource(simpleRegistry).update();
 
         checkIngressExists(simpleRegistry, COMPONENT_APP);
@@ -92,7 +93,7 @@ public class StudioSmokeITTest extends ITBase {
         }
 
         // Now disable the component again, first only the Ingress
-        simpleRegistry.getSpec().getStudioUi().setHost(null);
+        simpleRegistry.getSpec().getStudioUi().getIngress().setHost(null);
         client.resource(simpleRegistry).update();
 
         checkDeploymentExists(simpleRegistry, COMPONENT_APP);

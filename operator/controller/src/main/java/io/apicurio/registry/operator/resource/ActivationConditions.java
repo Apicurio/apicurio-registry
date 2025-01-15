@@ -1,6 +1,11 @@
 package io.apicurio.registry.operator.resource;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
+import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
+import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIDeploymentResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIIngressResource;
@@ -27,11 +32,13 @@ public class ActivationConditions {
         public boolean isMet(DependentResource<Ingress, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
-            var disabled = isBlank(primary.getSpec().getApp().getHost());
-            if (disabled) {
+            var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(AppSpec::getIngress).map(IngressSpec::getHost).map(host -> !isBlank(host))
+                    .orElse(false);
+            if (!enabled) {
                 ((AppIngressResource) resource).delete(primary, context);
             }
-            return !disabled;
+            return enabled;
         }
     }
 
@@ -43,11 +50,13 @@ public class ActivationConditions {
         public boolean isMet(DependentResource<Ingress, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
-            var disabled = isBlank(primary.getSpec().getUi().getHost());
-            if (disabled) {
+            var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(UiSpec::getIngress).map(IngressSpec::getHost).map(host -> !isBlank(host))
+                    .orElse(false);
+            if (!enabled) {
                 ((UIIngressResource) resource).delete(primary, context);
             }
-            return !disabled;
+            return enabled;
         }
     }
 
@@ -60,7 +69,8 @@ public class ActivationConditions {
         public boolean isMet(DependentResource<Deployment, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
-            var enabled = ofNullable(primary.getSpec().getStudioUi().getEnabled()).orElse(false);
+            var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+                    .map(StudioUiSpec::getEnabled).orElse(false);
             if (!enabled) {
                 ((StudioUIDeploymentResource) resource).delete(primary, context);
             }
@@ -74,11 +84,13 @@ public class ActivationConditions {
         public boolean isMet(DependentResource<Ingress, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
-            var disabled = isBlank(primary.getSpec().getStudioUi().getHost());
-            if (disabled) {
+            var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+                    .map(StudioUiSpec::getIngress).map(IngressSpec::getHost).map(host -> !isBlank(host))
+                    .orElse(false);
+            if (!enabled) {
                 ((StudioUIIngressResource) resource).delete(primary, context);
             }
-            return !disabled;
+            return enabled;
         }
     }
 }

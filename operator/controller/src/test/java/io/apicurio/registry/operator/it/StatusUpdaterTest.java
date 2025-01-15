@@ -1,8 +1,10 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.api.v1.spec.Sql;
-import io.apicurio.registry.operator.api.v1.spec.sql.DataSource;
+import io.apicurio.registry.operator.api.v1.spec.DataSourceSpec;
+import io.apicurio.registry.operator.api.v1.spec.SqlSpec;
+import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
+import io.apicurio.registry.operator.api.v1.spec.StorageType;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -38,13 +40,19 @@ public class StatusUpdaterTest extends ITBase {
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
         // dummy settings to avoid reaching the READY state
-        var sql = new Sql();
-        var datasource = new DataSource();
-        sql.setDataSource(datasource);
-        datasource.setUrl("dummy");
-        datasource.setUsername("dummy");
-        datasource.setPassword("dummy");
-        registry.getSpec().getApp().setSql(sql);
+
+        // spotless:off
+        registry.getSpec().getApp().setStorage(StorageSpec.builder()
+                .type(StorageType.POSTGRESQL)
+                .sql(SqlSpec.builder()
+                        .dataSource(DataSourceSpec.builder()
+                                .url("dummy")
+                                .username("dummy")
+                                .password("dummy")
+                                .build())
+                        .build())
+                .build());
+        // spotless:on
 
         client.resource(registry).create();
 

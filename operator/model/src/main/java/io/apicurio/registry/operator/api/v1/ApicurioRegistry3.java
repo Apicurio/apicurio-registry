@@ -13,4 +13,18 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @Plural("ApicurioRegistries3")
 public class ApicurioRegistry3 extends CustomResource<ApicurioRegistry3Spec, ApicurioRegistry3Status>
         implements Namespaced {
+
+    public ApicurioRegistry3Spec withSpec() {
+        if (spec == null) {
+            spec = new ApicurioRegistry3Spec();
+        }
+        return spec;
+    }
+
+    public ApicurioRegistry3Status withStatus() {
+        if (status == null) {
+            status = new ApicurioRegistry3Status();
+        }
+        return status;
+    }
 }

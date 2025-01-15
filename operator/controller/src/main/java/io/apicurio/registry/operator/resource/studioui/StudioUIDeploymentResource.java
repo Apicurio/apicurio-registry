@@ -1,6 +1,8 @@
 package io.apicurio.registry.operator.resource.studioui;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.StudioUIDeploymentDiscriminator;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
@@ -13,12 +15,14 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 
-import static io.apicurio.registry.operator.resource.ResourceFactory.*;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.STUDIO_UI_CONTAINER_NAME;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_STUDIO_UI;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
+import static java.util.Optional.ofNullable;
 
 // spotless:off
 @KubernetesDependent(
@@ -41,9 +45,8 @@ public class StudioUIDeploymentResource
         var d = STUDIO_UI_DEPLOYMENT_KEY.getFactory().apply(primary);
 
         var envVars = new LinkedHashMap<String, EnvVar>();
-        primary.getSpec().getStudioUi().getEnv().forEach(e -> {
-            envVars.put(e.getName(), e);
-        });
+        ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi).map(StudioUiSpec::getEnv)
+                .ifPresent(env -> env.forEach(e -> envVars.put(e.getName(), e)));
 
         var sOpt = context.getSecondaryResource(APP_SERVICE_KEY.getKlass(),
                 APP_SERVICE_KEY.getDiscriminator());

@@ -1,42 +1,41 @@
 package io.apicurio.registry.operator.api.v1;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.annotation.Nulls;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.apicurio.registry.operator.api.v1.status.Conditions;
+import io.apicurio.registry.operator.api.v1.status.Condition;
 import io.apicurio.registry.operator.api.v1.status.Info;
 import io.javaoperatorsdk.operator.api.ObservedGenerationAwareStatus;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
-@JsonInclude(Include.NON_NULL)
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static com.fasterxml.jackson.annotation.Nulls.SKIP;
+import static lombok.AccessLevel.PRIVATE;
+
+@JsonInclude(NON_NULL)
 @JsonPropertyOrder({ "conditions", "info" })
 @JsonDeserialize(using = None.class)
+@NoArgsConstructor
+@AllArgsConstructor(access = PRIVATE)
+@Builder
 @Getter
 @Setter
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class ApicurioRegistry3Status extends ObservedGenerationAwareStatus {
 
     /**
-     * Conditions: Apicurio Registry application and Operator conditions.
+     * Apicurio Registry operator and operand conditions.
      */
     @JsonProperty("conditions")
-    @JsonPropertyDescription("Conditions: \n Apicurio Registry application and Operator conditions.")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private List<Conditions> conditions;
+    @JsonPropertyDescription("""
+            Apicurio Registry operator and operand conditions.""")
+    @JsonSetter(nulls = SKIP)
+    private List<Condition> conditions = new ArrayList<>();
 
-    /**
-     * Information about the Apicurio Registry application
-     */
     @JsonProperty("info")
     @JsonPropertyDescription("Information about the Apicurio Registry application")
     @JsonSetter(nulls = Nulls.SKIP)

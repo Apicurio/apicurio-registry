@@ -4,9 +4,9 @@ metadata:
   name: example-registry-with-studio
 spec:
   app:
-    host: example-registry-with-studio-app.apps.yourcluster.example
+    host: example-registry-with-studio-app.apps.cluster.example
   ui:
-    host: example-registry-with-studio-ui.apps.yourcluster.example
+    host: example-registry-with-studio-ui.apps.cluster.example
   studioUi:
     enabled: true
-    host: example-registry-with-studio-studio-ui.apps.yourcluster.example
+    host: example-registry-with-studio-studio-ui.apps.cluster.example

@@ -1,7 +1,6 @@
 package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
@@ -12,6 +11,9 @@ import io.apicurio.registry.operator.resource.studioui.StudioUIServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UIServiceResource;
+import io.apicurio.registry.operator.updater.IngressCRUpdater;
+import io.apicurio.registry.operator.updater.KafkaSqlCRUpdater;
+import io.apicurio.registry.operator.updater.SqlCRUpdater;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.*;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
@@ -86,6 +88,17 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
             Context<ApicurioRegistry3> context) {
 
         log.info("Reconciling Apicurio Registry: {}", primary);
+
+        // Some of the fields in the CR have been deprecated and another fields should be used instead.
+        // Operator will attempt to update the CR to use the newer fields if possible.
+        // This has to be done first, so subsequent functionality can deal with new fields only.
+        var update = IngressCRUpdater.update(primary);
+        update = SqlCRUpdater.update(primary) || update;
+        update = KafkaSqlCRUpdater.update(primary) || update;
+        if (update) {
+            return UpdateControl.updateResource(primary);
+        }
+
         var statusUpdater = new StatusUpdater(primary);
 
         return context.getSecondaryResource(Deployment.class, AppDeploymentDiscriminator.INSTANCE)

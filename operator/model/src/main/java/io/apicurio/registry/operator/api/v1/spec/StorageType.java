@@ -1,22 +1,20 @@
-package io.apicurio.registry.operator.api.v1.status;
+package io.apicurio.registry.operator.api.v1.spec;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum ConditionStatus {
+public enum StorageType {
 
     // spotless:off
-    @JsonProperty("True")
-    TRUE("True"),
-    @JsonProperty("False")
-    FALSE("False"),
-    @JsonProperty("Unknown")
-    UNKNOWN("Unknown");
+    @JsonProperty("postgresql")
+    POSTGRESQL("postgresql"),
+    @JsonProperty("kafkasql")
+    KAFKASQL("kafkasql");
     // spotless:on
 
     final String value;
 
-    ConditionStatus(String value) {
+    StorageType(String value) {
         this.value = value;
     }
 

@@ -3,8 +3,9 @@ package io.apicurio.registry.operator.unit;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
-import io.apicurio.registry.operator.api.v1.ApicurioRegistry3SpecApp;
-import io.apicurio.registry.operator.api.v1.ApicurioRegistry3SpecUI;
+import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
+import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.apicurio.registry.operator.unit.PodTemplateSpecArgumentProviders.*;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -121,8 +122,9 @@ public class PodTemplateSpecTest {
         primary.getMetadata().setName("test");
         primary.getMetadata().setNamespace("test");
         primary.setSpec(new ApicurioRegistry3Spec());
-        primary.getSpec().setApp(new ApicurioRegistry3SpecApp());
-        primary.getSpec().setUi(new ApicurioRegistry3SpecUI());
+        primary.getSpec().setApp(new AppSpec());
+        primary.getSpec().setUi(new UiSpec());
+        primary.getSpec().setStudioUi(new StudioUiSpec());
         return primary;
     }
 

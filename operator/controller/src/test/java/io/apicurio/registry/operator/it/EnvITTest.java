@@ -4,6 +4,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -11,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static io.apicurio.registry.operator.resource.ResourceFactory.*;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.*;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -45,18 +46,18 @@ public class EnvITTest extends ITBase {
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
-        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
-        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+        registry.withSpec().withApp().withIngress().setHost(ingressManager.getIngressHost("app"));
+        registry.withSpec().withUi().withIngress().setHost(ingressManager.getIngressHost("ui"));
+        registry.withSpec().withStudioUi().withIngress().setHost(ingressManager.getIngressHost("studio-ui"));
         registry.getSpec().getStudioUi().setEnabled(true);
-        registry.getSpec().getStudioUi().setHost(ingressManager.getIngressHost("studio-ui"));
 
         client.resource(registry).create();
 
         await().ignoreExceptions().until(() -> {
-                var appEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-app-deployment").get(), APP_CONTAINER_NAME).getEnv();
+                var appEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-app-deployment").get(), REGISTRY_APP_CONTAINER_NAME).getEnv();
                 assertThat(appEnv).map(EnvVar::getName).containsOnlyOnce(defaultAppEnv);
 
-                var uiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-ui-deployment").get(), UI_CONTAINER_NAME).getEnv();
+                var uiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-ui-deployment").get(), REGISTRY_UI_CONTAINER_NAME).getEnv();
                 assertThat(uiEnv).map(EnvVar::getName).containsOnlyOnce(defaultUIEnv);
 
                 var studioUiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-studio-ui-deployment").get(), STUDIO_UI_CONTAINER_NAME).getEnv();
@@ -81,11 +82,14 @@ public class EnvITTest extends ITBase {
                 new EnvVarBuilder().withName("UI_VAR_2_NAME").withValue("UI_VAR_2_VALUE").build()
         ));
 
-        client.resource(registry).update();
+        await().ignoreExceptionsInstanceOf(KubernetesClientException.class).until(() -> {
+            client.resource(registry).update();
+            return true;
+        });
 
         await().ignoreExceptions().until(() -> {
 
-            var appEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-app-deployment").get(), APP_CONTAINER_NAME).getEnv();
+            var appEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-app-deployment").get(), REGISTRY_APP_CONTAINER_NAME).getEnv();
             assertThat(appEnv).map(EnvVar::getName).containsOnlyOnce(defaultAppEnv);
             var QUARKUS_HTTP_ACCESS_LOG_ENABLED = appEnv.stream().filter(e -> "QUARKUS_HTTP_ACCESS_LOG_ENABLED".equals(e.getName())).map(EnvVar::getValue).findAny().get();
             assertThat(QUARKUS_HTTP_ACCESS_LOG_ENABLED).isEqualTo("false");
@@ -94,7 +98,7 @@ public class EnvITTest extends ITBase {
                     new EnvVarBuilder().withName("APP_VAR_2_NAME").withValue("APP_VAR_2_VALUE").build()
             );
 
-            var uiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-ui-deployment").get(), UI_CONTAINER_NAME).getEnv();
+            var uiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-ui-deployment").get(), REGISTRY_UI_CONTAINER_NAME).getEnv();
             assertThat(uiEnv).map(EnvVar::getName).containsOnlyOnce(defaultUIEnv);
             var REGISTRY_API_URL = uiEnv.stream().filter(e -> "REGISTRY_API_URL".equals(e.getName())).map(EnvVar::getValue).findAny().get();
             assertThat(REGISTRY_API_URL).isEqualTo("FOO");
@@ -133,11 +137,14 @@ public class EnvITTest extends ITBase {
                 new EnvVarBuilder().withName("UI_VAR_1_NAME").withValue("UI_VAR_1_VALUE").build()
         ));
 
-        client.resource(registry).update();
+        await().ignoreExceptionsInstanceOf(KubernetesClientException.class).until(() -> {
+            client.resource(registry).update();
+            return true;
+        });
 
         await().ignoreExceptions().until(() -> {
 
-            var appEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-app-deployment").get(), APP_CONTAINER_NAME).getEnv();
+            var appEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-app-deployment").get(), REGISTRY_APP_CONTAINER_NAME).getEnv();
             assertThat(appEnv).map(EnvVar::getName).containsOnlyOnce(defaultAppEnv);
             var QUARKUS_HTTP_ACCESS_LOG_ENABLED = appEnv.stream().filter(e -> "QUARKUS_HTTP_ACCESS_LOG_ENABLED".equals(e.getName())).map(EnvVar::getValue).findAny().get();
             assertThat(QUARKUS_HTTP_ACCESS_LOG_ENABLED).isEqualTo("false");
@@ -147,7 +154,7 @@ public class EnvITTest extends ITBase {
             );
 
 
-            var uiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-ui-deployment").get(), UI_CONTAINER_NAME).getEnv();
+            var uiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-ui-deployment").get(), REGISTRY_UI_CONTAINER_NAME).getEnv();
             assertThat(uiEnv).map(EnvVar::getName).containsOnlyOnce(defaultUIEnv);
             var REGISTRY_API_URL = uiEnv.stream().filter(e -> "REGISTRY_API_URL".equals(e.getName())).map(EnvVar::getValue).findAny().get();
             assertThat(REGISTRY_API_URL).isEqualTo("FOO");

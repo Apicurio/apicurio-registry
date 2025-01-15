@@ -43,14 +43,19 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String explicitArtifactVersion;
 
     protected static Vertx vertx;
+    protected Vertx internalReference;
     protected boolean resolveDereferenced;
 
     @Override
     public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
         this.schemaParser = schemaParser;
 
-        if (vertx == null) {
-            vertx = Vertx.vertx();
+        if (vertx != null) {
+            internalReference = vertx;
+        }
+
+        if (internalReference == null) {
+            internalReference = Vertx.vertx();
         }
 
         this.config = new SchemaResolverConfig(configs);
@@ -72,7 +77,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                     if (username != null) {
                         client = configureClientWithBasicAuth(config, baseUrl, username);
                     } else {
-                        var adapter = new VertXRequestAdapter(vertx);
+                        var adapter = new VertXRequestAdapter(internalReference);
                         adapter.setBaseUrl(baseUrl);
                         client = new RegistryClient(adapter);
                     }
@@ -275,9 +280,12 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      */
     @Override
     public void close() throws IOException {
-        if (vertx != null) {
-            vertx.close();
-            vertx = null;
+        if (internalReference != null) {
+            if (vertx == null) {
+                internalReference.close();
+            } else {
+                vertx = null;
+            }
         }
     }
 
@@ -305,7 +313,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         final String clientScope = config.getAuthClientScope();
 
         return new VertXRequestAdapter(
-                buildOIDCWebClient(vertx, tokenEndpoint, clientId, clientSecret, clientScope));
+                buildOIDCWebClient(internalReference, tokenEndpoint, clientId, clientSecret, clientScope));
     }
 
     private RegistryClient configureClientWithBasicAuth(SchemaResolverConfig config, String registryUrl,
@@ -318,7 +326,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                     "Missing registry auth password, set " + SchemaResolverConfig.AUTH_PASSWORD);
         }
 
-        var adapter = new VertXRequestAdapter(buildSimpleAuthWebClient(vertx, username, password));
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(internalReference, username, password));
 
         adapter.setBaseUrl(registryUrl);
         return new RegistryClient(adapter);

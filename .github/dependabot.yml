@@ -59,22 +59,11 @@ updates:
       ui-app-dependencies:
         patterns:
           - "*"
+        update-types:
+          - "patch"
+          - "minor"
         exclude-patterns:
-          - "eslint"
-          - "@patternfly/*"
           - "@microsoft/*"
-      ui-app-eslint:
-        patterns:
-          - "eslint"
-        update-types:
-          - "patch"
-          - "minor"
-      ui-app-patternfly:
-        patterns:
-          - "@patternfly/*"
-        update-types:
-          - "patch"
-          - "minor"
       ui-app-kiota:
         patterns:
           - "@microsoft/*"
@@ -92,14 +81,11 @@ updates:
       ui-docs-dependencies:
         patterns:
           - "*"
-        exclude-patterns:
-          - "eslint"
-      eslint:
-        patterns:
-          - "eslint"
         update-types:
           - "patch"
           - "minor"
+        exclude-patterns:
+          - "eslint"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
@@ -111,14 +97,11 @@ updates:
       ui-test-dependencies:
         patterns:
           - "*"
-        exclude-patterns:
-          - "eslint"
-      eslint:
-        patterns:
-          - "eslint"
         update-types:
           - "patch"
           - "minor"
+        exclude-patterns:
+          - "eslint"
     open-pull-requests-limit: 10
     versioning-strategy: increase
 
@@ -130,15 +113,11 @@ updates:
       typescript-sdk-dependencies:
         patterns:
           - "*"
-        exclude-patterns:
-          - "eslint"
-          - "@microsoft/*"
-      typescript-sdk-eslint:
-        patterns:
-          - "eslint"
         update-types:
           - "patch"
           - "minor"
+        exclude-patterns:
+          - "@microsoft/*"
       typescript-sdk-kiota:
         patterns:
           - "@microsoft/*"
@@ -159,3 +138,4 @@ updates:
           - "*"
         update-types:
           - "patch"
+          - "minor"

@@ -163,7 +163,7 @@
     <json-schema-validator.version>1.5.4</json-schema-validator.version>
     <wire-schema.version>4.9.9</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio-jvm.version>3.9.1</okio-jvm.version>
+    <okio-jvm.version>3.10.2</okio-jvm.version>
     <okio.version>3.9.1</okio.version>
     <okio-fake-file-system.version>3.10.2</okio-fake-file-system.version>
     <icu4j.version>76.1</icu4j.version>

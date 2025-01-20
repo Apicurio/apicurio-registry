@@ -77,7 +77,6 @@
     <module>utils/converter</module>
     <module>utils/kafka</module>
     <module>utils/maven-plugin</module>
-    <module>utils/tools</module>
     <module>utils/importexport</module>
     <module>utils/exportConfluent</module>
     <module>utils/protobuf-schema-utilities</module>
@@ -161,12 +160,12 @@
 
     <!-- Schema types -->
     <avro.version>1.12.0</avro.version>
-    <json-schema-validator.version>1.5.4</json-schema-validator.version>
+    <json-schema-validator.version>1.5.5</json-schema-validator.version>
     <wire-schema.version>4.9.9</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio-jvm.version>3.9.1</okio-jvm.version>
+    <okio-jvm.version>3.10.2</okio-jvm.version>
     <okio.version>3.9.1</okio.version>
-    <okio-fake-file-system.version>3.9.1</okio-fake-file-system.version>
+    <okio-fake-file-system.version>3.10.2</okio-fake-file-system.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>3.25.5</protobuf.version>
     <xmlsec.version>4.0.3</xmlsec.version>
@@ -213,7 +212,6 @@
     <!-- Dependency versions -->
     <lombok.version>1.18.36</lombok.version>
     <commons-codec.version>1.17.1</commons-codec.version>
-    <jboss-slf4j.version>1.2.1.Final</jboss-slf4j.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>
@@ -225,7 +223,7 @@
     <woodstox-core.version>7.1.0</woodstox-core.version>
     <jgit.version>7.1.0.202411261347-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>
-    <assertj.core.version>3.26.3</assertj.core.version>
+    <assertj.core.version>3.27.2</assertj.core.version>
     <semver4j.version>5.5.0</semver4j.version>
     <bouncycastle.version>1.79</bouncycastle.version>
 
@@ -269,7 +267,7 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.8.2</kiota.libs.version>
-    <kiota.community.version>0.0.19</kiota.community.version>
+    <kiota.community.version>0.0.20</kiota.community.version>
 
     <kiota.version>1.21.0</kiota.version>
     <kiota.timeout>60</kiota.timeout>

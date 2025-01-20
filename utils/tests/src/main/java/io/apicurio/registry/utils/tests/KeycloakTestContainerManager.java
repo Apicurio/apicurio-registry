@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,12 +26,12 @@ public class KeycloakTestContainerManager implements QuarkusTestResourceLifecycl
     @Override
     public Map<String, String> start() {
 
-        server = new KeycloakContainer().withNetwork(Network.SHARED).withRealmImportFile("/realm.json");
+        server = new KeycloakContainer(
+                DockerImageName.parse("quay.io/keycloak/keycloak").withTag("26.1.0").toString())
+                .withNetwork(Network.SHARED).withRealmImportFile("/realm.json");
         server.start();
 
-        server.waitingFor(Wait.forLogMessage(
-                ".*[org.keycloak.quarkus.runtime.KeycloakMain] (main) Running the server in development mode.*",
-                1));
+        server.waitingFor(Wait.forLogMessage(".*[io.quarkus] (main) Installed features.*", 1));
 
         Map<String, String> props = new HashMap<>();
 

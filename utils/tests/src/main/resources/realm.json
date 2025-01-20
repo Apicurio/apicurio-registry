@@ -3128,7 +3128,7 @@
     "clientSessionMaxLifespan": "0",
     "cibaInterval": "5"
   },
-  "keycloakVersion": "18.0.1",
+  "keycloakVersion": "26.1.0",
   "userManagedAccessAllowed": true,
   "clientProfiles": {
     "profiles": []

@@ -3183,8 +3183,6 @@ spec:
               value: "8090"
             - name: KC_HOSTNAME_STRICT_BACKCHANNEL
               value: "false"
-            - name: KC_HTTP_RELATIVE_PATH
-              value: "/auth"
             - name: KC_HTTP_PORT
               value: "8090"
           ports:
@@ -3211,7 +3209,16 @@ metadata:
 spec:
   selector:
     app: keycloak-deployment
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster
   ports:
     - protocol: TCP
       port: 8090
       targetPort: 8090
+      nodePort: 32587

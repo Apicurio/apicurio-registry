@@ -8,7 +8,7 @@ import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
-import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.Constants;
@@ -45,8 +45,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Override
     protected RegistryClient createRegistryClient(Vertx vertx) {
-        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID,
-                "test1");
+        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured,
+                KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1");
         return createClient(auth);
     }
 
@@ -58,8 +58,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID,
-                "test55");
+        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured,
+                KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, "test55");
         RegistryClient client = createClient(auth);
         var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId("foo").artifacts().get();
@@ -70,7 +70,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testReadOnly() throws Exception {
         var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
-                JWKSMockServer.READONLY_CLIENT_ID, "test1"));
+                KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -90,7 +90,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         assertForbidden(exception3);
 
         var devAdapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
-                JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+                KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient devClient = new RegistryClient(devAdapter);
 
@@ -113,7 +113,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testDevRole() throws Exception {
         var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
-                JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+                KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -152,8 +152,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testAdminRole() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
+                KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();
@@ -190,12 +190,12 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
         var devAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient clientDev = new RegistryClient(devAdapter);
 
         var adminAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         adminAdapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient clientAdmin = new RegistryClient(adminAdapter);
 
@@ -243,7 +243,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testGetArtifactOwner() throws Exception {
         var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
 
@@ -272,7 +272,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testUpdateArtifactOwner() throws Exception {
         var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         adapter.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client = new RegistryClient(adapter);
 
@@ -316,11 +316,11 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
         var adapter_dev1 = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         adapter_dev1.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
         var adapter_dev2 = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.DEVELOPER_2_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_2_CLIENT_ID, "test2"));
         adapter_dev2.setBaseUrl(getRegistryV3ApiUrl());
         RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
 

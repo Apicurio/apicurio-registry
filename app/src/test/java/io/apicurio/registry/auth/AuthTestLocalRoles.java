@@ -16,7 +16,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithLocalRoles;
-import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
@@ -49,8 +49,8 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
+                KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -68,12 +68,12 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
     @Test
     public void testLocalRoles() throws Exception {
         var adapterAdmin = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         adapterAdmin.setBaseUrl(registryV3ApiUrl);
         RegistryClient clientAdmin = new RegistryClient(adapterAdmin);
 
         var adapterAuth = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
         adapterAuth.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapterAuth);
 
@@ -95,7 +95,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
         // Now let's grant read-only access to the user.
         var roMapping = new RoleMapping();
-        roMapping.setPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID);
+        roMapping.setPrincipalId(KeycloakTestContainerManager.NO_ROLE_CLIENT_ID);
         roMapping.setRole(RoleType.READ_ONLY);
 
         clientAdmin.admin().roleMappings().post(roMapping);
@@ -116,7 +116,8 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         var devMapping = new UpdateRole();
         devMapping.setRole(RoleType.DEVELOPER);
 
-        clientAdmin.admin().roleMappings().byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID).put(devMapping);
+        clientAdmin.admin().roleMappings().byPrincipalId(KeycloakTestContainerManager.NO_ROLE_CLIENT_ID)
+                .put(devMapping);
 
         // Now the user can read and write but not admin
         client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
@@ -132,7 +133,8 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         var adminMapping = new UpdateRole();
         adminMapping.setRole(RoleType.ADMIN);
 
-        clientAdmin.admin().roleMappings().byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID).put(adminMapping);
+        clientAdmin.admin().roleMappings().byPrincipalId(KeycloakTestContainerManager.NO_ROLE_CLIENT_ID)
+                .put(adminMapping);
 
         // Now the user can do everything
         client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts().get();
@@ -140,7 +142,8 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         client.admin().rules().post(createRule);
 
         // Now delete the role mapping
-        clientAdmin.admin().roleMappings().byPrincipalId(JWKSMockServer.NO_ROLE_CLIENT_ID).delete();
+        clientAdmin.admin().roleMappings().byPrincipalId(KeycloakTestContainerManager.NO_ROLE_CLIENT_ID)
+                .delete();
 
     }
 }

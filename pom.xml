@@ -275,8 +275,7 @@
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <test-containers.version>1.20.2</test-containers.version>
-    <keycloak.testcontainers.version>1.9.0</keycloak.testcontainers.version>
-    <keycloak-admin-client.version>21.1.2</keycloak-admin-client.version>
+    <keycloak.testcontainers.version>3.4.0</keycloak.testcontainers.version>
     <embedded-postgres.version>2.0.7</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock-jre8.version>2.35.2</wiremock-jre8.version>
@@ -823,11 +822,6 @@
         <groupId>com.github.dasniko</groupId>
         <artifactId>testcontainers-keycloak</artifactId>
         <version>${keycloak.testcontainers.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.keycloak</groupId>
-        <artifactId>keycloak-admin-client-jakarta</artifactId>
-        <version>${keycloak-admin-client.version}</version>
       </dependency>
       <dependency>
         <groupId>com.github.tomakehurst</groupId>

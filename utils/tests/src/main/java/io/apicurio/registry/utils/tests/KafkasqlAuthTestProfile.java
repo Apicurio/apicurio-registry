@@ -12,15 +12,14 @@ public class KafkasqlAuthTestProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         return Map.of("apicurio.storage.kind", "kafkasql", "apicurio.rest.deletion.group.enabled", "true",
                 "apicurio.rest.deletion.artifact.enabled", "true",
-                "apicurio.rest.deletion.artifact-version.enabled", "true", "smallrye.jwt.sign.key.location",
-                "privateKey.jwk");
+                "apicurio.rest.deletion.artifact-version.enabled", "true");
     }
 
     @Override
     public List<TestResourceEntry> testResources() {
         if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
             return List.of(new TestResourceEntry(KafkaTestContainerManager.class),
-                    new TestResourceEntry(JWKSMockServer.class));
+                    new TestResourceEntry(KeycloakTestContainerManager.class));
         } else {
             return Collections.emptyList();
         }

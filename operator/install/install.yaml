@@ -25,11 +25,11 @@ spec:
           spec:
             properties:
               app:
-                description: Configuration specific to Apicurio Registry backend component.
+                description: Configure Apicurio Registry backend (app) component.
                 properties:
                   env:
-                    description: List of environment variables that should be passed
-                      to the App component.
+                    description: Configure a list of environment variables that will
+                      be passed to this components' container.
                     items:
                       properties:
                         name:
@@ -79,27 +79,37 @@ spec:
                       type: object
                     type: array
                   host:
-                    description: |-
-                      Apicurio Registry backend component hostname.
-                      If the value is empty, the Operator will not create an Ingress resource for the component.
-                      IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
-
-                      Note that the UI component requires a browser-accessible URL to the Apicurio Registry backend to work properly.
-                      If you create the Ingress manually, you have to manually set the REGISTRY_API_URL environment variable for the backend component.
+                    description: 'DEPRECATED: Use the `(component).ingress.host` field
+                      instead. The operator will attempt to update the field automatically.'
                     type: string
+                  ingress:
+                    description: Configure Ingress for the component.
+                    properties:
+                      host:
+                        description: |-
+                          Configure hostname of the operator-managed Ingress. If the value is empty, the operator will not create an Ingress resource for the component.
+
+                          IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
+                        type: string
+                    type: object
                   kafkasql:
-                    description: Configure KafkaSQL storage.
+                    description: |-
+                      DEPRECATED: Use the `app.storage.type` and `app.storage.kafkasql` fields instead.
+                       The operator will attempt to update the fields automatically.
                     properties:
                       bootstrapServers:
-                        description: Configure Kafka bootstrap servers.
+                        description: 'DEPRECATED: Use the `app.storage.kafkasql.bootstrapServers`
+                          field instead. The operator will attempt to update the field
+                          automatically.'
                         type: string
                     type: object
                   podTemplateSpec:
-                    description: |
-                      This field can be used to specify a PodTemplateSpec that will be used to generate Deployment for the App component
-                      This allows users to modify the apicurio-registry-app container, or adding another container to the pod.
-                      Operator will apply changes on top of this PTS, so some parts might be overridden, depending on other fields in this CR.
-                      Restrictions: `.spec.containers[name = apicurio-registry-app].env` must be empty.
+                    description: |-
+                      `PodTemplateSpec` describes the data a pod should have when created from a template.
+
+                      This template is used by the operator to create the components' Deployment. The operator first extends the template
+                      with default values if required, and then applies additional configuration
+                      based on the other contents of `ApicurioRegistry3` CR.
                     properties:
                       metadata:
                         properties:
@@ -3010,34 +3020,96 @@ spec:
                         type: object
                     type: object
                   sql:
-                    description: Configuration of Apicurio Registry SQL storage.
+                    description: |-
+                      DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead.
+                      The operator will attempt to update the fields automatically.
                     properties:
                       dataSource:
-                        description: SQL data source.
+                        description: 'DEPRECATED: Use the `app.storage.sql.dataSource`
+                          field instead. The operator will attempt to update the field
+                          automatically.'
                         properties:
                           password:
-                            description: Data source password.
+                            description: 'DEPRECATED: Use the `app.storage.sql.dataSource.password`
+                              field instead. The operator will attempt to update the
+                              field automatically.'
                             type: string
                           url:
-                            description: |-
-                              Data source URL: \n URL of the PostgreSQL
-                              database, for example: `jdbc:postgresql://<service name>.<namespace>.svc:5432/<database name>`.
+                            description: 'DEPRECATED: Use the `app.storage.sql.dataSource.url`
+                              field instead. The operator will attempt to update the
+                              field automatically.'
                             type: string
                           username:
-                            description: Data source username.
+                            description: 'DEPRECATED: Use the `app.storage.sql.dataSource.username`
+                              field instead. The operator will attempt to update the
+                              field automatically.'
                             type: string
                         type: object
                     type: object
+                  storage:
+                    description: |
+                      Configure storage for Apicurio Registry backend (app).
+                    properties:
+                      kafkasql:
+                        description: Configure KafkaSQL storage type.
+                        properties:
+                          bootstrapServers:
+                            description: |-
+                              Configure Kafka bootstrap servers.
+
+                              Required if `app.storage.type` is `kafkasql`.
+                            type: string
+                        type: object
+                      sql:
+                        description: Configure SQL storage types.
+                        properties:
+                          dataSource:
+                            description: Configure SQL data source.
+                            properties:
+                              password:
+                                description: |-
+                                  Configure SQL data source password.
+
+                                  If you want to reference a Secret, you can set the `APICURIO_DATASOURCE_PASSWORD` environment variable directly using the `app.env` field.
+                                type: string
+                              url:
+                                description: |-
+                                  Configure SQL data source URL.
+
+                                  Example: `jdbc:postgresql://example-postgresql-database:5432/apicurio`.
+                                type: string
+                              username:
+                                description: Configure SQL data source username.
+                                type: string
+                            type: object
+                        type: object
+                      type:
+                        description: |-
+                          Configure type of storage that Apicurio Registry backend (app) will use:
+
+                            * <empty> - in-memory storage.
+                            * `postgresql` - Postgresql storage type, must be further configured using the `app.storage.sql` field.
+                            * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
+
+                          IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.
+                        enum:
+                        - kafkasql
+                        - postgresql
+                        type: string
+                    type: object
                 type: object
               studioUi:
-                description: Configuration specific to Apicurio Studio UI component.
+                description: Configure Apicurio Studio UI component.
                 properties:
                   enabled:
-                    description: Enable the deployment of the Studio UI component.
+                    description: |
+                      Enable deployment of the Apicurio Studio UI component.
+
+                      Defaults to `false`.
                     type: boolean
                   env:
-                    description: List of environment variables that should be passed
-                      to the Studio UI component.
+                    description: Configure a list of environment variables that will
+                      be passed to this components' container.
                     items:
                       properties:
                         name:
@@ -3087,17 +3159,26 @@ spec:
                       type: object
                     type: array
                   host:
-                    description: |-
-                      Apicurio Studio UI component hostname.
-                      If the value is empty, the Operator will not create an Ingress resource for the component.
-                      IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
+                    description: 'DEPRECATED: Use the `(component).ingress.host` field
+                      instead. The operator will attempt to update the field automatically.'
                     type: string
+                  ingress:
+                    description: Configure Ingress for the component.
+                    properties:
+                      host:
+                        description: |-
+                          Configure hostname of the operator-managed Ingress. If the value is empty, the operator will not create an Ingress resource for the component.
+
+                          IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
+                        type: string
+                    type: object
                   podTemplateSpec:
                     description: |-
-                      This field can be used to specify a PodTemplateSpec that will be used to generate Deployment for the UI component.
-                      This allows users to modify the apicurio-studio-ui container, or adding another container to the pod.
-                      Operator will apply changes on top of this PTS, so some parts might be overridden, depending on other fields in this CR.
-                      Restrictions: `.spec.containers[name = apicurio-studio-ui].env` must be empty.
+                      `PodTemplateSpec` describes the data a pod should have when created from a template.
+
+                      This template is used by the operator to create the components' Deployment. The operator first extends the template
+                      with default values if required, and then applies additional configuration
+                      based on the other contents of `ApicurioRegistry3` CR.
                     properties:
                       metadata:
                         properties:
@@ -6009,11 +6090,12 @@ spec:
                     type: object
                 type: object
               ui:
-                description: Configuration specific to Apicurio Registry UI component.
+                description: |
+                  Configure Apicurio Registry UI component.
                 properties:
                   env:
-                    description: List of environment variables that should be passed
-                      to the UI component.
+                    description: Configure a list of environment variables that will
+                      be passed to this components' container.
                     items:
                       properties:
                         name:
@@ -6063,17 +6145,26 @@ spec:
                       type: object
                     type: array
                   host:
-                    description: |-
-                      Apicurio Registry UI component hostname.
-                      If the value is empty, the Operator will not create an Ingress resource for the component.
-                      IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
+                    description: 'DEPRECATED: Use the `(component).ingress.host` field
+                      instead. The operator will attempt to update the field automatically.'
                     type: string
+                  ingress:
+                    description: Configure Ingress for the component.
+                    properties:
+                      host:
+                        description: |-
+                          Configure hostname of the operator-managed Ingress. If the value is empty, the operator will not create an Ingress resource for the component.
+
+                          IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
+                        type: string
+                    type: object
                   podTemplateSpec:
                     description: |-
-                      This field can be used to specify a PodTemplateSpec that will be used to generate Deployment for the UI component.
-                      This allows users to modify the apicurio-registry-ui container, or adding another container to the pod.
-                      Operator will apply changes on top of this PTS, so some parts might be overridden, depending on other fields in this CR.
-                      Restrictions: `.spec.containers[name = apicurio-registry-ui].env` must be empty.
+                      `PodTemplateSpec` describes the data a pod should have when created from a template.
+
+                      This template is used by the operator to create the components' Deployment. The operator first extends the template
+                      with default values if required, and then applies additional configuration
+                      based on the other contents of `ApicurioRegistry3` CR.
                     properties:
                       metadata:
                         properties:
@@ -8988,8 +9079,7 @@ spec:
           status:
             properties:
               conditions:
-                description: "Conditions: \n Apicurio Registry application and Operator
-                  conditions."
+                description: Apicurio Registry operator and operand conditions.
                 items:
                   properties:
                     lastTransitionTime:

@@ -90,12 +90,14 @@ public class SmokeITTest extends ITBase {
         // Scale up
         registry.getSpec().getApp().setReplicas(3);
         registry.getSpec().getUi().setReplicas(3);
+        client.resource(registry).update();
         checkDeploymentExists(registry, COMPONENT_APP, 3);
         checkDeploymentExists(registry, COMPONENT_UI, 3);
 
         // Scale down
         registry.getSpec().getApp().setReplicas(2);
         registry.getSpec().getUi().setReplicas(2);
+        client.resource(registry).update();
         checkDeploymentExists(registry, COMPONENT_APP, 2);
         checkDeploymentExists(registry, COMPONENT_UI, 2);
     }

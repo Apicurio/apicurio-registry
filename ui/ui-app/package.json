@@ -44,7 +44,7 @@
     "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.79",
     "@microsoft/kiota-serialization-form": "1.0.0-preview.79",
     "@microsoft/kiota-serialization-json": "1.0.0-preview.79",
-    "@microsoft/kiota-serialization-multipart": "1.0.0-preview.79",
+    "@microsoft/kiota-serialization-multipart": "1.0.0-preview.80",
     "@microsoft/kiota-serialization-text": "1.0.0-preview.79",
     "@patternfly/patternfly": "5.4.2",
     "@patternfly/react-code-editor": "5.4.15",

@@ -147,7 +147,7 @@ public class StudioSmokeITTest extends ITBase {
         checkDeploymentDoesNotExist(simpleRegistry, COMPONENT_STUDIO_UI);
 
         // Now let's enable the Studio component and scale Registry to 3 replicas
-        simpleRegistry.getSpec().getStudioUi().setEnabled(true);
+        simpleRegistry.getSpec().withStudioUi().setEnabled(true);
         simpleRegistry.getSpec().getApp().setReplicas(3);
         simpleRegistry.getSpec().getUi().setReplicas(3);
         simpleRegistry.getSpec().getStudioUi().setReplicas(3);

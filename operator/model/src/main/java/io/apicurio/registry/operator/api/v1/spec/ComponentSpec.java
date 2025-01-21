@@ -84,6 +84,14 @@ public abstract class ComponentSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private String host;
 
+    /**
+     * Number of replicas for the component
+     */
+    @JsonProperty("replicas")
+    @JsonPropertyDescription("Number of replicas for the component")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private Integer replicas;
+
     public IngressSpec withIngress() {
         if (ingress == null) {
             ingress = new IngressSpec();

@@ -114,8 +114,15 @@ public class SmokeITTest extends ITBase {
         client.resource(registry).create();
 
         // Wait for Services
-        checkServiceExists(registry, COMPONENT_APP);
-        checkServiceExists(registry, COMPONENT_UI);
+        await().ignoreExceptions().until(() -> {
+            assertThat(client.services().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-service").get().getSpec()
+                    .getClusterIP()).isNotBlank();
+            assertThat(client.services().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-service").get().getSpec()
+                    .getClusterIP()).isNotBlank();
+            return true;
+        });
 
         int appServicePort = portForwardManager
                 .startPortForward(registry.getMetadata().getName() + "-app-service", 8080);
@@ -148,8 +155,12 @@ public class SmokeITTest extends ITBase {
         client.resource(registry).create();
 
         // Wait for Ingresses
-        checkIngressExists(registry, COMPONENT_APP);
-        checkIngressExists(registry, COMPONENT_UI);
+        await().untilAsserted(() -> {
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-ingress").get()).isNotNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-ingress").get()).isNotNull();
+        });
 
         await().ignoreExceptions().until(() -> {
             ingressManager.startHttpRequest(registry.getMetadata().getName() + "-app-ingress")
@@ -176,8 +187,12 @@ public class SmokeITTest extends ITBase {
         client.resource(registry).create();
 
         // Wait for Ingresses
-        checkIngressExists(registry, COMPONENT_APP);
-        checkIngressExists(registry, COMPONENT_UI);
+        await().untilAsserted(() -> {
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-ingress").get()).isNotNull();
+            assertThat(client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-ui-ingress").get()).isNotNull();
+        });
 
         // Check that REGISTRY_API_URL is set
         await().ignoreExceptions().untilAsserted(() -> {

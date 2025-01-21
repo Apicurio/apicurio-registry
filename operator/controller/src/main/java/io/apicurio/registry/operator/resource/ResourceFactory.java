@@ -12,14 +12,14 @@ import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import static io.apicurio.registry.operator.Constants.DEFAULT_REPLICAS;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.*;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromPodTemplateSpec;
 import static io.apicurio.registry.operator.utils.Mapper.YAML_MAPPER;
@@ -27,8 +27,6 @@ import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
 
 public class ResourceFactory {
-
-    private static final Logger log = LoggerFactory.getLogger(ResourceFactory.class);
 
     public static final ResourceFactory INSTANCE = new ResourceFactory();
 
@@ -41,8 +39,11 @@ public class ResourceFactory {
     public static final String RESOURCE_TYPE_INGRESS = "ingress";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
-        var r = initDefaultDeployment(primary, COMPONENT_APP, 1, ofNullable(primary.getSpec())
-                .map(ApicurioRegistry3Spec::getApp).map(AppSpec::getPodTemplateSpec).orElse(null)); // TODO:
+        var r = initDefaultDeployment(primary, COMPONENT_APP,
+                Optional.ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                        .map(AppSpec::getReplicas).orElse(DEFAULT_REPLICAS),
+                ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                        .map(AppSpec::getPodTemplateSpec).orElse(null)); // TODO:
         // Replicas
         mergeDeploymentPodTemplateSpec(
                 // spotless:off
@@ -63,8 +64,11 @@ public class ResourceFactory {
     }
 
     public Deployment getDefaultUIDeployment(ApicurioRegistry3 primary) {
-        var r = initDefaultDeployment(primary, COMPONENT_UI, 1, ofNullable(primary.getSpec())
-                .map(ApicurioRegistry3Spec::getUi).map(UiSpec::getPodTemplateSpec).orElse(null)); // TODO:
+        var r = initDefaultDeployment(primary, COMPONENT_UI,
+                Optional.ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                        .map(UiSpec::getReplicas).orElse(DEFAULT_REPLICAS),
+                ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                        .map(UiSpec::getPodTemplateSpec).orElse(null)); // TODO:
         // Replicas
         mergeDeploymentPodTemplateSpec(
                 // spotless:off
@@ -85,9 +89,12 @@ public class ResourceFactory {
     }
 
     public Deployment getDefaultStudioUIDeployment(ApicurioRegistry3 primary) {
-        var r = initDefaultDeployment(primary, COMPONENT_STUDIO_UI, 1, ofNullable(primary.getSpec())
-                .map(ApicurioRegistry3Spec::getStudioUi).map(StudioUiSpec::getPodTemplateSpec).orElse(null)); // TODO:
-                                                                                                              // Replicas
+        var r = initDefaultDeployment(primary, COMPONENT_STUDIO_UI,
+                Optional.ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+                        .map(StudioUiSpec::getReplicas).orElse(DEFAULT_REPLICAS),
+                ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+                        .map(StudioUiSpec::getPodTemplateSpec).orElse(null)); // TODO:
+                                                                              // Replicas
         mergeDeploymentPodTemplateSpec(
                 // spotless:off
                 r.getSpec().getTemplate(),

@@ -216,7 +216,7 @@
     <kafka-clients.version>3.6.0</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>
     <pulsar-clients.version>3.3.1</pulsar-clients.version>
-    <commons-beanutils.version>1.9.4</commons-beanutils.version>
+    <commons-beanutils.version>1.10.0</commons-beanutils.version>
 
     <nats.version>2.20.5</nats.version>
     <snakeyaml.version>2.3</snakeyaml.version>

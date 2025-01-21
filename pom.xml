@@ -211,7 +211,7 @@
 
     <!-- Dependency versions -->
     <lombok.version>1.18.36</lombok.version>
-    <commons-codec.version>1.17.1</commons-codec.version>
+    <commons-codec.version>1.17.2</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>

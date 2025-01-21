@@ -1098,6 +1098,8 @@ public class GroupsResourceImpl implements GroupsResource {
 
         String ct = getContentType();
         try {
+
+            String owner = securityIdentity.getPrincipal().getName();
             String artifactId = xRegistryArtifactId;
 
             if (artifactId == null || artifactId.trim().isEmpty()) {
@@ -1140,7 +1142,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
             Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createResult = storage.createArtifact(
                     defaultGroupIdToNull(groupId), artifactId, artifactType, metaData, xRegistryVersion,
-                    contentDto, versionMetaData, List.of(), false, false);
+                    contentDto, versionMetaData, List.of(), false, false, owner);
 
             return V2ApiUtil.dtoToMetaData(groupId, artifactId, artifactType, createResult.getRight());
         } catch (ArtifactAlreadyExistsException ex) {
@@ -1258,6 +1260,8 @@ public class GroupsResourceImpl implements GroupsResource {
         final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                 .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
+        final String owner = securityIdentity.getPrincipal().getName();
+
         String artifactType = lookupArtifactType(groupId, artifactId);
         TypedContent typedContent = TypedContent.create(content, ct);
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
@@ -1266,7 +1270,8 @@ public class GroupsResourceImpl implements GroupsResource {
         ContentWrapperDto contentDto = ContentWrapperDto.builder().content(content).contentType(ct)
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(defaultGroupIdToNull(groupId),
-                artifactId, xRegistryVersion, artifactType, contentDto, metaData, List.of(), false, false);
+                artifactId, xRegistryVersion, artifactType, contentDto, metaData, List.of(), false, false,
+                owner);
         return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType,
                 vmdDto);
     }
@@ -1366,7 +1371,8 @@ public class GroupsResourceImpl implements GroupsResource {
                 content, contentType, references);
     }
 
-    private ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    protected ArtifactMetaData updateArtifactInternal(String groupId, String artifactId, String version,
             String name, String description, ContentHandle content, String contentType,
             List<ArtifactReference> references) {
 
@@ -1396,13 +1402,16 @@ public class GroupsResourceImpl implements GroupsResource {
         if (description != null && description.trim().isEmpty()) {
             artifactMD.setDescription(description);
         }
+
+        final String owner = securityIdentity.getPrincipal().getName();
+
         EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name(artifactMD.getName())
                 .description(artifactMD.getDescription()).labels(artifactMD.getLabels()).build();
 
         ContentWrapperDto contentDto = ContentWrapperDto.builder().content(content).contentType(contentType)
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto dto = storage.createArtifactVersion(defaultGroupIdToNull(groupId),
-                artifactId, version, artifactType, contentDto, metaData, List.of(), false, false);
+                artifactId, version, artifactType, contentDto, metaData, List.of(), false, false, owner);
 
         // Note: if the version was created, we need to update the artifact metadata as well, because
         // those are the semantics of the v2 API. :(

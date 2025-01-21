@@ -15,14 +15,13 @@ public class AuthTestProfile implements QuarkusTestProfile {
         props.put("apicurio.rest.deletion.group.enabled", "true");
         props.put("apicurio.rest.deletion.artifact.enabled", "true");
         props.put("apicurio.rest.deletion.artifact-version.enabled", "true");
-        props.put("smallrye.jwt.sign.key.location", "privateKey.jwk");
         return props;
     }
 
     @Override
     public List<TestResourceEntry> testResources() {
         if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            return List.of(new TestResourceEntry(JWKSMockServer.class));
+            return List.of(new TestResourceEntry(KeycloakTestContainerManager.class));
         } else {
             return Collections.emptyList();
         }

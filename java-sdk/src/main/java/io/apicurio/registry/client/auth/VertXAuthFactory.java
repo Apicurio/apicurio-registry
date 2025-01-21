@@ -31,7 +31,9 @@ public class VertXAuthFactory {
                 .setClientId(clientId).setClientSecret(clientSecret).setTokenPath(tokenUrl));
 
         Oauth2Credentials oauth2Credentials = new Oauth2Credentials();
-
+        if (scope != null) {
+            oauth2Credentials.addScope(scope);
+        }
         OAuth2WebClient oauth2WebClient = OAuth2WebClient.create(webClient, oAuth2Options);
         oauth2WebClient.withCredentials(oauth2Credentials);
 

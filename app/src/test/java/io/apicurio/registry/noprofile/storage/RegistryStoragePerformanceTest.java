@@ -74,7 +74,7 @@ public class RegistryStoragePerformanceTest {
             EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder().name(title)
                     .description(description).build();
             storage.createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, metaData, null, versionContent,
-                    versionMetaData, List.of(), false, false);
+                    versionMetaData, List.of(), false, false, null);
 
             System.out.print(".");
             if (idx % 100 == 0) {

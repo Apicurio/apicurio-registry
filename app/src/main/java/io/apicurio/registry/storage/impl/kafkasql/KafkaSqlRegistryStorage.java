@@ -386,15 +386,15 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches, boolean versionIsDraft, boolean dryRun)
+            List<String> versionBranches, boolean versionIsDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
         String content = versionContent != null ? versionContent.getContent().content() : null;
         String contentType = versionContent != null ? versionContent.getContentType() : null;
         List<ArtifactReferenceDto> references = versionContent != null ? versionContent.getReferences()
             : null;
-        var message = new CreateArtifact10Message(groupId, artifactId, artifactType, artifactMetaData,
+        var message = new CreateArtifact11Message(groupId, artifactId, artifactType, artifactMetaData,
                 version, contentType, content, references, versionMetaData, versionBranches, versionIsDraft,
-                dryRun);
+                dryRun, owner);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
 
         Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createdArtifact = (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator
@@ -436,12 +436,13 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto contentDto, EditableVersionMetaDataDto metaData,
-            List<String> branches, boolean isDraft, boolean dryRun) throws RegistryStorageException {
+            List<String> branches, boolean isDraft, boolean dryRun, String owner)
+            throws RegistryStorageException {
         String content = contentDto != null ? contentDto.getContent().content() : null;
         String contentType = contentDto != null ? contentDto.getContentType() : null;
         List<ArtifactReferenceDto> references = contentDto != null ? contentDto.getReferences() : null;
-        var message = new CreateArtifactVersion9Message(groupId, artifactId, version, artifactType,
-                contentType, content, references, metaData, branches, isDraft, dryRun);
+        var message = new CreateArtifactVersion10Message(groupId, artifactId, version, artifactType,
+                contentType, content, references, metaData, branches, isDraft, dryRun, owner);
         var uuid = ConcurrentUtil.get(submitter.submitMessage(message));
         ArtifactVersionMetaDataDto versionMetaDataDto = (ArtifactVersionMetaDataDto) coordinator
                 .waitForResponse(uuid);

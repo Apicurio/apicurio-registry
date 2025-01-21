@@ -11,7 +11,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithHeaderRoles;
-import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
@@ -41,8 +41,8 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(vertx, authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
+                KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -57,22 +57,22 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
         rule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.VALIDITY);
 
         var noRoleAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.NO_ROLE_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
         noRoleAdapter.setBaseUrl(registryV3ApiUrl);
         var noRoleClient = new RegistryClient(noRoleAdapter);
 
         var readAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.READONLY_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
         readAdapter.setBaseUrl(registryV3ApiUrl);
         var readClient = new RegistryClient(readAdapter);
 
         var devAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         devAdapter.setBaseUrl(registryV3ApiUrl);
         var devClient = new RegistryClient(devAdapter);
 
         var adminAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         adminAdapter.setBaseUrl(registryV3ApiUrl);
         var adminClient = new RegistryClient(adminAdapter);
 

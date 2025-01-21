@@ -76,11 +76,11 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
-            List<String> versionBranches, boolean isVersionDraft, boolean dryRun)
+            List<String> versionBranches, boolean isVersionDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
         checkReadOnly();
         return delegate.createArtifact(groupId, artifactId, artifactType, artifactMetaData, version,
-                versionContent, versionMetaData, versionBranches, isVersionDraft, dryRun);
+                versionContent, versionMetaData, versionBranches, isVersionDraft, dryRun, owner);
     }
 
     @Override
@@ -99,10 +99,11 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
-            List<String> branches, boolean isDraft, boolean dryRun) throws RegistryStorageException {
+            List<String> branches, boolean isDraft, boolean dryRun, String owner)
+            throws RegistryStorageException {
         checkReadOnly();
         return delegate.createArtifactVersion(groupId, artifactId, version, artifactType, content, metaData,
-                branches, isDraft, dryRun);
+                branches, isDraft, dryRun, owner);
     }
 
     @Override

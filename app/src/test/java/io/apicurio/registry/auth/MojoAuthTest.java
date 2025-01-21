@@ -7,7 +7,7 @@ import io.apicurio.registry.noprofile.maven.RegistryMojoTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
-import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
@@ -36,15 +36,15 @@ public class MojoAuthTest extends RegistryMojoTestBase {
 
     String clientSecret = "test1";
 
-    String clientScope = "testScope";
+    String clientScope = "openid";
 
-    String testUsername = "sr-test-user";
-    String testPassword = "sr-test-password";
+    String testUsername = "developer-client";
+    String testPassword = clientSecret;
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
         var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -56,7 +56,7 @@ public class MojoAuthTest extends RegistryMojoTestBase {
         RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
         registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         registerRegistryMojo.setAuthServerUrl(authServerUrlConfigured);
-        registerRegistryMojo.setClientId(JWKSMockServer.ADMIN_CLIENT_ID);
+        registerRegistryMojo.setClientId(KeycloakTestContainerManager.ADMIN_CLIENT_ID);
         registerRegistryMojo.setClientSecret(clientSecret);
         registerRegistryMojo.setClientScope(clientScope);
 

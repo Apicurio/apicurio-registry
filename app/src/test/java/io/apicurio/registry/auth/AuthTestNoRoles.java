@@ -15,7 +15,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
-import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
@@ -43,7 +43,7 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
         var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         return new RegistryClient(adapter);
     }
@@ -51,19 +51,19 @@ public class AuthTestNoRoles extends AbstractResourceTestBase {
     @Test
     public void testWrongCreds() throws Exception {
         var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
+                authServerUrlConfigured, KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
         });
-        assertTrue(exception.getMessage().contains("Unauthorized"));
+        assertTrue(exception.getMessage().contains("unauthorized"));
     }
 
     @Test
     public void testAdminRole() throws Exception {
         var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, JWKSMockServer.ADMIN_CLIENT_ID, "test1"));
+                authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
         String artifactId = TestUtils.generateArtifactId();

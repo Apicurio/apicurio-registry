@@ -63,22 +63,14 @@
     </dependency>
 
     <dependency>
-      <groupId>com.github.dasniko</groupId>
-      <artifactId>testcontainers-keycloak</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <!--~~(No version provided)~~>-->
-    <dependency>
-      <groupId>org.keycloak</groupId>
-      <artifactId>keycloak-admin-client-jakarta</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
       <groupId>io.zonky.test</groupId>
       <artifactId>embedded-postgres</artifactId>
       <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.dasniko</groupId>
+      <artifactId>testcontainers-keycloak</artifactId>
     </dependency>
 
     <dependency>

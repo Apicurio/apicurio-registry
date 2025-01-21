@@ -9,13 +9,14 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileAnonymousCredentials;
-import io.apicurio.registry.utils.tests.JWKSMockServer;
+import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -33,10 +34,15 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     final String groupId = getClass().getSimpleName() + "Group";
 
+    @BeforeEach
+    protected void beforeEach() throws Exception {
+        setupRestAssured();
+    }
+
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildOIDCWebClient(vertx, authServerUrl, JWKSMockServer.WRONG_CREDS_CLIENT_ID, "test55"));
+        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrl,
+                KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test55"));
         adapter.setBaseUrl(registryV3ApiUrl);
         RegistryClient client = new RegistryClient(adapter);
 
@@ -44,7 +50,7 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
             client.groups().byGroupId(groupId).artifacts().get();
         });
 
-        assertTrue(exception.getMessage().contains("Unauthorized"));
+        assertTrue(exception.getMessage().contains("unauthorized"));
     }
 
     @Test

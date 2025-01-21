@@ -47,6 +47,10 @@ spec:
               value: "true"
             - name: APICURIO_AUTH_ROLE_SOURCE
               value: "token"
+            - name: APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION
+              value: "true"
+            - name: APICURIO_AUTH_ADMIN_OVERRIDE_ENABLED
+              value: "true"
             - name: APICURIO_REST_DELETION_ARTIFACT_ENABLED
               value: "true"
             - name: APICURIO_REST_DELETION_ARTIFACTVERSION_ENABLED

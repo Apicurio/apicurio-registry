@@ -605,11 +605,11 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     protected void assertNotAuthorized(Exception exception) {
         assertNotNull(exception);
         Assertions.assertEquals(RuntimeException.class, exception.getClass());
-        Assertions.assertTrue(exception.getMessage().contains("unauthorized_client: Invalid client secret"));
+        Assertions.assertTrue(exception.getMessage()
+                .contains("unauthorized_client: Invalid client or Invalid client credentials"));
     }
 
     protected void assertForbidden(Exception exception) {
-        assertNotNull(exception);
         Assertions.assertEquals(ApiException.class, exception.getClass());
         Assertions.assertEquals(403, ((ApiException) exception).getResponseStatusCode());
     }

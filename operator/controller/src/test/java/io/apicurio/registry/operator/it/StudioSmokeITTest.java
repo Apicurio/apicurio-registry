@@ -12,7 +12,6 @@ import java.net.URI;
 import static io.apicurio.registry.operator.it.SmokeITTest.ingressDisabled;
 import static io.apicurio.registry.operator.resource.ResourceFactory.*;
 import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
@@ -36,8 +35,8 @@ public class StudioSmokeITTest extends ITBase {
 
         client.resource(simpleRegistry).create();
 
-        checkDeploymentExists(simpleRegistry, COMPONENT_APP);
-        checkDeploymentExists(simpleRegistry, COMPONENT_UI);
+        checkDeploymentExists(simpleRegistry, COMPONENT_APP, 1);
+        checkDeploymentExists(simpleRegistry, COMPONENT_UI, 1);
         checkDeploymentDoesNotExist(simpleRegistry, COMPONENT_STUDIO_UI);
 
         checkServiceExists(simpleRegistry, COMPONENT_APP);
@@ -52,9 +51,9 @@ public class StudioSmokeITTest extends ITBase {
         simpleRegistry.getSpec().withStudioUi().setEnabled(true);
         client.resource(simpleRegistry).update();
 
-        checkDeploymentExists(simpleRegistry, COMPONENT_APP);
-        checkDeploymentExists(simpleRegistry, COMPONENT_UI);
-        checkDeploymentExists(simpleRegistry, COMPONENT_STUDIO_UI);
+        checkDeploymentExists(simpleRegistry, COMPONENT_APP, 1);
+        checkDeploymentExists(simpleRegistry, COMPONENT_UI, 1);
+        checkDeploymentExists(simpleRegistry, COMPONENT_STUDIO_UI, 1);
 
         checkServiceExists(simpleRegistry, COMPONENT_APP);
         checkServiceExists(simpleRegistry, COMPONENT_UI);
@@ -96,9 +95,9 @@ public class StudioSmokeITTest extends ITBase {
         simpleRegistry.getSpec().getStudioUi().getIngress().setHost(null);
         client.resource(simpleRegistry).update();
 
-        checkDeploymentExists(simpleRegistry, COMPONENT_APP);
-        checkDeploymentExists(simpleRegistry, COMPONENT_UI);
-        checkDeploymentExists(simpleRegistry, COMPONENT_STUDIO_UI);
+        checkDeploymentExists(simpleRegistry, COMPONENT_APP, 1);
+        checkDeploymentExists(simpleRegistry, COMPONENT_UI, 1);
+        checkDeploymentExists(simpleRegistry, COMPONENT_STUDIO_UI, 1);
 
         checkServiceExists(simpleRegistry, COMPONENT_APP);
         checkServiceExists(simpleRegistry, COMPONENT_UI);
@@ -112,8 +111,8 @@ public class StudioSmokeITTest extends ITBase {
         simpleRegistry.getSpec().getStudioUi().setEnabled(false);
         client.resource(simpleRegistry).update();
 
-        checkDeploymentExists(simpleRegistry, COMPONENT_APP);
-        checkDeploymentExists(simpleRegistry, COMPONENT_UI);
+        checkDeploymentExists(simpleRegistry, COMPONENT_APP, 1);
+        checkDeploymentExists(simpleRegistry, COMPONENT_UI, 1);
         checkDeploymentDoesNotExist(simpleRegistry, COMPONENT_STUDIO_UI);
 
         checkServiceExists(simpleRegistry, COMPONENT_APP);
@@ -125,49 +124,37 @@ public class StudioSmokeITTest extends ITBase {
         checkIngressDoesNotExist(simpleRegistry, COMPONENT_STUDIO_UI);
     }
 
-    private static void checkDeploymentExists(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.apps().deployments()
-                    .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get()
-                    .getStatus().getReadyReplicas()).isEqualTo(1);
-        });
-    }
+    /**
+     * Scenario: We want to check that the Studio component is not deployed by default unless the enabled
+     * field is set to true, and, when activated, the number of replicas is set to the value specified while
+     * checking that the basic Kubernetes resources are deployed as expected. We do not check Registry
+     * components in detail, because that's done in other tests.
+     */
+    @Test
+    void replicas() {
+        var simpleRegistry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
+                ApicurioRegistry3.class);
 
-    private static void checkDeploymentDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.apps().deployments()
-                    .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get())
-                    .isNull();
-        });
-    }
+        simpleRegistry.getMetadata().setNamespace(namespace);
+        simpleRegistry.getSpec().getApp().setHost(ingressManager.getIngressHost(COMPONENT_APP));
+        simpleRegistry.getSpec().getUi().setHost(ingressManager.getIngressHost(COMPONENT_UI));
 
-    private static void checkServiceExists(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.services()
-                    .withName(primary.getMetadata().getName() + "-" + component + "-service").get())
-                    .isNotNull();
-        });
-    }
+        client.resource(simpleRegistry).create();
 
-    private static void checkServiceDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.services()
-                    .withName(primary.getMetadata().getName() + "-" + component + "-service").get()).isNull();
-        });
-    }
+        // We start with one replica for Registry
+        checkDeploymentExists(simpleRegistry, COMPONENT_APP, 1);
+        checkDeploymentExists(simpleRegistry, COMPONENT_UI, 1);
+        checkDeploymentDoesNotExist(simpleRegistry, COMPONENT_STUDIO_UI);
 
-    private static void checkIngressExists(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.network().v1().ingresses()
-                    .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get())
-                    .isNotNull();
-        });
-    }
+        // Now let's enable the Studio component and scale Registry to 3 replicas
+        simpleRegistry.getSpec().getStudioUi().setEnabled(true);
+        simpleRegistry.getSpec().getApp().setReplicas(3);
+        simpleRegistry.getSpec().getUi().setReplicas(3);
+        simpleRegistry.getSpec().getStudioUi().setReplicas(3);
+        client.resource(simpleRegistry).update();
 
-    private static void checkIngressDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.network().v1().ingresses()
-                    .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get()).isNull();
-        });
+        checkDeploymentExists(simpleRegistry, COMPONENT_APP, 3);
+        checkDeploymentExists(simpleRegistry, COMPONENT_UI, 3);
+        checkDeploymentExists(simpleRegistry, COMPONENT_STUDIO_UI, 3);
     }
 }

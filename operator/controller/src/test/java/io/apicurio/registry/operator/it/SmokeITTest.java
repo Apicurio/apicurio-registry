@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -71,6 +73,34 @@ public class SmokeITTest extends ITBase {
     }
 
     @Test
+    void replicas() {
+        var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
+                ApicurioRegistry3.class);
+
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+
+        client.resource(registry).create();
+
+        // Verify first replica
+        checkDeploymentExists(registry, COMPONENT_APP, 1);
+        checkDeploymentExists(registry, COMPONENT_UI, 1);
+
+        // Scale up
+        registry.getSpec().getApp().setReplicas(3);
+        registry.getSpec().getUi().setReplicas(3);
+        checkDeploymentExists(registry, COMPONENT_APP, 3);
+        checkDeploymentExists(registry, COMPONENT_UI, 3);
+
+        // Scale down
+        registry.getSpec().getApp().setReplicas(2);
+        registry.getSpec().getUi().setReplicas(2);
+        checkDeploymentExists(registry, COMPONENT_APP, 2);
+        checkDeploymentExists(registry, COMPONENT_UI, 2);
+    }
+
+    @Test
     void testService() {
 
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
@@ -82,15 +112,8 @@ public class SmokeITTest extends ITBase {
         client.resource(registry).create();
 
         // Wait for Services
-        await().ignoreExceptions().until(() -> {
-            assertThat(client.services().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-app-service").get().getSpec()
-                    .getClusterIP()).isNotBlank();
-            assertThat(client.services().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-ui-service").get().getSpec()
-                    .getClusterIP()).isNotBlank();
-            return true;
-        });
+        checkServiceExists(registry, COMPONENT_APP);
+        checkServiceExists(registry, COMPONENT_UI);
 
         int appServicePort = portForwardManager
                 .startPortForward(registry.getMetadata().getName() + "-app-service", 8080);
@@ -123,12 +146,8 @@ public class SmokeITTest extends ITBase {
         client.resource(registry).create();
 
         // Wait for Ingresses
-        await().untilAsserted(() -> {
-            assertThat(client.network().v1().ingresses().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-app-ingress").get()).isNotNull();
-            assertThat(client.network().v1().ingresses().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-ui-ingress").get()).isNotNull();
-        });
+        checkIngressExists(registry, COMPONENT_APP);
+        checkIngressExists(registry, COMPONENT_UI);
 
         await().ignoreExceptions().until(() -> {
             ingressManager.startHttpRequest(registry.getMetadata().getName() + "-app-ingress")
@@ -155,12 +174,8 @@ public class SmokeITTest extends ITBase {
         client.resource(registry).create();
 
         // Wait for Ingresses
-        await().untilAsserted(() -> {
-            assertThat(client.network().v1().ingresses().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-app-ingress").get()).isNotNull();
-            assertThat(client.network().v1().ingresses().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-ui-ingress").get()).isNotNull();
-        });
+        checkIngressExists(registry, COMPONENT_APP);
+        checkIngressExists(registry, COMPONENT_UI);
 
         // Check that REGISTRY_API_URL is set
         await().ignoreExceptions().untilAsserted(() -> {

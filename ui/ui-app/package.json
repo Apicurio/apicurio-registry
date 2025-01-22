@@ -50,7 +50,7 @@
     "@patternfly/react-code-editor": "5.4.15",
     "@patternfly/react-core": "5.4.12",
     "@patternfly/react-icons": "5.4.2",
-    "@patternfly/react-table": "5.4.14",
+    "@patternfly/react-table": "6.1.0",
     "axios": "1.7.9",
     "buffer": "6.0.3",
     "luxon": "3.5.0",

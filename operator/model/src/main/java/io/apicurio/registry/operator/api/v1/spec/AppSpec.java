@@ -40,7 +40,7 @@ public class AppSpec extends ComponentSpec {
             Configure features of the Apicurio Registry backend (app).
             """)
     @JsonSetter(nulls = SKIP)
-    private FeaturesSpec features;
+    private AppFeaturesSpec features;
 
     /**
      * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt

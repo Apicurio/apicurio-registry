@@ -2,7 +2,7 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.api.v1.spec.FeaturesSpec;
+import io.apicurio.registry.operator.api.v1.spec.AppFeaturesSpec;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.quarkus.test.junit.QuarkusTest;
@@ -21,10 +21,10 @@ public class AppFeaturesITTest extends ITBase {
 
     @Test
     void testAllowDeletesTrue() {
-        ApicurioRegistry3 registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
-                ApicurioRegistry3.class);
+        ApicurioRegistry3 registry = ResourceFactory
+                .deserialize("/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);
         // Set Allow deletes = true
-        registry.getSpec().getApp().setFeatures(FeaturesSpec.builder().allowDeletes(true).build());
+        registry.getSpec().getApp().setFeatures(AppFeaturesSpec.builder().allowDeletes(true).build());
         client.resource(registry).create();
 
         // Wait for the deployment to exist
@@ -32,7 +32,8 @@ public class AppFeaturesITTest extends ITBase {
 
         // Check that the three deletion ENV vars are set
         var appEnv = getContainerFromDeployment(
-                client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-app-deployment").get(),
+                client.apps().deployments().inNamespace(namespace)
+                        .withName(registry.getMetadata().getName() + "-app-deployment").get(),
                 REGISTRY_APP_CONTAINER_NAME).getEnv();
         assertThat(appEnv).map(EnvVar::getName).contains(
                 EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED,
@@ -42,8 +43,8 @@ public class AppFeaturesITTest extends ITBase {
 
     @Test
     void testAllowDeletesDefault() {
-        ApicurioRegistry3 registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
-                ApicurioRegistry3.class);
+        ApicurioRegistry3 registry = ResourceFactory
+                .deserialize("/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);
         client.resource(registry).create();
 
         // Wait for the deployment to exist
@@ -51,7 +52,8 @@ public class AppFeaturesITTest extends ITBase {
 
         // Check that the three deletion ENV vars are NOT set
         var appEnv = getContainerFromDeployment(
-                client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-app-deployment").get(),
+                client.apps().deployments().inNamespace(namespace)
+                        .withName(registry.getMetadata().getName() + "-app-deployment").get(),
                 REGISTRY_APP_CONTAINER_NAME).getEnv();
         assertThat(appEnv).map(EnvVar::getName).doesNotContain(
                 EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED,

@@ -4,8 +4,8 @@ import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.api.v1.spec.AppFeaturesSpec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
-import io.apicurio.registry.operator.api.v1.spec.FeaturesSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.PostgresSql;
@@ -65,7 +65,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         // Enable deletes if configured in the CR
         Boolean allowDeletes = Optional.ofNullable(primary.getSpec().getApp())
                 .map(AppSpec::getFeatures)
-                .map(FeaturesSpec::getAllowDeletes)
+                .map(AppFeaturesSpec::getAllowDeletes)
                 .orElse(Boolean.FALSE);
         if (allowDeletes) {
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED).withValue("true").build());

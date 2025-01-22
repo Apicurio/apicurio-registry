@@ -29,7 +29,7 @@ import static lombok.AccessLevel.PRIVATE;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class FeaturesSpec {
+public class AppFeaturesSpec {
 
     @JsonProperty("allowDeletes")
     @JsonPropertyDescription("""

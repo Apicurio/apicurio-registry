@@ -1,2 +1,3 @@
 controller/src/main/deploy/crd/apicurioregistries3.registry.apicur.io-v1.yml
 install/apicurio-registry-operator-*-SNAPSHOT.yaml
+.*.sh

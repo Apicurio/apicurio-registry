@@ -1,9 +1,11 @@
 package io.apicurio.registry.operator.resource.app;
 
+import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.FeaturesSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.PostgresSql;
@@ -21,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
@@ -55,9 +58,20 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                 .ifPresent(env -> env.forEach(e -> envVars.put(e.getName(), e)));
 
         // spotless:off
-        addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_PROFILE").withValue("prod").build());
-        addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_HTTP_ACCESS_LOG_ENABLED").withValue("true").build());
-        addEnvVar(envVars, new EnvVarBuilder().withName("QUARKUS_HTTP_CORS_ORIGINS").withValue("*").build());
+        addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_PROFILE).withValue("prod").build());
+        addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_HTTP_ACCESS_LOG_ENABLED).withValue("true").build());
+        addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_HTTP_CORS_ORIGINS).withValue("*").build());
+
+        // Enable deletes if configured in the CR
+        Boolean allowDeletes = Optional.ofNullable(primary.getSpec().getApp())
+                .map(AppSpec::getFeatures)
+                .map(FeaturesSpec::getAllowDeletes)
+                .orElse(Boolean.FALSE);
+        if (allowDeletes) {
+            addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED).withValue("true").build());
+            addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED).withValue("true").build());
+            addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED).withValue("true").build());
+        }
         // spotless:on
 
         // This is enabled only if Studio is deployed. It is based on Service in case a custom Ingress is

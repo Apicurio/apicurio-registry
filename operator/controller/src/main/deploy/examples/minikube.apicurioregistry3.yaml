@@ -1,0 +1,13 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: minikube-apicurioregistry3
+spec:
+  app:
+    ingress:
+      host: registry-api.apps.minikube.local
+    features:
+      allowDeletes: true
+  ui:
+    ingress:
+      host: registry-ui.apps.minikube.local

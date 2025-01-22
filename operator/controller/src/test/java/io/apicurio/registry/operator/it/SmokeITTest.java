@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -68,6 +70,36 @@ public class SmokeITTest extends ITBase {
                     .get(0).getHost()).isEqualTo(registry.getSpec().getUi().getIngress().getHost());
             return true;
         });
+    }
+
+    @Test
+    void replicas() {
+        var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
+                ApicurioRegistry3.class);
+
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+
+        client.resource(registry).create();
+
+        // Verify first replica
+        checkDeploymentExists(registry, COMPONENT_APP, 1);
+        checkDeploymentExists(registry, COMPONENT_UI, 1);
+
+        // Scale up
+        registry.getSpec().getApp().setReplicas(3);
+        registry.getSpec().getUi().setReplicas(3);
+        client.resource(registry).update();
+        checkDeploymentExists(registry, COMPONENT_APP, 3);
+        checkDeploymentExists(registry, COMPONENT_UI, 3);
+
+        // Scale down
+        registry.getSpec().getApp().setReplicas(2);
+        registry.getSpec().getUi().setReplicas(2);
+        client.resource(registry).update();
+        checkDeploymentExists(registry, COMPONENT_APP, 2);
+        checkDeploymentExists(registry, COMPONENT_UI, 2);
     }
 
     @Test

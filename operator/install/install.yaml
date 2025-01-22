@@ -3019,6 +3019,9 @@ spec:
                             type: array
                         type: object
                     type: object
+                  replicas:
+                    description: Number of replicas for the component
+                    type: integer
                   sql:
                     description: |-
                       DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead.
@@ -6088,6 +6091,9 @@ spec:
                             type: array
                         type: object
                     type: object
+                  replicas:
+                    description: Number of replicas for the component
+                    type: integer
                 type: object
               ui:
                 description: |
@@ -9074,6 +9080,9 @@ spec:
                             type: array
                         type: object
                     type: object
+                  replicas:
+                    description: Number of replicas for the component
+                    type: integer
                 type: object
             type: object
           status:

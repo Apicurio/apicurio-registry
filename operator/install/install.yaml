@@ -78,6 +78,20 @@ spec:
                           type: object
                       type: object
                     type: array
+                  features:
+                    description: |
+                      Configure features of the Apicurio Registry backend (app).
+                    properties:
+                      allowDeletes:
+                        description: |-
+                          Apicurio Registry backend 'allow deletes' feature.
+                          If the value is true, the application will be configured to allow Groups, Artifacts, and
+                          Artifact Versions to be deleted.  By default, resources in Registry are immutable and so
+                          cannot be deleted. Registry can be configured to allow deleting of these resources at a
+                          granular level (e.g. only allow deleting artifact versions) using ENV variables.  This
+                          option enables deletes for all three resource types.
+                        type: boolean
+                    type: object
                   host:
                     description: 'DEPRECATED: Use the `(component).ingress.host` field
                       instead. The operator will attempt to update the field automatically.'

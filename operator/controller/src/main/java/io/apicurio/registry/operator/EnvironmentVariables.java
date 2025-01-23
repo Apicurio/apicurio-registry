@@ -1,0 +1,13 @@
+package io.apicurio.registry.operator;
+
+public class EnvironmentVariables {
+
+    public static final String QUARKUS_PROFILE = "QUARKUS_PROFILE";
+    public static final String QUARKUS_HTTP_ACCESS_LOG_ENABLED = "QUARKUS_HTTP_ACCESS_LOG_ENABLED";
+    public static final String QUARKUS_HTTP_CORS_ORIGINS = "QUARKUS_HTTP_CORS_ORIGINS";
+
+    public static final String APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED = "APICURIO_REST_DELETION_ARTIFACT-VERSION_ENABLED";
+    public static final String APICURIO_REST_DELETION_ARTIFACT_ENABLED = "APICURIO_REST_DELETION_ARTIFACT_ENABLED";
+    public static final String APICURIO_REST_DELETION_GROUP_ENABLED = "APICURIO_REST_DELETION_GROUP_ENABLED";
+
+}

@@ -28,21 +28,39 @@ public final class IngressUtils {
     private IngressUtils() {
     }
 
-    public static String getHost(String component, ApicurioRegistry3 p) {
+    /**
+     * Get the host configured in the ingress. If no host is configured in the ingress then a null is
+     * returned.
+     * 
+     * @param component
+     * @param primary
+     */
+    public static String getConfiguredHost(String component, ApicurioRegistry3 primary) {
         String host = switch (component) {
-            case COMPONENT_APP -> ofNullable(p.getSpec()).map(ApicurioRegistry3Spec::getApp)
+            case COMPONENT_APP -> ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                     .map(AppSpec::getIngress).map(IngressSpec::getHost).filter(h -> !isBlank(h)).orElse(null);
-            case COMPONENT_UI -> ofNullable(p.getSpec()).map(ApicurioRegistry3Spec::getUi)
+            case COMPONENT_UI -> ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
                     .map(UiSpec::getIngress).map(IngressSpec::getHost).filter(h -> !isBlank(h)).orElse(null);
-            case COMPONENT_STUDIO_UI ->
-                ofNullable(p.getSpec()).map(ApicurioRegistry3Spec::getStudioUi).map(StudioUiSpec::getIngress)
-                        .map(IngressSpec::getHost).filter(h -> !isBlank(h)).orElse(null);
+            case COMPONENT_STUDIO_UI -> ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+                    .map(StudioUiSpec::getIngress).map(IngressSpec::getHost).filter(h -> !isBlank(h))
+                    .orElse(null);
             default -> throw new OperatorException("Unexpected value: " + component);
         };
+        return host;
+    }
+
+    /**
+     * Get the host for an ingress. If not configured, a default value is returned.
+     * 
+     * @param component
+     * @param primary
+     */
+    public static String getHost(String component, ApicurioRegistry3 primary) {
+        String host = getConfiguredHost(component, primary);
         if (host == null) {
             // TODO: This is not used because of the current activation conditions.
-            host = "%s-%s.%s%s".formatted(p.getMetadata().getName(), component,
-                    p.getMetadata().getNamespace(), Configuration.getDefaultBaseHost());
+            host = "%s-%s.%s%s".formatted(primary.getMetadata().getName(), component,
+                    primary.getMetadata().getNamespace(), Configuration.getDefaultBaseHost());
         }
         log.debug("Host for component {} is {}", component, host);
         return host;

@@ -63,7 +63,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_HTTP_CORS_ORIGINS).withValue("*").build());
 
         // Enable deletes if configured in the CR
-        Boolean allowDeletes = Optional.ofNullable(primary.getSpec().getApp())
+        boolean allowDeletes = Optional.ofNullable(primary.getSpec().getApp())
                 .map(AppSpec::getFeatures)
                 .map(AppFeaturesSpec::getAllowDeletes)
                 .orElse(Boolean.FALSE);

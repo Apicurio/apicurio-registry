@@ -11,7 +11,8 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "keystoreSecretName", "truststoreSecretName" })
+@JsonPropertyOrder({ "keystoreSecretRef", "keystorePasswordSecretRef", "truststoreSecretRef",
+        "truststorePasswordSecretRef" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -22,22 +23,46 @@ import static lombok.AccessLevel.PRIVATE;
 public class KafkaSqlTLSSpec {
 
     /**
-     * Name of a Secret that contains TLS keystore (in PKCS12 format) under the `user.p12` key, and keystore
-     * password under the `user.password` key.
+     * Reference to the Secret that contains the TLS keystore (in PKCS12 format). Key <code>user.p12</code> is
+     * assumed by default.
      */
-    @JsonProperty("keystoreSecretName")
+    @JsonProperty("keystoreSecretRef")
     @JsonPropertyDescription("""
-            Name of a Secret that contains TLS keystore (in PKCS12 format) under the `user.p12` key, and keystore password under the `user.password` key.""")
+            Reference to the Secret that contains the TLS keystore (in PKCS12 format). \
+            Key `user.p12` is assumed by default.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String keystoreSecretName;
+    private SecretKeyRef keystoreSecretRef;
 
     /**
-     * Name of a Secret that contains TLS truststore (in PKCS12 format) under the `ca.p12` key, and truststore
-     * password under the `ca.password` key.
+     * Reference to the Secret that contains the TLS keystore password. Key <code>user.password</code> is
+     * assumed by default.
      */
-    @JsonProperty("truststoreSecretName")
+    @JsonProperty("keystorePasswordSecretRef")
     @JsonPropertyDescription("""
-            Name of a Secret that contains TLS truststore (in PKCS12 format) under the `ca.p12` key, and truststore password under the `ca.password` key.""")
+            Reference to the Secret that contains the TLS keystore password.
+            Key `user.password` is assumed by default.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String truststoreSecretName;
+    private SecretKeyRef keystorePasswordSecretRef;
+
+    /**
+     * Name of a Secret that contains the TLS truststore (in PKCS12 format). Key <code>ca.p12</code> is
+     * assumed by default.
+     */
+    @JsonProperty("truststoreSecretRef")
+    @JsonPropertyDescription("""
+            Name of a Secret that contains the TLS truststore (in PKCS12 format). \
+            Key `ca.p12` is assumed by default.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private SecretKeyRef truststoreSecretRef;
+
+    /**
+     * Name of a Secret that contains the TLS truststore password. Key <code>ca.password</code> is assumed by
+     * default.
+     */
+    @JsonProperty("truststorePasswordSecretRef")
+    @JsonPropertyDescription("""
+            Name of a Secret that contains the TLS truststore password. \
+            Key `ca.password` is assumed by default.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private SecretKeyRef truststorePasswordSecretRef;
 }

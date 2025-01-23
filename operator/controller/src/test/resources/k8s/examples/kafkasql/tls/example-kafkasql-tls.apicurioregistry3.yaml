@@ -10,8 +10,14 @@ spec:
         bootstrapServers: "<service name>.<namespace>.svc:9092"
         # Try using Strimzi/Red Hat AMQ Streams Operator!
         tls:
-          keystoreSecretName: apicurio
-          truststoreSecretName: example-cluster-cluster-ca-cert
+          keystoreSecretRef:
+            name: apicurio
+          keystorePasswordSecretRef:
+            name: apicurio
+          truststoreSecretRef:
+            name: example-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: example-cluster-cluster-ca-cert
     ingress:
       host: example-kafkasql-tls-app.apps.cluster.example
   ui:

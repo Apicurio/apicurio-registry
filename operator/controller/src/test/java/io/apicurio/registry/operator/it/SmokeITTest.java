@@ -75,13 +75,16 @@ public class SmokeITTest extends ITBase {
         });
 
         // Check CORS allowed origins is set on the app, with the value based on the UI ingress host
+        String uiIngressHost = client.network().v1().ingresses().inNamespace(namespace)
+                .withName(registry.getMetadata().getName() + "-ui-ingress").get().getSpec().getRules().get(0)
+                .getHost();
+        String corsOriginsExpectedValue = "http://" + uiIngressHost + "," + "https://" + uiIngressHost;
         var appEnv = getContainerFromDeployment(
                 client.apps().deployments().inNamespace(namespace)
                         .withName(registry.getMetadata().getName() + "-app-deployment").get(),
                 REGISTRY_APP_CONTAINER_NAME).getEnv();
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
-                .contains(EnvironmentVariables.QUARKUS_HTTP_CORS_ORIGINS
-                        + "=http://simple-ui.apps.cluster.example,https://simple-ui.apps.cluster.example");
+                .contains(EnvironmentVariables.QUARKUS_HTTP_CORS_ORIGINS + "=" + corsOriginsExpectedValue);
     }
 
     @Test

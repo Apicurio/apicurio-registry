@@ -26,12 +26,10 @@ public class PodDisruptionBudgetITTest extends ITBase {
         checkDeploymentExists(registry, ResourceFactory.COMPONENT_APP, 1);
 
         // Check that the two expected PodDisruptionBudget resources were created
-        checkPodDisruptionBudgetExists(registry, ResourceFactory.COMPONENT_APP);
-        checkPodDisruptionBudgetExists(registry, ResourceFactory.COMPONENT_UI);
+        PodDisruptionBudget appPDB = checkPodDisruptionBudgetExists(registry, ResourceFactory.COMPONENT_APP);
+        PodDisruptionBudget uiPDB = checkPodDisruptionBudgetExists(registry, ResourceFactory.COMPONENT_UI);
 
         // Verify the content of the app component's PDB
-        PodDisruptionBudget appPDB = client.policy().v1().podDisruptionBudget()
-                .withName(registry.getMetadata().getName() + "-app-podDisruptionBudget").get();
         Assertions
                 .assertThat(appPDB.getMetadata().getLabels().entrySet().stream()
                         .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet()))
@@ -44,8 +42,6 @@ public class PodDisruptionBudgetITTest extends ITBase {
                 .contains("app.kubernetes.io/component=app", "app.kubernetes.io/name=apicurio-registry");
 
         // Verify the content of the ui component's PDB
-        PodDisruptionBudget uiPDB = client.policy().v1().podDisruptionBudget()
-                .withName(registry.getMetadata().getName() + "-ui-podDisruptionBudget").get();
         Assertions
                 .assertThat(uiPDB.getMetadata().getLabels().entrySet().stream()
                         .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet()))

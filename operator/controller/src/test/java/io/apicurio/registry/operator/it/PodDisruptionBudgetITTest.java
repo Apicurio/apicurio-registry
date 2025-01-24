@@ -30,39 +30,31 @@ public class PodDisruptionBudgetITTest extends ITBase {
         checkPodDisruptionBudgetExists(registry, ResourceFactory.COMPONENT_UI);
 
         // Verify the content of the app component's PDB
-        PodDisruptionBudget appPDB = client.policy().v1().podDisruptionBudget().withName(registry.getMetadata().getName() + "-app-podDisruptionBudget").get();
-        Assertions.assertThat(
-                appPDB.getMetadata().getLabels().entrySet().stream()
-                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet())
-        ).contains(
-                "app.kubernetes.io/component=app",
-                "app.kubernetes.io/managed-by=apicurio-registry-operator",
-                "app.kubernetes.io/name=apicurio-registry"
-        );
-        Assertions.assertThat(
-                appPDB.getSpec().getSelector().getMatchLabels().entrySet().stream()
-                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet())
-        ).contains(
-                "app.kubernetes.io/component=app",
-                "app.kubernetes.io/name=apicurio-registry"
-        );
+        PodDisruptionBudget appPDB = client.policy().v1().podDisruptionBudget()
+                .withName(registry.getMetadata().getName() + "-app-podDisruptionBudget").get();
+        Assertions
+                .assertThat(appPDB.getMetadata().getLabels().entrySet().stream()
+                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet()))
+                .contains("app.kubernetes.io/component=app",
+                        "app.kubernetes.io/managed-by=apicurio-registry-operator",
+                        "app.kubernetes.io/name=apicurio-registry");
+        Assertions
+                .assertThat(appPDB.getSpec().getSelector().getMatchLabels().entrySet().stream()
+                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet()))
+                .contains("app.kubernetes.io/component=app", "app.kubernetes.io/name=apicurio-registry");
 
         // Verify the content of the ui component's PDB
-        PodDisruptionBudget uiPDB = client.policy().v1().podDisruptionBudget().withName(registry.getMetadata().getName() + "-ui-podDisruptionBudget").get();
-        Assertions.assertThat(
-                uiPDB.getMetadata().getLabels().entrySet().stream()
-                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet())
-        ).contains(
-                "app.kubernetes.io/component=ui",
-                "app.kubernetes.io/managed-by=apicurio-registry-operator",
-                "app.kubernetes.io/name=apicurio-registry"
-        );
-        Assertions.assertThat(
-                uiPDB.getSpec().getSelector().getMatchLabels().entrySet().stream()
-                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet())
-        ).contains(
-                "app.kubernetes.io/component=ui",
-                "app.kubernetes.io/name=apicurio-registry"
-        );
+        PodDisruptionBudget uiPDB = client.policy().v1().podDisruptionBudget()
+                .withName(registry.getMetadata().getName() + "-ui-podDisruptionBudget").get();
+        Assertions
+                .assertThat(uiPDB.getMetadata().getLabels().entrySet().stream()
+                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet()))
+                .contains("app.kubernetes.io/component=ui",
+                        "app.kubernetes.io/managed-by=apicurio-registry-operator",
+                        "app.kubernetes.io/name=apicurio-registry");
+        Assertions
+                .assertThat(uiPDB.getSpec().getSelector().getMatchLabels().entrySet().stream()
+                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet()))
+                .contains("app.kubernetes.io/component=ui", "app.kubernetes.io/name=apicurio-registry");
     }
 }

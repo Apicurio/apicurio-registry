@@ -154,8 +154,8 @@ public abstract class ITBase {
     protected static void checkPodDisruptionBudgetExists(ApicurioRegistry3 primary, String component) {
         await().ignoreExceptions().untilAsserted(() -> {
             assertThat(client.policy().v1().podDisruptionBudget()
-                    .withName(primary.getMetadata().getName() + "-" + component + "-podDisruptionBudget").get())
-                    .isNotNull();
+                    .withName(primary.getMetadata().getName() + "-" + component + "-podDisruptionBudget")
+                    .get()).isNotNull();
         });
     }
 

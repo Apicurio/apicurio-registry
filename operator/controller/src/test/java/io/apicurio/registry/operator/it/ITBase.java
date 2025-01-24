@@ -156,7 +156,8 @@ public abstract class ITBase {
         });
     }
 
-    protected static PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary, String component) {
+    protected static PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,
+            String component) {
         final ValueOrNull<PodDisruptionBudget> rval = new ValueOrNull<>();
 
         await().ignoreExceptions().untilAsserted(() -> {

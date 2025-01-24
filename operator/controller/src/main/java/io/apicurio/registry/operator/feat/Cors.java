@@ -23,7 +23,7 @@ public class Cors {
      * Configure the QUARKUS_HTTP_CORS_ORIGINS environment variable with the following:
      * <ul>
      * <li>Add the ingress host</li>
-     * <li>Include anything specifically configured for QUARKUS_HTTP_CORS_ORIGINS in the "env" section</li>
+     * <li>Override if QUARKUS_HTTP_CORS_ORIGINS is configured in the "env" section</li>
      * </ul>
      * 
      * @param primary
@@ -47,15 +47,20 @@ public class Cors {
                             });
                 });
 
-        // If there is a configured Ingress host for the UI or the Studio UI, add them to the allowed origins.
-        Set.of(ResourceFactory.COMPONENT_UI, ResourceFactory.COMPONENT_STUDIO_UI).forEach(component -> {
-            String host = IngressUtils.getConfiguredHost(component, primary);
-            if (host != null) {
-                allowedOrigins.add("http://" + host);
-                allowedOrigins.add("https://" + host);
-            }
-        });
+        // If not, let's try to figure it out from other sources.
+        if (allowedOrigins.isEmpty()) {
+            // If there is a configured Ingress host for the UI or the Studio UI, add them to the allowed
+            // origins.
+            Set.of(ResourceFactory.COMPONENT_UI, ResourceFactory.COMPONENT_STUDIO_UI).forEach(component -> {
+                String host = IngressUtils.getConfiguredHost(component, primary);
+                if (host != null) {
+                    allowedOrigins.add("http://" + host);
+                    allowedOrigins.add("https://" + host);
+                }
+            });
+        }
 
+        // If we still do not have anything, then default to "*"
         if (allowedOrigins.isEmpty()) {
             allowedOrigins.add("*");
         }

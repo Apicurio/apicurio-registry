@@ -12,6 +12,7 @@ import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ public class ResourceFactory {
     public static final String RESOURCE_TYPE_DEPLOYMENT = "deployment";
     public static final String RESOURCE_TYPE_SERVICE = "service";
     public static final String RESOURCE_TYPE_INGRESS = "ingress";
+    public static final String RESOURCE_TYPE_POD_DISRUPTION_BUDGET = "podDisruptionBudget";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
         var r = initDefaultDeployment(primary, COMPONENT_APP,
@@ -229,6 +231,27 @@ public class ResourceFactory {
         r.getSpec().getRules().get(0).getHttp().getPaths().get(0).getBackend().getService().setName(
                 primary.getMetadata().getName() + "-" + COMPONENT_STUDIO_UI + "-" + RESOURCE_TYPE_SERVICE);
         return r;
+    }
+
+    public PodDisruptionBudget getDefaultAppPodDisruptionBudget(ApicurioRegistry3 primary) {
+        var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
+                COMPONENT_APP);
+        // TODO add labels here
+        return pdb;
+    }
+
+    public PodDisruptionBudget getDefaultUIPodDisruptionBudget(ApicurioRegistry3 primary) {
+        var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
+                COMPONENT_UI);
+        // TODO add labels here
+        return pdb;
+    }
+
+    public PodDisruptionBudget getDefaultStudioUIPodDisruptionBudget(ApicurioRegistry3 primary) {
+        var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
+                COMPONENT_STUDIO_UI);
+        // TODO add labels here
+        return pdb;
     }
 
     private <T extends HasMetadata> T getDefaultResource(ApicurioRegistry3 primary, Class<T> klass,

@@ -151,6 +151,14 @@ public abstract class ITBase {
         });
     }
 
+    protected static void checkPodDisruptionBudgetExists(ApicurioRegistry3 primary, String component) {
+        await().ignoreExceptions().untilAsserted(() -> {
+            assertThat(client.policy().v1().podDisruptionBudget()
+                    .withName(primary.getMetadata().getName() + "-" + component + "-podDisruptionBudget").get())
+                    .isNotNull();
+        });
+    }
+
     static KubernetesClient createK8sClient(String namespace) {
         return new KubernetesClientBuilder()
                 .withConfig(new ConfigBuilder(Config.autoConfigure(null)).withNamespace(namespace).build())

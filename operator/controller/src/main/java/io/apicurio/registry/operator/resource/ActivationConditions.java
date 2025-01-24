@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.resource;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
 import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
@@ -12,6 +13,7 @@ import io.apicurio.registry.operator.resource.studioui.StudioUIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.DependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.workflow.Condition;
@@ -42,6 +44,16 @@ public class ActivationConditions {
         }
     }
 
+    public static class AppPodDisruptionBudgetActivationCondition
+            implements Condition<PodDisruptionBudget, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
+                ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            return ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(ComponentSpec::getManageDisruptionBudget).orElse(Boolean.TRUE);
+        }
+    }
+
     // ===== Registry UI
 
     public static class UIIngressActivationCondition implements Condition<Ingress, ApicurioRegistry3> {
@@ -57,6 +69,16 @@ public class ActivationConditions {
                 ((UIIngressResource) resource).delete(primary, context);
             }
             return enabled;
+        }
+    }
+
+    public static class UIPodDisruptionBudgetActivationCondition
+            implements Condition<PodDisruptionBudget, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
+                ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            return ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(ComponentSpec::getManageDisruptionBudget).orElse(Boolean.TRUE);
         }
     }
 
@@ -93,4 +115,15 @@ public class ActivationConditions {
             return enabled;
         }
     }
+
+    public static class StudioUIPodDisruptionBudgetActivationCondition
+            implements Condition<PodDisruptionBudget, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
+                ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            return ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+                    .map(ComponentSpec::getManageDisruptionBudget).orElse(Boolean.TRUE);
+        }
+    }
+
 }

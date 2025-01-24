@@ -12,8 +12,8 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "0.3.0",
-    "@playwright/test": "1.49.1",
-    "@types/node": "22.10.9",
+    "@playwright/test": "1.50.0",
+    "@types/node": "22.10.10",
     "@typescript-eslint/eslint-plugin": "8.21.0",
     "@typescript-eslint/parser": "8.21.0",
     "eslint": "8.57.1",

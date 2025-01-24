@@ -4,24 +4,51 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
+import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.app.AppServiceResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIDeploymentResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIIngressResource;
+import io.apicurio.registry.operator.resource.studioui.StudioUIPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
+import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.ui.UIServiceResource;
 import io.apicurio.registry.operator.updater.IngressCRUpdater;
 import io.apicurio.registry.operator.updater.KafkaSqlCRUpdater;
 import io.apicurio.registry.operator.updater.SqlCRUpdater;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.javaoperatorsdk.operator.api.reconciler.*;
+import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
+import io.javaoperatorsdk.operator.api.reconciler.Context;
+import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
+import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
+import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
+import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
+import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
+import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.resource.ActivationConditions.*;
-import static io.apicurio.registry.operator.resource.ResourceKey.*;
+import static io.apicurio.registry.operator.resource.ActivationConditions.AppIngressActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.AppPodDisruptionBudgetActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUIDeploymentActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUIIngressActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUIPodDisruptionBudgetActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.UIPodDisruptionBudgetActivationCondition;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_INGRESS_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_POD_DISRUPTION_BUDGET_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_DEPLOYMENT_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_INGRESS_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_POD_DISRUPTION_BUDGET_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_SERVICE_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_DEPLOYMENT_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_POD_DISRUPTION_BUDGET_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
 
 // spotless:off
 @ControllerConfiguration(
@@ -42,6 +69,12 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                         dependsOn = {APP_SERVICE_ID},
                         activationCondition = AppIngressActivationCondition.class
                 ),
+                @Dependent(
+                        type = AppPodDisruptionBudgetResource.class,
+                        name = APP_POD_DISRUPTION_BUDGET_ID,
+                        dependsOn = {APP_DEPLOYMENT_ID},
+                        activationCondition = AppPodDisruptionBudgetActivationCondition.class
+                ),
                 // ===== Registry UI
                 @Dependent(
                         type = UIDeploymentResource.class,
@@ -57,6 +90,12 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                         name = UI_INGRESS_ID,
                         dependsOn = {UI_SERVICE_ID},
                         activationCondition = UIIngressActivationCondition.class
+                ),
+                @Dependent(
+                        type = UIPodDisruptionBudgetResource.class,
+                        name = UI_POD_DISRUPTION_BUDGET_ID,
+                        dependsOn = {UI_DEPLOYMENT_ID},
+                        activationCondition = UIPodDisruptionBudgetActivationCondition.class
                 ),
                 // ===== Studio UI
                 @Dependent(
@@ -74,7 +113,13 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                         name = STUDIO_UI_INGRESS_ID,
                         dependsOn = {STUDIO_UI_SERVICE_ID},
                         activationCondition = StudioUIIngressActivationCondition.class
-                )
+                ),
+                @Dependent(
+                        type = StudioUIPodDisruptionBudgetResource.class,
+                        name = STUDIO_UI_POD_DISRUPTION_BUDGET_ID,
+                        dependsOn = {STUDIO_UI_DEPLOYMENT_ID},
+                        activationCondition = StudioUIPodDisruptionBudgetActivationCondition.class
+                ),
         }
 )
 // spotless:on

@@ -7,8 +7,6 @@ import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
@@ -16,8 +14,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
 public class AppFeaturesITTest extends ITBase {
-
-    private static final Logger log = LoggerFactory.getLogger(AppFeaturesITTest.class);
 
     @Test
     void testAllowDeletesTrue() {

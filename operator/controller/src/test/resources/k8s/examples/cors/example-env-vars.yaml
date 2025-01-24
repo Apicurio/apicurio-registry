@@ -1,0 +1,9 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple
+spec:
+  app:
+    env:
+      - name: QUARKUS_HTTP_CORS_ORIGINS
+        value: https://ui.example.org

@@ -236,27 +236,24 @@ public class ResourceFactory {
     public PodDisruptionBudget getDefaultAppPodDisruptionBudget(ApicurioRegistry3 primary) {
         var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
                 COMPONENT_APP);
-        pdb.getSpec().getSelector().getMatchLabels().put(
-                "app.kubernetes.io/instance", primary.getMetadata().getName()
-        );
+        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
+                primary.getMetadata().getName());
         return pdb;
     }
 
     public PodDisruptionBudget getDefaultUIPodDisruptionBudget(ApicurioRegistry3 primary) {
         var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
                 COMPONENT_UI);
-        pdb.getSpec().getSelector().getMatchLabels().put(
-                "app.kubernetes.io/instance", primary.getMetadata().getName()
-        );
+        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
+                primary.getMetadata().getName());
         return pdb;
     }
 
     public PodDisruptionBudget getDefaultStudioUIPodDisruptionBudget(ApicurioRegistry3 primary) {
         var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
                 COMPONENT_STUDIO_UI);
-        pdb.getSpec().getSelector().getMatchLabels().put(
-                "app.kubernetes.io/instance", primary.getMetadata().getName()
-        );
+        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
+                primary.getMetadata().getName());
         return pdb;
     }
 

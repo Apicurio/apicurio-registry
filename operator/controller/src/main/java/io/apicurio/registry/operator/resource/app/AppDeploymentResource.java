@@ -28,17 +28,13 @@ import java.util.Optional;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
-import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
 import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_SERVICE_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 
-@KubernetesDependent(
-        labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_APP,
-        resourceDiscriminator = AppDeploymentDiscriminator.class
-)
+@KubernetesDependent(resourceDiscriminator = AppDeploymentDiscriminator.class)
 public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(AppDeploymentResource.class);

@@ -11,7 +11,7 @@ FILES_TO_CHECK=$(echo "$CHANGED_FILES" | grep "^$WATCHED_DIR")
 
 # If no changes detected in the directory, exit successfully
 if [ -z "$FILES_TO_CHECK" ]; then
-    echo "No changes in $WATCHED_DIR, skipping hook."
+    echo "No changes detected to Operator Model, skipping install.yaml regen."
     exit 0
 fi
 

@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.resource;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
 import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
@@ -33,12 +34,14 @@ public class ActivationConditions {
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
             var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(ComponentSpec::getManageIngress).orElse(Boolean.TRUE);
+            var hasIngressHost = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                     .map(AppSpec::getIngress).map(IngressSpec::getHost).map(host -> !isBlank(host))
                     .orElse(false);
-            if (!enabled) {
+            if (!enabled || !hasIngressHost) {
                 ((AppIngressResource) resource).delete(primary, context);
             }
-            return enabled;
+            return enabled && hasIngressHost;
         }
     }
 
@@ -51,12 +54,14 @@ public class ActivationConditions {
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
             var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(ComponentSpec::getManageIngress).orElse(Boolean.TRUE);
+            var hasIngressHost = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
                     .map(UiSpec::getIngress).map(IngressSpec::getHost).map(host -> !isBlank(host))
                     .orElse(false);
-            if (!enabled) {
+            if (!enabled || !hasIngressHost) {
                 ((UIIngressResource) resource).delete(primary, context);
             }
-            return enabled;
+            return enabled && hasIngressHost;
         }
     }
 
@@ -85,12 +90,14 @@ public class ActivationConditions {
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
             var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+                    .map(ComponentSpec::getManageIngress).orElse(Boolean.TRUE);
+            var hasIngressHost = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
                     .map(StudioUiSpec::getIngress).map(IngressSpec::getHost).map(host -> !isBlank(host))
                     .orElse(false);
-            if (!enabled) {
+            if (!enabled || !hasIngressHost) {
                 ((StudioUIIngressResource) resource).delete(primary, context);
             }
-            return enabled;
+            return enabled && hasIngressHost;
         }
     }
 }

@@ -117,6 +117,11 @@ spec:
                           automatically.'
                         type: string
                     type: object
+                  manageIngress:
+                    description: |
+                      Whether an Ingress should be managed by the operator.  Defaults to 'true'.
+                      Set this to 'false' if you want to create your own custom Ingress.
+                    type: boolean
                   podTemplateSpec:
                     description: |-
                       `PodTemplateSpec` describes the data a pod should have when created from a template.
@@ -3254,6 +3259,11 @@ spec:
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
                     type: object
+                  manageIngress:
+                    description: |
+                      Whether an Ingress should be managed by the operator.  Defaults to 'true'.
+                      Set this to 'false' if you want to create your own custom Ingress.
+                    type: boolean
                   podTemplateSpec:
                     description: |-
                       `PodTemplateSpec` describes the data a pod should have when created from a template.
@@ -6243,6 +6253,11 @@ spec:
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
                     type: object
+                  manageIngress:
+                    description: |
+                      Whether an Ingress should be managed by the operator.  Defaults to 'true'.
+                      Set this to 'false' if you want to create your own custom Ingress.
+                    type: boolean
                   podTemplateSpec:
                     description: |-
                       `PodTemplateSpec` describes the data a pod should have when created from a template.
@@ -9362,7 +9377,7 @@ spec:
           value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
         - name: STUDIO_UI_IMAGE
           value: quay.io/apicurio/apicurio-studio-ui:latest-snapshot
-        image: quay.io/apicurio/apicurio-registry-operator:latest-snapshot
+        image: quay.io/apicurio/apicurio-registry-operator:3.0.7-snapshot
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

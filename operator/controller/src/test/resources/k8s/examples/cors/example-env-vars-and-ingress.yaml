@@ -1,0 +1,14 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple
+spec:
+  app:
+    ingress:
+      host: simple-app.apps.cluster.example
+    env:
+      - name: QUARKUS_HTTP_CORS_ORIGINS
+        value: https://ui.example.org
+  ui:
+    ingress:
+      host: simple-ui.apps.cluster.example

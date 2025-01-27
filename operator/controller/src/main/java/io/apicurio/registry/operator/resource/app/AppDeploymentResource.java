@@ -7,6 +7,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppFeaturesSpec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
+import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.PostgresSql;
 import io.fabric8.kubernetes.api.model.Container;
@@ -51,7 +52,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
     @Override
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
-        var d = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
+        var deployment = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
 
         var envVars = new LinkedHashMap<String, EnvVar>();
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getEnv)
@@ -60,7 +61,6 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         // spotless:off
         addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_PROFILE).withValue("prod").build());
         addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_HTTP_ACCESS_LOG_ENABLED).withValue("true").build());
-        addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_HTTP_CORS_ORIGINS).withValue("*").build());
 
         // Enable deletes if configured in the CR
         boolean allowDeletes = Optional.ofNullable(primary.getSpec().getApp())
@@ -72,37 +72,47 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED).withValue("true").build());
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED).withValue("true").build());
         }
-        // spotless:on
 
-        // This is enabled only if Studio is deployed. It is based on Service in case a custom Ingress is
-        // used.
+        // Configure the CORS_ALLOWED_ORIGINS env var based on the ingress host
+        Cors.configureAllowedOrigins(primary, envVars);
+
+        // Enable the "mutability" feature in Registry, but only if Studio is deployed. It is based on Service
+        // in case a custom Ingress is used.
         var sOpt = context.getSecondaryResource(STUDIO_UI_SERVICE_KEY.getKlass(),
                 STUDIO_UI_SERVICE_KEY.getDiscriminator());
         sOpt.ifPresent(s -> {
             addEnvVar(envVars,
-                    new EnvVarBuilder().withName("APICURIO_REST_MUTABILITY_ARTIFACT-VERSION-CONTENT_ENABLED")
+                    new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED)
                             .withValue("true").build());
         });
 
+        // spotless:on
+
+        // Configure the storage (Postgresql or KafkaSql).
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)
                 .map(StorageSpec::getType).ifPresent(storageType -> {
                     switch (storageType) {
                         case POSTGRESQL -> PostgresSql.configureDatasource(primary, envVars);
-                        case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, envVars);
+                        case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, deployment, envVars);
                     }
                 });
 
-        var container = getContainerFromDeployment(d, REGISTRY_APP_CONTAINER_NAME);
+        // Set the ENV VARs on the deployment's container spec.
+        var container = getContainerFromDeployment(deployment, REGISTRY_APP_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());
 
-        log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(d));
-        return d;
+        log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(deployment));
+        return deployment;
     }
 
     public static void addEnvVar(Map<String, EnvVar> map, EnvVar envVar) {
         if (!map.containsKey(envVar.getName())) {
             map.put(envVar.getName(), envVar);
         }
+    }
+
+    public static void addEnvVar(Map<String, EnvVar> map, String name, String value) {
+        addEnvVar(map, new EnvVarBuilder().withName(name).withValue(value).build());
     }
 
     /**

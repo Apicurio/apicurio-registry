@@ -20,7 +20,7 @@
     "@kiota-community/kiota-wasm": "0.0.3",
     "@monaco-editor/react": "4.6.0",
     "@types/luxon": "3.4.2",
-    "@types/node": "22.10.9",
+    "@types/node": "22.10.10",
     "@types/pluralize": "0.0.33",
     "@types/react": "18.3.18",
     "@types/react-dom": "18.3.5",

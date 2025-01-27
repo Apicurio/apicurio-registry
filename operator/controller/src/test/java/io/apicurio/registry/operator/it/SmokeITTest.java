@@ -1,5 +1,6 @@
 package io.apicurio.registry.operator.it;
 
+import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.Container;
@@ -15,9 +16,11 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
+import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
+import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -70,6 +73,18 @@ public class SmokeITTest extends ITBase {
                     .get(0).getHost()).isEqualTo(registry.getSpec().getUi().getIngress().getHost());
             return true;
         });
+
+        // Check CORS allowed origins is set on the app, with the value based on the UI ingress host
+        String uiIngressHost = client.network().v1().ingresses().inNamespace(namespace)
+                .withName(registry.getMetadata().getName() + "-ui-ingress").get().getSpec().getRules().get(0)
+                .getHost();
+        String corsOriginsExpectedValue = "http://" + uiIngressHost + "," + "https://" + uiIngressHost;
+        var appEnv = getContainerFromDeployment(
+                client.apps().deployments().inNamespace(namespace)
+                        .withName(registry.getMetadata().getName() + "-app-deployment").get(),
+                REGISTRY_APP_CONTAINER_NAME).getEnv();
+        assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
+                .contains(EnvironmentVariables.QUARKUS_HTTP_CORS_ORIGINS + "=" + corsOriginsExpectedValue);
     }
 
     @Test

@@ -3076,6 +3076,71 @@ spec:
 
                               Required if `app.storage.type` is `kafkasql`.
                             type: string
+                          tls:
+                            description: Configure KafkaSQL storage when the access
+                              to the Kafka cluster is secured using TLS.
+                            properties:
+                              keystorePasswordSecretRef:
+                                description: |-
+                                  Reference to the Secret that contains the TLS keystore password.
+                                  Key `user.password` is assumed by default.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                              keystoreSecretRef:
+                                description: Reference to the Secret that contains
+                                  the TLS keystore (in PKCS12 format). Key `user.p12`
+                                  is assumed by default.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                              truststorePasswordSecretRef:
+                                description: Name of a Secret that contains the TLS
+                                  truststore password. Key `ca.password` is assumed
+                                  by default.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                              truststoreSecretRef:
+                                description: Name of a Secret that contains the TLS
+                                  truststore (in PKCS12 format). Key `ca.p12` is assumed
+                                  by default.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                            type: object
                         type: object
                       sql:
                         description: Configure SQL storage types.

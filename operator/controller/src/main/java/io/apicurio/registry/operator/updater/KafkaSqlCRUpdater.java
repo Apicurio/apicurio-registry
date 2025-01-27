@@ -24,7 +24,7 @@ public class KafkaSqlCRUpdater {
         var storageType = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getStorage).map(StorageSpec::getType);
         var bootstrapServers = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
-                .map(AppSpec::getStorage).map(StorageSpec::getKafkasql).map(KafkasqlSpec::getBootstrapServers)
+                .map(AppSpec::getStorage).map(StorageSpec::getKafkasql).map(KafkaSqlSpec::getBootstrapServers)
                 .filter(x -> !isBlank(x));
         if (prevBootstrapServers.isPresent()) {
             log.warn("CR field `app.kafkasql.boostrapServers` is DEPRECATED and should not be used.");

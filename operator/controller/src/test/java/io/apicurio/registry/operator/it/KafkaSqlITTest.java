@@ -22,9 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
-public class KafkaSQLITTest extends ITBase {
+public class KafkaSqlITTest extends ITBase {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaSQLITTest.class);
+    private static final Logger log = LoggerFactory.getLogger(KafkaSqlITTest.class);
 
     @BeforeAll
     public static void beforeAll() throws Exception {
@@ -33,18 +33,18 @@ public class KafkaSQLITTest extends ITBase {
 
     @Test
     void testKafkaSQLPlain() {
-        client.load(KafkaSQLITTest.class
+        client.load(KafkaSqlITTest.class
                 .getResourceAsStream("/k8s/examples/kafkasql/plain/example-cluster.kafka.yaml")).create();
-        final var clusterNAme = "example-cluster";
+        final var clusterName = "example-cluster";
 
         await().ignoreExceptions().untilAsserted(() ->
         // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
-        assertThat(client.pods().inNamespace(namespace).withName(clusterNAme + "-kafka-0").get().getStatus()
+        assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-kafka-0").get().getStatus()
                 .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
                 .containsOnly("True"));
 
         // We're guessing the value here to avoid using Strimzi Java model, and relying on retries below.
-        var bootstrapServers = clusterNAme + "-kafka-bootstrap." + namespace + ".svc:9092";
+        var bootstrapServers = clusterName + "-kafka-bootstrap." + namespace + ".svc:9092";
 
         var registry = deserialize(
                 "k8s/examples/kafkasql/plain/example-kafkasql-plain.apicurioregistry3.yaml",
@@ -64,12 +64,11 @@ public class KafkaSQLITTest extends ITBase {
                     .findFirst().get();
             assertThat(client.pods().inNamespace(namespace).withName(podName).getLog())
                     .contains("Using Kafka-SQL artifactStore");
-
             return true;
         });
     }
 
-    private static void applyStrimziResources() throws IOException {
+    static void applyStrimziResources() throws IOException {
         try (BufferedInputStream in = new BufferedInputStream(
                 new URL("https://strimzi.io/install/latest").openStream())) {
             List<HasMetadata> resources = Serialization.unmarshal(in);

@@ -297,8 +297,20 @@ public class ResourceFactory {
         }
     }
 
+    public static <T> T deserialize(String path, Class<T> klass, ClassLoader classLoader) {
+        try {
+            return YAML_MAPPER.readValue(load(path, classLoader), klass);
+        } catch (JsonProcessingException ex) {
+            throw new OperatorException("Could not deserialize resource: " + path, ex);
+        }
+    }
+
     public static String load(String path) {
-        try (var stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(path)) {
+        return load(path, Thread.currentThread().getContextClassLoader());
+    }
+
+    public static String load(String path, ClassLoader classLoader) {
+        try (var stream = classLoader.getResourceAsStream(path)) {
             return new String(stream.readAllBytes(), Charset.defaultCharset());
         } catch (Exception ex) {
             throw new OperatorException("Could not read resource: " + path, ex);

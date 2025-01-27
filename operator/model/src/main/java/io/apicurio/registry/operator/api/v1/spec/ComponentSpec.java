@@ -19,7 +19,7 @@ import static lombok.AccessLevel.PROTECTED;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "env", "ingress", "host", "podTemplateSpec" })
+@JsonPropertyOrder({ "env", "ingress", "host", "podTemplateSpec", "manageNetworkPolicy" })
 @NoArgsConstructor(access = PROTECTED)
 @AllArgsConstructor(access = PROTECTED)
 @SuperBuilder(toBuilder = true)
@@ -91,6 +91,17 @@ public abstract class ComponentSpec {
     @JsonPropertyDescription("Number of replicas for the component")
     @JsonSetter(nulls = Nulls.SKIP)
     private Integer replicas;
+
+    /**
+     * Indicates whether to create a pod disruption budget
+     */
+    @JsonProperty("manageNetworkPolicy")
+    @JsonPropertyDescription("""
+            Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
+            Set this to 'false' if you want to create your own custom NetworkPolicy.
+            """)
+    @JsonSetter(nulls = Nulls.SKIP)
+    private Boolean manageNetworkPolicy;
 
     public IngressSpec withIngress() {
         if (ingress == null) {

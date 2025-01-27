@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -18,7 +19,11 @@ import jakarta.enterprise.inject.spi.CDI;
 import jakarta.enterprise.util.TypeLiteral;
 import org.awaitility.Awaitility;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,6 +156,19 @@ public abstract class ITBase {
         });
     }
 
+    protected static NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
+        final ValueOrNull<NetworkPolicy> rval = new ValueOrNull<>();
+
+        await().ignoreExceptions().untilAsserted(() -> {
+            NetworkPolicy networkPolicy = client.network().v1().networkPolicies()
+                    .withName(primary.getMetadata().getName() + "-" + component + "-networkpolicy").get();
+            assertThat(networkPolicy).isNotNull();
+            rval.setValue(networkPolicy);
+        });
+
+        return rval.getValue();
+    }
+
     static KubernetesClient createK8sClient(String namespace) {
         return new KubernetesClientBuilder()
                 .withConfig(new ConfigBuilder(Config.autoConfigure(null)).withNamespace(namespace).build())
@@ -266,5 +284,24 @@ public abstract class ITBase {
             assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
         }
         client.close();
+    }
+
+    private static class ValueOrNull<T> {
+        private T value;
+
+        ValueOrNull() {
+        }
+
+        ValueOrNull(T value) {
+            this.value = value;
+        }
+
+        public void setValue(T value) {
+            this.value = value;
+        }
+
+        public T getValue() {
+            return value;
+        }
     }
 }

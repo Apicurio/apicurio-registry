@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Define the directory to monitor
+WATCHED_DIR="operator/model/"
+
+# Get the list of changed files in the staging area
+CHANGED_FILES=$(git diff --cached --name-only)
+
+# Check if any file in the watched directory has been modified
+FILES_TO_CHECK=$(echo "$CHANGED_FILES" | grep "^$WATCHED_DIR")
+
+# If no changes detected in the directory, exit successfully
+if [ -z "$FILES_TO_CHECK" ]; then
+    echo "No changes detected to Operator Model, skipping install.yaml regen."
+    exit 0
+fi
+
+# Run your custom command (e.g., linting, formatting, tests, etc.)
+echo "Changes detected to Operator Model. Generating install.yaml file..."
+
+# Update the install.yaml file (regenerate it)
+cd operator
+make SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file > /dev/null 2>&1
+
+# Capture the exit code of the command
+EXIT_CODE=$?
+
+# Exit with the appropriate status
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "Failed to regenerate install.yaml file."
+    exit 1
+fi
+
+echo "Successfully generated install.yaml."
+git add ./install/install.yaml
+exit 0

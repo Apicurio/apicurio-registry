@@ -36,9 +36,6 @@ public class KafkaSqlITTest extends ITBase {
         client.load(KafkaSqlITTest.class
                 .getResourceAsStream("/k8s/examples/kafkasql/plain/example-cluster.kafka.yaml")).create();
         final var clusterName = "example-cluster";
-        // client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/plain/example-cluster.kafka.yaml"))
-        // .createOrReplace();
-        // final var clusterName = "example-cluster";
 
         await().ignoreExceptions().untilAsserted(() ->
         // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
@@ -52,8 +49,6 @@ public class KafkaSqlITTest extends ITBase {
         var registry = deserialize(
                 "k8s/examples/kafkasql/plain/example-kafkasql-plain.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
-        // var registry = deserialize("k8s/examples/kafkasql/plain/kafkasql-plain.apicurioregistry3.yaml",
-        // ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
         registry.getSpec().getApp().getStorage().getKafkasql().setBootstrapServers(bootstrapServers);
 

@@ -52,7 +52,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
     @Override
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
-        var d = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
+        var deployment = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
 
         var envVars = new LinkedHashMap<String, EnvVar>();
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getEnv)
@@ -93,16 +93,16 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                 .map(StorageSpec::getType).ifPresent(storageType -> {
                     switch (storageType) {
                         case POSTGRESQL -> PostgresSql.configureDatasource(primary, envVars);
-                        case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, d, envVars);
+                        case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, deployment, envVars);
                     }
                 });
 
         // Set the ENV VARs on the deployment's container spec.
-        var container = getContainerFromDeployment(d, REGISTRY_APP_CONTAINER_NAME);
+        var container = getContainerFromDeployment(deployment, REGISTRY_APP_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());
 
-        log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(d));
-        return d;
+        log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(deployment));
+        return deployment;
     }
 
     public static void addEnvVar(Map<String, EnvVar> map, EnvVar envVar) {

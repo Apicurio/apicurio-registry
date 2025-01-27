@@ -13,6 +13,11 @@ import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.a
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 
+/**
+ * This is a utility wrapper around {@link SecretKeyRef}, that helps with using the Secret reference in the
+ * target Deployment. Usually, a secret value is either provided in an env. variable or accessed as a file.
+ * This class helps with both use cases.
+ */
 public class SecretKeyRefTool {
 
     private SecretKeyRef secretKeyRef;
@@ -54,11 +59,17 @@ public class SecretKeyRefTool {
         return "/etc/" + getSecretVolumeName();
     }
 
+    /**
+     * @return a path to a file mounted within the container that contains the value from the
+     *         {@link SecretKeyRef}
+     */
     public String getSecretVolumeKeyPath() {
         return getSecretVolumeMountPath() + "/" + secretKeyRef.getKey();
     }
 
     /**
+     * Mount the Secret as a volume and configure its mount inside the container.
+     * <p>
      * Use this method in case the {@link SecretKeyRef} references a file to be mounted into the pod. You can
      * then use {@link #getSecretVolumeKeyPath()} to get the path to the file within the pod.
      */
@@ -69,6 +80,8 @@ public class SecretKeyRefTool {
     }
 
     /**
+     * Add an env. variable that references a value from the Secret.
+     * <p>
      * Use this method in case the {@link SecretKeyRef} references data to be provided as an env. variable.
      */
     public void applySecretEnvVar(Map<String, EnvVar> env, String envVarName) {

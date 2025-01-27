@@ -162,7 +162,7 @@ public abstract class ITBase {
 
         await().ignoreExceptions().untilAsserted(() -> {
             PodDisruptionBudget pdb = client.policy().v1().podDisruptionBudget()
-                    .withName(primary.getMetadata().getName() + "-" + component + "-podDisruptionBudget")
+                    .withName(primary.getMetadata().getName() + "-" + component + "-poddisruptionbudget")
                     .get();
             assertThat(pdb).isNotNull();
             rval.setValue(pdb);

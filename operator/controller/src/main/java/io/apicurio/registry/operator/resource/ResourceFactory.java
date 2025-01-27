@@ -38,7 +38,7 @@ public class ResourceFactory {
     public static final String RESOURCE_TYPE_DEPLOYMENT = "deployment";
     public static final String RESOURCE_TYPE_SERVICE = "service";
     public static final String RESOURCE_TYPE_INGRESS = "ingress";
-    public static final String RESOURCE_TYPE_POD_DISRUPTION_BUDGET = "podDisruptionBudget";
+    public static final String RESOURCE_TYPE_POD_DISRUPTION_BUDGET = "poddisruptionbudget";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
         var r = initDefaultDeployment(primary, COMPONENT_APP,

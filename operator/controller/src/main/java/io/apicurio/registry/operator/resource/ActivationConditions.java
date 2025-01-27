@@ -8,9 +8,12 @@ import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
 import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
+import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIDeploymentResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIIngressResource;
+import io.apicurio.registry.operator.resource.studioui.StudioUIPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
+import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
@@ -49,8 +52,12 @@ public class ActivationConditions {
         @Override
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-            return ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+            Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                     .map(ComponentSpec::getManageDisruptionBudget).orElse(Boolean.TRUE);
+            if (!isManaged) {
+                ((AppPodDisruptionBudgetResource) resource).delete(primary, context);
+            }
+            return isManaged;
         }
     }
 
@@ -77,8 +84,12 @@ public class ActivationConditions {
         @Override
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-            return ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+            Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
                     .map(ComponentSpec::getManageDisruptionBudget).orElse(Boolean.TRUE);
+            if (!isManaged) {
+                ((UIPodDisruptionBudgetResource) resource).delete(primary, context);
+            }
+            return isManaged;
         }
     }
 
@@ -121,8 +132,12 @@ public class ActivationConditions {
         @Override
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-            return ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+            Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
                     .map(ComponentSpec::getManageDisruptionBudget).orElse(Boolean.TRUE);
+            if (!isManaged) {
+                ((StudioUIPodDisruptionBudgetResource) resource).delete(primary, context);
+            }
+            return isManaged;
         }
     }
 

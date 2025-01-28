@@ -93,6 +93,11 @@ public class UiConfigProperties {
     @Info(category = "ui", description = "UI auth OIDC redirect URL", availableSince = "2.2.6.Final")
     String oidcRedirectUri;
 
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.auth.oidc.scope", defaultValue = "openid profile email")
+    @Info(category = "ui", description = "UI auth OIDC scope value", availableSince = "2.6.8.Final")
+    String scope;
+
     private final Map<String, Object> keycloakConfig;
 
     /**
@@ -161,5 +166,9 @@ public class UiConfigProperties {
 
     public String getOidcRedirectUrl() {
         return oidcRedirectUri;
+    }
+
+    public String getScope() {
+        return scope;
     }
 }

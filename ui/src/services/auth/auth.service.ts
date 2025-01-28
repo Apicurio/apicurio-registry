@@ -6,7 +6,7 @@ import { LoggerService } from "../logger";
 import { UsersService } from "../users";
 import { User, UserManager, UserManagerSettings } from "oidc-client-ts";
 
-const KC_CONFIG_OPTIONS: string[] = ["url", "realm", "clientId", "redirectUri"];
+const KC_CONFIG_OPTIONS: string[] = ["url", "realm", "clientId", "redirectUri", "scope"];
 const KC_INIT_OPTIONS: string[] = [
     "useNonce", "adapter", "onLoad", "token", "refreshToken", "idToken", "timeSkew", "checkLoginIframe",
     "checkLoginIframeInterval", "responseMode", "redirectUri", "silentCheckSsoRedirectUri", "flow",
@@ -126,9 +126,8 @@ export class AuthService implements Service {
             client_id: configOptions.clientId,
             redirect_uri: configOptions.redirectUri,
             response_type: "code",
-            scope: "openid profile email",
-            filterProtocolClaims: true,
-            loadUserInfo: true
+            scope: configOptions.scope,
+            filterProtocolClaims: true
         };
     }
 

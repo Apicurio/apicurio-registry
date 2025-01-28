@@ -13,7 +13,7 @@ import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_POD_D
 // spotless:off
 @KubernetesDependent(
         labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_STUDIO_UI,
-        resourceDiscriminator = LabelDiscriminators.AppPodDisruptionBudgetDiscriminator.class
+        resourceDiscriminator = LabelDiscriminators.StudioUiPodDisruptionBudgetDiscriminator.class
 )
 // spotless:on
 public class StudioUIPodDisruptionBudgetResource

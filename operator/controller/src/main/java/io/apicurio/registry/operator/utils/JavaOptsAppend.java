@@ -8,18 +8,17 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Models the value of the JAVA_OPTS_APPEND environment variable.  This is
- * a convenient way to merge values and handle conflicts.
+ * Models the value of the JAVA_OPTS_APPEND environment variable. This is a convenient way to merge values and
+ * handle conflicts.
  */
 public class JavaOptsAppend {
 
     private final Set<String> opts = new TreeSet<>();
 
     /**
-     * Called to set the initial value of the ENV var using an existing
-     * value, typically configured in the "env" section of the CR.  This
-     * will be a value set by the app deployer, with runtime options
-     * they want to have enabled.
+     * Called to set the initial value of the ENV var using an existing value, typically configured in the
+     * "env" section of the CR. This will be a value set by the app deployer, with runtime options they want
+     * to have enabled.
      */
     public void setOptsFromEnvVar(String value) {
         opts.clear();
@@ -33,16 +32,13 @@ public class JavaOptsAppend {
      */
     public EnvVar toEnvVar() {
         EnvVarBuilder builder = new EnvVarBuilder();
-        return builder
-                .withName(EnvironmentVariables.JAVA_OPTS_APPEND)
-                .withValue(String.join(" ", opts))
+        return builder.withName(EnvironmentVariables.JAVA_OPTS_APPEND).withValue(String.join(" ", opts))
                 .build();
     }
 
     /**
-     * Add another option.  If the option already exists, do nothing.  Whether the
-     * option already exists may depend on the option.  Custom logic may be needed
-     * to properly support certain options.
+     * Add another option. If the option already exists, do nothing. Whether the option already exists may
+     * depend on the option. Custom logic may be needed to properly support certain options.
      */
     public void addOpt(String optValue) {
         if (!containsOpt(optValue)) {
@@ -58,8 +54,8 @@ public class JavaOptsAppend {
     }
 
     /**
-     * Returns 'true' if the option already exists.  The logic for whether an option
-     * already exists depends on the option.
+     * Returns 'true' if the option already exists. The logic for whether an option already exists depends on
+     * the option.
      */
     public boolean containsOpt(String optValue) {
         if (optValue == null || optValue.trim().isEmpty()) {
@@ -93,8 +89,8 @@ public class JavaOptsAppend {
     /**
      * Checks if an option of one of the following form exists already:
      * <ul>
-     *     <li>-Dmy.property.name=foo</li>
-     *     <li>-XX:OptionName=bar</li>
+     * <li>-Dmy.property.name=foo</li>
+     * <li>-XX:OptionName=bar</li>
      * </ul>
      * Looks for another option with the same name but potentially different value.
      */

@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator;
 
 public class EnvironmentVariables {
+    public static final String JAVA_OPTS_APPEND = "JAVA_OPTS_APPEND";
 
     public static final String QUARKUS_PROFILE = "QUARKUS_PROFILE";
     public static final String QUARKUS_HTTP_ACCESS_LOG_ENABLED = "QUARKUS_HTTP_ACCESS_LOG_ENABLED";

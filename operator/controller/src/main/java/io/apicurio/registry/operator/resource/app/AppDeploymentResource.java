@@ -14,6 +14,7 @@ import io.apicurio.registry.operator.feat.PostgresSql;
 import io.apicurio.registry.operator.feat.security.Auth;
 import io.apicurio.registry.operator.status.ReadyConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.utils.JavaOptsAppend;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
@@ -55,6 +56,14 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         var envVars = new LinkedHashMap<String, EnvVar>();
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getEnv)
                 .ifPresent(env -> env.forEach(e -> envVars.put(e.getName(), e)));
+
+        // Handling of JAVA_OPTS_APPEND env var - we will merge whatever we find in the CR
+        // with whatever we might set ourselves in the logic of the operator.
+        var javaOptsAppend = new JavaOptsAppend();
+        if (envVars.containsKey(EnvironmentVariables.JAVA_OPTS_APPEND)) {
+            javaOptsAppend.setOptsFromEnvVar(envVars.get(EnvironmentVariables.JAVA_OPTS_APPEND).getValue());
+            envVars.remove(EnvironmentVariables.JAVA_OPTS_APPEND);
+        }
 
         addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_PROFILE).withValue("prod").build());
         addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_HTTP_ACCESS_LOG_ENABLED).withValue("true").build());
@@ -105,6 +114,9 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                         case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, deployment, envVars);
                     }
                 });
+
+        // Set the JAVA_OPTS_APPEND env var that may have been built up
+        envVars.put(EnvironmentVariables.JAVA_OPTS_APPEND, javaOptsAppend.toEnvVar());
 
         // Set the ENV VARs on the deployment's container spec.
         var container = getContainerFromDeployment(deployment, REGISTRY_APP_CONTAINER_NAME);

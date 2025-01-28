@@ -1,0 +1,11 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple
+spec:
+  app:
+    ingress:
+      host: simple-app.apps.cluster.example
+  ui:
+    ingress:
+      host: simple-ui.apps.cluster.example

@@ -42,6 +42,7 @@ public class AppSpec extends ComponentSpec {
     @JsonSetter(nulls = SKIP)
     private AppFeaturesSpec features;
 
+
     /**
      * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt
      * to update the fields automatically.

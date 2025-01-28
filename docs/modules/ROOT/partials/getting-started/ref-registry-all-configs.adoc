@@ -737,6 +737,11 @@ The following {registry} configuration options are available for each component 
 |`none`
 |`2.2.6.Final`
 |UI auth OIDC redirect URL
+|`registry.ui.config.auth.oidc.scope`
+|`string`
+|`openid profile email`
+|`2.6.8.Final`
+|UI auth OIDC scope value
 |`registry.ui.config.auth.oidc.url`
 |`string`
 |`none`

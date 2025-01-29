@@ -7,7 +7,7 @@ spec:
     ingress:
       host: simple-app.apps.cluster.example
     auth:
-      authEnabled: true
+      enabled: true
       appClientId: registry-api
       uiClientId: apicurio-registry
       authServerUrl: http://keycloak:8090/realms/registry

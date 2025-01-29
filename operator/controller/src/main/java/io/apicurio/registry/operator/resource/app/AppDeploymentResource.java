@@ -75,6 +75,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED).withValue("true").build());
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED).withValue("true").build());
         }
+
         boolean authEnabled = Optional.ofNullable(primary.getSpec())
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getAuth)

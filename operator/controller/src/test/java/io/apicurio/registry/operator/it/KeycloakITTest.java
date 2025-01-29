@@ -16,7 +16,6 @@ import java.time.Duration;
 import java.util.List;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
-import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
@@ -40,14 +39,7 @@ public class KeycloakITTest extends ITBase {
         List<HasMetadata> resources = Serialization
                 .unmarshal(KeycloakITTest.class.getResourceAsStream("/k8s/examples/auth/keycloak.yaml"));
 
-        resources.forEach(r -> {
-            log.info("Creating Keycloak resource kind {} in namespace {}", r.getKind(), namespace);
-            client.resource(r).inNamespace(namespace).createOrReplace();
-            await().ignoreExceptions().until(() -> {
-                assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
-                return true;
-            });
-        });
+        createResources(resources, "Keycloak");
 
         await().ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments().withName("keycloak").get().getStatus().getReadyReplicas())
@@ -60,11 +52,11 @@ public class KeycloakITTest extends ITBase {
 
         registry.getMetadata().setNamespace(namespace);
 
-        var appAuthSpec = registry.getSpec().getApp().getAppAuthSpec();
+        var appAuthSpec = registry.getSpec().getApp().getAuth();
 
         Assertions.assertEquals("registry-api", appAuthSpec.getAppClientId());
         Assertions.assertEquals("apicurio-registry", appAuthSpec.getUiClientId());
-        Assertions.assertEquals(true, appAuthSpec.getAuthEnabled());
+        Assertions.assertEquals(true, appAuthSpec.getEnabled());
         Assertions.assertEquals("http://keycloak:8090/realms/registry", appAuthSpec.getAuthServerUrl());
 
         client.resource(registry).create();
@@ -88,12 +80,5 @@ public class KeycloakITTest extends ITBase {
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL + "="
                         + "http://keycloak:8090/realms/registry");
-
-        // App deployment auth related assertions
-        var uiEnv = getContainerFromDeployment(
-                client.apps().deployments().inNamespace(namespace)
-                        .withName(registry.getMetadata().getName() + "-ui-deployment").get(),
-                REGISTRY_UI_CONTAINER_NAME).getEnv();
-
     }
 }

@@ -12,7 +12,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "env", "ingress", "podTemplateSpec", "storage", "sql", "kafkasql", "features" })
+@JsonPropertyOrder({ "env", "ingress", "podTemplateSpec", "storage", "sql", "kafkasql", "features", "auth" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -50,7 +50,7 @@ public class AppSpec extends ComponentSpec {
             Configure authentication and authorization of Apicurio Registry.
             """)
     @JsonSetter(nulls = SKIP)
-    private AppAuthSpec appAuthSpec;
+    private AppAuthSpec auth;
 
     /**
      * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt

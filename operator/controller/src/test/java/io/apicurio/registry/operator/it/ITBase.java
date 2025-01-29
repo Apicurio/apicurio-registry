@@ -234,6 +234,17 @@ public abstract class ITBase {
         Awaitility.setDefaultTimeout(Duration.ofSeconds(5 * 60));
     }
 
+    static void createResources(List<HasMetadata> resources, String resourceType) {
+        resources.forEach(r -> {
+            log.info("Creating {} resource kind {} in namespace {}", resourceType, r.getKind(), namespace);
+            client.resource(r).inNamespace(namespace).createOrReplace();
+            await().ignoreExceptions().until(() -> {
+                assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
+                return true;
+            });
+        });
+    }
+
     @AfterEach
     public void cleanup() {
         if (cleanup) {

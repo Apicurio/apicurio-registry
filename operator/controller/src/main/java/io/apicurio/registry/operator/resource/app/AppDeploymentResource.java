@@ -8,6 +8,7 @@ import io.apicurio.registry.operator.api.v1.spec.AppAuthSpec;
 import io.apicurio.registry.operator.api.v1.spec.AppFeaturesSpec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
+import io.apicurio.registry.operator.feat.Auth;
 import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.PostgresSql;
@@ -74,15 +75,17 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED).withValue("true").build());
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED).withValue("true").build());
         }
-        boolean authEnabled = Optional.ofNullable(primary.getSpec().getApp())
-                .map(AppSpec::getAppAuthSpec)
-                .map(AppAuthSpec::getAuthEnabled)
+        boolean authEnabled = Optional.ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(AppSpec::getAuth)
+                .map(AppAuthSpec::getEnabled)
                 .orElse(Boolean.FALSE);
 
         //Configure auth when it's enabled
         if (authEnabled) {
-            configureAuth(envVars, requireNonNull(ofNullable(primary.getSpec().getApp())
-                    .map(AppSpec::getAppAuthSpec).orElse(null)));
+            Auth.configureAuth(envVars, requireNonNull(ofNullable(primary.getSpec().getApp())
+                    .map(AppSpec::getAuth)
+                    .orElse(null)));
         }
 
         // Configure the CORS_ALLOWED_ORIGINS env var based on the ingress host
@@ -164,15 +167,4 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         return null;
     }
 
-    private static void configureAuth(Map<String, EnvVar> envVars, AppAuthSpec appAuthSpec) {
-        addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REGISTRY_AUTH_ENABLED)
-                .withValue(appAuthSpec.getAuthEnabled().toString()).build());
-        addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REGISTRY_APP_CLIENT_ID)
-                .withValue(appAuthSpec.getAppClientId()).build());
-        addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REGISTRY_UI_CLIENT_ID)
-                .withValue(appAuthSpec.getUiClientId()).build());
-        addEnvVar(envVars,
-                new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL)
-                        .withValue(appAuthSpec.getAuthServerUrl()).build());
-    }
 }

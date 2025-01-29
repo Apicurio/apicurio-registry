@@ -21,7 +21,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "allowDeletes" })
+@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "authServerUrl" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -31,12 +31,12 @@ import static lombok.AccessLevel.PRIVATE;
 @ToString
 public class AppAuthSpec {
 
-    @JsonProperty("authEnabled")
+    @JsonProperty("enabled")
     @JsonPropertyDescription("""
             Enable Apicurio Registry Authentication.
             In Identity providers like Keycloak, this is the client id used for the Quarkus backend application""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean authEnabled;
+    private Boolean enabled;
 
     @JsonProperty("appClientId")
     @JsonPropertyDescription("""

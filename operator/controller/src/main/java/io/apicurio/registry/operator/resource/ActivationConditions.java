@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
+import io.apicurio.registry.operator.api.v1.spec.NetworkPolicySpec;
 import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
@@ -53,7 +54,8 @@ public class ActivationConditions {
         public boolean isMet(DependentResource<NetworkPolicy, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
             Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
-                    .map(ComponentSpec::getManageNetworkPolicy).orElse(Boolean.TRUE);
+                    .map(ComponentSpec::getNetworkPolicy).map(NetworkPolicySpec::getEnabled)
+                    .orElse(Boolean.TRUE);
             if (!isManaged) {
                 ((AppNetworkPolicyResource) resource).delete(primary, context);
             }
@@ -85,7 +87,8 @@ public class ActivationConditions {
         public boolean isMet(DependentResource<NetworkPolicy, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
             Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
-                    .map(ComponentSpec::getManageNetworkPolicy).orElse(Boolean.TRUE);
+                    .map(ComponentSpec::getNetworkPolicy).map(NetworkPolicySpec::getEnabled)
+                    .orElse(Boolean.TRUE);
             if (!isManaged) {
                 ((UINetworkPolicyResource) resource).delete(primary, context);
             }
@@ -133,7 +136,8 @@ public class ActivationConditions {
         public boolean isMet(DependentResource<NetworkPolicy, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
             Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
-                    .map(ComponentSpec::getManageNetworkPolicy).orElse(Boolean.TRUE);
+                    .map(ComponentSpec::getNetworkPolicy).map(NetworkPolicySpec::getEnabled)
+                    .orElse(Boolean.TRUE);
             if (!isManaged) {
                 ((StudioUINetworkPolicyResource) resource).delete(primary, context);
             }

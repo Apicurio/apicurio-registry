@@ -117,11 +117,17 @@ spec:
                           automatically.'
                         type: string
                     type: object
-                  manageNetworkPolicy:
-                    description: |
-                      Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
-                      Set this to 'false' if you want to create your own custom NetworkPolicy.
-                    type: boolean
+                  networkPolicy:
+                    description: |2
+                              Configuration of a NetworkPolicy for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom NetworkPolicy.
+                        type: boolean
+                    type: object
                   podTemplateSpec:
                     description: |-
                       `PodTemplateSpec` describes the data a pod should have when created from a template.
@@ -3259,11 +3265,17 @@ spec:
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
                     type: object
-                  manageNetworkPolicy:
-                    description: |
-                      Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
-                      Set this to 'false' if you want to create your own custom NetworkPolicy.
-                    type: boolean
+                  networkPolicy:
+                    description: |2
+                              Configuration of a NetworkPolicy for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom NetworkPolicy.
+                        type: boolean
+                    type: object
                   podTemplateSpec:
                     description: |-
                       `PodTemplateSpec` describes the data a pod should have when created from a template.
@@ -6253,11 +6265,17 @@ spec:
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
                     type: object
-                  manageNetworkPolicy:
-                    description: |
-                      Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
-                      Set this to 'false' if you want to create your own custom NetworkPolicy.
-                    type: boolean
+                  networkPolicy:
+                    description: |2
+                              Configuration of a NetworkPolicy for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom NetworkPolicy.
+                        type: boolean
+                    type: object
                   podTemplateSpec:
                     description: |-
                       `PodTemplateSpec` describes the data a pod should have when created from a template.
@@ -9312,6 +9330,7 @@ rules:
   - networking.k8s.io
   resources:
   - ingresses
+  - networkpolicies
   verbs:
   - '*'
 ---

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @QuarkusTest
@@ -18,8 +19,8 @@ public class NetworkPolicyITTest extends ITBase {
 
     @Test
     void testNetworkPolicy() {
-        ApicurioRegistry3 registry = ResourceFactory
-                .deserialize("/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);
+        ApicurioRegistry3 registry = ResourceFactory.deserialize(
+                "/k8s/examples/simple-with-studio.apicurioregistry3.yaml", ApicurioRegistry3.class);
         client.resource(registry).create();
 
         // Wait for the deployment to exist
@@ -28,29 +29,37 @@ public class NetworkPolicyITTest extends ITBase {
         // Check that the two expected NetworkPolicy resources were created
         NetworkPolicy appPolicy = checkNetworkPolicyExists(registry, ResourceFactory.COMPONENT_APP);
         NetworkPolicy uiNetworkPolicy = checkNetworkPolicyExists(registry, ResourceFactory.COMPONENT_UI);
+        NetworkPolicy studioNetworkPolicy = checkNetworkPolicyExists(registry,
+                ResourceFactory.COMPONENT_STUDIO_UI);
 
         // Verify the content of the app component's network policy
-        Assertions
-                .assertThat(appPolicy.getMetadata().getLabels().entrySet().stream()
-                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet()))
-                .contains("app.kubernetes.io/component=app",
-                        "app.kubernetes.io/managed-by=apicurio-registry-operator",
-                        "app.kubernetes.io/name=apicurio-registry");
-        Assertions
-                .assertThat(appPolicy.getSpec().getPodSelector().getMatchLabels().entrySet().stream()
-                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet()))
-                .contains("app.kubernetes.io/component=app", "app.kubernetes.io/name=apicurio-registry");
+        assertLabelsContains(appPolicy.getMetadata().getLabels(), "app.kubernetes.io/component=app",
+                "app.kubernetes.io/managed-by=apicurio-registry-operator",
+                "app.kubernetes.io/name=apicurio-registry");
+        assertLabelsContains(appPolicy.getSpec().getPodSelector().getMatchLabels(),
+                "app.kubernetes.io/component=app", "app.kubernetes.io/name=apicurio-registry",
+                "app.kubernetes.io/instance=" + registry.getMetadata().getName());
 
         // Verify the content of the ui component's network policy
-        Assertions
-                .assertThat(uiNetworkPolicy.getMetadata().getLabels().entrySet().stream()
-                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet()))
-                .contains("app.kubernetes.io/component=ui",
-                        "app.kubernetes.io/managed-by=apicurio-registry-operator",
-                        "app.kubernetes.io/name=apicurio-registry");
-        Assertions
-                .assertThat(uiNetworkPolicy.getSpec().getPodSelector().getMatchLabels().entrySet().stream()
-                        .map(l -> l.getKey() + "=" + l.getValue()).collect(Collectors.toSet()))
-                .contains("app.kubernetes.io/component=ui", "app.kubernetes.io/name=apicurio-registry");
+        assertLabelsContains(uiNetworkPolicy.getMetadata().getLabels(), "app.kubernetes.io/component=ui",
+                "app.kubernetes.io/managed-by=apicurio-registry-operator",
+                "app.kubernetes.io/name=apicurio-registry");
+        assertLabelsContains(uiNetworkPolicy.getSpec().getPodSelector().getMatchLabels(),
+                "app.kubernetes.io/component=ui", "app.kubernetes.io/name=apicurio-registry",
+                "app.kubernetes.io/instance=" + registry.getMetadata().getName());
+
+        // Verify the content of the studio component's network policy
+        assertLabelsContains(studioNetworkPolicy.getMetadata().getLabels(),
+                "app.kubernetes.io/component=studio-ui",
+                "app.kubernetes.io/managed-by=apicurio-registry-operator",
+                "app.kubernetes.io/name=apicurio-registry");
+        assertLabelsContains(studioNetworkPolicy.getSpec().getPodSelector().getMatchLabels(),
+                "app.kubernetes.io/component=studio-ui", "app.kubernetes.io/name=apicurio-registry",
+                "app.kubernetes.io/instance=" + registry.getMetadata().getName());
+    }
+
+    private void assertLabelsContains(Map<String, String> labels, String... values) {
+        Assertions.assertThat(labels.entrySet().stream().map(l -> l.getKey() + "=" + l.getValue())
+                .collect(Collectors.toSet())).contains(values);
     }
 }

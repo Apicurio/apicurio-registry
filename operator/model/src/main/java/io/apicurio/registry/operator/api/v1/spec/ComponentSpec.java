@@ -1,12 +1,22 @@
 package io.apicurio.registry.operator.api.v1.spec;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.operator.api.v1.ContainerNames;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.PodTemplateSpec;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.util.ArrayList;
@@ -19,7 +29,7 @@ import static lombok.AccessLevel.PROTECTED;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "env", "ingress", "host", "podTemplateSpec", "manageNetworkPolicy" })
+@JsonPropertyOrder({ "env", "ingress", "host", "podTemplateSpec", "networkPolicy" })
 @NoArgsConstructor(access = PROTECTED)
 @AllArgsConstructor(access = PROTECTED)
 @SuperBuilder(toBuilder = true)
@@ -93,15 +103,14 @@ public abstract class ComponentSpec {
     private Integer replicas;
 
     /**
-     * Indicates whether to create a pod disruption budget
+     * Network policy config
      */
-    @JsonProperty("manageNetworkPolicy")
+    @JsonProperty("networkPolicy")
     @JsonPropertyDescription("""
-            Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
-            Set this to 'false' if you want to create your own custom NetworkPolicy.
+                    Configuration of a NetworkPolicy for the component.
             """)
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean manageNetworkPolicy;
+    private NetworkPolicySpec networkPolicy;
 
     public IngressSpec withIngress() {
         if (ingress == null) {

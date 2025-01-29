@@ -224,7 +224,7 @@ public abstract class ITBase {
     }
 
     static String calculateNamespace() {
-        return ("apicurio-registry-operator-test-" + UUID.randomUUID()).substring(0, 63);
+        return "test-" + UUID.randomUUID().toString().substring(0, 7);
     }
 
     static void setDefaultAwaitilityTimings() {

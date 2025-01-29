@@ -92,17 +92,6 @@ public abstract class ComponentSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private Integer replicas;
 
-    /**
-     * Indicates whether to create and manage an Ingress for the component
-     */
-    @JsonProperty("manageIngress")
-    @JsonPropertyDescription("""
-            Whether an Ingress should be managed by the operator.  Defaults to 'true'.
-            Set this to 'false' if you want to create your own custom Ingress.
-            """)
-    @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean manageIngress;
-
     public IngressSpec withIngress() {
         if (ingress == null) {
             ingress = new IngressSpec();

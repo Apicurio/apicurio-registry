@@ -20,7 +20,7 @@ echo "Changes detected to Operator Model. Generating install.yaml file..."
 
 # Update the install.yaml file (regenerate it)
 cd operator
-make SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file > /dev/null 2>&1
+make SKIP_TESTS=true build IMAGE_TAG=latest-snapshot INSTALL_FILE=install/install.yaml dist-install-file > /dev/null 2>&1
 
 # Capture the exit code of the command
 EXIT_CODE=$?

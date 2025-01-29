@@ -169,7 +169,7 @@
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>3.25.5</protobuf.version>
     <xmlsec.version>4.0.3</xmlsec.version>
-    <protobuf.googleapi.types.version>2.50.1</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.51.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.4</google.truth.extension.version>
 
@@ -211,7 +211,7 @@
 
     <!-- Dependency versions -->
     <lombok.version>1.18.36</lombok.version>
-    <commons-codec.version>1.17.2</commons-codec.version>
+    <commons-codec.version>1.18.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>

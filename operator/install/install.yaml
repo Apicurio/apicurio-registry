@@ -27,6 +27,29 @@ spec:
               app:
                 description: Configure Apicurio Registry backend (app) component.
                 properties:
+                  auth:
+                    description: |
+                      Configure authentication and authorization of Apicurio Registry.
+                    properties:
+                      appClientId:
+                        description: |-
+                          Apicurio Registry backend clientId used for OIDC authentication.
+                          In Identity providers like Keycloak, this is the client id used for the Quarkus backend application
+                        type: string
+                      authEnabled:
+                        description: |-
+                          Enable Apicurio Registry Authentication.
+                          In Identity providers like Keycloak, this is the client id used for the Quarkus backend application
+                        type: boolean
+                      authServerUrl:
+                        description: URL of the identity server.
+                        type: string
+                      uiClientId:
+                        description: |-
+                          Apicurio Registry UI clientId used for OIDC authentication.
+                          In Identity providers like Keycloak, this is the client id used for the frontend React application
+                        type: string
+                    type: object
                   env:
                     description: Configure a list of environment variables that will
                       be passed to this components' container.

@@ -3223,4 +3223,4 @@ spec:
               service:
                 name: keycloak
                 port:
-                  number: 8090
+                  name: http

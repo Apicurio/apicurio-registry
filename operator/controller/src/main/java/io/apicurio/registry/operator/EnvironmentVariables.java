@@ -20,4 +20,11 @@ public class EnvironmentVariables {
     public static final String KAFKASQL_SSL_TRUSTSTORE_TYPE = KAFKA_PREFIX + "SSL_TRUSTSTORE_TYPE";
     public static final String KAFKASQL_SSL_TRUSTSTORE_LOCATION = KAFKA_PREFIX + "SSL_TRUSTSTORE_LOCATION";
     public static final String KAFKASQL_SSL_TRUSTSTORE_PASSWORD = KAFKA_PREFIX + "SSL_TRUSTSTORE_PASSWORD";
+
+    // Auth related environment variables
+    public static final String APICURIO_REGISTRY_AUTH_ENABLED = "QUARKUS_OIDC_TENANT_ENABLED";
+    public static final String APICURIO_REGISTRY_APP_CLIENT_ID = "QUARKUS_OIDC_CLIENT_ID";
+    public static final String APICURIO_REGISTRY_UI_CLIENT_ID = "APICURIO_UI_AUTH_OIDC_CLIENT_ID";
+    public static final String APICURIO_REGISTRY_AUTH_SERVER_URL = "QUARKUS_OIDC_AUTH_SERVER_URL";
+
 }

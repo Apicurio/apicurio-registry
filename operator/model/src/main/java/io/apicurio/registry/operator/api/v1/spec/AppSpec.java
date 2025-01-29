@@ -42,6 +42,15 @@ public class AppSpec extends ComponentSpec {
     @JsonSetter(nulls = SKIP)
     private AppFeaturesSpec features;
 
+    /**
+     * Configure features of the Apicurio Registry application.
+     */
+    @JsonProperty("auth")
+    @JsonPropertyDescription("""
+            Configure authentication and authorization of Apicurio Registry.
+            """)
+    @JsonSetter(nulls = SKIP)
+    private AppAuthSpec appAuthSpec;
 
     /**
      * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt

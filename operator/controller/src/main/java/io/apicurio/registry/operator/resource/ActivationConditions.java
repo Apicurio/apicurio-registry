@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
+import io.apicurio.registry.operator.api.v1.spec.PodDisruptionSpec;
 import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
@@ -52,8 +53,13 @@ public class ActivationConditions {
         @Override
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-            Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
-                    .map(ComponentSpec::getManageDisruptionBudget).orElse(Boolean.TRUE);
+            boolean isEnabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(ComponentSpec::getPodDisruptionBudget).map(PodDisruptionSpec::getEnabled)
+                    .orElse(Boolean.TRUE);
+            int numReplicas = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(ComponentSpec::getReplicas).orElse(1);
+
+            boolean isManaged = isEnabled && numReplicas > 1;
             if (!isManaged) {
                 ((AppPodDisruptionBudgetResource) resource).delete(primary, context);
             }
@@ -84,8 +90,9 @@ public class ActivationConditions {
         @Override
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-            Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
-                    .map(ComponentSpec::getManageDisruptionBudget).orElse(Boolean.TRUE);
+            boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(ComponentSpec::getPodDisruptionBudget).map(PodDisruptionSpec::getEnabled)
+                    .orElse(Boolean.TRUE);
             if (!isManaged) {
                 ((UIPodDisruptionBudgetResource) resource).delete(primary, context);
             }
@@ -132,8 +139,9 @@ public class ActivationConditions {
         @Override
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-            Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
-                    .map(ComponentSpec::getManageDisruptionBudget).orElse(Boolean.TRUE);
+            boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+                    .map(ComponentSpec::getPodDisruptionBudget).map(PodDisruptionSpec::getEnabled)
+                    .orElse(Boolean.TRUE);
             if (!isManaged) {
                 ((StudioUIPodDisruptionBudgetResource) resource).delete(primary, context);
             }

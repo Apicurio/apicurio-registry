@@ -19,7 +19,7 @@ import static lombok.AccessLevel.PROTECTED;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "env", "ingress", "host", "podTemplateSpec", "manageDisruptionBudget" })
+@JsonPropertyOrder({ "env", "ingress", "host", "podTemplateSpec", "podDisruptionBudget" })
 @NoArgsConstructor(access = PROTECTED)
 @AllArgsConstructor(access = PROTECTED)
 @SuperBuilder(toBuilder = true)
@@ -100,15 +100,13 @@ public abstract class ComponentSpec {
     }
 
     /**
-     * Indicates whether to create a pod disruption budget
+     * Pod disruption budget config
      */
-    @JsonProperty("manageDisruptionBudget")
+    @JsonProperty("podDisruptionBudget")
     @JsonPropertyDescription("""
-            Whether a PodDisruptionBudget should be managed by the operator.  Defaults to 'true'.
-
-            Set this to 'false' if you want to create your own custom PodDisruptionBudget.
+            Configuration of a PodDisruptionBudget for the component.
             """)
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean manageDisruptionBudget;
+    private PodDisruptionSpec podDisruptionBudget;
 
 }

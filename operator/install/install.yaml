@@ -117,6 +117,17 @@ spec:
                           automatically.'
                         type: string
                     type: object
+                  podDisruptionBudget:
+                    description: |
+                      Configuration of a PodDisruptionBudget for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a PodDisruptionBudget should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom PodDisruptionBudget.
+                        type: boolean
+                    type: object
                   podTemplateSpec:
                     description: |-
                       `PodTemplateSpec` describes the data a pod should have when created from a template.
@@ -3254,6 +3265,17 @@ spec:
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
                     type: object
+                  podDisruptionBudget:
+                    description: |
+                      Configuration of a PodDisruptionBudget for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a PodDisruptionBudget should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom PodDisruptionBudget.
+                        type: boolean
+                    type: object
                   podTemplateSpec:
                     description: |-
                       `PodTemplateSpec` describes the data a pod should have when created from a template.
@@ -6242,6 +6264,17 @@ spec:
 
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
+                    type: object
+                  podDisruptionBudget:
+                    description: |
+                      Configuration of a PodDisruptionBudget for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a PodDisruptionBudget should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom PodDisruptionBudget.
+                        type: boolean
                     type: object
                   podTemplateSpec:
                     description: |-
@@ -9362,7 +9395,7 @@ spec:
           value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
         - name: STUDIO_UI_IMAGE
           value: quay.io/apicurio/apicurio-studio-ui:latest-snapshot
-        image: quay.io/apicurio/apicurio-registry-operator:latest-snapshot
+        image: quay.io/apicurio/apicurio-registry-operator:3.0.7-snapshot
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

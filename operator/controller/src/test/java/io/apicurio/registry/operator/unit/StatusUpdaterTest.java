@@ -2,10 +2,11 @@ package io.apicurio.registry.operator.unit;
 
 import io.apicurio.registry.operator.StatusUpdater;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import org.junit.jupiter.api.Test;
 
+import static io.apicurio.registry.operator.StatusUpdater.ERROR_TYPE;
+import static io.apicurio.registry.operator.api.v1.status.ConditionStatus.TRUE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class StatusUpdaterTest {
@@ -25,12 +26,12 @@ public class StatusUpdaterTest {
         var su = new StatusUpdater(defaultRegistry);
 
         // Act
-        var status = su.errorStatus(new RuntimeException("hello world"));
+        su.updateWithException(new RuntimeException("hello world"));
 
         // Assert
-        assertThat(status).isNotNull();
-        assertThat(status.getConditions()).singleElement();
-        assertThat(status.getConditions().get(0).getStatus()).isEqualTo(ConditionStatus.TRUE);
-        assertThat(status.getConditions().get(0).getType()).isEqualTo("ERROR");
+        assertThat(defaultRegistry.getStatus()).isNotNull();
+        assertThat(defaultRegistry.getStatus().getConditions()).singleElement();
+        assertThat(defaultRegistry.getStatus().getConditions().get(0).getStatus()).isEqualTo(TRUE);
+        assertThat(defaultRegistry.getStatus().getConditions().get(0).getType()).isEqualTo(ERROR_TYPE);
     }
 }

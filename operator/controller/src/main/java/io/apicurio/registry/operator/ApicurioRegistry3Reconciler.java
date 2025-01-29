@@ -103,8 +103,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
 
         return context.getSecondaryResource(Deployment.class, AppDeploymentDiscriminator.INSTANCE)
                 .map(deployment -> {
-                    log.info("Updating Apicurio Registry status:");
-                    primary.setStatus(statusUpdater.next(deployment));
+                    statusUpdater.update(deployment);
                     return UpdateControl.patchStatus(primary);
                 }).orElseGet(UpdateControl::noUpdate);
     }
@@ -114,7 +113,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
             Context<ApicurioRegistry3> context, Exception ex) {
         log.error("Status error", ex);
         var statusUpdater = new StatusUpdater(apicurioRegistry);
-        apicurioRegistry.setStatus(statusUpdater.errorStatus(ex));
+        statusUpdater.updateWithException(ex);
         return ErrorStatusUpdateControl.updateStatus(apicurioRegistry);
     }
 

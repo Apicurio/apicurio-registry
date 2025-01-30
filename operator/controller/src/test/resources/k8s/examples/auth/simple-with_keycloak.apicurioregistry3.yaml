@@ -10,7 +10,10 @@ spec:
       enabled: true
       appClientId: registry-api
       uiClientId: apicurio-registry
-      authServerUrl: http://keycloak:8090/realms/registry
+      authServerUrl: http://simple-keycloak.apps.cluster.example:8090/realms/registry
+      redirectURI: http://simple-ui.apps.cluster.example
+      logoutURL: http://simple-ui.apps.cluster.example
+      tlsVerification: none
   ui:
     ingress:
       host: simple-ui.apps.cluster.example

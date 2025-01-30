@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.api.v1.spec;
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.apicurio.registry.operator.api.v1.spec.auth.AppAuthSpec;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 

@@ -19,7 +19,7 @@ public class CorsTest {
     public void testConfigureAllowedOrigins() throws Exception {
         doTestAllowedOrigins("k8s/examples/cors/example-default.yaml", "*");
         doTestAllowedOrigins("k8s/examples/cors/example-ingress.yaml",
-                "http://simple-ui.apps.cluster.example", "https://simple-ui.apps.cluster.example");
+                "https://simple-ui.apps.cluster.example", "https://simple-ui.apps.cluster.example");
         doTestAllowedOrigins("k8s/examples/cors/example-env-vars.yaml", "https://ui.example.org");
         doTestAllowedOrigins("k8s/examples/cors/example-env-vars-and-ingress.yaml", "https://ui.example.org");
     }

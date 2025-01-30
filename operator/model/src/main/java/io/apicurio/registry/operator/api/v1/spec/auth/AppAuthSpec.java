@@ -1,4 +1,4 @@
-package io.apicurio.registry.operator.api.v1.spec;
+package io.apicurio.registry.operator.api.v1.spec.auth;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -21,7 +21,8 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "authServerUrl" })
+@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectURI", "authServerUrl",
+        "tlsVerification" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -38,6 +39,13 @@ public class AppAuthSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private Boolean enabled;
 
+    @JsonProperty("tls")
+    @JsonPropertyDescription("""
+            OIDC TLS configuration.
+            When custom certificates are used, this is the field to be used to configure the keystore and the trustore""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private AuthTLSSpec tls;
+
     @JsonProperty("appClientId")
     @JsonPropertyDescription("""
             Apicurio Registry backend clientId used for OIDC authentication.
@@ -52,9 +60,27 @@ public class AppAuthSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private String uiClientId;
 
+    @JsonProperty("redirectURI")
+    @JsonPropertyDescription("""
+            Apicurio Registry UI redirect URI used for redirection after successful authentication.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private String redirectURI;
+
+    @JsonProperty("logoutURL")
+    @JsonPropertyDescription("""
+            Apicurio Registry UI redirect URI used for redirection after logout.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private String logoutURL;
+
     @JsonProperty("authServerUrl")
     @JsonPropertyDescription("""
             URL of the identity server.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private String authServerUrl;
+
+    @JsonProperty("tlsVerification")
+    @JsonPropertyDescription("""
+            Verify the identity server certificate.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private String tlsVerification;
 }

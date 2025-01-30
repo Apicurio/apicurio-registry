@@ -4,10 +4,10 @@ import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
-import io.apicurio.registry.operator.api.v1.spec.AppAuthSpec;
 import io.apicurio.registry.operator.api.v1.spec.AppFeaturesSpec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
+import io.apicurio.registry.operator.api.v1.spec.auth.AppAuthSpec;
 import io.apicurio.registry.operator.feat.Auth;
 import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
@@ -84,9 +84,9 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
 
         //Configure auth when it's enabled
         if (authEnabled) {
-            Auth.configureAuth(envVars, requireNonNull(ofNullable(primary.getSpec().getApp())
+            Auth.configureAuth(requireNonNull(ofNullable(primary.getSpec().getApp())
                     .map(AppSpec::getAuth)
-                    .orElse(null)));
+                    .orElse(null)), deployment, envVars);
         }
 
         // Configure the CORS_ALLOWED_ORIGINS env var based on the ingress host

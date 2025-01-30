@@ -278,7 +278,7 @@
     <keycloak.testcontainers.version>3.4.0</keycloak.testcontainers.version>
     <embedded-postgres.version>2.0.7</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
-    <wiremock-jre8.version>2.35.2</wiremock-jre8.version>
+    <wiremock-jre8.version>3.0.1</wiremock-jre8.version>
     <strimzi-test-container.version>0.107.0</strimzi-test-container.version>
   </properties>
 

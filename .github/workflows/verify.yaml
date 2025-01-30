@@ -92,7 +92,7 @@ jobs:
       - name: Slack Notification (Always)
         if: github.event_name == 'push' && always()
         run: |
-          MESSAGE="${{ github.repository }} :: '${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
@@ -101,7 +101,7 @@ jobs:
       - name: Slack Notification (Error)
         if: github.event_name == 'push' && failure()
         run: |
-          MESSAGE="${{ github.repository }} :: '${{ github.workflow }}/${{ github.job }}' job FAILED!"
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
@@ -183,7 +183,7 @@ jobs:
       - name: Slack Notification (Always)
         if: github.event_name == 'push' && always()
         run: |
-          MESSAGE="${{ github.repository }} :: '${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
@@ -192,7 +192,7 @@ jobs:
       - name: Slack Notification (Error)
         if: github.event_name == 'push' && failure()
         run: |
-          MESSAGE="${{ github.repository }} :: '${{ github.workflow }}/${{ github.job }}' job FAILED!"
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
@@ -289,7 +289,7 @@ jobs:
       - name: Slack Notification (Always)
         if: github.event_name == 'push' && always()
         run: |
-          MESSAGE="${{ github.repository }} :: '${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
@@ -298,7 +298,7 @@ jobs:
       - name: Slack Notification (Error)
         if: github.event_name == 'push' && failure()
         run: |
-          MESSAGE="${{ github.repository }} :: '${{ github.workflow }}/${{ github.job }}' job FAILED!"
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
@@ -344,7 +344,7 @@ jobs:
       - name: Slack Notification (Always)
         if: github.event_name == 'push' && always()
         run: |
-          MESSAGE="${{ github.repository }} :: '${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
@@ -353,7 +353,7 @@ jobs:
       - name: Slack Notification (Error)
         if: github.event_name == 'push' && failure()
         run: |
-          MESSAGE="${{ github.repository }} :: '${{ github.workflow }}/${{ github.job }}' job FAILED!"
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
@@ -389,7 +389,7 @@ jobs:
       - name: Slack Notification (Always)
         if: github.event_name == 'push' && always()
         run: |
-          MESSAGE="${{ github.repository }} :: '${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
@@ -398,7 +398,7 @@ jobs:
       - name: Slack Notification (Error)
         if: github.event_name == 'push' && failure()
         run: |
-          MESSAGE="${{ github.repository }} :: '${{ github.workflow }}/${{ github.job }}' job FAILED!"
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"

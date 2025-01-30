@@ -46,9 +46,6 @@ public class KeycloakITTest extends ITBase {
                     .isEqualTo(1);
         });
 
-        createKeycloakDNSResolution("simple-keycloak.apps.cluster.example",
-                "keycloak." + namespace + ".svc.cluster.local");
-
         // Deploy Registry
         var registry = deserialize("k8s/examples/auth/simple-with_keycloak.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
@@ -60,10 +57,13 @@ public class KeycloakITTest extends ITBase {
         Assertions.assertEquals("registry-api", appAuthSpec.getAppClientId());
         Assertions.assertEquals("apicurio-registry", appAuthSpec.getUiClientId());
         Assertions.assertEquals(true, appAuthSpec.getEnabled());
-        Assertions.assertEquals("http://simple-keycloak.apps.cluster.example:8090/realms/registry",
+        Assertions.assertEquals("https://simple-keycloak.apps.cluster.example/realms/registry",
                 appAuthSpec.getAuthServerUrl());
-        Assertions.assertEquals("http://simple-ui.apps.cluster.example", appAuthSpec.getRedirectURI());
-        Assertions.assertEquals("http://simple-ui.apps.cluster.example", appAuthSpec.getLogoutURL());
+        Assertions.assertEquals("https://simple-ui.apps.cluster.example", appAuthSpec.getRedirectURI());
+        Assertions.assertEquals("https://simple-ui.apps.cluster.example", appAuthSpec.getLogoutURL());
+
+        // We must change the auth url of the backend to use the service.
+        appAuthSpec.setAuthServerUrl("http://keycloak." + namespace + ".svc.cluster.local/realms/registry");
 
         client.resource(registry).create();
 
@@ -86,13 +86,13 @@ public class KeycloakITTest extends ITBase {
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_REGISTRY_UI_CLIENT_ID + "=" + "apicurio-registry");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
-                .contains(EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL + "="
-                        + "http://simple-keycloak.apps.cluster.example:8090/realms/registry");
+                .contains(EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL + "=" + "http://keycloak."
+                        + namespace + ".svc.cluster.local/realms/registry");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_UI_AUTH_OIDC_REDIRECT_URI + "="
-                        + "http://simple-ui.apps.cluster.example");
+                        + "https://simple-ui.apps.cluster.example");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_UI_AUTH_OIDC_LOGOUT_URL + "="
-                        + "http://simple-ui.apps.cluster.example");
+                        + "https://simple-ui.apps.cluster.example");
     }
 }

@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import static io.apicurio.registry.operator.resource.ActivationConditions.*;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 
-// spotless:off
 @ControllerConfiguration(
         dependents = {
                 // ===== Registry App
@@ -77,7 +76,6 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                 )
         }
 )
-// spotless:on
 // TODO: When renaming, do not forget to update application.properties (until we have a test for this).
 public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>,
         ErrorStatusHandler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {

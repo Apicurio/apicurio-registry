@@ -78,7 +78,7 @@ jobs:
           retry_wait_seconds: 120
           command: |
             cd registry
-            mvn deploy --batch-mode -Pprod -Prelease -DskipTests -Dspotless.check.skip=true --settings /home/runner/.m2/settings.xml
+            mvn deploy --batch-mode -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml
 
       - name: Google Chat Notification
         if: ${{ failure() }}

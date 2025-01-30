@@ -49,7 +49,6 @@ public class StatusUpdaterTest extends ITBase {
         registry.getMetadata().setNamespace(namespace);
         // dummy settings to avoid reaching the READY state
 
-        // spotless:off
         registry.getSpec().getApp().setStorage(StorageSpec.builder()
                 .type(StorageType.POSTGRESQL)
                 .sql(SqlSpec.builder()
@@ -60,7 +59,6 @@ public class StatusUpdaterTest extends ITBase {
                                 .build())
                         .build())
                 .build());
-        // spotless:on
 
         client.resource(registry).create();
 

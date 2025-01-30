@@ -13,12 +13,10 @@ import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_S
 import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_SERVICE_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
-// spotless:off
 @KubernetesDependent(
         labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_STUDIO_UI,
         resourceDiscriminator = StudioUIServiceDiscriminator.class
 )
-// spotless:on
 public class StudioUIServiceResource extends CRUDKubernetesDependentResource<Service, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(StudioUIServiceResource.class);

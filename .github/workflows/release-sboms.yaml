@@ -62,7 +62,7 @@ jobs:
       - name: Maven Install
         run: |
           cd registry
-          mvn install -Pprod -DskipTests -Dspotless.check.skip=true
+          mvn install -Pprod -DskipTests
 
       - name: Generate Maven SBOMs
         run: |

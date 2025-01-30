@@ -14,7 +14,8 @@
     "distro/**",
     "docs/**",
     "docs-playbook/**",
-    "examples/**"
+    "examples/**",
+    "utils/maven-plugin/src/test/resources/test-builds"
   ],
   "prConcurrentLimit": 5,
   "prHourlyLimit": 5,
@@ -22,7 +23,7 @@
     {
       "groupName": "Dependencies: Maven App: All",
       "matchPaths": [
-        "/**/pom.xml"
+        "**/pom.xml"
       ],
       "enabled": true,
       "matchUpdateTypes": ["minor", "patch"]
@@ -30,7 +31,7 @@
     {
       "groupName": "Dependencies: Maven App: All (Major)",
       "matchPaths": [
-        "/**/pom.xml"
+        "**/pom.xml"
       ],
       "enabled": true,
       "matchUpdateTypes": ["major"],
@@ -39,7 +40,7 @@
     {
       "groupName": "Dependencies: Maven App: Quarkus",
       "matchPaths": [
-        "/**/pom.xml"
+        "**/pom.xml"
       ],
       "matchPackageNames": ["io.quarkus:*"],
       "enabled": true,
@@ -49,7 +50,7 @@
     {
       "groupName": "Dependencies: Maven App: Quarkus (Major)",
       "matchPaths": [
-        "/**/pom.xml"
+        "**/pom.xml"
       ],
       "matchPackageNames": ["io.quarkus:*"],
       "enabled": false,
@@ -58,17 +59,17 @@
     {
       "groupName": "Dependencies: Maven App: Confluent",
       "matchPaths": [
-        "/**/pom.xml"
+        "**/pom.xml"
       ],
       "matchPackageNames": ["io.confluent:*"],
-      "enabled": true,
+      "enabled": false,
       "matchUpdateTypes": ["minor", "patch"],
       "schedule": [ "* 0 1 * *" ]
     },
     {
       "groupName": "Dependencies: Maven App: Confluent (Major)",
       "matchPaths": [
-        "/**/pom.xml"
+        "**/pom.xml"
       ],
       "matchPackageNames": ["io.confluent:*"],
       "enabled": false,

@@ -106,6 +106,78 @@
       ]
     },
     {
+      "groupName": "Dependencies: Maven App: Wire Schema",
+      "matchFileNames": [
+        "**/pom.xml"
+      ],
+      "matchPackageNames": [
+        "com.squareup.wire:*"
+      ],
+      "enabled": false,
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "schedule": [
+        "* 0 1 * *"
+      ]
+    },
+    {
+      "groupName": "Dependencies: Maven App: Wire Schema (Major)",
+      "matchFileNames": [
+        "**/pom.xml"
+      ],
+      "matchPackageNames": [
+        "com.squareup.wire:*"
+      ],
+      "enabled": false,
+      "matchUpdateTypes": [
+        "major"
+      ]
+    },
+    {
+      "groupName": "Dependencies: Maven App: Maven Plugins",
+      "matchFileNames": [
+        "**/pom.xml"
+      ],
+      "matchPackageNames": [
+        "org.apache.maven.plugins:*"
+      ],
+      "enabled": false,
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
+    },
+    {
+      "groupName": "Dependencies: Maven App: Maven Plugins (Major)",
+      "matchFileNames": [
+        "**/pom.xml"
+      ],
+      "matchPackageNames": [
+        "org.apache.maven.plugins:*"
+      ],
+      "enabled": false,
+      "matchUpdateTypes": [
+        "major"
+      ]
+    },
+    {
+      "groupName": "Dependencies: Operator: Quarkus Operator SDK",
+      "matchFileNames": [
+        "**/pom.xml"
+      ],
+      "matchPackageNames": [
+        "io.quarkiverse.operatorsdk:*"
+      ],
+      "enabled": false,
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
+    },
+
+    {
       "groupName": "Dependencies: UI App",
       "matchFileNames": [
         "ui/ui-app/**"

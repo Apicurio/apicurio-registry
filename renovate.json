@@ -4,7 +4,7 @@
     "config:recommended"
   ],
   "enabledManagers": [
-    "npm", "maven", "nuget", "go"
+    "npm", "maven"
   ],
   "dependencyDashboard": true,
   "rangeStrategy": "bump",

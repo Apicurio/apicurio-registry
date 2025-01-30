@@ -117,6 +117,17 @@ spec:
                           automatically.'
                         type: string
                     type: object
+                  podDisruptionBudget:
+                    description: |
+                      Configuration of a PodDisruptionBudget for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a PodDisruptionBudget should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom PodDisruptionBudget.
+                        type: boolean
+                    type: object
                   podTemplateSpec:
                     description: |-
                       `PodTemplateSpec` describes the data a pod should have when created from a template.
@@ -3254,6 +3265,17 @@ spec:
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
                     type: object
+                  podDisruptionBudget:
+                    description: |
+                      Configuration of a PodDisruptionBudget for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a PodDisruptionBudget should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom PodDisruptionBudget.
+                        type: boolean
+                    type: object
                   podTemplateSpec:
                     description: |-
                       `PodTemplateSpec` describes the data a pod should have when created from a template.
@@ -6242,6 +6264,17 @@ spec:
 
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
+                    type: object
+                  podDisruptionBudget:
+                    description: |
+                      Configuration of a PodDisruptionBudget for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a PodDisruptionBudget should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom PodDisruptionBudget.
+                        type: boolean
                     type: object
                   podTemplateSpec:
                     description: |-
@@ -9297,6 +9330,12 @@ rules:
   - networking.k8s.io
   resources:
   - ingresses
+  verbs:
+  - '*'
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
   verbs:
   - '*'
 ---

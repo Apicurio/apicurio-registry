@@ -29,7 +29,7 @@ rules:
       - '*'
 
   - apiGroups:
-      - ""
+      - ''
     resources:
       - pods
       - services
@@ -48,4 +48,11 @@ rules:
     resources:
       - ingresses
     verbs:
-      - "*"
+      - '*'
+
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - '*'

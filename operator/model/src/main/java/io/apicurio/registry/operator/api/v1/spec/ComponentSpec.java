@@ -19,7 +19,7 @@ import static lombok.AccessLevel.PROTECTED;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "env", "ingress", "host", "podTemplateSpec" })
+@JsonPropertyOrder({ "env", "ingress", "host", "podTemplateSpec", "podDisruptionBudget" })
 @NoArgsConstructor(access = PROTECTED)
 @AllArgsConstructor(access = PROTECTED)
 @SuperBuilder(toBuilder = true)
@@ -98,4 +98,15 @@ public abstract class ComponentSpec {
         }
         return ingress;
     }
+
+    /**
+     * Pod disruption budget config
+     */
+    @JsonProperty("podDisruptionBudget")
+    @JsonPropertyDescription("""
+            Configuration of a PodDisruptionBudget for the component.
+            """)
+    @JsonSetter(nulls = Nulls.SKIP)
+    private PodDisruptionSpec podDisruptionBudget;
+
 }

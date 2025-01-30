@@ -4,7 +4,8 @@
     "config:recommended"
   ],
   "enabledManagers": [
-    "npm", "maven"
+    "npm",
+    "maven"
   ],
   "dependencyDashboard": true,
   "rangeStrategy": "bump",
@@ -22,136 +23,197 @@
   "packageRules": [
     {
       "groupName": "Dependencies: Maven App: All",
-      "matchPaths": [
+      "matchFileNames": [
         "**/pom.xml"
       ],
       "enabled": true,
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
     },
     {
       "groupName": "Dependencies: Maven App: All (Major)",
-      "matchPaths": [
+      "matchFileNames": [
         "**/pom.xml"
       ],
       "enabled": true,
-      "matchUpdateTypes": ["major"],
-      "schedule": [ "* 0 1 * *" ]
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "schedule": [
+        "* 0 1 * *"
+      ]
     },
     {
       "groupName": "Dependencies: Maven App: Quarkus",
-      "matchPaths": [
+      "matchFileNames": [
         "**/pom.xml"
       ],
-      "matchPackageNames": ["io.quarkus:*"],
+      "matchPackageNames": [
+        "io.quarkus:*"
+      ],
       "enabled": true,
-      "matchUpdateTypes": ["minor", "patch"],
-      "schedule": [ "* 0 1 * *" ]
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "schedule": [
+        "* 0 1 * *"
+      ]
     },
     {
       "groupName": "Dependencies: Maven App: Quarkus (Major)",
-      "matchPaths": [
+      "matchFileNames": [
         "**/pom.xml"
       ],
-      "matchPackageNames": ["io.quarkus:*"],
+      "matchPackageNames": [
+        "io.quarkus:*"
+      ],
       "enabled": false,
-      "matchUpdateTypes": ["major"]
+      "matchUpdateTypes": [
+        "major"
+      ]
     },
     {
       "groupName": "Dependencies: Maven App: Confluent",
-      "matchPaths": [
+      "matchFileNames": [
         "**/pom.xml"
       ],
-      "matchPackageNames": ["io.confluent:*"],
+      "matchPackageNames": [
+        "io.confluent:*"
+      ],
       "enabled": false,
-      "matchUpdateTypes": ["minor", "patch"],
-      "schedule": [ "* 0 1 * *" ]
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "schedule": [
+        "* 0 1 * *"
+      ]
     },
     {
       "groupName": "Dependencies: Maven App: Confluent (Major)",
-      "matchPaths": [
+      "matchFileNames": [
         "**/pom.xml"
       ],
-      "matchPackageNames": ["io.confluent:*"],
+      "matchPackageNames": [
+        "io.confluent:*"
+      ],
       "enabled": false,
-      "matchUpdateTypes": ["major"]
+      "matchUpdateTypes": [
+        "major"
+      ]
     },
     {
       "groupName": "Dependencies: UI App",
-      "matchPaths": [
+      "matchFileNames": [
         "ui/ui-app/**"
       ],
       "enabled": true,
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
     },
     {
       "groupName": "Dependencies: UI App (Major)",
-      "matchPaths": [
+      "matchFileNames": [
         "ui/ui-app/**"
       ],
       "enabled": true,
-      "matchUpdateTypes": ["major"],
-      "schedule": [ "* 0 15 * *" ]
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "schedule": [
+        "* 0 15 * *"
+      ]
     },
     {
       "groupName": "Dependencies: Typescript SDK",
-      "matchPaths": [
+      "matchFileNames": [
         "typescript-sdk/**"
       ],
       "enabled": true,
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
     },
     {
       "groupName": "Dependencies: Typescript SDK (Major)",
-      "matchPaths": [
+      "matchFileNames": [
         "typescript-sdk/**"
       ],
       "enabled": true,
-      "matchUpdateTypes": ["major"],
-      "schedule": [ "* 0 15 * *" ]
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "schedule": [
+        "* 0 15 * *"
+      ]
     },
     {
       "groupName": "Dependencies: Kiota (Typescript)",
-      "matchPaths": [
+      "matchFileNames": [
         "typescript-sdk/**",
         "ui/ui-app/**"
       ],
-      "matchPackageNames": ["@microsoft/kiota-*"],
+      "matchPackageNames": [
+        "@microsoft/kiota-*"
+      ],
       "enabled": true,
-      "schedule": [ "* 0 15 * *" ]
+      "schedule": [
+        "* 0 15 * *"
+      ]
     },
     {
       "groupName": "Dependencies: UI Tests",
-      "matchPaths": [
+      "matchFileNames": [
         "ui/tests/**"
       ],
       "enabled": true,
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
     },
     {
       "groupName": "Dependencies: UI Tests (Major)",
-      "matchPaths": [
+      "matchFileNames": [
         "ui/tests/**"
       ],
       "enabled": true,
-      "matchUpdateTypes": ["major"],
-      "schedule": [ "* 0 15 * *" ]
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "schedule": [
+        "* 0 15 * *"
+      ]
     },
     {
       "groupName": "Dependencies: UI Docs",
-      "matchPaths": [
+      "matchFileNames": [
         "ui/ui-docs/**"
       ],
       "enabled": true,
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
     },
     {
       "groupName": "Dependencies: UI Docs (Major)",
-      "matchPaths": [
+      "matchFileNames": [
         "ui/ui-docs/**"
       ],
       "enabled": true,
-      "matchUpdateTypes": ["major"],
-      "schedule": [ "* 0 15 * *" ]
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "schedule": [
+        "* 0 15 * *"
+      ]
     }
   ]
 }

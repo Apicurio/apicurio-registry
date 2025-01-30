@@ -88,6 +88,11 @@
         "minor",
         "patch"
       ],
+      "repositories": [
+        {
+          "url": "https://packages.confluent.io/maven/"
+        }
+      ],
       "schedule": [
         "* 0 1 * *"
       ]
@@ -99,6 +104,11 @@
       ],
       "matchPackageNames": [
         "io.confluent:*"
+      ],
+      "repositories": [
+        {
+          "url": "https://packages.confluent.io/maven/"
+        }
       ],
       "enabled": false,
       "matchUpdateTypes": [

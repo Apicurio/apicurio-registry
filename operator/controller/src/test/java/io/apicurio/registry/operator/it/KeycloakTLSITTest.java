@@ -24,9 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
-public class KeycloakITTest extends ITBase {
+public class KeycloakTLSITTest extends ITBase {
 
-    private static final Logger log = LoggerFactory.getLogger(KeycloakITTest.class);
+    private static final Logger log = LoggerFactory.getLogger(KeycloakTLSITTest.class);
 
     @BeforeAll
     public static void init() {
@@ -37,7 +37,7 @@ public class KeycloakITTest extends ITBase {
     void testKeycloakPlain() {
         // Preparation, deploy Keycloak
         List<HasMetadata> resources = Serialization
-                .unmarshal(KeycloakITTest.class.getResourceAsStream("/k8s/examples/auth/keycloak.yaml"));
+                .unmarshal(KeycloakTLSITTest.class.getResourceAsStream("/k8s/examples/auth/keycloak.yaml"));
 
         createResources(resources, "Keycloak");
 
@@ -46,11 +46,8 @@ public class KeycloakITTest extends ITBase {
                     .isEqualTo(1);
         });
 
-        createKeycloakDNSResolution("simple-keycloak.apps.cluster.example",
-                "keycloak." + namespace + ".svc.cluster.local");
-
         // Deploy Registry
-        var registry = deserialize("k8s/examples/auth/simple-with_keycloak.apicurioregistry3.yaml",
+        var registry = deserialize("k8s/examples/auth/tls/simple-with_keycloak.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
 
         registry.getMetadata().setNamespace(namespace);
@@ -64,6 +61,9 @@ public class KeycloakITTest extends ITBase {
                 appAuthSpec.getAuthServerUrl());
         Assertions.assertEquals("https://simple-ui.apps.cluster.example", appAuthSpec.getRedirectURI());
         Assertions.assertEquals("https://simple-ui.apps.cluster.example", appAuthSpec.getLogoutURL());
+
+        // We must change the auth url of the backend to use the service.
+        appAuthSpec.setAuthServerUrl("https://keycloak." + namespace + ".svc.cluster.local/realms/registry");
 
         client.resource(registry).create();
 
@@ -80,14 +80,14 @@ public class KeycloakITTest extends ITBase {
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_REGISTRY_AUTH_ENABLED + "=" + "true");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
-                .contains(EnvironmentVariables.OIDC_TLS_VERIFICATION + "=" + "none");
+                .contains(EnvironmentVariables.OIDC_TLS_VERIFICATION + "=" + "required");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_REGISTRY_APP_CLIENT_ID + "=" + "registry-api");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_REGISTRY_UI_CLIENT_ID + "=" + "apicurio-registry");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
-                .contains(EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL + "="
-                        + "https://simple-keycloak.apps.cluster.example/realms/registry");
+                .contains(EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL + "=" + "https://keycloak."
+                        + namespace + ".svc.cluster.local/realms/registry");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_UI_AUTH_OIDC_REDIRECT_URI + "="
                         + "https://simple-ui.apps.cluster.example");

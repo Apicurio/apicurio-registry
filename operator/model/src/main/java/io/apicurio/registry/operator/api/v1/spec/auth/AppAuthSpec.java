@@ -21,8 +21,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectURI", "authServerUrl",
-        "tlsVerification" })
+@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectURI", "authServerUrl", "tls" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -38,13 +37,6 @@ public class AppAuthSpec {
             In Identity providers like Keycloak, this is the client id used for the Quarkus backend application""")
     @JsonSetter(nulls = Nulls.SKIP)
     private Boolean enabled;
-
-    @JsonProperty("tls")
-    @JsonPropertyDescription("""
-            OIDC TLS configuration.
-            When custom certificates are used, this is the field to be used to configure the keystore and the trustore""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private AuthTLSSpec tls;
 
     @JsonProperty("appClientId")
     @JsonPropertyDescription("""
@@ -78,9 +70,11 @@ public class AppAuthSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private String authServerUrl;
 
-    @JsonProperty("tlsVerification")
+    @JsonProperty("tls")
     @JsonPropertyDescription("""
-            Verify the identity server certificate.""")
+            OIDC TLS configuration.
+            When custom certificates are used, this is the field to be used to configure the keystore and the trustore""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String tlsVerification;
+    private AuthTLSSpec tls;
+
 }

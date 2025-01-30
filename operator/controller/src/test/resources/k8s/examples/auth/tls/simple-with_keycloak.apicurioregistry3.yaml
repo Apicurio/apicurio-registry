@@ -14,7 +14,18 @@ spec:
       redirectURI: https://simple-ui.apps.cluster.example
       logoutURL: https://simple-ui.apps.cluster.example
       tls:
-        tlsVerificationType: none
+        tlsVerificationType: required
+        truststoreSecretRef:
+          name: keycloak-truststore
+          key: truststore
+        truststorePasswordSecretRef:
+          name: keycloak-truststore
+          key: password
   ui:
     ingress:
       host: simple-ui.apps.cluster.example
+    env:
+      - name: REGISTRY_API_URL
+        value: https://simple-app.apps.cluster.example/apis/registry/v3
+      - name: REGISTRY_AUTH_URL
+        value: https://simple-keycloak.apps.cluster.example/realms/registry

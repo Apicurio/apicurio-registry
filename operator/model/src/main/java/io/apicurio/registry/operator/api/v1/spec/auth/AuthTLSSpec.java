@@ -12,8 +12,8 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "keystoreSecretRef", "keystorePasswordSecretRef", "truststoreSecretRef",
-        "truststorePasswordSecretRef" })
+@JsonPropertyOrder({ "tlsVerificationType", "keystoreSecretRef", "keystorePasswordSecretRef",
+        "truststoreSecretRef", "truststorePasswordSecretRef" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -22,6 +22,15 @@ import static lombok.AccessLevel.PRIVATE;
 @EqualsAndHashCode
 @ToString
 public class AuthTLSSpec {
+
+    /**
+     * Type of TLS verification.
+     */
+    @JsonProperty("tlsVerificationType")
+    @JsonPropertyDescription("""
+            Verify the identity server certificate.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private String tlsVerificationType;
 
     /**
      * Reference to the Secret that contains the TLS keystore (in PKCS12 format). Key <code>user.p12</code> is

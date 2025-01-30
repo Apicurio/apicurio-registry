@@ -2,6 +2,8 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.Constants;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -18,11 +20,7 @@ import jakarta.enterprise.inject.spi.CDI;
 import jakarta.enterprise.util.TypeLiteral;
 import org.awaitility.Awaitility;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -219,6 +217,41 @@ public abstract class ITBase {
         operator = new Operator(configurationServiceOverrider -> {
             configurationServiceOverrider.withKubernetesClient(client);
         });
+    }
+
+    static void createKeycloakDNSResolution(String ingressHostname, String keycloakService) {
+        String configMapName = "coredns";
+        String systemNamespace = "kube-system";
+
+        // Step 1: Fetch the existing CoreDNS ConfigMap
+        ConfigMap existingConfigMap = client.configMaps().inNamespace(systemNamespace).withName(configMapName)
+                .get();
+
+        if (existingConfigMap == null) {
+            throw new IllegalStateException("Error: CoreDNS ConfigMap not found!");
+        }
+
+        // Step 2: Modify the CoreDNS configuration
+        String corefile = existingConfigMap.getData().get("Corefile");
+
+        // Step 3: Append the rewrite rule to Corefile
+        String newCorefile = corefile.replaceFirst("\\.:53 \\{",
+                ".:53 {\n    rewrite name " + ingressHostname + " " + keycloakService);
+
+        // Step 4: Create the updated ConfigMap, ensuring resourceVersion is included
+        ConfigMap updatedConfigMap = new ConfigMapBuilder().withMetadata(existingConfigMap.getMetadata()) // Preserve
+                                                                                                          // metadata
+                                                                                                          // (including
+                                                                                                          // UID)
+                .addToData("Corefile", newCorefile).build();
+
+        // Step 5: Apply the updated ConfigMap
+        client.configMaps().inNamespace(systemNamespace).resource(updatedConfigMap).update();
+
+        log.info("CoreDNS ConfigMap updated successfully!");
+
+        // Step 6: Restart CoreDNS to apply changes
+        client.apps().deployments().inNamespace(systemNamespace).withName("coredns").rolling().restart();
     }
 
     static void createNamespace(KubernetesClient client, String namespace) {

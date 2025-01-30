@@ -12,6 +12,7 @@ import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ public class ResourceFactory {
     public static final String RESOURCE_TYPE_DEPLOYMENT = "deployment";
     public static final String RESOURCE_TYPE_SERVICE = "service";
     public static final String RESOURCE_TYPE_INGRESS = "ingress";
+    public static final String RESOURCE_TYPE_NETWORK_POLICY = "networkpolicy";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
         var r = initDefaultDeployment(primary, COMPONENT_APP,
@@ -238,6 +240,30 @@ public class ResourceFactory {
         r.getMetadata().setName(primary.getMetadata().getName() + "-" + component + "-" + resourceType);
         addDefaultLabels(r.getMetadata().getLabels(), primary, component);
         return r;
+    }
+
+    public NetworkPolicy getDefaultAppNetworkPolicy(ApicurioRegistry3 primary) {
+        var networkPolicy = getDefaultResource(primary, NetworkPolicy.class, RESOURCE_TYPE_NETWORK_POLICY,
+                COMPONENT_APP);
+        networkPolicy.getSpec().getPodSelector().getMatchLabels().put("app.kubernetes.io/instance",
+                primary.getMetadata().getName());
+        return networkPolicy;
+    }
+
+    public NetworkPolicy getDefaultUINetworkPolicy(ApicurioRegistry3 primary) {
+        var networkPolicy = getDefaultResource(primary, NetworkPolicy.class, RESOURCE_TYPE_NETWORK_POLICY,
+                COMPONENT_UI);
+        networkPolicy.getSpec().getPodSelector().getMatchLabels().put("app.kubernetes.io/instance",
+                primary.getMetadata().getName());
+        return networkPolicy;
+    }
+
+    public NetworkPolicy getDefaultStudioUINetworkPolicy(ApicurioRegistry3 primary) {
+        var networkPolicy = getDefaultResource(primary, NetworkPolicy.class, RESOURCE_TYPE_NETWORK_POLICY,
+                COMPONENT_STUDIO_UI);
+        networkPolicy.getSpec().getPodSelector().getMatchLabels().put("app.kubernetes.io/instance",
+                primary.getMetadata().getName());
+        return networkPolicy;
     }
 
     private void addDefaultLabels(Map<String, String> labels, ApicurioRegistry3 primary, String component) {

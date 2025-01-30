@@ -9332,6 +9332,12 @@ rules:
   - ingresses
   verbs:
   - '*'
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - '*'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -9395,7 +9401,7 @@ spec:
           value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
         - name: STUDIO_UI_IMAGE
           value: quay.io/apicurio/apicurio-studio-ui:latest-snapshot
-        image: quay.io/apicurio/apicurio-registry-operator:3.0.7-snapshot
+        image: quay.io/apicurio/apicurio-registry-operator:latest-snapshot
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

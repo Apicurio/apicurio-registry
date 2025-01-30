@@ -145,7 +145,7 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the corresponding Quarkus version.
     -->
-    <quarkus.version>3.15.3</quarkus.version>
+    <quarkus.version>3.18.1</quarkus.version>
     <!--
     Go to `io.quarkiverse.operatorsdk:quarkus-operator-sdk-bom` and then to the parent `io.quarkiverse.operatorsdk:quarkus-operator-sdk-parent`,
     e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/6.8.4/quarkus-operator-sdk-parent-6.8.4.pom
@@ -214,7 +214,7 @@
     <commons-codec.version>1.18.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.6.0</kafka-clients.version>
-    <debezium.version>2.6.2.Final</debezium.version>
+    <debezium.version>3.0.7.Final</debezium.version>
     <pulsar-clients.version>3.3.1</pulsar-clients.version>
     <commons-beanutils.version>1.10.0</commons-beanutils.version>
 
@@ -274,12 +274,12 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
-    <test-containers.version>1.20.2</test-containers.version>
+    <test-containers.version>1.20.4</test-containers.version>
     <keycloak.testcontainers.version>3.4.0</keycloak.testcontainers.version>
-    <embedded-postgres.version>2.0.7</embedded-postgres.version>
+    <embedded-postgres.version>2.1.0</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock-jre8.version>2.35.2</wiremock-jre8.version>
-    <strimzi-test-container.version>0.107.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.109.1</strimzi-test-container.version>
   </properties>
 
   <dependencyManagement>

@@ -1,0 +1,24 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple
+spec:
+  app:
+    ingress:
+      host: simple-app.apps.cluster.example
+    auth:
+      enabled: true
+      appClientId: registry-api
+      uiClientId: apicurio-registry
+      authServerUrl: https://simple-keycloak.apps.cluster.example/realms/registry
+      redirectURI: https://simple-ui.apps.cluster.example
+      logoutURL: https://simple-ui.apps.cluster.example
+      anonymousReads: true
+      basicAuth:
+        enabled: true
+        cacheExpiration: 25
+      tls:
+        tlsVerificationType: none
+  ui:
+    ingress:
+      host: simple-ui.apps.cluster.example

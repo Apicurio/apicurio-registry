@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.api.v1.spec;
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -12,7 +13,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "env", "ingress", "podTemplateSpec", "storage", "sql", "kafkasql", "features" })
+@JsonPropertyOrder({ "env", "ingress", "podTemplateSpec", "storage", "sql", "kafkasql", "features", "auth" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -41,6 +42,16 @@ public class AppSpec extends ComponentSpec {
             """)
     @JsonSetter(nulls = SKIP)
     private AppFeaturesSpec features;
+
+    /**
+     * Configure features of the Apicurio Registry application.
+     */
+    @JsonProperty("auth")
+    @JsonPropertyDescription("""
+            Configure authentication and authorization of Apicurio Registry.
+            """)
+    @JsonSetter(nulls = SKIP)
+    private AuthSpec auth;
 
     /**
      * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt

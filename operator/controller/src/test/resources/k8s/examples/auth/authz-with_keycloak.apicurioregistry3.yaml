@@ -1,0 +1,42 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple
+spec:
+  app:
+    ingress:
+      host: simple-app.apps.cluster.example
+    auth:
+      enabled: true
+      appClientId: registry-api
+      uiClientId: apicurio-registry
+      authServerUrl: https://simple-keycloak.apps.cluster.example/realms/registry
+      redirectURI: https://simple-ui.apps.cluster.example
+      logoutURL: https://simple-ui.apps.cluster.example
+      authz:
+        enabled: true
+        ownerOnly: true
+        groupAccess: true
+        readAccess: true
+        roleSource: token
+        adminRole: admin
+        developerRole: dev
+        readOnlyRole: read
+        adminOverride:
+          enabled: true
+          from: token
+          type: claim
+          role: admin
+          claimName: test
+          claimValue: test
+      tls:
+        tlsVerificationType: required
+        truststoreSecretRef:
+          name: keycloak-truststore
+          key: truststore
+        truststorePasswordSecretRef:
+          name: keycloak-truststore
+          key: password
+  ui:
+    ingress:
+      host: simple-ui.apps.cluster.example

@@ -27,6 +27,158 @@ spec:
               app:
                 description: Configure Apicurio Registry backend (app) component.
                 properties:
+                  auth:
+                    description: |
+                      Configure authentication and authorization of Apicurio Registry.
+                    properties:
+                      anonymousReads:
+                        description: To allow anonymous users, such as REST API calls
+                          with no authentication credentials, to make read-only calls
+                          to the REST API, set the following option to true.
+                        type: boolean
+                      appClientId:
+                        description: |-
+                          Apicurio Registry backend clientId used for OIDC authentication.
+                          In Identity providers like Keycloak, this is the client id used for the Quarkus backend application
+                        type: string
+                      authServerUrl:
+                        description: URL of the identity server.
+                        type: string
+                      authz:
+                        description: Authorization configuration.
+                        properties:
+                          adminOverride:
+                            description: Admin override configuration
+                            properties:
+                              claimName:
+                                description: The name of a JWT token claim to use
+                                  for determining admin-override.
+                                type: string
+                              claimValue:
+                                description: The value that the JWT token claim indicated
+                                  by the CLAIM variable must be for the user to be
+                                  granted admin-override.
+                                type: string
+                              enabled:
+                                description: Auth admin override enabled.
+                                type: boolean
+                              from:
+                                description: Where to look for admin-override information.
+                                  Only token is currently supported.
+                                type: string
+                              role:
+                                description: The name of the role that indicates a
+                                  user is an admin.
+                                type: string
+                              type:
+                                description: The type of information used to determine
+                                  if a user is an admin. Values depend on the value
+                                  of the FROM variable, for example, role or claim
+                                  when FROM is token.
+                                type: string
+                            type: object
+                          adminRole:
+                            description: The name of the role that indicates a user
+                              is an admin.
+                            type: string
+                          developerRole:
+                            description: The name of the role that indicates a user
+                              is a developer.
+                            type: string
+                          enabled:
+                            description: Enabled role-based authorization.
+                            type: boolean
+                          groupAccess:
+                            description: When owner-only authorization and group owner-only
+                              authorization are both enabled, only the user who created
+                              an artifact group has write access to that artifact
+                              group, for example, to add or remove artifacts in that
+                              group.
+                            type: boolean
+                          ownerOnly:
+                            description: When owner-only authorization is enabled,
+                              only the user who created an artifact can modify or
+                              delete that artifact.
+                            type: boolean
+                          readAccess:
+                            description: When the authenticated read access option
+                              is enabled, Apicurio Registry grants at least read-only
+                              access to requests from any authenticated user in the
+                              same organization, regardless of their user role.
+                            type: boolean
+                          readOnlyRole:
+                            description: The name of the role that indicates a user
+                              has read-only access.
+                            type: string
+                          roleSource:
+                            description: When set to token, user roles are taken from
+                              the authentication token.
+                            type: string
+                        type: object
+                      basicAuth:
+                        description: Client credentials basic auth configuration.
+                        properties:
+                          cacheExpiration:
+                            description: Client credentials token expiration time.
+                            type: string
+                          enabled:
+                            description: Enabled client credentials.
+                            type: boolean
+                        type: object
+                      enabled:
+                        description: |-
+                          Enable Apicurio Registry Authentication.
+                          In Identity providers like Keycloak, this is the client id used for the Quarkus backend application
+                        type: boolean
+                      logoutURL:
+                        description: Apicurio Registry UI redirect URI used for redirection
+                          after logout.
+                        type: string
+                      redirectURI:
+                        description: Apicurio Registry UI redirect URI used for redirection
+                          after successful authentication.
+                        type: string
+                      tls:
+                        description: |-
+                          OIDC TLS configuration.
+                          When custom certificates are used, this is the field to be used to configure the trustore
+                        properties:
+                          tlsVerificationType:
+                            description: Verify the identity server certificate.
+                            type: string
+                          truststorePasswordSecretRef:
+                            description: Name of a Secret that contains the TLS truststore
+                              password. Key `ca.password` is assumed by default.
+                            properties:
+                              key:
+                                description: Name of the key in the referenced Secret
+                                  that contain the target data. This field might be
+                                  optional if a default value has been defined.
+                                type: string
+                              name:
+                                description: Name of a Secret that is being referenced.
+                                type: string
+                            type: object
+                          truststoreSecretRef:
+                            description: Name of a Secret that contains the TLS truststore
+                              (in PKCS12 format). Key `ca.p12` is assumed by default.
+                            properties:
+                              key:
+                                description: Name of the key in the referenced Secret
+                                  that contain the target data. This field might be
+                                  optional if a default value has been defined.
+                                type: string
+                              name:
+                                description: Name of a Secret that is being referenced.
+                                type: string
+                            type: object
+                        type: object
+                      uiClientId:
+                        description: |-
+                          Apicurio Registry UI clientId used for OIDC authentication.
+                          In Identity providers like Keycloak, this is the client id used for the frontend React application
+                        type: string
+                    type: object
                   env:
                     description: Configure a list of environment variables that will
                       be passed to this components' container.

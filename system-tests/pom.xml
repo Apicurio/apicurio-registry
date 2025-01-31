@@ -19,18 +19,18 @@
     <version.junit.jupiter>5.8.2</version.junit.jupiter>
     <version.junit.platform>1.7.0</version.junit.platform>
     <version.fabric8>5.12.2</version.fabric8>
-    <version.fabric8-java-gen>6.8.0</version.fabric8-java-gen>
-    <sundrio.version>0.95.0</sundrio.version>
-    <lombok.version>1.18.28</lombok.version>
+    <version.fabric8-java-gen>6.13.5</version.fabric8-java-gen>
+    <sundrio.version>0.200.0</sundrio.version>
+    <lombok.version>1.18.36</lombok.version>
     <operator.version>1.0.0-v2.0.0.final</operator.version>
     <version.hamcrest>2.2</version.hamcrest>
-    <version.slf4.simple>2.0.7</version.slf4.simple>
-    <version.strimzi.api>0.36.0</version.strimzi.api>
-    <version.eclipse.jgit>6.6.1.202309021850-r</version.eclipse.jgit>
+    <version.slf4.simple>2.0.16</version.slf4.simple>
+    <version.strimzi.api>0.45.0</version.strimzi.api>
+    <version.eclipse.jgit>6.10.0.202406032230-r</version.eclipse.jgit>
     <version.org.json>20231013</version.org.json>
-    <version.apache.commons>3.12.0</version.apache.commons>
-    <version.apache.httpcomponents>5.2.2</version.apache.httpcomponents>
-    <version.apache.maven.artifact>3.9.3</version.apache.maven.artifact>
+    <version.apache.commons>3.17.0</version.apache.commons>
+    <version.apache.httpcomponents>5.3.3</version.apache.httpcomponents>
+    <version.apache.maven.artifact>3.9.9</version.apache.maven.artifact>
   </properties>
 
   <dependencies>

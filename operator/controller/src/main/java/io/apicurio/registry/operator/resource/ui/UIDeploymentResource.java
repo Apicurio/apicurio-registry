@@ -16,7 +16,6 @@ import java.util.LinkedHashMap;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDiscriminator;
-import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
@@ -24,10 +23,7 @@ import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Optional.ofNullable;
 
-@KubernetesDependent(
-        labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_UI,
-        resourceDiscriminator = UIDeploymentDiscriminator.class
-)
+@KubernetesDependent(resourceDiscriminator = UIDeploymentDiscriminator.class)
 public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(UIDeploymentResource.class);

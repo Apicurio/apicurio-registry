@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedHashMap;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.STUDIO_UI_CONTAINER_NAME;
-import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_STUDIO_UI;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
@@ -24,10 +23,7 @@ import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Optional.ofNullable;
 
-@KubernetesDependent(
-        labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_STUDIO_UI,
-        resourceDiscriminator = StudioUIDeploymentDiscriminator.class
-)
+@KubernetesDependent(resourceDiscriminator = StudioUIDeploymentDiscriminator.class)
 public class StudioUIDeploymentResource
         extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 

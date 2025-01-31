@@ -8,15 +8,11 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
-import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
+import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppServiceDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
-@KubernetesDependent(
-        labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_APP,
-        resourceDiscriminator = AppServiceDiscriminator.class
-)
+@KubernetesDependent(resourceDiscriminator = AppServiceDiscriminator.class)
 public class AppServiceResource extends CRUDKubernetesDependentResource<Service, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(AppServiceResource.class);

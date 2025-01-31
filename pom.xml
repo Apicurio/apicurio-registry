@@ -4,7 +4,7 @@
 
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>2.6.8.Final</version>
+    <version>2.6.9-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>apicurio-registry</name>
 

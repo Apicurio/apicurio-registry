@@ -35,25 +35,25 @@ public class AuthzSpec {
     @JsonPropertyDescription("""
             Enabled role-based authorization.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String enabled;
+    private Boolean enabled;
 
     @JsonProperty("ownerOnly")
     @JsonPropertyDescription("""
             When owner-only authorization is enabled, only the user who created an artifact can modify or delete that artifact.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String ownerOnly;
+    private Boolean ownerOnly;
 
     @JsonProperty("groupAccess")
     @JsonPropertyDescription("""
             When owner-only authorization and group owner-only authorization are both enabled, only the user who created an artifact group has write access to that artifact group, for example, to add or remove artifacts in that group.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String groupAccess;
+    private Boolean groupAccess;
 
     @JsonProperty("readAccess")
     @JsonPropertyDescription("""
             When the authenticated read access option is enabled, Apicurio Registry grants at least read-only access to requests from any authenticated user in the same organization, regardless of their user role.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String readAccess;
+    private Boolean readAccess;
 
     @JsonProperty("roleSource")
     @JsonPropertyDescription("""
@@ -61,7 +61,7 @@ public class AuthzSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private String roleSource;
 
-    @JsonProperty("roleSource")
+    @JsonProperty("adminRole")
     @JsonPropertyDescription("""
             The name of the role that indicates a user is an admin.""")
     @JsonSetter(nulls = Nulls.SKIP)

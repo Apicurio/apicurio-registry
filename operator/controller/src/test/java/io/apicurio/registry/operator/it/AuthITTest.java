@@ -2,36 +2,19 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.client.utils.Serialization;
+import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.quarkus.test.junit.QuarkusTest;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.util.List;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
-import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
-public class KeycloakITTest extends ITBase {
-
-    private static final Logger log = LoggerFactory.getLogger(KeycloakITTest.class);
-
-    @BeforeAll
-    public static void init() {
-        Awaitility.setDefaultTimeout(Duration.ofSeconds(60));
-    }
+public class AuthITTest extends BaseAuthTest {
 
     /**
      * In this test, Keycloak is deployed using a self-signed certificate with the hostname set to the ingress
@@ -39,36 +22,21 @@ public class KeycloakITTest extends ITBase {
      * works.
      */
     @Test
-    void testKeycloakPlain() {
+    void testAuthTlsNoVerification() {
         // Preparation, deploy Keycloak
-        List<HasMetadata> resources = Serialization
-                .unmarshal(KeycloakITTest.class.getResourceAsStream("/k8s/examples/auth/keycloak.yaml"));
+        ApicurioRegistry3 registry = prepareInfra("/k8s/examples/auth/keycloak.yaml",
+                "k8s/examples/auth/simple-with_keycloak.apicurioregistry3.yaml");
+        AuthSpec authSpec = registry.getSpec().getApp().getAuth();
 
-        createResources(resources, "Keycloak");
-
-        await().ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.apps().deployments().withName("keycloak").get().getStatus().getReadyReplicas())
-                    .isEqualTo(1);
-        });
-
-        createKeycloakDNSResolution("simple-keycloak.apps.cluster.example",
-                "keycloak." + namespace + ".svc.cluster.local");
-
-        // Deploy Registry
-        var registry = deserialize("k8s/examples/auth/simple-with_keycloak.apicurioregistry3.yaml",
-                ApicurioRegistry3.class);
-
-        registry.getMetadata().setNamespace(namespace);
-
-        var appAuthSpec = registry.getSpec().getApp().getAuth();
-
-        Assertions.assertEquals("registry-api", appAuthSpec.getAppClientId());
-        Assertions.assertEquals("apicurio-registry", appAuthSpec.getUiClientId());
-        Assertions.assertEquals(true, appAuthSpec.getEnabled());
+        Assertions.assertEquals("registry-api", authSpec.getAppClientId());
+        Assertions.assertEquals("apicurio-registry", authSpec.getUiClientId());
+        Assertions.assertEquals(true, authSpec.getEnabled());
         Assertions.assertEquals("https://simple-keycloak.apps.cluster.example/realms/registry",
-                appAuthSpec.getAuthServerUrl());
-        Assertions.assertEquals("https://simple-ui.apps.cluster.example", appAuthSpec.getRedirectURI());
-        Assertions.assertEquals("https://simple-ui.apps.cluster.example", appAuthSpec.getLogoutURL());
+                authSpec.getAuthServerUrl());
+        Assertions.assertEquals("https://simple-ui.apps.cluster.example", authSpec.getRedirectURI());
+        Assertions.assertEquals("https://simple-ui.apps.cluster.example", authSpec.getLogoutURL());
+
+        Assertions.assertEquals("https://simple-ui.apps.cluster.example", authSpec.getLogoutURL());
 
         client.resource(registry).create();
 
@@ -101,5 +69,12 @@ public class KeycloakITTest extends ITBase {
                         + "https://simple-ui.apps.cluster.example");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.OIDC_TLS_VERIFICATION + "=" + "none");
+
+        assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue()).contains(
+                EnvironmentVariables.APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_ENABLED + "=" + "true");
+        assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue()).contains(
+                EnvironmentVariables.APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_CACHE_EXPIRATION + "=" + "25");
+        assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
+                .contains(EnvironmentVariables.APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED + "=" + "true");
     }
 }

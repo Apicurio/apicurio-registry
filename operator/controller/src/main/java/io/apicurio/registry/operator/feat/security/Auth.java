@@ -40,12 +40,15 @@ public class Auth {
         putIfNotBlank(env, EnvironmentVariables.APICURIO_UI_AUTH_OIDC_LOGOUT_URL, authSpec.getLogoutURL());
         putIfNotBlank(env, EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL,
                 authSpec.getAuthServerUrl());
-        putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED,
-                authSpec.getAnonymousReads().toString());
 
-        if (authSpec.getBasicAuth() != null && Boolean.parseBoolean(authSpec.getBasicAuth().getEnabled())) {
+        if (authSpec.getAnonymousReads() != null && authSpec.getAnonymousReads()) {
+            putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED,
+                    authSpec.getAnonymousReads().toString());
+        }
+
+        if (authSpec.getBasicAuth() != null && authSpec.getBasicAuth().getEnabled()) {
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_ENABLED,
-                    authSpec.getBasicAuth().getEnabled());
+                    authSpec.getBasicAuth().getEnabled().toString());
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_CACHE_EXPIRATION,
                     authSpec.getBasicAuth().getCacheExpiration());
         }

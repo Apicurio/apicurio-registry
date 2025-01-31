@@ -2,8 +2,7 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.client.utils.Serialization;
+import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.quarkus.test.junit.QuarkusTest;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
@@ -13,20 +12,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.List;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
-import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
-public class KeycloakTLSITTest extends ITBase {
+public class AuthTLSITTest extends BaseAuthTest {
 
-    private static final Logger log = LoggerFactory.getLogger(KeycloakTLSITTest.class);
+    private static final Logger log = LoggerFactory.getLogger(AuthTLSITTest.class);
 
     @BeforeAll
     public static void init() {
@@ -39,36 +35,18 @@ public class KeycloakTLSITTest extends ITBase {
      * Quarkus application using the custom resource.
      */
     @Test
-    void testKeycloakTLS() {
-        // Preparation, deploy Keycloak
-        List<HasMetadata> resources = Serialization
-                .unmarshal(KeycloakTLSITTest.class.getResourceAsStream("/k8s/examples/auth/keycloak.yaml"));
+    void testAuthTlsVerification() {
+        ApicurioRegistry3 registry = prepareInfra("/k8s/examples/auth/keycloak.yaml",
+                "k8s/examples/auth/tls/simple-with_keycloak.apicurioregistry3.yaml");
+        AuthSpec authSpec = registry.getSpec().getApp().getAuth();
 
-        createResources(resources, "Keycloak");
-
-        await().ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.apps().deployments().withName("keycloak").get().getStatus().getReadyReplicas())
-                    .isEqualTo(1);
-        });
-
-        createKeycloakDNSResolution("simple-keycloak.apps.cluster.example",
-                "keycloak." + namespace + ".svc.cluster.local");
-
-        // Deploy Registry
-        var registry = deserialize("k8s/examples/auth/tls/simple-with_keycloak.apicurioregistry3.yaml",
-                ApicurioRegistry3.class);
-
-        registry.getMetadata().setNamespace(namespace);
-
-        var appAuthSpec = registry.getSpec().getApp().getAuth();
-
-        Assertions.assertEquals("registry-api", appAuthSpec.getAppClientId());
-        Assertions.assertEquals("apicurio-registry", appAuthSpec.getUiClientId());
-        Assertions.assertEquals(true, appAuthSpec.getEnabled());
+        Assertions.assertEquals("registry-api", authSpec.getAppClientId());
+        Assertions.assertEquals("apicurio-registry", authSpec.getUiClientId());
+        Assertions.assertEquals(true, authSpec.getEnabled());
         Assertions.assertEquals("https://simple-keycloak.apps.cluster.example/realms/registry",
-                appAuthSpec.getAuthServerUrl());
-        Assertions.assertEquals("https://simple-ui.apps.cluster.example", appAuthSpec.getRedirectURI());
-        Assertions.assertEquals("https://simple-ui.apps.cluster.example", appAuthSpec.getLogoutURL());
+                authSpec.getAuthServerUrl());
+        Assertions.assertEquals("https://simple-ui.apps.cluster.example", authSpec.getRedirectURI());
+        Assertions.assertEquals("https://simple-ui.apps.cluster.example", authSpec.getLogoutURL());
 
         client.resource(registry).create();
 

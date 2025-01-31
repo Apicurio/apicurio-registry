@@ -35,7 +35,7 @@ public class AdminOverrideSpec {
     @JsonPropertyDescription("""
             Auth admin override enabled.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String enabled;
+    private Boolean enabled;
 
     @JsonProperty("from")
     @JsonPropertyDescription("""

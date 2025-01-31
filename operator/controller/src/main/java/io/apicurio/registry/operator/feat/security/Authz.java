@@ -26,18 +26,29 @@ public class Authz {
             return;
         }
 
-        if (Boolean.parseBoolean(authzSpec.getEnabled())) {
-            env.put(EnvironmentVariables.APICURIO_AUTH_ROLE_BASED_AUTHORIZATION, createEnvVar(
-                    EnvironmentVariables.APICURIO_AUTH_ROLE_BASED_AUTHORIZATION, authzSpec.getEnabled()));
+        if (authzSpec.getEnabled()) {
+            env.put(EnvironmentVariables.APICURIO_AUTH_ROLE_BASED_AUTHORIZATION,
+                    createEnvVar(EnvironmentVariables.APICURIO_AUTH_ROLE_BASED_AUTHORIZATION,
+                            authzSpec.getEnabled().toString()));
 
-            putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION,
-                    authzSpec.getOwnerOnly());
-            putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS,
-                    authzSpec.getGroupAccess());
-            putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_AUTHENTICATED_READ_ACCESS_ENABLED,
-                    authzSpec.getReadAccess());
+            if (authzSpec.getGroupAccess() != null && authzSpec.getGroupAccess()) {
+                putIfNotBlank(env,
+                        EnvironmentVariables.APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS,
+                        authzSpec.getGroupAccess().toString());
+            }
+
+            if (authzSpec.getOwnerOnly() != null && authzSpec.getOwnerOnly()) {
+                putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION,
+                        authzSpec.getOwnerOnly().toString());
+            }
+
+            if (authzSpec.getReadAccess() != null && authzSpec.getReadAccess()) {
+                putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_AUTHENTICATED_READ_ACCESS_ENABLED,
+                        authzSpec.getReadAccess().toString());
+            }
+
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ROLE_SOURCE, authzSpec.getRoleSource());
-            putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ROLES_ADMIN, authzSpec.getDeveloperRole());
+            putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ROLES_ADMIN, authzSpec.getAdminRole());
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ROLES_DEVELOPER,
                     authzSpec.getDeveloperRole());
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ROLES_READONLY,

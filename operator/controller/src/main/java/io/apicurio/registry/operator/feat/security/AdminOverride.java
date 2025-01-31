@@ -26,10 +26,13 @@ public class AdminOverride {
             return;
         }
 
-        if (Boolean.parseBoolean(adminOverrideSpec.getEnabled())) {
+        if (adminOverrideSpec.getEnabled() != null && adminOverrideSpec.getEnabled()) {
             env.put(EnvironmentVariables.APICURIO_AUTH_ADMIN_OVERRIDE_ENABLED,
                     createEnvVar(EnvironmentVariables.APICURIO_AUTH_ADMIN_OVERRIDE_ENABLED,
-                            adminOverrideSpec.getEnabled()));
+                            adminOverrideSpec.getEnabled().toString()));
+
+            putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ADMIN_OVERRIDE_ROLE,
+                    adminOverrideSpec.getRole());
 
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ADMIN_OVERRIDE_FROM,
                     adminOverrideSpec.getFrom());

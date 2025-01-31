@@ -35,7 +35,7 @@ public class BasicAuthSpec {
     @JsonPropertyDescription("""
             Enabled client credentials.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String enabled;
+    private Boolean enabled;
 
     @JsonProperty("cacheExpiration")
     @JsonPropertyDescription("""

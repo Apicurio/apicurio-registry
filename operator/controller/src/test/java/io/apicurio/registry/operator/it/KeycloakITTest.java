@@ -33,6 +33,10 @@ public class KeycloakITTest extends ITBase {
         Awaitility.setDefaultTimeout(Duration.ofSeconds(60));
     }
 
+    /**
+     * In this test, Keycloak is deployed using a self-signed certificate with the hostname set to the ingress value.
+     * TLS verification is disabled at the Apicurio Registry level, so even in that case the deployment works.
+     */
     @Test
     void testKeycloakPlain() {
         // Preparation, deploy Keycloak
@@ -94,5 +98,7 @@ public class KeycloakITTest extends ITBase {
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_UI_AUTH_OIDC_LOGOUT_URL + "="
                         + "https://simple-ui.apps.cluster.example");
+        assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
+                .contains(EnvironmentVariables.OIDC_TLS_VERIFICATION + "=" + "none");
     }
 }

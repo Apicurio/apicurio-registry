@@ -27,5 +27,3 @@ spec:
     env:
       - name: REGISTRY_API_URL
         value: https://simple-app.apps.cluster.example/apis/registry/v3
-      - name: REGISTRY_AUTH_URL
-        value: https://simple-keycloak.apps.cluster.example/realms/registry

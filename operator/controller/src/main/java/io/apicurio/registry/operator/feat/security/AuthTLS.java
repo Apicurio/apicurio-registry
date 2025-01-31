@@ -1,7 +1,7 @@
-package io.apicurio.registry.operator.feat;
+package io.apicurio.registry.operator.feat.security;
 
 import io.apicurio.registry.operator.EnvironmentVariables;
-import io.apicurio.registry.operator.api.v1.spec.auth.AppAuthSpec;
+import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.apicurio.registry.operator.api.v1.spec.auth.AuthTLSSpec;
 import io.apicurio.registry.operator.utils.SecretKeyRefTool;
 import io.fabric8.kubernetes.api.model.EnvVar;
@@ -21,26 +21,17 @@ public class AuthTLS {
     /**
      * Configure TLS for OIDC authentication
      */
-    public static void configureAuthTLS(AppAuthSpec appAuthSpec, Deployment deployment,
-            Map<String, EnvVar> env) {
+    public static void configureAuthTLS(AuthSpec authSpec, Deployment deployment, Map<String, EnvVar> env) {
 
         putIfNotBlank(env, EnvironmentVariables.OIDC_TLS_VERIFICATION,
-                appAuthSpec.getTls().getTlsVerificationType());
+                authSpec.getTls().getTlsVerificationType());
 
         // spotless:off
-        var keystore = new SecretKeyRefTool(getAuthTLSSpec(appAuthSpec)
-                .map(AuthTLSSpec::getKeystoreSecretRef)
-                .orElse(null), "user.p12");
-
-        var keystorePassword = new SecretKeyRefTool(getAuthTLSSpec(appAuthSpec)
-                .map(AuthTLSSpec::getKeystorePasswordSecretRef)
-                .orElse(null), "user.password");
-
-        var truststore = new SecretKeyRefTool(getAuthTLSSpec(appAuthSpec)
+        var truststore = new SecretKeyRefTool(getAuthTLSSpec(authSpec)
                 .map(AuthTLSSpec::getTruststoreSecretRef)
                 .orElse(null), "ca.p12");
 
-        var truststorePassword = new SecretKeyRefTool(getAuthTLSSpec(appAuthSpec)
+        var truststorePassword = new SecretKeyRefTool(getAuthTLSSpec(authSpec)
                 .map(AuthTLSSpec::getTruststorePasswordSecretRef)
                 .orElse(null), "ca.password");
         // spotless:on
@@ -49,18 +40,12 @@ public class AuthTLS {
             addEnvVar(env, OIDC_TLS_TRUSTSTORE_LOCATION, truststore.getSecretVolumeKeyPath());
             truststorePassword.applySecretEnvVar(env, OIDC_TLS_TRUSTSTORE_PASSWORD);
         }
-
-        if (keystore.isValid() && keystorePassword.isValid()) {
-            keystore.applySecretVolume(deployment, REGISTRY_APP_CONTAINER_NAME);
-            addEnvVar(env, OIDC_TLS_KEYSTORE_LOCATION, keystore.getSecretVolumeKeyPath());
-            keystorePassword.applySecretEnvVar(env, OIDC_TLS_KEYSTORE_PASSWORD);
-        }
     }
 
-    private static Optional<AuthTLSSpec> getAuthTLSSpec(AppAuthSpec primary) {
+    private static Optional<AuthTLSSpec> getAuthTLSSpec(AuthSpec primary) {
         // spotless:off
         return ofNullable(primary)
-                .map(AppAuthSpec::getTls);
+                .map(AuthSpec::getTls);
         // spotless:on
     }
 }

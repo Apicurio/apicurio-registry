@@ -21,7 +21,8 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectURI", "authServerUrl", "tls" })
+@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectURI", "authServerUrl", "logoutURL",
+        "anonymousReads", "basicAuth", "tls", "authz" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -29,7 +30,7 @@ import static lombok.AccessLevel.PRIVATE;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class AppAuthSpec {
+public class AuthSpec {
 
     @JsonProperty("enabled")
     @JsonPropertyDescription("""
@@ -58,23 +59,40 @@ public class AppAuthSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private String redirectURI;
 
-    @JsonProperty("logoutURL")
-    @JsonPropertyDescription("""
-            Apicurio Registry UI redirect URI used for redirection after logout.""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private String logoutURL;
-
     @JsonProperty("authServerUrl")
     @JsonPropertyDescription("""
             URL of the identity server.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private String authServerUrl;
 
+    @JsonProperty("logoutURL")
+    @JsonPropertyDescription("""
+            Apicurio Registry UI redirect URI used for redirection after logout.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private String logoutURL;
+
+    @JsonProperty("anonymousReads")
+    @JsonPropertyDescription("""
+            To allow anonymous users, such as REST API calls with no authentication credentials, to make read-only calls to the REST API, set the following option to true.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private Boolean anonymousReads;
+
+    @JsonProperty("basicAuth")
+    @JsonPropertyDescription("""
+            Client credentials basic auth configuration.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private BasicAuthSpec basicAuth;
+
     @JsonProperty("tls")
     @JsonPropertyDescription("""
             OIDC TLS configuration.
-            When custom certificates are used, this is the field to be used to configure the keystore and the trustore""")
+            When custom certificates are used, this is the field to be used to configure the trustore""")
     @JsonSetter(nulls = Nulls.SKIP)
     private AuthTLSSpec tls;
 
+    @JsonProperty("authz")
+    @JsonPropertyDescription("""
+            Authorization configuration.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private AuthzSpec authz;
 }

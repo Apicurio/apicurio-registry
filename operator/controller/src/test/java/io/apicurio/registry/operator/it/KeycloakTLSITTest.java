@@ -34,8 +34,9 @@ public class KeycloakTLSITTest extends ITBase {
     }
 
     /**
-     * In this test, Keycloak is deployed using a self-signed certificate with the hostname set to the ingress value.
-     * TLS verification is enabled at the Apicurio Registry level, mounting the trustore into the Quarkus application using the custom resource.
+     * In this test, Keycloak is deployed using a self-signed certificate with the hostname set to the ingress
+     * value. TLS verification is enabled at the Apicurio Registry level, mounting the trustore into the
+     * Quarkus application using the custom resource.
      */
     @Test
     void testKeycloakTLS() {
@@ -90,7 +91,8 @@ public class KeycloakTLSITTest extends ITBase {
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_REGISTRY_UI_CLIENT_ID + "=" + "apicurio-registry");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
-                .contains(EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL + "=" + "https://simple-keycloak.apps.cluster.example/realms/registry");
+                .contains(EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL + "="
+                        + "https://simple-keycloak.apps.cluster.example/realms/registry");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_UI_AUTH_OIDC_REDIRECT_URI + "="
                         + "https://simple-ui.apps.cluster.example");

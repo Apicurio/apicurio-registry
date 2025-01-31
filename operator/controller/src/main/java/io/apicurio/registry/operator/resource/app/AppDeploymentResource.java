@@ -7,11 +7,11 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppFeaturesSpec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
-import io.apicurio.registry.operator.api.v1.spec.auth.AppAuthSpec;
-import io.apicurio.registry.operator.feat.Auth;
+import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.PostgresSql;
+import io.apicurio.registry.operator.feat.security.Auth;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
@@ -79,7 +79,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         boolean authEnabled = Optional.ofNullable(primary.getSpec())
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getAuth)
-                .map(AppAuthSpec::getEnabled)
+                .map(AuthSpec::getEnabled)
                 .orElse(Boolean.FALSE);
 
         //Configure auth when it's enabled

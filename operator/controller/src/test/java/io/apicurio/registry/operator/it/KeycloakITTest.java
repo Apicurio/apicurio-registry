@@ -34,8 +34,9 @@ public class KeycloakITTest extends ITBase {
     }
 
     /**
-     * In this test, Keycloak is deployed using a self-signed certificate with the hostname set to the ingress value.
-     * TLS verification is disabled at the Apicurio Registry level, so even in that case the deployment works.
+     * In this test, Keycloak is deployed using a self-signed certificate with the hostname set to the ingress
+     * value. TLS verification is disabled at the Apicurio Registry level, so even in that case the deployment
+     * works.
      */
     @Test
     void testKeycloakPlain() {

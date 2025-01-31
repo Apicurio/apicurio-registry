@@ -3,7 +3,7 @@ package io.apicurio.registry.operator.api.v1.spec;
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.apicurio.registry.operator.api.v1.spec.auth.AppAuthSpec;
+import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -51,7 +51,7 @@ public class AppSpec extends ComponentSpec {
             Configure authentication and authorization of Apicurio Registry.
             """)
     @JsonSetter(nulls = SKIP)
-    private AppAuthSpec auth;
+    private AuthSpec auth;
 
     /**
      * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt

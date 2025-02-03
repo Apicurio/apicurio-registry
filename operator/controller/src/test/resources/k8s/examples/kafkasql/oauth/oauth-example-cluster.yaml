@@ -1,0 +1,40 @@
+# IMPORTANT: This resource should only be used for development or testing purposes.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: oauth-example-cluster
+spec:
+  kafka:
+    version: 3.8.0
+    replicas: 1
+    listeners:
+      - name: tls
+        type: internal
+        port: 9093
+        tls: true
+        authentication:
+          type: tls
+    authorization:
+      type: oauth
+      clientId: admin-client
+      clientSecret:
+        clientSecret:
+          key: client-secret
+          secretName: client-credentials
+      validIssuerUri: https://simple-keycloak.apps.cluster.example/realms/registry
+      jwksEndpointUri: https://simple-keycloak.apps.cluster.example/realms/registry/protocol/openid-connect/certs
+      userNameClaim: preferred_username
+      tlsTrustedCertificates:
+        - secretName: keycloak-tls
+          certificate: tls.crt
+    config:
+      inter.broker.protocol.version: "3.8"
+      offsets.topic.replication.factor: 1
+    storage:
+      type: ephemeral
+  zookeeper:
+    replicas: 1
+    storage:
+      type: ephemeral
+  entityOperator:
+    userOperator: { }

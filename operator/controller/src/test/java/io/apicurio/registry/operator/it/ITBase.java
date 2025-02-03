@@ -94,7 +94,6 @@ public abstract class ITBase {
     @BeforeEach
     public void beforeEach(TestInfo testInfo) {
         String testClassName = testInfo.getTestClass().map(c -> c.getSimpleName() + ".").orElse("");
-        // spotless:off
         log.info("\n" +
                  "------- STARTING: {}{}\n" +
                  "------- Namespace: {}\n" +
@@ -104,7 +103,6 @@ public abstract class ITBase {
                 namespace,
                 ((operatorDeployment == OperatorDeployment.remote) ? "remote" : "local"),
                 deploymentTarget);
-        // spotless:on
     }
 
     protected static void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {

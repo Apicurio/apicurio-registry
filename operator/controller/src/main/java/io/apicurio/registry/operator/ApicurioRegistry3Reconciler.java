@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import static io.apicurio.registry.operator.resource.ActivationConditions.*;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 
-// spotless:off
 @ControllerConfiguration(
         dependents = {
                 // ===== Registry App
@@ -77,7 +76,6 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                 )
         }
 )
-// spotless:on
 // TODO: When renaming, do not forget to update application.properties (until we have a test for this).
 public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>,
         ErrorStatusHandler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {
@@ -103,8 +101,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
 
         return context.getSecondaryResource(Deployment.class, AppDeploymentDiscriminator.INSTANCE)
                 .map(deployment -> {
-                    log.info("Updating Apicurio Registry status:");
-                    primary.setStatus(statusUpdater.next(deployment));
+                    statusUpdater.update(deployment);
                     return UpdateControl.patchStatus(primary);
                 }).orElseGet(UpdateControl::noUpdate);
     }
@@ -114,7 +111,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
             Context<ApicurioRegistry3> context, Exception ex) {
         log.error("Status error", ex);
         var statusUpdater = new StatusUpdater(apicurioRegistry);
-        apicurioRegistry.setStatus(statusUpdater.errorStatus(ex));
+        statusUpdater.updateWithException(ex);
         return ErrorStatusUpdateControl.updateStatus(apicurioRegistry);
     }
 

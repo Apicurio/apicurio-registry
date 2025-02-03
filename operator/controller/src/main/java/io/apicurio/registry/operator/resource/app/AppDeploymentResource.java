@@ -37,12 +37,10 @@ import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 
-// spotless:off
 @KubernetesDependent(
         labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_APP,
         resourceDiscriminator = AppDeploymentDiscriminator.class
 )
-// spotless:on
 public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(AppDeploymentResource.class);
@@ -60,7 +58,6 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getEnv)
                 .ifPresent(env -> env.forEach(e -> envVars.put(e.getName(), e)));
 
-        // spotless:off
         addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_PROFILE).withValue("prod").build());
         addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.QUARKUS_HTTP_ACCESS_LOG_ENABLED).withValue("true").build());
 
@@ -101,8 +98,6 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                     new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED)
                             .withValue("true").build());
         });
-
-        // spotless:on
 
         // Configure the storage (Postgresql or KafkaSql).
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)

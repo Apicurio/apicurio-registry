@@ -16,12 +16,10 @@ import static io.apicurio.registry.operator.utils.IngressUtils.getHost;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
-// spotless:off
 @KubernetesDependent(
         labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_UI,
         resourceDiscriminator = UIIngressDiscriminator.class
 )
-// spotless:on
 public class UIIngressResource extends CRUDKubernetesDependentResource<Ingress, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(UIIngressResource.class);

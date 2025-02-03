@@ -67,18 +67,14 @@ public class IngressManager {
 
         if (host != null) {
             if (loadBalancerIP != null) {
-                // spotless:off
                 return given()
                         .baseUri("http://" + loadBalancerIP)
                         .port(80)
                         .header("Host", host);
-                // spotless:on
             } else {
-                // spotless:off
                 return given()
                         .baseUri("http://" + host)
                         .port(80);
-                // spotless:on
             }
         } else {
             throw new OperatorException("Ingress " + ingressName + " does not have a single host.");

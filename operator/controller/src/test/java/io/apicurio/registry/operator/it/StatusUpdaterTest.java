@@ -5,15 +5,24 @@ import io.apicurio.registry.operator.api.v1.spec.DataSourceSpec;
 import io.apicurio.registry.operator.api.v1.spec.SqlSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageType;
+import io.apicurio.registry.operator.api.v1.status.Condition;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.operator.StatusUpdater.READY_TYPE;
+import static io.apicurio.registry.operator.StatusUpdater.STARTED_TYPE;
+import static io.apicurio.registry.operator.api.v1.status.ConditionStatus.*;
+import static io.apicurio.registry.operator.api.v1.status.ConditionStatus.TRUE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 public class StatusUpdaterTest extends ITBase {
+
+    private static final Logger log = LoggerFactory.getLogger(StatusUpdaterTest.class);
 
     @Test
     void testReadyStatusIsReached() {
@@ -23,14 +32,13 @@ public class StatusUpdaterTest extends ITBase {
 
         client.resource(registry).create();
 
-        await().ignoreExceptions().until(() -> {
-            var status = client.resource(registry).inNamespace(namespace).get().getStatus();
-            assertThat(status.getConditions().size()).isEqualTo(2);
-            assertThat(status.getConditions().stream().anyMatch(c -> c.getType().equalsIgnoreCase("ready")))
-                    .isTrue();
-            assertThat(status.getConditions().stream().anyMatch(c -> c.getType().equalsIgnoreCase("started")))
-                    .isTrue();
-            return true;
+        await().ignoreExceptions().untilAsserted(() -> {
+            var status = client.resource(registry).get().getStatus();
+            assertThat(status.getConditions()).hasSize(2);
+            assertThat(status.getConditions().stream().filter(c -> READY_TYPE.equals(c.getType())))
+                    .map(Condition::getStatus).containsExactly(TRUE);
+            assertThat(status.getConditions().stream().filter(c -> STARTED_TYPE.equals(c.getType())))
+                    .map(Condition::getStatus).containsExactly(TRUE);
         });
     }
 
@@ -41,7 +49,6 @@ public class StatusUpdaterTest extends ITBase {
         registry.getMetadata().setNamespace(namespace);
         // dummy settings to avoid reaching the READY state
 
-        // spotless:off
         registry.getSpec().getApp().setStorage(StorageSpec.builder()
                 .type(StorageType.POSTGRESQL)
                 .sql(SqlSpec.builder()
@@ -52,16 +59,16 @@ public class StatusUpdaterTest extends ITBase {
                                 .build())
                         .build())
                 .build());
-        // spotless:on
 
         client.resource(registry).create();
 
-        await().ignoreExceptions().until(() -> {
-            var status = client.resource(registry).inNamespace(namespace).get().getStatus();
-            assertThat(status.getConditions().size()).isEqualTo(1);
-            assertThat(status.getConditions().stream().anyMatch(c -> c.getType().equalsIgnoreCase("started")))
-                    .isTrue();
-            return true;
+        await().ignoreExceptions().untilAsserted(() -> {
+            var status = client.resource(registry).get().getStatus();
+            assertThat(status.getConditions()).hasSize(2);
+            assertThat(status.getConditions().stream().filter(c -> READY_TYPE.equals(c.getType())))
+                    .map(Condition::getStatus).containsExactly(FALSE);
+            assertThat(status.getConditions().stream().filter(c -> STARTED_TYPE.equals(c.getType())))
+                    .map(Condition::getStatus).containsExactly(TRUE);
         });
     }
 }

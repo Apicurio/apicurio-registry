@@ -213,7 +213,7 @@
     <lombok.version>1.18.36</lombok.version>
     <commons-codec.version>1.18.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
-    <kafka-clients.version>3.6.0</kafka-clients.version>
+    <kafka-clients.version>3.7.1</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>
     <pulsar-clients.version>3.3.1</pulsar-clients.version>
     <commons-beanutils.version>1.10.0</commons-beanutils.version>
@@ -253,7 +253,6 @@
     <version.resources.plugin>3.3.1</version.resources.plugin>
     <version.clean.plugin>3.4.0</version.clean.plugin>
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
-    <version.spotless>2.43.0</version.spotless>
     <version.license-maven-plugin>2.5.0</version.license-maven-plugin>
     <version.exec-maven-plugin>3.5.0</version.exec-maven-plugin>
 
@@ -278,7 +277,7 @@
     <keycloak.testcontainers.version>3.4.0</keycloak.testcontainers.version>
     <embedded-postgres.version>2.0.7</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
-    <wiremock-jre8.version>2.35.2</wiremock-jre8.version>
+    <wiremock-jre8.version>3.0.1</wiremock-jre8.version>
     <strimzi-test-container.version>0.107.0</strimzi-test-container.version>
   </properties>
 
@@ -1151,70 +1150,6 @@
       <modules>
         <module>integration-tests</module>
       </modules>
-    </profile>
-    <profile>
-      <id>spotless</id>
-      <activation>
-        <property>
-          <name>!skipSpotless</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.diffplug.spotless</groupId>
-            <artifactId>spotless-maven-plugin</artifactId>
-            <version>${version.spotless}</version>
-            <configuration>
-              <formats>
-                <format>
-                  <includes>
-                    <include>*.md</include>
-                    <include>.gitignore</include>
-                  </includes>
-                  <trimTrailingWhitespace/>
-                  <endWithNewline/>
-                  <indent>
-                    <spaces>true</spaces>
-                    <spacesPerTab>2</spacesPerTab>
-                  </indent>
-                </format>
-              </formats>
-              <java>
-                <includes>
-                  <include>**/src/main/java/**/*.java</include>
-                  <include>**/src/test/java/**/*.java</include>
-                </includes>
-                <eclipse>
-                  <file>${projectRoot}/ide-config/eclipse-format.xml</file>
-                </eclipse>
-                <importOrder>
-                  <file>${projectRoot}/ide-config/eclipse.importorder</file>
-                </importOrder>
-                <removeUnusedImports/>
-                <toggleOffOn/>
-              </java>
-              <pom>
-                <includes>
-                  <include>**/pom.xml</include>
-                </includes>
-                <sortPom>
-                  <expandEmptyElements>false</expandEmptyElements>
-                </sortPom>
-              </pom>
-            </configuration>
-            <executions>
-              <execution>
-                <id>format</id>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-                <phase>process-sources</phase>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
     <profile>
       <id>examples</id>

@@ -22,7 +22,6 @@ import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
 @ToString(onlyExplicitlyIncluded = true)
 public class ResourceKey<R> {
 
-    // spotless:off
     public static final String REGISTRY_ID = "ApicurioRegistry3Reconciler";
 
     public static final String APP_DEPLOYMENT_ID = "AppDeploymentResource";
@@ -93,7 +92,6 @@ public class ResourceKey<R> {
             StudioUIIngressDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultStudioUIIngress
     );
 
-    // spotless:on
 
     @EqualsAndHashCode.Include
     @ToString.Include

@@ -3,6 +3,8 @@ package io.apicurio.registry.operator.resource.ui;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
+import io.apicurio.registry.operator.status.ReadyConditionManager;
+import io.apicurio.registry.operator.status.StatusManager;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -34,7 +36,7 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
 
     @Override
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-
+        StatusManager.get(primary).getConditionManager(ReadyConditionManager.class).recordIsActive(UI_DEPLOYMENT_KEY);
         var d = UI_DEPLOYMENT_KEY.getFactory().apply(primary);
 
         var envVars = new LinkedHashMap<String, EnvVar>();

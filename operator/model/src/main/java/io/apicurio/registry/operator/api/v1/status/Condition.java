@@ -1,13 +1,7 @@
 package io.apicurio.registry.operator.api.v1.status;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.fabric8.crd.generator.annotation.SchemaFrom;
@@ -18,11 +12,12 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
+import java.util.Objects;
 
 import static lombok.AccessLevel.PRIVATE;
 
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "lastTransitionTime", "message", "observedGeneration", "reason", "status", "type" })
+@JsonPropertyOrder({"type", "status", "reason", "message", "lastTransitionTime", "lastUpdateTime", "observedGeneration"})
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -34,17 +29,32 @@ import static lombok.AccessLevel.PRIVATE;
 public class Condition {
 
     /**
-     * lastTransitionTime is the last time the condition transitioned from one status to another. This should
-     * be when the underlying condition changed. If that is not known, then using the time when the API field
-     * changed is acceptable.
+     * The last time the condition transitioned from one status to another.
      */
     @JsonProperty("lastTransitionTime")
     @Required()
-    @JsonPropertyDescription("lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.")
+    @JsonPropertyDescription("""
+            The last time the condition transitioned from one status to another.
+            """)
     @JsonSetter(nulls = Nulls.SKIP)
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
     @SchemaFrom(type = String.class)
     private Instant lastTransitionTime;
+
+    /**
+     * The last time that the condition was updated by the operator.
+     * Unlike the {@link #lastTransitionTime} field, this timestamp is updated even if the status has not changed.
+     */
+    @JsonProperty("lastUpdateTime")
+    @Required()
+    @JsonPropertyDescription("""
+            The last time that the condition was updated by the operator.
+            Unlike the `lastTransitionTime` field, this timestamp is updated even if the status has not changed.
+            """)
+    @JsonSetter(nulls = Nulls.SKIP)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+    @SchemaFrom(type = String.class)
+    private Instant lastUpdateTime;
 
     /**
      * message is a human readable message indicating details about the transition. This may be an empty
@@ -101,4 +111,11 @@ public class Condition {
     @JsonPropertyDescription("type of condition in CamelCase or in foo.example.com/CamelCase. --- Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be useful (see .node.status.conditions), the ability to deconflict is important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)")
     @JsonSetter(nulls = Nulls.SKIP)
     private String type;
+
+    public static boolean isEquivalent(Condition left, Condition right) {
+        return Objects.equals(left.type, right.type) &&
+               Objects.equals(left.status, right.status) &&
+               Objects.equals(left.reason, right.reason) &&
+               Objects.equals(left.message, right.message);
+    }
 }

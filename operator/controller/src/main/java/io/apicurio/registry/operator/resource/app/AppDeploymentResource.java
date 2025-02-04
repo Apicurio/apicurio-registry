@@ -12,6 +12,8 @@ import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.PostgresSql;
 import io.apicurio.registry.operator.feat.security.Auth;
+import io.apicurio.registry.operator.status.ReadyConditionManager;
+import io.apicurio.registry.operator.status.StatusManager;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
@@ -47,7 +49,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
 
     @Override
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-
+        StatusManager.get(primary).getConditionManager(ReadyConditionManager.class).recordIsActive(APP_DEPLOYMENT_KEY);
         var deployment = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
 
         var envVars = new LinkedHashMap<String, EnvVar>();
@@ -130,7 +132,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
     public static Container getContainerFromDeployment(Deployment d, String name) {
         requireNonNull(d);
         requireNonNull(name);
-        log.debug("Getting container {} in Deployment {}", name, ResourceID.fromResource(d));
+        log.trace("Getting container {} in Deployment {}", name, ResourceID.fromResource(d));
         if (d.getSpec() != null & d.getSpec().getTemplate() != null) {
             var c = getContainerFromPodTemplateSpec(d.getSpec().getTemplate(), name);
             if (c != null) {

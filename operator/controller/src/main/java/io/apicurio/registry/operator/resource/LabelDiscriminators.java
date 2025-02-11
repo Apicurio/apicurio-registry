@@ -23,12 +23,10 @@ public class LabelDiscriminators {
         public static final ResourceDiscriminator<Deployment, ApicurioRegistry3> INSTANCE = new AppDeploymentDiscriminator();
 
         public AppDeploymentDiscriminator() {
-            // spotless:off
             super(Map.of(
                     "app.kubernetes.io/name", "apicurio-registry",
                     "app.kubernetes.io/component", COMPONENT_APP
             ));
-            // spotless:on
         }
     }
 
@@ -37,12 +35,10 @@ public class LabelDiscriminators {
         public static final ResourceDiscriminator<Service, ApicurioRegistry3> INSTANCE = new AppServiceDiscriminator();
 
         public AppServiceDiscriminator() {
-            // spotless:off
             super(Map.of(
                     "app.kubernetes.io/name", "apicurio-registry",
                     "app.kubernetes.io/component", COMPONENT_APP
             ));
-            // spotless:on
         }
     }
 
@@ -51,12 +47,10 @@ public class LabelDiscriminators {
         public static final ResourceDiscriminator<Ingress, ApicurioRegistry3> INSTANCE = new AppIngressDiscriminator();
 
         public AppIngressDiscriminator() {
-            // spotless:off
             super(Map.of(
                     "app.kubernetes.io/name", "apicurio-registry",
                     "app.kubernetes.io/component", COMPONENT_APP
             ));
-            // spotless:on
         }
     }
 
@@ -81,12 +75,10 @@ public class LabelDiscriminators {
         public static final ResourceDiscriminator<Deployment, ApicurioRegistry3> INSTANCE = new UIDeploymentDiscriminator();
 
         public UIDeploymentDiscriminator() {
-            // spotless:off
             super(Map.of(
                     "app.kubernetes.io/name", "apicurio-registry",
                     "app.kubernetes.io/component", COMPONENT_UI
             ));
-            // spotless:on
         }
     }
 
@@ -95,12 +87,10 @@ public class LabelDiscriminators {
         public static ResourceDiscriminator<Service, ApicurioRegistry3> INSTANCE = new UIServiceDiscriminator();
 
         public UIServiceDiscriminator() {
-            // spotless:off
             super(Map.of(
                     "app.kubernetes.io/name", "apicurio-registry",
                     "app.kubernetes.io/component", COMPONENT_UI
             ));
-            // spotless:on
         }
     }
 
@@ -109,12 +99,10 @@ public class LabelDiscriminators {
         public static ResourceDiscriminator<Ingress, ApicurioRegistry3> INSTANCE = new UIIngressDiscriminator();
 
         public UIIngressDiscriminator() {
-            // spotless:off
             super(Map.of(
                     "app.kubernetes.io/name", "apicurio-registry",
                     "app.kubernetes.io/component", COMPONENT_UI
             ));
-            // spotless:on
         }
     }
 
@@ -139,12 +127,10 @@ public class LabelDiscriminators {
         public static final ResourceDiscriminator<Deployment, ApicurioRegistry3> INSTANCE = new StudioUIDeploymentDiscriminator();
 
         public StudioUIDeploymentDiscriminator() {
-            // spotless:off
             super(Map.of(
                     "app.kubernetes.io/name", "apicurio-registry",
                     "app.kubernetes.io/component", COMPONENT_STUDIO_UI
             ));
-            // spotless:on
         }
     }
 
@@ -153,12 +139,10 @@ public class LabelDiscriminators {
         public static ResourceDiscriminator<Service, ApicurioRegistry3> INSTANCE = new StudioUIServiceDiscriminator();
 
         public StudioUIServiceDiscriminator() {
-            // spotless:off
             super(Map.of(
                     "app.kubernetes.io/name", "apicurio-registry",
                     "app.kubernetes.io/component", COMPONENT_STUDIO_UI
             ));
-            // spotless:on
         }
     }
 
@@ -167,12 +151,10 @@ public class LabelDiscriminators {
         public static ResourceDiscriminator<Ingress, ApicurioRegistry3> INSTANCE = new StudioUIIngressDiscriminator();
 
         public StudioUIIngressDiscriminator() {
-            // spotless:off
             super(Map.of(
                     "app.kubernetes.io/name", "apicurio-registry",
                     "app.kubernetes.io/component", COMPONENT_STUDIO_UI
             ));
-            // spotless:on
         }
     }
 

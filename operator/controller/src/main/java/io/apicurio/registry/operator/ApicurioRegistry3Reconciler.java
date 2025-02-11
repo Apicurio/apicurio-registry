@@ -50,7 +50,6 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_POD_DISRUPTION_BUDGET_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
 
-// spotless:off
 @ControllerConfiguration(
         dependents = {
                 // ===== Registry App
@@ -122,7 +121,6 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
                 ),
         }
 )
-// spotless:on
 // TODO: When renaming, do not forget to update application.properties (until we have a test for this).
 public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>,
         ErrorStatusHandler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {

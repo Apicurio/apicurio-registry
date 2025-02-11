@@ -123,6 +123,17 @@ spec:
                           automatically.'
                         type: string
                     type: object
+                  networkPolicy:
+                    description: |2
+                              Configuration of a NetworkPolicy for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom NetworkPolicy.
+                        type: boolean
+                    type: object
                   podDisruptionBudget:
                     description: |
                       Configuration of a PodDisruptionBudget for the component.
@@ -3277,6 +3288,17 @@ spec:
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
                     type: object
+                  networkPolicy:
+                    description: |2
+                              Configuration of a NetworkPolicy for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom NetworkPolicy.
+                        type: boolean
+                    type: object
                   podDisruptionBudget:
                     description: |
                       Configuration of a PodDisruptionBudget for the component.
@@ -6282,6 +6304,17 @@ spec:
 
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
+                    type: object
+                  networkPolicy:
+                    description: |2
+                              Configuration of a NetworkPolicy for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom NetworkPolicy.
+                        type: boolean
                     type: object
                   podDisruptionBudget:
                     description: |
@@ -9348,6 +9381,7 @@ rules:
   - networking.k8s.io
   resources:
   - ingresses
+  - networkpolicies
   verbs:
   - '*'
 - apiGroups:

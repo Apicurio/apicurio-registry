@@ -6,6 +6,7 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
@@ -170,6 +171,19 @@ public abstract class ITBase {
                     .get();
             assertThat(pdb).isNotNull();
             rval.setValue(pdb);
+        });
+
+        return rval.getValue();
+    }
+
+    protected static NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
+        final ValueOrNull<NetworkPolicy> rval = new ValueOrNull<>();
+
+        await().ignoreExceptions().untilAsserted(() -> {
+            NetworkPolicy networkPolicy = client.network().v1().networkPolicies()
+                    .withName(primary.getMetadata().getName() + "-" + component + "-networkpolicy").get();
+            assertThat(networkPolicy).isNotNull();
+            rval.setValue(networkPolicy);
         });
 
         return rval.getValue();

@@ -2,7 +2,6 @@ package io.apicurio.registry.rules.compatibility.jsonschema.diff;
 
 public enum DiffType {
 
-    // spotless:off
     SUBSCHEMA_TYPE_CHANGED(false),
     SUBSCHEMA_TYPE_CHANGED_TO_EMPTY_OR_TRUE(true),
 
@@ -223,7 +222,6 @@ public enum DiffType {
     NOT_TYPE_SCHEMA_COMPATIBLE_NONE(false),
 
     UNDEFINED_UNUSED(false); // Should not be used.
-    // spotless:on
 
     private String description;
 

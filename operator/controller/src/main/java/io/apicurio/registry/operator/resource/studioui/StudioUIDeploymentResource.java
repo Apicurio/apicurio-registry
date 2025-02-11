@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedHashMap;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.STUDIO_UI_CONTAINER_NAME;
-import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_STUDIO_UI;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
@@ -24,12 +23,7 @@ import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Optional.ofNullable;
 
-// spotless:off
-@KubernetesDependent(
-        labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_STUDIO_UI,
-        resourceDiscriminator = StudioUIDeploymentDiscriminator.class
-)
-// spotless:on
+@KubernetesDependent(resourceDiscriminator = StudioUIDeploymentDiscriminator.class)
 public class StudioUIDeploymentResource
         extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 
@@ -54,9 +48,7 @@ public class StudioUIDeploymentResource
             var iOpt = context.getSecondaryResource(APP_INGRESS_KEY.getKlass(),
                     APP_INGRESS_KEY.getDiscriminator());
             iOpt.ifPresent(i -> withIngressRule(s, i, rule -> {
-                // spotless:off
                 addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_REGISTRY_API_URL").withValue("http://%s/apis/registry/v3".formatted(rule.getHost())).build());
-                // spotless:on
             }));
         });
 
@@ -65,9 +57,7 @@ public class StudioUIDeploymentResource
             var iOpt = context.getSecondaryResource(UI_INGRESS_KEY.getKlass(),
                     UI_INGRESS_KEY.getDiscriminator());
             iOpt.ifPresent(i -> withIngressRule(s, i, rule -> {
-                // spotless:off
                 addEnvVar(envVars, new EnvVarBuilder().withName("APICURIO_REGISTRY_UI_URL").withValue("http://%s".formatted(rule.getHost())).build());
-                // spotless:on
             }));
         });
 

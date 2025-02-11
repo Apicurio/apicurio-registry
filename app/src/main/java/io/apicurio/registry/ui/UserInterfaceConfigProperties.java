@@ -39,4 +39,8 @@ public class UserInterfaceConfigProperties {
     @Info(category = "ui", description = "Enabled to show the Settings tab in the UI", availableSince = "3.0.0")
     public String featureSettings;
 
+    @ConfigProperty(name = "apicurio.ui.auth.oidc.scope", defaultValue = "openid profile email")
+    @Info(category = "ui", description = "UI auth OIDC scope value", availableSince = "3.0.8")
+    public String scope;
+
 }

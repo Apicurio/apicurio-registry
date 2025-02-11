@@ -31,7 +31,6 @@ public class PodTemplateSpecTest {
         primary.getSpec().getApp().setPodTemplateSpec(testCase.getSpec());
         var expected = ResourceFactory.INSTANCE.getDefaultAppDeployment(primary).getSpec().getTemplate();
         preprocessTestCaseExpected(testCase.getExpected());
-        // spotless:off
         assertThat(expected)
                 .usingRecursiveComparison()
                 .ignoringCollectionOrderInFields("spec.containers", "spec.containers.ports")
@@ -40,7 +39,6 @@ public class PodTemplateSpecTest {
                 .usingRecursiveComparison()
                 .ignoringCollectionOrderInFields("spec.containers", "spec.containers.ports")
                 .isEqualTo(expected);
-        // spotless:on
     }
 
     @ParameterizedTest
@@ -62,7 +60,6 @@ public class PodTemplateSpecTest {
         primary.getSpec().getUi().setPodTemplateSpec(testCase.getSpec());
         var expected = ResourceFactory.INSTANCE.getDefaultUIDeployment(primary).getSpec().getTemplate();
         preprocessTestCaseExpected(testCase.getExpected());
-        // spotless:off
         assertThat(expected)
                 .usingRecursiveComparison()
                 .ignoringCollectionOrderInFields("spec.containers", "spec.containers.ports")
@@ -71,7 +68,6 @@ public class PodTemplateSpecTest {
                 .usingRecursiveComparison()
                 .ignoringCollectionOrderInFields("spec.containers", "spec.containers.ports")
                 .isEqualTo(expected);
-        // spotless:on
     }
 
     @ParameterizedTest
@@ -93,7 +89,6 @@ public class PodTemplateSpecTest {
         primary.getSpec().getStudioUi().setPodTemplateSpec(testCase.getSpec());
         var expected = ResourceFactory.INSTANCE.getDefaultStudioUIDeployment(primary).getSpec().getTemplate();
         preprocessTestCaseExpected(testCase.getExpected());
-        // spotless:off
         assertThat(expected)
                 .usingRecursiveComparison()
                 .ignoringCollectionOrderInFields("spec.containers", "spec.containers.ports")
@@ -102,7 +97,6 @@ public class PodTemplateSpecTest {
                 .usingRecursiveComparison()
                 .ignoringCollectionOrderInFields("spec.containers", "spec.containers.ports")
                 .isEqualTo(expected);
-        // spotless:on
     }
 
     @ParameterizedTest

@@ -876,6 +876,11 @@ The following {registry} configuration options are available for each component 
 |`/`
 |`3.0.0`
 |The OIDC redirectUri
+|`apicurio.ui.auth.oidc.scope`
+|`string`
+|`openid profile email`
+|`3.0.8`
+|UI auth OIDC scope value
 |`apicurio.ui.contextPath`
 |`string`
 |`/`

@@ -12,7 +12,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "host" })
+@JsonPropertyOrder({ "enabled", "host" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -20,6 +20,18 @@ import static lombok.AccessLevel.PRIVATE;
 @Setter
 @ToString
 public class IngressSpec {
+
+    /**
+     * Indicates whether to create and manage an Ingress for the component
+     */
+    @JsonProperty("enabled")
+    @JsonPropertyDescription("""
+            Whether an Ingress should be managed by the operator.  Defaults to 'true'.
+
+            Set this to 'false' if you want to create your own custom Ingress.
+            """)
+    @JsonSetter(nulls = Nulls.SKIP)
+    private Boolean enabled;
 
     /**
      * Configure hostname of the operator-managed Ingress. If the value is empty, the operator will not create

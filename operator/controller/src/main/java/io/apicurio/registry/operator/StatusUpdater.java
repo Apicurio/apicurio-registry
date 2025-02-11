@@ -8,10 +8,13 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static io.apicurio.registry.operator.utils.Mapper.toYAML;
+import static java.time.Instant.now;
+import static java.util.Objects.requireNonNull;
 
 public class StatusUpdater {
 
@@ -22,7 +25,7 @@ public class StatusUpdater {
     public static final String STARTED_TYPE = "STARTED";
     public static final String UNKNOWN_TYPE = "UNKNOWN";
 
-    private ApicurioRegistry3 registry;
+    private final ApicurioRegistry3 registry;
 
     public StatusUpdater(ApicurioRegistry3 registry) {
         this.registry = registry;
@@ -30,71 +33,74 @@ public class StatusUpdater {
 
     private Condition defaultCondition() {
         var condition = new Condition();
-        condition.setStatus(ConditionStatus.TRUE);
         condition.setObservedGeneration(
                 registry.getMetadata() == null ? null : registry.getMetadata().getGeneration());
-        condition.setLastTransitionTime(Instant.now());
+        condition.setLastTransitionTime(now());
         return condition;
     }
 
-    public ApicurioRegistry3Status errorStatus(Exception e) {
+    public void updateWithException(Exception e) {
+        // TODO: Ignore some KubernetesClientException-s that are caused by update conflicts.
         var errorCondition = defaultCondition();
         errorCondition.setType(ERROR_TYPE);
-        errorCondition.setMessage(
-                Arrays.stream(e.getStackTrace()).map(st -> st.toString()).collect(Collectors.joining("\n")));
+        errorCondition.setStatus(ConditionStatus.TRUE);
         errorCondition.setReason("ERROR_STATUS");
+        errorCondition.setMessage(Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString)
+                .collect(Collectors.joining("\n"))); // TODO: Make the message more useful.
 
-        var status = new ApicurioRegistry3Status();
-        status.setConditions(List.of(errorCondition));
-
-        return status;
+        registry.withStatus().setConditions(List.of(errorCondition));
     }
 
-    public ApicurioRegistry3Status next(Deployment deployment) {
-        log.debug("Setting status based on Deployment: " + deployment);
-        if (deployment != null && deployment.getStatus() != null) {
-            if (deployment.getStatus().getConditions().stream()
-                    .anyMatch(condition -> condition.getStatus().equalsIgnoreCase(
-                            ConditionStatus.TRUE.getValue()) && condition.getType().equals("Available"))
-                    && !registry.withStatus().getConditions().stream()
-                            .anyMatch(condition -> condition.getType().equals(READY_TYPE))) {
-                var readyCondition = defaultCondition();
-                readyCondition.setType(READY_TYPE);
-                readyCondition.setMessage("Deployment is available");
-                readyCondition.setReason("READY_STATUS");
-                var conditions = registry.getStatus().getConditions();
-                conditions.add(readyCondition);
-                return registry.getStatus();
-            } else if (deployment.getStatus().getConditions().size() > 0
-                    && !registry.withStatus().getConditions().stream()
-                            .anyMatch(condition -> condition.getStatus().getValue().equals(STARTED_TYPE))) {
-                var generation = registry.getMetadata() == null ? null
-                    : registry.getMetadata().getGeneration();
-                var nextCondition = defaultCondition();
-                nextCondition.setType(STARTED_TYPE);
-                nextCondition.setMessage("Deployment conditions:\n" + deployment.getStatus().getConditions()
-                        .stream().map(dc -> dc.getType()).collect(Collectors.joining("\n")));
-                nextCondition.setReason("DEPLOYMENT_STARTED");
-
-                var status = new ApicurioRegistry3Status();
-                status.setConditions(List.of(nextCondition));
-
-                return status;
-            } else {
-                var nextCondition = defaultCondition();
-                nextCondition.setType(UNKNOWN_TYPE);
-                nextCondition.setMessage("Deployment conditions:\n" + deployment.getStatus().getConditions()
-                        .stream().map(dc -> dc.getType()).collect(Collectors.joining("\n")));
-                nextCondition.setReason("UNKNOWN_STATUS");
-
-                var status = new ApicurioRegistry3Status();
-                status.setConditions(List.of(nextCondition));
-
-                return status;
-            }
-
+    private Condition getOrCreateCondition(ApicurioRegistry3Status status, String type) {
+        var conditions = status.getConditions().stream().filter(c -> type.equals(c.getType())).toList();
+        if (conditions.size() > 1) {
+            throw new OperatorException("Duplicate conditions: " + conditions);
+        } else if (conditions.size() == 1) {
+            return conditions.get(0);
         } else {
-            return errorStatus(new OperatorException("Expected deployment not found"));
+            var newCondition = defaultCondition();
+            newCondition.setType(type);
+            status.getConditions().add(newCondition);
+            return newCondition;
+        }
+    }
+
+    public void update(Deployment deployment) {
+        requireNonNull(deployment);
+        log.debug("Setting status based on Deployment:\n{}", toYAML(deployment.getStatus()));
+
+        // Remove error condition if present
+        registry.withStatus().getConditions().removeIf(c -> ERROR_TYPE.equals(c.getType()));
+
+        // Ready
+        var readyCondition = getOrCreateCondition(registry.getStatus(), READY_TYPE);
+        if (deployment.getStatus() != null && deployment.getStatus().getConditions().stream()
+                .anyMatch(condition -> condition.getType().equals("Available")
+                        && condition.getStatus().equalsIgnoreCase(ConditionStatus.TRUE.getValue()))) {
+            readyCondition.setStatus(ConditionStatus.TRUE);
+            readyCondition.setReason("DEPLOYMENT_AVAILABLE"); // TODO: Constants
+            readyCondition.setMessage("App Deployment is available."); // TODO: What about other components?
+        } else {
+            readyCondition.setStatus(ConditionStatus.FALSE);
+            readyCondition.setReason("DEPLOYMENT_NOT_AVAILABLE");
+            readyCondition.setMessage("App Deployment is not available.");
+        }
+
+        // Started
+        var startedCondition = getOrCreateCondition(registry.getStatus(), STARTED_TYPE); // TODO: Do we
+                                                                                         // actually need
+                                                                                         // this?
+        if (deployment.getStatus() != null && deployment.getStatus().getConditions().size() > 0) {
+            startedCondition.setStatus(ConditionStatus.TRUE);
+            startedCondition.setReason("DEPLOYMENT_STARTED");
+            startedCondition.setMessage("App Deployment conditions: " + deployment.getStatus().getConditions()
+                    .stream().map(dc -> dc.getType() + " = " + dc.getStatus())
+                    .collect(Collectors.joining(", ")) + ".");
+        } else {
+            startedCondition.setStatus(ConditionStatus.UNKNOWN);
+            startedCondition.setReason("DEPLOYMENT_STATUS_UNKNOWN");
+            startedCondition.setMessage("No App Deployment conditions available."); // TODO: This does not
+                                                                                    // make much sense.
         }
     }
 }

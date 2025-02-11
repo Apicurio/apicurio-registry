@@ -5,12 +5,10 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum StorageType {
 
-    // spotless:off
     @JsonProperty("postgresql")
     POSTGRESQL("postgresql"),
     @JsonProperty("kafkasql")
     KAFKASQL("kafkasql");
-    // spotless:on
 
     final String value;
 

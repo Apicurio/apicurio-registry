@@ -22,27 +22,22 @@ public class EnvITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(EnvITTest.class);
 
-    // spotless:off
     private static final String[] defaultAppEnv = new String[]{
             "QUARKUS_PROFILE",
             "QUARKUS_HTTP_ACCESS_LOG_ENABLED",
             "QUARKUS_HTTP_CORS_ORIGINS",
             "APICURIO_REST_MUTABILITY_ARTIFACT-VERSION-CONTENT_ENABLED"
     };
-    // spotless:on
 
     private static final String[] defaultUIEnv = new String[] { "REGISTRY_API_URL" };
 
-    // spotless:off
     private static final String[] defaultStudioUIEnv = new String[] {
             "APICURIO_REGISTRY_API_URL",
             "APICURIO_REGISTRY_UI_URL"
     };
-    // spotless:on
 
     @Test
     void testEnvVars() {
-        // spotless:off
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
@@ -174,6 +169,5 @@ public class EnvITTest extends ITBase {
 
             return true;
         });
-        // spotless:on
     }
 }

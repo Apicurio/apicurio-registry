@@ -3,24 +3,14 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '.gitignore'
-      - 'LICENSE'
-      - 'README*'
-      - 'docs/**'
-      - '.github/workflows/**'
-      - 'operator/install/**'
+    paths:
+      - 'operator/**'
 
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - '.gitignore'
-      - 'LICENSE'
-      - 'README*'
-      - 'docs/**'
-      - '.github/workflows/**'
-      - 'operator/install/**'
+    paths:
+      - 'operator/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -64,10 +54,10 @@ jobs:
       - name: Setup Minikube
         uses: manusa/actions-setup-minikube@v2.13.0
         with:
-          minikube version: v1.33.1
-          kubernetes version: v1.25.0
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          start args: '--force'
+          'minikube version': v1.33.1
+          'kubernetes version': v1.25.0
+          'github token': ${{ secrets.GITHUB_TOKEN }}
+          'start args': '--force'
 
       - name: Enable minikube features
         run: |

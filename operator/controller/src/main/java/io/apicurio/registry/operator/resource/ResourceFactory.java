@@ -12,6 +12,7 @@ import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ public class ResourceFactory {
     public static final String RESOURCE_TYPE_DEPLOYMENT = "deployment";
     public static final String RESOURCE_TYPE_SERVICE = "service";
     public static final String RESOURCE_TYPE_INGRESS = "ingress";
+    public static final String RESOURCE_TYPE_POD_DISRUPTION_BUDGET = "poddisruptionbudget";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
         var r = initDefaultDeployment(primary, COMPONENT_APP,
@@ -46,7 +48,6 @@ public class ResourceFactory {
                         .map(AppSpec::getPodTemplateSpec).orElse(null)); // TODO:
         // Replicas
         mergeDeploymentPodTemplateSpec(
-                // spotless:off
                 r.getSpec().getTemplate(),
                 REGISTRY_APP_CONTAINER_NAME,
                 Configuration.getAppImage(),
@@ -55,7 +56,6 @@ public class ResourceFactory {
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
                 Map.of("cpu", new Quantity("500m"), "memory", new Quantity("512Mi")),
                 Map.of("cpu", new Quantity("1"), "memory", new Quantity("1Gi"))
-                // spotless:on
         );
         addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_APP);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_APP);
@@ -71,7 +71,6 @@ public class ResourceFactory {
                         .map(UiSpec::getPodTemplateSpec).orElse(null)); // TODO:
         // Replicas
         mergeDeploymentPodTemplateSpec(
-                // spotless:off
                 r.getSpec().getTemplate(),
                 REGISTRY_UI_CONTAINER_NAME,
                 Configuration.getUIImage(),
@@ -80,7 +79,6 @@ public class ResourceFactory {
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
                 Map.of("cpu", new Quantity("100m"), "memory", new Quantity("256Mi")),
                 Map.of("cpu", new Quantity("200m"), "memory", new Quantity("512Mi"))
-                // spotless:on
         );
         addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_UI);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
@@ -96,7 +94,6 @@ public class ResourceFactory {
                         .map(StudioUiSpec::getPodTemplateSpec).orElse(null)); // TODO:
                                                                               // Replicas
         mergeDeploymentPodTemplateSpec(
-                // spotless:off
                 r.getSpec().getTemplate(),
                 STUDIO_UI_CONTAINER_NAME,
                 Configuration.getStudioUIImage(),
@@ -105,7 +102,6 @@ public class ResourceFactory {
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
                 Map.of("cpu", new Quantity("100m"), "memory", new Quantity("256Mi")),
                 Map.of("cpu", new Quantity("200m"), "memory", new Quantity("512Mi"))
-                // spotless:on
         );
         addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_STUDIO_UI);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_STUDIO_UI);
@@ -135,7 +131,6 @@ public class ResourceFactory {
      * Merge default values for a Deployment into the target PTS (from spec).
      */
     private static void mergeDeploymentPodTemplateSpec(
-            // spotless:off
             PodTemplateSpec target,
             String containerName,
             String image,
@@ -144,7 +139,6 @@ public class ResourceFactory {
             Probe livenessProbe,
             Map<String, Quantity> requests,
             Map<String, Quantity> limits
-            // spotless:on
     ) {
         if (target.getMetadata() == null) {
             target.setMetadata(new ObjectMeta());
@@ -231,6 +225,30 @@ public class ResourceFactory {
         return r;
     }
 
+    public PodDisruptionBudget getDefaultAppPodDisruptionBudget(ApicurioRegistry3 primary) {
+        var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
+                COMPONENT_APP);
+        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
+                primary.getMetadata().getName());
+        return pdb;
+    }
+
+    public PodDisruptionBudget getDefaultUIPodDisruptionBudget(ApicurioRegistry3 primary) {
+        var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
+                COMPONENT_UI);
+        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
+                primary.getMetadata().getName());
+        return pdb;
+    }
+
+    public PodDisruptionBudget getDefaultStudioUIPodDisruptionBudget(ApicurioRegistry3 primary) {
+        var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
+                COMPONENT_STUDIO_UI);
+        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
+                primary.getMetadata().getName());
+        return pdb;
+    }
+
     private <T extends HasMetadata> T getDefaultResource(ApicurioRegistry3 primary, Class<T> klass,
             String resourceType, String component) {
         var r = deserialize("/k8s/default/" + component + "." + resourceType + ".yaml", klass);
@@ -241,7 +259,6 @@ public class ResourceFactory {
     }
 
     private void addDefaultLabels(Map<String, String> labels, ApicurioRegistry3 primary, String component) {
-        // spotless:off
         labels.putAll(Map.of(
                 "app", primary.getMetadata().getName(),
                 "app.kubernetes.io/name", "apicurio-registry",
@@ -251,11 +268,9 @@ public class ResourceFactory {
                 "app.kubernetes.io/part-of", "apicurio-registry",
                 "app.kubernetes.io/managed-by", "apicurio-registry-operator"
         ));
-        // spotless:on
     }
 
     private void addSelectorLabels(Map<String, String> labels, ApicurioRegistry3 primary, String component) {
-        // spotless:off
         labels.putAll(Map.of(
                 "app", primary.getMetadata().getName(),
                 "app.kubernetes.io/name", "apicurio-registry",
@@ -263,7 +278,6 @@ public class ResourceFactory {
                 "app.kubernetes.io/instance", primary.getMetadata().getName(),
                 "app.kubernetes.io/part-of", "apicurio-registry"
         ));
-        // spotless:on
     }
 
     public static <T> T deserialize(String path, Class<T> klass) {

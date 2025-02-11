@@ -25,7 +25,6 @@ public class KafkaSqlTLS {
     public static boolean configureKafkaSQLTLS(ApicurioRegistry3 primary, Deployment deployment,
             String containerName, Map<String, EnvVar> env) {
 
-        // spotless:off
         var keystore = new SecretKeyRefTool(getKafkaSqlTLSSpec(primary)
                 .map(KafkaSqlTLSSpec::getKeystoreSecretRef)
                 .orElse(null), "user.p12");
@@ -41,7 +40,6 @@ public class KafkaSqlTLS {
         var truststorePassword = new SecretKeyRefTool(getKafkaSqlTLSSpec(primary)
                 .map(KafkaSqlTLSSpec::getTruststorePasswordSecretRef)
                 .orElse(null), "ca.password");
-        // spotless:on
 
         if (truststore.isValid() && truststorePassword.isValid() && keystore.isValid()
                 && keystorePassword.isValid()) {
@@ -68,13 +66,11 @@ public class KafkaSqlTLS {
     }
 
     private static Optional<KafkaSqlTLSSpec> getKafkaSqlTLSSpec(ApicurioRegistry3 primary) {
-        // spotless:off
         return ofNullable(primary)
                 .map(ApicurioRegistry3::getSpec)
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getStorage)
                 .map(StorageSpec::getKafkasql)
                 .map(KafkaSqlSpec::getTls);
-        // spotless:on
     }
 }

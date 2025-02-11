@@ -99,6 +99,12 @@ spec:
                   ingress:
                     description: Configure Ingress for the component.
                     properties:
+                      enabled:
+                        description: |
+                          Whether an Ingress should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom Ingress.
+                        type: boolean
                       host:
                         description: |-
                           Configure hostname of the operator-managed Ingress. If the value is empty, the operator will not create an Ingress resource for the component.
@@ -3258,6 +3264,12 @@ spec:
                   ingress:
                     description: Configure Ingress for the component.
                     properties:
+                      enabled:
+                        description: |
+                          Whether an Ingress should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom Ingress.
+                        type: boolean
                       host:
                         description: |-
                           Configure hostname of the operator-managed Ingress. If the value is empty, the operator will not create an Ingress resource for the component.
@@ -6258,6 +6270,12 @@ spec:
                   ingress:
                     description: Configure Ingress for the component.
                     properties:
+                      enabled:
+                        description: |
+                          Whether an Ingress should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom Ingress.
+                        type: boolean
                       host:
                         description: |-
                           Configure hostname of the operator-managed Ingress. If the value is empty, the operator will not create an Ingress resource for the component.

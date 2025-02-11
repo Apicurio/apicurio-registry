@@ -39,12 +39,15 @@ public class ActivationConditions {
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
             var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(ComponentSpec::getIngress).map(IngressSpec::getEnabled).orElse(Boolean.TRUE);
+            var hasIngressHost = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                     .map(AppSpec::getIngress).map(IngressSpec::getHost).map(host -> !isBlank(host))
                     .orElse(false);
-            if (!enabled) {
+            boolean isManaged = enabled && hasIngressHost;
+            if (!isManaged) {
                 ((AppIngressResource) resource).delete(primary, context);
             }
-            return enabled;
+            return isManaged;
         }
     }
 
@@ -76,12 +79,15 @@ public class ActivationConditions {
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
             var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(ComponentSpec::getIngress).map(IngressSpec::getEnabled).orElse(Boolean.TRUE);
+            var hasIngressHost = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
                     .map(UiSpec::getIngress).map(IngressSpec::getHost).map(host -> !isBlank(host))
                     .orElse(false);
-            if (!enabled) {
+            boolean isManaged = enabled && hasIngressHost;
+            if (!isManaged) {
                 ((UIIngressResource) resource).delete(primary, context);
             }
-            return enabled;
+            return isManaged;
         }
     }
 
@@ -125,12 +131,15 @@ public class ActivationConditions {
                 ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
             var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+                    .map(ComponentSpec::getIngress).map(IngressSpec::getEnabled).orElse(Boolean.TRUE);
+            var hasIngressHost = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
                     .map(StudioUiSpec::getIngress).map(IngressSpec::getHost).map(host -> !isBlank(host))
                     .orElse(false);
-            if (!enabled) {
+            boolean isManaged = enabled && hasIngressHost;
+            if (!isManaged) {
                 ((StudioUIIngressResource) resource).delete(primary, context);
             }
-            return enabled;
+            return isManaged;
         }
     }
 

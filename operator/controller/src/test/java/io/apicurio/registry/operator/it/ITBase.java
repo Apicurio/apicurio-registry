@@ -4,8 +4,10 @@ import io.apicurio.registry.operator.Constants;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
+import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -13,6 +15,7 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
+import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import io.quarkiverse.operatorsdk.runtime.QuarkusConfigurationService;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.CDI;
@@ -27,12 +30,13 @@ import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,6 +63,7 @@ public abstract class ITBase {
     protected static Instance<Reconciler<? extends HasMetadata>> reconcilers;
     protected static QuarkusConfigurationService configuration;
     protected static KubernetesClient client;
+    protected static PodLogManager podLogManager;
     protected static PortForwardManager portForwardManager;
     protected static IngressManager ingressManager;
     protected static String deploymentTarget;
@@ -84,9 +89,11 @@ public abstract class ITBase {
 
         portForwardManager = new PortForwardManager(client, namespace);
         ingressManager = new IngressManager(client, namespace);
+        podLogManager = new PodLogManager(client);
 
         if (operatorDeployment == OperatorDeployment.remote) {
             createTestResources();
+            startOperatorLogs();
         } else {
             createOperator();
             registerReconcilers();
@@ -97,7 +104,6 @@ public abstract class ITBase {
     @BeforeEach
     public void beforeEach(TestInfo testInfo) {
         String testClassName = testInfo.getTestClass().map(c -> c.getSimpleName() + ".").orElse("");
-        // spotless:off
         log.info("\n" +
                  "------- STARTING: {}{}\n" +
                  "------- Namespace: {}\n" +
@@ -107,7 +113,6 @@ public abstract class ITBase {
                 namespace,
                 ((operatorDeployment == OperatorDeployment.remote) ? "remote" : "local"),
                 deploymentTarget);
-        // spotless:on
     }
 
     protected static void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
@@ -156,6 +161,21 @@ public abstract class ITBase {
         });
     }
 
+    protected static PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,
+            String component) {
+        final ValueOrNull<PodDisruptionBudget> rval = new ValueOrNull<>();
+
+        await().ignoreExceptions().untilAsserted(() -> {
+            PodDisruptionBudget pdb = client.policy().v1().podDisruptionBudget()
+                    .withName(primary.getMetadata().getName() + "-" + component + "-poddisruptionbudget")
+                    .get();
+            assertThat(pdb).isNotNull();
+            rval.setValue(pdb);
+        });
+
+        return rval.getValue();
+    }
+
     protected static NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
         final ValueOrNull<NetworkPolicy> rval = new ValueOrNull<>();
 
@@ -194,6 +214,21 @@ public abstract class ITBase {
             }
             client.resource(r).inNamespace(namespace).createOrReplace();
         });
+    }
+
+    private static void startOperatorLogs() {
+        List<Pod> operatorPods = new ArrayList<>();
+        await().ignoreExceptions().untilAsserted(() -> {
+            operatorPods.clear();
+            operatorPods.addAll(client.pods()
+                    .withLabels(Map.of(
+                            "app.kubernetes.io/name", "apicurio-registry-operator",
+                            "app.kubernetes.io/component", "operator",
+                            "app.kubernetes.io/part-of", "apicurio-registry"))
+                    .list().getItems());
+            assertThat(operatorPods).hasSize(1);
+        });
+        podLogManager.startPodLog(ResourceID.fromResource(operatorPods.get(0)));
     }
 
     private static void cleanTestResources() throws Exception {
@@ -244,7 +279,7 @@ public abstract class ITBase {
     }
 
     static String calculateNamespace() {
-        return ("apicurio-registry-operator-test-" + UUID.randomUUID()).substring(0, 63);
+        return "test-" + UUID.randomUUID().toString().substring(0, 7);
     }
 
     static void setDefaultAwaitilityTimings() {
@@ -278,7 +313,7 @@ public abstract class ITBase {
         } else {
             cleanTestResources();
         }
-
+        podLogManager.stopAndWait();
         if (cleanup) {
             log.info("Deleting namespace : {}", namespace);
             assertThat(client.namespaces().withName(namespace).delete()).isNotNull();

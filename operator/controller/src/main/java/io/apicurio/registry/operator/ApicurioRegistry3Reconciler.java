@@ -5,14 +5,17 @@ import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentD
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
+import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.app.AppServiceResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIDeploymentResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIIngressResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUINetworkPolicyResource;
+import io.apicurio.registry.operator.resource.studioui.StudioUIPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
+import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.ui.UIServiceResource;
 import io.apicurio.registry.operator.updater.IngressCRUpdater;
 import io.apicurio.registry.operator.updater.KafkaSqlCRUpdater;
@@ -32,25 +35,30 @@ import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppNetworkPolicyActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.AppPodDisruptionBudgetActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUIDeploymentActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUIIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUINetworkPolicyActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUIPodDisruptionBudgetActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UINetworkPolicyActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.UIPodDisruptionBudgetActivationCondition;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_INGRESS_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_NETWORK_POLICY_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_POD_DISRUPTION_BUDGET_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_DEPLOYMENT_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_INGRESS_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_NETWORK_POLICY_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_POD_DISRUPTION_BUDGET_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_SERVICE_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_DEPLOYMENT_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_NETWORK_POLICY_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_POD_DISRUPTION_BUDGET_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
 
-// spotless:off
 @ControllerConfiguration(
         dependents = {
                 // ===== Registry App
@@ -68,6 +76,12 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
                         name = APP_INGRESS_ID,
                         dependsOn = {APP_SERVICE_ID},
                         activationCondition = AppIngressActivationCondition.class
+                ),
+                @Dependent(
+                        type = AppPodDisruptionBudgetResource.class,
+                        name = APP_POD_DISRUPTION_BUDGET_ID,
+                        dependsOn = {APP_DEPLOYMENT_ID},
+                        activationCondition = AppPodDisruptionBudgetActivationCondition.class
                 ),
                 @Dependent(
                         type = AppNetworkPolicyResource.class,
@@ -90,6 +104,12 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
                         name = UI_INGRESS_ID,
                         dependsOn = {UI_SERVICE_ID},
                         activationCondition = UIIngressActivationCondition.class
+                ),
+                @Dependent(
+                        type = UIPodDisruptionBudgetResource.class,
+                        name = UI_POD_DISRUPTION_BUDGET_ID,
+                        dependsOn = {UI_DEPLOYMENT_ID},
+                        activationCondition = UIPodDisruptionBudgetActivationCondition.class
                 ),
                 @Dependent(
                         type = UINetworkPolicyResource.class,
@@ -115,14 +135,19 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
                         activationCondition = StudioUIIngressActivationCondition.class
                 ),
                 @Dependent(
+                        type = StudioUIPodDisruptionBudgetResource.class,
+                        name = STUDIO_UI_POD_DISRUPTION_BUDGET_ID,
+                        dependsOn = {STUDIO_UI_DEPLOYMENT_ID},
+                        activationCondition = StudioUIPodDisruptionBudgetActivationCondition.class
+                ),
+                @Dependent(
                         type = StudioUINetworkPolicyResource.class,
                         name = STUDIO_UI_NETWORK_POLICY_ID,
                         dependsOn = {STUDIO_UI_DEPLOYMENT_ID},
                         activationCondition = StudioUINetworkPolicyActivationCondition.class
-                ),
+                )
         }
 )
-// spotless:on
 // TODO: When renaming, do not forget to update application.properties (until we have a test for this).
 public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>,
         ErrorStatusHandler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {

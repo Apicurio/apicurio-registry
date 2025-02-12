@@ -167,9 +167,9 @@
     <okio.version>3.10.2</okio.version>
     <okio-fake-file-system.version>3.10.2</okio-fake-file-system.version>
     <icu4j.version>76.1</icu4j.version>
-    <protobuf.version>3.25.5</protobuf.version>
+    <protobuf.version>3.25.6</protobuf.version>
     <xmlsec.version>4.0.3</xmlsec.version>
-    <protobuf.googleapi.types.version>2.51.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.52.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.4</google.truth.extension.version>
 
@@ -198,7 +198,7 @@
     <graphql.version>22.3</graphql.version>
 
     <!-- JSON Schema Validator -->
-    <org.everit.json.schema.version>1.14.4</org.everit.json.schema.version>
+    <org.everit.json.schema.version>1.14.5</org.everit.json.schema.version>
     <!-- TODO unification -->
     <org.json.version>20250107</org.json.version>
     <jackson-datatype-json-org.version>2.18.2</jackson-datatype-json-org.version>
@@ -215,7 +215,7 @@
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.7.1</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>
-    <pulsar-clients.version>3.3.1</pulsar-clients.version>
+    <pulsar-clients.version>3.3.4</pulsar-clients.version>
     <commons-beanutils.version>1.10.0</commons-beanutils.version>
 
     <nats.version>2.20.5</nats.version>

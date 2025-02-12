@@ -31,7 +31,7 @@ public class AppNetworkPolicyResource
     @Override
     protected NetworkPolicy desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
         var networkPolicy = APP_NETWORK_POLICY_KEY.getFactory().apply(primary);
-        log.debug("Desired {} is {}", APP_NETWORK_POLICY_KEY.getId(), toYAML(networkPolicy));
+        log.trace("Desired {} is {}", APP_NETWORK_POLICY_KEY.getId(), toYAML(networkPolicy));
         return networkPolicy;
     }
 }

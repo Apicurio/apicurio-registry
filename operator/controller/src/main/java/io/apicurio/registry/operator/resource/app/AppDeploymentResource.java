@@ -92,7 +92,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         var container = getContainerFromDeployment(deployment, REGISTRY_APP_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());
 
-        log.debug("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(deployment));
+        log.trace("Desired {} is {}", APP_DEPLOYMENT_KEY.getId(), toYAML(deployment));
         return deployment;
     }
 

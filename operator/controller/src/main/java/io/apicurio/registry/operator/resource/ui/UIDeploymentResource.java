@@ -54,7 +54,7 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
         var container = getContainerFromDeployment(d, REGISTRY_UI_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());
 
-        log.debug("Desired {} is {}", UI_DEPLOYMENT_KEY.getId(), toYAML(d));
+        log.trace("Desired {} is {}", UI_DEPLOYMENT_KEY.getId(), toYAML(d));
         return d;
     }
 }

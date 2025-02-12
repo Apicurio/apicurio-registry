@@ -35,7 +35,7 @@ public class StudioUIIngressResource extends CRUDKubernetesDependentResource<Ing
         sOpt.ifPresent(
                 s -> withIngressRule(s, i, rule -> rule.setHost(getHost(COMPONENT_STUDIO_UI, primary))));
 
-        log.debug("Desired {} is {}", STUDIO_UI_INGRESS_KEY.getId(), toYAML(i));
+        log.trace("Desired {} is {}", STUDIO_UI_INGRESS_KEY.getId(), toYAML(i));
         return i;
     }
 }

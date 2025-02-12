@@ -34,7 +34,7 @@ public class AppIngressResource extends CRUDKubernetesDependentResource<Ingress,
                 APP_SERVICE_KEY.getDiscriminator());
         sOpt.ifPresent(s -> withIngressRule(s, i, rule -> rule.setHost(getHost(COMPONENT_APP, primary))));
 
-        log.debug("Desired {} is {}", APP_INGRESS_KEY.getId(), toYAML(i));
+        log.trace("Desired {} is {}", APP_INGRESS_KEY.getId(), toYAML(i));
         return i;
     }
 }

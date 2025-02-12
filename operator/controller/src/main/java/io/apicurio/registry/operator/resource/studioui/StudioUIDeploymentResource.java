@@ -64,7 +64,7 @@ public class StudioUIDeploymentResource
         var container = getContainerFromDeployment(d, STUDIO_UI_CONTAINER_NAME);
         container.setEnv(envVars.values().stream().toList());
 
-        log.debug("Desired {} is {}", STUDIO_UI_DEPLOYMENT_KEY.getId(), toYAML(d));
+        log.trace("Desired {} is {}", STUDIO_UI_DEPLOYMENT_KEY.getId(), toYAML(d));
         return d;
     }
 }

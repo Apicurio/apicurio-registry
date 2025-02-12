@@ -4,12 +4,15 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 import io.javaoperatorsdk.operator.api.reconciler.ResourceDiscriminator;
 
 import java.util.Map;
 
-import static io.apicurio.registry.operator.resource.ResourceFactory.*;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_STUDIO_UI;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 
 public class LabelDiscriminators {
 
@@ -68,6 +71,20 @@ public class LabelDiscriminators {
         }
     }
 
+    public static class AppNetworkPolicyDiscriminator extends LabelDiscriminator<NetworkPolicy> {
+
+        public static final ResourceDiscriminator<NetworkPolicy, ApicurioRegistry3> INSTANCE = new AppNetworkPolicyDiscriminator();
+
+        public AppNetworkPolicyDiscriminator() {
+            // spotless:off
+            super(Map.of(
+                    "app.kubernetes.io/name", "apicurio-registry",
+                    "app.kubernetes.io/component", COMPONENT_APP
+            ));
+            // spotless:on
+        }
+    }
+
     // ===== Registry UI
 
     public static class UIDeploymentDiscriminator extends LabelDiscriminator<Deployment> {
@@ -111,6 +128,20 @@ public class LabelDiscriminators {
         public static final ResourceDiscriminator<PodDisruptionBudget, ApicurioRegistry3> INSTANCE = new AppPodDisruptionBudgetDiscriminator();
 
         public UiPodDisruptionBudgetDiscriminator() {
+            // spotless:off
+            super(Map.of(
+                    "app.kubernetes.io/name", "apicurio-registry",
+                    "app.kubernetes.io/component", COMPONENT_UI
+            ));
+            // spotless:on
+        }
+    }
+
+    public static class UINetworkPolicyDiscriminator extends LabelDiscriminator<NetworkPolicy> {
+
+        public static final ResourceDiscriminator<NetworkPolicy, ApicurioRegistry3> INSTANCE = new AppNetworkPolicyDiscriminator();
+
+        public UINetworkPolicyDiscriminator() {
             // spotless:off
             super(Map.of(
                     "app.kubernetes.io/name", "apicurio-registry",
@@ -173,4 +204,17 @@ public class LabelDiscriminators {
         }
     }
 
+    public static class StudioUINetworkPolicyDiscriminator extends LabelDiscriminator<NetworkPolicy> {
+
+        public static final ResourceDiscriminator<NetworkPolicy, ApicurioRegistry3> INSTANCE = new AppNetworkPolicyDiscriminator();
+
+        public StudioUINetworkPolicyDiscriminator() {
+            // spotless:off
+            super(Map.of(
+                    "app.kubernetes.io/name", "apicurio-registry",
+                    "app.kubernetes.io/component", COMPONENT_STUDIO_UI
+            ));
+            // spotless:on
+        }
+    }
 }

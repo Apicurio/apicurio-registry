@@ -5,18 +5,23 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
+import io.apicurio.registry.operator.api.v1.spec.NetworkPolicySpec;
 import io.apicurio.registry.operator.api.v1.spec.PodDisruptionSpec;
 import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
+import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
 import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIDeploymentResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIIngressResource;
+import io.apicurio.registry.operator.resource.studioui.StudioUINetworkPolicyResource;
 import io.apicurio.registry.operator.resource.studioui.StudioUIPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
+import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
 import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.DependentResource;
@@ -70,6 +75,21 @@ public class ActivationConditions {
         }
     }
 
+    public static class AppNetworkPolicyActivationCondition
+            implements Condition<NetworkPolicy, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<NetworkPolicy, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(ComponentSpec::getNetworkPolicy).map(NetworkPolicySpec::getEnabled)
+                    .orElse(Boolean.TRUE);
+            if (!isManaged) {
+                ((AppNetworkPolicyResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
     // ===== Registry UI
 
     public static class UIIngressActivationCondition implements Condition<Ingress, ApicurioRegistry3> {
@@ -101,6 +121,21 @@ public class ActivationConditions {
                     .orElse(Boolean.TRUE);
             if (!isManaged) {
                 ((UIPodDisruptionBudgetResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
+    public static class UINetworkPolicyActivationCondition
+            implements Condition<NetworkPolicy, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<NetworkPolicy, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(ComponentSpec::getNetworkPolicy).map(NetworkPolicySpec::getEnabled)
+                    .orElse(Boolean.TRUE);
+            if (!isManaged) {
+                ((UINetworkPolicyResource) resource).delete(primary, context);
             }
             return isManaged;
         }
@@ -158,4 +193,19 @@ public class ActivationConditions {
         }
     }
 
+
+    public static class StudioUINetworkPolicyActivationCondition
+            implements Condition<NetworkPolicy, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<NetworkPolicy, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            Boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
+                    .map(ComponentSpec::getNetworkPolicy).map(NetworkPolicySpec::getEnabled)
+                    .orElse(Boolean.TRUE);
+            if (!isManaged) {
+                ((StudioUINetworkPolicyResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
 }

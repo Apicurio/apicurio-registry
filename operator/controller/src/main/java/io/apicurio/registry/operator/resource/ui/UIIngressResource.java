@@ -33,7 +33,7 @@ public class UIIngressResource extends CRUDKubernetesDependentResource<Ingress, 
         var sOpt = context.getSecondaryResource(UI_SERVICE_KEY.getKlass(), UI_SERVICE_KEY.getDiscriminator());
         sOpt.ifPresent(s -> withIngressRule(s, i, rule -> rule.setHost(getHost(COMPONENT_UI, primary))));
 
-        log.debug("Desired {} is {}", UI_INGRESS_KEY.getId(), toYAML(i));
+        log.trace("Desired {} is {}", UI_INGRESS_KEY.getId(), toYAML(i));
         return i;
     }
 }

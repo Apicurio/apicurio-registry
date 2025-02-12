@@ -7,9 +7,11 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppFeaturesSpec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
+import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.PostgresSql;
+import io.apicurio.registry.operator.feat.security.Auth;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
@@ -60,10 +62,24 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                 .map(AppSpec::getFeatures)
                 .map(AppFeaturesSpec::getAllowDeletes)
                 .orElse(Boolean.FALSE);
+
         if (allowDeletes) {
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED).withValue("true").build());
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED).withValue("true").build());
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED).withValue("true").build());
+        }
+
+        boolean authEnabled = Optional.ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(AppSpec::getAuth)
+                .map(AuthSpec::getEnabled)
+                .orElse(Boolean.FALSE);
+
+        //Configure auth when it's enabled
+        if (authEnabled) {
+            Auth.configureAuth(requireNonNull(ofNullable(primary.getSpec().getApp())
+                    .map(AppSpec::getAuth)
+                    .orElse(null)), deployment, envVars);
         }
 
         // Configure the CORS_ALLOWED_ORIGINS env var based on the ingress host
@@ -142,4 +158,5 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         }
         return null;
     }
+
 }

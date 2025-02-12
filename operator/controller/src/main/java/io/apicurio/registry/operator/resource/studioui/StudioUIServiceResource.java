@@ -24,7 +24,7 @@ public class StudioUIServiceResource extends CRUDKubernetesDependentResource<Ser
     @Override
     protected Service desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
         var s = STUDIO_UI_SERVICE_KEY.getFactory().apply(primary);
-        log.debug("Desired {} is {}", STUDIO_UI_SERVICE_KEY.getId(), toYAML(s));
+        log.trace("Desired {} is {}", STUDIO_UI_SERVICE_KEY.getId(), toYAML(s));
         return s;
     }
 }

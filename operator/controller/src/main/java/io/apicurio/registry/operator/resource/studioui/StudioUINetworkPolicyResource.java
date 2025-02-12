@@ -31,7 +31,7 @@ public class StudioUINetworkPolicyResource
     @Override
     protected NetworkPolicy desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
         var networkPolicy = STUDIO_UI_NETWORK_POLICY_KEY.getFactory().apply(primary);
-        log.debug("Desired {} is {}", STUDIO_UI_NETWORK_POLICY_KEY.getId(), toYAML(networkPolicy));
+        log.trace("Desired {} is {}", STUDIO_UI_NETWORK_POLICY_KEY.getId(), toYAML(networkPolicy));
         return networkPolicy;
     }
 }

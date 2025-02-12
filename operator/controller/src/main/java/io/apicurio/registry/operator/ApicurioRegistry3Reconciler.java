@@ -2,62 +2,20 @@ package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
-import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
-import io.apicurio.registry.operator.resource.app.AppIngressResource;
-import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
-import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
-import io.apicurio.registry.operator.resource.app.AppServiceResource;
-import io.apicurio.registry.operator.resource.studioui.StudioUIDeploymentResource;
-import io.apicurio.registry.operator.resource.studioui.StudioUIIngressResource;
-import io.apicurio.registry.operator.resource.studioui.StudioUINetworkPolicyResource;
-import io.apicurio.registry.operator.resource.studioui.StudioUIPodDisruptionBudgetResource;
-import io.apicurio.registry.operator.resource.studioui.StudioUIServiceResource;
-import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
-import io.apicurio.registry.operator.resource.ui.UIIngressResource;
-import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
-import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
-import io.apicurio.registry.operator.resource.ui.UIServiceResource;
+import io.apicurio.registry.operator.resource.app.*;
+import io.apicurio.registry.operator.resource.studioui.*;
+import io.apicurio.registry.operator.resource.ui.*;
 import io.apicurio.registry.operator.updater.IngressCRUpdater;
 import io.apicurio.registry.operator.updater.KafkaSqlCRUpdater;
 import io.apicurio.registry.operator.updater.SqlCRUpdater;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
-import io.javaoperatorsdk.operator.api.reconciler.Context;
-import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
-import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
-import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
-import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
-import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
-import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
+import io.javaoperatorsdk.operator.api.reconciler.*;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.resource.ActivationConditions.AppIngressActivationCondition;
-import static io.apicurio.registry.operator.resource.ActivationConditions.AppNetworkPolicyActivationCondition;
-import static io.apicurio.registry.operator.resource.ActivationConditions.AppPodDisruptionBudgetActivationCondition;
-import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUIDeploymentActivationCondition;
-import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUIIngressActivationCondition;
-import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUINetworkPolicyActivationCondition;
-import static io.apicurio.registry.operator.resource.ActivationConditions.StudioUIPodDisruptionBudgetActivationCondition;
-import static io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
-import static io.apicurio.registry.operator.resource.ActivationConditions.UINetworkPolicyActivationCondition;
-import static io.apicurio.registry.operator.resource.ActivationConditions.UIPodDisruptionBudgetActivationCondition;
-import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.APP_INGRESS_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.APP_NETWORK_POLICY_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.APP_POD_DISRUPTION_BUDGET_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_DEPLOYMENT_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_INGRESS_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_NETWORK_POLICY_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_POD_DISRUPTION_BUDGET_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_SERVICE_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.UI_DEPLOYMENT_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.UI_NETWORK_POLICY_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.UI_POD_DISRUPTION_BUDGET_ID;
-import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
+import static io.apicurio.registry.operator.resource.ActivationConditions.*;
+import static io.apicurio.registry.operator.resource.ResourceKey.*;
 
 @ControllerConfiguration(
         dependents = {
@@ -155,9 +113,9 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
     private static final Logger log = LoggerFactory.getLogger(ApicurioRegistry3Reconciler.class);
 
     public UpdateControl<ApicurioRegistry3> reconcile(ApicurioRegistry3 primary,
-            Context<ApicurioRegistry3> context) {
+                                                      Context<ApicurioRegistry3> context) {
 
-        log.info("Reconciling Apicurio Registry: {}", primary);
+        log.debug("Reconciling Apicurio Registry: {}", primary);
 
         // Some of the fields in the CR have been deprecated and another fields should be used instead.
         // Operator will attempt to update the CR to use the newer fields if possible.
@@ -180,7 +138,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
 
     @Override
     public ErrorStatusUpdateControl<ApicurioRegistry3> updateErrorStatus(ApicurioRegistry3 apicurioRegistry,
-            Context<ApicurioRegistry3> context, Exception ex) {
+                                                                         Context<ApicurioRegistry3> context, Exception ex) {
         log.error("Status error", ex);
         var statusUpdater = new StatusUpdater(apicurioRegistry);
         statusUpdater.updateWithException(ex);

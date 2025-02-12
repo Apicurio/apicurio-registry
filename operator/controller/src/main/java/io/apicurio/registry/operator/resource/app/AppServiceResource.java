@@ -24,7 +24,7 @@ public class AppServiceResource extends CRUDKubernetesDependentResource<Service,
     @Override
     protected Service desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
         var s = APP_SERVICE_KEY.getFactory().apply(primary);
-        log.debug("Desired {} is {}", APP_SERVICE_KEY.getId(), toYAML(s));
+        log.trace("Desired {} is {}", APP_SERVICE_KEY.getId(), toYAML(s));
         return s;
     }
 }

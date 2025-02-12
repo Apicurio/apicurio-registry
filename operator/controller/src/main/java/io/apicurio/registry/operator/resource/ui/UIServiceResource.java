@@ -24,7 +24,7 @@ public class UIServiceResource extends CRUDKubernetesDependentResource<Service, 
     @Override
     protected Service desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
         var s = UI_SERVICE_KEY.getFactory().apply(primary);
-        log.debug("Desired {} is {}", UI_SERVICE_KEY.getId(), toYAML(s));
+        log.trace("Desired {} is {}", UI_SERVICE_KEY.getId(), toYAML(s));
         return s;
     }
 }

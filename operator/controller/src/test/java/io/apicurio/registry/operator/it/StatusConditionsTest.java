@@ -32,6 +32,10 @@ public class StatusConditionsTest extends ITBase {
 
         var registry2 = copy(registry1);
         registry2.getMetadata().setName("registry2");
+        // Dummy values to avoid
+        // "admission webhook "validate.nginx.ingress.kubernetes.io" denied the request: host "simple-app.apps.cluster.example" and path "/" is already defined in ingress [...]"
+        registry2.getSpec().getApp().getIngress().setHost("registry2-app.apps.cluster.example");
+        registry2.getSpec().getUi().getIngress().setHost("registry2-ui.apps.cluster.example");
         client.resource(registry2).create();
 
         awaitConditionHasStatus(registry1, 1, TYPE_READY, TRUE);

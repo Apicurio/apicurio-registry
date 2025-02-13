@@ -11,6 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Entry point for reporting events that affect operator status.
+ * To support multiple CR instances, you first have to get (and later dispose of) the current instance using the static method.
+ * Then, based on the event, get the relevant condition manager.
+ */
 public class StatusManager {
 
     private static final Map<ResourceID, StatusManager> instances = new ConcurrentHashMap<>();

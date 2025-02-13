@@ -14,6 +14,13 @@ import java.util.Set;
 
 import static io.apicurio.registry.operator.api.v1.status.ConditionConstants.TYPE_READY;
 
+/**
+ * Manages the condition that reports operand readiness.
+ * <p>
+ * In order to determine which components are active while avoiding complex/duplicated logic,
+ * {@link io.apicurio.registry.operator.status.ReadyConditionManager#recordIsActive(io.apicurio.registry.operator.resource.ResourceKey)}
+ * is called when a dependent resource is processed.
+ */
 public class ReadyConditionManager extends AbstractConditionManager {
 
     private static final String REASON_DEPLOYMENT_AVAILABLE = "ActiveDeploymentsAvailable";

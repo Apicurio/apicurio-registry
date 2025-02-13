@@ -10,6 +10,9 @@ import java.util.Set;
 
 import static io.apicurio.registry.operator.api.v1.status.ConditionConstants.TYPE_VALIDATION_ERROR;
 
+/**
+ * Manages the condition that reports validation errors, usually an illegal CR field value.
+ */
 public class ValidationErrorConditionManager extends AbstractConditionManager {
 
     private static final String REASON_ERROR = "Error";

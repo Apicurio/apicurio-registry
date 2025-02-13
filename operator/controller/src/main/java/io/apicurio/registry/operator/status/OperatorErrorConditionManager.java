@@ -15,6 +15,9 @@ import java.util.stream.Stream;
 
 import static io.apicurio.registry.operator.api.v1.status.ConditionConstants.TYPE_OPERATOR_ERROR;
 
+/**
+ * Manages the condition that reports unexpected operator errors.
+ */
 public class OperatorErrorConditionManager extends AbstractConditionManager {
 
     private static final Logger log = LoggerFactory.getLogger(OperatorErrorConditionManager.class);

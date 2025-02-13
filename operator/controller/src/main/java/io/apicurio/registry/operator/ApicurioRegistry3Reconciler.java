@@ -115,7 +115,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
     public UpdateControl<ApicurioRegistry3> reconcile(ApicurioRegistry3 primary,
                                                       Context<ApicurioRegistry3> context) {
 
-        log.debug("Reconciling Apicurio Registry: {}", primary);
+        log.trace("Reconciling Apicurio Registry: {}", primary);
 
         // Some of the fields in the CR have been deprecated and another fields should be used instead.
         // Operator will attempt to update the CR to use the newer fields if possible.

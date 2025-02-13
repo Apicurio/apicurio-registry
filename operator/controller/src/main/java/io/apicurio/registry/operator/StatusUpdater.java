@@ -67,7 +67,7 @@ public class StatusUpdater {
 
     public void update(Deployment deployment) {
         requireNonNull(deployment);
-        log.debug("Setting status based on Deployment:\n{}", toYAML(deployment.getStatus()));
+        log.trace("Setting status based on Deployment:\n{}", toYAML(deployment.getStatus()));
 
         // Remove error condition if present
         registry.withStatus().getConditions().removeIf(c -> ERROR_TYPE.equals(c.getType()));

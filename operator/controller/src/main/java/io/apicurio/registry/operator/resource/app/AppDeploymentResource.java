@@ -116,7 +116,9 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                 });
 
         // Set the JAVA_OPTS_APPEND env var that may have been built up
-        envVars.put(EnvironmentVariables.JAVA_OPTS_APPEND, javaOptsAppend.toEnvVar());
+        if (!javaOptsAppend.isEmpty()) {
+            envVars.put(EnvironmentVariables.JAVA_OPTS_APPEND, javaOptsAppend.toEnvVar());
+        }
 
         // Set the ENV VARs on the deployment's container spec.
         var container = getContainerFromDeployment(deployment, REGISTRY_APP_CONTAINER_NAME);

@@ -136,8 +136,8 @@ public class StudioSmokeITTest extends ITBase {
                 ApicurioRegistry3.class);
 
         simpleRegistry.getMetadata().setNamespace(namespace);
-        simpleRegistry.getSpec().getApp().setHost(ingressManager.getIngressHost(COMPONENT_APP));
-        simpleRegistry.getSpec().getUi().setHost(ingressManager.getIngressHost(COMPONENT_UI));
+        simpleRegistry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost(COMPONENT_APP));
+        simpleRegistry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost(COMPONENT_UI));
 
         client.resource(simpleRegistry).create();
 

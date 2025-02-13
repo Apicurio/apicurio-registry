@@ -93,8 +93,8 @@ public class SmokeITTest extends ITBase {
                 ApicurioRegistry3.class);
 
         registry.getMetadata().setNamespace(namespace);
-        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
-        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+        registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
 
         client.resource(registry).create();
 

@@ -1,12 +1,13 @@
 package io.apicurio.registry.operator.unit;
 
-import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.resource.ResourceFactory;
+import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
 import io.apicurio.registry.operator.unit.PodTemplateSpecArgumentProviders.*;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.PodTemplateSpec;
@@ -17,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class PodTemplateSpecTest {
 
@@ -45,11 +45,14 @@ public class PodTemplateSpecTest {
     @ArgumentsSource(AppNegativeTestCases.class)
     void testAppNegative(TestCase testCase) {
         log.info("Running test case: {}", testCase.getId());
-        assertThatThrownBy(() -> {
-            var primary = getPrimary();
+        var primary = getPrimary();
+        try {
             primary.getSpec().getApp().setPodTemplateSpec(testCase.getSpec());
-            ResourceFactory.INSTANCE.getDefaultAppDeployment(primary).getSpec().getTemplate();
-        }).isInstanceOf(OperatorException.class);
+            ResourceFactory.INSTANCE.getDefaultAppDeployment(primary);
+            assertThat(StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class).hasErrors()).isTrue();
+        } finally {
+            StatusManager.clean(primary);
+        }
     }
 
     @ParameterizedTest
@@ -74,11 +77,14 @@ public class PodTemplateSpecTest {
     @ArgumentsSource(UINegativeTestCases.class)
     void testUINegative(TestCase testCase) {
         log.info("Running test case: {}", testCase.getId());
-        assertThatThrownBy(() -> {
-            var primary = getPrimary();
+        var primary = getPrimary();
+        try {
             primary.getSpec().getUi().setPodTemplateSpec(testCase.getSpec());
-            ResourceFactory.INSTANCE.getDefaultUIDeployment(primary).getSpec().getTemplate();
-        }).isInstanceOf(OperatorException.class);
+            ResourceFactory.INSTANCE.getDefaultUIDeployment(primary);
+            assertThat(StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class).hasErrors()).isTrue();
+        } finally {
+            StatusManager.clean(primary);
+        }
     }
 
     @ParameterizedTest
@@ -103,11 +109,14 @@ public class PodTemplateSpecTest {
     @ArgumentsSource(StudioUINegativeTestCases.class)
     void testStudioUINegative(TestCase testCase) {
         log.info("Running test case: {}", testCase.getId());
-        assertThatThrownBy(() -> {
-            var primary = getPrimary();
+        var primary = getPrimary();
+        try {
             primary.getSpec().getStudioUi().setPodTemplateSpec(testCase.getSpec());
-            ResourceFactory.INSTANCE.getDefaultStudioUIDeployment(primary).getSpec().getTemplate();
-        }).isInstanceOf(OperatorException.class);
+            ResourceFactory.INSTANCE.getDefaultStudioUIDeployment(primary);
+            assertThat(StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class).hasErrors()).isTrue();
+        } finally {
+            StatusManager.clean(primary);
+        }
     }
 
     private static ApicurioRegistry3 getPrimary() {

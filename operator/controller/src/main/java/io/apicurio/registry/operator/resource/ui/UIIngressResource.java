@@ -27,7 +27,6 @@ public class UIIngressResource extends CRUDKubernetesDependentResource<Ingress, 
 
     @Override
     protected Ingress desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-
         var i = UI_INGRESS_KEY.getFactory().apply(primary);
 
         var sOpt = context.getSecondaryResource(UI_SERVICE_KEY.getKlass(), UI_SERVICE_KEY.getDiscriminator());

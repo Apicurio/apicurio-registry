@@ -128,5 +128,4 @@ public abstract class ComponentSpec {
         }
         return ingress;
     }
-
 }

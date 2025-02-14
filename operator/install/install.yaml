@@ -9407,10 +9407,13 @@ spec:
                 items:
                   properties:
                     lastTransitionTime:
-                      description: lastTransitionTime is the last time the condition
-                        transitioned from one status to another. This should be when
-                        the underlying condition changed.  If that is not known, then
-                        using the time when the API field changed is acceptable.
+                      description: |
+                        The last time the condition transitioned from one status to another.
+                      type: string
+                    lastUpdateTime:
+                      description: |
+                        The last time that the condition was updated by the operator.
+                        Unlike the `lastTransitionTime` field, this timestamp is updated even if the status has not changed.
                       type: string
                     message:
                       description: message is a human readable message indicating
@@ -9450,6 +9453,7 @@ spec:
                       type: string
                   required:
                   - lastTransitionTime
+                  - lastUpdateTime
                   - message
                   - reason
                   - status

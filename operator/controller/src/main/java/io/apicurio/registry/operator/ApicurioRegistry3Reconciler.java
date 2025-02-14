@@ -1,14 +1,14 @@
 package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import io.apicurio.registry.operator.resource.app.*;
 import io.apicurio.registry.operator.resource.studioui.*;
 import io.apicurio.registry.operator.resource.ui.*;
+import io.apicurio.registry.operator.status.OperatorErrorConditionManager;
+import io.apicurio.registry.operator.status.StatusManager;
 import io.apicurio.registry.operator.updater.IngressCRUpdater;
 import io.apicurio.registry.operator.updater.KafkaSqlCRUpdater;
 import io.apicurio.registry.operator.updater.SqlCRUpdater;
-import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.*;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import org.slf4j.Logger;
@@ -127,26 +127,19 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
             return UpdateControl.updateResource(primary);
         }
 
-        var statusUpdater = new StatusUpdater(primary);
-
-        return context.getSecondaryResource(Deployment.class, AppDeploymentDiscriminator.INSTANCE)
-                .map(deployment -> {
-                    statusUpdater.update(deployment);
-                    return UpdateControl.patchStatus(primary);
-                }).orElseGet(UpdateControl::noUpdate);
+        return UpdateControl.patchStatus(StatusManager.get(primary).applyStatus(primary, context));
     }
 
     @Override
-    public ErrorStatusUpdateControl<ApicurioRegistry3> updateErrorStatus(ApicurioRegistry3 apicurioRegistry,
+    public ErrorStatusUpdateControl<ApicurioRegistry3> updateErrorStatus(ApicurioRegistry3 primary,
                                                                          Context<ApicurioRegistry3> context, Exception ex) {
-        log.error("Status error", ex);
-        var statusUpdater = new StatusUpdater(apicurioRegistry);
-        statusUpdater.updateWithException(ex);
-        return ErrorStatusUpdateControl.updateStatus(apicurioRegistry);
+        StatusManager.get(primary).getConditionManager(OperatorErrorConditionManager.class).recordException(ex);
+        return ErrorStatusUpdateControl.updateStatus(StatusManager.get(primary).applyStatus(primary, context));
     }
 
     @Override
     public DeleteControl cleanup(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+        StatusManager.clean(primary);
         return DeleteControl.defaultDelete();
     }
 }

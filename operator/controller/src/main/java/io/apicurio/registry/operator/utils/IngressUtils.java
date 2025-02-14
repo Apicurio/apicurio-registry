@@ -62,7 +62,7 @@ public final class IngressUtils {
             host = "%s-%s.%s%s".formatted(primary.getMetadata().getName(), component,
                     primary.getMetadata().getNamespace(), Configuration.getDefaultBaseHost());
         }
-        log.debug("Host for component {} is {}", component, host);
+        log.trace("Host for component {} is {}", component, host);
         return host;
     }
 

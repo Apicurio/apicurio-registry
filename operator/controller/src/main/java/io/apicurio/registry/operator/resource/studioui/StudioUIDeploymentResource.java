@@ -4,6 +4,8 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.StudioUIDeploymentDiscriminator;
+import io.apicurio.registry.operator.status.ReadyConditionManager;
+import io.apicurio.registry.operator.status.StatusManager;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -35,7 +37,7 @@ public class StudioUIDeploymentResource
 
     @Override
     protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-
+        StatusManager.get(primary).getConditionManager(ReadyConditionManager.class).recordIsActive(STUDIO_UI_DEPLOYMENT_KEY);
         var d = STUDIO_UI_DEPLOYMENT_KEY.getFactory().apply(primary);
 
         var envVars = new LinkedHashMap<String, EnvVar>();

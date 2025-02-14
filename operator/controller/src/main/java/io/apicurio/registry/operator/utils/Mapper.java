@@ -31,4 +31,14 @@ public class Mapper {
             throw new OperatorException(e);
         }
     }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T copy(T original) {
+        try {
+            var serialized = MAPPER.writeValueAsString(original);
+            return MAPPER.readValue(serialized, (Class<T>) original.getClass());
+        } catch (JsonProcessingException e) {
+            throw new OperatorException(e);
+        }
+    }
 }

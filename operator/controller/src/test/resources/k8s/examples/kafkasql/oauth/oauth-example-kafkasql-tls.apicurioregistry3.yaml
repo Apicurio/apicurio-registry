@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: client-credentials
+data:
+  client-secret: dGVzdDE=
+---
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-kafkasql-tls
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "<service name>.<namespace>.svc:9092"
+        # Try using Strimzi/Red Hat AMQ Streams Operator!
+        tls:
+          keystoreSecretRef:
+            name: apicurio
+          keystorePasswordSecretRef:
+            name: apicurio
+          truststoreSecretRef:
+            name: oauth-example-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: oauth-example-cluster-cluster-ca-cert
+        auth:
+          enabled: true
+          mechanism: "OAUTHBEARER"
+          clientId: "admin-client"
+          clientSecretRef:
+            name: client-credentials
+            key: client-secret
+          tokenEndpoint: https://simple-keycloak.apps.cluster.example/realms/registry/protocol/openid-connect/token
+          loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+    ingress:
+      host: example-kafkasql-tls-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-kafkasql-tls-ui.apps.cluster.example

@@ -38,6 +38,10 @@ public class KafkaSql {
                                 env)) {
                             log.info("KafkaSQL storage with TLS security configured.");
                         }
+
+                        if (KafkaSqlAuth.configureKafkaSQLOauth(primary, env)) {
+                            log.info("KafkaSQL storage with Oauth security configured.");
+                        }
                     }
                 });
     }

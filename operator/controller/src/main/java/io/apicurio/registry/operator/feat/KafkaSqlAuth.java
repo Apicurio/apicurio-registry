@@ -25,7 +25,7 @@ public class KafkaSqlAuth {
 
         // spotless:off
         var clientSecret = new SecretKeyRefTool(getKafkaSqlAuthSpec(primary)
-                .map(KafkaSqlAuthSpec::getClientSecret)
+                .map(KafkaSqlAuthSpec::getClientSecretRef)
                 .orElse(null), "client-secret");
 
         if (clientSecret.isValid()) {
@@ -36,7 +36,7 @@ public class KafkaSqlAuth {
                         addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_ENABLED, kafkaSqlAuthSpec.getEnabled().toString());
                         addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_MECHANISM, kafkaSqlAuthSpec.getMechanism());
                         addEnvVar(env, APICURIO_KAFKA_SECURITY_SASL_CLIENT_ID, kafkaSqlAuthSpec.getClientId());
-                        addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_CLIENT_SECRET, new SecretKeyRefTool(kafkaSqlAuthSpec.getClientSecret(), "client-secret").getSecretVolumeKeyPath());
+                        addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_CLIENT_SECRET, new SecretKeyRefTool(kafkaSqlAuthSpec.getClientSecretRef(), "client-secret").getSecretVolumeKeyPath());
                         addEnvVar(env, APICURIO_KAFAKSQL_SECURITY_SASL_TOKEN_ENDPOINT, kafkaSqlAuthSpec.getTokenEndpoint());
                         addEnvVar(env, APICURIO_KAFAKSQL_SECURITY_SASL_LOGIN_CALLBACK_HANDLER_CLASS, kafkaSqlAuthSpec.getLoginHandlerClass());
                     });

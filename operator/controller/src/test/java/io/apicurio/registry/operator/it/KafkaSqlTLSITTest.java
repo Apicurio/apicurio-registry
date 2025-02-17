@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.it.KafkaSqlITTest.applyStrimziResources;
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -20,7 +19,9 @@ public class KafkaSqlTLSITTest extends ITBase {
 
     @BeforeAll
     public static void beforeAll() throws Exception {
-        applyStrimziResources();
+        if (!strimziInstalled) {
+            applyStrimziResources();
+        }
     }
 
     @Test
@@ -30,10 +31,10 @@ public class KafkaSqlTLSITTest extends ITBase {
         final var clusterName = "example-cluster";
 
         await().ignoreExceptions().untilAsserted(() ->
-        // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
-        assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-kafka-0").get().getStatus()
-                .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
-                .containsOnly("True"));
+                // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
+                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-kafka-0").get().getStatus()
+                        .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
+                        .containsOnly("True"));
 
         client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/tls/apicurio.kafkauser.yaml"))
                 .inNamespace(namespace).create();

@@ -1,3 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: client-credentials
+data:
+  client-secret: dGVzdDE=
+---
 # IMPORTANT: This resource should only be used for development or testing purposes.
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
@@ -16,9 +23,8 @@ spec:
           type: oauth
           clientId: admin-client
           clientSecret:
-            clientSecret:
-              key: client-secret
-              secretName: client-credentials
+            key: client-secret
+            secretName: client-credentials
           validIssuerUri: https://simple-keycloak.apps.cluster.example/realms/registry
           jwksEndpointUri: https://simple-keycloak.apps.cluster.example/realms/registry/protocol/openid-connect/certs
           userNameClaim: preferred_username

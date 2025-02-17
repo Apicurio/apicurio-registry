@@ -8,38 +8,41 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.it.KafkaSqlITTest.applyStrimziResources;
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
-public class KafkaSqlOAuthITTest extends ITBase {
+public class KafkaSqlOAuthITTest extends BaseAuthITTest {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlOAuthITTest.class);
 
     @BeforeAll
     public static void beforeAll() throws Exception {
-        applyStrimziResources();
+        if (!strimziInstalled) {
+            applyStrimziResources();
+        }
     }
 
     @Test
     void testKafkaSQLTLS() {
+        installKeycloak("/k8s/examples/auth/keycloak.yaml");
+
         client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/oauth/oauth-example-cluster.yaml"))
                 .create();
         final var clusterName = "oauth-example-cluster";
 
         await().ignoreExceptions().untilAsserted(() ->
-        // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
-        assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-kafka-0").get().getStatus()
-                .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
-                .containsOnly("True"));
+                // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
+                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-kafka-0").get().getStatus()
+                        .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
+                        .containsOnly("True"));
 
         // We're guessing the value here to avoid using Strimzi Java model, and relying on retries below.
         var bootstrapServers = clusterName + "-kafka-bootstrap." + namespace + ".svc:9093";
 
         var registry = deserialize(
-                "k8s/examples/kafkasql/oauth/oauth-example-kafkasql-tls.apicurioregistry3.yaml.yaml",
+                "k8s/examples/kafkasql/oauth/oauth-example-kafkasql-tls.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
         registry.getSpec().getApp().getStorage().getKafkasql().setBootstrapServers(bootstrapServers);

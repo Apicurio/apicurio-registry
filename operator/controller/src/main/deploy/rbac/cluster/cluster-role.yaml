@@ -29,7 +29,7 @@ rules:
       - '*'
 
   - apiGroups:
-      - ""
+      - ''
     resources:
       - pods
       - services
@@ -47,5 +47,13 @@ rules:
       - networking.k8s.io
     resources:
       - ingresses
+      - networkpolicies
     verbs:
-      - "*"
+      - '*'
+
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - '*'

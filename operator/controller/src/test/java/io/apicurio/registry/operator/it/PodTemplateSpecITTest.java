@@ -21,7 +21,6 @@ public class PodTemplateSpecITTest extends ITBase {
 
     @Test
     void testPTS() {
-        // spotless:off
         var exportData = ResourceFactory
                 .deserialize("/k8s/examples/podtemplatespec/export-data.configmap.yaml", ConfigMap.class);
         var registry = ResourceFactory.deserialize(

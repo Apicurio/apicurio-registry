@@ -86,7 +86,6 @@ public class SecretKeyRefTool {
      */
     public void applySecretEnvVar(Map<String, EnvVar> env, String envVarName) {
         requireValid();
-        // spotless:off
         // @formatter:off
         addEnvVar(env, new EnvVarBuilder()
                 .withName(envVarName)
@@ -99,7 +98,6 @@ public class SecretKeyRefTool {
                 .build()
         );
         // @formatter:on
-        // spotless:on
     }
 
     private static void addSecretVolume(Deployment deployment, String secretName, String volumeName) {
@@ -107,7 +105,6 @@ public class SecretKeyRefTool {
         // This assumes there is a bijection between the secret names and volume names.
         if (deployment.getSpec().getTemplate().getSpec().getVolumes().stream()
                 .filter(v -> v.getName().equals(volumeName)).findAny().isEmpty()) {
-            // spotless:off
             // @formatter:off
             deployment.getSpec().getTemplate().getSpec().getVolumes().add(
                     new VolumeBuilder()
@@ -118,7 +115,6 @@ public class SecretKeyRefTool {
                             .build()
             );
             // @formatter:on
-            // spotless:on
         }
     }
 
@@ -128,7 +124,6 @@ public class SecretKeyRefTool {
         // Skip if the volume mount already exists, so we don't have to add it multiple times.
         // This assumes there is a bijection between the secret names and volume names.
         if (c.getVolumeMounts().stream().filter(v -> v.getName().equals(volumeName)).findAny().isEmpty()) {
-            // spotless:off
             // @formatter:off
             c.getVolumeMounts().add(
                     new VolumeMountBuilder()
@@ -138,7 +133,6 @@ public class SecretKeyRefTool {
                             .build()
             );
             // @formatter:on
-            // spotless:on
         }
     }
 }

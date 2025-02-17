@@ -1,20 +1,14 @@
 package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
-import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
-import io.apicurio.registry.operator.resource.app.AppIngressResource;
-import io.apicurio.registry.operator.resource.app.AppServiceResource;
-import io.apicurio.registry.operator.resource.studioui.StudioUIDeploymentResource;
-import io.apicurio.registry.operator.resource.studioui.StudioUIIngressResource;
-import io.apicurio.registry.operator.resource.studioui.StudioUIServiceResource;
-import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
-import io.apicurio.registry.operator.resource.ui.UIIngressResource;
-import io.apicurio.registry.operator.resource.ui.UIServiceResource;
+import io.apicurio.registry.operator.resource.app.*;
+import io.apicurio.registry.operator.resource.studioui.*;
+import io.apicurio.registry.operator.resource.ui.*;
+import io.apicurio.registry.operator.status.OperatorErrorConditionManager;
+import io.apicurio.registry.operator.status.StatusManager;
 import io.apicurio.registry.operator.updater.IngressCRUpdater;
 import io.apicurio.registry.operator.updater.KafkaSqlCRUpdater;
 import io.apicurio.registry.operator.updater.SqlCRUpdater;
-import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.javaoperatorsdk.operator.api.reconciler.*;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import org.slf4j.Logger;
@@ -23,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import static io.apicurio.registry.operator.resource.ActivationConditions.*;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 
-// spotless:off
 @ControllerConfiguration(
         dependents = {
                 // ===== Registry App
@@ -42,6 +35,18 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                         dependsOn = {APP_SERVICE_ID},
                         activationCondition = AppIngressActivationCondition.class
                 ),
+                @Dependent(
+                        type = AppPodDisruptionBudgetResource.class,
+                        name = APP_POD_DISRUPTION_BUDGET_ID,
+                        dependsOn = {APP_DEPLOYMENT_ID},
+                        activationCondition = AppPodDisruptionBudgetActivationCondition.class
+                ),
+                @Dependent(
+                        type = AppNetworkPolicyResource.class,
+                        name = APP_NETWORK_POLICY_ID,
+                        dependsOn = {APP_DEPLOYMENT_ID},
+                        activationCondition = AppNetworkPolicyActivationCondition.class
+                ),
                 // ===== Registry UI
                 @Dependent(
                         type = UIDeploymentResource.class,
@@ -57,6 +62,18 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                         name = UI_INGRESS_ID,
                         dependsOn = {UI_SERVICE_ID},
                         activationCondition = UIIngressActivationCondition.class
+                ),
+                @Dependent(
+                        type = UIPodDisruptionBudgetResource.class,
+                        name = UI_POD_DISRUPTION_BUDGET_ID,
+                        dependsOn = {UI_DEPLOYMENT_ID},
+                        activationCondition = UIPodDisruptionBudgetActivationCondition.class
+                ),
+                @Dependent(
+                        type = UINetworkPolicyResource.class,
+                        name = UI_NETWORK_POLICY_ID,
+                        dependsOn = {UI_DEPLOYMENT_ID},
+                        activationCondition = UINetworkPolicyActivationCondition.class
                 ),
                 // ===== Studio UI
                 @Dependent(
@@ -74,10 +91,21 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                         name = STUDIO_UI_INGRESS_ID,
                         dependsOn = {STUDIO_UI_SERVICE_ID},
                         activationCondition = StudioUIIngressActivationCondition.class
+                ),
+                @Dependent(
+                        type = StudioUIPodDisruptionBudgetResource.class,
+                        name = STUDIO_UI_POD_DISRUPTION_BUDGET_ID,
+                        dependsOn = {STUDIO_UI_DEPLOYMENT_ID},
+                        activationCondition = StudioUIPodDisruptionBudgetActivationCondition.class
+                ),
+                @Dependent(
+                        type = StudioUINetworkPolicyResource.class,
+                        name = STUDIO_UI_NETWORK_POLICY_ID,
+                        dependsOn = {STUDIO_UI_DEPLOYMENT_ID},
+                        activationCondition = StudioUINetworkPolicyActivationCondition.class
                 )
         }
 )
-// spotless:on
 // TODO: When renaming, do not forget to update application.properties (until we have a test for this).
 public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>,
         ErrorStatusHandler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {
@@ -85,9 +113,9 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
     private static final Logger log = LoggerFactory.getLogger(ApicurioRegistry3Reconciler.class);
 
     public UpdateControl<ApicurioRegistry3> reconcile(ApicurioRegistry3 primary,
-            Context<ApicurioRegistry3> context) {
+                                                      Context<ApicurioRegistry3> context) {
 
-        log.info("Reconciling Apicurio Registry: {}", primary);
+        log.trace("Reconciling Apicurio Registry: {}", primary);
 
         // Some of the fields in the CR have been deprecated and another fields should be used instead.
         // Operator will attempt to update the CR to use the newer fields if possible.
@@ -99,27 +127,19 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
             return UpdateControl.updateResource(primary);
         }
 
-        var statusUpdater = new StatusUpdater(primary);
-
-        return context.getSecondaryResource(Deployment.class, AppDeploymentDiscriminator.INSTANCE)
-                .map(deployment -> {
-                    log.info("Updating Apicurio Registry status:");
-                    primary.setStatus(statusUpdater.next(deployment));
-                    return UpdateControl.patchStatus(primary);
-                }).orElseGet(UpdateControl::noUpdate);
+        return UpdateControl.patchStatus(StatusManager.get(primary).applyStatus(primary, context));
     }
 
     @Override
-    public ErrorStatusUpdateControl<ApicurioRegistry3> updateErrorStatus(ApicurioRegistry3 apicurioRegistry,
-            Context<ApicurioRegistry3> context, Exception ex) {
-        log.error("Status error", ex);
-        var statusUpdater = new StatusUpdater(apicurioRegistry);
-        apicurioRegistry.setStatus(statusUpdater.errorStatus(ex));
-        return ErrorStatusUpdateControl.updateStatus(apicurioRegistry);
+    public ErrorStatusUpdateControl<ApicurioRegistry3> updateErrorStatus(ApicurioRegistry3 primary,
+                                                                         Context<ApicurioRegistry3> context, Exception ex) {
+        StatusManager.get(primary).getConditionManager(OperatorErrorConditionManager.class).recordException(ex);
+        return ErrorStatusUpdateControl.updateStatus(StatusManager.get(primary).applyStatus(primary, context));
     }
 
     @Override
     public DeleteControl cleanup(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+        StatusManager.clean(primary);
         return DeleteControl.defaultDelete();
     }
 }

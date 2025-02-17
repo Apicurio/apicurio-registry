@@ -93,8 +93,8 @@ public class SmokeITTest extends ITBase {
                 ApicurioRegistry3.class);
 
         registry.getMetadata().setNamespace(namespace);
-        registry.getSpec().getApp().setHost(ingressManager.getIngressHost("app"));
-        registry.getSpec().getUi().setHost(ingressManager.getIngressHost("ui"));
+        registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
 
         client.resource(registry).create();
 
@@ -241,13 +241,11 @@ public class SmokeITTest extends ITBase {
         var uiDeployment = client.apps().deployments().inNamespace(namespace)
                 .withName(registry.getMetadata().getName() + "-ui-deployment").get();
         assertThat(uiDeployment).isNotNull();
-        // spotless:off
         assertThat(uiDeployment.getSpec().getTemplate().getSpec().getContainers())
                 .filteredOn(c -> REGISTRY_UI_CONTAINER_NAME.equals(c.getName()))
                 .flatMap(Container::getEnv)
                 .filteredOn(e -> "REGISTRY_API_URL".equals(e.getName()))
                 .isEmpty();
-        // spotless:on
 
         // Enable again
         registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
@@ -271,7 +269,6 @@ public class SmokeITTest extends ITBase {
     }
 
     private void verify_REGISTRY_API_URL_isSet(ApicurioRegistry3 registry, Deployment deployment) {
-        // spotless:off
         assertThat(deployment).isNotNull();
         assertThat(deployment.getSpec().getTemplate().getSpec().getContainers())
                 .filteredOn(c -> REGISTRY_UI_CONTAINER_NAME.equals(c.getName()))
@@ -282,7 +279,6 @@ public class SmokeITTest extends ITBase {
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.STRING)
                 .startsWith("http://" + registry.getSpec().getApp().getIngress().getHost());
-        // spotless:on
     }
 
     static boolean ingressDisabled() {

@@ -251,6 +251,12 @@ spec:
                   ingress:
                     description: Configure Ingress for the component.
                     properties:
+                      enabled:
+                        description: |
+                          Whether an Ingress should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom Ingress.
+                        type: boolean
                       host:
                         description: |-
                           Configure hostname of the operator-managed Ingress. If the value is empty, the operator will not create an Ingress resource for the component.
@@ -268,6 +274,28 @@ spec:
                           field instead. The operator will attempt to update the field
                           automatically.'
                         type: string
+                    type: object
+                  networkPolicy:
+                    description: |2
+                              Configuration of a NetworkPolicy for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom NetworkPolicy.
+                        type: boolean
+                    type: object
+                  podDisruptionBudget:
+                    description: |
+                      Configuration of a PodDisruptionBudget for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a PodDisruptionBudget should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom PodDisruptionBudget.
+                        type: boolean
                     type: object
                   podTemplateSpec:
                     description: |-
@@ -3399,12 +3427,40 @@ spec:
                   ingress:
                     description: Configure Ingress for the component.
                     properties:
+                      enabled:
+                        description: |
+                          Whether an Ingress should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom Ingress.
+                        type: boolean
                       host:
                         description: |-
                           Configure hostname of the operator-managed Ingress. If the value is empty, the operator will not create an Ingress resource for the component.
 
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
+                    type: object
+                  networkPolicy:
+                    description: |2
+                              Configuration of a NetworkPolicy for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom NetworkPolicy.
+                        type: boolean
+                    type: object
+                  podDisruptionBudget:
+                    description: |
+                      Configuration of a PodDisruptionBudget for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a PodDisruptionBudget should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom PodDisruptionBudget.
+                        type: boolean
                     type: object
                   podTemplateSpec:
                     description: |-
@@ -6388,12 +6444,40 @@ spec:
                   ingress:
                     description: Configure Ingress for the component.
                     properties:
+                      enabled:
+                        description: |
+                          Whether an Ingress should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom Ingress.
+                        type: boolean
                       host:
                         description: |-
                           Configure hostname of the operator-managed Ingress. If the value is empty, the operator will not create an Ingress resource for the component.
 
                           IMPORTANT: If the Ingress already exists and the value becomes empty, the Ingress will be deleted.
                         type: string
+                    type: object
+                  networkPolicy:
+                    description: |2
+                              Configuration of a NetworkPolicy for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a NetworkPolicy should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom NetworkPolicy.
+                        type: boolean
+                    type: object
+                  podDisruptionBudget:
+                    description: |
+                      Configuration of a PodDisruptionBudget for the component.
+                    properties:
+                      enabled:
+                        description: |
+                          Whether a PodDisruptionBudget should be managed by the operator.  Defaults to 'true'.
+
+                          Set this to 'false' if you want to create your own custom PodDisruptionBudget.
+                        type: boolean
                     type: object
                   podTemplateSpec:
                     description: |-
@@ -9323,10 +9407,13 @@ spec:
                 items:
                   properties:
                     lastTransitionTime:
-                      description: lastTransitionTime is the last time the condition
-                        transitioned from one status to another. This should be when
-                        the underlying condition changed.  If that is not known, then
-                        using the time when the API field changed is acceptable.
+                      description: |
+                        The last time the condition transitioned from one status to another.
+                      type: string
+                    lastUpdateTime:
+                      description: |
+                        The last time that the condition was updated by the operator.
+                        Unlike the `lastTransitionTime` field, this timestamp is updated even if the status has not changed.
                       type: string
                     message:
                       description: message is a human readable message indicating
@@ -9366,6 +9453,7 @@ spec:
                       type: string
                   required:
                   - lastTransitionTime
+                  - lastUpdateTime
                   - message
                   - reason
                   - status
@@ -9449,6 +9537,13 @@ rules:
   - networking.k8s.io
   resources:
   - ingresses
+  - networkpolicies
+  verbs:
+  - '*'
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
   verbs:
   - '*'
 ---

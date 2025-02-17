@@ -8,17 +8,11 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
-import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
+import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppServiceDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
-// spotless:off
-@KubernetesDependent(
-        labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_APP,
-        resourceDiscriminator = AppServiceDiscriminator.class
-)
-// spotless:on
+@KubernetesDependent(resourceDiscriminator = AppServiceDiscriminator.class)
 public class AppServiceResource extends CRUDKubernetesDependentResource<Service, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(AppServiceResource.class);
@@ -30,7 +24,7 @@ public class AppServiceResource extends CRUDKubernetesDependentResource<Service,
     @Override
     protected Service desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
         var s = APP_SERVICE_KEY.getFactory().apply(primary);
-        log.debug("Desired {} is {}", APP_SERVICE_KEY.getId(), toYAML(s));
+        log.trace("Desired {} is {}", APP_SERVICE_KEY.getId(), toYAML(s));
         return s;
     }
 }

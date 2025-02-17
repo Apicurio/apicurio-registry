@@ -16,12 +16,7 @@ import static io.apicurio.registry.operator.utils.IngressUtils.getHost;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
-// spotless:off
-@KubernetesDependent(
-        labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_UI,
-        resourceDiscriminator = UIIngressDiscriminator.class
-)
-// spotless:on
+@KubernetesDependent(resourceDiscriminator = UIIngressDiscriminator.class)
 public class UIIngressResource extends CRUDKubernetesDependentResource<Ingress, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(UIIngressResource.class);
@@ -32,13 +27,12 @@ public class UIIngressResource extends CRUDKubernetesDependentResource<Ingress, 
 
     @Override
     protected Ingress desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-
         var i = UI_INGRESS_KEY.getFactory().apply(primary);
 
         var sOpt = context.getSecondaryResource(UI_SERVICE_KEY.getKlass(), UI_SERVICE_KEY.getDiscriminator());
         sOpt.ifPresent(s -> withIngressRule(s, i, rule -> rule.setHost(getHost(COMPONENT_UI, primary))));
 
-        log.debug("Desired {} is {}", UI_INGRESS_KEY.getId(), toYAML(i));
+        log.trace("Desired {} is {}", UI_INGRESS_KEY.getId(), toYAML(i));
         return i;
     }
 }

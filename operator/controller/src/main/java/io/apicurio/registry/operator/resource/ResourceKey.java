@@ -6,6 +6,8 @@ import io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDi
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
+import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 import io.javaoperatorsdk.operator.api.reconciler.ResourceDiscriminator;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -22,20 +24,25 @@ import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
 @ToString(onlyExplicitlyIncluded = true)
 public class ResourceKey<R> {
 
-    // spotless:off
     public static final String REGISTRY_ID = "ApicurioRegistry3Reconciler";
 
     public static final String APP_DEPLOYMENT_ID = "AppDeploymentResource";
     public static final String APP_SERVICE_ID = "AppServiceResource";
     public static final String APP_INGRESS_ID = "AppIngressResource";
+    public static final String APP_POD_DISRUPTION_BUDGET_ID = "AppPodDisruptionBudgetResource";
+    public static final String APP_NETWORK_POLICY_ID = "AppNetworkPolicyResource";
 
     public static final String UI_DEPLOYMENT_ID = "UIDeploymentResource";
     public static final String UI_SERVICE_ID = "UIServiceResource";
     public static final String UI_INGRESS_ID = "UIIngressResource";
+    public static final String UI_POD_DISRUPTION_BUDGET_ID = "UIPodDisruptionBudgetResource";
+    public static final String UI_NETWORK_POLICY_ID = "UINetworkPolicyResource";
 
     public static final String STUDIO_UI_DEPLOYMENT_ID = "StudioUIDeploymentResource";
     public static final String STUDIO_UI_SERVICE_ID = "StudioUIServiceResource";
     public static final String STUDIO_UI_INGRESS_ID = "StudioUIIngressResource";
+    public static final String STUDIO_UI_POD_DISRUPTION_BUDGET_ID = "StudioUIPodDisruptionBudgetResource";
+    public static final String STUDIO_UI_NETWORK_POLICY_ID = "StudioUINetworkPolicyResource";
 
     public static final ResourceKey<ApicurioRegistry3> REGISTRY_KEY = new ResourceKey<>(
             REGISTRY_ID, ApicurioRegistry3.class,
@@ -59,6 +66,16 @@ public class ResourceKey<R> {
             AppIngressDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultAppIngress
     );
 
+    public static final ResourceKey<NetworkPolicy> APP_NETWORK_POLICY_KEY = new ResourceKey<>(
+            APP_NETWORK_POLICY_ID, NetworkPolicy.class,
+            AppNetworkPolicyDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultAppNetworkPolicy
+    );
+
+    public static final ResourceKey<PodDisruptionBudget> APP_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(
+            APP_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class,
+            AppPodDisruptionBudgetDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultAppPodDisruptionBudget
+    );
+
     // ===== Registry UI
 
     public static final ResourceKey<Deployment> UI_DEPLOYMENT_KEY = new ResourceKey<>(
@@ -74,6 +91,16 @@ public class ResourceKey<R> {
     public static final ResourceKey<Ingress> UI_INGRESS_KEY = new ResourceKey<>(
             UI_INGRESS_ID, Ingress.class,
             UIIngressDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUIIngress
+    );
+
+    public static final ResourceKey<NetworkPolicy> UI_NETWORK_POLICY_KEY = new ResourceKey<>(
+            UI_NETWORK_POLICY_ID, NetworkPolicy.class,
+            UINetworkPolicyDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUINetworkPolicy
+    );
+
+    public static final ResourceKey<PodDisruptionBudget> UI_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(
+            UI_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class,
+            UiPodDisruptionBudgetDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUIPodDisruptionBudget
     );
 
     // ===== Studio UI
@@ -93,7 +120,15 @@ public class ResourceKey<R> {
             StudioUIIngressDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultStudioUIIngress
     );
 
-    // spotless:on
+    public static final ResourceKey<NetworkPolicy> STUDIO_UI_NETWORK_POLICY_KEY = new ResourceKey<>(
+            STUDIO_UI_NETWORK_POLICY_ID, NetworkPolicy.class,
+            StudioUINetworkPolicyDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultStudioUINetworkPolicy
+    );
+
+    public static final ResourceKey<PodDisruptionBudget> STUDIO_UI_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(
+            STUDIO_UI_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class,
+            StudioUiPodDisruptionBudgetDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultStudioUIPodDisruptionBudget
+    );
 
     @EqualsAndHashCode.Include
     @ToString.Include

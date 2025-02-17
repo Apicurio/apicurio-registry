@@ -22,7 +22,6 @@ public class CRUpdateITTest extends ITBase {
     @Test
     void testCRUpdate() {
 
-        // spotless:off
         var testCases = List.of(
                 List.of(
                         "/k8s/examples/simple-deprecated.apicurioregistry3.yaml",
@@ -41,7 +40,6 @@ public class CRUpdateITTest extends ITBase {
                         "/k8s/examples/kafkasql/plain/example-kafkasql-plain.apicurioregistry3.yaml"
                 )
         );
-        // spotless:on
 
         testCases.forEach(testCase -> {
 

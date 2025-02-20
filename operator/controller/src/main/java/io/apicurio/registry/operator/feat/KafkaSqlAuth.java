@@ -33,6 +33,7 @@ public class KafkaSqlAuth {
             getKafkaSqlAuthSpec(primary)
                     .filter(KafkaSqlAuthSpec::getEnabled)
                     .ifPresent(kafkaSqlAuthSpec -> {
+                        addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_PROTOCOL, kafkaSqlAuthSpec.getProtocol());
                         addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_ENABLED, kafkaSqlAuthSpec.getEnabled().toString());
                         addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_MECHANISM, kafkaSqlAuthSpec.getMechanism());
                         addEnvVar(env, APICURIO_KAFKA_SECURITY_SASL_CLIENT_ID, kafkaSqlAuthSpec.getClientId());

@@ -41,17 +41,11 @@ public class KafkaSqlTLS {
                 .map(KafkaSqlTLSSpec::getTruststorePasswordSecretRef)
                 .orElse(null), "ca.password");
 
-        if (truststore.isValid() && truststorePassword.isValid() && keystore.isValid()
-                && keystorePassword.isValid()) {
+        boolean configured = false;
+
+        if (truststore.isValid() && truststorePassword.isValid()) {
 
             addEnvVar(env, KAFKASQL_SECURITY_PROTOCOL, "SSL");
-
-            // ===== Keystore
-
-            addEnvVar(env, KAFKASQL_SSL_KEYSTORE_TYPE, "PKCS12");
-            keystore.applySecretVolume(deployment, containerName);
-            addEnvVar(env, KAFKASQL_SSL_KEYSTORE_LOCATION, keystore.getSecretVolumeKeyPath());
-            keystorePassword.applySecretEnvVar(env, KAFKASQL_SSL_KEYSTORE_PASSWORD);
 
             // ===== Truststore
 
@@ -60,9 +54,22 @@ public class KafkaSqlTLS {
             addEnvVar(env, KAFKASQL_SSL_TRUSTSTORE_LOCATION, truststore.getSecretVolumeKeyPath());
             truststorePassword.applySecretEnvVar(env, KAFKASQL_SSL_TRUSTSTORE_PASSWORD);
 
-            return true;
+            configured = true;
         }
-        return false;
+
+        if (keystore.isValid()
+                && keystorePassword.isValid()) {
+            // ===== Keystore
+
+            addEnvVar(env, KAFKASQL_SSL_KEYSTORE_TYPE, "PKCS12");
+            keystore.applySecretVolume(deployment, containerName);
+            addEnvVar(env, KAFKASQL_SSL_KEYSTORE_LOCATION, keystore.getSecretVolumeKeyPath());
+            keystorePassword.applySecretEnvVar(env, KAFKASQL_SSL_KEYSTORE_PASSWORD);
+
+            configured = true;
+        }
+
+        return configured;
     }
 
     private static Optional<KafkaSqlTLSSpec> getKafkaSqlTLSSpec(ApicurioRegistry3 primary) {

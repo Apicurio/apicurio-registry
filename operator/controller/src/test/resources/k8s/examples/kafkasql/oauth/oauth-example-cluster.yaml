@@ -19,6 +19,11 @@ spec:
         type: internal
         port: 9093
         tls: true
+        configuration:
+          brokerCertChainAndKey:
+            secretName: keycloak-tls
+            certificate: tls.crt
+            key: tls.key
         authentication:
           type: oauth
           clientId: admin-client
@@ -31,8 +36,6 @@ spec:
           tlsTrustedCertificates:
             - secretName: keycloak-tls
               certificate: tls.crt
-    authorization:
-      type: simple
     config:
       inter.broker.protocol.version: "3.8"
       offsets.topic.replication.factor: 1
@@ -42,5 +45,3 @@ spec:
     replicas: 1
     storage:
       type: ephemeral
-  entityOperator:
-    userOperator: { }

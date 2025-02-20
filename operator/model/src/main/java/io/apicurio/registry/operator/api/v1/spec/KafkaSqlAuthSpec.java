@@ -21,7 +21,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "enabled", "mechanism", "clientId", "clientSecretRef", "tokenEndpoint",
+@JsonPropertyOrder({ "enabled", "mechanism", "protocol", "clientId", "clientSecretRef", "tokenEndpoint",
         "loginHandlerClass" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -37,6 +37,12 @@ public class KafkaSqlAuthSpec {
             Enables SASL OAuth authentication for Apicurio Registry storage in Kafka. You must set this variable to true for the other variables to have effect.""")
     @JsonSetter(nulls = SKIP)
     private Boolean enabled;
+
+    @JsonProperty("protocol")
+    @JsonPropertyDescription("""
+            The protocol used to authenticate to Kafka.""")
+    @JsonSetter(nulls = SKIP)
+    private String protocol;
 
     @JsonProperty("mechanism")
     @JsonPropertyDescription("""

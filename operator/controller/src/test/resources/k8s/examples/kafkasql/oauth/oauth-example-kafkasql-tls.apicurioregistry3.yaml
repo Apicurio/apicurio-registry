@@ -4,6 +4,9 @@ metadata:
   name: example-kafkasql-tls
 spec:
   app:
+    env:
+      - name: QUARKUS_LOG_LEVEL
+        value: DEBUG
     storage:
       type: kafkasql
       kafkasql:
@@ -11,10 +14,13 @@ spec:
         # Try using Strimzi/Red Hat AMQ Streams Operator!
         tls:
           truststoreSecretRef:
-            name: oauth-example-cluster-cluster-ca-cert
+            name: keycloak-truststore
+            key: truststore
           truststorePasswordSecretRef:
-            name: oauth-example-cluster-cluster-ca-cert
+            name: keycloak-truststore
+            key: password
         auth:
+          protocol: "SASL_SSL"
           enabled: true
           mechanism: "OAUTHBEARER"
           clientId: "admin-client"

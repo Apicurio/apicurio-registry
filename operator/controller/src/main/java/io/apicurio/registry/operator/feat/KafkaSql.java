@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+import static io.apicurio.registry.operator.EnvironmentVariables.KAFKASQL_SECURITY_PROTOCOL;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
@@ -25,7 +26,7 @@ public class KafkaSql {
     public static String ENV_KAFKASQL_BOOTSTRAP_SERVERS = "APICURIO_KAFKASQL_BOOTSTRAP_SERVERS";
 
     public static void configureKafkaSQL(ApicurioRegistry3 primary, Deployment deployment,
-            Map<String, EnvVar> env) {
+                                         Map<String, EnvVar> env) {
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)
                 .map(StorageSpec::getKafkasql).ifPresent(kafkasql -> {
                     if (!isBlank(kafkasql.getBootstrapServers())) {
@@ -34,13 +35,29 @@ public class KafkaSql {
                         addEnvVar(env, new EnvVarBuilder().withName(ENV_KAFKASQL_BOOTSTRAP_SERVERS)
                                 .withValue(kafkasql.getBootstrapServers()).build());
 
-                        if (KafkaSqlTLS.configureKafkaSQLTLS(primary, deployment, REGISTRY_APP_CONTAINER_NAME,
-                                env)) {
+                        boolean sslConfigured = KafkaSqlTLS.configureKafkaSQLTLS(primary, deployment, REGISTRY_APP_CONTAINER_NAME,
+                                env);
+
+                        boolean oAuthConfigured = KafkaSqlAuth.configureKafkaSQLOauth(primary,
+                                env);
+
+                        if (sslConfigured) {
                             log.info("KafkaSQL storage with TLS security configured.");
                         }
 
-                        if (KafkaSqlAuth.configureKafkaSQLOauth(primary, env)) {
+                        if (oAuthConfigured) {
                             log.info("KafkaSQL storage with Oauth security configured.");
+                        }
+
+                        // Set the security protocol
+                         if (sslConfigured) {
+                            if (oAuthConfigured) {
+                                addEnvVar(env, KAFKASQL_SECURITY_PROTOCOL, "SASL_SSL");
+                            } else {
+                                addEnvVar(env, KAFKASQL_SECURITY_PROTOCOL, "SSL");
+                            }
+                        } else if (oAuthConfigured) {
+                            addEnvVar(env, KAFKASQL_SECURITY_PROTOCOL, "SASL_PLAINTEXT");
                         }
                     }
                 });

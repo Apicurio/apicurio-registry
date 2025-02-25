@@ -29,17 +29,15 @@ public class KafkaSqlAuth {
                 .orElse(null), "client-secret");
 
         if (clientSecret.isValid()) {
-
             getKafkaSqlAuthSpec(primary)
                     .filter(KafkaSqlAuthSpec::getEnabled)
                     .ifPresent(kafkaSqlAuthSpec -> {
-                        addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_PROTOCOL, kafkaSqlAuthSpec.getProtocol());
                         addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_ENABLED, kafkaSqlAuthSpec.getEnabled().toString());
                         addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_MECHANISM, kafkaSqlAuthSpec.getMechanism());
-                        addEnvVar(env, APICURIO_KAFKA_SECURITY_SASL_CLIENT_ID, kafkaSqlAuthSpec.getClientId());
+                        addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_CLIENT_ID, kafkaSqlAuthSpec.getClientId());
                         addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_CLIENT_SECRET, new SecretKeyRefTool(kafkaSqlAuthSpec.getClientSecretRef(), "client-secret").getSecretVolumeKeyPath());
-                        addEnvVar(env, APICURIO_KAFAKSQL_SECURITY_SASL_TOKEN_ENDPOINT, kafkaSqlAuthSpec.getTokenEndpoint());
-                        addEnvVar(env, APICURIO_KAFAKSQL_SECURITY_SASL_LOGIN_CALLBACK_HANDLER_CLASS, kafkaSqlAuthSpec.getLoginHandlerClass());
+                        addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_TOKEN_ENDPOINT, kafkaSqlAuthSpec.getTokenEndpoint());
+                        addEnvVar(env, APICURIO_KAFKASQL_SECURITY_SASL_LOGIN_CALLBACK_HANDLER_CLASS, kafkaSqlAuthSpec.getLoginHandlerClass());
                     });
 
             return true;

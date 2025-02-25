@@ -44,9 +44,6 @@ public class KafkaSqlTLS {
         boolean configured = false;
 
         if (truststore.isValid() && truststorePassword.isValid()) {
-
-            addEnvVar(env, KAFKASQL_SECURITY_PROTOCOL, "SSL");
-
             // ===== Truststore
 
             addEnvVar(env, KAFKASQL_SSL_TRUSTSTORE_TYPE, "PKCS12");

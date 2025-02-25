@@ -10,7 +10,7 @@ spec:
     storage:
       type: kafkasql
       kafkasql:
-        bootstrapServers: "<service name>.<namespace>.svc:9092"
+        bootstrapServers: "<service name>.<namespace>.svc:9093"
         # Try using Strimzi/Red Hat AMQ Streams Operator!
         tls:
           truststoreSecretRef:
@@ -20,7 +20,6 @@ spec:
             name: keycloak-truststore
             key: password
         auth:
-          protocol: "SASL_SSL"
           enabled: true
           mechanism: "OAUTHBEARER"
           clientId: "admin-client"

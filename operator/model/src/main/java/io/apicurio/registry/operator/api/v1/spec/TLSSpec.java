@@ -1,10 +1,9 @@
-package io.apicurio.registry.operator.api.v1.spec.auth;
+package io.apicurio.registry.operator.api.v1.spec;
 
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.apicurio.registry.operator.api.v1.spec.SecretKeyRef;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -12,7 +11,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "tlsVerificationType", "truststoreSecretRef", "truststorePasswordSecretRef" })
+@JsonPropertyOrder({ "insecureRequests", "truststoreSecretRef", "truststorePasswordSecretRef", "keystoreSecretRef", "keystorePasswordSecretRef" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -20,16 +19,16 @@ import static lombok.AccessLevel.PRIVATE;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class AuthTLSSpec {
+public class TLSSpec {
 
     /**
-     * Type of TLS verification.
+     * Whether insecure requests are allowed. Default is <code>enabled</code>.
      */
-    @JsonProperty("tlsVerificationType")
+    @JsonProperty("insecureRequests")
     @JsonPropertyDescription("""
-            Verify the identity server certificate.""")
+            Whether insecure requests are allowed. Default is <code>enabled</code>.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String tlsVerificationType;
+    private String insecureRequests;
 
     /**
      * Name of a Secret that contains the TLS truststore (in PKCS12 format). Key <code>ca.p12</code> is
@@ -52,4 +51,26 @@ public class AuthTLSSpec {
             Key `ca.password` is assumed by default.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private SecretKeyRef truststorePasswordSecretRef;
+
+    /**
+     * Name of a Secret that contains the TLS keystore (in PKCS12 format). Key <code>ca.p12</code> is
+     * assumed by default.
+     */
+    @JsonProperty("keystoreSecretRef")
+    @JsonPropertyDescription("""
+            Name of a Secret that contains the TLS keystore (in PKCS12 format). \
+            Key `ca.p12` is assumed by default.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private SecretKeyRef keystoreSecretRef;
+
+    /**
+     * Name of a Secret that contains the TLS keystore password. Key <code>ca.password</code> is assumed by
+     * default.
+     */
+    @JsonProperty("keystorePasswordSecretRef")
+    @JsonPropertyDescription("""
+            Name of a Secret that contains the TLS keystore password. \
+            Key `ca.password` is assumed by default.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private SecretKeyRef keystorePasswordSecretRef;
 }

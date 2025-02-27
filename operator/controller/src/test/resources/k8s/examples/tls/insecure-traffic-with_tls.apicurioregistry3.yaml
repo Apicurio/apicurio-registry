@@ -1,0 +1,29 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple
+spec:
+  app:
+    env:
+    ingress:
+      host: simple-app.apps.cluster.example
+    tls:
+      insecureRequests: enabled
+      truststoreSecretRef:
+        name: truststore
+        key: truststore
+      truststorePasswordSecretRef:
+        name: truststore
+        key: password
+      keystoreSecretRef:
+        name: keystore
+        key: keystore
+      keystorePasswordSecretRef:
+        name: keystore
+        key: password
+  ui:
+    ingress:
+      host: simple-ui.apps.cluster.example
+    env:
+      - name: REGISTRY_API_URL
+        value: https://simple-app.apps.cluster.example/apis/registry/v3

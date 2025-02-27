@@ -7,6 +7,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
+import io.apicurio.registry.operator.api.v1.spec.TLSSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
@@ -23,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static io.apicurio.registry.operator.Constants.DEFAULT_REPLICAS;
+import static io.apicurio.registry.operator.Constants.*;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.*;
 import static io.apicurio.registry.operator.resource.Labels.getSelectorLabels;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromPodTemplateSpec;
@@ -56,6 +57,19 @@ public class ResourceFactory {
                         .map(AppSpec::getReplicas).orElse(DEFAULT_REPLICAS),
                 ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                         .map(AppSpec::getPodTemplateSpec).orElse(null)); // TODO:
+
+        var readinessProbe = DEFAULT_READINESS_PROBE;
+        var livenessProbe = DEFAULT_LIVENESS_PROBE;
+
+        Optional<TLSSpec> tlsSpec = ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(AppSpec::getTls);
+
+        if (tlsSpec.isPresent()) {
+            readinessProbe = TLS_DEFAULT_READINESS_PROBE;
+            livenessProbe = TLS_DEFAULT_LIVENESS_PROBE;
+        }
+
         // Replicas
         mergeDeploymentPodTemplateSpec(
                 COMPONENT_APP_SPEC_FIELD_NAME,
@@ -64,11 +78,12 @@ public class ResourceFactory {
                 REGISTRY_APP_CONTAINER_NAME,
                 Configuration.getAppImage(),
                 List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
-                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/ready").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
-                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
+                readinessProbe,
+                livenessProbe,
                 Map.of("cpu", new Quantity("500m"), "memory", new Quantity("512Mi")),
                 Map.of("cpu", new Quantity("1"), "memory", new Quantity("1Gi"))
         );
+
         addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_APP);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_APP);
         addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_APP);

@@ -22,7 +22,7 @@ import static lombok.AccessLevel.PRIVATE;
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
 @JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectURI", "authServerUrl", "logoutURL",
-        "anonymousReads", "basicAuth", "tls", "authz" })
+        "anonymousReads", "basicAuth", "tlsVerificationType", "authz" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -83,12 +83,14 @@ public class AuthSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private BasicAuthSpec basicAuth;
 
-    @JsonProperty("tls")
+    /**
+     * Type of TLS verification for authentication.
+     */
+    @JsonProperty("tlsVerificationType")
     @JsonPropertyDescription("""
-            OIDC TLS configuration.
-            When custom certificates are used, this is the field to be used to configure the trustore""")
+            Verify the identity server certificate.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private AuthTLSSpec tls;
+    private String tlsVerificationType;
 
     @JsonProperty("authz")
     @JsonPropertyDescription("""

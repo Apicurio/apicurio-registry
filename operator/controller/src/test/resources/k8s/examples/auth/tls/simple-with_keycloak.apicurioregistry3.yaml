@@ -6,6 +6,13 @@ spec:
   app:
     ingress:
       host: simple-app.apps.cluster.example
+    tls:
+      truststoreSecretRef:
+        name: keycloak-truststore
+        key: truststore
+      truststorePasswordSecretRef:
+        name: keycloak-truststore
+        key: password
     auth:
       enabled: true
       appClientId: registry-api
@@ -13,14 +20,7 @@ spec:
       authServerUrl: https://simple-keycloak.apps.cluster.example/realms/registry
       redirectURI: https://simple-ui.apps.cluster.example
       logoutURL: https://simple-ui.apps.cluster.example
-      tls:
-        tlsVerificationType: required
-        truststoreSecretRef:
-          name: keycloak-truststore
-          key: truststore
-        truststorePasswordSecretRef:
-          name: keycloak-truststore
-          key: password
+      tlsVerificationType: required
   ui:
     ingress:
       host: simple-ui.apps.cluster.example

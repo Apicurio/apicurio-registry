@@ -17,8 +17,7 @@ spec:
       basicAuth:
         enabled: true
         cacheExpiration: 25
-      tls:
-        tlsVerificationType: none
+      tlsVerificationType: none
   ui:
     ingress:
       host: simple-ui.apps.cluster.example

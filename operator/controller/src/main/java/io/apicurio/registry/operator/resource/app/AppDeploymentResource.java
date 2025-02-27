@@ -82,7 +82,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         if (authEnabled) {
             Auth.configureAuth(requireNonNull(ofNullable(primary.getSpec().getApp())
                     .map(AppSpec::getAuth)
-                    .orElse(null)), envVars);
+                    .orElse(null)), deployment, envVars);
         }
 
         // Configure the CORS_ALLOWED_ORIGINS env var based on the ingress host

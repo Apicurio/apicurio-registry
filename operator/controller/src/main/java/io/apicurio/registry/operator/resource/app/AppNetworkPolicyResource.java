@@ -50,7 +50,7 @@ public class AppNetworkPolicyResource
                     var httpPolicy = new io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyPortBuilder()
                             .withPort(new IntOrStringBuilder().withValue(8080).build()).build();
 
-                    if (!tls.getInsecureRequests().equals("enabled")) {
+                    if (tls.getInsecureRequests() != null && !tls.getInsecureRequests().equals("enabled")) {
                         networkPolicy.getSpec().setIngress(List.of(new NetworkPolicyIngressRuleBuilder()
                                 .withPorts(httpsPolicy)
                                 .build()));

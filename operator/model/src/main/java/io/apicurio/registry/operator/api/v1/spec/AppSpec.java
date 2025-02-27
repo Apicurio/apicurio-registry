@@ -13,7 +13,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "env", "ingress", "podTemplateSpec", "storage", "sql", "kafkasql", "features", "auth", "tls" })
+@JsonPropertyOrder({ "env", "ingress", "podTemplateSpec", "storage", "sql", "kafkasql", "features", "auth" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)

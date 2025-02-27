@@ -48,7 +48,7 @@ public class AppServiceResource extends CRUDKubernetesDependentResource<Service,
                             .withTargetPort(new IntOrStringBuilder().withValue(8443).build())
                             .build();
 
-                    if (tls.getInsecureRequests().equals("enabled")) {
+                    if (tls.getInsecureRequests() != null && tls.getInsecureRequests().equals("enabled")) {
                         s.getSpec().setPorts(List.of(httpsPort, httpPort));
                     }
                     else {

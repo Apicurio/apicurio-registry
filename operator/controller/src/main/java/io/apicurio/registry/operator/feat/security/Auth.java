@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.feat.security;
 import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
 
 import java.util.Map;
 import java.util.Optional;
@@ -19,10 +20,11 @@ public class Auth {
      * Configures authentication-related environment variables for the Apicurio Registry.
      *
      * @param env The map of environment variables to be configured.
+     * @param deployment The application deployment to configure TLS.
      * @param authSpec The authentication specification containing required auth settings. If null, no changes
      *            will be made to envVars.
      */
-    public static void configureAuth(AuthSpec authSpec, Map<String, EnvVar> env) {
+    public static void configureAuth(AuthSpec authSpec, Deployment deployment, Map<String, EnvVar> env) {
         if (authSpec == null) {
             return;
         }
@@ -51,9 +53,7 @@ public class Auth {
                     authSpec.getBasicAuth().getCacheExpiration());
         }
 
-        putIfNotBlank(env, EnvironmentVariables.OIDC_TLS_VERIFICATION,
-                authSpec.getTlsVerificationType());
-
+        AuthTLS.configureAuthTLS(authSpec, deployment, env);
         Authz.configureAuthz(authSpec.getAuthz(), env);
     }
 }

@@ -20,7 +20,7 @@ import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.g
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
-public class AuthTLSITTest extends BaseAuthTest {
+public class AuthTLSITTest extends BaseAuthITTest {
 
     private static final Logger log = LoggerFactory.getLogger(AuthTLSITTest.class);
 

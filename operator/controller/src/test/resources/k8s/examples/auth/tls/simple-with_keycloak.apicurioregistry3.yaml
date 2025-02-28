@@ -3,6 +3,9 @@ kind: ApicurioRegistry3
 metadata:
   name: simple
 spec:
+  env:
+    - name: QUARKUS_OIDC_TLS_VERIFICATION
+      value: "none"
   app:
     ingress:
       host: simple-app.apps.cluster.example
@@ -13,14 +16,13 @@ spec:
       authServerUrl: https://simple-keycloak.apps.cluster.example/realms/registry
       redirectURI: https://simple-ui.apps.cluster.example
       logoutURL: https://simple-ui.apps.cluster.example
-      tls:
-        tlsVerificationType: required
-        truststoreSecretRef:
-          name: keycloak-truststore
-          key: truststore
-        truststorePasswordSecretRef:
-          name: keycloak-truststore
-          key: password
+    tls:
+      truststoreSecretRef:
+        name: keycloak-truststore
+        key: truststore
+      truststorePasswordSecretRef:
+        name: keycloak-truststore
+        key: password
   ui:
     ingress:
       host: simple-ui.apps.cluster.example

@@ -16,7 +16,7 @@ import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.g
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
-public class AuthzITTest extends BaseAuthTest {
+public class AuthzITTest extends BaseAuthITTest {
 
     /**
      * In this test, Keycloak is deployed using a self-signed certificate with the hostname set to the ingress

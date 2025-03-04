@@ -267,7 +267,7 @@ OLM tests are similar to the remote tests in that the operator is deployed into 
 4. Run:
    ```shell
    make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
-   mvn clean verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(make catalog-image-get)
+   mvn verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(make VAR=CATALOG_IMAGE get-variable)
    ```
    or
    ```shell
@@ -277,9 +277,9 @@ OLM tests are similar to the remote tests in that the operator is deployed into 
 
 Configuration options for the remote + OLM tests are same as those for the remote tests, but the following options are additionally available:
 
-| Option                      | Type             | Default value                                                         | Description                                                             |
-|-----------------------------|------------------|-----------------------------------------------------------------------|-------------------------------------------------------------------------|
-| test.operator.catalog-image | string           | `quay.io/apicurio/apicurio-registry-operator-catalog:latest-snapshot` | Catalog image that is used to deploy the operator for testing with OLM. |
+| Option                      | Type             | Default value | Description                                                             |
+|-----------------------------|------------------|---------------|-------------------------------------------------------------------------|
+| test.operator.catalog-image | string           | -             | Catalog image that is used to deploy the operator for testing with OLM. |
 
 ## Distribution and Release
 

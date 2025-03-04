@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.client.utils.Serialization;
 
@@ -12,8 +13,9 @@ import static org.awaitility.Awaitility.await;
 
 public abstract class BaseAuthITTest extends ITBase {
 
-    protected static ApicurioRegistry3 prepareInfra(String keycloakResource, String apicurioResource) {
-        installKeycloak(keycloakResource);
+    protected static ApicurioRegistry3 prepareInfra(String apicurioResource, String keycloakRealm, String keycloakResource) {
+
+        installKeycloak(keycloakResource, keycloakRealm);
 
         // Deploy Registry
         var registry = deserialize(apicurioResource, ApicurioRegistry3.class);
@@ -23,9 +25,14 @@ public abstract class BaseAuthITTest extends ITBase {
         return registry;
     }
 
-    protected static void installKeycloak(String keycloakResource) {
+    protected static void installKeycloak(String keycloakRealm, String keycloakResource) {
+        ConfigMap configMap = Serialization
+                .unmarshal(AuthITTest.class.getResourceAsStream(keycloakRealm));
+
         List<HasMetadata> resources = Serialization
                 .unmarshal(AuthITTest.class.getResourceAsStream(keycloakResource));
+
+        resources.add(0, configMap);
 
         createResources(resources, "Keycloak");
 

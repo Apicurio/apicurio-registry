@@ -21,7 +21,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "enabled", "mechanism", "clientId", "clientSecretRef", "tokenEndpoint",
+@JsonPropertyOrder({ "enabled", "mechanism", "clientIdRef", "clientSecretRef", "tokenEndpoint",
         "loginHandlerClass" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -44,11 +44,11 @@ public class KafkaSqlAuthSpec {
     @JsonSetter(nulls = SKIP)
     private String mechanism;
 
-    @JsonProperty("clientId")
+    @JsonProperty("clientIdRef")
     @JsonPropertyDescription("""
-            The client ID used to authenticate to Kafka.""")
+            The clientId used to authenticate to Kafka.""")
     @JsonSetter(nulls = SKIP)
-    private String clientId;
+    private SecretKeyRef clientIdRef;
 
     @JsonProperty("clientSecretRef")
     @JsonPropertyDescription("""

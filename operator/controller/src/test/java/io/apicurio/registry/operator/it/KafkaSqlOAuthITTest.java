@@ -26,7 +26,7 @@ public class KafkaSqlOAuthITTest extends BaseAuthITTest {
 
     @Test
     void testKafkaSQLTLS() {
-        installKeycloak("/k8s/examples/auth/keycloak.yaml");
+        installKeycloak("/k8s/examples/auth/keycloak_realm.yaml", "/k8s/examples/auth/keycloak_http.yaml");
 
         client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/oauth/oauth-example-cluster.yaml"))
                 .create();
@@ -34,7 +34,7 @@ public class KafkaSqlOAuthITTest extends BaseAuthITTest {
 
         await().ignoreExceptions().untilAsserted(() ->
                 // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
-                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-kafka-0").get().getStatus()
+                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0").get().getStatus()
                         .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
                         .containsOnly("True"));
 

@@ -12,21 +12,16 @@ spec:
       kafkasql:
         bootstrapServers: "<service name>.<namespace>.svc:9093"
         # Try using Strimzi/Red Hat AMQ Streams Operator!
-        tls:
-          truststoreSecretRef:
-            name: keycloak-truststore
-            key: truststore
-          truststorePasswordSecretRef:
-            name: keycloak-truststore
-            key: password
         auth:
           enabled: true
           mechanism: "OAUTHBEARER"
-          clientId: "admin-client"
+          clientIdRef:
+            name: client-credentials
+            key: clientId
           clientSecretRef:
             name: client-credentials
-            key: client-secret
-          tokenEndpoint: https://simple-keycloak.apps.cluster.example/realms/registry/protocol/openid-connect/token
+            key: clientSecret
+          tokenEndpoint: http://keycloak:8080/realms/registry/protocol/openid-connect/token
           loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
     ingress:
       host: example-kafkasql-tls-app.apps.cluster.example

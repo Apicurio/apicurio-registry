@@ -24,8 +24,9 @@ public class AuthITTest extends BaseAuthITTest {
     @Test
     void testAuthTlsNoVerification() {
         // Preparation, deploy Keycloak
-        ApicurioRegistry3 registry = prepareInfra("/k8s/examples/auth/keycloak.yaml",
-                "k8s/examples/auth/simple-with_keycloak.apicurioregistry3.yaml");
+        ApicurioRegistry3 registry = prepareInfra("k8s/examples/auth/simple-with_keycloak.apicurioregistry3.yaml",
+                "keycloak_realm.yaml", "/k8s/examples/auth/keycloak_https.yaml"
+        );
         AuthSpec authSpec = registry.getSpec().getApp().getAuth();
 
         Assertions.assertEquals("registry-api", authSpec.getAppClientId());

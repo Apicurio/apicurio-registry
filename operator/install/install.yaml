@@ -9609,7 +9609,7 @@ spec:
           value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
         - name: STUDIO_UI_IMAGE
           value: quay.io/apicurio/apicurio-studio-ui:latest-snapshot
-        image: quay.io/apicurio/apicurio-registry-operator:latest-snapshot
+        image: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

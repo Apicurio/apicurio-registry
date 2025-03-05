@@ -1,6 +1,5 @@
 package io.apicurio.registry.serde;
 
-import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
@@ -14,7 +13,6 @@ import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.Map;
 
@@ -47,11 +45,6 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
         this.headersHandler = headersHandler;
     }
 
-    protected void serializeData(Headers headers, ParsedSchema<T> schema, U data, OutputStream out)
-            throws IOException {
-        delegatedSerializer.serializeData(schema, data, out);
-    }
-
     @Override
     public byte[] serialize(String topic, U data) {
         return delegatedSerializer.serializeData(topic, data);
@@ -71,7 +64,7 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
                         .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 headersHandler.writeHeaders(headers, schema.toArtifactReference());
-                this.serializeData(headers, schema.getParsedSchema(), data, out);
+                delegatedSerializer.serializeData(schema.getParsedSchema(), data, out);
                 return out.toByteArray();
             } else {
                 return delegatedSerializer.serializeData(topic, data);

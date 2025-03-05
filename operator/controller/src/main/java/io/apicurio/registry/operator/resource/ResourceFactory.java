@@ -58,8 +58,8 @@ public class ResourceFactory {
                 ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                         .map(AppSpec::getPodTemplateSpec).orElse(null)); // TODO:
 
-        var readinessProbe = DEFAULT_READINESS_PROBE;
-        var livenessProbe = DEFAULT_LIVENESS_PROBE;
+        var readinessProbe = new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/ready").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build();
+        var livenessProbe = new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build();
 
         Optional<TLSSpec> tlsSpec = ofNullable(primary.getSpec())
                 .map(ApicurioRegistry3Spec::getApp)

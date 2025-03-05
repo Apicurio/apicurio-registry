@@ -1,7 +1,6 @@
 package io.apicurio.registry.serde.jsonschema;
 
 import com.networknt.schema.JsonSchema;
-import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -9,8 +8,6 @@ import io.apicurio.registry.serde.KafkaSerializer;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import org.apache.kafka.common.header.Headers;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,18 +58,12 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
         ((JsonSchemaSerializer<T>) delegatedSerializer).setValidationEnabled(validationEnabled);
     }
 
-    /**
-     * @see KafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
-     *      io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
-     */
     @Override
-    protected void serializeData(Headers headers, ParsedSchema<JsonSchema> schema, T data, OutputStream out)
-            throws IOException {
-
+    public byte[] serialize(String topic, Headers headers, T data) {
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
         }
 
-        delegatedSerializer.serializeData(schema, data, out);
+        return super.serialize(topic, headers, data);
     }
 }

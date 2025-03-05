@@ -1,7 +1,6 @@
 package io.apicurio.registry.serde.protobuf;
 
 import com.google.protobuf.Message;
-import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -9,8 +8,6 @@ import io.apicurio.registry.serde.KafkaSerializer;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import org.apache.kafka.common.header.Headers;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,13 +43,8 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
         serdeHeaders = new ProtobufSerdeHeaders(new HashMap<>(configs), isKey);
     }
 
-    /**
-     * @see KafkaSerializer#serializeData(org.apache.kafka.common.header.Headers,
-     *      io.apicurio.registry.resolver.ParsedSchema, java.lang.Object, java.io.OutputStream)
-     */
     @Override
-    protected void serializeData(Headers headers, ParsedSchema<ProtobufSchema> schema, U data,
-            OutputStream out) throws IOException {
+    public byte[] serialize(String topic, Headers headers, U data) {
         if (headers != null) {
             serdeHeaders.addMessageTypeHeader(headers, data.getClass().getName());
             serdeHeaders.addProtobufTypeNameHeader(headers, data.getDescriptorForType().getName());
@@ -60,6 +52,6 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
             ((ProtobufSerializer<U>) delegatedSerializer).setWriteRef(false);
         }
 
-        delegatedSerializer.serializeData(schema, data, out);
+        return super.serialize(topic, headers, data);
     }
 }

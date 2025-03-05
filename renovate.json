@@ -236,6 +236,17 @@
       ]
     },
     {
+      "groupName": "Dependencies: Typescript Version (Temporary)",
+      "matchFileNames": [
+        "ui/ui-app/**",
+        "ui/ui-editors/**"
+      ],
+      "enabled": false,
+      "matchPackageNames": [
+        "typescript"
+      ]
+    },
+    {
       "groupName": "Dependencies: UI App (Major)",
       "matchFileNames": [
         "ui/ui-app/**"

@@ -33,7 +33,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Node.js v20
+      - name: Set up Node.js
         uses: actions/setup-node@v1
         with:
           node-version: 20

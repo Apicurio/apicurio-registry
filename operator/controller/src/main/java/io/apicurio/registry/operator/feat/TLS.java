@@ -64,4 +64,8 @@ public class TLS {
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getTls);
     }
+
+    public static boolean insecureRequestsEnabled(TLSSpec tlsSpec) {
+        return "enabled".equals(tlsSpec.getInsecureRequests());
+    }
 }

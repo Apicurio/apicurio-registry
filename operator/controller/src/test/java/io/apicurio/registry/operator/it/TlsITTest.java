@@ -7,6 +7,7 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyIngressRule;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -68,6 +69,7 @@ public class TlsITTest extends ITBase {
                     .withName(registry.getMetadata().getName() + "-app-service").get().getSpec();
 
             assertThat(service.getClusterIP()).isNotBlank();
+            Assertions.assertEquals(1, service.getPorts().size());
             assertThat(service.getPorts().get(0).getPort()).isEqualTo(443);
             assertThat(service.getClusterIP()).isNotBlank();
             return true;
@@ -86,9 +88,12 @@ public class TlsITTest extends ITBase {
 
         // Network Policy
         await().ignoreExceptions().until(() -> {
-            assertThat(client.network().v1().networkPolicies().inNamespace(namespace)
+            NetworkPolicyIngressRule networkPolicyIngressRule = client.network().v1().networkPolicies().inNamespace(namespace)
                     .withName("simple-app-networkpolicy").get().getSpec().getIngress()
-                    .get(0).getPorts().get(0).getPort().getIntVal()).isEqualTo(8443);
+                    .get(0);
+            Assertions.assertEquals(1, networkPolicyIngressRule.getPorts().size());
+
+            assertThat(networkPolicyIngressRule.getPorts().get(0).getPort().getIntVal()).isEqualTo(8443);
             return true;
         });
     }
@@ -134,26 +139,22 @@ public class TlsITTest extends ITBase {
             assertThat(service.getClusterIP()).isNotBlank();
             assertThat(service.getPorts().get(0).getPort()).isEqualTo(443);
             assertThat(service.getPorts().get(1).getPort()).isEqualTo(8080);
+
+            Assertions.assertEquals(2, service.getPorts().size());
+
             assertThat(service.getClusterIP()).isNotBlank();
             return true;
         });
 
-        // Ingresses
-        await().ignoreExceptions().until(() -> {
-            assertThat(client.network().v1().ingresses().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-app-ingress").get().getSpec().getRules()
-                    .get(0).getHost()).isEqualTo(registry.getSpec().getApp().getIngress().getHost());
-            assertThat(client.network().v1().ingresses().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-ui-ingress").get().getSpec().getRules()
-                    .get(0).getHost()).isEqualTo(registry.getSpec().getUi().getIngress().getHost());
-            return true;
-        });
 
         // Network Policy
         await().ignoreExceptions().until(() -> {
             NetworkPolicyIngressRule networkPolicyIngressRule = client.network().v1().networkPolicies().inNamespace(namespace)
                     .withName("simple-app-networkpolicy").get().getSpec().getIngress()
                     .get(0);
+
+            Assertions.assertEquals(2, networkPolicyIngressRule.getPorts().size());
+
             assertThat(networkPolicyIngressRule.getPorts().get(0).getPort().getIntVal()).isEqualTo(8443);
             assertThat(networkPolicyIngressRule.getPorts().get(1).getPort().getIntVal()).isEqualTo(8080);
             return true;

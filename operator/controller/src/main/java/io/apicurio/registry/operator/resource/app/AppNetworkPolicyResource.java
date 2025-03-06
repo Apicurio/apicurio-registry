@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.resource.app;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.feat.TLS;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.AppNetworkPolicyDiscriminator;
 import io.fabric8.kubernetes.api.model.IntOrStringBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
@@ -50,7 +51,7 @@ public class AppNetworkPolicyResource
                     var httpPolicy = new io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyPortBuilder()
                             .withPort(new IntOrStringBuilder().withValue(8080).build()).build();
 
-                    if (tls.getInsecureRequests() != null && !tls.getInsecureRequests().equals("enabled")) {
+                    if (!TLS.insecureRequestsEnabled(tls)) {
                         networkPolicy.getSpec().setIngress(List.of(new NetworkPolicyIngressRuleBuilder()
                                 .withPorts(httpsPolicy)
                                 .build()));

@@ -58,8 +58,9 @@ public class ResourceFactory {
                 ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                         .map(AppSpec::getPodTemplateSpec).orElse(null)); // TODO:
 
-        var readinessProbe = new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/ready").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build();
-        var livenessProbe = new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build();
+        var readinessProbe = DEFAULT_READINESS_PROBE;
+        var livenessProbe = DEFAULT_LIVENESS_PROBE;
+        var containerPort = List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build());
 
         Optional<TLSSpec> tlsSpec = ofNullable(primary.getSpec())
                 .map(ApicurioRegistry3Spec::getApp)
@@ -68,6 +69,7 @@ public class ResourceFactory {
         if (tlsSpec.isPresent()) {
             readinessProbe = TLS_DEFAULT_READINESS_PROBE;
             livenessProbe = TLS_DEFAULT_LIVENESS_PROBE;
+            containerPort = List.of(new ContainerPortBuilder().withName("https").withProtocol("TCP").withContainerPort(8443).build());
         }
 
         // Replicas
@@ -77,7 +79,7 @@ public class ResourceFactory {
                 r.getSpec().getTemplate(),
                 REGISTRY_APP_CONTAINER_NAME,
                 Configuration.getAppImage(),
-                List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
+                containerPort,
                 readinessProbe,
                 livenessProbe,
                 Map.of("cpu", new Quantity("500m"), "memory", new Quantity("512Mi")),

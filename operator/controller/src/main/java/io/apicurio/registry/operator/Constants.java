@@ -36,6 +36,16 @@ public class Constants {
             .withInitialDelaySeconds(15).withTimeoutSeconds(5).withPeriodSeconds(10).withSuccessThreshold(1)
             .withFailureThreshold(3).build();
 
+    public static final Probe TLS_DEFAULT_READINESS_PROBE = new ProbeBuilder().withNewHttpGet()
+            .withScheme("HTTPS").withPath("/health/ready").withNewPort().withValue(8443).endPort().endHttpGet()
+            .withInitialDelaySeconds(15).withTimeoutSeconds(5).withPeriodSeconds(10).withSuccessThreshold(1)
+            .withFailureThreshold(3).build();
+
+    public static final Probe TLS_DEFAULT_LIVENESS_PROBE = new ProbeBuilder().withNewHttpGet()
+            .withScheme("HTTPS").withPath("/health/live").withNewPort().withValue(8443).endPort().endHttpGet()
+            .withInitialDelaySeconds(15).withTimeoutSeconds(5).withPeriodSeconds(10).withSuccessThreshold(1)
+            .withFailureThreshold(3).build();
+
     public static final Map<String, String> BASIC_LABELS = Map.of(MANAGED_BY_LABEL, MANAGED_BY_VALUE,
             LABEL_SELECTOR_KEY, LABEL_SELECTOR_VALUE);
 

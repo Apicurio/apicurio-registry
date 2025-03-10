@@ -14,7 +14,7 @@ spec:
       redirectURI: https://simple-ui.apps.cluster.example
       logoutURL: https://simple-ui.apps.cluster.example
       tls:
-        tlsVerificationType: required
+        tlsVerificationType: none
         truststoreSecretRef:
           name: keycloak-truststore
           key: truststore

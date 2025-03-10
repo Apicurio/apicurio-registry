@@ -3359,6 +3359,67 @@ spec:
                         - postgresql
                         type: string
                     type: object
+                  tls:
+                    description: |
+                      Configure tls of Apicurio Registry.
+                    properties:
+                      insecureRequests:
+                        description: Whether insecure requests are allowed. Default
+                          is <code>enabled</code>.
+                        type: string
+                      keystorePasswordSecretRef:
+                        description: Name of a Secret that contains the TLS keystore
+                          password. Key `ca.password` is assumed by default.
+                        properties:
+                          key:
+                            description: Name of the key in the referenced Secret
+                              that contain the target data. This field might be optional
+                              if a default value has been defined.
+                            type: string
+                          name:
+                            description: Name of a Secret that is being referenced.
+                            type: string
+                        type: object
+                      keystoreSecretRef:
+                        description: Name of a Secret that contains the TLS keystore
+                          (in PKCS12 format). Key `ca.p12` is assumed by default.
+                        properties:
+                          key:
+                            description: Name of the key in the referenced Secret
+                              that contain the target data. This field might be optional
+                              if a default value has been defined.
+                            type: string
+                          name:
+                            description: Name of a Secret that is being referenced.
+                            type: string
+                        type: object
+                      truststorePasswordSecretRef:
+                        description: Name of a Secret that contains the TLS truststore
+                          password. Key `ca.password` is assumed by default.
+                        properties:
+                          key:
+                            description: Name of the key in the referenced Secret
+                              that contain the target data. This field might be optional
+                              if a default value has been defined.
+                            type: string
+                          name:
+                            description: Name of a Secret that is being referenced.
+                            type: string
+                        type: object
+                      truststoreSecretRef:
+                        description: Name of a Secret that contains the TLS truststore
+                          (in PKCS12 format). Key `ca.p12` is assumed by default.
+                        properties:
+                          key:
+                            description: Name of the key in the referenced Secret
+                              that contain the target data. This field might be optional
+                              if a default value has been defined.
+                            type: string
+                          name:
+                            description: Name of a Secret that is being referenced.
+                            type: string
+                        type: object
+                    type: object
                 type: object
               studioUi:
                 description: Configure Apicurio Studio UI component.

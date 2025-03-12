@@ -300,7 +300,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             @SuppressWarnings("unchecked")
             Class<IDbUpgrader> upgraderClass = (Class<IDbUpgrader>) Class.forName(cname);
             IDbUpgrader upgrader = upgraderClass.getConstructor().newInstance();
-            upgrader.upgrade( handle);
+            upgrader.upgrade(handle);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -638,7 +638,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     protected void ensureContent(ContentHandle content, String contentHash, String canonicalContentHash,
-                               List<ArtifactReferenceDto> references, String referencesSerialized) {
+                                 List<ArtifactReferenceDto> references, String referencesSerialized) {
         this.handles.withHandle(handle -> {
             byte[] contentBytes = content.bytes();
 
@@ -1125,9 +1125,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // Formulate the SELECT clause for the artifacts query
             select.append(
                     "SELECT a.*, v.globalId, v.version, v.state, v.name, v.description, v.labels, v.properties, "
-                            + "v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
-                            + "FROM artifacts a "
-                            + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId ");
+                    + "v.createdBy AS modifiedBy, v.createdOn AS modifiedOn "
+                    + "FROM artifacts a "
+                    + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId ");
             if (joinContentTable) {
                 select.append("JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId ");
             }
@@ -1149,13 +1149,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         break;
                     case everything:
                         where.append("("
-                                + "v.name LIKE ? OR "
-                                + "v.groupId LIKE ? OR "
-                                + "a.artifactId LIKE ? OR "
-                                + "v.description LIKE ? OR "
-                                + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId AND l.tenantId = v.tenantId) OR "
-                                + "EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId AND p.tenantId = v.tenantId)"
-                                + ")");
+                                     + "v.name LIKE ? OR "
+                                     + "v.groupId LIKE ? OR "
+                                     + "a.artifactId LIKE ? OR "
+                                     + "v.description LIKE ? OR "
+                                     + "EXISTS(SELECT l.globalId FROM labels l WHERE l.label = ? AND l.globalId = v.globalId AND l.tenantId = v.tenantId) OR "
+                                     + "EXISTS(SELECT p.globalId FROM properties p WHERE p.pkey = ? AND p.globalId = v.globalId AND p.tenantId = v.tenantId)"
+                                     + ")");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
@@ -1271,8 +1271,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
             // Query for the total row count
             String countSelect = "SELECT count(a.artifactId) "
-                    + "FROM artifacts a "
-                    + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId ";
+                                 + "FROM artifacts a "
+                                 + "JOIN versions v ON a.tenantId = v.tenantId AND a.latest = v.globalId ";
             if (joinContentTable) {
                 countSelect += "JOIN content c ON v.contentId = c.contentId AND v.tenantId = c.tenantId ";
             }
@@ -3311,11 +3311,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return handles.withHandleNoException(handle -> {
             String sql = sqlStatements().selectArtifactCountById();
             return handle.createQuery(sql)
-                    .bind(0, tenantContext().tenantId())
-                    .bind(1, normalizeGroupId(groupId))
-                    .bind(2, artifactId)
-                    .mapTo(Integer.class)
-                    .one() > 0;
+                           .bind(0, tenantContext().tenantId())
+                           .bind(1, normalizeGroupId(groupId))
+                           .bind(2, artifactId)
+                           .mapTo(Integer.class)
+                           .one() > 0;
         });
     }
 
@@ -3327,10 +3327,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return handles.withHandleNoException(handle -> {
             String sql = sqlStatements().selectGroupCountById();
             return handle.createQuery(sql)
-                    .bind(0, tenantContext().tenantId())
-                    .bind(1, normalizeGroupId(groupId))
-                    .mapTo(Integer.class)
-                    .one() > 0;
+                           .bind(0, tenantContext().tenantId())
+                           .bind(1, normalizeGroupId(groupId))
+                           .mapTo(Integer.class)
+                           .one() > 0;
         });
     }
 
@@ -3429,9 +3429,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         break;
                     case everything:
                         where.append("("
-                                + "g.groupId LIKE ? OR "
-                                + "g.description LIKE ? "
-                                + ")");
+                                     + "g.groupId LIKE ? OR "
+                                     + "g.description LIKE ? "
+                                     + ")");
                         binders.add((query, idx) -> {
                             query.bind(idx, "%" + filter.getStringValue() + "%");
                         });
@@ -3472,7 +3472,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             Query groupsQuery = handle.createQuery(groupsQuerySql);
             // Query for the total row count
             String countSelect = "SELECT count(g.groupId) "
-                    + "FROM groups g ";
+                                 + "FROM groups g ";
 
             Query countQuery = handle.createQuery(countSelect + where.toString());
 
@@ -3822,10 +3822,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return handles.withHandleNoException(handle -> {
             String sql = sqlStatements().selectContentExists();
             return handle.createQuery(sql)
-                    .bind(0, contentId)
-                    .bind(1, tenantContext.tenantId())
-                    .mapTo(Integer.class)
-                    .one() > 0;
+                           .bind(0, contentId)
+                           .bind(1, tenantContext.tenantId())
+                           .mapTo(Integer.class)
+                           .one() > 0;
         });
     }
 
@@ -3833,10 +3833,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return handles.withHandleNoException(handle -> {
             String sql = sqlStatements().selectGlobalIdExists();
             return handle.createQuery(sql)
-                    .bind(0, globalId)
-                    .bind(1, tenantContext.tenantId())
-                    .mapTo(Integer.class)
-                    .one() > 0;
+                           .bind(0, globalId)
+                           .bind(1, tenantContext.tenantId())
+                           .mapTo(Integer.class)
+                           .one() > 0;
         });
     }
 

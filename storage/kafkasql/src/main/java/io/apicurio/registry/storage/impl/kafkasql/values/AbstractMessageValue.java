@@ -27,6 +27,7 @@ public abstract class AbstractMessageValue implements MessageValue {
     /**
      * @return the action
      */
+    @Override
     public ActionType getAction() {
         return action;
     }
@@ -37,5 +38,4 @@ public abstract class AbstractMessageValue implements MessageValue {
     public void setAction(ActionType action) {
         this.action = action;
     }
-    
 }

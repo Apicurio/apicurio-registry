@@ -145,6 +145,9 @@ public class KafkaSqlFactory {
     @ConfigProperty(name = "registry.kafkasql.ssl.key.password")
     Optional<String> keyPassword;
 
+    @ConfigProperty(name = "registry.kafkasql.ignore-topic-exceptions", defaultValue = "false")
+    boolean ignoreKafkaSqlTopicExceptions;
+
     @ApplicationScoped
     @Produces
     public KafkaSqlConfiguration createConfiguration() {
@@ -191,6 +194,10 @@ public class KafkaSqlFactory {
                 return adminProperties;
             }
 
+            @Override
+            public boolean ignoreKafkaSqlTopicExceptions() {
+                return ignoreKafkaSqlTopicExceptions;
+            }
         };
     }
 

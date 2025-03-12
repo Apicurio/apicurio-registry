@@ -30,5 +30,6 @@ public interface MessageValue {
      */
     @JsonIgnore
     public MessageType getType();
-    
+
+    ActionType getAction();
 }

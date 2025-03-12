@@ -29,11 +29,7 @@ import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.storage.*;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
-import io.apicurio.registry.storage.impl.sql.jdb.Handle;
-import io.apicurio.registry.storage.impl.sql.jdb.Query;
-import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.storage.impl.sql.jdb.RuntimeSqlException;
-import io.apicurio.registry.storage.impl.sql.jdb.Update;
+import io.apicurio.registry.storage.impl.sql.jdb.*;
 import io.apicurio.registry.storage.impl.sql.mappers.*;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
@@ -92,6 +88,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     // Sequence counters ** Note: only used for H2 in-memory **
     private static final Map<String, AtomicLong> sequenceCounters = new HashMap<>();
+
     static {
         sequenceCounters.put(GLOBAL_ID_SEQUENCE, new AtomicLong(0));
         sequenceCounters.put(CONTENT_ID_SEQUENCE, new AtomicLong(0));
@@ -3652,10 +3649,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .execute();
                 log.info("Artifact rule imported successfully.");
             } catch (Exception e) {
-                log.warn("Failed to import content entity (likely it already exists).", e);
+                throw new ImportException(entity, e);
             }
         } else {
-            log.warn("Artifact rule import failed: artifact not found.");
+            throw new ImportException("Artifact not found.", entity);
         }
     }
 
@@ -3673,9 +3670,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .execute();
                 log.info("Artifact entity imported successfully.");
             } catch (Exception e) {
-                log.warn("Failed to import artifact entity.", e);
+                throw new ImportException(entity, e);
             }
-
         }
 
         if (entity.globalId == -1 || !isGlobalIdExists(entity.globalId)) {
@@ -3763,10 +3759,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 log.info("Content entity imported successfully.");
             } else {
-                log.info("Duplicate content entity already exists, skipped.");
+                log.warn("Duplicate content entity already exists, skipped.");
             }
         } catch (Exception e) {
-            log.warn("Failed to import content entity.", e);
+            throw new ImportException(entity, e);
         }
     }
 
@@ -3780,7 +3776,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .execute();
             log.info("Global Rule entity imported successfully.");
         } catch (Exception e) {
-            log.warn("Failed to import content entity (likely it already exists).", e);
+            throw new ImportException(entity, e);
         }
     }
 
@@ -3800,7 +3796,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .execute();
             log.info("Group entity imported successfully.");
         } catch (Exception e) {
-            log.warn("Failed to import group entity (likely it already exists).", e);
+            throw new ImportException(entity, e);
         }
     }
 
@@ -3817,7 +3813,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .execute();
             log.info("Comment entity imported successfully.");
         } catch (Exception e) {
-            log.warn("Failed to import comment entity.", e);
+            throw new ImportException(entity, e);
         }
     }
 

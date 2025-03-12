@@ -63,7 +63,7 @@ public class KafkaSqlSubmitter {
      * @param value
      */
     public CompletableFuture<UUID> send(MessageKey key, MessageValue value) {
-        UUID requestId = coordinator.createUUID();
+        UUID requestId = coordinator.createUUID(key, value != null ? value.getAction() : null);
         RecordHeader header = new RecordHeader("req", requestId.toString().getBytes());
         ProducerRecord<MessageKey, MessageValue> record = new ProducerRecord<>(configuration.topic(), 0, key, value, Collections.singletonList(header));
         return producer.apply(record).thenApply(rm -> requestId);

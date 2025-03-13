@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.resource.app;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.feat.TLS;
 import io.fabric8.kubernetes.api.model.IntOrStringBuilder;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServicePortBuilder;
@@ -48,7 +49,7 @@ public class AppServiceResource extends CRUDKubernetesDependentResource<Service,
                             .withTargetPort(new IntOrStringBuilder().withValue(8443).build())
                             .build();
 
-                    if (tls.getInsecureRequests() != null && tls.getInsecureRequests().equals("enabled")) {
+                    if (TLS.insecureRequestsEnabled(tls)) {
                         s.getSpec().setPorts(List.of(httpsPort, httpPort));
                     }
                     else {

@@ -26,4 +26,4 @@ spec:
       host: simple-ui.apps.cluster.example
     env:
       - name: REGISTRY_API_URL
-        value: https://simple-app.apps.cluster.example/apis/registry/v3
+        value: https://simple-app.apps.cluster.example/apis/registry/v3 # This example is only suitable for in-cluster connections. An external https ingress would need to be created manually for external access.

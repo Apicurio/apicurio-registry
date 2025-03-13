@@ -2,6 +2,7 @@ package io.apicurio.registry.operator.feat;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.api.v1.TlsTrafficStatus;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.TLSSpec;
 import io.apicurio.registry.operator.utils.SecretKeyRefTool;
@@ -24,7 +25,7 @@ public class TLS {
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getTls)
                 .map(TLSSpec::getInsecureRequests)
-                .orElse("enabled"));
+                .orElse(TlsTrafficStatus.ENABLED.getValue()));
 
         var keystore = new SecretKeyRefTool(getTlsSpec(primary)
                 .map(TLSSpec::getKeystoreSecretRef)
@@ -63,5 +64,9 @@ public class TLS {
                 .map(ApicurioRegistry3::getSpec)
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getTls);
+    }
+
+    public static boolean insecureRequestsEnabled(TLSSpec tlsSpec) {
+        return TlsTrafficStatus.ENABLED.getValue().equals(tlsSpec.getInsecureRequests());
     }
 }

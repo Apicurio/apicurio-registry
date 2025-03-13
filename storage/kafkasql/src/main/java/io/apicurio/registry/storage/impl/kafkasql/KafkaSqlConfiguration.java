@@ -32,5 +32,5 @@ public interface KafkaSqlConfiguration {
     Properties producerProperties();
     Properties consumerProperties();
     Properties adminProperties();
-
+    boolean ignoreKafkaSqlTopicExceptions();
 }

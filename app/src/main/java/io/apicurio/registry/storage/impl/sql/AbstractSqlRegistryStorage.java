@@ -3649,7 +3649,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .execute();
                 log.info("Artifact rule imported successfully.");
             } catch (Exception e) {
-                throw new ImportException(entity, e);
+                if (sqlStatements.isPrimaryKeyViolation(e)) {
+                    // We have decided to ignore all exceptions in previous versions,
+                    // which means duplicate imports are allowed (and recorded in the KafkaSQL topic).
+                    // Best we can do is try to determine which exceptions are OK and which need attention.
+                    // This also means that imports can't do updates.
+                    log.warn("Ignoring imported entity '" + entity + "' because it already exists", e);
+                } else {
+                    throw new ImportException(entity, e);
+                }
             }
         } else {
             throw new ImportException("Artifact not found.", entity);
@@ -3670,7 +3678,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .execute();
                 log.info("Artifact entity imported successfully.");
             } catch (Exception e) {
-                throw new ImportException(entity, e);
+                if (sqlStatements.isPrimaryKeyViolation(e)) {
+                    // We have decided to ignore all exceptions in previous versions,
+                    // which means duplicate imports are allowed (and recorded in the KafkaSQL topic).
+                    // Best we can do is try to determine which exceptions are OK and which need attention.
+                    // This also means that imports can't do updates.
+                    log.warn("Ignoring imported entity '" + entity + "' because it already exists", e);
+                } else {
+                    throw new ImportException(entity, e);
+                }
             }
         }
 
@@ -3762,7 +3778,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 log.warn("Duplicate content entity already exists, skipped.");
             }
         } catch (Exception e) {
-            throw new ImportException(entity, e);
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                // We have decided to ignore all exceptions in previous versions,
+                // which means duplicate imports are allowed (and recorded in the KafkaSQL topic).
+                // Best we can do is try to determine which exceptions are OK and which need attention.
+                // This also means that imports can't do updates.
+                log.warn("Ignoring imported entity '" + entity + "' because it already exists", e);
+            } else {
+                throw new ImportException(entity, e);
+            }
         }
     }
 
@@ -3776,7 +3800,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .execute();
             log.info("Global Rule entity imported successfully.");
         } catch (Exception e) {
-            throw new ImportException(entity, e);
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                // We have decided to ignore all exceptions in previous versions,
+                // which means duplicate imports are allowed (and recorded in the KafkaSQL topic).
+                // Best we can do is try to determine which exceptions are OK and which need attention.
+                // This also means that imports can't do updates.
+                log.warn("Ignoring imported entity '" + entity + "' because it already exists", e);
+            } else {
+                throw new ImportException(entity, e);
+            }
         }
     }
 
@@ -3796,7 +3828,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .execute();
             log.info("Group entity imported successfully.");
         } catch (Exception e) {
-            throw new ImportException(entity, e);
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                // We have decided to ignore all exceptions in previous versions,
+                // which means duplicate imports are allowed (and recorded in the KafkaSQL topic).
+                // Best we can do is try to determine which exceptions are OK and which need attention.
+                // This also means that imports can't do updates.
+                log.warn("Ignoring imported entity '" + entity + "' because it already exists", e);
+            } else {
+                throw new ImportException(entity, e);
+            }
         }
     }
 
@@ -3813,7 +3853,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .execute();
             log.info("Comment entity imported successfully.");
         } catch (Exception e) {
-            throw new ImportException(entity, e);
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                // We have decided to ignore all exceptions in previous versions,
+                // which means duplicate imports are allowed (and recorded in the KafkaSQL topic).
+                // Best we can do is try to determine which exceptions are OK and which need attention.
+                // This also means that imports can't do updates.
+                log.warn("Ignoring imported entity '" + entity + "' because it already exists", e);
+            } else {
+                throw new ImportException(entity, e);
+            }
         }
     }
 

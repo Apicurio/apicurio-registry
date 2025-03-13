@@ -11,6 +11,7 @@ import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.PostgresSql;
+import io.apicurio.registry.operator.feat.TLS;
 import io.apicurio.registry.operator.feat.security.Auth;
 import io.apicurio.registry.operator.status.ReadyConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
@@ -86,6 +87,9 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
 
         // Configure the CORS_ALLOWED_ORIGINS env var based on the ingress host
         Cors.configureAllowedOrigins(primary, envVars);
+
+        // Configure the TLS env vars
+        TLS.configureTLS(primary, deployment, REGISTRY_APP_CONTAINER_NAME, envVars);
 
         // Enable the "mutability" feature in Registry, but only if Studio is deployed. It is based on Service
         // in case a custom Ingress is used.

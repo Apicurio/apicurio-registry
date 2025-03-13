@@ -54,6 +54,16 @@ public class AppSpec extends ComponentSpec {
     private AuthSpec auth;
 
     /**
+     * Configure features of the Apicurio Registry application.
+     */
+    @JsonProperty("tls")
+    @JsonPropertyDescription("""
+            Configure tls of Apicurio Registry.
+            """)
+    @JsonSetter(nulls = SKIP)
+    private TLSSpec tls;
+
+    /**
      * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt
      * to update the fields automatically.
      */

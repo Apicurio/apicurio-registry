@@ -25,16 +25,10 @@ public class EnvITTest extends ITBase {
     private static final String[] defaultAppEnv = new String[]{
             "QUARKUS_PROFILE",
             "QUARKUS_HTTP_ACCESS_LOG_ENABLED",
-            "QUARKUS_HTTP_CORS_ORIGINS",
-            "APICURIO_REST_MUTABILITY_ARTIFACT-VERSION-CONTENT_ENABLED"
+            "QUARKUS_HTTP_CORS_ORIGINS"
     };
 
     private static final String[] defaultUIEnv = new String[] { "REGISTRY_API_URL" };
-
-    private static final String[] defaultStudioUIEnv = new String[] {
-            "APICURIO_REGISTRY_API_URL",
-            "APICURIO_REGISTRY_UI_URL"
-    };
 
     @Test
     void testEnvVars() {
@@ -43,8 +37,6 @@ public class EnvITTest extends ITBase {
         registry.getMetadata().setNamespace(namespace);
         registry.withSpec().withApp().withIngress().setHost(ingressManager.getIngressHost("app"));
         registry.withSpec().withUi().withIngress().setHost(ingressManager.getIngressHost("ui"));
-        registry.withSpec().withStudioUi().withIngress().setHost(ingressManager.getIngressHost("studio-ui"));
-        registry.getSpec().getStudioUi().setEnabled(true);
 
         client.resource(registry).create();
 
@@ -54,9 +46,6 @@ public class EnvITTest extends ITBase {
 
                 var uiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-ui-deployment").get(), REGISTRY_UI_CONTAINER_NAME).getEnv();
                 assertThat(uiEnv).map(EnvVar::getName).containsOnlyOnce(defaultUIEnv);
-
-                var studioUiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-studio-ui-deployment").get(), STUDIO_UI_CONTAINER_NAME).getEnv();
-                assertThat(studioUiEnv).map(EnvVar::getName).containsOnlyOnce(defaultStudioUIEnv);
 
                 return true;
         });
@@ -69,11 +58,6 @@ public class EnvITTest extends ITBase {
         registry.getSpec().getUi().setEnv(List.of(
                 new EnvVarBuilder().withName("UI_VAR_1_NAME").withValue("UI_VAR_1_VALUE").build(),
                 new EnvVarBuilder().withName("REGISTRY_API_URL").withValue("FOO").build(),
-                new EnvVarBuilder().withName("UI_VAR_2_NAME").withValue("UI_VAR_2_VALUE").build()
-        ));
-        registry.getSpec().getStudioUi().setEnv(List.of(
-                new EnvVarBuilder().withName("UI_VAR_1_NAME").withValue("UI_VAR_1_VALUE").build(),
-                new EnvVarBuilder().withName("APICURIO_REGISTRY_API_URL").withValue("FOO").build(),
                 new EnvVarBuilder().withName("UI_VAR_2_NAME").withValue("UI_VAR_2_VALUE").build()
         ));
 
@@ -102,15 +86,6 @@ public class EnvITTest extends ITBase {
                     new EnvVarBuilder().withName("UI_VAR_2_NAME").withValue("UI_VAR_2_VALUE").build()
             );
 
-            var studioUiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-studio-ui-deployment").get(), STUDIO_UI_CONTAINER_NAME).getEnv();
-            assertThat(studioUiEnv).map(EnvVar::getName).containsOnlyOnce(defaultStudioUIEnv);
-            var APICURIO_REGISTRY_API_URL = studioUiEnv.stream().filter(e -> "APICURIO_REGISTRY_API_URL".equals(e.getName())).map(EnvVar::getValue).findAny().get();
-            assertThat(APICURIO_REGISTRY_API_URL).isEqualTo("FOO");
-            assertThat(studioUiEnv).containsSubsequence(
-                    new EnvVarBuilder().withName("UI_VAR_1_NAME").withValue("UI_VAR_1_VALUE").build(),
-                    new EnvVarBuilder().withName("UI_VAR_2_NAME").withValue("UI_VAR_2_VALUE").build()
-            );
-
             return true;
         });
 
@@ -124,11 +99,6 @@ public class EnvITTest extends ITBase {
         registry.getSpec().getUi().setEnv(List.of(
                 new EnvVarBuilder().withName("UI_VAR_2_NAME").withValue("UI_VAR_2_VALUE").build(),
                 new EnvVarBuilder().withName("REGISTRY_API_URL").withValue("FOO").build(),
-                new EnvVarBuilder().withName("UI_VAR_1_NAME").withValue("UI_VAR_1_VALUE").build()
-        ));
-        registry.getSpec().getStudioUi().setEnv(List.of(
-                new EnvVarBuilder().withName("UI_VAR_2_NAME").withValue("UI_VAR_2_VALUE").build(),
-                new EnvVarBuilder().withName("APICURIO_REGISTRY_API_URL").withValue("FOO").build(),
                 new EnvVarBuilder().withName("UI_VAR_1_NAME").withValue("UI_VAR_1_VALUE").build()
         ));
 
@@ -154,15 +124,6 @@ public class EnvITTest extends ITBase {
             var REGISTRY_API_URL = uiEnv.stream().filter(e -> "REGISTRY_API_URL".equals(e.getName())).map(EnvVar::getValue).findAny().get();
             assertThat(REGISTRY_API_URL).isEqualTo("FOO");
             assertThat(uiEnv).containsSubsequence(
-                    new EnvVarBuilder().withName("UI_VAR_2_NAME").withValue("UI_VAR_2_VALUE").build(),
-                    new EnvVarBuilder().withName("UI_VAR_1_NAME").withValue("UI_VAR_1_VALUE").build()
-            );
-
-            var studioUiEnv = getContainerFromDeployment(client.apps().deployments().inNamespace(namespace).withName(registry.getMetadata().getName() + "-studio-ui-deployment").get(), STUDIO_UI_CONTAINER_NAME).getEnv();
-            assertThat(studioUiEnv).map(EnvVar::getName).containsOnlyOnce(defaultStudioUIEnv);
-            var APICURIO_REGISTRY_API_URL = studioUiEnv.stream().filter(e -> "APICURIO_REGISTRY_API_URL".equals(e.getName())).map(EnvVar::getValue).findAny().get();
-            assertThat(APICURIO_REGISTRY_API_URL).isEqualTo("FOO");
-            assertThat(studioUiEnv).containsSubsequence(
                     new EnvVarBuilder().withName("UI_VAR_2_NAME").withValue("UI_VAR_2_VALUE").build(),
                     new EnvVarBuilder().withName("UI_VAR_1_NAME").withValue("UI_VAR_1_VALUE").build()
             );

@@ -38,12 +38,6 @@ public class ResourceKey<R> {
     public static final String UI_POD_DISRUPTION_BUDGET_ID = "UIPodDisruptionBudgetResource";
     public static final String UI_NETWORK_POLICY_ID = "UINetworkPolicyResource";
 
-    public static final String STUDIO_UI_DEPLOYMENT_ID = "StudioUIDeploymentResource";
-    public static final String STUDIO_UI_SERVICE_ID = "StudioUIServiceResource";
-    public static final String STUDIO_UI_INGRESS_ID = "StudioUIIngressResource";
-    public static final String STUDIO_UI_POD_DISRUPTION_BUDGET_ID = "StudioUIPodDisruptionBudgetResource";
-    public static final String STUDIO_UI_NETWORK_POLICY_ID = "StudioUINetworkPolicyResource";
-
     public static final ResourceKey<ApicurioRegistry3> REGISTRY_KEY = new ResourceKey<>(
             REGISTRY_ID, ApicurioRegistry3.class,
             null, null
@@ -101,33 +95,6 @@ public class ResourceKey<R> {
     public static final ResourceKey<PodDisruptionBudget> UI_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(
             UI_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class,
             UiPodDisruptionBudgetDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUIPodDisruptionBudget
-    );
-
-    // ===== Studio UI
-
-    public static final ResourceKey<Deployment> STUDIO_UI_DEPLOYMENT_KEY = new ResourceKey<>(
-            STUDIO_UI_DEPLOYMENT_ID, Deployment.class,
-            StudioUIDeploymentDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultStudioUIDeployment
-    );
-
-    public static final ResourceKey<Service> STUDIO_UI_SERVICE_KEY = new ResourceKey<>(
-            STUDIO_UI_SERVICE_ID, Service.class,
-            StudioUIServiceDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultStudioUIService
-    );
-
-    public static final ResourceKey<Ingress> STUDIO_UI_INGRESS_KEY = new ResourceKey<>(
-            STUDIO_UI_INGRESS_ID, Ingress.class,
-            StudioUIIngressDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultStudioUIIngress
-    );
-
-    public static final ResourceKey<NetworkPolicy> STUDIO_UI_NETWORK_POLICY_KEY = new ResourceKey<>(
-            STUDIO_UI_NETWORK_POLICY_ID, NetworkPolicy.class,
-            StudioUINetworkPolicyDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultStudioUINetworkPolicy
-    );
-
-    public static final ResourceKey<PodDisruptionBudget> STUDIO_UI_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(
-            STUDIO_UI_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class,
-            StudioUiPodDisruptionBudgetDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultStudioUIPodDisruptionBudget
     );
 
     @EqualsAndHashCode.Include

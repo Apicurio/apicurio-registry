@@ -19,15 +19,18 @@ ifneq ($(SKIP_TESTS),true)
 endif
 
 IMAGE_REGISTRY ?= quay.io/apicurio
-IMAGE_NAME ?= apicurio-registry-operator
+IMAGE_NAME ?= apicurio-registry-3-operator
 IMAGE_TAG ?= $(LC_VERSION)
 
 IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 ADDITIONAL_IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(ADDITIONAL_IMAGE_TAG)
 
-REGISTRY_APP_IMAGE ?= quay.io/apicurio/apicurio-registry:latest-snapshot
-REGISTRY_UI_IMAGE ?= quay.io/apicurio/apicurio-registry-ui:latest-snapshot
-STUDIO_UI_IMAGE ?= quay.io/apicurio/apicurio-studio-ui:latest-snapshot
+OPERAND_IMAGE_TAG ?= latest-snapshot
+STUDIO_UI_IMAGE_TAG ?= latest-snapshot
+
+REGISTRY_APP_IMAGE ?= quay.io/apicurio/apicurio-registry:$(OPERAND_IMAGE_TAG)
+REGISTRY_UI_IMAGE ?= quay.io/apicurio/apicurio-registry-ui:$(OPERAND_IMAGE_TAG)
+STUDIO_UI_IMAGE ?= quay.io/apicurio/apicurio-studio-ui:$(STUDIO_UI_IMAGE_TAG)
 
 NAMESPACE ?= default
 
@@ -35,9 +38,10 @@ NAMESPACE ?= default
 
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
-# TODO Replaces:
-# PREVIOUS_PACKAGE_VERSION =
-# REPLACES = $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
+
+PREVIOUS_PACKAGE_VERSION ?=
+PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
+# TODO: Handle `replaces` after first release
 
 CHANNELS ?= 3.x
 DEFAULT_CHANNEL ?= $(CHANNELS)
@@ -72,7 +76,6 @@ CATALOG_TARGET_DIR ?= target/catalog
 CATALOG_IMAGE_NAME ?= $(IMAGE_NAME)-catalog
 CATALOG_IMAGE_TAG ?= $(LC_VERSION)
 CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/$(CATALOG_IMAGE_NAME):$(CATALOG_IMAGE_TAG)
-ADDITIONAL_CATALOG_IMAGE_TAG ?= latest$(LC_VERSION_SUFFIX)
 ADDITIONAL_CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/$(CATALOG_IMAGE_NAME):$(ADDITIONAL_CATALOG_IMAGE_TAG)
 
 AC_CATALOG_DIR ?= olm-tests/src/test/deploy/api-controller-catalog
@@ -261,10 +264,13 @@ build: ## TODO
 
 .PHONY: remote-tests-all
 remote-tests-all: ## TODO
-	mvn clean # Running `mvn clean` will delete controller/target/test-install.yaml, so it has to be run first, if needed.
+	# Do not run `mvn clean` when not necessary.
+ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
 	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
-	$(eval BUILD_OPTS_EXT := $(subst "-pl controller -am",,$(BUILD_OPTS_EXT)))
-	mvn verify $(BUILD_OPTS_EXT) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
+else
+	cp $(REMOTE_TESTS_ALL_INSTALL_FILE) controller/target/test-install.yaml
+endif
+	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
 
 .PHONY: image-build
@@ -461,11 +467,6 @@ ac-catalog-image-push: ## TODO
 	docker push $(AC_CATALOG_IMAGE)
 
 
-.PHONY: catalog-image-get
-catalog-image-get: ## TODO
-	@echo -n $(CATALOG_IMAGE)
-
-
 .PHONY: ac-catalog
 ac-catalog: ac-catalog-build ac-catalog-image-build ac-catalog-image-push ## TODO
 
@@ -510,6 +511,22 @@ catalog-subscription-undeploy: ## TODO
 	kubectl -n $(NAMESPACE) delete clusterserviceversion $(PACKAGE) || true
 
 
+.PHONY: release-catalog-template-update
+release-catalog-template-update: install-yq
+	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name = "3.x") | .entries[] | select(.name = "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name = "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
+
+
 .PHONY: dev
 dev:
 	mvn quarkus:dev
+
+
+.PHONY: set-variable
+set-variable:
+	sed -i 's|^\( *$(VAR) *\??=\) *\([^ ]*\)\(.*\)$$|\1 $(VAL)\3|g' Makefile
+
+
+.PHONY: get-variable
+get-variable:
+	@echo $($(VAR))

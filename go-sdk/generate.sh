@@ -1,12 +1,39 @@
 #!/usr/bin/env bash
 
+# === Detect arch and OS
+
+RAW_ARCH="$(uname -m)"
+# See https://stackoverflow.com/a/45125525
+if  [[ "$RAW_ARCH" == aarch64* || "$RAW_ARCH" == armv8* ]]; then
+  ARCH=arm64
+elif [[ "$RAW_ARCH" == x86_64* ]]; then
+  ARCH=x64
+elif [[ "$RAW_ARCH" == i*86 ]]; then
+  ARCH=x86
+else
+  echo "ERROR: Detected processor architecture is not recognized or supported: $RAW_ARCH"
+  exit 1
+fi
+
+if [[ "$OSTYPE" == linux* ]]; then
+  OS=linux
+elif [[ "$OSTYPE" == darwin* ]]; then
+  OS=osx
+else
+  # Windows not supported yet.
+  echo "ERROR: Detected OS is not recognized or supported: $OSTYPE"
+  exit 1
+fi
+
+PACKAGE_NAME="$OS-$ARCH"
+
+# ===
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-SED_NAME="sed"
-PACKAGE_NAME="linux-x64"
-if [[ $OSTYPE == 'darwin'* ]]; then
-  SED_NAME="gsed"
-  PACKAGE_NAME="osx-x64"
+SED_NAME=sed
+if [[ "$OS" == osx ]]; then
+  SED_NAME=gsed
 fi
 
 # TODO move the kiota-version.csproj to it's own folder?

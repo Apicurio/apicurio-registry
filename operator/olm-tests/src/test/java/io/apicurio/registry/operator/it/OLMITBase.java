@@ -39,7 +39,7 @@ public abstract class OLMITBase {
         cleanup = ConfigProvider.getConfig().getValue(ITBase.CLEANUP, Boolean.class);
 
         if (client.apiextensions().v1().customResourceDefinitions()
-                .withName("catalogsources.operators.coreos.com").get() == null) {
+                    .withName("catalogsources.operators.coreos.com").get() == null) {
             throw new OperatorException("CatalogSource CRD is not available. Please install OLM.");
         }
 
@@ -47,7 +47,7 @@ public abstract class OLMITBase {
         var projectRoot = ConfigProvider.getConfig().getValue(PROJECT_ROOT_PROP, String.class);
         var catalogImage = ConfigProvider.getConfig().getValue(CATALOG_IMAGE_PROP, String.class);
 
-        var testDeployDir = Paths.get(projectRoot, "operator/controller/src/test/deploy");
+        var testDeployDir = Paths.get(projectRoot, "operator/olm-tests/src/test/deploy");
 
         // Catalog Source
 
@@ -55,11 +55,12 @@ public abstract class OLMITBase {
         catalogSourceRaw = catalogSourceRaw.replace("${PLACEHOLDER_CATALOG_NAMESPACE}", namespace);
         catalogSourceRaw = catalogSourceRaw.replace("${PLACEHOLDER_CATALOG_IMAGE}", catalogImage);
         var catalogSource = client.resource(catalogSourceRaw);
+
         catalogSource.create();
 
         Awaitility.await().ignoreExceptions().until(() -> {
             return client.pods().inNamespace(namespace).list().getItems().stream().filter(
-                    pod -> pod.getMetadata().getName().startsWith("apicurio-registry-operator-catalog"))
+                            pod -> pod.getMetadata().getName().startsWith("apicurio-registry-operator-catalog"))
                     .anyMatch(pod -> pod.getStatus().getConditions().stream()
                             .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus())));
         });
@@ -76,8 +77,9 @@ public abstract class OLMITBase {
         var subscriptionRaw = Files.readString(testDeployDir.resolve("catalog/subscription.yaml"));
         subscriptionRaw = subscriptionRaw.replace("${PLACEHOLDER_NAMESPACE}", namespace);
         subscriptionRaw = subscriptionRaw.replace("${PLACEHOLDER_CATALOG_NAMESPACE}", namespace);
+        subscriptionRaw = subscriptionRaw.replace("${PLACEHOLDER_PACKAGE_NAME}", "apicurio-registry-3");
         subscriptionRaw = subscriptionRaw.replace("${PLACEHOLDER_PACKAGE}",
-                "apicurio-registry.v" + projectVersion.toLowerCase());
+                "apicurio-registry-3.v" + projectVersion.toLowerCase());
         var subscription = client.resource(subscriptionRaw);
         subscription.create();
     }

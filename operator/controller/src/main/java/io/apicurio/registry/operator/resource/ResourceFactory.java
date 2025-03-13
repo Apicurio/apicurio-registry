@@ -9,8 +9,9 @@ import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.TLSSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
-import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
+import io.apicurio.registry.operator.utils.SecretKeyRefTool;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
@@ -25,7 +26,9 @@ import java.util.Map;
 import java.util.Optional;
 
 import static io.apicurio.registry.operator.Constants.*;
-import static io.apicurio.registry.operator.api.v1.ContainerNames.*;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.STUDIO_UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.Labels.getSelectorLabels;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromPodTemplateSpec;
 import static io.apicurio.registry.operator.utils.Mapper.YAML_MAPPER;
@@ -67,9 +70,17 @@ public class ResourceFactory {
                 .map(AppSpec::getTls);
 
         if (tlsSpec.isPresent()) {
-            readinessProbe = TLS_DEFAULT_READINESS_PROBE;
-            livenessProbe = TLS_DEFAULT_LIVENESS_PROBE;
-            containerPort = List.of(new ContainerPortBuilder().withName("https").withProtocol("TCP").withContainerPort(8443).build());
+            var keystore = new SecretKeyRefTool(tlsSpec.map(TLSSpec::getKeystoreSecretRef)
+                    .orElse(null), "keystore");
+
+            var keystorePassword = new SecretKeyRefTool(tlsSpec.map(TLSSpec::getKeystorePasswordSecretRef)
+                    .orElse(null), "password");
+
+            if (keystore.isValid() && keystorePassword.isValid()) {
+                readinessProbe = TLS_DEFAULT_READINESS_PROBE;
+                livenessProbe = TLS_DEFAULT_LIVENESS_PROBE;
+                containerPort = List.of(new ContainerPortBuilder().withName("https").withProtocol("TCP").withContainerPort(8443).build());
+            }
         }
 
         // Replicas
@@ -123,7 +134,7 @@ public class ResourceFactory {
                         .map(StudioUiSpec::getReplicas).orElse(DEFAULT_REPLICAS),
                 ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
                         .map(StudioUiSpec::getPodTemplateSpec).orElse(null)); // TODO:
-                                                                              // Replicas
+        // Replicas
         mergeDeploymentPodTemplateSpec(
                 COMPONENT_STUDIO_UI_SPEC_FIELD_NAME,
                 primary,
@@ -143,7 +154,7 @@ public class ResourceFactory {
     }
 
     private static Deployment initDefaultDeployment(ApicurioRegistry3 primary, String componentId,
-            int replicas, PodTemplateSpec pts) {
+                                                    int replicas, PodTemplateSpec pts) {
         var r = new Deployment();
         r.setMetadata(new ObjectMeta());
         r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
@@ -154,7 +165,8 @@ public class ResourceFactory {
         r.getSpec().setSelector(new LabelSelector());
         if (pts != null) {
             r.getSpec().setTemplate(pts);
-        } else {
+        }
+        else {
             r.getSpec().setTemplate(new PodTemplateSpec());
         }
         return r;
@@ -196,8 +208,8 @@ public class ResourceFactory {
         if (c.getEnv() != null && !c.getEnv().isEmpty()) {
             StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
                     .recordError("""
-                    Field spec.%s.podTemplateSpec.spec.containers[name = %s].env must be empty. \
-                    Use spec.%s.env to configure environment variables.""", componentFieldName, containerName, componentFieldName);
+                            Field spec.%s.podTemplateSpec.spec.containers[name = %s].env must be empty. \
+                            Use spec.%s.env to configure environment variables.""", componentFieldName, containerName, componentFieldName);
         }
         if (c.getPorts() == null) {
             c.setPorts(new ArrayList<>());
@@ -286,7 +298,7 @@ public class ResourceFactory {
     }
 
     private <T extends HasMetadata> T getDefaultResource(ApicurioRegistry3 primary, Class<T> klass,
-            String resourceType, String component) {
+                                                         String resourceType, String component) {
         var r = deserialize("/k8s/default/" + component + "." + resourceType + ".yaml", klass);
         r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
         r.getMetadata().setName(primary.getMetadata().getName() + "-" + component + "-" + resourceType);
@@ -337,7 +349,8 @@ public class ResourceFactory {
     public static <T> T deserialize(String path, Class<T> klass) {
         try {
             return YAML_MAPPER.readValue(load(path), klass);
-        } catch (JsonProcessingException ex) {
+        }
+        catch (JsonProcessingException ex) {
             throw new OperatorException("Could not deserialize resource: " + path, ex);
         }
     }
@@ -345,7 +358,8 @@ public class ResourceFactory {
     public static <T> T deserialize(String path, Class<T> klass, ClassLoader classLoader) {
         try {
             return YAML_MAPPER.readValue(load(path, classLoader), klass);
-        } catch (JsonProcessingException ex) {
+        }
+        catch (JsonProcessingException ex) {
             throw new OperatorException("Could not deserialize resource: " + path, ex);
         }
     }
@@ -357,7 +371,8 @@ public class ResourceFactory {
     public static String load(String path, ClassLoader classLoader) {
         try (var stream = classLoader.getResourceAsStream(path)) {
             return new String(stream.readAllBytes(), Charset.defaultCharset());
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             throw new OperatorException("Could not read resource: " + path, ex);
         }
     }

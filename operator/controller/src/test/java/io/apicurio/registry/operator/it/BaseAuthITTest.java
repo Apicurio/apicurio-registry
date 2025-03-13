@@ -15,7 +15,7 @@ public abstract class BaseAuthITTest extends ITBase {
 
     protected static ApicurioRegistry3 prepareInfra(String apicurioResource, String keycloakRealm, String keycloakResource) {
 
-        installKeycloak(keycloakResource, keycloakRealm);
+        installKeycloak(keycloakRealm, keycloakResource);
 
         // Deploy Registry
         var registry = deserialize(apicurioResource, ApicurioRegistry3.class);

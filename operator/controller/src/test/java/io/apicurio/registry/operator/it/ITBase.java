@@ -86,7 +86,7 @@ public abstract class ITBase {
         operatorDeployment = ConfigProvider.getConfig().getValue(OPERATOR_DEPLOYMENT_PROP,
                 OperatorDeployment.class);
         deploymentTarget = ConfigProvider.getConfig().getValue(DEPLOYMENT_TARGET, String.class);
-        cleanup = false;
+        cleanup = ConfigProvider.getConfig().getValue(CLEANUP, Boolean.class);
 
         setDefaultAwaitilityTimings();
         namespace = calculateNamespace();

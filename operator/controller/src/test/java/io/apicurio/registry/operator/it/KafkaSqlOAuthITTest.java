@@ -25,7 +25,7 @@ public class KafkaSqlOAuthITTest extends BaseAuthITTest {
     }
 
     @Test
-    void testKafkaSQLTLS() {
+    void testKafkaSQLOauth() {
         installKeycloak("/k8s/examples/auth/keycloak_realm.yaml", "/k8s/examples/auth/keycloak_http.yaml");
 
         client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/oauth/oauth-example-cluster.yaml"))

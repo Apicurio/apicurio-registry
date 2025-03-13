@@ -1,7 +1,7 @@
 apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry3
 metadata:
-  name: simple
+  name: keycloak-with-tls
 spec:
   app:
     ingress:
@@ -14,7 +14,7 @@ spec:
       redirectURI: https://simple-ui.apps.cluster.example
       logoutURL: https://simple-ui.apps.cluster.example
       tls:
-        tlsVerificationType: none
+        tlsVerificationType: required
         truststoreSecretRef:
           name: keycloak-truststore
           key: truststore

@@ -5,7 +5,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.feat.TLS;
 import io.apicurio.registry.operator.resource.LabelDiscriminators.AppNetworkPolicyDiscriminator;
-import io.fabric8.kubernetes.api.model.IntOrStringBuilder;
+import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyIngressRuleBuilder;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -14,12 +14,10 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Optional;
-
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_NETWORK_POLICY_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
+import static java.util.Optional.ofNullable;
 
 // spotless:off
 @KubernetesDependent(
@@ -40,28 +38,35 @@ public class AppNetworkPolicyResource
     protected NetworkPolicy desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
         var networkPolicy = APP_NETWORK_POLICY_KEY.getFactory().apply(primary);
 
-        Optional.ofNullable(primary.getSpec())
+        // @formatter:off
+        var httpRule = new NetworkPolicyIngressRuleBuilder()
+                    .addNewPort()
+                        .withProtocol("TCP")
+                        .withPort(new IntOrString(8080))
+                    .endPort()
+                .build();
+
+        var httpsRule = new NetworkPolicyIngressRuleBuilder()
+                    .addNewPort()
+                        .withProtocol("TCP")
+                        .withPort(new IntOrString(8443))
+                    .endPort()
+                .build();
+        // @formatter:on
+
+        var tls = ofNullable(primary.getSpec())
                 .map(ApicurioRegistry3Spec::getApp)
-                .map(AppSpec::getTls)
-                .ifPresent(tls -> {
+                .map(AppSpec::getTls);
 
-                    var httpsPolicy = new io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyPortBuilder()
-                            .withPort(new IntOrStringBuilder().withValue(8443).build()).build();
+        var tlsEnabled = tls.isPresent();
+        var insecureRequestsEnabled = tls.map(TLS::insecureRequestsEnabled).orElse(false);
 
-                    var httpPolicy = new io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyPortBuilder()
-                            .withPort(new IntOrStringBuilder().withValue(8080).build()).build();
-
-                    if (!TLS.insecureRequestsEnabled(tls)) {
-                        networkPolicy.getSpec().setIngress(List.of(new NetworkPolicyIngressRuleBuilder()
-                                .withPorts(httpsPolicy)
-                                .build()));
-                    }
-                    else {
-                        networkPolicy.getSpec().setIngress(List.of(new NetworkPolicyIngressRuleBuilder()
-                                .withPorts(httpsPolicy, httpPolicy)
-                                .build()));
-                    }
-                });
+        if (!tlsEnabled || insecureRequestsEnabled) {
+            networkPolicy.getSpec().getIngress().add(httpRule);
+        }
+        if (tlsEnabled) {
+            networkPolicy.getSpec().getIngress().add(httpsRule);
+        }
 
         log.trace("Desired {} is {}", APP_NETWORK_POLICY_KEY.getId(), toYAML(networkPolicy));
         return networkPolicy;

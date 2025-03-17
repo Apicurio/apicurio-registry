@@ -276,24 +276,21 @@ public class ResourceFactory {
     public PodDisruptionBudget getDefaultAppPodDisruptionBudget(ApicurioRegistry3 primary) {
         var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
                 COMPONENT_APP);
-        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
+        addSelectorLabels(pdb.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_APP);
         return pdb;
     }
 
     public PodDisruptionBudget getDefaultUIPodDisruptionBudget(ApicurioRegistry3 primary) {
         var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
                 COMPONENT_UI);
-        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
+        addSelectorLabels(pdb.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
         return pdb;
     }
 
     public PodDisruptionBudget getDefaultStudioUIPodDisruptionBudget(ApicurioRegistry3 primary) {
         var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
                 COMPONENT_STUDIO_UI);
-        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
+        addSelectorLabels(pdb.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_STUDIO_UI);
         return pdb;
     }
 
@@ -309,24 +306,21 @@ public class ResourceFactory {
     public NetworkPolicy getDefaultAppNetworkPolicy(ApicurioRegistry3 primary) {
         var networkPolicy = getDefaultResource(primary, NetworkPolicy.class, RESOURCE_TYPE_NETWORK_POLICY,
                 COMPONENT_APP);
-        networkPolicy.getSpec().getPodSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
+        addSelectorLabels(networkPolicy.getSpec().getPodSelector().getMatchLabels(), primary, COMPONENT_APP);
         return networkPolicy;
     }
 
     public NetworkPolicy getDefaultUINetworkPolicy(ApicurioRegistry3 primary) {
         var networkPolicy = getDefaultResource(primary, NetworkPolicy.class, RESOURCE_TYPE_NETWORK_POLICY,
                 COMPONENT_UI);
-        networkPolicy.getSpec().getPodSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
+        addSelectorLabels(networkPolicy.getSpec().getPodSelector().getMatchLabels(), primary, COMPONENT_UI);
         return networkPolicy;
     }
 
     public NetworkPolicy getDefaultStudioUINetworkPolicy(ApicurioRegistry3 primary) {
         var networkPolicy = getDefaultResource(primary, NetworkPolicy.class, RESOURCE_TYPE_NETWORK_POLICY,
                 COMPONENT_STUDIO_UI);
-        networkPolicy.getSpec().getPodSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
+        addSelectorLabels(networkPolicy.getSpec().getPodSelector().getMatchLabels(), primary, COMPONENT_STUDIO_UI);
         return networkPolicy;
     }
 

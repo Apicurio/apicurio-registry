@@ -161,14 +161,15 @@ public class TlsITTest extends ITBase {
 
         // Network Policy
         await().ignoreExceptions().until(() -> {
-            NetworkPolicyIngressRule networkPolicyIngressRule = client.network().v1().networkPolicies().inNamespace(namespace)
-                    .withName("simple-app-networkpolicy").get().getSpec().getIngress()
-                    .get(0);
+            var networkPolicyIngressRules = client.network().v1().networkPolicies().inNamespace(namespace)
+                    .withName("simple-app-networkpolicy").get().getSpec().getIngress();
 
-            Assertions.assertEquals(2, networkPolicyIngressRule.getPorts().size());
+            Assertions.assertEquals(2, networkPolicyIngressRules.size());
 
-            assertThat(networkPolicyIngressRule.getPorts().get(0).getPort().getIntVal()).isEqualTo(8443);
-            assertThat(networkPolicyIngressRule.getPorts().get(1).getPort().getIntVal()).isEqualTo(8080);
+            assertThat(networkPolicyIngressRules)
+                    .flatMap(NetworkPolicyIngressRule::getPorts)
+                    .map(p -> p.getPort().getIntVal())
+                    .containsExactlyInAnyOrder(8080, 8443);
             return true;
         });
 

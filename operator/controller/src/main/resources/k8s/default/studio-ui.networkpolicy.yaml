@@ -3,8 +3,6 @@ kind: NetworkPolicy
 metadata: { }
 spec:
   podSelector:
-    matchLabels:
-      app.kubernetes.io/name: apicurio-registry
-      app.kubernetes.io/component: studio-ui
+    matchLabels: { }
   policyTypes:
     - Ingress

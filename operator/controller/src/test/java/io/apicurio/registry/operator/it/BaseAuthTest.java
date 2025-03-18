@@ -31,11 +31,11 @@ public abstract class BaseAuthTest extends ITBase {
                     .isEqualTo(1);
         });
 
-        createKeycloakDNSResolution("simple-keycloak.apps.cluster.example",
-                "keycloak." + namespace + ".svc.cluster.local");
-
         // Deploy Registry
         var registry = deserialize(apicurioResource, ApicurioRegistry3.class);
+
+        hostAliasManager.defineHostAlias("simple-keycloak.apps.cluster.example", "keycloak");
+        hostAliasManager.inject(registry);
 
         registry.getMetadata().setNamespace(namespace);
 

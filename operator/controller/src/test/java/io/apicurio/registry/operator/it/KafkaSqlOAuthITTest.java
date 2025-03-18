@@ -13,9 +13,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
-public class KafkaSqlTLSITTest extends ITBase {
+public class KafkaSqlOAuthITTest extends BaseAuthITTest {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaSqlTLSITTest.class);
+    private static final Logger log = LoggerFactory.getLogger(KafkaSqlOAuthITTest.class);
 
     @BeforeAll
     public static void beforeAll() throws Exception {
@@ -25,30 +25,24 @@ public class KafkaSqlTLSITTest extends ITBase {
     }
 
     @Test
-    void testKafkaSQLTLS() {
-        client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/tls/example-cluster.kafka.yaml"))
+    void testKafkaSQLOauth() {
+        installKeycloak("/k8s/examples/auth/keycloak_realm.yaml", "/k8s/examples/auth/keycloak_http.yaml");
+
+        client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/oauth/oauth-example-cluster.yaml"))
                 .create();
-        final var clusterName = "example-cluster";
+        final var clusterName = "oauth-example-cluster";
 
         await().ignoreExceptions().untilAsserted(() ->
                 // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
-                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-kafka-0").get().getStatus()
+                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0").get().getStatus()
                         .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
                         .containsOnly("True"));
-
-        client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/tls/apicurio.kafkauser.yaml"))
-                .inNamespace(namespace).create();
-
-        final var userName = "apicurio";
-
-        await().untilAsserted(
-                () -> assertThat(client.secrets().inNamespace(namespace).withName(userName).get())
-                        .isNotNull());
 
         // We're guessing the value here to avoid using Strimzi Java model, and relying on retries below.
         var bootstrapServers = clusterName + "-kafka-bootstrap." + namespace + ".svc:9093";
 
-        var registry = deserialize("k8s/examples/kafkasql/tls/example-kafkasql-tls.apicurioregistry3.yaml",
+        var registry = deserialize(
+                "k8s/examples/kafkasql/oauth/oauth-example-kafkasql-tls.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
         registry.getSpec().getApp().getStorage().getKafkasql().setBootstrapServers(bootstrapServers);

@@ -10,6 +10,8 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
+import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
+import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -33,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -71,6 +74,8 @@ public abstract class ITBase {
     protected static String deploymentTarget;
     protected static String namespace;
     protected static boolean cleanup;
+
+    protected static boolean strimziInstalled = false;
     private static Operator operator;
 
     @BeforeAll
@@ -305,6 +310,28 @@ public abstract class ITBase {
 
         // Step 6: Restart CoreDNS to apply changes
         client.apps().deployments().inNamespace(systemNamespace).withName("coredns").rolling().restart();
+    }
+
+    static void applyStrimziResources() throws IOException {
+        try (BufferedInputStream in = new BufferedInputStream(
+                new URL("https://strimzi.io/install/latest").openStream())) {
+            List<HasMetadata> resources = Serialization.unmarshal(in);
+            resources.forEach(r -> {
+                if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
+                    var crb = (ClusterRoleBinding) r;
+                    crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+                } else if (r.getKind().equals("RoleBinding") && r instanceof RoleBinding) {
+                    var crb = (RoleBinding) r;
+                    crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+                }
+                log.info("Creating Strimzi resource kind {} in namespace {}", r.getKind(), namespace);
+                client.resource(r).inNamespace(namespace).createOrReplace();
+                await().atMost(Duration.ofMinutes(2)).ignoreExceptions().until(() -> {
+                    assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
+                    return true;
+                });
+            });
+        }
     }
 
     static void createNamespace(KubernetesClient client, String namespace) {

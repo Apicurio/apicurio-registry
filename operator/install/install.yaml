@@ -3250,6 +3250,54 @@ spec:
                       kafkasql:
                         description: Configure KafkaSQL storage type.
                         properties:
+                          auth:
+                            description: Configure KafkaSQL storage authentication.
+                            properties:
+                              clientIdRef:
+                                description: The clientId used to authenticate to
+                                  Kafka.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                              clientSecretRef:
+                                description: The client secret used to authenticate
+                                  to Kafka.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                              enabled:
+                                description: Enables SASL OAuth authentication for
+                                  Apicurio Registry storage in Kafka. You must set
+                                  this variable to true for the other variables to
+                                  have effect.
+                                type: boolean
+                              loginHandlerClass:
+                                description: The login class to be used for login.
+                                type: string
+                              mechanism:
+                                description: The mechanism used to authenticate to
+                                  Kafka.
+                                type: string
+                              tokenEndpoint:
+                                description: The URL of the OAuth identity server.
+                                type: string
+                            type: object
                           bootstrapServers:
                             description: |-
                               Configure Kafka bootstrap servers.

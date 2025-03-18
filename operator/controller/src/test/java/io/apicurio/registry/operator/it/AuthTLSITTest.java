@@ -20,7 +20,7 @@ import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.g
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
-public class AuthTLSITTest extends BaseAuthTest {
+public class AuthTLSITTest extends BaseAuthITTest {
 
     private static final Logger log = LoggerFactory.getLogger(AuthTLSITTest.class);
 
@@ -36,8 +36,10 @@ public class AuthTLSITTest extends BaseAuthTest {
      */
     @Test
     void testAuthTlsVerification() {
-        ApicurioRegistry3 registry = prepareInfra("/k8s/examples/auth/keycloak.yaml",
-                "k8s/examples/auth/tls/simple-with_keycloak.apicurioregistry3.yaml");
+        // Preparation, deploy Keycloak
+        ApicurioRegistry3 registry = prepareInfra("k8s/examples/auth/tls/simple-with_keycloak.apicurioregistry3.yaml",
+                "/k8s/examples/auth/keycloak_realm.yaml", "/k8s/examples/auth/keycloak_https.yaml"
+        );
         AuthSpec authSpec = registry.getSpec().getApp().getAuth();
 
         Assertions.assertEquals("registry-api", authSpec.getAppClientId());

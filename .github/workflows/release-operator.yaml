@@ -110,8 +110,6 @@ jobs:
           until docker manifest inspect "$REGISTRY_APP_IMAGE" >& /dev/null; do echo "Waiting on $REGISTRY_APP_IMAGE"; sleep 10; done
           export REGISTRY_UI_IMAGE="$(make VAR=REGISTRY_UI_IMAGE get-variable)"
           until docker manifest inspect "$REGISTRY_UI_IMAGE" >& /dev/null; do echo "Waiting on $REGISTRY_UI_IMAGE"; sleep 10; done
-          export STUDIO_UI_IMAGE="$(make VAR=STUDIO_UI_IMAGE get-variable)"
-          until docker manifest inspect "$STUDIO_UI_IMAGE" >& /dev/null; do echo "Waiting on $STUDIO_UI_IMAGE"; sleep 10; done
 
       - name: Build operator bundle
         working-directory: registry/operator
@@ -215,7 +213,6 @@ jobs:
         working-directory: registry/operator
         run: |
           make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" set-variable
-          make VAR=STUDIO_UI_IMAGE_TAG VAL=latest-snapshot set-variable
           git add Makefile
 
       - name: Update catalog template

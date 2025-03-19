@@ -12,7 +12,6 @@ import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeSet;
 
 /**
@@ -49,15 +48,13 @@ public class Cors {
 
         // If not, let's try to figure it out from other sources.
         if (allowedOrigins.isEmpty()) {
-            // If there is a configured Ingress host for the UI or the Studio UI, add them to the allowed
+            // If there is a configured Ingress host for the UI, add it to the allowed
             // origins.
-            Set.of(ResourceFactory.COMPONENT_UI, ResourceFactory.COMPONENT_STUDIO_UI).forEach(component -> {
-                String host = IngressUtils.getConfiguredHost(component, primary);
-                if (host != null) {
-                    allowedOrigins.add("http://" + host);
-                    allowedOrigins.add("https://" + host);
-                }
-            });
+            String host = IngressUtils.getConfiguredHost(ResourceFactory.COMPONENT_UI, primary);
+            if (host != null) {
+                allowedOrigins.add("http://" + host);
+                allowedOrigins.add("https://" + host);
+            }
         }
 
         // If we still do not have anything, then default to "*"

@@ -6,7 +6,6 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
-import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPath;
@@ -17,7 +16,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
-import static io.apicurio.registry.operator.resource.ResourceFactory.*;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
 
@@ -41,9 +41,6 @@ public final class IngressUtils {
                     .map(AppSpec::getIngress).map(IngressSpec::getHost).filter(h -> !isBlank(h)).orElse(null);
             case COMPONENT_UI -> ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
                     .map(UiSpec::getIngress).map(IngressSpec::getHost).filter(h -> !isBlank(h)).orElse(null);
-            case COMPONENT_STUDIO_UI -> ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
-                    .map(StudioUiSpec::getIngress).map(IngressSpec::getHost).filter(h -> !isBlank(h))
-                    .orElse(null);
             default -> throw new OperatorException("Unexpected value: " + component);
         };
         return host;

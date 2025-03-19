@@ -1,7 +1,0 @@
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata: { }
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels: { }

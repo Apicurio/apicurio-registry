@@ -78,7 +78,13 @@ const createRoleMapping = async (config: ConfigService, auth: AuthService, princ
         role: role as RoleType,
         principalName
     };
-    return getRegistryClient(config, auth).admin.roleMappings.post(body).then(v => v!);
+    return getRegistryClient(config, auth).admin.roleMappings.post(body).then(() => {
+        return {
+            principalId: principalId,
+            role: role as RoleType,
+            principalName: principalName
+        };
+    });
 };
 
 const updateRoleMapping = async (config: ConfigService, auth: AuthService, principalId: string, role: string): Promise<RoleMapping> => {
@@ -86,7 +92,12 @@ const updateRoleMapping = async (config: ConfigService, auth: AuthService, princ
     const body: UpdateRole = {
         role: role as RoleType
     };
-    return getRegistryClient(config, auth).admin.roleMappings.byPrincipalId(principalId).put(body).then(v => v!);
+    return getRegistryClient(config, auth).admin.roleMappings.byPrincipalId(principalId).put(body).then(() => {
+        return {
+            principalId: principalId,
+            role: role as RoleType
+        };
+    });
 };
 
 const deleteRoleMapping = async (config: ConfigService, auth: AuthService, principalId: string): Promise<null> => {

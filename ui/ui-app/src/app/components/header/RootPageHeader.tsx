@@ -43,7 +43,7 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
         <Tab data-testid="explore-tab" key={0} eventKey={0} title={<TabTitleText>Explore</TabTitleText>} />,
         <Tab data-testid="rules-tab" key={1} eventKey={1} title={<TabTitleText>Global rules</TabTitleText>} />
     ];
-    if (config.featureRoleManagement()) {
+    if (config.featureRoleManagement() && user.isUserAdmin()) {
         tabs.push(
             <Tab data-testid="access-tab" key={2} eventKey={2} title={<TabTitleText>Access</TabTitleText>} />
         );

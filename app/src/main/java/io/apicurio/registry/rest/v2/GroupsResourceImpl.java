@@ -1097,6 +1097,12 @@ public class GroupsResourceImpl implements GroupsResource {
         final boolean fcanonical = canonical == null ? Boolean.FALSE : canonical;
 
         String ct = getContentType();
+        if (ct == null || ct.contains("create.extended+json")) {
+            // If the content type is application/vnd.create.extended+json, try to figure out
+            // the content type from the content
+            ct = ContentTypeUtil.determineContentType(content);
+        }
+
         try {
 
             String owner = securityIdentity.getPrincipal().getName();

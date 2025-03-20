@@ -117,7 +117,7 @@ public abstract class ITBase {
     }
 
     protected static void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
-        await().ignoreExceptions().untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get()
                     .getStatus().getReadyReplicas()).isEqualTo(replicas);
@@ -125,7 +125,7 @@ public abstract class ITBase {
     }
 
     protected static void checkDeploymentDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get())
                     .isNull();
@@ -133,7 +133,7 @@ public abstract class ITBase {
     }
 
     protected static void checkServiceExists(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.services()
                     .withName(primary.getMetadata().getName() + "-" + component + "-service").get())
                     .isNotNull();
@@ -141,14 +141,14 @@ public abstract class ITBase {
     }
 
     protected static void checkServiceDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.services()
                     .withName(primary.getMetadata().getName() + "-" + component + "-service").get()).isNull();
         });
     }
 
     protected static void checkIngressExists(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.network().v1().ingresses()
                     .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get())
                     .isNotNull();
@@ -156,7 +156,7 @@ public abstract class ITBase {
     }
 
     protected static void checkIngressDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().ignoreExceptions().untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.network().v1().ingresses()
                     .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get()).isNull();
         });
@@ -166,7 +166,7 @@ public abstract class ITBase {
                                                                         String component) {
         final ValueOrNull<PodDisruptionBudget> rval = new ValueOrNull<>();
 
-        await().ignoreExceptions().untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
             PodDisruptionBudget pdb = client.policy().v1().podDisruptionBudget()
                     .withName(primary.getMetadata().getName() + "-" + component + "-poddisruptionbudget")
                     .get();
@@ -180,7 +180,7 @@ public abstract class ITBase {
     protected static NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
         final ValueOrNull<NetworkPolicy> rval = new ValueOrNull<>();
 
-        await().ignoreExceptions().untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
             NetworkPolicy networkPolicy = client.network().v1().networkPolicies()
                     .withName(primary.getMetadata().getName() + "-" + component + "-networkpolicy").get();
             assertThat(networkPolicy).isNotNull();
@@ -219,7 +219,7 @@ public abstract class ITBase {
 
     private static void startOperatorLogs() {
         List<Pod> operatorPods = new ArrayList<>();
-        await().ignoreExceptions().untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
             operatorPods.clear();
             operatorPods.addAll(client.pods()
                     .withLabels(Map.of(

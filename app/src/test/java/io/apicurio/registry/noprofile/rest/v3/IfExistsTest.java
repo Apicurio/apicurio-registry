@@ -58,12 +58,13 @@ public class IfExistsTest extends AbstractResourceTestBase {
 
         CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
         Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
-        Assertions.assertEquals("1", car.getVersion().getVersion());
+        Assertions.assertEquals("1.0", car.getVersion().getVersion());
 
         // Create the same thing again, with ifExists=FAIL
         Assertions.assertThrows(Exception.class, () -> {
@@ -203,23 +204,25 @@ public class IfExistsTest extends AbstractResourceTestBase {
 
         CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
         Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
-        Assertions.assertEquals("1", car.getVersion().getVersion());
+        Assertions.assertEquals("1.0", car.getVersion().getVersion());
 
         // Create the same exact thing again, with ifExists=FIND_OR_CREATE_VERSION
         CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
+        ca.getFirstVersion().setVersion("1.0");
         car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
                 config -> config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
         Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
-        Assertions.assertEquals("1", car.getVersion().getVersion());
+        Assertions.assertEquals("1.0", car.getVersion().getVersion());
 
         // Should have only one version
         VersionSearchResults vsr = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();

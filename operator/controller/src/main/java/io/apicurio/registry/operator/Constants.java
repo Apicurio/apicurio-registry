@@ -1,6 +1,8 @@
 package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.fabric8.kubernetes.api.model.HTTPGetActionBuilder;
+import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -26,13 +28,16 @@ public class Constants {
     public static final Map<String, Quantity> DEFAULT_LIMITS = Map.of("cpu",
             new QuantityBuilder().withAmount("1").build(), "memory",
             new QuantityBuilder().withAmount("1300").withFormat("Mi").build());
-    public static final Probe DEFAULT_READINESS_PROBE = new ProbeBuilder().withNewHttpGet()
-            .withPath("/health/ready").withNewPort().withValue(8080).endPort().endHttpGet()
+    public static final Probe DEFAULT_READINESS_PROBE = new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/ready").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build();
+    public static final Probe DEFAULT_LIVENESS_PROBE =  new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build();
+
+    public static final Probe TLS_DEFAULT_READINESS_PROBE = new ProbeBuilder().withNewHttpGet()
+            .withScheme("HTTPS").withPath("/health/ready").withNewPort().withValue(8443).endPort().endHttpGet()
             .withInitialDelaySeconds(15).withTimeoutSeconds(5).withPeriodSeconds(10).withSuccessThreshold(1)
             .withFailureThreshold(3).build();
 
-    public static final Probe DEFAULT_LIVENESS_PROBE = new ProbeBuilder().withNewHttpGet()
-            .withPath("/health/live").withNewPort().withValue(8080).endPort().endHttpGet()
+    public static final Probe TLS_DEFAULT_LIVENESS_PROBE = new ProbeBuilder().withNewHttpGet()
+            .withScheme("HTTPS").withPath("/health/live").withNewPort().withValue(8443).endPort().endHttpGet()
             .withInitialDelaySeconds(15).withTimeoutSeconds(5).withPeriodSeconds(10).withSuccessThreshold(1)
             .withFailureThreshold(3).build();
 

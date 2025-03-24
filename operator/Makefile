@@ -19,15 +19,16 @@ ifneq ($(SKIP_TESTS),true)
 endif
 
 IMAGE_REGISTRY ?= quay.io/apicurio
-IMAGE_NAME ?= apicurio-registry-operator
+IMAGE_NAME ?= apicurio-registry-3-operator
 IMAGE_TAG ?= $(LC_VERSION)
 
 IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 ADDITIONAL_IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(ADDITIONAL_IMAGE_TAG)
 
-REGISTRY_APP_IMAGE ?= quay.io/apicurio/apicurio-registry:latest-snapshot
-REGISTRY_UI_IMAGE ?= quay.io/apicurio/apicurio-registry-ui:latest-snapshot
-STUDIO_UI_IMAGE ?= quay.io/apicurio/apicurio-studio-ui:latest-snapshot
+OPERAND_IMAGE_TAG ?= latest-snapshot
+
+REGISTRY_APP_IMAGE ?= quay.io/apicurio/apicurio-registry:$(OPERAND_IMAGE_TAG)
+REGISTRY_UI_IMAGE ?= quay.io/apicurio/apicurio-registry-ui:$(OPERAND_IMAGE_TAG)
 
 NAMESPACE ?= default
 
@@ -35,9 +36,10 @@ NAMESPACE ?= default
 
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
-# TODO Replaces:
-# PREVIOUS_PACKAGE_VERSION =
-# REPLACES = $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
+
+PREVIOUS_PACKAGE_VERSION ?=
+PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
+# TODO: Handle `replaces` after first release
 
 CHANNELS ?= 3.x
 DEFAULT_CHANNEL ?= $(CHANNELS)
@@ -50,18 +52,6 @@ BUNDLE_IMAGE_TAG ?= $(LC_VERSION)
 BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(BUNDLE_IMAGE_TAG)
 ADDITIONAL_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(ADDITIONAL_BUNDLE_TAG)
 
-AC_PACKAGE_NAME ?= apicurio-api-controller
-AC_PACKAGE_VERSION ?= 0.0.1
-AC_PACKAGE ?= $(AC_PACKAGE_NAME).v$(AC_PACKAGE_VERSION)
-
-AC_CHANNELS ?= 0.x
-AC_DEFAULT_CHANNEL ?= $(AC_CHANNELS)
-
-AC_BUNDLE_OPTS ?= --package $(AC_PACKAGE_NAME) --version $(AC_PACKAGE_VERSION) --channels=$(AC_CHANNELS) --default-channel=$(AC_DEFAULT_CHANNEL)
-AC_BUNDLE_DIR ?= target/bundle/$(AC_PACKAGE_NAME)/$(AC_PACKAGE_VERSION)
-
-AC_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/api-controller-operator-bundle:$(AC_PACKAGE_VERSION)
-
 ### Catalog
 
 CATALOG_NAMESPACE ?= olm
@@ -72,14 +62,7 @@ CATALOG_TARGET_DIR ?= target/catalog
 CATALOG_IMAGE_NAME ?= $(IMAGE_NAME)-catalog
 CATALOG_IMAGE_TAG ?= $(LC_VERSION)
 CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/$(CATALOG_IMAGE_NAME):$(CATALOG_IMAGE_TAG)
-ADDITIONAL_CATALOG_IMAGE_TAG ?= latest$(LC_VERSION_SUFFIX)
 ADDITIONAL_CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/$(CATALOG_IMAGE_NAME):$(ADDITIONAL_CATALOG_IMAGE_TAG)
-
-AC_CATALOG_DIR ?= olm-tests/src/test/deploy/api-controller-catalog
-AC_CATALOG_TARGET_DIR ?= target/apicurio-api-controller-catalog
-
-AC_CATALOG_IMAGE_TAG ?= 0.0.1
-AC_CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/apicurio-api-controller-operator-catalog:$(CATALOG_IMAGE_TAG)
 
 ### Install
 
@@ -112,7 +95,6 @@ export PLACEHOLDER_LC_VERSION := $(LC_VERSION)
 export PLACEHOLDER_IMAGE := $(IMAGE)
 export PLACEHOLDER_REGISTRY_APP_IMAGE := $(REGISTRY_APP_IMAGE)
 export PLACEHOLDER_REGISTRY_UI_IMAGE := $(REGISTRY_UI_IMAGE)
-export PLACEHOLDER_STUDIO_UI_IMAGE := $(STUDIO_UI_IMAGE)
 
 export PLACEHOLDER_DATE := $(DATE)
 
@@ -123,12 +105,6 @@ export PLACEHOLDER_BUNDLE_IMAGE := $(BUNDLE_IMAGE)
 export PLACEHOLDER_CATALOG_NAMESPACE := $(CATALOG_NAMESPACE)
 export PLACEHOLDER_CATALOG_IMAGE := $(CATALOG_IMAGE)
 
-
-export PLACEHOLDER_AC_PACKAGE_NAME := $(AC_PACKAGE_NAME)
-export PLACEHOLDER_AC_PACKAGE := $(AC_PACKAGE)
-export PLACEHOLDER_AC_BUNDLE_IMAGE := $(AC_BUNDLE_IMAGE)
-
-export PLACEHOLDER_AC_CATALOG_IMAGE := $(AC_CATALOG_IMAGE)
 
 ########## Help
 
@@ -163,7 +139,6 @@ endif
 	@echo "$(CC_CYAN)Operand$(CC_END)"
 	@echo "REGISTRY_APP_IMAGE=$(REGISTRY_APP_IMAGE)"
 	@echo "REGISTRY_UI_IMAGE=$(REGISTRY_UI_IMAGE)"
-	@echo "STUDIO_UI_IMAGE=$(STUDIO_UI_IMAGE)"
 	@echo ""
 	@echo "$(CC_CYAN)Bundle$(CC_END)"
 	@echo "PACKAGE_NAME=$(PACKAGE_NAME)"
@@ -261,10 +236,13 @@ build: ## TODO
 
 .PHONY: remote-tests-all
 remote-tests-all: ## TODO
-	mvn clean # Running `mvn clean` will delete controller/target/test-install.yaml, so it has to be run first, if needed.
+	# Do not run `mvn clean` when not necessary.
+ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
 	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
-	$(eval BUILD_OPTS_EXT := $(subst "-pl controller -am",,$(BUILD_OPTS_EXT)))
-	mvn verify $(BUILD_OPTS_EXT) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
+else
+	cp $(REMOTE_TESTS_ALL_INSTALL_FILE) controller/target/test-install.yaml
+endif
+	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
 
 .PHONY: image-build
@@ -353,24 +331,6 @@ bundle-build: install-operator-sdk install-yq ## Generate bundle metadata
 	$(OPERATOR_SDK) bundle validate $(BUNDLE_DIR)
 
 
-.PHONY: ac-bundle-build
-ac-bundle-build: install-operator-sdk install-yq ## Generate bundle metadata
-	$(call target_dir,$(AC_BUNDLE_DIR))
-	kubectl kustomize controller/src/main/deploy/api-controller-csv | envsubst | $(OPERATOR_SDK) generate bundle -q --output-dir $(AC_BUNDLE_DIR) $(AC_BUNDLE_OPTS)
-	# Post-process annotations.yaml
-	$(YQ) '... comments = ""' -i $(AC_BUNDLE_DIR)/metadata/annotations.yaml
-	$(YQ) '.annotations = (.annotations | to_entries | del(.[] | select(.key == "operators.operatorframework.io.metrics.*")) | from_entries)' -i $(AC_BUNDLE_DIR)/metadata/annotations.yaml
-	$(YQ) '.annotations."com.redhat.openshift.versions" = "v4.12"' -i $(AC_BUNDLE_DIR)/metadata/annotations.yaml
-	$(YQ) 'sort_keys(..)' -i $(AC_BUNDLE_DIR)/metadata/annotations.yaml
-	# Post-process bundle.Dockerfile
-	mv bundle.Dockerfile $(AC_BUNDLE_DIR)
-	sed -i '\|^# .*$$|d' $(AC_BUNDLE_DIR)/bundle.Dockerfile
-	sed -i '\|^LABEL operators\.operatorframework.io\.metrics\..*$$|d' $(AC_BUNDLE_DIR)/bundle.Dockerfile
-	sed -i 's|^FROM scratch$$|FROM scratch\n\nLABEL com.redhat.openshift.versions=v4.12|g' $(AC_BUNDLE_DIR)/bundle.Dockerfile
-	# Validate
-	$(OPERATOR_SDK) bundle validate $(AC_BUNDLE_DIR)
-
-
 .PHONY: bundle-image-build
 bundle-image-build: ## TODO
 	docker build -f $(BUNDLE_DIR)/bundle.Dockerfile -t $(BUNDLE_IMAGE) .
@@ -379,11 +339,6 @@ ifneq ($(ADDITIONAL_BUNDLE_TAG),)
 	docker tag $(BUNDLE_IMAGE) $(ADDITIONAL_BUNDLE_IMAGE)
 endif
 endif
-
-
-.PHONY: ac-bundle-image-build
-ac-bundle-image-build: ## TODO
-	docker build -f $(AC_BUNDLE_DIR)/bundle.Dockerfile -t $(AC_BUNDLE_IMAGE) .
 
 
 .PHONY: bundle-image-push
@@ -396,17 +351,8 @@ endif
 endif
 
 
-.PHONY: ac-bundle-image-push
-ac-bundle-image-push: ## TODO
-	docker push $(AC_BUNDLE_IMAGE)
-
-
 .PHONY: bundle
 bundle: bundle-build bundle-image-build bundle-image-push ## TODO
-
-
-.PHONY: ac-bundle
-ac-bundle: ac-bundle-build ac-bundle-image-build ac-bundle-image-push ## TODO
 
 
 .PHONY: catalog-build
@@ -420,17 +366,6 @@ catalog-build: install-opm ## TODO
 	cd $(CATALOG_TARGET_DIR) && $(OPM) generate dockerfile configs
 
 
-.PHONY: ac-catalog-build
-ac-catalog-build: install-opm ## TODO
-	$(call target_dir,$(AC_CATALOG_TARGET_DIR))
-	# Create catalog.yaml
-	mkdir -p $(AC_CATALOG_TARGET_DIR)/configs
-	cat $(AC_CATALOG_DIR)/catalog.template.yaml | envsubst > $(AC_CATALOG_TARGET_DIR)/catalog.yaml
-	# Build
-	cd $(AC_CATALOG_TARGET_DIR) && $(OPM) alpha render-template basic catalog.yaml --output=yaml > configs/index.yaml
-	cd $(AC_CATALOG_TARGET_DIR) && $(OPM) generate dockerfile configs
-
-
 .PHONY: catalog-image-build
 catalog-image-build: ## TODO
 	docker build -f $(CATALOG_TARGET_DIR)/configs.Dockerfile -t $(CATALOG_IMAGE) $(CATALOG_TARGET_DIR)
@@ -439,11 +374,6 @@ ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
 	docker tag $(CATALOG_IMAGE) $(ADDITIONAL_CATALOG_IMAGE)
 endif
 endif
-
-
-.PHONY: ac-catalog-image-build
-ac-catalog-image-build: ## TODO
-	docker build -f $(AC_CATALOG_TARGET_DIR)/configs.Dockerfile -t $(AC_CATALOG_IMAGE) $(AC_CATALOG_TARGET_DIR)
 
 
 .PHONY: catalog-image-push
@@ -456,20 +386,6 @@ endif
 endif
 
 
-.PHONY: ac-catalog-image-push
-ac-catalog-image-push: ## TODO
-	docker push $(AC_CATALOG_IMAGE)
-
-
-.PHONY: catalog-image-get
-catalog-image-get: ## TODO
-	@echo -n $(CATALOG_IMAGE)
-
-
-.PHONY: ac-catalog
-ac-catalog: ac-catalog-build ac-catalog-image-build ac-catalog-image-push ## TODO
-
-
 .PHONY: catalog
 catalog: catalog-build catalog-image-build catalog-image-push ## TODO
 
@@ -480,20 +396,9 @@ catalog-deploy: ## TODO
 	cat $(CATALOG_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) apply -f -
 
 
-.PHONY: ac-catalog-deploy
-ac-catalog-deploy: ## TODO
-	kubectl create namespace $(CATALOG_NAMESPACE) || true
-	cat $(AC_CATALOG_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) apply -f -
-
-
 .PHONY: catalog-undeploy
 catalog-undeploy: ## TODO
 	cat $(CATALOG_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) delete -f - || true
-
-
-.PHONY: ac-catalog-undeploy
-ac-catalog-undeploy: ## TODO
-	cat $(AC_CATALOG_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) delete -f - || true
 
 
 .PHONY: catalog-subscription-deploy
@@ -510,6 +415,22 @@ catalog-subscription-undeploy: ## TODO
 	kubectl -n $(NAMESPACE) delete clusterserviceversion $(PACKAGE) || true
 
 
+.PHONY: release-catalog-template-update
+release-catalog-template-update: install-yq
+	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name = "3.x") | .entries[] | select(.name = "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name = "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
+
+
 .PHONY: dev
 dev:
 	mvn quarkus:dev
+
+
+.PHONY: set-variable
+set-variable:
+	sed -i 's|^\( *$(VAR) *\??=\) *\([^ ]*\)\(.*\)$$|\1 $(VAL)\3|g' Makefile
+
+
+.PHONY: get-variable
+get-variable:
+	@echo $($(VAR))

@@ -3,7 +3,6 @@ package io.apicurio.registry.operator.unit;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
-import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.apicurio.registry.operator.status.StatusManager;
@@ -87,38 +86,6 @@ public class PodTemplateSpecTest {
         }
     }
 
-    @ParameterizedTest
-    @ArgumentsSource(StudioUIPositiveTestCases.class)
-    void testStudioUIPositive(TestCase testCase) {
-        log.info("Running test case: {}", testCase.getId());
-        var primary = getPrimary();
-        primary.getSpec().getStudioUi().setPodTemplateSpec(testCase.getSpec());
-        var expected = ResourceFactory.INSTANCE.getDefaultStudioUIDeployment(primary).getSpec().getTemplate();
-        preprocessTestCaseExpected(testCase.getExpected());
-        assertThat(expected)
-                .usingRecursiveComparison()
-                .ignoringCollectionOrderInFields("spec.containers", "spec.containers.ports")
-                .isEqualTo(testCase.getExpected());
-        assertThat(testCase.getExpected())
-                .usingRecursiveComparison()
-                .ignoringCollectionOrderInFields("spec.containers", "spec.containers.ports")
-                .isEqualTo(expected);
-    }
-
-    @ParameterizedTest
-    @ArgumentsSource(StudioUINegativeTestCases.class)
-    void testStudioUINegative(TestCase testCase) {
-        log.info("Running test case: {}", testCase.getId());
-        var primary = getPrimary();
-        try {
-            primary.getSpec().getStudioUi().setPodTemplateSpec(testCase.getSpec());
-            ResourceFactory.INSTANCE.getDefaultStudioUIDeployment(primary);
-            assertThat(StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class).hasErrors()).isTrue();
-        } finally {
-            StatusManager.clean(primary);
-        }
-    }
-
     private static ApicurioRegistry3 getPrimary() {
         var primary = new ApicurioRegistry3();
         primary.setMetadata(new ObjectMeta());
@@ -127,7 +94,6 @@ public class PodTemplateSpecTest {
         primary.setSpec(new ApicurioRegistry3Spec());
         primary.getSpec().setApp(new AppSpec());
         primary.getSpec().setUi(new UiSpec());
-        primary.getSpec().setStudioUi(new StudioUiSpec());
         return primary;
     }
 

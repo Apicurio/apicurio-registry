@@ -8,6 +8,5 @@ entries:
     name: 3.x
     entries:
       - name: ${PLACEHOLDER_PACKAGE}
-      # TODO: Replaces
   - schema: olm.bundle
     image: ${PLACEHOLDER_BUNDLE_IMAGE}

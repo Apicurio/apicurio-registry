@@ -3,17 +3,27 @@ PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 PROJECT_BIN := $(PROJECT_PATH)/bin
 GO := $(PROJECT_BIN)/go1.20
 
-bin/go:
+bin/go: check
 	mkdir -p $(PROJECT_BIN)
 	GOBIN=$(PROJECT_BIN) go install golang.org/dl/go1.20@latest
 	$(PROJECT_BIN)/go1.20 download
+
+.PHONY: check
+check:
+	@{ \
+		V="$$(go version | sed -e 's|[^0-9.]*\([0-9.]*\).*|\1|')"; \
+		if [ ! "$$V" \> 1.20 ]; then \
+			echo "ERROR: Your go version $$V is not supported. Minimum required version is 1.20."; \
+			exit 1; \
+		fi \
+	}
 
 .PHONY: clean
 clean:
 	rm -rf $(PROJECT_BIN) kiota_tmp v2.json v3.json
 
 .PHONY: generate
-generate:
+generate: check
 	./generate.sh
 
 .PHONY: test

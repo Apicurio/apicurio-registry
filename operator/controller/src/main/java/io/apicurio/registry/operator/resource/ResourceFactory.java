@@ -6,10 +6,11 @@ import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
-import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
+import io.apicurio.registry.operator.api.v1.spec.TLSSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
-import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
+import io.apicurio.registry.operator.utils.SecretKeyRefTool;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
@@ -23,8 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static io.apicurio.registry.operator.Constants.DEFAULT_REPLICAS;
-import static io.apicurio.registry.operator.api.v1.ContainerNames.*;
+import static io.apicurio.registry.operator.Constants.*;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.Labels.getSelectorLabels;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromPodTemplateSpec;
 import static io.apicurio.registry.operator.utils.Mapper.YAML_MAPPER;
@@ -37,12 +39,10 @@ public class ResourceFactory {
 
     public static final String COMPONENT_APP = "app";
     public static final String COMPONENT_UI = "ui";
-    public static final String COMPONENT_STUDIO_UI = "studio-ui";
 
     // TODO: Merge the two sets of constants into an enum. Also consider including container names.
     public static final String COMPONENT_APP_SPEC_FIELD_NAME = "app";
     public static final String COMPONENT_UI_SPEC_FIELD_NAME = "ui";
-    public static final String COMPONENT_STUDIO_UI_SPEC_FIELD_NAME = "studioUi";
 
     public static final String RESOURCE_TYPE_DEPLOYMENT = "deployment";
     public static final String RESOURCE_TYPE_SERVICE = "service";
@@ -56,6 +56,29 @@ public class ResourceFactory {
                         .map(AppSpec::getReplicas).orElse(DEFAULT_REPLICAS),
                 ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                         .map(AppSpec::getPodTemplateSpec).orElse(null)); // TODO:
+
+        var readinessProbe = DEFAULT_READINESS_PROBE;
+        var livenessProbe = DEFAULT_LIVENESS_PROBE;
+        var containerPort = List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build());
+
+        Optional<TLSSpec> tlsSpec = ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(AppSpec::getTls);
+
+        if (tlsSpec.isPresent()) {
+            var keystore = new SecretKeyRefTool(tlsSpec.map(TLSSpec::getKeystoreSecretRef)
+                    .orElse(null), "keystore");
+
+            var keystorePassword = new SecretKeyRefTool(tlsSpec.map(TLSSpec::getKeystorePasswordSecretRef)
+                    .orElse(null), "password");
+
+            if (keystore.isValid() && keystorePassword.isValid()) {
+                readinessProbe = TLS_DEFAULT_READINESS_PROBE;
+                livenessProbe = TLS_DEFAULT_LIVENESS_PROBE;
+                containerPort = List.of(new ContainerPortBuilder().withName("https").withProtocol("TCP").withContainerPort(8443).build());
+            }
+        }
+
         // Replicas
         mergeDeploymentPodTemplateSpec(
                 COMPONENT_APP_SPEC_FIELD_NAME,
@@ -63,12 +86,13 @@ public class ResourceFactory {
                 r.getSpec().getTemplate(),
                 REGISTRY_APP_CONTAINER_NAME,
                 Configuration.getAppImage(),
-                List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
-                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/ready").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
-                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
+                containerPort,
+                readinessProbe,
+                livenessProbe,
                 Map.of("cpu", new Quantity("500m"), "memory", new Quantity("512Mi")),
                 Map.of("cpu", new Quantity("1"), "memory", new Quantity("1Gi"))
         );
+
         addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_APP);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_APP);
         addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_APP);
@@ -100,33 +124,8 @@ public class ResourceFactory {
         return r;
     }
 
-    public Deployment getDefaultStudioUIDeployment(ApicurioRegistry3 primary) {
-        var r = initDefaultDeployment(primary, COMPONENT_STUDIO_UI,
-                Optional.ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
-                        .map(StudioUiSpec::getReplicas).orElse(DEFAULT_REPLICAS),
-                ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi)
-                        .map(StudioUiSpec::getPodTemplateSpec).orElse(null)); // TODO:
-                                                                              // Replicas
-        mergeDeploymentPodTemplateSpec(
-                COMPONENT_STUDIO_UI_SPEC_FIELD_NAME,
-                primary,
-                r.getSpec().getTemplate(),
-                STUDIO_UI_CONTAINER_NAME,
-                Configuration.getStudioUIImage(),
-                List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
-                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
-                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
-                Map.of("cpu", new Quantity("100m"), "memory", new Quantity("256Mi")),
-                Map.of("cpu", new Quantity("200m"), "memory", new Quantity("512Mi"))
-        );
-        addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_STUDIO_UI);
-        addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_STUDIO_UI);
-        addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_STUDIO_UI);
-        return r;
-    }
-
     private static Deployment initDefaultDeployment(ApicurioRegistry3 primary, String componentId,
-            int replicas, PodTemplateSpec pts) {
+                                                    int replicas, PodTemplateSpec pts) {
         var r = new Deployment();
         r.setMetadata(new ObjectMeta());
         r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
@@ -137,7 +136,8 @@ public class ResourceFactory {
         r.getSpec().setSelector(new LabelSelector());
         if (pts != null) {
             r.getSpec().setTemplate(pts);
-        } else {
+        }
+        else {
             r.getSpec().setTemplate(new PodTemplateSpec());
         }
         return r;
@@ -179,8 +179,8 @@ public class ResourceFactory {
         if (c.getEnv() != null && !c.getEnv().isEmpty()) {
             StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
                     .recordError("""
-                    Field spec.%s.podTemplateSpec.spec.containers[name = %s].env must be empty. \
-                    Use spec.%s.env to configure environment variables.""", componentFieldName, containerName, componentFieldName);
+                            Field spec.%s.podTemplateSpec.spec.containers[name = %s].env must be empty. \
+                            Use spec.%s.env to configure environment variables.""", componentFieldName, containerName, componentFieldName);
         }
         if (c.getPorts() == null) {
             c.setPorts(new ArrayList<>());
@@ -217,12 +217,6 @@ public class ResourceFactory {
         return r;
     }
 
-    public Service getDefaultStudioUIService(ApicurioRegistry3 primary) {
-        var r = getDefaultResource(primary, Service.class, RESOURCE_TYPE_SERVICE, COMPONENT_STUDIO_UI);
-        addSelectorLabels(r.getSpec().getSelector(), primary, COMPONENT_STUDIO_UI);
-        return r;
-    }
-
     public Ingress getDefaultAppIngress(ApicurioRegistry3 primary) {
         var r = getDefaultResource(primary, Ingress.class, RESOURCE_TYPE_INGRESS, COMPONENT_APP);
         r.getSpec().getRules().get(0).getHttp().getPaths().get(0).getBackend().getService()
@@ -237,39 +231,22 @@ public class ResourceFactory {
         return r;
     }
 
-    public Ingress getDefaultStudioUIIngress(ApicurioRegistry3 primary) {
-        var r = getDefaultResource(primary, Ingress.class, RESOURCE_TYPE_INGRESS, COMPONENT_STUDIO_UI);
-        r.getSpec().getRules().get(0).getHttp().getPaths().get(0).getBackend().getService().setName(
-                primary.getMetadata().getName() + "-" + COMPONENT_STUDIO_UI + "-" + RESOURCE_TYPE_SERVICE);
-        return r;
-    }
-
     public PodDisruptionBudget getDefaultAppPodDisruptionBudget(ApicurioRegistry3 primary) {
         var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
                 COMPONENT_APP);
-        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
+        addSelectorLabels(pdb.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_APP);
         return pdb;
     }
 
     public PodDisruptionBudget getDefaultUIPodDisruptionBudget(ApicurioRegistry3 primary) {
         var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
                 COMPONENT_UI);
-        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
-        return pdb;
-    }
-
-    public PodDisruptionBudget getDefaultStudioUIPodDisruptionBudget(ApicurioRegistry3 primary) {
-        var pdb = getDefaultResource(primary, PodDisruptionBudget.class, RESOURCE_TYPE_POD_DISRUPTION_BUDGET,
-                COMPONENT_STUDIO_UI);
-        pdb.getSpec().getSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
+        addSelectorLabels(pdb.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
         return pdb;
     }
 
     private <T extends HasMetadata> T getDefaultResource(ApicurioRegistry3 primary, Class<T> klass,
-            String resourceType, String component) {
+                                                         String resourceType, String component) {
         var r = deserialize("/k8s/default/" + component + "." + resourceType + ".yaml", klass);
         r.getMetadata().setNamespace(primary.getMetadata().getNamespace());
         r.getMetadata().setName(primary.getMetadata().getName() + "-" + component + "-" + resourceType);
@@ -280,24 +257,14 @@ public class ResourceFactory {
     public NetworkPolicy getDefaultAppNetworkPolicy(ApicurioRegistry3 primary) {
         var networkPolicy = getDefaultResource(primary, NetworkPolicy.class, RESOURCE_TYPE_NETWORK_POLICY,
                 COMPONENT_APP);
-        networkPolicy.getSpec().getPodSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
+        addSelectorLabels(networkPolicy.getSpec().getPodSelector().getMatchLabels(), primary, COMPONENT_APP);
         return networkPolicy;
     }
 
     public NetworkPolicy getDefaultUINetworkPolicy(ApicurioRegistry3 primary) {
         var networkPolicy = getDefaultResource(primary, NetworkPolicy.class, RESOURCE_TYPE_NETWORK_POLICY,
                 COMPONENT_UI);
-        networkPolicy.getSpec().getPodSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
-        return networkPolicy;
-    }
-
-    public NetworkPolicy getDefaultStudioUINetworkPolicy(ApicurioRegistry3 primary) {
-        var networkPolicy = getDefaultResource(primary, NetworkPolicy.class, RESOURCE_TYPE_NETWORK_POLICY,
-                COMPONENT_STUDIO_UI);
-        networkPolicy.getSpec().getPodSelector().getMatchLabels().put("app.kubernetes.io/instance",
-                primary.getMetadata().getName());
+        addSelectorLabels(networkPolicy.getSpec().getPodSelector().getMatchLabels(), primary, COMPONENT_UI);
         return networkPolicy;
     }
 
@@ -320,7 +287,8 @@ public class ResourceFactory {
     public static <T> T deserialize(String path, Class<T> klass) {
         try {
             return YAML_MAPPER.readValue(load(path), klass);
-        } catch (JsonProcessingException ex) {
+        }
+        catch (JsonProcessingException ex) {
             throw new OperatorException("Could not deserialize resource: " + path, ex);
         }
     }
@@ -328,7 +296,8 @@ public class ResourceFactory {
     public static <T> T deserialize(String path, Class<T> klass, ClassLoader classLoader) {
         try {
             return YAML_MAPPER.readValue(load(path, classLoader), klass);
-        } catch (JsonProcessingException ex) {
+        }
+        catch (JsonProcessingException ex) {
             throw new OperatorException("Could not deserialize resource: " + path, ex);
         }
     }
@@ -340,7 +309,8 @@ public class ResourceFactory {
     public static String load(String path, ClassLoader classLoader) {
         try (var stream = classLoader.getResourceAsStream(path)) {
             return new String(stream.readAllBytes(), Charset.defaultCharset());
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             throw new OperatorException("Could not read resource: " + path, ex);
         }
     }

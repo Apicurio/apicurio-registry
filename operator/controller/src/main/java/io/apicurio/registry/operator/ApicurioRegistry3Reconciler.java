@@ -2,7 +2,6 @@ package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.app.*;
-import io.apicurio.registry.operator.resource.studioui.*;
 import io.apicurio.registry.operator.resource.ui.*;
 import io.apicurio.registry.operator.status.OperatorErrorConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
@@ -74,35 +73,6 @@ import static io.apicurio.registry.operator.resource.ResourceKey.*;
                         name = UI_NETWORK_POLICY_ID,
                         dependsOn = {UI_DEPLOYMENT_ID},
                         activationCondition = UINetworkPolicyActivationCondition.class
-                ),
-                // ===== Studio UI
-                @Dependent(
-                        type = StudioUIDeploymentResource.class,
-                        name = STUDIO_UI_DEPLOYMENT_ID,
-                        activationCondition = StudioUIDeploymentActivationCondition.class
-                ),
-                @Dependent(
-                        type = StudioUIServiceResource.class,
-                        name = STUDIO_UI_SERVICE_ID,
-                        dependsOn = {STUDIO_UI_DEPLOYMENT_ID}
-                ),
-                @Dependent(
-                        type = StudioUIIngressResource.class,
-                        name = STUDIO_UI_INGRESS_ID,
-                        dependsOn = {STUDIO_UI_SERVICE_ID},
-                        activationCondition = StudioUIIngressActivationCondition.class
-                ),
-                @Dependent(
-                        type = StudioUIPodDisruptionBudgetResource.class,
-                        name = STUDIO_UI_POD_DISRUPTION_BUDGET_ID,
-                        dependsOn = {STUDIO_UI_DEPLOYMENT_ID},
-                        activationCondition = StudioUIPodDisruptionBudgetActivationCondition.class
-                ),
-                @Dependent(
-                        type = StudioUINetworkPolicyResource.class,
-                        name = STUDIO_UI_NETWORK_POLICY_ID,
-                        dependsOn = {STUDIO_UI_DEPLOYMENT_ID},
-                        activationCondition = StudioUINetworkPolicyActivationCondition.class
                 )
         }
 )

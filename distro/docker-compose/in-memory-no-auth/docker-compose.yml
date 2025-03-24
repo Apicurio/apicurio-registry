@@ -1,0 +1,19 @@
+services:
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: apicurio-registry-inmemorynoauth_api
+    environment:
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    ports:
+      - "8080:8080"
+
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: apicurio-registry-inmemorynoauth_ui
+    ports:
+      - "8888:8080"
+    depends_on:
+      - apicurio-registry

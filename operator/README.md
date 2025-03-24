@@ -148,7 +148,6 @@ Available options:
 | NAMESPACE          | string | `default`                                               | Namespace to which the operator will be deployed. |
 | REGISTRY_APP_IMAGE | string | `quay.io/apicurio/apicurio-registry:latest-snapshot`    | -                                                 |
 | REGISTRY_UI_IMAGE  | string | `quay.io/apicurio/apicurio-registry-ui:latest-snapshot` | -                                                 |
-| STUDIO_UI_IMAGE    | string | `quay.io/apicurio/apicurio-studio-ui:latest-snapshot`   | -                                                 |
 
 To remove the operator from your cluster, run:
 
@@ -267,7 +266,7 @@ OLM tests are similar to the remote tests in that the operator is deployed into 
 4. Run:
    ```shell
    make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
-   mvn clean verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(make catalog-image-get)
+   mvn verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(make VAR=CATALOG_IMAGE get-variable)
    ```
    or
    ```shell
@@ -277,9 +276,9 @@ OLM tests are similar to the remote tests in that the operator is deployed into 
 
 Configuration options for the remote + OLM tests are same as those for the remote tests, but the following options are additionally available:
 
-| Option                      | Type             | Default value                                                         | Description                                                             |
-|-----------------------------|------------------|-----------------------------------------------------------------------|-------------------------------------------------------------------------|
-| test.operator.catalog-image | string           | `quay.io/apicurio/apicurio-registry-operator-catalog:latest-snapshot` | Catalog image that is used to deploy the operator for testing with OLM. |
+| Option                      | Type             | Default value | Description                                                             |
+|-----------------------------|------------------|---------------|-------------------------------------------------------------------------|
+| test.operator.catalog-image | string           | -             | Catalog image that is used to deploy the operator for testing with OLM. |
 
 ## Distribution and Release
 
@@ -302,7 +301,6 @@ Available options:
 | IMAGE_TAG          | string | *(current version, lowercase)*                                  | -           |
 | REGISTRY_APP_IMAGE | string | `quay.io/apicurio/apicurio-registry:latest-snapshot`            | -           |
 | REGISTRY_UI_IMAGE  | string | `quay.io/apicurio/apicurio-registry-ui:latest-snapshot`         | -           |
-| STUDIO_UI_IMAGE    | string | `quay.io/apicurio/apicurio-studio-ui:latest-snapshot`           | -           |
 
 *NOTE: The CRD file must have been generated using `make build`.*
 
@@ -324,7 +322,6 @@ Available options:
 | IMAGE_TAG          | string | *(current version, lowercase)*                          | -           |
 | REGISTRY_APP_IMAGE | string | `quay.io/apicurio/apicurio-registry:latest-snapshot`    | -           |
 | REGISTRY_UI_IMAGE  | string | `quay.io/apicurio/apicurio-registry-ui:latest-snapshot` | -           |
-| STUDIO_UI_IMAGE    | string | `quay.io/apicurio/apicurio-studio-ui:latest-snapshot`   | -           |
 
 *NOTE: The CRD file and licenses must have been generated using `make build`.*
 

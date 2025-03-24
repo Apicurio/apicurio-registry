@@ -173,6 +173,43 @@
       ]
     },
     {
+      "groupName": "Dependencies: Maven App: Kiota",
+      "matchFileNames": [
+        "**/pom.xml"
+      ],
+      "matchPackageNames": [
+        "com.microsoft.kiota:*"
+      ]
+    },
+    {
+      "groupName": "Dependencies: Maven App: Kafka Connect",
+      "matchFileNames": [
+        "**/pom.xml"
+      ],
+      "matchPackageNames": [
+        "org.apache.kafka:connect-*"
+      ]
+    },
+    {
+      "groupName": "Dependencies: Maven App: Protobuf",
+      "matchFileNames": [
+        "**/pom.xml"
+      ],
+      "matchPackageNames": [
+        "com.google.protobuf:*"
+      ]
+    },
+    {
+      "groupName": "Dependencies: Maven App: Test Containers",
+      "matchFileNames": [
+        "**/pom.xml"
+      ],
+      "matchPackageNames": [
+        "*:*test-container*",
+        "*:*testcontainer*"
+      ]
+    },
+    {
       "groupName": "Dependencies: Operator: Quarkus Operator SDK",
       "matchFileNames": [
         "**/pom.xml"
@@ -196,6 +233,17 @@
       "matchUpdateTypes": [
         "minor",
         "patch"
+      ]
+    },
+    {
+      "groupName": "Dependencies: Typescript Version (Temporary)",
+      "matchFileNames": [
+        "ui/ui-app/**",
+        "ui/ui-editors/**"
+      ],
+      "enabled": false,
+      "matchPackageNames": [
+        "typescript"
       ]
     },
     {

@@ -22,12 +22,6 @@ public class Configuration {
                 .orElseThrow(() -> new OperatorException("Required configuration option 'registry.ui.image' is not set."));
     }
 
-    public static String getStudioUIImage() {
-        return config.getOptionalValue("studio.ui.image", String.class)
-                .or(() -> config.getOptionalValue("related.image.studio.ui.image", String.class))
-                .orElseThrow(() -> new OperatorException("Required configuration option 'studio.ui.image' is not set."));
-    }
-
     public static String getRegistryVersion() {
         return config.getOptionalValue("registry.version", String.class)
                 .orElseThrow(() -> new OperatorException("Required configuration option 'registry.version' is not set."));

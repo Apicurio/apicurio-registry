@@ -53,24 +53,6 @@ public class PodTemplateSpecArgumentProviders {
         }
     }
 
-    public static class StudioUIPositiveTestCases implements ArgumentsProvider {
-
-        @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) {
-            return deserialize("podtemplatespec-test-cases-studio-ui-positive.yaml",
-                    PodTemplateSpecArgumentProviders.TestCases.class).getCases().stream().map(Arguments::of);
-        }
-    }
-
-    public static class StudioUINegativeTestCases implements ArgumentsProvider {
-
-        @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) {
-            return deserialize("podtemplatespec-test-cases-studio-ui-negative.yaml",
-                    PodTemplateSpecArgumentProviders.TestCases.class).getCases().stream().map(Arguments::of);
-        }
-    }
-
     @Getter
     @Setter
     public static class TestCases {

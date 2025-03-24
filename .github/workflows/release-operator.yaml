@@ -1,0 +1,262 @@
+name: Release Operator
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag name
+        required: true
+      run_tests:
+        description: Run tests using the release artifacts
+        type: boolean
+        default: true
+
+  release:
+    types: [ released, prereleased ] # TODO: What to do with pre-release?
+
+env:
+  RELEASE_VERSION: ${{ github.event.release.name }}
+  BRANCH: ${{ github.event.release.target_commitish }}
+  RUN_TESTS: 'true'
+
+jobs:
+  release-operator:
+    if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+
+      - name: Fetch Release Details
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          touch release.json && curl "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/${{ github.event.inputs.tag }}" > release.json
+          echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
+          echo "RUN_TESTS=${{ github.event.inputs.run_tests }}" >> $GITHUB_ENV
+
+      - name: Check release type
+        if: contains(env.RELEASE_VERSION, 'RC')
+        run: |
+          # TODO: Figure out what pre-release operator looks like. Maybe just skip OperatorHub?
+          # We we would have to remove the pre-release version from standard-release catalog.
+          echo "Operator cannot be released as part of a pre-release version yet."
+          exit 1
+
+      - name: Download Source Code
+        run: |
+          git config --global user.name apicurio-ci
+          git config --global user.email apicurio.ci@gmail.com
+          git clone "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git" registry
+          cd registry && git checkout "$RELEASE_VERSION"
+
+      - name: Verify Project Version
+        working-directory: registry
+        run: |
+          PROJECT_VERSION="$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)"
+          if [[ "$PROJECT_VERSION" != "$RELEASE_VERSION" ]]
+          then
+              echo "ERROR: Project version $PROJECT_VERSION does not match released version $RELEASE_VERSION"
+              exit 1
+          fi
+
+      - name: Configure env. variables 1
+        working-directory: registry/operator
+        run: |
+          echo "GH_TOKEN=${{ secrets.ACCESS_TOKEN }}" >> "$GITHUB_ENV"
+          echo "CUSTOM_ENV=$(pwd)/custom_env" >> "$GITHUB_ENV"
+          echo "PACKAGE_VERSION=$(make VAR=LC_VERSION get-variable)" >> "$GITHUB_ENV"
+
+      - name: Configure env. variables 2
+        run: |
+          echo "RELEASE_BRANCH=release-$PACKAGE_VERSION" >> "$GITHUB_ENV"
+
+      - name: Configure custom env. variables 1
+        # See https://github.com/actions/runner/issues/1126
+        run: |
+          echo "export OPERAND_IMAGE_TAG=$RELEASE_VERSION" >> "$CUSTOM_ENV"
+
+      - name: Show make configuration
+        working-directory: registry/operator
+        run: |
+          source "$CUSTOM_ENV"
+          make config-show
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Build the operator
+        working-directory: registry/operator
+        run: |
+          source "$CUSTOM_ENV"
+          make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true build
+
+      - name: Login to Quay.io Registry
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
+
+      - name: Build and push operator image
+        working-directory: registry/operator
+        run: |
+          source "$CUSTOM_ENV"
+          make ADDITIONAL_IMAGE_TAG=latest image-build image-push
+
+      - name: Wait on operand images
+        working-directory: registry/operator
+        run: |
+          source "$CUSTOM_ENV"
+          export REGISTRY_APP_IMAGE="$(make VAR=REGISTRY_APP_IMAGE get-variable)"
+          until docker manifest inspect "$REGISTRY_APP_IMAGE" >& /dev/null; do echo "Waiting on $REGISTRY_APP_IMAGE"; sleep 10; done
+          export REGISTRY_UI_IMAGE="$(make VAR=REGISTRY_UI_IMAGE get-variable)"
+          until docker manifest inspect "$REGISTRY_UI_IMAGE" >& /dev/null; do echo "Waiting on $REGISTRY_UI_IMAGE"; sleep 10; done
+
+      - name: Build operator bundle
+        working-directory: registry/operator
+        run: |
+          source "$CUSTOM_ENV"
+          make bundle
+
+      - name: Build operator catalog
+        working-directory: registry/operator
+        run: |
+          source "$CUSTOM_ENV"
+          make ADDITIONAL_CATALOG_IMAGE_TAG=latest catalog
+
+      - uses: ./registry/.github/workflows/composite/setup-minikube
+        if: env.RUN_TESTS == 'true'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run tests
+        if: env.RUN_TESTS == 'true'
+        working-directory: registry/operator
+        run: |
+          source "$CUSTOM_ENV"
+          make REMOTE_TESTS_ALL_INSTALL_FILE=install/install.yaml BUILD_OPTS=--no-transfer-progress remote-tests-all
+
+      - name: Build dist archive and attach to the release
+        working-directory: registry/operator
+        run: |
+          source "$CUSTOM_ENV"
+          make dist
+          DIST_FILE="target/apicurio-registry-operator-$RELEASE_VERSION.tar.gz"
+          gh release upload "$RELEASE_VERSION" "$DIST_FILE"
+
+      - name: Checkout the Community Operators repository
+        run: |
+          mkdir community-operators
+          cd community-operators
+          git init
+          git remote add origin https://github.com/k8s-operatorhub/community-operators.git
+          git remote add source "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/community-operators.git"
+          git fetch
+          git checkout --track origin/main
+          git push -f source main
+
+      - name: Create the Community Operators PR
+        working-directory: community-operators
+        run: |
+          git checkout -b "$RELEASE_BRANCH"
+          TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
+          BODY="$(curl -s https://raw.githubusercontent.com/k8s-operatorhub/community-operators/main/docs/pull_request_template.md)"
+          # TODO: Remove after first release
+          mkdir operators/apicurio-registry-3
+          # TODO: Remove after first release
+          echo -e "---\nupdateGraph: replaces-mode\nreviewers:\n  - apicurio-ci\n  - carlesarnal\n  - EricWittmann  - jsenko\n" > operators/apicurio-registry-3/ci.yaml
+          cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
+          git add .
+          git commit -s -m "$TITLE"
+          git push -f source "$RELEASE_BRANCH"
+          gh repo set-default k8s-operatorhub/community-operators
+          gh pr create --title "$TITLE" --body "$BODY" --base main --head "Apicurio:$RELEASE_BRANCH"
+
+      - name: Checkout the Openshift Community Operators repository
+        run: |
+          mkdir openshift-community-operators
+          cd openshift-community-operators
+          git init
+          git remote add origin https://github.com/redhat-openshift-ecosystem/community-operators-prod.git
+          git remote add source "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/community-operators-prod.git"
+          git fetch
+          git checkout --track origin/main
+          git push -f source main
+
+      - name: Create the Openshift Community Operators PR
+        working-directory: openshift-community-operators
+        run: |
+          git checkout -b "$RELEASE_BRANCH"
+          TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
+          BODY="$(curl -s https://raw.githubusercontent.com/redhat-openshift-ecosystem/community-operators-prod/main/docs/pull_request_template.md)"
+          # TODO: Remove after first release
+          mkdir operators/apicurio-registry-3
+          # TODO: Remove after first release
+          echo -e "---\nupdateGraph: replaces-mode\nreviewers:\n  - apicurio-ci\n  - carlesarnal\n  - EricWittmann  - jsenko\n" > operators/apicurio-registry-3/ci.yaml
+          cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
+          git add .
+          git commit -s -m "$TITLE"
+          git push -f source "$RELEASE_BRANCH"
+          gh repo set-default redhat-openshift-ecosystem/community-operators-prod
+          gh pr create --title "$TITLE" --body "$BODY" --base main --head "Apicurio:$RELEASE_BRANCH"
+
+      - name: Configure custom env. variables 2
+        run: |
+          # We want to use latest-snapshot instead of x.y.z-snapshot
+          echo "export IMAGE_TAG=latest-snapshot" >> "$CUSTOM_ENV"
+
+      - name: Prepare post-release changes
+        working-directory: registry/operator
+        run: |
+          git checkout "$BRANCH"
+
+      - name: Update Makefile
+        working-directory: registry/operator
+        run: |
+          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" set-variable
+          git add Makefile
+
+      - name: Update catalog template
+        working-directory: registry/operator
+        run: |
+          make release-catalog-template-update
+          git add "$(make VAR=CATALOG_DIR get-variable)"
+
+      - name: Update install file
+        working-directory: registry/operator
+        run: |
+          source "$CUSTOM_ENV"
+          make INSTALL_FILE=install/install.yaml dist-install-file
+          git add install/*
+
+      - name: Commit & push post-release changes
+        working-directory: registry/operator
+        run: |
+          git commit -m "ci(operator): post-release changes for $RELEASE_VERSION"
+          # Rebase in case somebody else pushed to the branch
+          git fetch origin
+          git rebase "origin/$BRANCH"
+          git push origin "$BRANCH"
+
+      - name: Slack Notification (Always)
+        if: always()
+        run: |
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}"
+
+      - name: Slack Notification (Error)
+        if: failure()
+        run: |
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.SLACK_ERROR_WEBHOOK }}"
+
+      - name: Setup tmate session on failure
+        if: failure()
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true

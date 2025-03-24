@@ -28,10 +28,6 @@ public class CRUpdateITTest extends ITBase {
                         "/k8s/examples/simple.apicurioregistry3.yaml"
                 ),
                 List.of(
-                        "/k8s/examples/simple-with-studio-deprecated.apicurioregistry3.yaml",
-                        "/k8s/examples/simple-with-studio.apicurioregistry3.yaml"
-                ),
-                List.of(
                         "/k8s/examples/postgresql/example-postgresql-deprecated.apicurioregistry3.yaml",
                         "/k8s/examples/postgresql/example-postgresql.apicurioregistry3.yaml"
                 ),

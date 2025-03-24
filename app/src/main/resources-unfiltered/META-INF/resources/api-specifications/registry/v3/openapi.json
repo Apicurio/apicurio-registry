@@ -1336,32 +1336,6 @@
         }
       ]
     },
-    "/system/limits": {
-      "summary": "Retrieve resource limits information",
-      "get": {
-        "tags": [
-          "System"
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Limits"
-                }
-              }
-            },
-            "description": "On success, returns resource limits"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "operationId": "getResourceLimits",
-        "summary": "Get resource limits information",
-        "description": "This operation retrieves the list of limitations on used resources, that are applied on the current instance of Registry."
-      }
-    },
     "/groups/{groupId}/artifacts": {
       "summary": "Manage the collection of artifacts within a single group in the registry.",
       "get": {
@@ -4278,75 +4252,6 @@
           "value": "true"
         }
       },
-      "Limits": {
-        "title": "Root Type for Limits",
-        "description": "List of limitations on used resources, that are applied on the current instance of Registry.\nKeys represent the resource type and are suffixed by the corresponding unit.\nValues are integers. Only non-negative values are allowed, with the exception of -1, which means that the limit is not applied.",
-        "type": "object",
-        "properties": {
-          "maxTotalSchemasCount": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxSchemaSizeBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxArtifactsCount": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxVersionsPerArtifactCount": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxArtifactPropertiesCount": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxPropertyKeySizeBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxPropertyValueSizeBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxArtifactLabelsCount": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxLabelSizeBytes": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxArtifactNameLengthChars": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxArtifactDescriptionLengthChars": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "maxRequestsPerSecondCount": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "example": {
-          "maxTotalSchemasCount": -1,
-          "maxSchemaSizeBytes": -1,
-          "maxArtifactsCount": -1,
-          "maxVersionsPerArtifactCount": -1,
-          "maxArtifactPropertiesCount": -1,
-          "maxPropertyKeySizeBytes": -1,
-          "maxPropertyValueSizeBytes": -1,
-          "maxArtifactLabelsCount": -1,
-          "maxLabelSizeBytes": -1,
-          "maxArtifactNameLengthChars": -1,
-          "maxArtifactDescriptionLengthChars": -1,
-          "maxRequestsPerSecondCount": -1
-        }
-      },
       "SearchedGroup": {
         "description": "Models a single group from the result set returned when searching for groups.",
         "required": [
@@ -5100,6 +5005,16 @@
             "description": "",
             "type": "boolean"
           }
+        },
+        "example": {
+          "version": "1.0.1",
+          "content": {
+            "content": "{\"type\":\"record\",\"name\":\"ExampleType\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}",
+            "contentType": "application/json"
+          },
+          "name": "Version 1.0.1",
+          "description": "The latest version of this artifact.",
+          "isDraft": false
         }
       },
       "CreateArtifactResponse": {

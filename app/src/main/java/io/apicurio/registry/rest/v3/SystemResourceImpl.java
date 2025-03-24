@@ -10,7 +10,6 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.RestConfig;
-import io.apicurio.registry.rest.v3.beans.Limits;
 import io.apicurio.registry.rest.v3.beans.SystemInfo;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfig;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigAuth;
@@ -56,29 +55,6 @@ public class SystemResourceImpl implements SystemResource {
         info.setVersion(system.getVersion());
         info.setBuiltOn(system.getDate());
         return info;
-    }
-
-    /**
-     * @see io.apicurio.registry.rest.v3.SystemResource#getResourceLimits()
-     */
-    @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
-    public Limits getResourceLimits() {
-        var limitsConfig = registryLimitsConfiguration;
-        var limits = new Limits();
-        limits.setMaxTotalSchemasCount(limitsConfig.getMaxTotalSchemasCount());
-        limits.setMaxSchemaSizeBytes(limitsConfig.getMaxSchemaSizeBytes());
-        limits.setMaxArtifactsCount(limitsConfig.getMaxArtifactsCount());
-        limits.setMaxVersionsPerArtifactCount(limitsConfig.getMaxVersionsPerArtifactCount());
-        limits.setMaxArtifactPropertiesCount(limitsConfig.getMaxArtifactPropertiesCount());
-        limits.setMaxPropertyKeySizeBytes(limitsConfig.getMaxPropertyKeySizeBytes());
-        limits.setMaxPropertyValueSizeBytes(limitsConfig.getMaxPropertyValueSizeBytes());
-        limits.setMaxArtifactLabelsCount(limitsConfig.getMaxArtifactLabelsCount());
-        limits.setMaxLabelSizeBytes(limitsConfig.getMaxLabelSizeBytes());
-        limits.setMaxArtifactNameLengthChars(limitsConfig.getMaxArtifactNameLengthChars());
-        limits.setMaxArtifactDescriptionLengthChars(limitsConfig.getMaxArtifactDescriptionLengthChars());
-        limits.setMaxRequestsPerSecondCount(limitsConfig.getMaxRequestsPerSecondCount());
-        return limits;
     }
 
     /**

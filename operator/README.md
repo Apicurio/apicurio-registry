@@ -148,7 +148,6 @@ Available options:
 | NAMESPACE          | string | `default`                                               | Namespace to which the operator will be deployed. |
 | REGISTRY_APP_IMAGE | string | `quay.io/apicurio/apicurio-registry:latest-snapshot`    | -                                                 |
 | REGISTRY_UI_IMAGE  | string | `quay.io/apicurio/apicurio-registry-ui:latest-snapshot` | -                                                 |
-| STUDIO_UI_IMAGE    | string | `quay.io/apicurio/apicurio-studio-ui:latest-snapshot`   | -                                                 |
 
 To remove the operator from your cluster, run:
 
@@ -302,7 +301,6 @@ Available options:
 | IMAGE_TAG          | string | *(current version, lowercase)*                                  | -           |
 | REGISTRY_APP_IMAGE | string | `quay.io/apicurio/apicurio-registry:latest-snapshot`            | -           |
 | REGISTRY_UI_IMAGE  | string | `quay.io/apicurio/apicurio-registry-ui:latest-snapshot`         | -           |
-| STUDIO_UI_IMAGE    | string | `quay.io/apicurio/apicurio-studio-ui:latest-snapshot`           | -           |
 
 *NOTE: The CRD file must have been generated using `make build`.*
 
@@ -324,7 +322,6 @@ Available options:
 | IMAGE_TAG          | string | *(current version, lowercase)*                          | -           |
 | REGISTRY_APP_IMAGE | string | `quay.io/apicurio/apicurio-registry:latest-snapshot`    | -           |
 | REGISTRY_UI_IMAGE  | string | `quay.io/apicurio/apicurio-registry-ui:latest-snapshot` | -           |
-| STUDIO_UI_IMAGE    | string | `quay.io/apicurio/apicurio-studio-ui:latest-snapshot`   | -           |
 
 *NOTE: The CRD file and licenses must have been generated using `make build`.*
 

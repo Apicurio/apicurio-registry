@@ -94,7 +94,7 @@ public class SystemResourceImpl implements SystemResource {
                 .features(UserInterfaceConfigFeatures.builder()
                         .readOnly("true".equals(uiConfig.featureReadOnly))
                         .breadcrumbs("true".equals(uiConfig.featureBreadcrumbs))
-                        .roleManagement(authConfig.isRbacEnabled())
+                        .roleManagement(authConfig.isRbacEnabled() && "application".equals(authConfig.getRoleSource()))
                         .deleteGroup(restConfig.isGroupDeletionEnabled())
                         .deleteArtifact(restConfig.isArtifactDeletionEnabled())
                         .deleteVersion(restConfig.isArtifactVersionDeletionEnabled())

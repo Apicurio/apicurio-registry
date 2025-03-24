@@ -24,9 +24,7 @@ public class IngressCRUpdater {
                 "app");
         var updatedUi = updateComponent(ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi),
                 "ui");
-        var updatedStudioUi = updateComponent(
-                ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getStudioUi), "studioUi");
-        return updatedApp || updatedUi || updatedStudioUi;
+        return updatedApp || updatedUi;
     }
 
     private static boolean updateComponent(Optional<? extends ComponentSpec> component,

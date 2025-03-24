@@ -20,7 +20,7 @@ public class NetworkPolicyITTest extends ITBase {
     @Test
     void testNetworkPolicy() {
         ApicurioRegistry3 registry = ResourceFactory.deserialize(
-                "/k8s/examples/simple-with-studio.apicurioregistry3.yaml", ApicurioRegistry3.class);
+                "/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);
         client.resource(registry).create();
 
         // Wait for the deployment to exist
@@ -29,8 +29,6 @@ public class NetworkPolicyITTest extends ITBase {
         // Check that the two expected NetworkPolicy resources were created
         NetworkPolicy appPolicy = checkNetworkPolicyExists(registry, ResourceFactory.COMPONENT_APP);
         NetworkPolicy uiNetworkPolicy = checkNetworkPolicyExists(registry, ResourceFactory.COMPONENT_UI);
-        NetworkPolicy studioNetworkPolicy = checkNetworkPolicyExists(registry,
-                ResourceFactory.COMPONENT_STUDIO_UI);
 
         // Verify the content of the app component's network policy
         assertLabelsContains(appPolicy.getMetadata().getLabels(), "app.kubernetes.io/component=app",
@@ -46,15 +44,6 @@ public class NetworkPolicyITTest extends ITBase {
                 "app.kubernetes.io/name=apicurio-registry");
         assertLabelsContains(uiNetworkPolicy.getSpec().getPodSelector().getMatchLabels(),
                 "app.kubernetes.io/component=ui", "app.kubernetes.io/name=apicurio-registry",
-                "app.kubernetes.io/instance=" + registry.getMetadata().getName());
-
-        // Verify the content of the studio component's network policy
-        assertLabelsContains(studioNetworkPolicy.getMetadata().getLabels(),
-                "app.kubernetes.io/component=studio-ui",
-                "app.kubernetes.io/managed-by=apicurio-registry-operator",
-                "app.kubernetes.io/name=apicurio-registry");
-        assertLabelsContains(studioNetworkPolicy.getSpec().getPodSelector().getMatchLabels(),
-                "app.kubernetes.io/component=studio-ui", "app.kubernetes.io/name=apicurio-registry",
                 "app.kubernetes.io/instance=" + registry.getMetadata().getName());
     }
 

@@ -34,7 +34,6 @@ import java.util.Optional;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
-import static io.apicurio.registry.operator.resource.ResourceKey.STUDIO_UI_SERVICE_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
@@ -90,16 +89,6 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
 
         // Configure the TLS env vars
         TLS.configureTLS(primary, deployment, REGISTRY_APP_CONTAINER_NAME, envVars);
-
-        // Enable the "mutability" feature in Registry, but only if Studio is deployed. It is based on Service
-        // in case a custom Ingress is used.
-        var sOpt = context.getSecondaryResource(STUDIO_UI_SERVICE_KEY.getKlass(),
-                STUDIO_UI_SERVICE_KEY.getDiscriminator());
-        sOpt.ifPresent(s -> {
-            addEnvVar(envVars,
-                    new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED)
-                            .withValue("true").build());
-        });
 
         // Configure the storage (Postgresql or KafkaSql).
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)

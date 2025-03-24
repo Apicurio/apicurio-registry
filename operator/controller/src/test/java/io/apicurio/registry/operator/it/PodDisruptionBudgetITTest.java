@@ -21,7 +21,7 @@ public class PodDisruptionBudgetITTest extends ITBase {
     @Test
     void testPodDisruptionBudget() {
         ApicurioRegistry3 registry = ResourceFactory.deserialize(
-                "/k8s/examples/simple-with-studio.apicurioregistry3.yaml", ApicurioRegistry3.class);
+                "/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);
         registry.getSpec().getApp().setReplicas(2);
         client.resource(registry).create();
 
@@ -31,8 +31,6 @@ public class PodDisruptionBudgetITTest extends ITBase {
         // Check that the two expected PodDisruptionBudget resources were created
         PodDisruptionBudget appPDB = checkPodDisruptionBudgetExists(registry, ResourceFactory.COMPONENT_APP);
         PodDisruptionBudget uiPDB = checkPodDisruptionBudgetExists(registry, ResourceFactory.COMPONENT_UI);
-        PodDisruptionBudget studioPDB = checkPodDisruptionBudgetExists(registry,
-                ResourceFactory.COMPONENT_STUDIO_UI);
 
         // Verify the content of the app component's PDB
         assertLabelsContains(appPDB.getMetadata().getLabels(), "app.kubernetes.io/component=app",
@@ -55,17 +53,6 @@ public class PodDisruptionBudgetITTest extends ITBase {
         PodDisruptionBudgetStatus uiPdbStatus = uiPDB.getStatus();
         Assertions.assertThat(uiPdbStatus.getExpectedPods()).isEqualTo(1);
         Assertions.assertThat(uiPdbStatus.getDisruptionsAllowed()).isEqualTo(0);
-
-        // Verify the content of the studio component's PDB
-        assertLabelsContains(studioPDB.getMetadata().getLabels(), "app.kubernetes.io/component=studio-ui",
-                "app.kubernetes.io/managed-by=apicurio-registry-operator",
-                "app.kubernetes.io/name=apicurio-registry");
-        assertLabelsContains(studioPDB.getSpec().getSelector().getMatchLabels(),
-                "app.kubernetes.io/component=studio-ui", "app.kubernetes.io/name=apicurio-registry",
-                "app.kubernetes.io/instance=" + registry.getMetadata().getName());
-        PodDisruptionBudgetStatus studioPdbStatus = studioPDB.getStatus();
-        Assertions.assertThat(studioPdbStatus.getExpectedPods()).isEqualTo(1);
-        Assertions.assertThat(studioPdbStatus.getDisruptionsAllowed()).isEqualTo(0);
     }
 
     private void assertLabelsContains(Map<String, String> labels, String... values) {

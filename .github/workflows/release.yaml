@@ -5,9 +5,6 @@ on:
       release-version:
         description: Version being released
         required: true
-      apicurio-studio-version:
-        description: Apicurio Studio version being used in this release. Must correspond to an image tag.
-        required: true
       snapshot-version:
         description: Next snapshot version
         required: true
@@ -110,12 +107,6 @@ jobs:
       - name: (Operator) Configure env. variables
         run: |
           echo "OPERAND_IMAGE_TAG=${{ github.event.inputs.release-version }}" >> $GITHUB_ENV
-
-      - name: (Operator) Update Makefile
-        working-directory: registry/operator
-        run: |
-          make VAR=STUDIO_UI_IMAGE_TAG "VAL=${{ github.event.inputs.apicurio-studio-version }}" set-variable
-          git add Makefile
 
       - name: (Operator) Update install file
         working-directory: registry/operator

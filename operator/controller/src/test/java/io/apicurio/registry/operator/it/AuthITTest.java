@@ -41,6 +41,8 @@ public class AuthITTest extends BaseAuthITTest {
 
         client.resource(registry).create();
 
+        hostAliasManager.defineHostAlias(registry);
+
         // Assertions, checks registry deployments exist
         checkDeploymentExists(registry, COMPONENT_APP, 1);
         checkDeploymentExists(registry, COMPONENT_UI, 1);
@@ -61,13 +63,13 @@ public class AuthITTest extends BaseAuthITTest {
                 .contains(EnvironmentVariables.APICURIO_REGISTRY_UI_CLIENT_ID + "=" + "apicurio-registry");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL + "="
-                        + "https://simple-keycloak.apps.cluster.example/realms/registry");
+                          + "https://simple-keycloak.apps.cluster.example/realms/registry");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_UI_AUTH_OIDC_REDIRECT_URI + "="
-                        + "https://simple-ui.apps.cluster.example");
+                          + "https://simple-ui.apps.cluster.example");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_UI_AUTH_OIDC_LOGOUT_URL + "="
-                        + "https://simple-ui.apps.cluster.example");
+                          + "https://simple-ui.apps.cluster.example");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.OIDC_TLS_VERIFICATION + "=" + "none");
 
@@ -77,5 +79,20 @@ public class AuthITTest extends BaseAuthITTest {
                 EnvironmentVariables.APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_CACHE_EXPIRATION + "=" + "25");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED + "=" + "true");
+
+        try (var job = jobManager.runJob("""
+                #/bin/bash
+                CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+                    -X POST -H 'content-type: application/json' \
+                    --data '{"ruleType": "VALIDITY", "config": "FULL"}' \
+                    http://simple-app.apps.cluster.example:8080/apis/registry/v3/admin/rules\
+                  )
+                if [[ "$CODE" != "401" ]]; then
+                  echo "Authorization error expected, but got: $CODE";
+                  exit 1;
+                fi;
+                """)) {
+            assertThat(job.waitAndIsSuccessful()).isTrue();
+        }
     }
 }

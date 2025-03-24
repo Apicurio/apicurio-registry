@@ -38,8 +38,3 @@ patches:
         value:
           name: REGISTRY_UI_IMAGE
           value: ${PLACEHOLDER_REGISTRY_UI_IMAGE}
-      - op: add
-        path: /spec/template/spec/containers/0/env/-
-        value:
-          name: STUDIO_UI_IMAGE
-          value: ${PLACEHOLDER_STUDIO_UI_IMAGE}

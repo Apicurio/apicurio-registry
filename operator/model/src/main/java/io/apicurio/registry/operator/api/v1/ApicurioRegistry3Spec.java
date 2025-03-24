@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
-import io.apicurio.registry.operator.api.v1.spec.StudioUiSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import lombok.*;
 
@@ -13,7 +12,7 @@ import static com.fasterxml.jackson.annotation.Nulls.SKIP;
 import static lombok.AccessLevel.PRIVATE;
 
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "app", "ui", "studioUi" })
+@JsonPropertyOrder({"app", "ui"})
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -43,15 +42,6 @@ public class ApicurioRegistry3Spec {
     @JsonSetter(nulls = SKIP)
     private UiSpec ui;
 
-    /**
-     * Configure Apicurio Studio UI component.
-     */
-    @JsonProperty("studioUi")
-    @JsonPropertyDescription("""
-            Configure Apicurio Studio UI component.""")
-    @JsonSetter(nulls = SKIP)
-    private StudioUiSpec studioUi;
-
     public AppSpec withApp() {
         if (app == null) {
             app = new AppSpec();
@@ -64,12 +54,5 @@ public class ApicurioRegistry3Spec {
             ui = new UiSpec();
         }
         return ui;
-    }
-
-    public StudioUiSpec withStudioUi() {
-        if (studioUi == null) {
-            studioUi = new StudioUiSpec();
-        }
-        return studioUi;
     }
 }

@@ -20,6 +20,9 @@ public abstract class BaseAuthITTest extends ITBase {
         // Deploy Registry
         var registry = deserialize(apicurioResource, ApicurioRegistry3.class);
 
+        hostAliasManager.defineHostAlias("simple-keycloak.apps.cluster.example", "keycloak");
+        hostAliasManager.inject(registry);
+
         registry.getMetadata().setNamespace(namespace);
 
         return registry;
@@ -40,9 +43,5 @@ public abstract class BaseAuthITTest extends ITBase {
             assertThat(client.apps().deployments().withName("keycloak").get().getStatus().getReadyReplicas())
                     .isEqualTo(1);
         });
-
-        createKeycloakDNSResolution("simple-keycloak.apps.cluster.example",
-                "keycloak." + namespace + ".svc.cluster.local");
-
     }
 }

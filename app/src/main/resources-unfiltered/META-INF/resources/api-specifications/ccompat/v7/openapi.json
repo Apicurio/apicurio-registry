@@ -11,31 +11,197 @@
   },
   "paths": {
     "/mode": {
-      "summary": "Mode operations. These operations are not supported in the compatibility API and will return a 404",
-      "description": "Mode operations. These operations are not supported in the compatibility API and will return a 404",
+      "summary": "Operations to retrieve or update the global mode.",
       "get": {
         "tags": [
           "Mode"
         ],
+        "parameters": [],
         "responses": {
-          "404": {
+          "200": {
+            "description": "Returns the current global mode setting.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "500": {
             "$ref": "#/components/responses/Error"
           }
         },
-        "summary": "Get global mode.",
-        "description": "Mode operations. These operations are not supported in the compatibility API and will return a 404"
+        "summary": "Get the global mode configuration."
       },
       "put": {
         "tags": [
           "Mode"
         ],
+        "parameters": [
+          {
+            "name": "force",
+            "in": "query",
+            "description": "If true, override restrictions like changing from READONLY.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            }
+          }
+        },
         "responses": {
-          "404": {
+          "200": {
+            "description": "The updated global mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "500": {
             "$ref": "#/components/responses/Error"
           }
         },
-        "summary": "Update global mode",
-        "description": "Mode operations. These operations are not supported in the compatibility API and will return a 404"
+        "summary": "Update the global mode configuration."
+      }
+    },
+    "/mode/{subject}": {
+      "summary": "Operations to retrieve or update mode at the subject level.",
+      "get": {
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the mode setting for the specified subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Get mode configuration for a subject."
+      },
+      "put": {
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "description": "If true, override restrictions like changing from READONLY.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated subject mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Update mode configuration for a subject."
+      },
+      "delete": {
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject to remove the mode configuration from.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The subject-level mode was deleted (will inherit from global).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Delete subject-level mode and fall back to global mode."
       }
     },
     "/config": {
@@ -665,7 +831,9 @@
     "/subjects": {
       "summary": "Operations around subjects.",
       "get": {
-        "tags": ["Subjects"],
+        "tags": [
+          "Subjects"
+        ],
         "parameters": [
           {
             "name": "subjectPrefix",
@@ -1004,7 +1172,9 @@
     "/subjects/{subject}/versions/{version}": {
       "summary": "Get a specific version of a subject.",
       "get": {
-        "tags": ["Subjects"],
+        "tags": [
+          "Subjects"
+        ],
         "parameters": [
           {
             "name": "subject",
@@ -1051,7 +1221,9 @@
     "/subjects/{subject}/versions/{version}/schema": {
       "summary": "Get the raw schema string by subject and version.",
       "get": {
-        "tags": ["Subjects"],
+        "tags": [
+          "Subjects"
+        ],
         "parameters": [
           {
             "name": "subject",
@@ -1618,6 +1790,26 @@
           "subject": "djask-2323-dds2a-e2eqd",
           "version": 2
         }
+      },
+      "ModeUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["READWRITE", "READONLY", "IMPORT"]
+          }
+        },
+        "required": ["mode"]
+      },
+      "ModeUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["READWRITE", "READONLY", "IMPORT"]
+          }
+        },
+        "required": ["mode"]
       },
       "Schema": {
         "title": "Root Type for Schema",

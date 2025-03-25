@@ -16,7 +16,7 @@ import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.g
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
-public class AuthzITTest extends BaseAuthTest {
+public class AuthzITTest extends BaseAuthITTest {
 
     /**
      * In this test, Keycloak is deployed using a self-signed certificate with the hostname set to the ingress
@@ -26,8 +26,10 @@ public class AuthzITTest extends BaseAuthTest {
     @Test
     void testAuthz() {
         // Preparation, deploy Keycloak
-        ApicurioRegistry3 registry = prepareInfra("/k8s/examples/auth/keycloak.yaml",
-                "k8s/examples/auth/authz-with_keycloak.apicurioregistry3.yaml");
+        // Preparation, deploy Keycloak
+        ApicurioRegistry3 registry = prepareInfra("k8s/examples/auth/authz-with_keycloak.apicurioregistry3.yaml",
+                "/k8s/examples/auth/keycloak_realm.yaml", "/k8s/examples/auth/keycloak_https.yaml"
+        );
         AuthSpec authSpec = registry.getSpec().getApp().getAuth();
 
         Assertions.assertEquals("registry-api", authSpec.getAppClientId());

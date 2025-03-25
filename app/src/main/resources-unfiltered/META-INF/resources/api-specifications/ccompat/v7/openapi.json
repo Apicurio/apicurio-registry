@@ -2,7 +2,7 @@
   "openapi": "3.0.2",
   "info": {
     "title": "Apicurio Registry Confluent Compatibility API",
-    "version": "7.2.1",
+    "version": "7.9.0",
     "description": "Apicurio Registry Confluent compatibility API",
     "license": {
       "name": "Apache 2.0",
@@ -10,47 +10,8 @@
     }
   },
   "paths": {
-    "/schemas/types": {
-      "summary": "Operations around schema types",
-      "get": {
-        "tags": [
-          "Schemas"
-        ],
-        "responses": {
-          "200": {
-            "description": "Schema (string) – Schema types currently available on Schema Registry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "examples": {
-                  "Example": {
-                    "value": [
-                      "JSON",
-                      "PROTOBUF",
-                      "AVRO"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Get the schema types that are registered with Schema Registry."
-      }
-    },
     "/schemas/ids/{id}": {
-      "summary": "Operations around schemas using id",
+      "summary": "Get the schema string identified by the input ID.",
       "get": {
         "tags": [
           "Schemas"
@@ -60,114 +21,74 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "id (int) – the globally unique identifier of the schema",
+            "description": "The globally unique identifier of the schema.",
             "schema": {
               "type": "integer"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Schema (string) – Schema string identified by the ID",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SchemaContent"
-                },
-                "examples": {
-                  "Example": {
-                    "value": "{\n  \"schema\": \"{\\\"type\\\": \\\"string\\\"}\"\n}"
-                  }
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/SchemaContent"
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SchemaContent"
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SchemaContent"
-                }
-              }
-            }
           },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Get the schema string identified by the input ID."
-      }
-    },
-    "/schemas/ids/{id}/versions": {
-      "summary": "Operations around schema versions using id.",
-      "get": {
-        "tags": [
-          "Schemas"
-        ],
-        "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "id (int) – the globally unique identifier of the schema",
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" (default) or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
             "schema": {
-              "type": "integer"
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "description": "Look for the subject in all contexts starting with the default context and return the schema with the ID from that context.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Response JSON Array of Objects:\nsubject (string) – Name of the subject\nversion (int) – Version of the returned schema",
+            "description": "Schema string identified by the ID.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SubjectVersion"
-                  }
-                },
-                "examples": {
+                  "type": "object",
+                  "properties": {
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "schema"
+                  ],
                   "example": {
-                    "value": [
-                      {
-                        "subject": "test-subject1",
-                        "version": 1
-                      }
-                    ]
-                  }
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SubjectVersion"
+                    "schema": "{\"type\": \"string\"}"
                   }
                 }
               },
               "application/vnd.schemaregistry.v1+json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SubjectVersion"
-                  }
+                  "type": "object",
+                  "properties": {
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "schema"
+                  ]
                 }
               },
               "application/vnd.schemaregistry+json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SubjectVersion"
-                  }
+                  "type": "object",
+                  "properties": {
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "schema"
+                  ]
                 }
               }
             }
@@ -178,12 +99,11 @@
           "500": {
             "$ref": "#/components/responses/Error"
           }
-        },
-        "summary": "Get the subject-version pairs identified by the input ID."
+        }
       }
     },
     "/schemas/ids/{id}/schema": {
-      "summary": "Operations to retrieve schema string by global ID.",
+      "summary": "Retrieves only the schema identified by the input ID.",
       "get": {
         "tags": [
           "Schemas"
@@ -193,30 +113,39 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "id (int) – the globally unique identifier of the schema",
+            "description": "The globally unique identifier of the schema.",
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" (default) or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "description": "Look for the subject in all contexts starting with the default context and return the schema with the ID from that context.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Raw schema string identified by the ID",
+            "description": "Schema string identified by the ID.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "string"
                 },
-                "examples": {
-                  "example": {
-                    "value": "{\"type\": \"string\"}"
-                  }
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string"
-                }
+                "example": "\"string\""
               },
               "application/vnd.schemaregistry.v1+json": {
                 "schema": {
@@ -241,12 +170,123 @@
           "500": {
             "$ref": "#/components/responses/Error"
           }
-        },
-        "summary": "Get the raw schema string identified by the input ID."
+        }
+      }
+    },
+    "/schemas/types": {
+      "summary": "Get the schema types that are registered with Schema Registry.",
+      "get": {
+        "tags": [
+          "Schemas"
+        ],
+        "responses": {
+          "200": {
+            "description": "Schema types currently available on Schema Registry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "JSON",
+                  "PROTOBUF",
+                  "AVRO"
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/schemas/ids/{id}/versions": {
+      "summary": "Get the subject-version pairs identified by the input ID.",
+      "get": {
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The globally unique identifier of the schema.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of subject-version pairs where the schema is registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectVersion"
+                  }
+                },
+                "example": [
+                  {
+                    "subject": "test-subject1",
+                    "version": 1
+                  }
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectVersion"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectVersion"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
       }
     },
     "/subjects": {
-      "summary": "Operations around subjects.",
+      "summary": "Get a list of registered subjects.",
       "get": {
         "tags": [
           "Subjects"
@@ -255,27 +295,47 @@
           {
             "name": "subjectPrefix",
             "in": "query",
-            "description": "Filter the list to include only subjects that start with this prefix.",
+            "required": false,
+            "description": "List subjects in the default context. If not included, returns all subjects across all contexts.",
             "schema": {
               "type": "string"
-            },
-            "required": false
+            }
           },
           {
             "name": "deleted",
             "in": "query",
-            "description": "Whether to include deleted subjects in the results.",
+            "required": false,
+            "description": "Include both current and soft-deleted subjects. Default is false.",
             "schema": {
               "type": "boolean"
-            },
-            "required": false
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "A list of subject names.",
+            "description": "A list of registered subject names.",
             "content": {
               "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "subject1",
+                  "subject2"
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "array",
                   "items": {
@@ -288,41 +348,494 @@
           "500": {
             "$ref": "#/components/responses/Error"
           }
-        },
-        "summary": "Get a list of all subjects."
+        }
+      }
+    },
+    "/subjects/{subject}/versions": {
+      "summary": "Get a list of versions registered under the specified subject.",
+      "get": {
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "The name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of version numbers registered under the subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "example": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
       }
     },
     "/subjects/{subject}": {
-      "summary": "Operations around subjects using id",
+      "summary": "Delete a subject and its associated schemas.",
+      "delete": {
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "The name of the subject to delete.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "permanent",
+            "in": "query",
+            "required": false,
+            "description": "If true, perform a hard delete. Default is false (soft delete).",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of version numbers that were deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "example": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects/{subject}/versions/{version}": {
+      "summary": "Get a specific version of the schema registered under this subject.",
+      "get": {
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the schema to return. Can be a version number, 'latest', or '-1'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" (default) or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schema version data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                "examples": {
+                  "avro": {
+                    "value": {
+                      "subject": "test",
+                      "version": 1,
+                      "schema": "{\"type\": \"string\"}"
+                    }
+                  },
+                  "protobuf": {
+                    "value": {
+                      "subject": "test",
+                      "version": 1,
+                      "schemaType": "PROTOBUF",
+                      "schema": "{\"type\": \"string\"}"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects/{subject}/versions/{version}/schema": {
+      "summary": "Get the schema for the specified version of a subject.",
+      "description": "Returns the raw (unescaped) schema string for a given subject and version.",
+      "get": {
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the schema to be returned. Can be a version number, 'latest', or '-1'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The raw, unescaped schema string.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "{\"type\": \"string\"}"
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects/{subject}/versions": {
+      "summary": "Register a new schema under the specified subject.",
+      "description": "Registers a schema under the subject and returns the globally unique identifier. If the schema already exists, it returns the existing schema's ID and version.",
       "post": {
         "tags": [
           "Subjects"
         ],
         "parameters": [
           {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Subject under which the schema will be registered.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "normalize",
             "in": "query",
-            "description": "Normalize the content when comparing.",
+            "required": false,
+            "description": "If true, normalize the schema before comparing. Default is false.",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
             }
           }
         ],
         "requestBody": {
+          "description": "Schema information to register under the subject.",
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SchemaContent"
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [{ \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"com.acme.Referenced\", \"name\": \"int\" }] }",
+                    "schemaType": "AVRO",
+                    "references": [
+                      {
+                        "name": "com.acme.Referenced",
+                        "subject": "childSubject",
+                        "version": 1
+                      }
+                    ]
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Check if a schema has already been registered under the specified subject.",
+            "description": "Schema successfully registered (or already exists).",
             "content": {
               "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "description": "Globally unique identifier of the schema"
+                    }
+                  },
+                  "example": {
+                    "id": 1
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects/{subject}": {
+      "summary": "Check if a schema is already registered under a subject.",
+      "description": "Returns the schema string along with its global ID and version if already registered under the given subject.",
+      "post": {
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "The subject under which the schema will be registered.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "normalize",
+            "in": "query",
+            "required": false,
+            "description": "Normalize the schema content before comparing. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Schema information to check for registration.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Schema found under the subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                "example": {
+                  "subject": "test",
+                  "id": 1,
+                  "version": 3,
+                  "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Schema"
                 }
@@ -335,9 +848,12 @@
           "500": {
             "$ref": "#/components/responses/Error"
           }
-        },
-        "summary": "Find subjects by content"
-      },
+        }
+      }
+    },
+    "/subjects/{subject}/versions/{version}": {
+      "summary": "Delete a specific version of the schema registered under this subject.",
+      "description": "Performs a soft or hard delete on the specified schema version. Hard delete requires the exact version number (not 'latest').",
       "delete": {
         "tags": [
           "Subjects"
@@ -347,7 +863,16 @@
             "name": "subject",
             "in": "path",
             "required": true,
-            "description": "Name of the subject to delete.",
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the schema to delete. Can be a version number, 'latest', or '-1'.",
             "schema": {
               "type": "string"
             }
@@ -356,7 +881,7 @@
             "name": "permanent",
             "in": "query",
             "required": false,
-            "description": "Whether to permanently delete the subject and its schemas.",
+            "description": "If true, perform a hard delete. Default is false (soft delete).",
             "schema": {
               "type": "boolean"
             }
@@ -364,117 +889,27 @@
         ],
         "responses": {
           "200": {
-            "description": "A list of version numbers that were deleted.",
+            "description": "The version number that was deleted.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer"
-                  }
+                  "type": "integer"
+                },
+                "example": 1
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "integer"
                 }
               }
             }
           },
           "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Delete all versions of a subject. Optionally, permanently."
-      },
-      "parameters": [
-        {
-          "name": "subject",
-          "in": "path",
-          "required": true,
-          "description": "subject (string) – the name of the subject",
-          "schema": {
-            "type": "string"
-          }
-        }
-      ]
-    },
-    "/subjects/{subject}/versions": {
-      "summary": "Operations around subject versions using subject id",
-      "get": {
-        "tags": [
-          "Subjects"
-        ],
-        "parameters": [
-          {
-            "name": "subject",
-            "in": "path",
-            "required": true,
-            "description": "subject (string) – the name of the subject",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "version (int) – version of the schema registered under this subject",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "List versions"
-      },
-      "post": {
-        "tags": [
-          "Subjects"
-        ],
-        "parameters": [
-          {
-            "name": "normalize",
-            "in": "query",
-            "description": "Add ?normalize=true to normalize the schema. Default is false.",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "subject",
-            "in": "path",
-            "required": true,
-            "description": "subject (string) – Subject under which the schema will be registered",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SchemaInfo"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Empty Response"
-          },
-          "409": {
             "$ref": "#/components/responses/Error"
           },
           "422": {
@@ -483,12 +918,12 @@
           "500": {
             "$ref": "#/components/responses/Error"
           }
-        },
-        "summary": "Register subject version"
+        }
       }
     },
-    "/subjects/{subject}/versions/{version}": {
-      "summary": "Get a specific version of a subject.",
+    "/subjects/{subject}/versions/{version}/referencedby": {
+      "summary": "Get a list of IDs of schemas that reference the specified schema version.",
+      "description": "Returns the list of globally unique schema IDs that reference the given subject and version.",
       "get": {
         "tags": [
           "Subjects"
@@ -511,20 +946,43 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "format",
-            "in": "query",
-            "description": "Optional format to return the schema in.",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/Schema"
+            "description": "A list of schema IDs that reference the specified schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "example": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
           },
           "404": {
             "$ref": "#/components/responses/Error"
@@ -532,15 +990,543 @@
           "500": {
             "$ref": "#/components/responses/Error"
           }
-        },
-        "summary": "Get the schema registered under the specified subject and version."
+        }
       }
     },
-    "/subjects/{subject}/versions/{version}/schema": {
-      "summary": "Get the raw schema string by subject and version.",
+    "/subjects/{subject}/metadata": {
+      "summary": "Retrieve the latest version with the given metadata filters.",
+      "description": "Returns the latest schema version registered under the specified subject that matches the provided metadata key-value pairs.",
       "get": {
         "tags": [
           "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject to search under.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "description": "Metadata key to match. Can appear multiple times, matched in order with 'value'.",
+            "schema": {
+              "type": "string"
+            },
+            "explode": true
+          },
+          {
+            "name": "value",
+            "in": "query",
+            "required": false,
+            "description": "Metadata value to match. Can appear multiple times, matched in order with 'key'.",
+            "schema": {
+              "type": "string"
+            },
+            "explode": true
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "If true, include both current and soft-deleted subjects. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schema version matching the metadata filters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/mode": {
+      "summary": "Get the current global mode of Schema Registry.",
+      "description": "Returns the global mode for Schema Registry, which can be one of: IMPORT, READONLY, or READWRITE (default).",
+      "get": {
+        "tags": [
+          "Mode"
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the current global mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                },
+                "example": {
+                  "mode": "READWRITE"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/mode": {
+      "summary": "Update the global Schema Registry mode.",
+      "description": "Updates the global mode for Schema Registry. This operation is allowed only if Schema Registry was started with mode.mutability=true.",
+      "put": {
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "description": "If true, allows the mode change even if schemas are already registered. Useful in disaster recovery scenarios.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              },
+              "example": {
+                "mode": "IMPORT"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the updated global mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                },
+                "example": {
+                  "mode": "IMPORT"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/mode/{subject}": {
+      "summary": "Get the mode configuration for a subject.",
+      "description": "Returns the mode configured for a specific subject. If not explicitly configured, the subject inherits the global mode.",
+      "get": {
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the mode for the subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                },
+                "example": {
+                  "mode": "READWRITE"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/mode/{subject}": {
+      "summary": "Update the mode configuration for a subject.",
+      "description": "Updates the subject-level mode. This is allowed only if Schema Registry was started with mode.mutability=true.",
+      "put": {
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "description": "If true, forces the mode change even if schemas already exist. Useful in disaster recovery scenarios.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              },
+              "example": {
+                "mode": "READONLY"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the updated subject mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                },
+                "example": {
+                  "mode": "READONLY"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/compatibility/subjects/{subject}/versions/{version}": {
+      "summary": "Test schema compatibility against a specific version of a subject.",
+      "description": "Checks whether the provided schema is compatible with a specific version of the subject's schema, based on configured compatibility rules.",
+      "post": {
+        "tags": [
+          "Compatibility"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Subject of the schema version to check compatibility against.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the subject’s schema to check against. Can be a number, 'latest', or '-1'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verbose",
+            "in": "query",
+            "required": false,
+            "description": "If true, includes reason when compatibility fails. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "example": {
+                "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compatibility check result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                },
+                "example": {
+                  "is_compatible": true
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/compatibility/subjects/{subject}/versions": {
+      "summary": "Test schema compatibility against all applicable versions of a subject.",
+      "description": "Tests a schema for compatibility against all versions under the subject, depending on the configured compatibility level (e.g. TRANSITIVE levels test all previous versions).",
+      "post": {
+        "tags": [
+          "Compatibility"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Subject of the schema version to check compatibility against.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verbose",
+            "in": "query",
+            "required": false,
+            "description": "If true, includes reason when compatibility fails. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "example": {
+                "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compatibility check result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                },
+                "example": {
+                  "is_compatible": true
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/config": {
+      "summary": "Update the global configuration for compatibility and related settings.",
+      "description": "Updates global configuration values such as compatibility level, normalization, metadata, rule sets, and compatibility group. This applies to the entire Schema Registry cluster.",
+      "put": {
+        "tags": [
+          "Config"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GlobalConfigUpdateRequest"
+              },
+              "example": {
+                "compatibility": "FULL"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated global configuration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                },
+                "example": {
+                  "compatibility": "FULL"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/compatibility/subjects/{subject}/versions": {
+      "summary": "Test schema compatibility against all applicable versions of a subject.",
+      "description": "Tests the provided schema against one or more versions of the subject, depending on the configured compatibility level. For TRANSITIVE types, this will check all previous versions.",
+      "post": {
+        "tags": [
+          "Compatibility"
         ],
         "parameters": [
           {
@@ -553,722 +1539,24 @@
             }
           },
           {
-            "name": "version",
-            "in": "path",
-            "required": true,
-            "description": "Version of the schema. Can be a version number, 'latest', or '-1'.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "format",
-            "in": "query",
-            "required": false,
-            "description": "Optional format to return the schema in.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Raw schema string",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Get the raw schema content of a specific version."
-      }
-    },
-    "/subjects/{subject}/versions/{version}/referencedby": {
-      "summary": "Get schemas referenced by",
-      "description": "Get a list of IDs of schemas that reference the schema with the given subject and version.",
-      "get": {
-        "tags": [
-          "Subjects"
-        ],
-        "parameters": [
-          {
-            "name": "subject",
-            "in": "path",
-            "required": true,
-            "description": "subject (string) – the name of the subject",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "version",
-            "in": "path",
-            "required": true,
-            "description": "version (versionId) – Version of the schema to be returned.",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "IDs of schemas referencing this version",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Get schemas referenced by"
-      }
-    },
-    "/mode": {
-      "summary": "Operations to retrieve or update the global mode.",
-      "get": {
-        "tags": [
-          "Mode"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Returns the current global mode setting.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ModeUpdateResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Get the global mode configuration."
-      },
-      "put": {
-        "tags": [
-          "Mode"
-        ],
-        "parameters": [
-          {
-            "name": "force",
-            "in": "query",
-            "description": "If true, override restrictions like changing from READONLY.",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModeUpdateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The updated global mode.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ModeUpdateResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Update the global mode configuration."
-      }
-    },
-    "/mode/{subject}": {
-      "summary": "Operations to retrieve or update mode at the subject level.",
-      "get": {
-        "tags": [
-          "Mode"
-        ],
-        "parameters": [
-          {
-            "name": "subject",
-            "in": "path",
-            "required": true,
-            "description": "Name of the subject.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns the mode setting for the specified subject.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ModeUpdateResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Get mode configuration for a subject."
-      },
-      "put": {
-        "tags": [
-          "Mode"
-        ],
-        "parameters": [
-          {
-            "name": "subject",
-            "in": "path",
-            "required": true,
-            "description": "Name of the subject.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "force",
-            "in": "query",
-            "description": "If true, override restrictions like changing from READONLY.",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModeUpdateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The updated subject mode.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ModeUpdateResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Update mode configuration for a subject."
-      },
-      "delete": {
-        "tags": [
-          "Mode"
-        ],
-        "parameters": [
-          {
-            "name": "subject",
-            "in": "path",
-            "required": true,
-            "description": "Name of the subject to remove the mode configuration from.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The subject-level mode was deleted (will inherit from global).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ModeUpdateResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Delete subject-level mode and fall back to global mode."
-      }
-    },
-    "/config": {
-      "summary": "Compatibility level configuration operations",
-      "description": "The config resource allows you to inspect the cluster-level configuration values as well as subject overrides.",
-      "get": {
-        "tags": [
-          "Config"
-        ],
-        "responses": {
-          "200": {
-            "description": "Response:\n- compatibility (string) – Global compatibility level. Will be one of\nBACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE, NONE",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                },
-                "examples": {
-                  "Example": {
-                    "value": {
-                      "compatibilityLevel": "FULL"
-                    }
-                  }
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Get global compatibility level."
-      },
-      "put": {
-        "tags": [
-          "Config"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompatibilityLevelDto"
-              },
-              "examples": {
-                "Example": {
-                  "value": {
-                    "compatibility": "FULL"
-                  }
-                }
-              }
-            },
-            "application/octet-stream": {
-              "schema": {
-                "$ref": "#/components/schemas/CompatibilityLevelDto"
-              }
-            },
-            "application/vnd.schemaregistry.v1+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompatibilityLevelDto"
-              }
-            },
-            "application/vnd.schemaregistry+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompatibilityLevelDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Valid response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                },
-                "examples": {
-                  "Example": {
-                    "value": {
-                      "compatibility": "FULL"
-                    }
-                  }
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Update global compatibility level."
-      }
-    },
-    "/config/{subject}": {
-      "summary": "Compatibility level operations for a specified subject",
-      "get": {
-        "tags": [
-          "Config"
-        ],
-        "parameters": [
-          {
-            "name": "subject",
-            "in": "path",
-            "required": true,
-            "description": "subject (string) – Name of the subject",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "defaultToGlobal",
-            "in": "query",
-            "required": false,
-            "description": "If true, fallback to the global configuration when no subject-specific configuration is found.",
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Compatibility level for the subject",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Get compatibility level for a subject."
-      },
-      "put": {
-        "tags": [
-          "Config"
-        ],
-        "parameters": [
-          {
-            "name": "subject",
-            "in": "path",
-            "required": true,
-            "description": "subject (string) – Name of the subject",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "description": "Set the compatibility level for the subject.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompatibilityLevelDto"
-              },
-              "examples": {
-                "example": {
-                  "value": {
-                    "compatibility": "FULL"
-                  }
-                }
-              }
-            },
-            "application/octet-stream": {
-              "schema": {
-                "$ref": "#/components/schemas/CompatibilityLevelDto"
-              }
-            },
-            "application/vnd.schemaregistry.v1+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompatibilityLevelDto"
-              }
-            },
-            "application/vnd.schemaregistry+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompatibilityLevelDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Update compatibility level.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelDto"
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelDto"
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelDto"
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Update compatibility level for the specified subject.",
-        "description": "When there are multiple instances of Schema Registry running in the same cluster, the update request will be forwarded to one of the instances designated as the primary. If the primary is not available, the client will get an error code indicating that the forwarding has failed."
-      },
-      "delete": {
-        "operationId": "deleteSubjectCompatibilityConfig",
-        "summary": "Delete subject configuration.",
-        "description": "Deletes the specified subject-level compatibility level config and reverts to the global default.",
-        "parameters": [
-          {
-            "name": "subject",
-            "in": "path",
-            "required": true,
-            "description": "subject (string) – Name of the subject",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns the deleted configuration, if it was present.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/compatibility/subjects/{subject}/versions/{version}": {
-      "summary": "The compatibility resource allows the user to test schemas for compatibility against specific versions of a subject’s schema.",
-      "description": "Test input schema against a particular version of a subject’s schema for compatibility.\nNote that the compatibility level applied for the check is the configured compatibility level for the subject (GET /config/{subject}). If not set, the global compatibility applies.",
-      "parameters": [
-        {
-          "name": "subject",
-          "in": "path",
-          "required": true,
-          "description": "Subject of the schema version to test against",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "version",
-          "in": "path",
-          "required": true,
-          "description": "Version of the schema (e.g. 1, 2, 'latest', or '-1')",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "verbose",
-          "in": "query",
-          "required": false,
-          "description": "If true, include detailed compatibility results (e.g., why it's incompatible).",
-          "schema": {
-            "type": "boolean"
-          }
-        }
-      ],
-      "post": {
-        "tags": [
-          "Compatibility"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SchemaContent"
-              }
-            },
-            "application/octet-stream": {
-              "schema": {
-                "$ref": "#/components/schemas/SchemaContent"
-              }
-            },
-            "application/vnd.schemaregistry.v1+json": {
-              "schema": {
-                "$ref": "#/components/schemas/SchemaContent"
-              }
-            },
-            "application/vnd.schemaregistry+json": {
-              "schema": {
-                "$ref": "#/components/schemas/SchemaContent"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Valid response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "422": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Allows the user to test schemas against specific versions of a schema."
-      }
-    },
-    "/compatibility/subjects/{subject}/versions": {
-      "summary": "Test compatibility against all versions of a subject.",
-      "post": {
-        "tags": [
-          "Compatibility"
-        ],
-        "parameters": [
-          {
-            "name": "subject",
-            "in": "path",
-            "description": "The name of the subject.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "verbose",
             "in": "query",
-            "description": "If true, include detailed compatibility results (e.g., why it's incompatible).",
             "required": false,
+            "description": "If true, includes detailed reasons when the schema is incompatible.",
             "schema": {
               "type": "boolean"
             }
           }
         ],
         "requestBody": {
-          "description": "Schema to test for compatibility.",
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "example": {
+                "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
               }
             }
           }
@@ -1280,6 +1568,146 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                },
+                "example": {
+                  "is_compatible": true
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/config/{subject}": {
+      "summary": "Update the compatibility level and related configuration for a subject.",
+      "description": "Updates compatibility settings for a specific subject. These settings override the global configuration for this subject.",
+      "put": {
+        "tags": [
+          "Config"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GlobalConfigUpdateRequest"
+              },
+              "example": {
+                "compatibility": "FULL"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated configuration for the subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                },
+                "example": {
+                  "compatibility": "FULL"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/config/{subject}": {
+      "summary": "Get the compatibility configuration for a subject.",
+      "description": "Returns the compatibility configuration and related properties set for a specific subject. Supports showing inherited global configuration via `defaultToGlobal`.",
+      "get": {
+        "tags": [
+          "Config"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "defaultToGlobal",
+            "in": "query",
+            "required": false,
+            "description": "If true, shows the effective configuration used for compatibility checks, falling back to global config if subject config is not set.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current compatibility configuration for the subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectConfigResponse"
+                },
+                "example": {
+                  "compatibilityLevel": "FULL"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectConfigResponse"
                 }
               }
             }
@@ -1290,474 +1718,242 @@
           "500": {
             "$ref": "#/components/responses/Error"
           }
-        },
-        "summary": "Check if the given schema is compatible with all versions of the subject."
-      }
-    },
-    "/contexts": {
-      "summary": "Operations around contexts",
-      "description": "The contexts resource allows you to query the information or manipulate the lifecycle of schema contexts.",
-      "get": {
-        "operationId": "getContexts",
-        "summary": "Get the list of configured contexts.",
-        "description": "Returns a list of configured contexts.",
-        "responses": {
-          "200": {
-            "description": "Gets a list of contexts. The list will always include the default context, and any custom contexts that were created in the registry.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
         }
       }
     },
-    "/exporters": {
-      "summary": "The exporters resource allows you to query the information or manipulate the lifecycle of schema exporters.",
-      "get": {
-        "operationId": "getExportersList",
-        "summary": "Gets a list of schema exporters that have been created.",
-        "responses": {
-          "200": {
-            "description": "List of exporters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "createExporter",
-        "summary": "Creates a new schema exporter. All attributes in request body are optional except config.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExporterDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Exporter name",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/exporters/{exporter}": {
-      "parameters": [
-        {
-          "name": "exporter",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "get": {
-        "operationId": "getSchemaExporter",
-        "summary": "Gets the information of the schema exporter.",
-        "responses": {
-          "200": {
-            "description": "Schema exporter object",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExporterDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      },
-      "put": {
-        "operationId": "updateExporter",
-        "summary": "Updates the information or configurations of the schema exporter. All attributes in request body are optional.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExporterDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Name of the exporter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      },
+    "/config/{subject}": {
+      "summary": "Delete subject-level compatibility configuration.",
+      "description": "Removes the compatibility configuration for a subject and reverts it to the global default configuration.",
       "delete": {
-        "operationId": "deleteSchemaExporter",
-        "summary": "Deletes the schema exporter.",
+        "tags": [
+          "Config"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject whose compatibility configuration should be deleted.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "204": {
-            "description": "Empty response"
+          "200": {
+            "description": "The previous subject-level configuration before deletion (or the new global default in effect).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                },
+                "example": {
+                  "compatibility": "NONE"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
           }
         }
       }
-    },
-    "/exporters/{exporter}/pause": {
-      "put": {
-        "operationId": "pauseExporter",
-        "summary": "Pauses the schema exporter.",
-        "responses": {
-          "200": {
-            "description": "Name of the exporter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "409": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      },
-      "parameters": [
-        {
-          "name": "exporter",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ]
-    },
-    "/exporters/{exporter}/reset": {
-      "put": {
-        "operationId": "resetSchemaExporter",
-        "summary": "Resets the schema exporter.",
-        "responses": {
-          "200": {
-            "description": "Name of the exporter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "409": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      },
-      "parameters": [
-        {
-          "name": "exporter",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ]
-    },
-    "/exporters/{exporter}/status": {
-      "get": {
-        "operationId": "getExporterStatus",
-        "summary": "Gets the status of the schema exporter.",
-        "responses": {
-          "200": {
-            "description": "Exporter status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExporterStatus"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Exporter not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "parameters": [
-        {
-          "name": "exporter",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ]
-    },
-    "/exporters/{exporter}/config": {
-      "get": {
-        "operationId": "getExporterConfig",
-        "summary": "Gets the configurations of the schema exporter.",
-        "responses": {
-          "200": {
-            "description": "Exporter configuration",
-            "content": {
-              "application/json": {}
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      },
-      "put": {
-        "operationId": "updateSchemaExporterConfig",
-        "summary": "Updates the configurations of the schema exporter.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Name of the exporter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        }
-      },
-      "parameters": [
-        {
-          "name": "exporter",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ]
-    },
-    "/exporters/{exporter}/resume": {
-      "put": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Name of the exporter"
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "409": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "operationId": "resumeSchemaExporter",
-        "summary": "Resume the schema exporter."
-      },
-      "parameters": [
-        {
-          "name": "exporter",
-          "schema": {
-            "type": "string"
-          },
-          "in": "path",
-          "required": true
-        }
-      ]
     }
   },
   "components": {
     "schemas": {
-      "RegisterSchemaRequest": {
+      "Error": {
         "type": "object",
+        "required": [
+          "error_code",
+          "message"
+        ],
         "properties": {
+          "error_code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The internal error code."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable description of the error."
+          }
+        },
+        "example": {
+          "error_code": 40403,
+          "message": "Schema not found"
+        }
+      },
+      "Schema": {
+        "type": "object",
+        "required": [
+          "subject",
+          "version",
+          "schema"
+        ],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "The name of the subject this schema belongs to."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version of the schema under the subject."
+          },
+          "id": {
+            "type": "integer",
+            "description": "The globally unique ID of the schema."
+          },
           "schema": {
-            "type": "string"
+            "type": "string",
+            "description": "The actual schema definition as a string."
           },
           "schemaType": {
             "type": "string",
-            "default": "AVRO"
+            "description": "The type of the schema (AVRO, PROTOBUF, JSON). Default is AVRO."
+          }
+        }
+      },
+      "RegisterSchemaRequest": {
+        "type": "object",
+        "required": [
+          "schema"
+        ],
+        "properties": {
+          "schema": {
+            "type": "string",
+            "description": "The schema definition as a string."
+          },
+          "schemaType": {
+            "type": "string",
+            "description": "The schema format (AVRO, PROTOBUF, JSON). Default is AVRO."
           },
           "references": {
             "type": "array",
+            "description": "A list of referenced schemas.",
             "items": {
               "$ref": "#/components/schemas/SchemaReference"
             }
           },
           "metadata": {
-            "type": "object"
+            "type": "object",
+            "description": "Optional metadata associated with the schema."
           },
           "ruleSet": {
-            "type": "object"
+            "type": "object",
+            "description": "Optional ruleset configuration for the schema."
           }
-        },
-        "required": [
-          "schema"
-        ]
+        }
       },
       "SchemaReference": {
         "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The name of the reference (used in the schema)."
-          },
-          "subject": {
-            "type": "string",
-            "description": "The subject under which the referenced schema is registered."
-          },
-          "version": {
-            "type": "integer",
-            "description": "The version of the referenced schema."
-          }
-        },
         "required": [
           "name",
           "subject",
           "version"
-        ]
-      },
-      "SchemaContent": {
-        "title": "Root Type for SchemaContent",
-        "description": "Structure containing the actual schema",
-        "type": "object",
+        ],
         "properties": {
-          "schema": {
+          "name": {
             "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        }
+      },
+      "SubjectVersion": {
+        "type": "object",
+        "required": [
+          "subject",
+          "version"
+        ],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "The name of the subject."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version number of the schema under the subject."
           }
         },
-        "example": "{\n  \"schema\":\n    \"{\n       \\\"type\\\": \\\"record\\\",\n       \\\"name\\\": \\\"test\\\",\n       \\\"fields\\\":\n         [\n           {\n             \\\"type\\\": \\\"string\\\",\n             \\\"name\\\": \\\"field1\\\"\n           },\n           {\n             \\\"type\\\": \\\"int\\\",\n             \\\"name\\\": \\\"field2\\\"\n           }\n         ]\n     }\"\n}"
+        "example": {
+          "subject": "test-subject1",
+          "version": 1
+        }
       },
-      "CompatibilityCheckResponse": {
-        "title": "Root Type for CompatibilityCheckResponse",
-        "description": "Response with the compatibility check of the given schema.",
+      "ModeUpdateResponse": {
         "type": "object",
         "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "READWRITE",
+              "READONLY",
+              "IMPORT"
+            ],
+            "description": "Current operating mode of the registry."
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "example": {
+          "mode": "READWRITE"
+        }
+      },
+      "ModeUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "READWRITE",
+              "READONLY",
+              "IMPORT"
+            ],
+            "description": "The new global mode to set."
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "example": {
+          "mode": "IMPORT"
+        }
+      },
+      "CompatibilityCheckResponse": {
+        "type": "object",
+        "required": [
+          "is_compatible"
+        ],
+        "properties": {
           "is_compatible": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True if the schema is compatible, false otherwise."
           }
         },
         "example": {
           "is_compatible": true
         }
       },
-      "CompatibilityLevelParamDto": {
-        "title": "Compatibility level.",
-        "type": "object",
-        "properties": {
-          "compatibilityLevel": {
-            "type": "string",
-            "enum": [
-              "BACKWARD",
-              "BACKWARD_TRANSITIVE",
-              "FORWARD",
-              "FORWARD_TRANSITIVE",
-              "FULL",
-              "FULL_TRANSITIVE",
-              "NONE"
-            ]
-          },
-          "normalize": {
-            "type": "boolean",
-            "description": "Whether to normalize schemas for compatibility checks."
-          },
-          "alias": {
-            "type": "string",
-            "description": "Optional alias to identify the config group."
-          },
-          "compatibilityGroup": {
-            "type": "string",
-            "description": "Optional logical group for compatibility enforcement."
-          },
-          "defaultMetadata": {
-            "type": "object",
-            "description": "Default metadata applied to this config."
-          },
-          "overrideMetadata": {
-            "type": "object",
-            "description": "Override metadata applied to this config."
-          },
-          "defaultRuleSet": {
-            "type": "object",
-            "description": "Ruleset to apply when none are defined at the schema level."
-          },
-          "overrideRuleSet": {
-            "type": "object",
-            "description": "Overrides schema-level rules."
-          }
-        },
-        "example": {
-          "compatibilityLevel": "FULL",
-          "normalize": true,
-          "alias": "shared",
-          "compatibilityGroup": "group1",
-          "defaultMetadata": {},
-          "overrideMetadata": {},
-          "defaultRuleSet": {},
-          "overrideRuleSet": {}
-        }
-      },
-      "CompatibilityLevelDto": {
-        "title": "Compatibility level information",
+      "GlobalConfigUpdateRequest": {
         "type": "object",
         "properties": {
           "compatibility": {
@@ -1770,278 +1966,127 @@
               "FULL",
               "FULL_TRANSITIVE",
               "NONE"
-            ]
-          },
-          "normalize": {
-            "type": "boolean"
+            ],
+            "description": "New global compatibility level."
           },
           "alias": {
-            "type": "string"
+            "type": "string",
+            "description": "Alias subject name used for resolution."
+          },
+          "normalize": {
+            "type": "boolean",
+            "description": "Automatically normalize schemas when registering or comparing."
           },
           "compatibilityGroup": {
-            "type": "string"
+            "type": "string",
+            "description": "Group name for compatibility scoping."
           },
           "defaultMetadata": {
-            "type": "object"
+            "type": "object",
+            "description": "Default metadata to be applied during schema registration."
           },
           "overrideMetadata": {
-            "type": "object"
+            "type": "object",
+            "description": "Overrides metadata values on schema registration."
           },
           "defaultRuleSet": {
-            "type": "object"
+            "type": "object",
+            "description": "Default ruleset to apply during registration."
           },
           "overrideRuleSet": {
-            "type": "object"
+            "type": "object",
+            "description": "Overrides schema-level ruleset if present."
           }
-        },
-        "example": {
-          "compatibility": "FULL",
-          "normalize": true,
-          "alias": "client-group",
-          "compatibilityGroup": "group1",
-          "defaultMetadata": {},
-          "overrideMetadata": {},
-          "defaultRuleSet": {},
-          "overrideRuleSet": {}
         }
       },
-      "Error": {
-        "title": "Root Type for Error",
-        "description": "Structure containing the error message and a useful code.",
+      "GlobalConfigResponse": {
         "type": "object",
         "properties": {
-          "message": {
-            "type": "string"
-          },
-          "error_code": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "example": {
-          "message": "Error message",
-          "error_code": 2324
-        }
-      },
-      "SubjectVersion": {
-        "title": "Root Type for SubjectVersion",
-        "description": "Subject version information including id and version value.",
-        "type": "object",
-        "properties": {
-          "subject": {
-            "type": "string"
-          },
-          "version": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "example": {
-          "subject": "djask-2323-dds2a-e2eqd",
-          "version": 2
-        }
-      },
-      "ModeUpdateRequest": {
-        "type": "object",
-        "properties": {
-          "mode": {
+          "compatibility": {
             "type": "string",
-            "enum": [
-              "READWRITE",
-              "READONLY",
-              "IMPORT"
-            ]
+            "description": "The current global compatibility level."
           }
         },
-        "required": [
-          "mode"
-        ]
+        "example": {
+          "compatibility": "FULL"
+        }
       },
-      "ModeUpdateResponse": {
+      "SubjectConfigResponse": {
         "type": "object",
         "properties": {
-          "mode": {
+          "alias": {
             "type": "string",
+            "description": "Alias subject name used for resolution."
+          },
+          "normalize": {
+            "type": "boolean",
+            "description": "Whether schemas are normalized during registration and lookups."
+          },
+          "compatibilityLevel": {
+            "type": "string",
+            "description": "The compatibility level for the subject.",
             "enum": [
-              "READWRITE",
-              "READONLY",
-              "IMPORT"
+              "BACKWARD",
+              "BACKWARD_TRANSITIVE",
+              "FORWARD",
+              "FORWARD_TRANSITIVE",
+              "FULL",
+              "FULL_TRANSITIVE",
+              "NONE"
             ]
-          }
-        },
-        "required": [
-          "mode"
-        ]
-      },
-      "Schema": {
-        "title": "Root Type for Schema",
-        "description": "Schema information along with the actual schema.",
-        "type": "object",
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
           },
-          "subject": {
-            "type": "string"
+          "compatibilityGroup": {
+            "type": "string",
+            "description": "Only schemas in the same group will be compared for compatibility."
           },
-          "version": {
-            "format": "int32",
-            "type": "integer"
+          "defaultMetadata": {
+            "type": "object",
+            "description": "Default metadata applied during schema registration."
           },
-          "schema": {
-            "type": "string"
+          "overrideMetadata": {
+            "type": "object",
+            "description": "Override metadata applied during schema registration."
+          },
+          "defaultRuleSet": {
+            "type": "object",
+            "description": "Default ruleSet applied during schema registration."
+          },
+          "overrideRuleSet": {
+            "type": "object",
+            "description": "Override ruleSet applied during schema registration."
           }
         },
         "example": {
-          "id": 21,
-          "subject": "di9fds-da8rew-r5tgf-3e23d",
-          "version": 3,
-          "schema": ""
-        }
-      },
-      "SchemaInfo": {
-        "title": "Root Type for SchemaInfo",
-        "description": "",
-        "type": "object",
-        "properties": {
-          "schema": {
-            "type": "string"
-          },
-          "schemaType": {
-            "type": "string"
-          }
-        },
-        "example": {
-          "schema": "",
-          "schemaType": "AVRO"
-        }
-      },
-      "ExporterStatus": {
-        "description": "",
-        "type": "object",
-        "properties": {
-          "name": {
-            "description": "",
-            "type": "string"
-          },
-          "state": {
-            "description": "",
-            "type": "string"
-          },
-          "offset": {
-            "description": "",
-            "type": "number"
-          },
-          "ts": {
-            "description": "",
-            "type": "number"
-          },
-          "trace": {
-            "description": "",
-            "type": "string"
-          }
-        }
-      },
-      "ExporterDto": {
-        "description": "",
-        "type": "object",
-        "properties": {
-          "name": {
-            "description": "",
-            "type": "string"
-          },
-          "contextType": {
-            "description": "",
-            "type": "string"
-          },
-          "context": {
-            "description": "",
-            "type": "string"
-          },
-          "subjects": {
-            "description": "",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "subjectRenameFormat": {
-            "description": "",
-            "type": "number"
-          },
-          "config": {
-            "description": "",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
+          "compatibilityLevel": "FULL",
+          "normalize": false
         }
       }
     },
     "responses": {
-      "Schema": {
-        "description": "The schema information for a given subject and version.",
+      "Error": {
+        "description": "Error returned by the Schema Registry API",
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/Schema"
-            },
-            "examples": {
-              "example": {
-                "value": {
-                  "subject": "test-subject",
-                  "version": 1,
-                  "id": 1,
-                  "schema": "{\"type\":\"string\"}",
-                  "schemaType": "AVRO",
-                  "references": []
-                }
-              }
+              "$ref": "#/components/schemas/Error"
             }
           },
           "application/octet-stream": {
             "schema": {
-              "$ref": "#/components/schemas/Schema"
+              "$ref": "#/components/schemas/Error"
             }
           },
           "application/vnd.schemaregistry.v1+json": {
             "schema": {
-              "$ref": "#/components/schemas/Schema"
+              "$ref": "#/components/schemas/Error"
             }
           },
           "application/vnd.schemaregistry+json": {
             "schema": {
-              "$ref": "#/components/schemas/Schema"
+              "$ref": "#/components/schemas/Error"
             }
           }
         }
-      },
-      "Error": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          },
-          "application/octet-stream": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          },
-          "application/vnd.schemaregistry.v1+json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          },
-          "application/vnd.schemaregistry+json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
-        },
-        "description": "Error returned by the compatibility API"
       }
     }
   },

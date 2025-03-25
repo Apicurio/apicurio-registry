@@ -590,8 +590,73 @@
           },
           "in": "path",
           "required": true
+        },
+        {
+          "name": "verbose",
+          "in": "query",
+          "description": "If true, include detailed compatibility results (e.g., why it's incompatible).",
+          "required": false,
+          "schema": {
+            "type": "boolean"
+          }
         }
       ]
+    },
+    "/compatibility/subjects/{subject}/versions": {
+      "summary": "Test compatibility against all versions of a subject.",
+      "post": {
+        "tags": ["Compatibility"],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "description": "The name of the subject.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verbose",
+            "in": "query",
+            "description": "If true, include detailed compatibility results (e.g., why it's incompatible).",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Schema to test for compatibility.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compatibility check result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Check if the given schema is compatible with all versions of the subject."
+      }
     },
     "/schemas/types": {
       "summary": "Operations around schema types",
@@ -1687,6 +1752,49 @@
   },
   "components": {
     "schemas": {
+      "RegisterSchemaRequest": {
+        "type": "object",
+        "properties": {
+          "schema": {
+            "type": "string"
+          },
+          "schemaType": {
+            "type": "string",
+            "default": "AVRO"
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SchemaReference"
+            }
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "ruleSet": {
+            "type": "object"
+          }
+        },
+        "required": ["schema"]
+      },
+      "SchemaReference": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the reference (used in the schema)."
+          },
+          "subject": {
+            "type": "string",
+            "description": "The subject under which the referenced schema is registered."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version of the referenced schema."
+          }
+        },
+        "required": ["name", "subject", "version"]
+      },
       "SchemaContent": {
         "title": "Root Type for SchemaContent",
         "description": "Structure containing the actual schema",

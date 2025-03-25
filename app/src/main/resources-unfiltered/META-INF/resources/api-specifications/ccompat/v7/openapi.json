@@ -599,6 +599,69 @@
         "summary": "Get the subject-version pairs identified by the input ID."
       }
     },
+    "/schemas/ids/{id}/schema": {
+      "summary": "Operations to retrieve schema string by global ID.",
+      "get": {
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "id (int) – the globally unique identifier of the schema",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raw schema string identified by the ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "example": {
+                    "value": "{\"type\": \"string\"}"
+                  }
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Get the raw schema string identified by the input ID."
+      }
+    },
     "/subjects": {
       "summary": "Operations around subjects",
       "description": "The subjects resource provides a list of all registered subjects in your Schema Registry. A subject refers to the name under which the schema is registered. If you are using Schema Registry for Kafka, then a subject refers to either a “<topic>-key” or “<topic>-value” depending on whether you are registering the key schema for that topic or the value schema.",

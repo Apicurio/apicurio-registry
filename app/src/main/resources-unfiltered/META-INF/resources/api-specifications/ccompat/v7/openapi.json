@@ -663,32 +663,32 @@
       }
     },
     "/subjects": {
-      "summary": "Operations around subjects",
-      "description": "The subjects resource provides a list of all registered subjects in your Schema Registry. A subject refers to the name under which the schema is registered. If you are using Schema Registry for Kafka, then a subject refers to either a “<topic>-key” or “<topic>-value” depending on whether you are registering the key schema for that topic or the value schema.",
+      "summary": "Operations around subjects.",
       "get": {
-        "tags": [
-          "Subjects"
-        ],
+        "tags": ["Subjects"],
         "parameters": [
           {
-            "name": "deleted",
-            "description": "Return also soft deleted subjects (subjects whose status is disabled).",
-            "schema": {
-              "type": "boolean"
-            },
-            "in": "query"
-          },
-          {
             "name": "subjectPrefix",
-            "description": "Add ?subjectPrefix= (as an empty string) at the end of this request to list subjects in the default context. If this flag is not included, GET /subjects returns all subjects across all contexts.",
+            "in": "query",
+            "description": "Filter the list to include only subjects that start with this prefix.",
             "schema": {
               "type": "string"
             },
-            "in": "query"
+            "required": false
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "description": "Whether to include deleted subjects in the results.",
+            "schema": {
+              "type": "boolean"
+            },
+            "required": false
           }
         ],
         "responses": {
           "200": {
+            "description": "A list of subject names.",
             "content": {
               "application/json": {
                 "schema": {
@@ -696,49 +696,15 @@
                   "items": {
                     "type": "string"
                   }
-                },
-                "examples": {
-                  "Example": {
-                    "value": [
-                      "subject1",
-                      "subject2"
-                    ]
-                  }
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
                 }
               }
-            },
-            "description": "Response JSON Array of Objects:\nname (string) – Subject"
+            }
           },
           "500": {
             "$ref": "#/components/responses/Error"
           }
         },
-        "summary": "List subjects",
-        "description": "Get a list of registered subjects."
+        "summary": "Get a list of all subjects."
       }
     },
     "/subjects/{subject}": {
@@ -834,16 +800,27 @@
         ],
         "parameters": [
           {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject to delete.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "permanent",
-            "description": "Makes the delete operation permanent",
+            "in": "query",
+            "required": false,
+            "description": "Whether to permanently delete the subject and its schemas.",
             "schema": {
               "type": "boolean"
-            },
-            "in": "query"
+            }
           }
         ],
         "responses": {
           "200": {
+            "description": "A list of version numbers that were deleted.",
             "content": {
               "application/json": {
                 "schema": {
@@ -851,44 +828,9 @@
                   "items": {
                     "type": "integer"
                   }
-                },
-                "examples": {
-                  "example": {
-                    "value": [
-                      1,
-                      2,
-                      3,
-                      4
-                    ]
-                  }
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer"
-                  }
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer"
-                  }
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer"
-                  }
                 }
               }
-            },
-            "description": "version (int) – version of the schema deleted under this subject"
+            }
           },
           "404": {
             "$ref": "#/components/responses/Error"
@@ -897,8 +839,7 @@
             "$ref": "#/components/responses/Error"
           }
         },
-        "summary": "Delete subject",
-        "description": "Deletes the specified subject and its associated compatibility level if registered.\nIt is recommended to use this API only when a topic needs to be recycled or in development environment."
+        "summary": "Delete all versions of a subject. Optionally, permanently."
       },
       "parameters": [
         {
@@ -1061,208 +1002,105 @@
       ]
     },
     "/subjects/{subject}/versions/{version}": {
-      "summary": "Operations around subject versions using subject id and version id",
+      "summary": "Get a specific version of a subject.",
       "get": {
-        "tags": [
-          "Subjects"
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Schema"
-                },
-                "examples": {
-                  "example": {
-                    "value": {
-                      "name": "test",
-                      "version": 1,
-                      "schema": "{\"type\": \"string\"}"
-                    }
-                  }
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/Schema"
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Schema"
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Schema"
-                }
-              }
-            },
-            "description": "Response JSON Object:\n     *     subject (string) – Name of the subject that this schema is registered under\n     *     globalId (int) – Globally unique identifier of the schema\n     *     version (int) – Version of the returned schema\n     *     schema (string) – The schema string"
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "422": {
-            "$ref": "#/components/responses/Error"
-          },
-          "500": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "summary": "Get a specific version of the schema registered under this subject"
-      },
-      "delete": {
-        "tags": [
-          "Subjects"
-        ],
+        "tags": ["Subjects"],
         "parameters": [
           {
-            "name": "permanent",
-            "description": "Add ?permanent=true at the end of this request to specify a hard delete for a specific version of the subject, which removes all associated metadata including the schema ID. The default is false.",
+            "name": "subject",
+            "in": "path",
+            "description": "The name of the subject.",
+            "required": true,
             "schema": {
-              "type": "boolean"
-            },
-            "in": "query"
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "description": "Version of the schema. Can be a version number, 'latest', or '-1'.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Optional format to return the schema in.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "integer"
-                },
-                "examples": {
-                  "example": {
-                    "value": "1"
-                  }
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "type": "integer"
-                }
-              }
-            },
-            "description": "int – Version of the deleted schema"
+            "$ref": "#/components/responses/Schema"
           },
           "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "422": {
             "$ref": "#/components/responses/Error"
           },
           "500": {
             "$ref": "#/components/responses/Error"
           }
         },
-        "summary": "Delete schema version",
-        "description": "Deletes a specific version of the schema registered under this subject.\nThis only deletes the version and the schema ID remains intact making it still possible to decode data using the schema ID.\nThis API is recommended to be used only in development environments or under extreme circumstances where-in, its required to delete a previously registered schema for compatibility purposes  or re-register previously registered schema."
-      },
-      "parameters": [
-        {
-          "name": "subject",
-          "description": "subject (string) – Name of the subject",
-          "schema": {
-            "type": "string"
-          },
-          "in": "path",
-          "required": true
-        },
-        {
-          "name": "version",
-          "description": "version (versionId) – Version of the schema to be returned. Valid values for versionId are between [1,2^31-1] or the string “latest”, which returns the last registered schema under the specified subject. Note that there may be a new latest schema that gets registered right after this request is served.",
-          "schema": {
-            "type": "string"
-          },
-          "in": "path",
-          "required": true
-        }
-      ]
+        "summary": "Get the schema registered under the specified subject and version."
+      }
     },
     "/subjects/{subject}/versions/{version}/schema": {
+      "summary": "Get the raw schema string by subject and version.",
       "get": {
-        "tags": [
-          "Subjects"
+        "tags": ["Subjects"],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "The subject under which the schema is registered.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the schema. Can be a version number, 'latest', or '-1'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Optional format to return the schema in.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
+            "description": "Raw schema string",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "string"
-                },
-                "examples": {
-                  "example": {
-                    "value": {
-                      "type": "string"
-                    }
-                  }
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "application/vnd.schemaregistry.v1+json": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "application/vnd.schemaregistry+json": {
-                "schema": {
-                  "type": "string"
                 }
               }
-            },
-            "description": "schema (string) – The schema string (unescaped)"
+            }
           },
           "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "422": {
             "$ref": "#/components/responses/Error"
           },
           "500": {
             "$ref": "#/components/responses/Error"
           }
         },
-        "summary": "Get schema only",
-        "description": "Get the schema for the specified version of this subject. The unescaped schema only is returned."
-      },
-      "parameters": [
-        {
-          "name": "subject",
-          "description": "subject (string) – Name of the subject",
-          "schema": {
-            "type": "string"
-          },
-          "in": "path",
-          "required": true
-        },
-        {
-          "name": "version",
-          "description": "version (versionId) – Version of the schema to be returned. Valid values for versionId are between [1,2^31-1] or the string “latest”, which returns the last registered schema under the specified subject. Note that there may be a new latest schema that gets registered right after this request is served.",
-          "schema": {
-            "type": "integer"
-          },
-          "in": "path",
-          "required": true
-        }
-      ]
+        "summary": "Get the raw schema content of a specific version."
+      }
     },
     "/subjects/{subject}/versions/{version}/referencedby": {
       "summary": "Get schemas referenced by",
@@ -1889,6 +1727,43 @@
       }
     },
     "responses": {
+      "Schema": {
+        "description": "The schema information for a given subject and version.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Schema"
+            },
+            "examples": {
+              "example": {
+                "value": {
+                  "subject": "test-subject",
+                  "version": 1,
+                  "id": 1,
+                  "schema": "{\"type\":\"string\"}",
+                  "schemaType": "AVRO",
+                  "references": []
+                }
+              }
+            }
+          },
+          "application/octet-stream": {
+            "schema": {
+              "$ref": "#/components/schemas/Schema"
+            }
+          },
+          "application/vnd.schemaregistry.v1+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Schema"
+            }
+          },
+          "application/vnd.schemaregistry+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Schema"
+            }
+          }
+        }
+      },
       "Error": {
         "content": {
           "application/json": {

@@ -293,6 +293,15 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -351,6 +360,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -398,8 +416,8 @@
         }
       },
       "post": {
-        "operationId": "registerSchemaUnderSubject",
-        "description": "Registers a schema under the subject and returns the globally unique identifier. If the schema already exists, it returns the existing schema's ID and version.",
+        "operationId": "findSchemaByContent",
+        "description": "Find a schema by its content.",
         "tags": [
           "Subjects"
         ],
@@ -427,6 +445,15 @@
             "in": "query",
             "required": false,
             "description": "Desired output format. For AVRO: \"\" or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
             "schema": {
               "type": "string"
             }
@@ -548,6 +575,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -625,6 +661,15 @@
             "description": "If true, perform a hard delete. Default is false (soft delete).",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -704,6 +749,15 @@
             "in": "query",
             "required": false,
             "description": "Desired output format. For AVRO: \"\" (default) or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
             "schema": {
               "type": "string"
             }
@@ -791,6 +845,15 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -862,6 +925,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -926,6 +998,15 @@
             "in": "path",
             "required": true,
             "description": "Version of the schema. Can be a version number, 'latest', or '-1'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
             "schema": {
               "type": "string"
             }
@@ -1030,6 +1111,15 @@
             "description": "If true, include both current and soft-deleted subjects. Default is false.",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1184,6 +1274,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1241,6 +1340,15 @@
             "description": "If true, forces the mode change even if schemas already exist. Useful in disaster recovery scenarios.",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
             }
           }
         ],

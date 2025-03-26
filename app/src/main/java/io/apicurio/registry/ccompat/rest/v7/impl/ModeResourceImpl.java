@@ -26,12 +26,12 @@ public class ModeResourceImpl extends AbstractResource implements ModeResource {
     }
 
     @Override
-    public ModeUpdateResponse getSubjectMode(String subject) {
+    public ModeUpdateResponse getSubjectMode(String subject, String groupId) {
         return null;
     }
 
     @Override
-    public ModeUpdateResponse updateSubjectMode(String subject, Boolean force, ModeUpdateRequest data) {
+    public ModeUpdateResponse updateSubjectMode(String subject, Boolean force, String groupId, ModeUpdateRequest data) {
         return null;
     }
 }

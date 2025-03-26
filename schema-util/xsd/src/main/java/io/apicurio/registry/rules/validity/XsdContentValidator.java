@@ -27,7 +27,7 @@ public class XsdContentValidator extends XmlContentValidator {
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         super.validate(level, content, resolvedReferences);
 
-        if (level == ValidityLevel.FULL) {
+        if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try (InputStream semanticStream = content.getContent().stream()) {
                 // validate that its a valid schema
                 Source source = new StreamSource(semanticStream);

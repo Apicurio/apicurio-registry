@@ -1,7 +1,7 @@
 package io.apicurio.registry.types.provider;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.ContentAccepter;
+import io.apicurio.registry.content.OpenApiContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.OpenApiContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
@@ -10,37 +10,21 @@ import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.OpenApiContentExtractor;
 import io.apicurio.registry.content.refs.OpenApiReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
-import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.OpenApiCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.OpenApiContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-import java.util.Map;
-
 public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    @Override
-    public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        try {
-            String contentType = content.getContentType();
-            JsonNode tree = null;
-            // If the content is YAML, then convert it to JSON first (the data-models library only accepts
-            // JSON).
-            if (contentType.toLowerCase().contains("yml") || contentType.toLowerCase().contains("yaml")) {
-                tree = ContentTypeUtil.parseYaml(content.getContent());
-            } else {
-                tree = ContentTypeUtil.parseJson(content.getContent());
-            }
-            if (tree.has("openapi") || tree.has("swagger")) {
-                return true;
-            }
-        } catch (Exception e) {
-            // Error - invalid syntax
-        }
-        return false;
-    }
+    public static final OpenApiContentAccepter contentAccepter = new OpenApiContentAccepter();
+    public static final OpenApiCompatibilityChecker compatibilityChecker = new OpenApiCompatibilityChecker();
+    public static final OpenApiContentCanonicalizer contentCanonicalizer = new OpenApiContentCanonicalizer();
+    public static final OpenApiContentValidator contentValidator = new OpenApiContentValidator();
+    public static final OpenApiContentExtractor contentExtractor = new OpenApiContentExtractor();
+    public static final OpenApiDereferencer dereferencer = new OpenApiDereferencer();
+    public static final OpenApiReferenceFinder referenceFinder = new OpenApiReferenceFinder();
 
     @Override
     public String getArtifactType() {
@@ -48,33 +32,38 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     }
 
     @Override
+    public ContentAccepter getContentAccepter() {
+        return contentAccepter;
+    }
+
+    @Override
     protected CompatibilityChecker createCompatibilityChecker() {
-        return new OpenApiCompatibilityChecker();
+        return compatibilityChecker;
     }
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return new OpenApiContentCanonicalizer();
+        return contentCanonicalizer;
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return new OpenApiContentValidator();
+        return contentValidator;
     }
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return new OpenApiContentExtractor();
+        return contentExtractor;
     }
 
     @Override
     public ContentDereferencer getContentDereferencer() {
-        return new OpenApiDereferencer();
+        return dereferencer;
     }
 
     @Override
     public ReferenceFinder getReferenceFinder() {
-        return new OpenApiReferenceFinder();
+        return referenceFinder;
     }
 
     @Override

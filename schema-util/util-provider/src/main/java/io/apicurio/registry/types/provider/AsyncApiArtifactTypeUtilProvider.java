@@ -1,7 +1,7 @@
 package io.apicurio.registry.types.provider;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.AsyncApiContentAccepter;
+import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.canon.AsyncApiContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.dereference.AsyncApiDereferencer;
@@ -10,41 +10,29 @@ import io.apicurio.registry.content.extract.AsyncApiContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.refs.AsyncApiReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
-import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.AsyncApiContentValidator;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-import java.util.Map;
-
 public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    @Override
-    public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        try {
-            String contentType = content.getContentType();
-            JsonNode tree = null;
-            // If the content is YAML, then convert it to JSON first (the data-models library only accepts
-            // JSON).
-            if (contentType.toLowerCase().contains("yml") || contentType.toLowerCase().contains("yaml")) {
-                tree = ContentTypeUtil.parseYaml(content.getContent());
-            } else {
-                tree = ContentTypeUtil.parseJson(content.getContent());
-            }
-            if (tree.has("asyncapi")) {
-                return true;
-            }
-        } catch (Exception e) {
-            // Error - invalid syntax
-        }
-        return false;
-    }
+    public static final AsyncApiContentAccepter contentAcceptor = new AsyncApiContentAccepter();
+    public static final AsyncApiContentCanonicalizer contentCanonicalizer = new AsyncApiContentCanonicalizer();
+    public static final AsyncApiContentValidator contentValidator = new AsyncApiContentValidator();
+    public static final AsyncApiContentExtractor contentExtractor = new AsyncApiContentExtractor();
+    public static final AsyncApiDereferencer dereferencer = new AsyncApiDereferencer();
+    public static final AsyncApiReferenceFinder referenceFinder = new AsyncApiReferenceFinder();
 
     @Override
     public String getArtifactType() {
         return ArtifactType.ASYNCAPI;
+    }
+
+    @Override
+    public ContentAccepter getContentAccepter() {
+        return contentAcceptor;
     }
 
     @Override
@@ -54,27 +42,27 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return new AsyncApiContentCanonicalizer();
+        return contentCanonicalizer;
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return new AsyncApiContentValidator();
+        return contentValidator;
     }
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return new AsyncApiContentExtractor();
+        return contentExtractor;
     }
 
     @Override
     public ContentDereferencer getContentDereferencer() {
-        return new AsyncApiDereferencer();
+        return dereferencer;
     }
 
     @Override
     public ReferenceFinder getReferenceFinder() {
-        return new AsyncApiReferenceFinder();
+        return referenceFinder;
     }
 
     @Override

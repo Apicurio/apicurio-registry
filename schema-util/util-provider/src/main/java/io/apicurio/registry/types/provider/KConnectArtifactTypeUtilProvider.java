@@ -1,9 +1,11 @@
 package io.apicurio.registry.types.provider;
 
-import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.ContentAccepter;
+import io.apicurio.registry.content.NoOpContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.KafkaConnectContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.dereference.NoopContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
 import io.apicurio.registry.content.refs.NoOpReferenceFinder;
@@ -14,17 +16,19 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.KafkaConnectContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-import java.util.Map;
-
 public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
-    @Override
-    public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        return false;
-    }
+
+    public static final KafkaConnectContentCanonicalizer contentCanonicalizer = new KafkaConnectContentCanonicalizer();
+    public static final KafkaConnectContentValidator contentValidator = new KafkaConnectContentValidator();
 
     @Override
     public String getArtifactType() {
         return ArtifactType.KCONNECT;
+    }
+
+    @Override
+    public ContentAccepter getContentAccepter() {
+        return NoOpContentAccepter.INSTANCE;
     }
 
     @Override
@@ -34,12 +38,12 @@ public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return new KafkaConnectContentCanonicalizer();
+        return contentCanonicalizer;
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return new KafkaConnectContentValidator();
+        return contentValidator;
     }
 
     @Override
@@ -49,12 +53,9 @@ public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
 
     @Override
     public ContentDereferencer getContentDereferencer() {
-        return null;
+        return NoopContentDereferencer.INSTANCE;
     }
 
-    /**
-     * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
-     */
     @Override
     public ReferenceFinder getReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;

@@ -3,6 +3,7 @@ package io.apicurio.registry.ccompat.rest.v7.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.ccompat.rest.v7.SchemasResource;
 import io.apicurio.registry.ccompat.rest.v7.beans.Schema;
 import io.apicurio.registry.ccompat.rest.v7.beans.SubjectVersion;
 import io.apicurio.registry.content.ContentHandle;
@@ -37,12 +38,13 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         String contentType;
         List<ArtifactReferenceDto> references;
         if (cconfig.legacyIdModeEnabled.get()) {
-            StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(id);
+            StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(id.longValue());
             contentHandle = artifactVersion.getContent();
             contentType = artifactVersion.getContentType();
             references = artifactVersion.getReferences();
-        } else {
-            ContentWrapperDto contentWrapper = storage.getContentById(id);
+        }
+        else {
+            ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
             contentHandle = contentWrapper.getContent();
             contentType = contentWrapper.getContentType();
             references = contentWrapper.getReferences();
@@ -55,6 +57,21 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     }
 
     @Override
+    public String getSchemaContentById(BigInteger id, String format, String subject) {
+        ContentHandle contentHandle;
+        if (cconfig.legacyIdModeEnabled.get()) {
+            StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(id.longValue());
+            contentHandle = artifactVersion.getContent();
+        }
+        else {
+            ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
+            contentHandle = contentWrapper.getContent();
+        }
+
+        return contentHandle.content();
+    }
+
+    @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> getSchemaTypes() {
         return Arrays.asList(ArtifactType.JSON, ArtifactType.PROTOBUF, ArtifactType.AVRO);
@@ -62,15 +79,14 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    public List<SubjectVersion> getSchemaVersionsById(int id, Boolean fdeleted) {
-        boolean deleted = fdeleted != null && fdeleted;
+    public List<SubjectVersion> getSchemaVersionsById(BigInteger id) {
         if (cconfig.legacyIdModeEnabled.get()) {
-            ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData((long) id);
+            ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(id.longValue());
             return Collections
                     .singletonList(converter.convert(metaData.getArtifactId(), metaData.getVersionOrder()));
         }
-        return storage.getArtifactVersionsByContentId(id).stream()
-                .filter(versionMetaData -> deleted || versionMetaData.getState() != VersionState.DISABLED)
+        return storage.getArtifactVersionsByContentId(id.longValue()).stream()
+                .filter(versionMetaData -> versionMetaData.getState() != VersionState.DISABLED)
                 .map(versionMetaData -> converter.convert(versionMetaData.getArtifactId(),
                         versionMetaData.getVersionOrder()))
                 .collect(Collectors.toList());

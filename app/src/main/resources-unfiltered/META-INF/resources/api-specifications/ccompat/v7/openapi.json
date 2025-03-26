@@ -1812,6 +1812,689 @@
           }
         }
       }
+    },
+    "/exporters": {
+      "post": {
+        "summary": "Create a new schema exporter.",
+        "description": "Creates a new schema exporter. All attributes in the request body are optional except for `config`, which is required.",
+        "operationId": "createExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterCreateRequest"
+              },
+              "example": {
+                "name": "test-exporter",
+                "contextType": "CUSTOM",
+                "context": "test-context",
+                "subjects": [
+                  "foo"
+                ],
+                "kekRenameFormat": "dc_${kek}",
+                "subjectRenameFormat": "dc_${subject}",
+                "config": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "<SR Credentials>"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created exporter name.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getExporters",
+        "tags": [
+          "Exporters"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of exporter names.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "exporter1",
+                  "exporter2"
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}": {
+      "summary": "Update an existing schema exporter's configuration.",
+      "description": "Updates the information or configuration of the specified schema exporter. All request body fields are optional.",
+      "put": {
+        "operationId": "updateExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterUpdateRequest"
+              },
+              "example": {
+                "contextType": "CUSTOM",
+                "context": "test-context"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated exporter's name.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getExporter",
+        "summary": "Get the configuration and metadata of a schema exporter.",
+        "description": "Returns information about the specified schema exporter, including its context, subjects, and configuration.",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to retrieve.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schema exporter information.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exporter"
+                },
+                "example": {
+                  "name": "test-exporter",
+                  "contextType": "CUSTOM",
+                  "context": "test-context",
+                  "subjects": [
+                    "foo"
+                  ],
+                  "config": {
+                    "schema.registry.url": "<Physical SR Endpoint>",
+                    "basic.auth.credentials.source": "USER_INFO",
+                    "basic.auth.user.info": "[hidden]"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exporter"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exporter"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to delete.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Exporter successfully deleted. No content is returned."
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}/status": {
+      "summary": "Get the status of a schema exporter.",
+      "description": "Returns the current status of the specified schema exporter, including its state, offset, timestamp, and trace information.",
+      "get": {
+        "operationId": "getExporterStatus",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exporter status information.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExporterStatus"
+                },
+                "example": {
+                  "name": "test-exporter",
+                  "state": "RUNNING",
+                  "offset": 100,
+                  "ts": 1631206325,
+                  "trace": ""
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExporterStatus"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExporterStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}/config": {
+      "get": {
+        "operationId": "getExporterConfig",
+        "summary": "Get the configuration of a schema exporter.",
+        "description": "Returns the configuration map for the specified schema exporter. The response is a flat map, not wrapped in a 'config' object.",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration key-value pairs of the exporter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "example": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "[hidden]"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateExporterConfig",
+        "summary": "Update the configuration map of a schema exporter.",
+        "description": "Updates the exporter configuration directly. Unlike POST /exporters, the payload here is not wrapped in a config object.",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to update.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Direct map of configuration properties for the exporter.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "example": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "<SR Credentials>"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Name of the updated exporter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}/pause": {
+      "summary": "Pause a schema exporter.",
+      "description": "Pauses the specified schema exporter. This operation will fail if the exporter is still starting.",
+      "put": {
+        "operationId": "pauseExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to pause.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exporter was successfully paused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}/reset": {
+      "summary": "Reset a schema exporter.",
+      "description": "Resets the specified schema exporter. The exporter must be paused before it can be reset.",
+      "put": {
+        "operationId": "resetExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to reset.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exporter was successfully reset.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}/resume": {
+      "summary": "Resume a paused schema exporter.",
+      "description": "Resumes the specified exporter if it is currently paused. Cannot be called if the exporter is already running.",
+      "put": {
+        "operationId": "resumeExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to resume.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exporter was successfully resumed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2100,6 +2783,172 @@
         "example": {
           "compatibilityLevel": "FULL",
           "normalize": false
+        }
+      },
+      "ExporterCreateRequest": {
+        "type": "object",
+        "required": [
+          "config"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the exporter."
+          },
+          "contextType": {
+            "type": "string",
+            "description": "Context type for the exporter. One of: CUSTOM, NONE, AUTO.",
+            "enum": [
+              "CUSTOM",
+              "NONE",
+              "AUTO"
+            ],
+            "default": "AUTO"
+          },
+          "context": {
+            "type": "string",
+            "description": "The custom context name (used only if contextType is CUSTOM)."
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A list of subject names to export."
+          },
+          "kekRenameFormat": {
+            "type": "string",
+            "description": "Format string to rename KEKs in the destination cluster."
+          },
+          "subjectRenameFormat": {
+            "type": "string",
+            "description": "Format string to rename subjects in the destination cluster."
+          },
+          "config": {
+            "type": "object",
+            "description": "Map containing configuration settings for the exporter."
+          }
+        }
+      },
+      "ExporterUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "contextType": {
+            "type": "string",
+            "enum": [
+              "CUSTOM",
+              "NONE",
+              "AUTO"
+            ],
+            "description": "Context type for the exporter."
+          },
+          "context": {
+            "type": "string",
+            "description": "The custom context to use, if contextType is CUSTOM."
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of subject names to export."
+          },
+          "kekRenameFormat": {
+            "type": "string",
+            "description": "Format for renaming KEKs using ${kek} as a placeholder."
+          },
+          "subjectRenameFormat": {
+            "type": "string",
+            "description": "Format for renaming subject names using ${subject} as a placeholder."
+          },
+          "config": {
+            "type": "object",
+            "description": "Map of exporter-specific configuration options."
+          }
+        }
+      },
+      "Exporter": {
+        "type": "object",
+        "required": [
+          "name",
+          "contextType",
+          "config"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the exporter."
+          },
+          "contextType": {
+            "type": "string",
+            "description": "The type of context for the exporter.",
+            "enum": [
+              "CUSTOM",
+              "NONE",
+              "AUTO"
+            ]
+          },
+          "context": {
+            "type": "string",
+            "description": "The custom context if contextType is CUSTOM."
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of subjects that the exporter is exporting."
+          },
+          "subjectRenameFormat": {
+            "type": "string",
+            "description": "Format for renaming subject names in the destination cluster."
+          },
+          "config": {
+            "type": "object",
+            "description": "Map of configuration properties for the exporter.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ExporterStatus": {
+        "type": "object",
+        "required": [
+          "name",
+          "state",
+          "offset",
+          "ts",
+          "trace"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the exporter."
+          },
+          "state": {
+            "type": "string",
+            "description": "Current state of the exporter.",
+            "enum": [
+              "STARTING",
+              "RUNNING",
+              "PAUSED"
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The current offset of the exporter."
+          },
+          "ts": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Timestamp of the last known exporter activity."
+          },
+          "trace": {
+            "type": "string",
+            "description": "Error trace or message, if any."
+          }
         }
       }
     },

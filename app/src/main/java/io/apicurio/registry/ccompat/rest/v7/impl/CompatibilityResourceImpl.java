@@ -3,10 +3,11 @@ package io.apicurio.registry.ccompat.rest.v7.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.ccompat.dto.CompatibilityCheckResponse;
-import io.apicurio.registry.ccompat.dto.SchemaContent;
+
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.ccompat.rest.v7.CompatibilityResource;
+import io.apicurio.registry.ccompat.rest.v7.beans.CompatibilityCheckResponse;
+import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
@@ -29,8 +30,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, SchemaContent request,
-            Boolean verbose, String groupId) throws Exception {
+    public CompatibilityCheckResponse checkAllCompatibility(String subject, Boolean verbose, String groupId, RegisterSchemaRequest request) {
         final GA ga = getGA(groupId, subject);
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         try {
@@ -50,22 +50,32 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                         artifactVersionMetaData.getArtifactType(), typedContent, Collections.emptyList(),
                         Collections.emptyMap());
             }
-            return CompatibilityCheckResponse.IS_COMPATIBLE;
-        } catch (RuleViolationException ex) {
+            CompatibilityCheckResponse response = new CompatibilityCheckResponse();
+            response.setIsCompatible(true);
+
+            return response;
+        }
+        catch (RuleViolationException ex) {
             if (fverbose) {
-                return new CompatibilityCheckResponse(false, ex.getMessage());
-            } else {
-                return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
+                //FIXME:carnalca handle verbose parameter
+                CompatibilityCheckResponse response = new CompatibilityCheckResponse();
+                response.setIsCompatible(false);
+                return response;
             }
-        } catch (UnprocessableSchemaException ex) {
+            else {
+                CompatibilityCheckResponse response = new CompatibilityCheckResponse();
+                response.setIsCompatible(false);
+                return response;
+            }
+        }
+        catch (UnprocessableSchemaException ex) {
             throw new UnprocessableEntityException(ex.getMessage());
         }
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String versionString,
-            SchemaContent request, Boolean verbose, String groupId) throws Exception {
+    public CompatibilityCheckResponse checkCompatibility(String subject, String versionString, Boolean verbose, String groupId, RegisterSchemaRequest request) {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         final GA ga = getGA(groupId, subject);
 
@@ -84,14 +94,24 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                         rulesService.applyRules(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version,
                                 artifact.getArtifactType(), typedContent, Collections.emptyList(),
                                 Collections.emptyMap());
-                        return CompatibilityCheckResponse.IS_COMPATIBLE;
-                    } catch (RuleViolationException ex) {
+                        CompatibilityCheckResponse response = new CompatibilityCheckResponse();
+                        response.setIsCompatible(true);
+                        return response;
+                    }
+                    catch (RuleViolationException ex) {
                         if (fverbose) {
-                            return new CompatibilityCheckResponse(false, ex.getMessage());
-                        } else {
-                            return CompatibilityCheckResponse.IS_NOT_COMPATIBLE;
+                            //FIXME:carnalca handle verbose parameter
+                            CompatibilityCheckResponse response = new CompatibilityCheckResponse();
+                            response.setIsCompatible(false);
+                            return response;
                         }
-                    } catch (UnprocessableSchemaException ex) {
+                        else {
+                            CompatibilityCheckResponse response = new CompatibilityCheckResponse();
+                            response.setIsCompatible(false);
+                            return response;
+                        }
+                    }
+                    catch (UnprocessableSchemaException ex) {
                         throw new UnprocessableEntityException(ex.getMessage());
                     }
                 });

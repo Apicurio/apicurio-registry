@@ -5,7 +5,6 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
-import io.apicurio.registry.ccompat.rest.v7.ConfigResource;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.logging.audit.AuditingConstants;

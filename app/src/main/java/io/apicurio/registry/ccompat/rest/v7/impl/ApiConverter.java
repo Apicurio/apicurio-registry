@@ -1,9 +1,8 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaInfo;
-import io.apicurio.registry.ccompat.dto.SchemaReference;
-import io.apicurio.registry.ccompat.dto.SubjectVersion;
+
+import io.apicurio.registry.ccompat.rest.v7.beans.Schema;
+import io.apicurio.registry.ccompat.rest.v7.beans.SchemaReference;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -39,9 +38,9 @@ public class ApiConverter {
                 storedArtifact.getReferences().stream().map(this::convert).collect(Collectors.toList()));
     }
 
-    public SchemaInfo convert(ContentHandle content, String artifactType,
-            List<ArtifactReferenceDto> references) {
-        return new SchemaInfo(content.content(), artifactType,
+    public Schema convert(ContentHandle content, String artifactType,
+                          List<ArtifactReferenceDto> references) {
+        return new Schema(content.content(), artifactType,
                 references.stream().map(this::convert).collect(Collectors.toList()));
     }
 

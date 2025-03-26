@@ -10,7 +10,6 @@ import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.SchemaSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
-import io.apicurio.registry.ccompat.rest.v7.SubjectVersionsResource;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;

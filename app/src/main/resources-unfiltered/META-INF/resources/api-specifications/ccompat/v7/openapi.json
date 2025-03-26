@@ -13,6 +13,7 @@
     "/schemas/ids/{id}": {
       "summary": "Get the schema string identified by the input ID.",
       "get": {
+        "operationId": "getSchemaById",
         "tags": [
           "Schemas"
         ],
@@ -105,6 +106,7 @@
     "/schemas/ids/{id}/schema": {
       "summary": "Retrieves only the schema identified by the input ID.",
       "get": {
+        "operationId": "getSchemaById",
         "tags": [
           "Schemas"
         ],
@@ -176,6 +178,7 @@
     "/schemas/types": {
       "summary": "Get the schema types that are registered with Schema Registry.",
       "get": {
+        "operationId": "getSchemaTypes",
         "tags": [
           "Schemas"
         ],
@@ -226,6 +229,7 @@
     "/schemas/ids/{id}/versions": {
       "summary": "Get the subject-version pairs identified by the input ID.",
       "get": {
+        "operationId": "getSchemaVersionsById",
         "tags": [
           "Schemas"
         ],
@@ -288,6 +292,7 @@
     "/subjects": {
       "summary": "Get a list of registered subjects.",
       "get": {
+        "operationId": "getSubjects",
         "tags": [
           "Subjects"
         ],
@@ -352,8 +357,9 @@
       }
     },
     "/subjects/{subject}/versions": {
-      "summary": "Get a list of versions registered under the specified subject.",
       "get": {
+        "summary": "Get a list of versions registered under the subject.",
+        "operationId": "getSubjectVersions",
         "tags": [
           "Subjects"
         ],
@@ -413,6 +419,7 @@
         }
       },
       "post": {
+        "operationId": "registerSchemaUnderSubject",
         "description": "Registers a schema under the subject and returns the globally unique identifier. If the schema already exists, it returns the existing schema's ID and version.",
         "tags": [
           "Subjects"
@@ -530,6 +537,7 @@
     "/subjects/{subject}": {
       "summary": "The subjects resource provides a list of all registered subjects across all contexts in your Schema Registry. A subject refers to the name under which the schema is registered. If you are using Schema Registry for Kafka, then a subject refers to either a “<topic>-value” or “<topic>-key” depending on whether you are registering the value schema for that topic or the key schema.",
       "post": {
+        "operationId": "registerSchemaUnderSubject",
         "description": "Returns the schema string along with its global ID and version if already registered under the given subject.",
         "tags": [
           "Subjects"
@@ -617,6 +625,7 @@
         }
       },
       "delete": {
+        "operationId": "deleteSubject",
         "tags": [
           "Subjects"
         ],
@@ -688,6 +697,7 @@
     "/subjects/{subject}/versions/{version}": {
       "summary": "Subject version operations.",
       "get": {
+        "operationId": "getSchemaVersion",
         "tags": [
           "Subjects"
         ],
@@ -770,6 +780,7 @@
         }
       },
       "delete": {
+        "operationId": "deleteSchemaVersion",
         "description": "Performs a soft or hard delete on the specified schema version. Hard delete requires the exact version number (not 'latest').",
         "tags": [
           "Subjects"
@@ -841,6 +852,7 @@
       "summary": "Get the schema for the specified version of a subject.",
       "description": "Returns the raw (unescaped) schema string for a given subject and version.",
       "get": {
+        "operationId": "getSchemaVersionContent",
         "tags": [
           "Subjects"
         ],
@@ -916,6 +928,7 @@
       "summary": "Get a list of IDs of schemas that reference the specified schema version.",
       "description": "Returns the list of globally unique schema IDs that reference the given subject and version.",
       "get": {
+        "operationId": "getReferencedBy",
         "tags": [
           "Subjects"
         ],
@@ -988,6 +1001,7 @@
       "summary": "Retrieve the latest version with the given metadata filters.",
       "description": "Returns the latest schema version registered under the specified subject that matches the provided metadata key-value pairs.",
       "get": {
+        "operationId": "getSubjectMetadata",
         "tags": [
           "Subjects"
         ],
@@ -1074,6 +1088,7 @@
       "summary": "Get the current global mode of Schema Registry.",
       "description": "Returns the global mode for Schema Registry, which can be one of: IMPORT, READONLY, or READWRITE (default).",
       "get": {
+        "operationId": "getMode",
         "tags": [
           "Mode"
         ],
@@ -1110,6 +1125,7 @@
         }
       },
       "put": {
+        "operationId": "updateMode",
         "description": "Updates the global mode for Schema Registry. This operation is allowed only if Schema Registry was started with mode.mutability=true.",
         "tags": [
           "Mode"
@@ -1175,6 +1191,7 @@
       "summary": "Subject-level mode operations.",
       "description": "",
       "get": {
+        "operationId": "getSubjectMode",
         "description": "Returns the mode configured for a specific subject. If not explicitly configured, the subject inherits the global mode.",
         "tags": [
           "Mode"
@@ -1223,6 +1240,7 @@
         }
       },
       "put": {
+        "operationId": "updateSubjectMode",
         "description": "Updates the subject-level mode. This is allowed only if Schema Registry was started with mode.mutability=true.",
         "tags": [
           "Mode"
@@ -1297,6 +1315,7 @@
       "summary": "Test schema compatibility against a specific version of a subject.",
       "description": "Checks whether the provided schema is compatible with a specific version of the subject's schema, based on configured compatibility rules.",
       "post": {
+        "operationId": "checkCompatibility",
         "tags": [
           "Compatibility"
         ],
@@ -1326,6 +1345,15 @@
             "description": "If true, includes reason when compatibility fails. Default is false.",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1382,6 +1410,7 @@
       "summary": "Test schema compatibility against all applicable versions of a subject.",
       "description": "Tests a schema for compatibility against all versions under the subject, depending on the configured compatibility level (e.g. TRANSITIVE levels test all previous versions).",
       "post": {
+        "operationId": "checkAllCompatibility",
         "tags": [
           "Compatibility"
         ],
@@ -1402,6 +1431,15 @@
             "description": "If true, includes reason when compatibility fails. Default is false.",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1456,10 +1494,11 @@
     },
     "/config": {
       "summary": "Global configuration operations.",
-       "put": {
-         "summary": "Update the global configuration for compatibility and related settings.",
-         "description": "Updates global configuration values such as compatibility level, normalization, metadata, rule sets, and compatibility group. This applies to the entire Schema Registry cluster.",
-         "tags": [
+      "put": {
+        "operationId": "updateGlobalConfig",
+        "summary": "Update the global configuration for compatibility and related settings.",
+        "description": "Updates global configuration values such as compatibility level, normalization, metadata, rule sets, and compatibility group. This applies to the entire Schema Registry cluster.",
+        "tags": [
           "Config"
         ],
         "requestBody": {
@@ -1512,6 +1551,7 @@
       "summary": "Update the compatibility level and related configuration for a subject.",
       "description": "Updates compatibility settings for a specific subject. These settings override the global configuration for this subject.",
       "put": {
+        "operationId": "updateSubjectConfig",
         "description": "Update the compatibility level for a subject. This setting overrides the global compatibility level for this subject.",
         "summary": "Update the compatibility level for a subject.",
         "tags": [
@@ -1574,6 +1614,7 @@
         }
       },
       "get": {
+        "operationId": "getSubjectConfig",
         "description": "Get the compatibility level for a subject.",
         "summary": "Get the compatibility level for a subject.",
         "tags": [
@@ -1632,6 +1673,7 @@
         }
       },
       "delete": {
+        "operationId": "deleteSubjectConfig",
         "summary": "Delete subject-level compatibility configuration.",
         "description": "Removes the compatibility configuration for a subject and reverts it to the global default configuration.",
         "tags": [

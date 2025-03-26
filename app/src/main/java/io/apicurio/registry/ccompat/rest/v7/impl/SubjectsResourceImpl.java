@@ -8,7 +8,6 @@ import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
 import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
-import io.apicurio.registry.ccompat.rest.v7.SubjectsResource;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;

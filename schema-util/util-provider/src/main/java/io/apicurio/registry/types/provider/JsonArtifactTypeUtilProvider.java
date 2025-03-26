@@ -1,7 +1,7 @@
 package io.apicurio.registry.types.provider;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.ContentAccepter;
+import io.apicurio.registry.content.JsonSchemaContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.JsonContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
@@ -10,34 +10,21 @@ import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.JsonContentExtractor;
 import io.apicurio.registry.content.refs.JsonSchemaReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
-import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.JsonSchemaContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 
-import java.util.Map;
-
 public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    @Override
-    public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        try {
-            if (content.getContentType() != null && content.getContentType().toLowerCase().contains("json")
-                    && !ContentTypeUtil.isParsableJson(content.getContent())) {
-                return false;
-            }
-            JsonNode tree = ContentTypeUtil.parseJson(content.getContent());
-            if (tree.has("$schema") && tree.get("$schema").asText().contains("json-schema.org")
-                    || tree.has("properties")) {
-                return true;
-            }
-        } catch (Exception e) {
-            // Error - invalid syntax
-        }
-        return false;
-    }
+    public static final JsonSchemaContentAccepter contentAccepter = new JsonSchemaContentAccepter();
+    public static final JsonSchemaCompatibilityChecker compatibilityChecker = new JsonSchemaCompatibilityChecker();
+    public static final JsonContentCanonicalizer contentCanonicalizer = new JsonContentCanonicalizer();
+    public static final JsonSchemaContentValidator contentValidator = new JsonSchemaContentValidator();
+    public static final JsonContentExtractor contentExtractor = new JsonContentExtractor();
+    public static final JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
+    public static final JsonSchemaReferenceFinder referenceFinder = new JsonSchemaReferenceFinder();
 
     @Override
     public String getArtifactType() {
@@ -45,33 +32,38 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     }
 
     @Override
+    public ContentAccepter getContentAccepter() {
+        return contentAccepter;
+    }
+
+    @Override
     protected CompatibilityChecker createCompatibilityChecker() {
-        return new JsonSchemaCompatibilityChecker();
+        return compatibilityChecker;
     }
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return new JsonContentCanonicalizer();
+        return contentCanonicalizer;
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return new JsonSchemaContentValidator();
+        return contentValidator;
     }
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return new JsonContentExtractor();
+        return contentExtractor;
     }
 
     @Override
     public ContentDereferencer getContentDereferencer() {
-        return new JsonSchemaDereferencer();
+        return dereferencer;
     }
 
     @Override
     public ReferenceFinder getReferenceFinder() {
-        return new JsonSchemaReferenceFinder();
+        return referenceFinder;
     }
 
     @Override

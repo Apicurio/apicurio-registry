@@ -1,7 +1,5 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import io.apicurio.registry.ccompat.dto.ExporterDto;
-import io.apicurio.registry.ccompat.dto.ExporterStatus;
 import io.apicurio.registry.ccompat.rest.error.Errors;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;

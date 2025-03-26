@@ -3,13 +3,11 @@ package io.apicurio.registry.ccompat.rest.v7.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaId;
-import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.SchemaSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
+import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
@@ -74,7 +72,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     @Override
     @Audited(extractParameters = { "0", KEY_ARTIFACT_ID })
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public SchemaId register(String subject, SchemaInfo request, Boolean normalize, String groupId)
+    public SchemaId register(String subject, RegisterSchemaRequest request, Boolean normalize, String groupId)
             throws Exception {
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
         final GA ga = getGA(groupId, subject);

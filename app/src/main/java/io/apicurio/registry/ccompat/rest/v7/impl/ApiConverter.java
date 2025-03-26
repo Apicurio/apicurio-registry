@@ -3,6 +3,7 @@ package io.apicurio.registry.ccompat.rest.v7.impl;
 
 import io.apicurio.registry.ccompat.rest.v7.beans.Schema;
 import io.apicurio.registry.ccompat.rest.v7.beans.SchemaReference;
+import io.apicurio.registry.ccompat.rest.v7.beans.SubjectVersion;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -40,16 +41,25 @@ public class ApiConverter {
 
     public Schema convert(ContentHandle content, String artifactType,
                           List<ArtifactReferenceDto> references) {
+        Schema schema = new Schema();
+        schema.setSchema(content.content());
+        schema.setSchemaType(artifactType);
         return new Schema(content.content(), artifactType,
                 references.stream().map(this::convert).collect(Collectors.toList()));
     }
 
     public SubjectVersion convert(String artifactId, Number version) {
-        return new SubjectVersion(artifactId, version.longValue());
+        SubjectVersion subjectVersion = new SubjectVersion();
+        subjectVersion.setSubject(artifactId);
+        subjectVersion.setVersion(version.intValue());
+        return subjectVersion;
     }
 
     public SchemaReference convert(ArtifactReferenceDto reference) {
-        return new SchemaReference(reference.getName(), reference.getArtifactId(),
-                Integer.parseInt(reference.getVersion()));
+        SchemaReference schemaReference = new SchemaReference();
+        schemaReference.setName(reference.getName());
+        schemaReference.setSubject(reference.getArtifactId());
+        schemaReference.setVersion(Integer.parseInt(reference.getVersion()));
+        return schemaReference;
     }
 }

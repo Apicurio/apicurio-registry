@@ -48,48 +48,27 @@
         ],
         "responses": {
           "200": {
-            "description": "Schema string identified by the ID.",
+            "description": "Schema found with the id.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "schema": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "schema"
-                  ],
-                  "example": {
-                    "schema": "{\"type\": \"string\"}"
-                  }
+                  "$ref": "#/components/schemas/Schema"
+                },
+                "example": {
+                  "subject": "test",
+                  "id": 1,
+                  "version": 3,
+                  "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
                 }
               },
               "application/vnd.schemaregistry.v1+json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "schema": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "schema"
-                  ]
+                  "$ref": "#/components/schemas/Schema"
                 }
               },
               "application/vnd.schemaregistry+json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "schema": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "schema"
-                  ]
+                  "$ref": "#/components/schemas/Schema"
                 }
               }
             }
@@ -106,7 +85,7 @@
     "/schemas/ids/{id}/schema": {
       "summary": "Retrieves only the schema identified by the input ID.",
       "get": {
-        "operationId": "getSchemaById",
+        "operationId": "getSchemaContentById",
         "tags": [
           "Schemas"
         ],
@@ -1545,6 +1524,42 @@
             "$ref": "#/components/responses/Error"
           }
         }
+      },
+      "get": {
+        "summary": "Get the global compatibility configuration.",
+        "description": "Retrieves the global configuration for compatibility level, normalization, metadata, rule sets, and compatibility group settings.",
+        "operationId": "getGlobalConfig",
+        "tags": [
+          "Config"
+        ],
+        "responses": {
+          "200": {
+            "description": "Global configuration settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                },
+                "example": {
+                  "compatibilityLevel": "FULL"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
       }
     },
     "/config/{subject}": {
@@ -1563,6 +1578,15 @@
             "in": "path",
             "required": true,
             "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
             "schema": {
               "type": "string"
             }
@@ -1638,6 +1662,15 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1685,6 +1718,15 @@
             "in": "path",
             "required": true,
             "description": "Name of the subject whose compatibility configuration should be deleted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
             "schema": {
               "type": "string"
             }
@@ -2014,6 +2056,31 @@
       }
     },
     "responses": {
+      "Schema": {
+        "description": "Schema returned by the Schema Registry API",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "application/octet-stream": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "application/vnd.schemaregistry.v1+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "application/vnd.schemaregistry+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
       "Error": {
         "description": "Error returned by the Schema Registry API",
         "content": {

@@ -1,6 +1,5 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import io.apicurio.registry.ccompat.dto.ModeDto;
 import io.apicurio.registry.ccompat.rest.error.Errors;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;

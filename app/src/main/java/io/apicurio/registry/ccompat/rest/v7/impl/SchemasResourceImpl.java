@@ -3,9 +3,8 @@ package io.apicurio.registry.ccompat.rest.v7.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.ccompat.dto.SchemaInfo;
-import io.apicurio.registry.ccompat.dto.SubjectVersion;
-import io.apicurio.registry.ccompat.rest.v7.SchemasResource;
+import io.apicurio.registry.ccompat.rest.v7.beans.Schema;
+import io.apicurio.registry.ccompat.rest.v7.beans.SubjectVersion;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
@@ -21,6 +20,7 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.interceptor.Interceptors;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -32,7 +32,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    public SchemaInfo getSchema(int id, String subject, String groupId) {
+    public Schema getSchemaById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
         String contentType;
         List<ArtifactReferenceDto> references;
@@ -56,13 +56,13 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public List<String> getRegisteredTypes() {
+    public List<String> getSchemaTypes() {
         return Arrays.asList(ArtifactType.JSON, ArtifactType.PROTOBUF, ArtifactType.AVRO);
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    public List<SubjectVersion> getSubjectVersions(int id, Boolean fdeleted) {
+    public List<SubjectVersion> getSchemaVersionsById(int id, Boolean fdeleted) {
         boolean deleted = fdeleted != null && fdeleted;
         if (cconfig.legacyIdModeEnabled.get()) {
             ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData((long) id);

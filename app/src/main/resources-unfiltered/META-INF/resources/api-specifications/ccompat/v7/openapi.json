@@ -1764,6 +1764,54 @@
           }
         }
       }
+    },
+    "/contexts": {
+      "summary": "Get a list of all schema registry contexts.",
+      "description": "Retrieves a list of contexts available in the registry. The list always includes the default context and any custom-defined contexts.",
+      "get": {
+        "operationId": "getContexts",
+        "tags": [
+          "Contexts"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of context names.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  ":.:",
+                  ".mycontext"
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     }
   },
   "components": {

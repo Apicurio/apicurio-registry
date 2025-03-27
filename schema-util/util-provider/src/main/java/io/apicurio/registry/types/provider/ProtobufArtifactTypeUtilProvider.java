@@ -18,36 +18,29 @@ import io.apicurio.registry.types.ArtifactType;
 
 public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    public static final ProtobufContentAccepter contentAccepter = new ProtobufContentAccepter();
-    public static final ProtobufCompatibilityChecker compatibilityChecker = new ProtobufCompatibilityChecker();
-    public static final ProtobufContentCanonicalizer contentCanonicalizer = new ProtobufContentCanonicalizer();
-    public static final ProtobufContentValidator contentValidator = new ProtobufContentValidator();
-    public static final ProtobufDereferencer dereferencer = new ProtobufDereferencer();
-    public static final ProtobufReferenceFinder referenceFinder = new ProtobufReferenceFinder();
-
     @Override
     public String getArtifactType() {
         return ArtifactType.PROTOBUF;
     }
 
     @Override
-    public ContentAccepter getContentAccepter() {
-        return contentAccepter;
+    public ContentAccepter createContentAccepter() {
+        return new ProtobufContentAccepter();
     }
 
     @Override
     protected CompatibilityChecker createCompatibilityChecker() {
-        return compatibilityChecker;
+        return new ProtobufCompatibilityChecker();
     }
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return contentCanonicalizer;
+        return new ProtobufContentCanonicalizer();
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return contentValidator;
+        return new ProtobufContentValidator();
     }
 
     @Override
@@ -56,13 +49,13 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
-        return dereferencer;
+    public ContentDereferencer createContentDereferencer() {
+        return new ProtobufDereferencer();
     }
 
     @Override
-    public ReferenceFinder getReferenceFinder() {
-        return referenceFinder;
+    public ReferenceFinder createReferenceFinder() {
+        return new ProtobufReferenceFinder();
     }
 
     @Override

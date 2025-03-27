@@ -1,7 +1,6 @@
 package io.apicurio.registry.rbac;
 
 import com.microsoft.kiota.ApiException;
-import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
@@ -51,7 +50,6 @@ import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1261,7 +1259,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)
     public void testDefaultGroup() throws Exception {
         String artifactId1 = "testDefaultGroup-" + UUID.randomUUID().toString();
         createArtifact(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId1);

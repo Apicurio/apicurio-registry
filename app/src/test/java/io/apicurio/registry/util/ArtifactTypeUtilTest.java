@@ -17,7 +17,7 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
 
     static ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory;
     static {
-        artifactTypeUtilProviderFactory = new DefaultArtifactTypeUtilProviderImpl();
+        artifactTypeUtilProviderFactory = new DefaultArtifactTypeUtilProviderImpl(true);
     }
 
     /**

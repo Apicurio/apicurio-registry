@@ -9,6 +9,8 @@ import java.util.Map;
  */
 public class NoOpContentCanonicalizer implements ContentCanonicalizer {
 
+    public static final NoOpContentCanonicalizer INSTANCE = new NoOpContentCanonicalizer();
+
     /**
      * @see ContentCanonicalizer#canonicalize(TypedContent, Map)
      */

@@ -18,18 +18,14 @@ import io.apicurio.registry.types.ArtifactType;
 
 public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    public static final XmlContentAccepter contentAccepter = new XmlContentAccepter();
-    public static final XmlContentCanonicalizer contentCanonicalizer = new XmlContentCanonicalizer();
-    public static final XmlContentValidator contentValidator = new XmlContentValidator();
-
     @Override
     public String getArtifactType() {
         return ArtifactType.XML;
     }
 
     @Override
-    public ContentAccepter getContentAccepter() {
-        return contentAccepter;
+    public ContentAccepter createContentAccepter() {
+        return new XmlContentAccepter();
     }
 
     @Override
@@ -39,12 +35,12 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return contentCanonicalizer;
+        return new XmlContentCanonicalizer();
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return contentValidator;
+        return new XmlContentValidator();
     }
 
     @Override
@@ -53,12 +49,12 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
+    public ContentDereferencer createContentDereferencer() {
         return NoopContentDereferencer.INSTANCE;
     }
 
     @Override
-    public ReferenceFinder getReferenceFinder() {
+    public ReferenceFinder createReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
 

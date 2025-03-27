@@ -135,6 +135,17 @@ public class IoUtil {
     }
 
     /**
+     * Get contents of a {@link File} as a String.
+     */
+    public static String toString(File file) {
+        try (FileInputStream stream = new FileInputStream(file)) {
+            return toString(stream);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
      * Get string from stream. Stream is closed at the end.
      *
      * @param stream the stream

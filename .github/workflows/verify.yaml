@@ -7,14 +7,14 @@ on:
       - 'README*'
       - 'docs/**'
       - '.github/workflows/**'
-    branches: [ main ]
+    branches: [ 3.1.x ]
   pull_request:
     paths-ignore:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
       - 'docs/**'
-    branches: [ main ]
+    branches: [ 3.1.x ]
 
 concurrency:
   # Only run once for latest commit per ref and cancel other (previous) runs.

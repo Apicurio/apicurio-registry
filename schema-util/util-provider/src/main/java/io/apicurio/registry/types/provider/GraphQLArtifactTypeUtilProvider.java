@@ -18,18 +18,14 @@ import io.apicurio.registry.types.ArtifactType;
 
 public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    public static final GraphQLContentAccepter contentAccepter = new GraphQLContentAccepter();
-    public static final GraphQLContentCanonicalizer contentCanonicalizer = new GraphQLContentCanonicalizer();
-    public static final GraphQLContentValidator contentValidator = new GraphQLContentValidator();
-
     @Override
     public String getArtifactType() {
         return ArtifactType.GRAPHQL;
     }
 
     @Override
-    public ContentAccepter getContentAccepter() {
-        return contentAccepter;
+    public ContentAccepter createContentAccepter() {
+        return new GraphQLContentAccepter();
     }
 
     @Override
@@ -39,12 +35,12 @@ public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return contentCanonicalizer;
+        return new GraphQLContentCanonicalizer();
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return contentValidator;
+        return new GraphQLContentValidator();
     }
 
     @Override
@@ -53,12 +49,12 @@ public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
+    public ContentDereferencer createContentDereferencer() {
         return NoopContentDereferencer.INSTANCE;
     }
 
     @Override
-    public ReferenceFinder getReferenceFinder() {
+    public ReferenceFinder createReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
 

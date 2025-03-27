@@ -18,52 +18,44 @@ import io.apicurio.registry.types.ArtifactType;
 
 public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    public static final OpenApiContentAccepter contentAccepter = new OpenApiContentAccepter();
-    public static final OpenApiCompatibilityChecker compatibilityChecker = new OpenApiCompatibilityChecker();
-    public static final OpenApiContentCanonicalizer contentCanonicalizer = new OpenApiContentCanonicalizer();
-    public static final OpenApiContentValidator contentValidator = new OpenApiContentValidator();
-    public static final OpenApiContentExtractor contentExtractor = new OpenApiContentExtractor();
-    public static final OpenApiDereferencer dereferencer = new OpenApiDereferencer();
-    public static final OpenApiReferenceFinder referenceFinder = new OpenApiReferenceFinder();
-
     @Override
     public String getArtifactType() {
         return ArtifactType.OPENAPI;
     }
 
     @Override
-    public ContentAccepter getContentAccepter() {
-        return contentAccepter;
+    public ContentAccepter createContentAccepter() {
+        return new OpenApiContentAccepter();
     }
 
     @Override
     protected CompatibilityChecker createCompatibilityChecker() {
-        return compatibilityChecker;
+        return new OpenApiCompatibilityChecker();
     }
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return contentCanonicalizer;
+        return new OpenApiContentCanonicalizer();
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return contentValidator;
+        return new OpenApiContentValidator();
     }
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return contentExtractor;
+        return new OpenApiContentExtractor();
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
-        return dereferencer;
+    public ContentDereferencer createContentDereferencer() {
+        return new OpenApiDereferencer();
     }
 
     @Override
-    public ReferenceFinder getReferenceFinder() {
-        return referenceFinder;
+    public ReferenceFinder createReferenceFinder() {
+        return new OpenApiReferenceFinder();
     }
 
     @Override

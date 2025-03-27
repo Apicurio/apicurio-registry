@@ -20,21 +20,18 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
                     new KConnectArtifactTypeUtilProvider(), new WsdlArtifactTypeUtilProvider(),
                     new XsdArtifactTypeUtilProvider(), new XmlArtifactTypeUtilProvider()));
 
-    protected List<ArtifactTypeUtilProvider> providers;
+    protected List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
 
     public DefaultArtifactTypeUtilProviderImpl() {
     }
 
     public DefaultArtifactTypeUtilProviderImpl(boolean initStandardProviders) {
         if (initStandardProviders) {
-            initStandardProviders();
-        } else {
-            providers = new ArrayList<>();
+            loadStandardProviders();
         }
     }
 
-    protected void initStandardProviders() {
-        providers = new ArrayList<>();
+    protected void loadStandardProviders() {
         providers.addAll(standardProviders);
     }
 

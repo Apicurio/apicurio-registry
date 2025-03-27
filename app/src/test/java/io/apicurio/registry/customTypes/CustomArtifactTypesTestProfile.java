@@ -15,7 +15,7 @@ public class CustomArtifactTypesTestProfile implements QuarkusTestProfile {
 
     private static final String CONFIG_FILE = """
             {
-                "includeStandardArtifactTypes": true,
+                "includeStandardArtifactTypes": false,
                 "artifactTypes": [
                     {
                         "artifactType": "RAML",

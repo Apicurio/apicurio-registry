@@ -18,16 +18,13 @@ import io.apicurio.registry.types.ArtifactType;
 
 public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    public static final KafkaConnectContentCanonicalizer contentCanonicalizer = new KafkaConnectContentCanonicalizer();
-    public static final KafkaConnectContentValidator contentValidator = new KafkaConnectContentValidator();
-
     @Override
     public String getArtifactType() {
         return ArtifactType.KCONNECT;
     }
 
     @Override
-    public ContentAccepter getContentAccepter() {
+    public ContentAccepter createContentAccepter() {
         return NoOpContentAccepter.INSTANCE;
     }
 
@@ -38,12 +35,12 @@ public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return contentCanonicalizer;
+        return new KafkaConnectContentCanonicalizer();
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return contentValidator;
+        return new KafkaConnectContentValidator();
     }
 
     @Override
@@ -52,12 +49,12 @@ public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
+    public ContentDereferencer createContentDereferencer() {
         return NoopContentDereferencer.INSTANCE;
     }
 
     @Override
-    public ReferenceFinder getReferenceFinder() {
+    public ReferenceFinder createReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
 

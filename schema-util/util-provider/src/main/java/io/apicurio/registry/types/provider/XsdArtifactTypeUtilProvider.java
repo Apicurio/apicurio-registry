@@ -18,19 +18,14 @@ import io.apicurio.registry.types.ArtifactType;
 
 public class XsdArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    public static final XsdContentAccepter contentAccepter = new XsdContentAccepter();
-    public static final XmlContentCanonicalizer contentCanonicalizer = new XmlContentCanonicalizer();
-    public static final XsdContentValidator contentValidator = new XsdContentValidator();
-    public static final WsdlOrXsdContentExtractor contentExtractor = new WsdlOrXsdContentExtractor();
-
     @Override
     public String getArtifactType() {
         return ArtifactType.XSD;
     }
 
     @Override
-    public ContentAccepter getContentAccepter() {
-        return contentAccepter;
+    public ContentAccepter createContentAccepter() {
+        return new XsdContentAccepter();
     }
 
     @Override
@@ -40,26 +35,26 @@ public class XsdArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return contentCanonicalizer;
+        return new XmlContentCanonicalizer();
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return contentValidator;
+        return new XsdContentValidator();
     }
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return contentExtractor;
+        return new WsdlOrXsdContentExtractor();
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
+    public ContentDereferencer createContentDereferencer() {
         return NoopContentDereferencer.INSTANCE;
     }
 
     @Override
-    public ReferenceFinder getReferenceFinder() {
+    public ReferenceFinder createReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
 

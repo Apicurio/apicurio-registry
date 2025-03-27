@@ -18,52 +18,44 @@ import io.apicurio.registry.types.ArtifactType;
 
 public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    public static final JsonSchemaContentAccepter contentAccepter = new JsonSchemaContentAccepter();
-    public static final JsonSchemaCompatibilityChecker compatibilityChecker = new JsonSchemaCompatibilityChecker();
-    public static final JsonContentCanonicalizer contentCanonicalizer = new JsonContentCanonicalizer();
-    public static final JsonSchemaContentValidator contentValidator = new JsonSchemaContentValidator();
-    public static final JsonContentExtractor contentExtractor = new JsonContentExtractor();
-    public static final JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
-    public static final JsonSchemaReferenceFinder referenceFinder = new JsonSchemaReferenceFinder();
-
     @Override
     public String getArtifactType() {
         return ArtifactType.JSON;
     }
 
     @Override
-    public ContentAccepter getContentAccepter() {
-        return contentAccepter;
+    public ContentAccepter createContentAccepter() {
+        return new JsonSchemaContentAccepter();
     }
 
     @Override
     protected CompatibilityChecker createCompatibilityChecker() {
-        return compatibilityChecker;
+        return new JsonSchemaCompatibilityChecker();
     }
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return contentCanonicalizer;
+        return new JsonContentCanonicalizer();
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return contentValidator;
+        return new JsonSchemaContentValidator();
     }
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return contentExtractor;
+        return new JsonContentExtractor();
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
-        return dereferencer;
+    public ContentDereferencer createContentDereferencer() {
+        return new JsonSchemaDereferencer();
     }
 
     @Override
-    public ReferenceFinder getReferenceFinder() {
-        return referenceFinder;
+    public ReferenceFinder createReferenceFinder() {
+        return new JsonSchemaReferenceFinder();
     }
 
     @Override

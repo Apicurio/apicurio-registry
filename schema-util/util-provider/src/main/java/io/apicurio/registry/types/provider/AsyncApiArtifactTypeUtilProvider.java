@@ -18,21 +18,14 @@ import io.apicurio.registry.types.ArtifactType;
 
 public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    public static final AsyncApiContentAccepter contentAcceptor = new AsyncApiContentAccepter();
-    public static final AsyncApiContentCanonicalizer contentCanonicalizer = new AsyncApiContentCanonicalizer();
-    public static final AsyncApiContentValidator contentValidator = new AsyncApiContentValidator();
-    public static final AsyncApiContentExtractor contentExtractor = new AsyncApiContentExtractor();
-    public static final AsyncApiDereferencer dereferencer = new AsyncApiDereferencer();
-    public static final AsyncApiReferenceFinder referenceFinder = new AsyncApiReferenceFinder();
-
     @Override
     public String getArtifactType() {
         return ArtifactType.ASYNCAPI;
     }
 
     @Override
-    public ContentAccepter getContentAccepter() {
-        return contentAcceptor;
+    protected ContentAccepter createContentAccepter() {
+        return new AsyncApiContentAccepter();
     }
 
     @Override
@@ -42,27 +35,27 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return contentCanonicalizer;
+        return new AsyncApiContentCanonicalizer();
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return contentValidator;
+        return new AsyncApiContentValidator();
     }
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return contentExtractor;
+        return new AsyncApiContentExtractor();
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
-        return dereferencer;
+    protected ContentDereferencer createContentDereferencer() {
+        return new AsyncApiDereferencer();
     }
 
     @Override
-    public ReferenceFinder getReferenceFinder() {
-        return referenceFinder;
+    protected ReferenceFinder createReferenceFinder() {
+        return new AsyncApiReferenceFinder();
     }
 
     @Override

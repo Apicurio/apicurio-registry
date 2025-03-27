@@ -18,52 +18,44 @@ import io.apicurio.registry.types.ArtifactType;
 
 public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    public static final AvroContentAccepter contentAccepter = new AvroContentAccepter();
-    public static final AvroCompatibilityChecker compatibilityChecker = new AvroCompatibilityChecker();
-    public static final EnhancedAvroContentCanonicalizer contentCanonicalizer = new EnhancedAvroContentCanonicalizer();
-    public static final AvroContentValidator contentValidator = new AvroContentValidator();
-    public static final AvroContentExtractor contentExtractor = new AvroContentExtractor();
-    public static final AvroDereferencer dereferencer = new AvroDereferencer();
-    public static final AvroReferenceFinder referenceFinder = new AvroReferenceFinder();
-
     @Override
     public String getArtifactType() {
         return ArtifactType.AVRO;
     }
 
     @Override
-    public ContentAccepter getContentAccepter() {
-        return contentAccepter;
+    public ContentAccepter createContentAccepter() {
+        return new AvroContentAccepter();
     }
 
     @Override
     protected CompatibilityChecker createCompatibilityChecker() {
-        return compatibilityChecker;
+        return new AvroCompatibilityChecker();
     }
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return contentCanonicalizer;
+        return new EnhancedAvroContentCanonicalizer();
     }
 
     @Override
     protected ContentValidator createContentValidator() {
-        return contentValidator;
+        return new AvroContentValidator();
     }
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        return contentExtractor;
+        return new AvroContentExtractor();
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
-        return dereferencer;
+    public ContentDereferencer createContentDereferencer() {
+        return new AvroDereferencer();
     }
 
     @Override
-    public ReferenceFinder getReferenceFinder() {
-        return referenceFinder;
+    public ReferenceFinder createReferenceFinder() {
+        return new AvroReferenceFinder();
     }
 
     @Override

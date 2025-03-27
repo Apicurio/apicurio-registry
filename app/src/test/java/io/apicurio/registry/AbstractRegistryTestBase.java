@@ -22,9 +22,6 @@ import java.util.stream.Collectors;
 @ParallelizableTest
 public abstract class AbstractRegistryTestBase {
 
-    public static final String CURRENT_ENV = "CURRENT_ENV";
-    public static final String CURRENT_ENV_MAS_REGEX = ".*mas.*";
-
     @ConfigProperty(name = "quarkus.http.test-port")
     public int testPort;
 

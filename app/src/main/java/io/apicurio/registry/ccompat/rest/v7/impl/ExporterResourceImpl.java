@@ -1,83 +1,87 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import io.apicurio.registry.ccompat.dto.ExporterDto;
-import io.apicurio.registry.ccompat.dto.ExporterStatus;
 import io.apicurio.registry.ccompat.rest.error.Errors;
-import io.apicurio.registry.ccompat.rest.v7.ExporterResource;
+import io.apicurio.registry.ccompat.rest.v7.ExportersResource;
+import io.apicurio.registry.ccompat.rest.v7.beans.Exporter;
+import io.apicurio.registry.ccompat.rest.v7.beans.ExporterCreateRequest;
+import io.apicurio.registry.ccompat.rest.v7.beans.ExporterStatus;
+import io.apicurio.registry.ccompat.rest.v7.beans.ExporterUpdateRequest;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import jakarta.interceptor.Interceptors;
+import jakarta.ws.rs.core.Response;
 
+import java.io.InputStream;
 import java.util.List;
-import java.util.Map;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
-public class ExporterResourceImpl extends AbstractResource implements ExporterResource {
+public class ExporterResourceImpl extends AbstractResource implements ExportersResource {
+
+    //Exporters are not implemented.
 
     @Override
-    public List<String> getExporters() throws Exception {
+    public List<String> getExporters() {
         Errors.operationNotSupported();
         return null;
     }
 
     @Override
-    public String createExporter(ExporterDto exporter) throws Exception {
+    public Response createExporter(ExporterCreateRequest exporter) {
         Errors.operationNotSupported();
         return null;
     }
 
     @Override
-    public String getExporter(String exporterName) throws Exception {
+    public Exporter getExporter(String exporterName) {
         Errors.operationNotSupported();
         return null;
     }
 
     @Override
-    public String updateExporter(String exporterName, ExporterDto exporter) throws Exception {
+    public Response updateExporter(String exporterName, ExporterUpdateRequest exporter) {
         Errors.operationNotSupported();
         return null;
     }
 
     @Override
-    public String deleteExporter(String exporterName) throws Exception {
+    public void deleteExporter(String exporterName) {
+        Errors.operationNotSupported();
+    }
+
+    @Override
+    public Response pauseExporter(String exporterName) {
         Errors.operationNotSupported();
         return null;
     }
 
     @Override
-    public String pauseExporter(String exporterName) throws Exception {
+    public Response resetExporter(String exporterName) {
         Errors.operationNotSupported();
         return null;
     }
 
     @Override
-    public String resetExporter(String exporterName) throws Exception {
+    public Response resumeExporter(String exporterName) {
         Errors.operationNotSupported();
         return null;
     }
 
     @Override
-    public String resumeExporter(String exporterName) throws Exception {
+    public Response updateExporterConfig(String exporterName, InputStream config) {
         Errors.operationNotSupported();
         return null;
     }
 
     @Override
-    public String updateExporterConfig(String exporterName, Map<String, String> config) throws Exception {
+    public ExporterStatus getExporterStatus(String exporterName) {
         Errors.operationNotSupported();
         return null;
     }
 
     @Override
-    public ExporterStatus getExporterStatus(String exporterName) throws Exception {
-        Errors.operationNotSupported();
-        return null;
-    }
-
-    @Override
-    public Map<String, String> getExporterConfig(String exporterName) throws Exception {
+    public Response getExporterConfig(String exporterName) {
         Errors.operationNotSupported();
         return null;
     }

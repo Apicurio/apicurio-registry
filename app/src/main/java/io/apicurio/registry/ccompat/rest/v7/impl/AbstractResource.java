@@ -1,8 +1,8 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import io.apicurio.registry.ccompat.dto.SchemaReference;
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
+import io.apicurio.registry.ccompat.rest.v7.beans.SchemaReference;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.BranchId;
@@ -102,7 +102,7 @@ public abstract class AbstractResource {
     }
 
     protected ArtifactVersionMetaDataDto createOrUpdateArtifact(String artifactId, String schema,
-            String artifactType, List<SchemaReference> references, String groupId) {
+                                                                String artifactType, List<SchemaReference> references, String groupId) {
         ArtifactVersionMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
         final List<ArtifactReference> artifactReferences = parsedReferences.stream()

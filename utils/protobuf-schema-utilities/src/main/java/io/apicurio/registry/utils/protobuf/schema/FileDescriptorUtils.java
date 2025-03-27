@@ -1198,7 +1198,7 @@ public class FileDescriptorUtils {
             int start = extensionRange.getStart();
             int end = extensionRange.getEnd() - 1;
             values.add(new IntRange(start, end));
-            ExtensionsElement extensionsElement = new ExtensionsElement(DEFAULT_LOCATION, "", values);
+            ExtensionsElement extensionsElement = new ExtensionsElement(DEFAULT_LOCATION, "", values, Collections.emptyList());
             extensions.add(extensionsElement);
         }
         ImmutableList.Builder<OptionElement> options = ImmutableList.builder();

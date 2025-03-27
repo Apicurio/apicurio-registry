@@ -2,9 +2,9 @@ package io.apicurio.registry.ccompat.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaContent;
-import io.apicurio.registry.ccompat.dto.SchemaId;
+import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
+import io.apicurio.registry.ccompat.rest.v7.beans.Schema;
+import io.apicurio.registry.ccompat.rest.v7.beans.SchemaId;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -32,7 +32,8 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
         final String SUBJECT = "testSchemaExpanded";
         String testSchemaExpanded = resourceToString("avro-expanded.avsc");
 
-        SchemaContent schemaContent = new SchemaContent(testSchemaExpanded);
+        RegisterSchemaRequest schemaContent = new RegisterSchemaRequest();
+        schemaContent.setSchema(testSchemaExpanded);
 
         // POST
         final Integer contentId1 = given().when()
@@ -44,7 +45,8 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
 
         assertNotNull(contentId1);
 
-        SchemaContent minifiedSchemaContent = new SchemaContent(resourceToString("avro-minified.avsc"));
+        RegisterSchemaRequest minifiedSchemaContent = new RegisterSchemaRequest();
+        minifiedSchemaContent.setSchema(resourceToString("avro-minified.avsc"));
 
         // With the canonical hash mode enabled, getting the schema by content works
         given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
@@ -65,7 +67,8 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
     public void issue2902() throws Exception {
         final String subject1 = UUID.randomUUID().toString();
         String schemaString1 = resourceToString("avro2-non-canonical.avsc");
-        SchemaContent schemaContent = new SchemaContent(schemaString1);
+        RegisterSchemaRequest schemaContent = new RegisterSchemaRequest();
+        schemaContent.setSchema(schemaString1);
 
         // POST
         SchemaId schemaId1 = given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)

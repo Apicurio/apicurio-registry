@@ -30,10 +30,10 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     public void init() {
         ArtifactTypesConfiguration config = loadArtifactTypeConfiguration();
         if (config != null) {
-            initProviders(config);
+            loadConfiguredProviders(config);
         } else {
             log.info("Artifact type config file not found at {}, using standard types.", configFile);
-            initStandardProviders();
+            loadStandardProviders();
         }
     }
 
@@ -55,9 +55,9 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
         return null;
     }
 
-    private void initProviders(ArtifactTypesConfiguration config) {
+    private void loadConfiguredProviders(ArtifactTypesConfiguration config) {
         if (config.getIncludeStandardArtifactTypes()) {
-            initStandardProviders();
+            loadStandardProviders();
         }
         if (!config.getArtifactTypes().isEmpty()) {
             config.getArtifactTypes().forEach(artifactType -> {

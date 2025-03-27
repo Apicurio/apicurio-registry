@@ -78,7 +78,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     @Parameter(property = "dryRun", defaultValue = "false")
     boolean dryRun;
 
-    DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl();
+    DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl(true);
 
     /**
      * Validate the configuration.

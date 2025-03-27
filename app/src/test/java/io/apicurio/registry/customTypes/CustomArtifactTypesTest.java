@@ -20,11 +20,8 @@ public class CustomArtifactTypesTest extends AbstractResourceTestBase {
         List<ArtifactTypeInfo> infos = clientV3.admin().config().artifactTypes().get();
         Assertions.assertNotNull(infos);
         Assertions.assertFalse(infos.isEmpty());
-        infos.forEach(info -> {
-            System.out.println(info.getName());
-        });
-        Set<ArtifactTypeInfo> raml = infos.stream().filter(info -> info.getName().equals("RAML")).collect(Collectors.toSet());
-        Assertions.assertFalse(raml.isEmpty());
+        Assertions.assertEquals(1, infos.size());
+        Assertions.assertEquals(Set.of("RAML"), infos.stream().map(info -> info.getName()).collect(Collectors.toSet()));
     }
 
 }

@@ -79,14 +79,15 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    public List<SubjectVersion> getSchemaVersionsById(BigInteger id) {
+    public List<SubjectVersion> getSchemaVersionsById(BigInteger id, Boolean fdeleted) {
+        boolean deleted = fdeleted != null && fdeleted;
         if (cconfig.legacyIdModeEnabled.get()) {
             ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(id.longValue());
             return Collections
                     .singletonList(converter.convert(metaData.getArtifactId(), metaData.getVersionOrder()));
         }
         return storage.getArtifactVersionsByContentId(id.longValue()).stream()
-                .filter(versionMetaData -> versionMetaData.getState() != VersionState.DISABLED)
+                .filter(versionMetaData -> deleted || versionMetaData.getState() != VersionState.DISABLED)
                 .map(versionMetaData -> converter.convert(versionMetaData.getArtifactId(),
                         versionMetaData.getVersionOrder()))
                 .collect(Collectors.toList());

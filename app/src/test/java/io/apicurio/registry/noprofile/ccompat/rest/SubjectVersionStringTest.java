@@ -2,9 +2,9 @@ package io.apicurio.registry.noprofile.ccompat.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.ccompat.dto.Schema;
-import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
+import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
+import io.apicurio.registry.ccompat.rest.v7.beans.Schema;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.common.mapper.TypeRef;
 import org.junit.jupiter.api.Assertions;
@@ -28,8 +28,10 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         var schema2 = "{\"type\" : \"int\"}";
 
         var objectMapper = new ObjectMapper();
-        var schemaContent1 = new SchemaContent(schema1);
-        var schemaContent2 = new SchemaContent(schema2);
+        var schemaContent1 = new RegisterSchemaRequest();
+        schemaContent1.setSchema(schema1);
+        var schemaContent2 = new RegisterSchemaRequest();
+        schemaContent2.setSchema(schema2);
 
         // Create first
         var cid1 = given().log().all().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)

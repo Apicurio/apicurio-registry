@@ -116,19 +116,6 @@
               <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi-v2.json</inputSpec>
             </configuration>
           </execution>
-          <execution>
-            <id>generate-api-ccompat-v3</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <phase>generate-sources</phase>
-            <configuration>
-              <projectSettings>
-                <javaPackage>io.apicurio.registry.rest.v3</javaPackage>
-              </projectSettings>
-              <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi.json</inputSpec>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
       <plugin>

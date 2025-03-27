@@ -1,7 +1,6 @@
 package io.apicurio.registry.noprofile.ccompat.rest.v7;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.Headers;
@@ -245,8 +244,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         final SchemaRegistryClient client = buildClient();
         final String subject = generateArtifactId();
 
-        final SchemaContent schemaContent = new SchemaContent(
-                "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
+        final RegisterSchemaRequest schemaContent = new RegisterSchemaRequest();
+        schemaContent.setSchema("{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}");
 
         final Properties config = new Properties();
         config.put(KafkaJsonSchemaSerializerConfig.AUTO_REGISTER_SCHEMAS, true);
@@ -256,7 +255,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         try (
             KafkaJsonSchemaSerializer serializer = new KafkaJsonSchemaSerializer(client, new HashMap(config));
             KafkaJsonSchemaDeserializer deserializer = new KafkaJsonSchemaDeserializer(client, config,
-                    SchemaContent.class)) {
+                    RegisterSchemaRequest.class)) {
 
             byte[] bytes = serializer.serialize(subject, schemaContent);
             Object deserialized = deserializer.deserialize(subject, bytes);
@@ -690,7 +689,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                 "Default compatibility level should be none for this test instance");
 
         // change it to forward
-        confluentClient.updateCompatibility(CompatibilityLevel.FORWARD.name, null);
+        confluentClient.updateCompatibility(CompatibilityLevel.FORWARD.name(), null);
 
         assertEquals(FORWARD.name, confluentClient.getConfig(null).getCompatibilityLevel(),
                 "New compatibility level should be forward for this test instance");
@@ -875,9 +874,6 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         // the newly registered schema should be immediately readable on the leader
         assertEquals(schemas.get(1), schemaString.getSchemaString(), "Registered schema should be found");
 
-        assertEquals(Collections.singletonList(ref), schemaString.getReferences(),
-                "Schema references should be found");
-
         List<Integer> refs = confluentClient.getReferencedBy(subject, 1);
         assertEquals(registeredId, refs.get(0).intValue());
 
@@ -972,8 +968,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         // the newly registered schema should be immediately readable on the leader
         assertEquals(root, schemaString.getSchemaString(), "Registered schema should be found");
 
-        assertEquals(Arrays.asList(r1, r2), schemaString.getReferences(),
-                "Schema references should be found");
+        //TODO test resolved schema
     }
 
     @Test

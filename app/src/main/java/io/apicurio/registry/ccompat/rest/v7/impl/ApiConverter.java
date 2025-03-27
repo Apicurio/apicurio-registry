@@ -10,6 +10,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,11 +20,11 @@ public class ApiConverter {
     @Inject
     CCompatConfig cconfig;
 
-    public int convertUnsigned(long value) {
+    public BigInteger convertUnsigned(long value) {
         if (value < 0 || value > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Value out of unsigned integer range: " + value);
         }
-        return (int) value;
+        return BigInteger.valueOf(value);
     }
 
     public Schema convert(String subject, StoredArtifactVersionDto storedArtifact) {
@@ -31,12 +32,15 @@ public class ApiConverter {
     }
 
     public Schema convert(String subject, StoredArtifactVersionDto storedArtifact, String artifactType) {
-        return new Schema(
-                convertUnsigned(cconfig.legacyIdModeEnabled.get() ? storedArtifact.getGlobalId()
-                    : storedArtifact.getContentId()),
-                subject, convertUnsigned(storedArtifact.getVersionOrder()),
-                storedArtifact.getContent().content(), artifactType,
-                storedArtifact.getReferences().stream().map(this::convert).collect(Collectors.toList()));
+        Schema schema = new Schema();
+        schema.setId(convertUnsigned(cconfig.legacyIdModeEnabled.get() ? storedArtifact.getGlobalId()
+                : storedArtifact.getContentId()).intValue());
+        schema.setSchemaType(artifactType);
+        schema.setSubject(subject);
+        schema.setVersion(convertUnsigned(storedArtifact.getVersionOrder()).intValue());
+        schema.setSchema(storedArtifact.getContent().content());
+        schema.setReferences(storedArtifact.getReferences().stream().map(this::convert).collect(Collectors.toList()));
+        return schema;
     }
 
     public Schema convert(ContentHandle content, String artifactType,
@@ -44,8 +48,8 @@ public class ApiConverter {
         Schema schema = new Schema();
         schema.setSchema(content.content());
         schema.setSchemaType(artifactType);
-        return new Schema(content.content(), artifactType,
-                references.stream().map(this::convert).collect(Collectors.toList()));
+        schema.setReferences(references.stream().map(this::convert).collect(Collectors.toList()));
+        return schema;
     }
 
     public SubjectVersion convert(String artifactId, Number version) {

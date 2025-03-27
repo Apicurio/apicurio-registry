@@ -221,6 +221,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -369,6 +378,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -416,8 +434,8 @@
         }
       },
       "post": {
-        "operationId": "findSchemaByContent",
-        "description": "Find a schema by its content.",
+        "operationId": "registerSchemaUnderSubject",
+        "description": "Register a new schema.",
         "tags": [
           "Subjects"
         ],
@@ -482,6 +500,66 @@
                   }
                 }
               }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [{ \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"com.acme.Referenced\", \"name\": \"int\" }] }",
+                    "schemaType": "AVRO",
+                    "references": [
+                      {
+                        "name": "com.acme.Referenced",
+                        "subject": "childSubject",
+                        "version": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [{ \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"com.acme.Referenced\", \"name\": \"int\" }] }",
+                    "schemaType": "AVRO",
+                    "references": [
+                      {
+                        "name": "com.acme.Referenced",
+                        "subject": "childSubject",
+                        "version": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [{ \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"com.acme.Referenced\", \"name\": \"int\" }] }",
+                    "schemaType": "AVRO",
+                    "references": [
+                      {
+                        "name": "com.acme.Referenced",
+                        "subject": "childSubject",
+                        "version": 1
+                      }
+                    ]
+                  }
+                }
+              }
             }
           }
         },
@@ -491,39 +569,26 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "id"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "description": "Globally unique identifier of the schema"
-                    }
-                  },
-                  "example": {
-                    "id": 1
-                  }
+                  "$ref": "#/components/schemas/SchemaId"
+                },
+                "example": {
+                  "id": 1
                 }
               },
               "application/vnd.schemaregistry.v1+json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    }
-                  }
+                  "$ref": "#/components/schemas/SchemaId"
+                },
+                "example": {
+                  "id": 1
                 }
               },
               "application/vnd.schemaregistry+json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    }
-                  }
+                  "$ref": "#/components/schemas/SchemaId"
+                },
+                "example": {
+                  "id": 1
                 }
               }
             }
@@ -543,7 +608,7 @@
     "/subjects/{subject}": {
       "summary": "The subjects resource provides a list of all registered subjects across all contexts in your Schema Registry. A subject refers to the name under which the schema is registered. If you are using Schema Registry for Kafka, then a subject refers to either a “<topic>-value” or “<topic>-key” depending on whether you are registering the value schema for that topic or the key schema.",
       "post": {
-        "operationId": "registerSchemaUnderSubject",
+        "operationId": "lookupSchemaByContent",
         "description": "Returns the schema string along with its global ID and version if already registered under the given subject.",
         "tags": [
           "Subjects"
@@ -584,6 +649,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "requestBody": {
@@ -600,6 +674,21 @@
                     "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
                   }
                 }
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
               }
             }
           }
@@ -760,6 +849,15 @@
             "description": "Group id in Apicurio Registry.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -933,6 +1031,15 @@
             "description": "Group id in Apicurio Registry.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -1220,6 +1327,21 @@
               "example": {
                 "mode": "IMPORT"
               }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
             }
           }
         },
@@ -1362,6 +1484,21 @@
               "example": {
                 "mode": "READONLY"
               }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
             }
           }
         },
@@ -1454,6 +1591,21 @@
               "example": {
                 "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
               }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
             }
           }
         },
@@ -1540,6 +1692,21 @@
               "example": {
                 "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
               }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
             }
           }
         },
@@ -1593,10 +1760,25 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GlobalConfigUpdateRequest"
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
               },
               "example": {
-                "compatibility": "FULL"
+                "compatibilityLevel": "FULL"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
               }
             }
           }
@@ -1610,7 +1792,7 @@
                   "$ref": "#/components/schemas/GlobalConfigResponse"
                 },
                 "example": {
-                  "compatibility": "FULL"
+                  "compatibilityLevel": "FULL"
                 }
               },
               "application/vnd.schemaregistry.v1+json": {
@@ -1705,10 +1887,25 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GlobalConfigUpdateRequest"
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
               },
               "example": {
-                "compatibility": "FULL"
+                "compatibilityLevel": "FULL"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
               }
             }
           }
@@ -1722,7 +1919,7 @@
                   "$ref": "#/components/schemas/GlobalConfigResponse"
                 },
                 "example": {
-                  "compatibility": "FULL"
+                  "compatibilityLevel": "FULL"
                 }
               },
               "application/vnd.schemaregistry.v1+json": {
@@ -1849,7 +2046,7 @@
                   "$ref": "#/components/schemas/GlobalConfigResponse"
                 },
                 "example": {
-                  "compatibility": "NONE"
+                  "compatibilityLevel": "NONE"
                 }
               },
               "application/vnd.schemaregistry.v1+json": {
@@ -1950,6 +2147,21 @@
                   "basic.auth.credentials.source": "USER_INFO",
                   "basic.auth.user.info": "<SR Credentials>"
                 }
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterCreateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterCreateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterCreateRequest"
               }
             }
           }
@@ -2072,6 +2284,21 @@
               "example": {
                 "contextType": "CUSTOM",
                 "context": "test-context"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterUpdateRequest"
               }
             }
           }
@@ -2352,6 +2579,48 @@
                   "basic.auth.user.info": "<SR Credentials>"
                 }
               }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "type": "object",
+                "description": "Direct map of configuration properties for the exporter.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "example": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "<SR Credentials>"
+                }
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "type": "object",
+                "description": "Direct map of configuration properties for the exporter.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "example": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "<SR Credentials>"
+                }
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "type": "object",
+                "description": "Direct map of configuration properties for the exporter.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "example": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "<SR Credentials>"
+                }
+              }
             }
           }
         },
@@ -2603,7 +2872,8 @@
           }
         }
       }
-    }
+    },
+    "x-codegen-contextRoot": "/apis/ccompat/v7"
   },
   "components": {
     "schemas": {
@@ -2656,6 +2926,13 @@
           "schemaType": {
             "type": "string",
             "description": "The type of the schema (AVRO, PROTOBUF, JSON). Default is AVRO."
+          },
+          "references": {
+            "type": "array",
+            "description": "A list of referenced schemas.",
+            "items": {
+              "$ref": "#/components/schemas/SchemaReference"
+            }
           }
         }
       },
@@ -2705,6 +2982,17 @@
             "type": "string"
           },
           "version": {
+            "type": "integer"
+          }
+        }
+      },
+      "SchemaId": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
             "type": "integer"
           }
         }
@@ -2785,20 +3073,11 @@
           "is_compatible": true
         }
       },
-      "GlobalConfigUpdateRequest": {
+      "ConfigUpdateRequest": {
         "type": "object",
         "properties": {
           "compatibility": {
             "type": "string",
-            "enum": [
-              "BACKWARD",
-              "BACKWARD_TRANSITIVE",
-              "FORWARD",
-              "FORWARD_TRANSITIVE",
-              "FULL",
-              "FULL_TRANSITIVE",
-              "NONE"
-            ],
             "description": "New global compatibility level."
           },
           "alias": {
@@ -2834,13 +3113,13 @@
       "GlobalConfigResponse": {
         "type": "object",
         "properties": {
-          "compatibility": {
+          "compatibilityLevel": {
             "type": "string",
             "description": "The current global compatibility level."
           }
         },
         "example": {
-          "compatibility": "FULL"
+          "compatibilityLevel": "FULL"
         }
       },
       "SubjectConfigResponse": {

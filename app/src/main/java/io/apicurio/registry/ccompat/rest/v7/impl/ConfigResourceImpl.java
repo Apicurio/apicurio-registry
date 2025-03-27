@@ -5,8 +5,7 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.rest.v7.ConfigResource;
 import io.apicurio.registry.ccompat.rest.v7.beans.GlobalConfigResponse;
-import io.apicurio.registry.ccompat.rest.v7.beans.GlobalConfigUpdateRequest;
-import io.apicurio.registry.ccompat.rest.v7.beans.GlobalConfigUpdateRequest.Compatibility;
+import io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateRequest;
 import io.apicurio.registry.ccompat.rest.v7.beans.SubjectConfigResponse;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
@@ -14,6 +13,7 @@ import io.apicurio.registry.logging.audit.AuditingConstants;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.types.RuleType;
@@ -35,25 +35,25 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             // We're assuming the configuration == compatibility level
             // TODO make it more explicit
             GlobalConfigResponse response = new GlobalConfigResponse();
-            response.setCompatibility(Optional.of(Compatibility.valueOf(supplyLevel.get())).get().name());
+            response.setCompatibilityLevel(Optional.of(CompatibilityLevel.valueOf(supplyLevel.get())).get().name());
             return response;
         }
         catch (RuleNotFoundException ex) {
             GlobalConfigResponse response = new GlobalConfigResponse();
-            response.setCompatibility(Compatibility.NONE.name());
+            response.setCompatibilityLevel(CompatibilityLevel.NONE.name());
             return response;
         }
     }
 
     private <X extends Exception> void updateCompatibilityLevel(String level,
                                                                 Runnable1Ex<RuleConfigurationDto, X> updater, RunnableEx<X> deleter) throws X {
-        if (Compatibility.NONE.name().equals(level)) {
+        if (CompatibilityLevel.NONE.name().equals(level)) {
             // delete the rule
             deleter.run();
         }
         else {
             try {
-                Compatibility.valueOf(level);
+                CompatibilityLevel.valueOf(level);
             }
             catch (IllegalArgumentException ex) {
                 throw new IllegalArgumentException("Illegal compatibility level: " + level);
@@ -74,8 +74,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @Override
     @Audited(extractParameters = { "0", AuditingConstants.KEY_RULE })
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
-    public GlobalConfigResponse updateGlobalConfig(GlobalConfigUpdateRequest request) {
-        updateCompatibilityLevel(request.getCompatibility().value(), dto -> {
+    public GlobalConfigResponse updateGlobalConfig(ConfigUpdateRequest request) {
+        updateCompatibilityLevel(request.getCompatibility(), dto -> {
             if (!doesGlobalRuleExist(RuleType.COMPATIBILITY)) {
                 storage.createGlobalRule(RuleType.COMPATIBILITY, dto);
             }
@@ -85,17 +85,17 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
         }, () -> storage.deleteGlobalRule(RuleType.COMPATIBILITY));
 
         GlobalConfigResponse response = new GlobalConfigResponse();
-        response.setCompatibility(request.getCompatibility().value());
+        response.setCompatibilityLevel(request.getCompatibility());
         return response;
     }
 
     @Override
     @Audited(extractParameters = { "0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE })
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public GlobalConfigResponse updateSubjectConfig(String subject, String groupId, GlobalConfigUpdateRequest request) {
+    public GlobalConfigResponse updateSubjectConfig(String subject, String groupId, ConfigUpdateRequest request) {
         final GA ga = getGA(groupId, subject);
 
-        updateCompatibilityLevel(request.getCompatibility().value(), dto -> {
+        updateCompatibilityLevel(request.getCompatibility(), dto -> {
             if (!doesArtifactRuleExist(ga.getRawArtifactId(), RuleType.COMPATIBILITY,
                     ga.getRawGroupIdWithNull())) {
                 storage.createArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
@@ -116,7 +116,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
         });
 
         GlobalConfigResponse response = new GlobalConfigResponse();
-        response.setCompatibility(request.getCompatibility().value());
+        response.setCompatibilityLevel(request.getCompatibility());
         return response;
     }
 
@@ -142,7 +142,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
                 }
             }
             return level;
-        }).getCompatibility()));
+        }).getCompatibilityLevel()));
 
         return response;
     }
@@ -155,7 +155,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
         final GlobalConfigResponse compatibilityLevel = getCompatibilityLevel(() -> storage
                 .getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY)
                 .getConfiguration());
-        if (!Compatibility.NONE.name().equals(compatibilityLevel.getCompatibility())) {
+        if (!CompatibilityLevel.NONE.name().equals(compatibilityLevel.getCompatibilityLevel())) {
             storage.deleteArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
                     RuleType.COMPATIBILITY);
         }

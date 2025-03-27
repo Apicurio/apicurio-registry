@@ -9,11 +9,9 @@ import static org.hamcrest.CoreMatchers.anything;
 
 @QuarkusTest
 public class SubjectsResourceTest extends AbstractResourceTestBase {
-
     @Test
     public void testListSubjectsEndpoint() {
         given().when().contentType(CT_JSON).get("/ccompat/v7/subjects").then().statusCode(200)
                 .body(anything());
     }
-
 }

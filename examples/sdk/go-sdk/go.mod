@@ -1,4 +1,4 @@
-module github.com/Apicurio/apicurio-registry/examples/sdk/sdk-go
+module github.com/apicurio/apicurio-registry/examples/sdk/go-sdk
 
 go 1.23.0
 

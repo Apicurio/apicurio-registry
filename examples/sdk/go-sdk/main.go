@@ -4,8 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	// 3.0.6:
 	registry3 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3"
 	"github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/models"
+	// 3.0.7 and later:
+	// registry3 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3"
+	// "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/models"
 	kiotaAuth "github.com/microsoft/kiota-abstractions-go/authentication"
 	kiotaHttp "github.com/microsoft/kiota-http-go"
 	"regexp"

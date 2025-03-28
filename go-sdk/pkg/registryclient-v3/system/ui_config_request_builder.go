@@ -2,7 +2,7 @@ package system
 
 import (
 	"context"
-	i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/models"
+	iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/models"
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f "github.com/microsoft/kiota-abstractions-go"
 )
 
@@ -37,22 +37,22 @@ func NewUiConfigRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee26337
 // Get returns the UI configuration properties for this server.  The registry UI can beconnected to a backend using just a URL.  The rest of the UI configuration can thenbe fetched from the backend using this operation.  This allows UI and backend toboth be configured in the same place.This operation may fail for one of the following reasons:* A server error occurred (HTTP error `500`)
 // returns a UserInterfaceConfigable when successful
 // returns a ProblemDetails error when the service returns a 500 status code
-func (m *UiConfigRequestBuilder) Get(ctx context.Context, requestConfiguration *UiConfigRequestBuilderGetRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.UserInterfaceConfigable, error) {
+func (m *UiConfigRequestBuilder) Get(ctx context.Context, requestConfiguration *UiConfigRequestBuilderGetRequestConfiguration) (iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.UserInterfaceConfigable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
-		"500": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateProblemDetailsFromDiscriminatorValue,
+		"500": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 	}
-	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateUserInterfaceConfigFromDiscriminatorValue, errorMapping)
+	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateUserInterfaceConfigFromDiscriminatorValue, errorMapping)
 	if err != nil {
 		return nil, err
 	}
 	if res == nil {
 		return nil, nil
 	}
-	return res.(i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.UserInterfaceConfigable), nil
+	return res.(iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.UserInterfaceConfigable), nil
 }
 
 // ToGetRequestInformation returns the UI configuration properties for this server.  The registry UI can beconnected to a backend using just a URL.  The rest of the UI configuration can thenbe fetched from the backend using this operation.  This allows UI and backend toboth be configured in the same place.This operation may fail for one of the following reasons:* A server error occurred (HTTP error `500`)

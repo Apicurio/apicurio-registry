@@ -1,12 +1,12 @@
 package registryclientv3
 
 import (
-	i3a143df9c3656a25fd13a0937faacbbcd9cb03fed9483505ecd519e4d74a7a15 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/admin"
-	i3320989eb8a8dfacce0884b8a7002d636bc4014dd0a4e589ddae4aaa1ae321f4 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/groups"
-	i7229f5841ba844b770381d53c9153420c122078a773e55c45064f1c87d6aab5b "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/ids"
-	i854c9d5780d14cbecc42929178b6e2f7b5d935bacd7ac9e5d2a5b5741cc31a4d "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/search"
-	i3b87edbdca8565e069a95744531fb5ecdfd17a8d304795b4ec765c590fda2881 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/system"
-	i3c84b7c05c4459609afd9e2bb17ddb7b28031a2ebfb232920d207cdb1a77a604 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/users"
+	i2490db7ea2391f99902722ae5e3ee4e973804d39fc1109d55d6f3ad4f7676186 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/admin"
+	i02856a41e6e1b8c46af566377659dd2b7d1212e8aed9df89a30e851a96f86fc2 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/groups"
+	iee154219761bfd4aa3d5ab154bb7dbca16db4be7b4f4e4c6237758fc59a1f230 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/ids"
+	i16223c3d64272984ac9b089a49f755b239267ef883920745d9328c825f277450 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/search"
+	i106c34e234c87a76eb0a333cfd72bb86e54870ce504215d783285b4c4377b48e "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/system"
+	if6b1343913cf488c29eab830b6c3ada6d1b89043b387e974c51a26712f7fae5e "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/users"
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f "github.com/microsoft/kiota-abstractions-go"
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 	i4bcdc892e61ac17e2afc10b5e2b536b29f4fd6c1ad30f4a5a68df47495db3347 "github.com/microsoft/kiota-serialization-form-go"
@@ -22,8 +22,8 @@ type ApiClient struct {
 
 // Admin the admin property
 // returns a *AdminRequestBuilder when successful
-func (m *ApiClient) Admin() *i3a143df9c3656a25fd13a0937faacbbcd9cb03fed9483505ecd519e4d74a7a15.AdminRequestBuilder {
-	return i3a143df9c3656a25fd13a0937faacbbcd9cb03fed9483505ecd519e4d74a7a15.NewAdminRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *ApiClient) Admin() *i2490db7ea2391f99902722ae5e3ee4e973804d39fc1109d55d6f3ad4f7676186.AdminRequestBuilder {
+	return i2490db7ea2391f99902722ae5e3ee4e973804d39fc1109d55d6f3ad4f7676186.NewAdminRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // NewApiClient instantiates a new ApiClient and sets the default values.
@@ -57,30 +57,30 @@ func NewApiClient(requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa52901
 
 // Groups collection of the groups in the registry.
 // returns a *GroupsRequestBuilder when successful
-func (m *ApiClient) Groups() *i3320989eb8a8dfacce0884b8a7002d636bc4014dd0a4e589ddae4aaa1ae321f4.GroupsRequestBuilder {
-	return i3320989eb8a8dfacce0884b8a7002d636bc4014dd0a4e589ddae4aaa1ae321f4.NewGroupsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *ApiClient) Groups() *i02856a41e6e1b8c46af566377659dd2b7d1212e8aed9df89a30e851a96f86fc2.GroupsRequestBuilder {
+	return i02856a41e6e1b8c46af566377659dd2b7d1212e8aed9df89a30e851a96f86fc2.NewGroupsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Ids the ids property
 // returns a *IdsRequestBuilder when successful
-func (m *ApiClient) Ids() *i7229f5841ba844b770381d53c9153420c122078a773e55c45064f1c87d6aab5b.IdsRequestBuilder {
-	return i7229f5841ba844b770381d53c9153420c122078a773e55c45064f1c87d6aab5b.NewIdsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *ApiClient) Ids() *iee154219761bfd4aa3d5ab154bb7dbca16db4be7b4f4e4c6237758fc59a1f230.IdsRequestBuilder {
+	return iee154219761bfd4aa3d5ab154bb7dbca16db4be7b4f4e4c6237758fc59a1f230.NewIdsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Search the search property
 // returns a *SearchRequestBuilder when successful
-func (m *ApiClient) Search() *i854c9d5780d14cbecc42929178b6e2f7b5d935bacd7ac9e5d2a5b5741cc31a4d.SearchRequestBuilder {
-	return i854c9d5780d14cbecc42929178b6e2f7b5d935bacd7ac9e5d2a5b5741cc31a4d.NewSearchRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *ApiClient) Search() *i16223c3d64272984ac9b089a49f755b239267ef883920745d9328c825f277450.SearchRequestBuilder {
+	return i16223c3d64272984ac9b089a49f755b239267ef883920745d9328c825f277450.NewSearchRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // System the system property
 // returns a *SystemRequestBuilder when successful
-func (m *ApiClient) System() *i3b87edbdca8565e069a95744531fb5ecdfd17a8d304795b4ec765c590fda2881.SystemRequestBuilder {
-	return i3b87edbdca8565e069a95744531fb5ecdfd17a8d304795b4ec765c590fda2881.NewSystemRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *ApiClient) System() *i106c34e234c87a76eb0a333cfd72bb86e54870ce504215d783285b4c4377b48e.SystemRequestBuilder {
+	return i106c34e234c87a76eb0a333cfd72bb86e54870ce504215d783285b4c4377b48e.NewSystemRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Users the users property
 // returns a *UsersRequestBuilder when successful
-func (m *ApiClient) Users() *i3c84b7c05c4459609afd9e2bb17ddb7b28031a2ebfb232920d207cdb1a77a604.UsersRequestBuilder {
-	return i3c84b7c05c4459609afd9e2bb17ddb7b28031a2ebfb232920d207cdb1a77a604.NewUsersRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *ApiClient) Users() *if6b1343913cf488c29eab830b6c3ada6d1b89043b387e974c51a26712f7fae5e.UsersRequestBuilder {
+	return if6b1343913cf488c29eab830b6c3ada6d1b89043b387e974c51a26712f7fae5e.NewUsersRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

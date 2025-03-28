@@ -5,7 +5,10 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
+	// 3.0.6:
 	github.com/apicurio/apicurio-registry/go-sdk v0.0.0-20241211181742-779f0994a1de // v3.0.6
+	// 3.0.7 and later:
+	// github.com/apicurio/apicurio-registry/go-sdk/v3 v3.0.7
 	github.com/microsoft/kiota-abstractions-go v1.9.1
 	github.com/microsoft/kiota-http-go v1.5.1
 )

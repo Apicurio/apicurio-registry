@@ -13,8 +13,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	registryclientv3 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3"
-	"github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/models"
+	registryclientv3 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3"
+	"github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/models"
 	auth "github.com/microsoft/kiota-abstractions-go/authentication"
 	kiotaHttp "github.com/microsoft/kiota-http-go"
 )

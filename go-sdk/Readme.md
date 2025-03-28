@@ -7,12 +7,12 @@ This is a generated SDK for easily interacting with Registry from a Go program.
 You can install this package using `go get`:
 
 ```
-go get github.com/apicurio/apicurio-registry/go-sdk
+go get github.com/apicurio/apicurio-registry/go-sdk/v3
 ```
 
 ## Requirements
 
-This package is built with [Go](https://go.dev/) `1.20+`.
+This package is built with [Go](https://go.dev/) `1.23+`.
 
 ## Generate
 

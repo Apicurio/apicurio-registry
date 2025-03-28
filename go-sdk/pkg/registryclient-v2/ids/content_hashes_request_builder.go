@@ -9,7 +9,7 @@ type ContentHashesRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
-// ByContentHash gets an item from the github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v2.ids.contentHashes.item collection
+// ByContentHash gets an item from the github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v2.ids.contentHashes.item collection
 // returns a *ContentHashesWithContentHashItemRequestBuilder when successful
 func (m *ContentHashesRequestBuilder) ByContentHash(contentHash string) *ContentHashesWithContentHashItemRequestBuilder {
 	urlTplParams := make(map[string]string)

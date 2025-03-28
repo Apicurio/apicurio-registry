@@ -52,7 +52,7 @@ jobs:
       - name: Go - Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.20'
+          go-version: '1.23'
 
       # Needs special tagging to use submodules: https://stackoverflow.com/a/64705638/7898052
       - name: Release Go SDK
@@ -62,7 +62,7 @@ jobs:
           git tag "go-sdk/v$RELEASE_VERSION"
           git push origin "v$RELEASE_VERSION"
           git push origin "go-sdk/v$RELEASE_VERSION"
-          GOPROXY=proxy.golang.org go list -m "github.com/apicurio/apicurio-registry@v$RELEASE_VERSION"
+          GOPROXY=proxy.golang.org go list -m "github.com/apicurio/apicurio-registry/go-sdk/v3@v$RELEASE_VERSION"
 
       - name: Slack Notification (Always)
         if: always()

@@ -40,22 +40,16 @@ fi
 VERSION=$(cat $SCRIPT_DIR/go-sdk.csproj | grep Version | sed -n 's/.*Version="\([^"]*\)".*/\1/p')
 URL="https://github.com/microsoft/kiota/releases/download/v${VERSION}/${PACKAGE_NAME}.zip"
 
-# COMMAND="kiota"
-# if ! command -v $COMMAND &> /dev/null
-# then
-#  echo "System wide kiota could not be found, using local version"
-  if [[ ! -f $SCRIPT_DIR/target/kiota_tmp/kiota ]]
-  then
-    echo "Local kiota could not be found, downloading"
-    rm -rf $SCRIPT_DIR/target/kiota_tmp
-    mkdir -p $SCRIPT_DIR/target/kiota_tmp
-    curl -sL $URL > $SCRIPT_DIR/target/kiota_tmp/kiota.zip
-    unzip $SCRIPT_DIR/target/kiota_tmp/kiota.zip -d $SCRIPT_DIR/target/kiota_tmp
-
-    chmod a+x $SCRIPT_DIR/target/kiota_tmp/kiota
-  fi
-  COMMAND="$SCRIPT_DIR/target/kiota_tmp/kiota"
-# fi
+if [[ ! -f $SCRIPT_DIR/target/kiota_tmp/kiota ]]
+then
+  echo "Local kiota could not be found, downloading"
+  rm -rf $SCRIPT_DIR/target/kiota_tmp
+  mkdir -p $SCRIPT_DIR/target/kiota_tmp
+  curl -sL $URL > $SCRIPT_DIR/target/kiota_tmp/kiota.zip
+  unzip $SCRIPT_DIR/target/kiota_tmp/kiota.zip -d $SCRIPT_DIR/target/kiota_tmp
+  chmod u+x $SCRIPT_DIR/target/kiota_tmp/kiota
+fi
+COMMAND="$SCRIPT_DIR/target/kiota_tmp/kiota"
 
 rm -rf $SCRIPT_DIR/pkg/registryclient-v2
 mkdir -p $SCRIPT_DIR/pkg/registryclient-v2
@@ -65,20 +59,16 @@ mkdir -p $SCRIPT_DIR/pkg/registryclient-v3
 cp $SCRIPT_DIR/../common/src/main/resources/META-INF/openapi-v2.json $SCRIPT_DIR/v2.json
 cp $SCRIPT_DIR/../common/src/main/resources/META-INF/openapi.json $SCRIPT_DIR/v3.json
 
-# Hask to overcome https://github.com/microsoft/kiota/issues/3920
-$SED_NAME -i 's/NewComment/DTONewComment/' $SCRIPT_DIR/v2.json
-$SED_NAME -i 's/NewComment/DTONewComment/' $SCRIPT_DIR/v3.json
-
 $COMMAND generate \
   --language go \
   --openapi $SCRIPT_DIR/v2.json \
   --clean-output \
   -o $SCRIPT_DIR/pkg/registryclient-v2 \
-  --namespace-name github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v2
+  --namespace-name github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v2
 
 $COMMAND generate \
   --language go \
   --openapi $SCRIPT_DIR/v3.json \
   --clean-output \
   -o $SCRIPT_DIR/pkg/registryclient-v3 \
-  --namespace-name github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3
+  --namespace-name github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3

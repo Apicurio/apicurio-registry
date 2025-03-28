@@ -2,7 +2,7 @@ package search
 
 import (
 	"context"
-	i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71 "github.com/apicurio/apicurio-registry/go-sdk/pkg/registryclient-v3/models"
+	iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/models"
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f "github.com/microsoft/kiota-abstractions-go"
 )
 
@@ -37,17 +37,17 @@ type VersionsRequestBuilderGetQueryParameters struct {
 	// Deprecated: This property is deprecated, use OrderAsSortOrder instead
 	Order *string `uriparametername:"order"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
-	OrderAsSortOrder *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SortOrder `uriparametername:"order"`
+	OrderAsSortOrder *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.SortOrder `uriparametername:"order"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
 	// Deprecated: This property is deprecated, use OrderbyAsVersionSortBy instead
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	OrderbyAsVersionSortBy *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSortBy `uriparametername:"orderby"`
+	OrderbyAsVersionSortBy *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionSortBy `uriparametername:"orderby"`
 	// Filter by version state.
 	// Deprecated: This property is deprecated, use StateAsVersionState instead
 	State *string `uriparametername:"state"`
 	// Filter by version state.
-	StateAsVersionState *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionState `uriparametername:"state"`
+	StateAsVersionState *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionState `uriparametername:"state"`
 	// Filter by version number.
 	Version *string `uriparametername:"version"`
 }
@@ -80,12 +80,12 @@ type VersionsRequestBuilderPostQueryParameters struct {
 	// Deprecated: This property is deprecated, use OrderAsSortOrder instead
 	Order *string `uriparametername:"order"`
 	// Sort order, ascending (`asc`) or descending (`desc`).
-	OrderAsSortOrder *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.SortOrder `uriparametername:"order"`
+	OrderAsSortOrder *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.SortOrder `uriparametername:"order"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
 	// Deprecated: This property is deprecated, use OrderbyAsVersionSortBy instead
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
-	OrderbyAsVersionSortBy *i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSortBy `uriparametername:"orderby"`
+	OrderbyAsVersionSortBy *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionSortBy `uriparametername:"orderby"`
 }
 
 // VersionsRequestBuilderPostRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
@@ -116,45 +116,45 @@ func NewVersionsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee26337
 // Get returns a paginated list of all versions that match the provided filter criteria.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)
 // returns a VersionSearchResultsable when successful
 // returns a ProblemDetails error when the service returns a 500 status code
-func (m *VersionsRequestBuilder) Get(ctx context.Context, requestConfiguration *VersionsRequestBuilderGetRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSearchResultsable, error) {
+func (m *VersionsRequestBuilder) Get(ctx context.Context, requestConfiguration *VersionsRequestBuilderGetRequestConfiguration) (iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionSearchResultsable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
 	if err != nil {
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
-		"500": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateProblemDetailsFromDiscriminatorValue,
+		"500": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 	}
-	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateVersionSearchResultsFromDiscriminatorValue, errorMapping)
+	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateVersionSearchResultsFromDiscriminatorValue, errorMapping)
 	if err != nil {
 		return nil, err
 	}
 	if res == nil {
 		return nil, nil
 	}
-	return res.(i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSearchResultsable), nil
+	return res.(iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionSearchResultsable), nil
 }
 
 // Post returns a paginated list of all versions that match the posted content.This operation can fail for the following reasons:* Provided content (request body) was empty (HTTP error `400`)* A server error occurred (HTTP error `500`)
 // returns a VersionSearchResultsable when successful
 // returns a ProblemDetails error when the service returns a 400 status code
 // returns a ProblemDetails error when the service returns a 500 status code
-func (m *VersionsRequestBuilder) Post(ctx context.Context, body []byte, contentType *string, requestConfiguration *VersionsRequestBuilderPostRequestConfiguration) (i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSearchResultsable, error) {
+func (m *VersionsRequestBuilder) Post(ctx context.Context, body []byte, contentType *string, requestConfiguration *VersionsRequestBuilderPostRequestConfiguration) (iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionSearchResultsable, error) {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, contentType, requestConfiguration)
 	if err != nil {
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
-		"400": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateProblemDetailsFromDiscriminatorValue,
-		"500": i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateProblemDetailsFromDiscriminatorValue,
+		"400": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
+		"500": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 	}
-	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.CreateVersionSearchResultsFromDiscriminatorValue, errorMapping)
+	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateVersionSearchResultsFromDiscriminatorValue, errorMapping)
 	if err != nil {
 		return nil, err
 	}
 	if res == nil {
 		return nil, nil
 	}
-	return res.(i00eb2e63d156923d00d8e86fe16b5d74daf30e363c9f185a8165cb42aa2f2c71.VersionSearchResultsable), nil
+	return res.(iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionSearchResultsable), nil
 }
 
 // ToGetRequestInformation returns a paginated list of all versions that match the provided filter criteria.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)

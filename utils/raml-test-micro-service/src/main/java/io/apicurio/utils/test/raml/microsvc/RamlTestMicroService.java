@@ -53,7 +53,7 @@ public class RamlTestMicroService extends AbstractVerticle {
         });
     }
 
-    public CompletableFuture<Void> stopServer() {
+    public void stopServer() {
         CompletableFuture<Void> future = new CompletableFuture<>();
         if (server != null) {
             server.close(ar -> {
@@ -66,7 +66,6 @@ public class RamlTestMicroService extends AbstractVerticle {
         } else {
             future.complete(null);
         }
-        return future;
     }
 
     private void handleRequest(HttpServerRequest req, String body) {
@@ -111,8 +110,8 @@ public class RamlTestMicroService extends AbstractVerticle {
     private void handleContentAccepter(HttpServerRequest req, String body) throws Exception {
         ContentAccepterRequest request = objectMapper.readValue(body, ContentAccepterRequest.class);
         boolean accepted = false;
-        String content = request.getContent();
-        String contentType = request.getContentType();
+        String content = request.getTypedContent().getContent();
+        String contentType = request.getTypedContent().getContentType();
         if (contentType.equals("application/x-yaml")) {
             if (content.startsWith("#%RAML 1.0")) {
                 accepted = true;

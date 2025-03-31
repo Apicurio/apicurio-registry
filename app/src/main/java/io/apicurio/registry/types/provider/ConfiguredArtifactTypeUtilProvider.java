@@ -80,11 +80,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
 
     @Override
     protected ContentExtractor createContentExtractor() {
-        Provider provider = this.artifactType.getContentExtractor();
-        if (provider == null) {
-            return NoopContentExtractor.INSTANCE;
-        }
-        return new ConfiguredContentExtractor(provider);
+        return NoopContentExtractor.INSTANCE;
     }
 
     @Override

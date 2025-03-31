@@ -1,7 +1,9 @@
 package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.config.artifactTypes.ArtifactTypeConfiguration;
+import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
 import io.apicurio.registry.config.artifactTypes.Provider;
+import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
@@ -13,6 +15,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.commons.lang3.ClassUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +29,10 @@ public class ConfiguredContentAccepter implements ContentAccepter {
     private final ArtifactTypeConfiguration artifactType;
     private final Provider provider;
 
+    private volatile Class<?> javaClass;
+    private volatile ContentAccepter javaContentAccepter;
+
+
     public ConfiguredContentAccepter(ArtifactTypeConfiguration artifactType) {
         this.artifactType = artifactType;
         this.provider = artifactType.getContentAccepter();
@@ -36,12 +43,45 @@ public class ConfiguredContentAccepter implements ContentAccepter {
         try {
             if (provider instanceof WebhookProvider) {
                 return acceptsContentWebhook((WebhookProvider) provider, content, resolvedReferences);
+            } else if (provider instanceof JavaClassProvider) {
+                return acceptsContentJava((JavaClassProvider) provider, content, resolvedReferences);
+            } else if (provider instanceof ScriptProvider) {
+                // TODO implement Script provider
             }
-            // TODO implement Java and Script providers
             return false;
         } catch (Throwable e) {
             log.error("Failed to accept content for " + artifactType.getArtifactType(), e);
             return false;
+        }
+    }
+
+    private boolean acceptsContentJava(JavaClassProvider provider, TypedContent content, Map<String, TypedContent> resolvedReferences) throws Exception {
+        ContentAccepter delegate = getJavaDelegate(provider);
+        return delegate.acceptsContent(content, resolvedReferences);
+    }
+
+    private ContentAccepter getJavaDelegate(JavaClassProvider provider) throws Exception {
+        if (javaClass == null) {
+            javaClass = loadJavaClassFromProvider(provider);
+            javaContentAccepter = instantiateJavaClass(javaClass);
+        }
+        return javaContentAccepter;
+    }
+
+    private Class<?> loadJavaClassFromProvider(JavaClassProvider provider) throws Exception {
+        try {
+            String fqcn = provider.getClassname();
+            return ClassUtils.getClass(fqcn);
+        } catch (ClassNotFoundException e) {
+            throw new Exception("JavaClass artifact type provider failed (class not found): " + provider.getClassname());
+        }
+    }
+
+    private ContentAccepter instantiateJavaClass(Class<?> javaClass) throws Exception {
+        try {
+            return (ContentAccepter) javaClass.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new Exception("JavaClass artifact type provider failed (could not instantiate class): " + e.getMessage(), e);
         }
     }
 
@@ -51,8 +91,9 @@ public class ConfiguredContentAccepter implements ContentAccepter {
 
         // Create the request payload object
         ContentAccepterRequest car = new ContentAccepterRequest();
-        car.setContent(content.getContent().content());
-        car.setContentType(content.getContentType());
+        car.setTypedContent(new io.apicurio.registry.types.webhooks.beans.TypedContent());
+        car.getTypedContent().setContent(content.getContent().content());
+        car.getTypedContent().setContentType(content.getContentType());
         if (resolvedReferences != null && !resolvedReferences.isEmpty()) {
             car.setResolvedReferences(new ArrayList<>(resolvedReferences.size()));
             for (Map.Entry<String, TypedContent> entry : resolvedReferences.entrySet()) {

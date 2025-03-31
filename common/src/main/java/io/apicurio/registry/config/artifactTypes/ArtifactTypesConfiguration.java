@@ -27,8 +27,10 @@ public class ArtifactTypesConfiguration {
 
     @JsonProperty("includeStandardArtifactTypes")
     private Boolean includeStandardArtifactTypes;
+
     @JsonProperty("artifactTypes")
     private List<ArtifactTypeConfiguration> artifactTypes = new ArrayList<ArtifactTypeConfiguration>();
+
 
     @JsonProperty("includeStandardArtifactTypes")
     public Boolean getIncludeStandardArtifactTypes() {

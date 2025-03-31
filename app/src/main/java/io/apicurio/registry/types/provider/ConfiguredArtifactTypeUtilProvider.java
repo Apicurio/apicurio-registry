@@ -48,7 +48,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentAccepter.INSTANCE;
         }
-        return new ConfiguredContentAccepter(provider);
+        return new ConfiguredContentAccepter(this.artifactType);
     }
 
     @Override

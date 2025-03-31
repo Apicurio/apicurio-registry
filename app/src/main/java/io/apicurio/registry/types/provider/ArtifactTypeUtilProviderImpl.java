@@ -21,6 +21,9 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     @Inject
     Logger log;
 
+    @Inject
+    VertxProvider vertxProvider;
+
     @ConfigProperty(name = "apicurio.artifact-types.config-file", defaultValue = "/tmp/apicurio-registry-artifact-types.json")
     @Info(category = "types", description = "Path to a configuration file containing a list of supported artifact types.", availableSince = "3.1.0")
     @Getter
@@ -28,6 +31,8 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
 
     @PostConstruct
     public void init() {
+        vertxProvider.getVertx();
+
         ArtifactTypesConfiguration config = loadArtifactTypeConfiguration();
         if (config != null) {
             loadConfiguredProviders(config);

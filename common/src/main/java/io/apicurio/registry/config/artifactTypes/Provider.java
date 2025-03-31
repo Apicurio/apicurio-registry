@@ -21,23 +21,15 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @io.quarkus.runtime.annotations.RegisterForReflection
 public abstract class Provider {
 
-    /**
-     * (Required)
-     */
     @JsonProperty("type")
     private String type;
 
-    /**
-     * (Required)
-     */
+
     @JsonProperty("type")
     public String getType() {
         return type;
     }
 
-    /**
-     * (Required)
-     */
     @JsonProperty("type")
     public void setType(String type) {
         this.type = type;

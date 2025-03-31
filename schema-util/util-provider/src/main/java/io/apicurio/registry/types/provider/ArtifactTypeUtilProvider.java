@@ -18,13 +18,13 @@ public interface ArtifactTypeUtilProvider {
 
     ContentAccepter getContentAccepter();
 
-    CompatibilityChecker getCompatibilityChecker();
-
     ContentCanonicalizer getContentCanonicalizer();
+
+    ContentExtractor getContentExtractor();
 
     ContentValidator getContentValidator();
 
-    ContentExtractor getContentExtractor();
+    CompatibilityChecker getCompatibilityChecker();
 
     ContentDereferencer getContentDereferencer();
 

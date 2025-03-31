@@ -24,7 +24,11 @@ public class CustomArtifactTypesTestProfile implements QuarkusTestProfile {
                         "contentTypes": [
                             "application/json",
                             "application/x-yaml"
-                        ]
+                        ],
+                        "contentAccepter": {
+                            "type": "webhook",
+                            "url": "http://localhost:3333/contentAccepter"
+                        }
                     }
                 ]
             }

@@ -13,9 +13,7 @@ import java.util.Map;
 @JsonPropertyOrder({
         "type",
         "url",
-        "method",
-        "headers",
-        "payload"
+        "headers"
 })
 @io.quarkus.runtime.annotations.RegisterForReflection
 public class WebhookProvider extends Provider {
@@ -31,26 +29,12 @@ public class WebhookProvider extends Provider {
     @JsonProperty("url")
     private String url;
     /**
-     * (Required)
-     */
-    @JsonProperty("method")
-    private String method;
-    /**
      * Root Type for WebhookHeaders
      * <p>
      */
     @JsonProperty("headers")
     @JsonPropertyDescription("")
     private Map<String, String> headers;
-    /**
-     * Root Type for WebhookPayload
-     * <p>
-     * <p>
-     * (Required)
-     */
-    @JsonProperty("payload")
-    @JsonPropertyDescription("")
-    private Map<String, Object> payload;
 
     /**
      * (Required)
@@ -85,22 +69,6 @@ public class WebhookProvider extends Provider {
     }
 
     /**
-     * (Required)
-     */
-    @JsonProperty("method")
-    public String getMethod() {
-        return method;
-    }
-
-    /**
-     * (Required)
-     */
-    @JsonProperty("method")
-    public void setMethod(String method) {
-        this.method = method;
-    }
-
-    /**
      * Root Type for WebhookHeaders
      * <p>
      */
@@ -116,28 +84,6 @@ public class WebhookProvider extends Provider {
     @JsonProperty("headers")
     public void setHeaders(Map<String, String> headers) {
         this.headers = headers;
-    }
-
-    /**
-     * Root Type for WebhookPayload
-     * <p>
-     * <p>
-     * (Required)
-     */
-    @JsonProperty("payload")
-    public Map<String, Object> getPayload() {
-        return payload;
-    }
-
-    /**
-     * Root Type for WebhookPayload
-     * <p>
-     * <p>
-     * (Required)
-     */
-    @JsonProperty("payload")
-    public void setPayload(Map<String, Object> payload) {
-        this.payload = payload;
     }
 
 }

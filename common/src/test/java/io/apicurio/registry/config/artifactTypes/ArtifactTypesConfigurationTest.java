@@ -86,17 +86,9 @@ public class ArtifactTypesConfigurationTest {
                         "contentAccepter": {
                             "type": "webhook",
                             "url": "https://example.com/webhook-endpoint",
-                            "method": "POST",
                             "headers": {
                                 "Authorization": "Bearer YOUR_SECRET_TOKEN",
                                 "Content-Type": "application/json"
-                            },
-                            "payload": {
-                                "rpc": "validate",
-                                "data": {
-                                    "content": "${content}",
-                                    "contentType": "${contentType}"
-                                }
                             }
                         }
                     }
@@ -173,16 +165,10 @@ public class ArtifactTypesConfigurationTest {
         Assertions.assertEquals(WebhookProvider.class, config.getArtifactTypes().get(0).getContentAccepter().getClass());
         Assertions.assertEquals("webhook", config.getArtifactTypes().get(0).getContentAccepter().getType());
         Assertions.assertEquals("https://example.com/webhook-endpoint", ((WebhookProvider) config.getArtifactTypes().get(0).getContentAccepter()).getUrl());
-        Assertions.assertEquals("POST", ((WebhookProvider) config.getArtifactTypes().get(0).getContentAccepter()).getMethod());
         Assertions.assertEquals(Map.of(
                 "Authorization", "Bearer YOUR_SECRET_TOKEN",
                 "Content-Type", "application/json"
         ), ((WebhookProvider) config.getArtifactTypes().get(0).getContentAccepter()).getHeaders());
-        Assertions.assertEquals("validate", ((WebhookProvider) config.getArtifactTypes().get(0).getContentAccepter()).getPayload().get("rpc"));
-        Assertions.assertEquals(Map.of(
-                "content", "${content}",
-                "contentType", "${contentType}"
-        ), ((WebhookProvider) config.getArtifactTypes().get(0).getContentAccepter()).getPayload().get("data"));
     }
 
 }

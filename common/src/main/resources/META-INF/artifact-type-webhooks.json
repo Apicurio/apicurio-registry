@@ -1,0 +1,92 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Apicurio Registyr Artifact Type Webhooks",
+    "version": "3.1.0",
+    "description": "Defines the webhooks needed to provide functionality for a custom artifact type."
+  },
+  "paths": {
+    "/ContentAccepter": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {}
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "500": {
+            "description": "Server error detected."
+          }
+        },
+        "operationId": "acceptsContent",
+        "summary": "Webhook for the ContentAccepter interface"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ContentAccepterRequest": {
+        "description": "",
+        "required": [
+          "content",
+          "contentType"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "description": "",
+            "type": "string"
+          },
+          "contentType": {
+            "description": "",
+            "type": "string"
+          },
+          "resolvedReferences": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedReference"
+            }
+          }
+        }
+      },
+      "ResolvedReference": {
+        "title": "Root Type for ResolvedReference",
+        "description": "",
+        "required": [
+          "content",
+          "contentType",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "name": "data-types.json#/components/schemas/MyType",
+          "content": "THE CONTENT OF THE REFERENCE",
+          "contentType": "application/json"
+        }
+      }
+    }
+  }
+}

@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CustomArtifactTypesTestProfile implements QuarkusTestProfile {
+public class WebhookArtifactTypesTestProfile implements QuarkusTestProfile {
 
     private static final String CONFIG_FILE = """
             {

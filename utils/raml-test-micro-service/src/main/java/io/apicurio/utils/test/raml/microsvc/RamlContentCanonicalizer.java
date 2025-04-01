@@ -13,7 +13,7 @@ import java.util.Map;
 
 public class RamlContentCanonicalizer implements ContentCanonicalizer {
 
-    private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory())
+    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory())
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
 
     @Override

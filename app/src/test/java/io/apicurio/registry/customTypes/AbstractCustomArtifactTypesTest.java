@@ -4,7 +4,12 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateGroup;
+import io.apicurio.registry.rest.client.models.CreateRule;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import org.junit.jupiter.api.Assertions;
@@ -50,6 +55,10 @@ annotationTypes:
             application/json:
               type: assets.Order
             """;
+
+    private static String minifyContent(String content) {
+        return content.replaceAll("(?m)^\s*$\n?", "");
+    }
 
     @Test
     public void testArtifactTypeList() {
@@ -130,8 +139,41 @@ annotationTypes:
         Assertions.assertEquals(1, results.getCount());
     }
 
-    private static String minifyContent(String content) {
-        return content.replaceAll("(?m)^\s*$\n?", "");
+    @Test
+    public void testContentValidator() {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create the group
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
+
+        // Configure the Validity rule for the group
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig(ValidityLevel.FULL.name());
+        clientV3.groups().byGroupId(groupId).rules().post(createRule);
+
+        String validContent = RAML_CONTENT;
+        String invalidContent = RAML_CONTENT.replace("#%RAML 1.0", "#Random YAML");
+
+        // Create from valid content
+        String validArtifactId = TestUtils.generateArtifactId();
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(validArtifactId, "RAML", validContent, ContentTypes.APPLICATION_YAML);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(car);
+        Assertions.assertNotNull(car.getArtifact());
+        Assertions.assertNotNull(car.getVersion());
+        Assertions.assertEquals("RAML", car.getArtifact().getArtifactType());
+
+        // Create from invalid content
+        Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
+            String invalidArtifactId = TestUtils.generateArtifactId();
+            CreateArtifact createArtifactInvalid = TestUtils.clientCreateArtifact(validArtifactId, "RAML", invalidContent, ContentTypes.APPLICATION_YAML);
+            createArtifactInvalid.getFirstVersion().setVersion("1.0");
+            clientV3.groups().byGroupId(groupId).artifacts().post(createArtifactInvalid);
+        });
     }
 
 }

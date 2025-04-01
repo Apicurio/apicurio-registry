@@ -75,7 +75,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentValidator.INSTANCE;
         }
-        return new ConfiguredContentValidator(provider);
+        return new ConfiguredContentValidator(this.artifactType);
     }
 
     @Override

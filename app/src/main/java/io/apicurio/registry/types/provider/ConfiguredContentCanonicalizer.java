@@ -52,12 +52,12 @@ public class ConfiguredContentCanonicalizer extends AbstractConfiguredArtifactTy
         public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
             // Create the request payload object
             ContentCanonicalizerRequest requestBody = new ContentCanonicalizerRequest();
-            requestBody.setContent(WebhookBeanUtil.toWebhookBean(content));
-            requestBody.setResolvedReferences(WebhookBeanUtil.toWebhookBean(resolvedReferences));
+            requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
+            requestBody.setResolvedReferences(WebhookBeanUtil.resolvedReferenceListToWebhookBean(resolvedReferences));
 
             try {
                 ContentCanonicalizerResponse responseBody = invokeHook(requestBody, ContentCanonicalizerResponse.class);
-                return WebhookBeanUtil.fromWebhookBean(responseBody.getTypedContent());
+                return WebhookBeanUtil.typedContentFromWebhookBean(responseBody.getTypedContent());
             } catch (Throwable e) {
                 log.error("Error invoking webhook", e);
                 return content;

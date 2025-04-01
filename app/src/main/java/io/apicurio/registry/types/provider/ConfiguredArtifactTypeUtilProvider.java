@@ -57,7 +57,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoopCompatibilityChecker.INSTANCE;
         }
-        return new ConfiguredCompatibilityChecker(provider);
+        return new ConfiguredCompatibilityChecker(this.artifactType);
     }
 
     @Override

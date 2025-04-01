@@ -5,18 +5,26 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
+import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.types.webhooks.beans.CompatibilityCheckerRequest;
+import io.apicurio.registry.types.webhooks.beans.CompatibilityCheckerResponse;
 import io.apicurio.registry.types.webhooks.beans.ContentAccepterRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerResponse;
 import io.apicurio.registry.types.webhooks.beans.ContentValidatorRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentValidatorResponse;
+import io.apicurio.registry.types.webhooks.beans.IncompatibleDifference;
 import io.apicurio.registry.types.webhooks.beans.ResolvedReference;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,9 +107,6 @@ public class RamlTestMicroService extends AbstractVerticle {
                 case "/contentValidator":
                     handleContentValidator(req, body);
                     break;
-                case "/contentExtractor":
-                    handleContentExtractor(req, body);
-                    break;
                 case "/contentDereferencer":
                     handleContentDereferencer(req, body);
                     break;
@@ -129,8 +134,19 @@ public class RamlTestMicroService extends AbstractVerticle {
         req.response().putHeader("content-type", "application/json").end(String.valueOf(accepted));
     }
 
-    private void handleCompatibilityChecker(HttpServerRequest req, String body) {
-        req.response().putHeader("content-type", "application/json").end("{}");
+    private void handleCompatibilityChecker(HttpServerRequest req, String body) throws Exception {
+        CompatibilityCheckerRequest request = objectMapper.readValue(body, CompatibilityCheckerRequest.class);
+        RamlCompatibilityChecker compatibilityChecker = new RamlCompatibilityChecker();
+        CompatibilityLevel level = CompatibilityLevel.valueOf(request.getLevel());
+        List<TypedContent> existingArtifacts = request.getExistingArtifacts() == null ? Collections.emptyList() :
+                request.getExistingArtifacts().stream().map(this::toServerBean).collect(Collectors.toList());
+        TypedContent proposedArtifact = toServerBean(request.getProposedArtifact());
+        Map<String, TypedContent> resolvedRefs = toServerBean(request.getResolvedReferences());
+        CompatibilityExecutionResult result = compatibilityChecker.testCompatibility(level, existingArtifacts, proposedArtifact, resolvedRefs);
+
+        CompatibilityCheckerResponse response = new CompatibilityCheckerResponse();
+        response.setIncompatibleDifferences(toBean(result.getIncompatibleDifferences()));
+        req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
     }
 
     private void handleContentCanonicalizer(HttpServerRequest req, String body) throws Exception {
@@ -173,15 +189,11 @@ public class RamlTestMicroService extends AbstractVerticle {
         req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
     }
 
-    private void handleContentExtractor(HttpServerRequest req, String body) {
+    private void handleContentDereferencer(HttpServerRequest req, String body) throws Exception {
         req.response().putHeader("content-type", "application/json").end("{}");
     }
 
-    private void handleContentDereferencer(HttpServerRequest req, String body) {
-        req.response().putHeader("content-type", "application/json").end("{}");
-    }
-
-    private void handleReferenceFinder(HttpServerRequest req, String body) {
+    private void handleReferenceFinder(HttpServerRequest req, String body) throws Exception {
         req.response().putHeader("content-type", "application/json").end("{}");
     }
 
@@ -216,6 +228,20 @@ public class RamlTestMicroService extends AbstractVerticle {
             ref.setVersion(ar.getVersion());
             return ref;
         }).collect(Collectors.toList());
+    }
+
+    private List<IncompatibleDifference> toBean(Set<CompatibilityDifference> incompatibleDifferences) {
+        return incompatibleDifferences == null ? List.of() :
+                incompatibleDifferences.stream().map(diff -> toBean(diff)).collect(Collectors.toList());
+    }
+
+    private IncompatibleDifference toBean(CompatibilityDifference difference) {
+        IncompatibleDifference incompatibleDifference = new IncompatibleDifference();
+        if (difference instanceof SimpleCompatibilityDifference) {
+            incompatibleDifference.setContext(difference.asRuleViolation().getContext());
+            incompatibleDifference.setDescription(difference.asRuleViolation().getDescription());
+        }
+        return incompatibleDifference;
     }
 
     public static void main(String[] args) {

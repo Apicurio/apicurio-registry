@@ -66,7 +66,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentCanonicalizer.INSTANCE;
         }
-        return new ConfiguredContentCanonicalizer(provider);
+        return new ConfiguredContentCanonicalizer(this.artifactType);
     }
 
     @Override

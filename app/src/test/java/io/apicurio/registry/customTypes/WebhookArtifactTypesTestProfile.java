@@ -28,6 +28,10 @@ public class WebhookArtifactTypesTestProfile implements QuarkusTestProfile {
                         "contentAccepter": {
                             "type": "webhook",
                             "url": "http://localhost:3333/contentAccepter"
+                        },
+                        "contentCanonicalizer": {
+                            "type": "webhook",
+                            "url": "http://localhost:3333/contentCanonicalizer"
                         }
                     }
                 ]

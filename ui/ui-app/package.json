@@ -19,13 +19,13 @@
     "@apicurio/eslint-config": "0.3.0",
     "@kiota-community/kiota-wasm": "0.0.3",
     "@monaco-editor/react": "4.7.0",
-    "@types/luxon": "3.4.2",
-    "@types/node": "22.13.14",
+    "@types/luxon": "3.6.0",
+    "@types/node": "22.13.15",
     "@types/pluralize": "0.0.33",
     "@types/react": "18.3.20",
     "@types/react-dom": "18.3.5",
-    "@typescript-eslint/eslint-plugin": "8.28.0",
-    "@typescript-eslint/parser": "8.28.0",
+    "@typescript-eslint/eslint-plugin": "8.29.0",
+    "@typescript-eslint/parser": "8.29.0",
     "@vitejs/plugin-react-swc": "3.8.1",
     "copyfiles": "2.4.1",
     "eslint": "8.57.1",
@@ -39,7 +39,7 @@
   "dependencies": {
     "@apicurio/apicurio-registry-sdk": "3.0.7",
     "@apicurio/common-ui-components": "2.0.7",
-    "@apicurio/data-models": "1.1.31",
+    "@apicurio/data-models": "1.1.32",
     "@microsoft/kiota-abstractions": "1.0.0-preview.79",
     "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.79",
     "@microsoft/kiota-serialization-form": "1.0.0-preview.79",
@@ -53,13 +53,13 @@
     "@patternfly/react-table": "5.4.16",
     "axios": "1.8.4",
     "buffer": "6.0.3",
-    "luxon": "3.6.0",
+    "luxon": "3.6.1",
     "oidc-client-ts": "3.2.0",
     "pluralize": "8.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "6.30.0",
     "use-resize-observer": "9.1.0",
-    "yaml": "2.7.0"
+    "yaml": "2.7.1"
   }
 }

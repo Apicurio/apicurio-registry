@@ -6,22 +6,14 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.utils.test.raml.microsvc.RamlTestMicroService;
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.vertx.core.Vertx;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@QuarkusTest
-@TestProfile(CustomArtifactTypesTestProfile.class)
-public class CustomArtifactTypesTest extends AbstractResourceTestBase {
+public abstract class AbstractCustomArtifactTypesTest extends AbstractResourceTestBase {
 
     private static final String RAML_CONTENT = """
 #%RAML 1.0
@@ -55,25 +47,6 @@ annotationTypes:
             application/json:
               type: assets.Order
             """;
-
-    private static Vertx vertx;
-    private static RamlTestMicroService ramlMicroService;
-
-    @BeforeAll
-    public static void setup() {
-        // Start the RAML microservice.  All RAML webhooks will call this service.  Must be running
-        // or all of the test RAML webhooks will fail.
-        vertx = Vertx.vertx();
-        ramlMicroService = new RamlTestMicroService(3333);
-        vertx.deployVerticle(ramlMicroService);
-    }
-
-    @AfterAll
-    public static void cleanup() {
-        // Shut down the RAML microservice.
-        ramlMicroService.stopServer();
-        vertx.close();
-    }
 
     @Test
     public void testArtifactTypeList() {

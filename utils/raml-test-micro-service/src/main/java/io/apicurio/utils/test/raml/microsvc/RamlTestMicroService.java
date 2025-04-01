@@ -1,12 +1,17 @@
 package io.apicurio.utils.test.raml.microsvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.webhooks.beans.ContentAccepterRequest;
+import io.apicurio.registry.types.webhooks.beans.ResolvedReference;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class RamlTestMicroService extends AbstractVerticle {
@@ -109,14 +114,8 @@ public class RamlTestMicroService extends AbstractVerticle {
 
     private void handleContentAccepter(HttpServerRequest req, String body) throws Exception {
         ContentAccepterRequest request = objectMapper.readValue(body, ContentAccepterRequest.class);
-        boolean accepted = false;
-        String content = request.getTypedContent().getContent();
-        String contentType = request.getTypedContent().getContentType();
-        if (contentType.equals("application/x-yaml")) {
-            if (content.startsWith("#%RAML 1.0")) {
-                accepted = true;
-            }
-        }
+        RamlContentAccepter accepter = new RamlContentAccepter();
+        boolean accepted = accepter.acceptsContent(toServerBean(request.getTypedContent()), toServerBean(request.getResolvedReferences()));
         req.response().putHeader("content-type", "application/json").end(String.valueOf(accepted));
     }
 
@@ -142,6 +141,18 @@ public class RamlTestMicroService extends AbstractVerticle {
 
     private void handleReferenceFinder(HttpServerRequest req, String body) {
         req.response().putHeader("content-type", "application/json").end("{}");
+    }
+
+    private TypedContent toServerBean(io.apicurio.registry.types.webhooks.beans.TypedContent typedContent) {
+        return TypedContent.create(typedContent.getContent(), typedContent.getContentType());
+    }
+
+    private Map<String, TypedContent> toServerBean(List<ResolvedReference> resolvedReferences) {
+        Map<String, TypedContent> rval = new HashMap<>();
+        for (ResolvedReference ref : resolvedReferences) {
+            rval.put(ref.getName(), TypedContent.create(ref.getContent(), ref.getContentType()));
+        }
+        return rval;
     }
 
     public static void main(String[] args) {

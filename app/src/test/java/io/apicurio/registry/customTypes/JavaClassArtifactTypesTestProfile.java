@@ -32,6 +32,10 @@ public class JavaClassArtifactTypesTestProfile implements QuarkusTestProfile {
                         "contentCanonicalizer": {
                             "type": "java",
                             "classname": "io.apicurio.utils.test.raml.microsvc.RamlContentCanonicalizer"
+                        },
+                        "contentValidator": {
+                            "type": "java",
+                            "classname": "io.apicurio.utils.test.raml.microsvc.RamlContentValidator"
                         }
                     }
                 ]

@@ -2,9 +2,15 @@ package io.apicurio.utils.test.raml.microsvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.RuleViolation;
+import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.webhooks.beans.ContentAccepterRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerResponse;
+import io.apicurio.registry.types.webhooks.beans.ContentValidatorRequest;
+import io.apicurio.registry.types.webhooks.beans.ContentValidatorResponse;
 import io.apicurio.registry.types.webhooks.beans.ResolvedReference;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
@@ -14,7 +20,9 @@ import io.vertx.core.http.HttpServerRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class RamlTestMicroService extends AbstractVerticle {
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -128,15 +136,41 @@ public class RamlTestMicroService extends AbstractVerticle {
     private void handleContentCanonicalizer(HttpServerRequest req, String body) throws Exception {
         ContentCanonicalizerRequest request = objectMapper.readValue(body, ContentCanonicalizerRequest.class);
         RamlContentCanonicalizer canonicalizer = new RamlContentCanonicalizer();
-        TypedContent canonicalizedContent = canonicalizer.canonicalize(toServerBean(request.getContent()), toServerBean(request.getResolvedReferences()));
+        TypedContent typedContent = toServerBean(request.getContent());
+        Map<String, TypedContent> resolvedRefs = toServerBean(request.getResolvedReferences());
+        TypedContent canonicalizedContent = canonicalizer.canonicalize(typedContent, resolvedRefs);
 
         ContentCanonicalizerResponse response = new ContentCanonicalizerResponse();
         response.setTypedContent(toBean(canonicalizedContent));
         req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
     }
 
-    private void handleContentValidator(HttpServerRequest req, String body) {
-        req.response().putHeader("content-type", "application/json").end("{}");
+    private void handleContentValidator(HttpServerRequest req, String body) throws Exception {
+        ContentValidatorRequest request = objectMapper.readValue(body, ContentValidatorRequest.class);
+        RamlContentValidator validator = new RamlContentValidator();
+        TypedContent content = toServerBean(request.getContent());
+        ValidityLevel level = ValidityLevel.valueOf(request.getLevel());
+        ContentValidatorRequest.Function function = request.getFunction();
+
+        ContentValidatorResponse response = new ContentValidatorResponse();
+        try {
+            if (function == ContentValidatorRequest.Function.validate) {
+                Map<String, TypedContent> resolvedRefs = toServerBean(request.getResolvedReferences());
+                validator.validate(level, content, resolvedRefs);
+            } else if (function == ContentValidatorRequest.Function.validateReferences) {
+                List<ArtifactReference> artifactRefs = toServerBean2(request.getReferences());
+                validator.validateReferences(content, artifactRefs);
+            }
+        } catch (RuleViolationException e) {
+            Set<RuleViolation> causes = e.getCauses();
+            response.setRuleViolations(causes.stream().map(cause -> {
+                io.apicurio.registry.types.webhooks.beans.RuleViolation violation = new io.apicurio.registry.types.webhooks.beans.RuleViolation();
+                violation.setContext(cause.getContext());
+                violation.setDescription(cause.getDescription());
+                return violation;
+            }).collect(Collectors.toUnmodifiableList()));
+        }
+        req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
     }
 
     private void handleContentExtractor(HttpServerRequest req, String body) {
@@ -168,6 +202,20 @@ public class RamlTestMicroService extends AbstractVerticle {
             rval.put(ref.getName(), TypedContent.create(ref.getContent(), ref.getContentType()));
         }
         return rval;
+    }
+
+    private static List<ArtifactReference> toServerBean2(List<io.apicurio.registry.types.webhooks.beans.ArtifactReference> references) {
+        if (references == null || references.isEmpty()) {
+            return List.of();
+        }
+        return references.stream().map(ar -> {
+            ArtifactReference ref = new ArtifactReference();
+            ref.setName(ar.getName());
+            ref.setGroupId(ar.getGroupId());
+            ref.setArtifactId(ar.getArtifactId());
+            ref.setVersion(ar.getVersion());
+            return ref;
+        }).collect(Collectors.toList());
     }
 
     public static void main(String[] args) {

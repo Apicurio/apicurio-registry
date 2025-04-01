@@ -1,11 +1,15 @@
 package io.apicurio.registry.types.provider;
 
+import io.apicurio.registry.rules.RuleViolation;
+import io.apicurio.registry.types.webhooks.beans.ArtifactReference;
 import io.apicurio.registry.types.webhooks.beans.ResolvedReference;
 import io.apicurio.registry.types.webhooks.beans.TypedContent;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class WebhookBeanUtil {
 
@@ -35,4 +39,26 @@ public class WebhookBeanUtil {
         return webhookBeanList;
     }
 
+    public static Set<RuleViolation> fromWebhookBean(List<io.apicurio.registry.types.webhooks.beans.RuleViolation> rvs) {
+        return rvs.stream().map(rv -> {
+            RuleViolation violation = new RuleViolation();
+            violation.setContext(rv.getContext());
+            violation.setDescription(rv.getDescription());
+            return violation;
+        }).collect(Collectors.toSet());
+    }
+
+    public static List<ArtifactReference> toWebhookBean(List<io.apicurio.registry.rest.v3.beans.ArtifactReference> references) {
+        if (references == null || references.isEmpty()) {
+            return List.of();
+        }
+        return references.stream().map(ref -> {
+            ArtifactReference artifact = new ArtifactReference();
+            artifact.setName(ref.getName());
+            artifact.setGroupId(ref.getGroupId());
+            artifact.setArtifactId(ref.getArtifactId());
+            artifact.setVersion(ref.getVersion());
+            return artifact;
+        }).collect(Collectors.toList());
+    }
 }

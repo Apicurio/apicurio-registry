@@ -4,11 +4,14 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -72,7 +75,7 @@ annotationTypes:
     }
 
     @Test
-    public void testDiscoverRAMLArtifact() {
+    public void testContentAccepter() {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
         // Same as "testCreateRAMLArtifact" but don't provide the artifact type.  As a result, the
@@ -87,6 +90,48 @@ annotationTypes:
         Assertions.assertNotNull(car.getVersion());
         // The server should have discovered (from the content) that the artifact type is RAML
         Assertions.assertEquals("RAML", car.getArtifact().getArtifactType());
+    }
+
+    @Test
+    public void testContentCanonicalizer() {
+        String content = RAML_CONTENT.replace("Mobile Order API", "testCreateRAMLArtifact");
+        String minContent = minifyContent(content);
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, "RAML", content, ContentTypes.APPLICATION_YAML);
+        createArtifact.getFirstVersion().setVersion("1.0");
+
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(car);
+        Assertions.assertNotNull(car.getArtifact());
+        Assertions.assertNotNull(car.getVersion());
+        Assertions.assertEquals("RAML", car.getArtifact().getArtifactType());
+
+        // Search for the exact content we added.  Should always work.
+        InputStream body = new ByteArrayInputStream(content.getBytes());
+        VersionSearchResults results = clientV3.search().versions().post(body, ContentTypes.APPLICATION_YAML);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+
+        // Search for the minified content.  Will not work unless we set canonical=true
+        body = new ByteArrayInputStream(minContent.getBytes());
+        results = clientV3.search().versions().post(body, ContentTypes.APPLICATION_YAML);
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(0, results.getCount());
+
+        // Search for the minified content again, this time with canonical=true - should work.
+        body = new ByteArrayInputStream(minContent.getBytes());
+        results = clientV3.search().versions().post(body, ContentTypes.APPLICATION_YAML, config -> {
+            config.queryParameters.artifactType = "RAML";
+            config.queryParameters.canonical = true;
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+    }
+
+    private static String minifyContent(String content) {
+        return content.replaceAll("(?m)^\s*$\n?", "");
     }
 
 }

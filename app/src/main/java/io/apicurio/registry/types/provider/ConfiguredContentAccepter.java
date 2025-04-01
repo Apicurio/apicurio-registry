@@ -90,18 +90,18 @@ public class ConfiguredContentAccepter implements ContentAccepter {
         Vertx vertx = VertxProvider.vertx;
 
         // Create the request payload object
-        ContentAccepterRequest car = new ContentAccepterRequest();
-        car.setTypedContent(new io.apicurio.registry.types.webhooks.beans.TypedContent());
-        car.getTypedContent().setContent(content.getContent().content());
-        car.getTypedContent().setContentType(content.getContentType());
+        ContentAccepterRequest requestBody = new ContentAccepterRequest();
+        requestBody.setTypedContent(new io.apicurio.registry.types.webhooks.beans.TypedContent());
+        requestBody.getTypedContent().setContent(content.getContent().content());
+        requestBody.getTypedContent().setContentType(content.getContentType());
         if (resolvedReferences != null && !resolvedReferences.isEmpty()) {
-            car.setResolvedReferences(new ArrayList<>(resolvedReferences.size()));
+            requestBody.setResolvedReferences(new ArrayList<>(resolvedReferences.size()));
             for (Map.Entry<String, TypedContent> entry : resolvedReferences.entrySet()) {
                 ResolvedReference ref = new ResolvedReference();
                 ref.setName(entry.getKey());
                 ref.setContent(entry.getValue().getContent().content());
                 ref.setContentType(entry.getValue().getContentType());
-                car.getResolvedReferences().add(ref);
+                requestBody.getResolvedReferences().add(ref);
             }
         }
 
@@ -111,7 +111,7 @@ public class ConfiguredContentAccepter implements ContentAccepter {
         // POST the request to the webhook endpoint
         HttpRequest<Buffer> request = webClient.postAbs(provider.getUrl()).putHeader("Content-Type", "application/json")
                 .followRedirects(true);
-        Future<HttpResponse<Buffer>> future = request.sendJson(car);
+        Future<HttpResponse<Buffer>> future = request.sendJson(requestBody);
 
         // Wait for the response (vert.x is async).
         try {

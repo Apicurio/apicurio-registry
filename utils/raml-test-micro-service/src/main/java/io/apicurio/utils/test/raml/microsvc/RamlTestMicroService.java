@@ -3,6 +3,8 @@ package io.apicurio.utils.test.raml.microsvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.webhooks.beans.ContentAccepterRequest;
+import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerRequest;
+import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerResponse;
 import io.apicurio.registry.types.webhooks.beans.ResolvedReference;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
@@ -123,8 +125,14 @@ public class RamlTestMicroService extends AbstractVerticle {
         req.response().putHeader("content-type", "application/json").end("{}");
     }
 
-    private void handleContentCanonicalizer(HttpServerRequest req, String body) {
-        req.response().putHeader("content-type", "application/json").end("{}");
+    private void handleContentCanonicalizer(HttpServerRequest req, String body) throws Exception {
+        ContentCanonicalizerRequest request = objectMapper.readValue(body, ContentCanonicalizerRequest.class);
+        RamlContentCanonicalizer canonicalizer = new RamlContentCanonicalizer();
+        TypedContent canonicalizedContent = canonicalizer.canonicalize(toServerBean(request.getContent()), toServerBean(request.getResolvedReferences()));
+
+        ContentCanonicalizerResponse response = new ContentCanonicalizerResponse();
+        response.setTypedContent(toBean(canonicalizedContent));
+        req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
     }
 
     private void handleContentValidator(HttpServerRequest req, String body) {
@@ -145,6 +153,13 @@ public class RamlTestMicroService extends AbstractVerticle {
 
     private TypedContent toServerBean(io.apicurio.registry.types.webhooks.beans.TypedContent typedContent) {
         return TypedContent.create(typedContent.getContent(), typedContent.getContentType());
+    }
+
+    private io.apicurio.registry.types.webhooks.beans.TypedContent toBean(TypedContent typedContent) {
+        io.apicurio.registry.types.webhooks.beans.TypedContent bean = new io.apicurio.registry.types.webhooks.beans.TypedContent();
+        bean.setContent(typedContent.getContent().content());
+        bean.setContentType(typedContent.getContentType());
+        return bean;
     }
 
     private Map<String, TypedContent> toServerBean(List<ResolvedReference> resolvedReferences) {

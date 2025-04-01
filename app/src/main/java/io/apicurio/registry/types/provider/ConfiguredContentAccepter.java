@@ -51,8 +51,8 @@ public class ConfiguredContentAccepter extends AbstractConfiguredArtifactTypeUti
         public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
             // Create the request payload object
             ContentAccepterRequest requestBody = new ContentAccepterRequest();
-            requestBody.setTypedContent(WebhookBeanUtil.toWebhookBean(content));
-            requestBody.setResolvedReferences(WebhookBeanUtil.toWebhookBean(resolvedReferences));
+            requestBody.setTypedContent(WebhookBeanUtil.typedContentToWebhookBean(content));
+            requestBody.setResolvedReferences(WebhookBeanUtil.resolvedReferenceListToWebhookBean(resolvedReferences));
 
             try {
                 return invokeHook(requestBody, Boolean.class);

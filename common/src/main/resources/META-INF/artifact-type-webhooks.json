@@ -265,7 +265,9 @@
           },
           "existingArtifacts": {
             "type": "array",
-            "items": {}
+            "items": {
+              "$ref": "#/components/schemas/TypedContent"
+            }
           },
           "proposedArtifact": {
             "$ref": "#/components/schemas/TypedContent"

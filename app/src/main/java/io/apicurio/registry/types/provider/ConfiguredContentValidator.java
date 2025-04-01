@@ -72,14 +72,14 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
             ContentValidatorRequest requestBody = new ContentValidatorRequest();
             requestBody.setFunction(ContentValidatorRequest.Function.validate);
             requestBody.setLevel(level.name());
-            requestBody.setContent(WebhookBeanUtil.toWebhookBean(content));
-            requestBody.setResolvedReferences(WebhookBeanUtil.toWebhookBean(resolvedReferences));
+            requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
+            requestBody.setResolvedReferences(WebhookBeanUtil.resolvedReferenceListToWebhookBean(resolvedReferences));
 
             try {
                 ContentValidatorResponse responseBody = invokeHook(requestBody, ContentValidatorResponse.class);
                 List<io.apicurio.registry.types.webhooks.beans.RuleViolation> rvs = responseBody.getRuleViolations();
                 if (rvs != null && !rvs.isEmpty()) {
-                    Set<RuleViolation> violations = WebhookBeanUtil.fromWebhookBean(rvs);
+                    Set<RuleViolation> violations = WebhookBeanUtil.ruleViolationSetFromWebhookBean(rvs);
                     throw new RuleViolationException("Validation failed.", RuleType.VALIDITY, level.name(), violations);
                 }
             } catch (RuleViolationException rve) {
@@ -94,14 +94,14 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
             // Create the request payload object
             ContentValidatorRequest requestBody = new ContentValidatorRequest();
             requestBody.setFunction(ContentValidatorRequest.Function.validateReferences);
-            requestBody.setContent(WebhookBeanUtil.toWebhookBean(content));
-            requestBody.setReferences(WebhookBeanUtil.toWebhookBean(references));
+            requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
+            requestBody.setReferences(WebhookBeanUtil.referencesListToWebhookBean(references));
 
             try {
                 ContentValidatorResponse responseBody = invokeHook(requestBody, ContentValidatorResponse.class);
                 List<io.apicurio.registry.types.webhooks.beans.RuleViolation> rvs = responseBody.getRuleViolations();
                 if (rvs != null && !rvs.isEmpty()) {
-                    Set<RuleViolation> violations = WebhookBeanUtil.fromWebhookBean(rvs);
+                    Set<RuleViolation> violations = WebhookBeanUtil.ruleViolationSetFromWebhookBean(rvs);
                     throw new RuleViolationException("Unmapped reference(s) detected.", RuleType.INTEGRITY,
                             IntegrityLevel.ALL_REFS_MAPPED.name(), violations);
                 }

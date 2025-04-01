@@ -1,7 +1,10 @@
 package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.rules.RuleViolation;
+import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
+import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.types.webhooks.beans.ArtifactReference;
+import io.apicurio.registry.types.webhooks.beans.IncompatibleDifference;
 import io.apicurio.registry.types.webhooks.beans.ResolvedReference;
 import io.apicurio.registry.types.webhooks.beans.TypedContent;
 
@@ -13,18 +16,18 @@ import java.util.stream.Collectors;
 
 public class WebhookBeanUtil {
 
-    public static TypedContent toWebhookBean(io.apicurio.registry.content.TypedContent typedContent) {
+    public static TypedContent typedContentToWebhookBean(io.apicurio.registry.content.TypedContent typedContent) {
         TypedContent webhookBean = new TypedContent();
         webhookBean.setContent(typedContent.getContent().content());
         webhookBean.setContentType(typedContent.getContentType());
         return webhookBean;
     }
 
-    public static io.apicurio.registry.content.TypedContent fromWebhookBean(TypedContent typedContent) {
+    public static io.apicurio.registry.content.TypedContent typedContentFromWebhookBean(TypedContent typedContent) {
         return io.apicurio.registry.content.TypedContent.create(typedContent.getContent(), typedContent.getContentType());
     }
 
-    public static List<ResolvedReference> toWebhookBean(Map<String, io.apicurio.registry.content.TypedContent> resolvedReferences) {
+    public static List<ResolvedReference> resolvedReferenceListToWebhookBean(Map<String, io.apicurio.registry.content.TypedContent> resolvedReferences) {
         if (resolvedReferences == null || resolvedReferences.isEmpty()) {
             return List.of();
         }
@@ -39,7 +42,7 @@ public class WebhookBeanUtil {
         return webhookBeanList;
     }
 
-    public static Set<RuleViolation> fromWebhookBean(List<io.apicurio.registry.types.webhooks.beans.RuleViolation> rvs) {
+    public static Set<RuleViolation> ruleViolationSetFromWebhookBean(List<io.apicurio.registry.types.webhooks.beans.RuleViolation> rvs) {
         return rvs.stream().map(rv -> {
             RuleViolation violation = new RuleViolation();
             violation.setContext(rv.getContext());
@@ -48,7 +51,7 @@ public class WebhookBeanUtil {
         }).collect(Collectors.toSet());
     }
 
-    public static List<ArtifactReference> toWebhookBean(List<io.apicurio.registry.rest.v3.beans.ArtifactReference> references) {
+    public static List<ArtifactReference> referencesListToWebhookBean(List<io.apicurio.registry.rest.v3.beans.ArtifactReference> references) {
         if (references == null || references.isEmpty()) {
             return List.of();
         }
@@ -60,5 +63,19 @@ public class WebhookBeanUtil {
             artifact.setVersion(ref.getVersion());
             return artifact;
         }).collect(Collectors.toList());
+    }
+
+    public static List<TypedContent> typedContentListToWebhookBean(List<io.apicurio.registry.content.TypedContent> existingArtifacts) {
+        List<TypedContent> rval = new ArrayList<>();
+        for (io.apicurio.registry.content.TypedContent existingArtifact : existingArtifacts) {
+            rval.add(typedContentToWebhookBean(existingArtifact));
+        }
+        return rval;
+    }
+
+    public static Set<CompatibilityDifference> compatibilityDifferenceSetFromWebhookBean(List<IncompatibleDifference> incompatibleDifferences) {
+        return incompatibleDifferences == null ? Set.of() : incompatibleDifferences.stream().map(diff -> {
+            return new SimpleCompatibilityDifference(diff.getDescription(), diff.getContext());
+        }).collect(Collectors.toSet());
     }
 }

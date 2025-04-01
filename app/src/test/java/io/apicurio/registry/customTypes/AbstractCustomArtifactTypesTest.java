@@ -6,9 +6,11 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateRule;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -174,6 +176,47 @@ annotationTypes:
             createArtifactInvalid.getFirstVersion().setVersion("1.0");
             clientV3.groups().byGroupId(groupId).artifacts().post(createArtifactInvalid);
         });
+    }
+
+    @Test
+    public void testCompatibilityChecker() {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create the group
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
+
+        // Configure the Compatibility rule for the group
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientV3.groups().byGroupId(groupId).rules().post(createRule);
+
+        String v1Content = RAML_CONTENT;
+        String v2Content = RAML_CONTENT.replace("version: 1.0", "version: 2.0");
+
+        // Create v1
+        String artifactId = TestUtils.generateArtifactId();
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, "RAML", v1Content, ContentTypes.APPLICATION_YAML);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        CreateArtifactResponse v1Response = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(v1Response);
+        Assertions.assertNotNull(v1Response.getArtifact());
+        Assertions.assertNotNull(v1Response.getVersion());
+        Assertions.assertEquals("RAML", v1Response.getArtifact().getArtifactType());
+
+        // Create with v1 content again - should fail compatibility
+        Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
+            CreateVersion createVersion2 = TestUtils.clientCreateVersion(v1Content, ContentTypes.APPLICATION_YAML);
+            createVersion2.setVersion("2.0");
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion2);
+        });
+
+        // Create with v2 content - should pass compatibility
+        CreateVersion createVersion2 = TestUtils.clientCreateVersion(v2Content, ContentTypes.APPLICATION_YAML);
+        createVersion2.setVersion("2.0");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion2);
     }
 
 }

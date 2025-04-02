@@ -33,7 +33,7 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
         }
 
         protected O invokeHook(I requestBody, Class<O> outputClass) throws Throwable {
-            Vertx vertx = VertxProvider.vertx;
+            Vertx vertx = VertxProvider.INSTANCE;
 
             // Create a vert.x WebClient.
             WebClient webClient = WebClient.create(vertx);

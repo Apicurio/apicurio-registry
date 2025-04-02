@@ -98,6 +98,6 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpReferenceFinder.INSTANCE;
         }
-        return new ConfiguredReferenceFinder(provider);
+        return new ConfiguredReferenceFinder(this.artifactType);
     }
 }

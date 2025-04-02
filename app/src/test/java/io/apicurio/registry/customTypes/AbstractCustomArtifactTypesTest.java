@@ -296,12 +296,48 @@ annotationTypes:
                 .content().get(config -> config.queryParameters.references = HandleReferencesType.REWRITE);
         String rewrittenContent = IoUtil.toString(stream);
         Assertions.assertNotNull(rewrittenContent);
-        // Cannot test this easily because the rewritten content contains URLs based on the host and port
-        // of the test server, which will be dynamic.
+        // Note: Cannot test this easily because the rewritten content contains URLs based on the host and port
+        //       of the test server, which will be dynamic.  Check for the static parts of the URL instead.
+//        Assertions.assertEquals(DEREFERENCED_RAML_CONTENT, rewrittenContent);
         Assertions.assertTrue(rewrittenContent.contains(groupId));
         Assertions.assertTrue(rewrittenContent.contains("order-xsd"));
-//        Assertions.assertEquals(DEREFERENCED_RAML_CONTENT, rewrittenContent);
     }
+
+    // OK: it turns out that ReferenceFinder is NOT USED on the server at the moment.  It's only used
+    // by the maven plugin to implement the "autorefs" feature.  Perhaps in the future we'll use the
+    // reference finder for something on the server, and then it can be tested.
+//    @Test
+//    public void testReferenceFinder() {
+//        String groupId = TestUtils.generateGroupId();
+//
+//        // Create the group so we can enable the integrity rule
+//        CreateGroup createGroup = new CreateGroup();
+//        createGroup.setGroupId(groupId);
+//        clientV3.groups().post(createGroup);
+//
+//        // Enable the integrity rule (all refs must be mapped)
+//        CreateRule createRule = new CreateRule();
+//        createRule.setRuleType(RuleType.INTEGRITY);
+//        createRule.setConfig(IntegrityLevel.ALL_REFS_MAPPED.name());
+//        clientV3.groups().byGroupId(groupId).rules().post(createRule);
+//
+//        // Now create the RAML artifact, with a reference to schemas/order.xsd
+//        String artifactId = TestUtils.generateArtifactId();
+//        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, "RAML", RAML_CONTENT, ContentTypes.APPLICATION_YAML);
+//        createArtifact.getFirstVersion().setVersion("1.0");
+//        createArtifact.getFirstVersion().getContent().setReferences(List.of(
+//                artifactReference("schemas/order.xsd", groupId, "order-xsd", "1.0")
+//        ));
+//        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+//
+//        // Now create the RAML artifact, WITHOUT a reference to schemas/order.xsd
+//        Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
+//            String artifactId_NoRefs = TestUtils.generateArtifactId();
+//            CreateArtifact createArtifact_NoRefs = TestUtils.clientCreateArtifact(artifactId_NoRefs, "RAML", RAML_CONTENT, ContentTypes.APPLICATION_YAML);
+//            createArtifact_NoRefs.getFirstVersion().setVersion("1.0");
+//            clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact_NoRefs);
+//        });
+//    }
 
     private ArtifactReference artifactReference(String name, String groupId, String artifactId, String version) {
         ArtifactReference ref = new ArtifactReference();

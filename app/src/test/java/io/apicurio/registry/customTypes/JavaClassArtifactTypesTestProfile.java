@@ -40,6 +40,10 @@ public class JavaClassArtifactTypesTestProfile implements QuarkusTestProfile {
                         "compatibilityChecker": {
                             "type": "java",
                             "classname": "io.apicurio.utils.test.raml.microsvc.RamlCompatibilityChecker"
+                        },
+                        "contentDereferencer": {
+                            "type": "java",
+                            "classname": "io.apicurio.utils.test.raml.microsvc.RamlContentDereferencer"
                         }
                     }
                 ]

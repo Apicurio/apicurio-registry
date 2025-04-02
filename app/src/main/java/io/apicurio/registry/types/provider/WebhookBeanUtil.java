@@ -6,6 +6,7 @@ import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.types.webhooks.beans.ArtifactReference;
 import io.apicurio.registry.types.webhooks.beans.IncompatibleDifference;
 import io.apicurio.registry.types.webhooks.beans.ResolvedReference;
+import io.apicurio.registry.types.webhooks.beans.ResolvedReferenceUrl;
 import io.apicurio.registry.types.webhooks.beans.TypedContent;
 
 import java.util.ArrayList;
@@ -77,5 +78,17 @@ public class WebhookBeanUtil {
         return incompatibleDifferences == null ? Set.of() : incompatibleDifferences.stream().map(diff -> {
             return new SimpleCompatibilityDifference(diff.getDescription(), diff.getContext());
         }).collect(Collectors.toSet());
+    }
+
+    public static List<ResolvedReferenceUrl> resolvedReferenceUrlListToWebhookBean(Map<String, String> resolvedReferenceUrls) {
+        if (resolvedReferenceUrls == null || resolvedReferenceUrls.isEmpty()) {
+            return List.of();
+        }
+        return resolvedReferenceUrls.entrySet().stream().map(e -> {
+            ResolvedReferenceUrl ref = new ResolvedReferenceUrl();
+            ref.setName(e.getKey());
+            ref.setUrl(e.getValue());
+            return ref;
+        }).collect(Collectors.toList());
     }
 }

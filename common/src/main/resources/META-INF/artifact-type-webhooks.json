@@ -414,6 +414,13 @@
               "rewriteReferences"
             ],
             "type": "string"
+          },
+          "resolvedReferenceUrls": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedReferenceUrl"
+            }
           }
         }
       },
@@ -574,6 +581,27 @@
             "description": "",
             "type": "string"
           }
+        }
+      },
+      "ResolvedReferenceUrl": {
+        "title": "Root Type for ResolvedReferenceUrl",
+        "description": "",
+        "required": [
+          "name",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "name": "orders.xsd",
+          "url": "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/versions/1.0"
         }
       }
     }

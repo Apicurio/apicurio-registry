@@ -15,10 +15,13 @@ import io.apicurio.registry.types.webhooks.beans.CompatibilityCheckerResponse;
 import io.apicurio.registry.types.webhooks.beans.ContentAccepterRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerResponse;
+import io.apicurio.registry.types.webhooks.beans.ContentDereferencerRequest;
+import io.apicurio.registry.types.webhooks.beans.ContentDereferencerResponse;
 import io.apicurio.registry.types.webhooks.beans.ContentValidatorRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentValidatorResponse;
 import io.apicurio.registry.types.webhooks.beans.IncompatibleDifference;
 import io.apicurio.registry.types.webhooks.beans.ResolvedReference;
+import io.apicurio.registry.types.webhooks.beans.ResolvedReferenceUrl;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
@@ -190,7 +193,21 @@ public class RamlTestMicroService extends AbstractVerticle {
     }
 
     private void handleContentDereferencer(HttpServerRequest req, String body) throws Exception {
-        req.response().putHeader("content-type", "application/json").end("{}");
+        ContentDereferencerRequest request = objectMapper.readValue(body, ContentDereferencerRequest.class);
+        RamlContentDereferencer contentDereferencer = new RamlContentDereferencer();
+        TypedContent typedContent = toServerBean(request.getContent());
+
+        ContentDereferencerResponse response = new ContentDereferencerResponse();
+        if (request.getFunction() == ContentDereferencerRequest.Function.dereference) {
+            Map<String, TypedContent> resolvedRefs = toServerBean(request.getResolvedReferences());
+            TypedContent dereferencedContent = contentDereferencer.dereference(typedContent, resolvedRefs);
+            response.setTypedContent(toBean(dereferencedContent));
+        } else if (request.getFunction() == ContentDereferencerRequest.Function.rewriteReferences) {
+            Map<String, String> resolvedReferenceUrls = toServerBean3(request.getResolvedReferenceUrls());
+            TypedContent rewrittenContent = contentDereferencer.rewriteReferences(typedContent, resolvedReferenceUrls);
+            response.setTypedContent(toBean(rewrittenContent));
+        }
+        req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
     }
 
     private void handleReferenceFinder(HttpServerRequest req, String body) throws Exception {
@@ -242,6 +259,17 @@ public class RamlTestMicroService extends AbstractVerticle {
             incompatibleDifference.setDescription(difference.asRuleViolation().getDescription());
         }
         return incompatibleDifference;
+    }
+
+    private Map<String, String> toServerBean3(List<ResolvedReferenceUrl> resolvedReferenceUrls) {
+        if (resolvedReferenceUrls == null || resolvedReferenceUrls.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, String> rval = new HashMap<>();
+        for (ResolvedReferenceUrl rrurl : resolvedReferenceUrls) {
+            rval.put(rrurl.getName(), rrurl.getUrl());
+        }
+        return rval;
     }
 
     public static void main(String[] args) {

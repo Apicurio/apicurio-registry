@@ -28,9 +28,9 @@
   "devDependencies": {
     "@apicurio/eslint-config": "0.3.0",
     "@kiota-community/kiota-gen": "1.0.2",
-    "@types/node": "22.13.16",
+    "@types/node": "22.13.17",
     "@types/react": "18.3.20",
-    "@types/react-dom": "18.3.5",
+    "@types/react-dom": "18.3.6",
     "@typescript-eslint/eslint-plugin": "8.29.0",
     "@typescript-eslint/parser": "8.29.0",
     "@vitejs/plugin-react": "4.3.4",

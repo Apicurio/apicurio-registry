@@ -44,6 +44,10 @@ public class JavaClassArtifactTypesTestProfile implements QuarkusTestProfile {
                         "contentDereferencer": {
                             "type": "java",
                             "classname": "io.apicurio.utils.test.raml.microsvc.RamlContentDereferencer"
+                        },
+                        "referenceFinder": {
+                            "type": "java",
+                            "classname": "io.apicurio.utils.test.raml.microsvc.RamlReferenceFinder"
                         }
                     }
                 ]

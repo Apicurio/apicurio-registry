@@ -44,6 +44,10 @@ public class WebhookArtifactTypesTestProfile implements QuarkusTestProfile {
                         "contentDereferencer": {
                             "type": "webhook",
                             "url": "http://localhost:3333/contentDereferencer"
+                        },
+                        "referenceFinder": {
+                            "type": "webhook",
+                            "url": "http://localhost:3333/referenceFinder"
                         }
                     }
                 ]

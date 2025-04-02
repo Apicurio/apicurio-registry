@@ -2,6 +2,7 @@ package io.apicurio.utils.test.raml.microsvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -20,6 +21,8 @@ import io.apicurio.registry.types.webhooks.beans.ContentDereferencerResponse;
 import io.apicurio.registry.types.webhooks.beans.ContentValidatorRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentValidatorResponse;
 import io.apicurio.registry.types.webhooks.beans.IncompatibleDifference;
+import io.apicurio.registry.types.webhooks.beans.ReferenceFinderRequest;
+import io.apicurio.registry.types.webhooks.beans.ReferenceFinderResponse;
 import io.apicurio.registry.types.webhooks.beans.ResolvedReference;
 import io.apicurio.registry.types.webhooks.beans.ResolvedReferenceUrl;
 import io.vertx.core.AbstractVerticle;
@@ -187,7 +190,7 @@ public class RamlTestMicroService extends AbstractVerticle {
                 violation.setContext(cause.getContext());
                 violation.setDescription(cause.getDescription());
                 return violation;
-            }).collect(Collectors.toUnmodifiableList()));
+            }).toList());
         }
         req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
     }
@@ -211,7 +214,14 @@ public class RamlTestMicroService extends AbstractVerticle {
     }
 
     private void handleReferenceFinder(HttpServerRequest req, String body) throws Exception {
-        req.response().putHeader("content-type", "application/json").end("{}");
+        ReferenceFinderRequest request = objectMapper.readValue(body, ReferenceFinderRequest.class);
+        RamlReferenceFinder referenceFinder = new RamlReferenceFinder();
+        TypedContent typedContent = toServerBean(request.getTypedContent());
+        Set<ExternalReference> externalReferences = referenceFinder.findExternalReferences(typedContent);
+
+        ReferenceFinderResponse response = new ReferenceFinderResponse();
+        response.setExternalReferences(toBean2(externalReferences));
+        req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
     }
 
     private TypedContent toServerBean(io.apicurio.registry.types.webhooks.beans.TypedContent typedContent) {
@@ -244,12 +254,17 @@ public class RamlTestMicroService extends AbstractVerticle {
             ref.setArtifactId(ar.getArtifactId());
             ref.setVersion(ar.getVersion());
             return ref;
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     private List<IncompatibleDifference> toBean(Set<CompatibilityDifference> incompatibleDifferences) {
         return incompatibleDifferences == null ? List.of() :
-                incompatibleDifferences.stream().map(diff -> toBean(diff)).collect(Collectors.toList());
+                incompatibleDifferences.stream().map(this::toBean).toList();
+    }
+
+    private List<io.apicurio.registry.types.webhooks.beans.ExternalReference> toBean2(Set<ExternalReference> externalReferences) {
+        return externalReferences == null ? List.of() :
+                externalReferences.stream().map(this::toBean).toList();
     }
 
     private IncompatibleDifference toBean(CompatibilityDifference difference) {
@@ -259,6 +274,14 @@ public class RamlTestMicroService extends AbstractVerticle {
             incompatibleDifference.setDescription(difference.asRuleViolation().getDescription());
         }
         return incompatibleDifference;
+    }
+
+    private io.apicurio.registry.types.webhooks.beans.ExternalReference toBean(ExternalReference externalReference) {
+        io.apicurio.registry.types.webhooks.beans.ExternalReference ref = new io.apicurio.registry.types.webhooks.beans.ExternalReference();
+        ref.setComponent(externalReference.getComponent());
+        ref.setResource(externalReference.getResource());
+        ref.setFullReference(externalReference.getFullReference());
+        return ref;
     }
 
     private Map<String, String> toServerBean3(List<ResolvedReferenceUrl> resolvedReferenceUrls) {

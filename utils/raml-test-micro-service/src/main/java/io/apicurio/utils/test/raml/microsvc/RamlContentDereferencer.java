@@ -32,7 +32,6 @@ public class RamlContentDereferencer implements ContentDereferencer {
     }
 
     private void deref(JsonNode node, Map<String, TypedContent> resolvedReferences) {
-
         if (node.isObject()) {
             ObjectNode objectNode = (ObjectNode) node;
             Iterator<String> stringIterator = objectNode.fieldNames();

@@ -1,5 +1,6 @@
 package io.apicurio.registry.types.provider;
 
+import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
@@ -90,5 +91,14 @@ public class WebhookBeanUtil {
             ref.setUrl(e.getValue());
             return ref;
         }).collect(Collectors.toList());
+    }
+
+    public static Set<ExternalReference> externalReferencesFromWebhookBean(List<io.apicurio.registry.types.webhooks.beans.ExternalReference> externalReferences) {
+        if (externalReferences == null || externalReferences.isEmpty()) {
+            return Set.of();
+        }
+        return externalReferences.stream().map(er -> {
+            return new ExternalReference(er.getFullReference(), er.getResource(), er.getComponent());
+        }).collect(Collectors.toSet());
     }
 }

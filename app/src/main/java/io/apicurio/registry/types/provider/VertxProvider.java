@@ -4,20 +4,26 @@ import io.vertx.core.Vertx;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class VertxProvider {
 
-    public static Vertx vertx;
+    public static Vertx INSTANCE;
+
+    @Inject
+    Vertx vertx;
 
     @PostConstruct
     public void init() {
-        vertx = Vertx.vertx();
+        INSTANCE = vertx != null ? vertx : Vertx.vertx();
     }
 
     @PreDestroy
     public void shutdown() {
-        vertx.close();
+        if (vertx == null) {
+            INSTANCE.close();
+        }
     }
 
     public Vertx getVertx() {

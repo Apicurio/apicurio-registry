@@ -1,18 +1,21 @@
 package io.apicurio.registry.customTypes;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.HandleReferencesType;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -56,6 +59,8 @@ annotationTypes:
           body:
             application/json:
               type: assets.Order
+            application/xml:
+              type: ~include schemas/order.xsd
             """;
 
     private static String minifyContent(String content) {
@@ -217,6 +222,94 @@ annotationTypes:
         CreateVersion createVersion2 = TestUtils.clientCreateVersion(v2Content, ContentTypes.APPLICATION_YAML);
         createVersion2.setVersion("2.0");
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion2);
+    }
+
+    private static final String DEREFERENCED_RAML_CONTENT = """
+---
+title: "Mobile Order API"
+baseUri: "http://localhost:8081/api"
+version: 1.0
+uses:
+  assets: "assets.lib.raml"
+annotationTypes:
+  monitoringInterval:
+    type: "integer"
+/orders:
+  displayName: "Orders"
+  get:
+    is:
+    - "assets.paging"
+    (monitoringInterval): 30
+    description: "Lists all orders of a specific user"
+    queryParameters:
+      userId:
+        type: "string"
+        description: "use to query all orders of a user"
+  post: null
+  /{orderId}:
+    get:
+      responses:
+        "200":
+          body:
+            application/json:
+              type: "assets.Order"
+            application/xml:
+              type: "ORDER_XSD_CONTENT"
+    """;
+
+    @Test
+    public void testContentDereferencer() {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create the "order.xsd" artifact that we will reference.
+        // Note: normally this would be an "XSD" artifact, but this test disables all the built-in types, so
+        //       it's fine if we just say it's a RAML file.  For testing it doesn't matter.
+        CreateArtifact createOrderXsd = TestUtils.clientCreateArtifact("order-xsd", "RAML", "ORDER_XSD_CONTENT", ContentTypes.APPLICATION_XML);
+        createOrderXsd.getFirstVersion().setVersion("1.0");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createOrderXsd);
+
+        // Now create the RAML artifact, with a reference to order.xsd
+        String artifactId = TestUtils.generateArtifactId();
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, "RAML", RAML_CONTENT, ContentTypes.APPLICATION_YAML);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        createArtifact.getFirstVersion().getContent().setReferences(List.of(
+                artifactReference("schemas/order.xsd", groupId, "order-xsd", "1.0")
+        ));
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Get the normal (unchanged) content of the RAML artifact
+        InputStream stream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1.0")
+                .content().get();
+        String content = IoUtil.toString(stream);
+        Assertions.assertNotNull(content);
+        Assertions.assertEquals(RAML_CONTENT, content);
+
+        // Get the dereferenced content of the RAML artifact
+        stream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1.0")
+                .content().get(config -> config.queryParameters.references = HandleReferencesType.DEREFERENCE);
+        String dereferencedContent = IoUtil.toString(stream);
+        Assertions.assertNotNull(dereferencedContent);
+        Assertions.assertEquals(DEREFERENCED_RAML_CONTENT, dereferencedContent);
+
+        // Get the rewritten content of the RAML artifact
+        stream = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression("1.0")
+                .content().get(config -> config.queryParameters.references = HandleReferencesType.REWRITE);
+        String rewrittenContent = IoUtil.toString(stream);
+        Assertions.assertNotNull(rewrittenContent);
+        // Cannot test this easily because the rewritten content contains URLs based on the host and port
+        // of the test server, which will be dynamic.
+        Assertions.assertTrue(rewrittenContent.contains(groupId));
+        Assertions.assertTrue(rewrittenContent.contains("order-xsd"));
+//        Assertions.assertEquals(DEREFERENCED_RAML_CONTENT, rewrittenContent);
+    }
+
+    private ArtifactReference artifactReference(String name, String groupId, String artifactId, String version) {
+        ArtifactReference ref = new ArtifactReference();
+        ref.setName(name);
+        ref.setGroupId(groupId);
+        ref.setArtifactId(artifactId);
+        ref.setVersion(version);
+        return ref;
     }
 
 }

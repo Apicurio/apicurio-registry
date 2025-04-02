@@ -89,7 +89,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoopContentDereferencer.INSTANCE;
         }
-        return new ConfiguredContentDereferencer(provider);
+        return new ConfiguredContentDereferencer(this.artifactType);
     }
 
     @Override

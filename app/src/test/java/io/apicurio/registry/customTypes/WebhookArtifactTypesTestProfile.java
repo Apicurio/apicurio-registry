@@ -40,6 +40,10 @@ public class WebhookArtifactTypesTestProfile implements QuarkusTestProfile {
                         "compatibilityChecker": {
                             "type": "webhook",
                             "url": "http://localhost:3333/compatibilityChecker"
+                        },
+                        "contentDereferencer": {
+                            "type": "webhook",
+                            "url": "http://localhost:3333/contentDereferencer"
                         }
                     }
                 ]

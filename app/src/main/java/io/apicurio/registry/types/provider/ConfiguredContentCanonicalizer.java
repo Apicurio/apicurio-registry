@@ -5,6 +5,7 @@ import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerResponse;
 
@@ -12,8 +13,8 @@ import java.util.Map;
 
 public class ConfiguredContentCanonicalizer extends AbstractConfiguredArtifactTypeUtil<ContentCanonicalizer> implements ContentCanonicalizer {
 
-    public ConfiguredContentCanonicalizer(ArtifactTypeConfiguration artifactType) {
-        super(artifactType, artifactType.getContentCanonicalizer());
+    public ConfiguredContentCanonicalizer(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, artifactType, artifactType.getContentCanonicalizer());
     }
 
     @Override

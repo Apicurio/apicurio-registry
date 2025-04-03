@@ -5,21 +5,16 @@ import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
 import io.apicurio.registry.config.artifactTypes.Provider;
 import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
+import io.apicurio.registry.http.HttpClientException;
+import io.apicurio.registry.http.HttpClientService;
 import org.apache.commons.lang3.ClassUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutionException;
-
 public abstract class AbstractConfiguredArtifactTypeUtil<T> {
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
+    protected final HttpClientService httpClientService;
     protected final T delegate;
 
     protected class AbstractWebhookDelegate<I, O> {
@@ -32,32 +27,8 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
             this.provider = provider;
         }
 
-        protected O invokeHook(I requestBody, Class<O> outputClass) throws Throwable {
-            Vertx vertx = VertxProvider.INSTANCE;
-
-            // Create a vert.x WebClient.
-            WebClient webClient = WebClient.create(vertx);
-
-            // POST the request to the webhook endpoint
-            HttpRequest<Buffer> request = webClient.postAbs(provider.getUrl()).putHeader("Content-Type", "application/json")
-                    .followRedirects(true);
-            Future<HttpResponse<Buffer>> future = request.sendJson(requestBody);
-
-            // Wait for the response (vert.x is async).
-            try {
-                HttpResponse<Buffer> httpResponse = future.toCompletionStage().toCompletableFuture().get();
-                if (httpResponse.statusCode() == 200) {
-                    return (O) getResponseBody(outputClass, httpResponse);
-                } else {
-                    throw new Exception("Webhook request failed (" + httpResponse.statusCode() + "): " + httpResponse.statusMessage());
-                }
-            } catch (ExecutionException e) {
-                throw e.getCause();
-            }
-        }
-
-        protected O getResponseBody(Class<O> outputClass, HttpResponse<Buffer> httpResponse) {
-            return httpResponse.bodyAsJson(outputClass);
+        protected O invokeHook(I requestBody, Class<O> outputClass) throws HttpClientException {
+            return httpClientService.post(provider.getUrl(), requestBody, outputClass);
         }
     }
 
@@ -92,7 +63,8 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
         }
     }
 
-    public AbstractConfiguredArtifactTypeUtil(ArtifactTypeConfiguration artifactType, Provider provider) {
+    public AbstractConfiguredArtifactTypeUtil(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType, Provider provider) {
+        this.httpClientService = httpClientService;
         try {
             this.delegate = createDelegate(artifactType, provider);
         } catch (Exception e) {

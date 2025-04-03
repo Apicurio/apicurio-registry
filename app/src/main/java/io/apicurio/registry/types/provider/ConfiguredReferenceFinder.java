@@ -6,6 +6,7 @@ import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
+import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.types.webhooks.beans.ReferenceFinderRequest;
 import io.apicurio.registry.types.webhooks.beans.ReferenceFinderResponse;
 
@@ -13,8 +14,8 @@ import java.util.Set;
 
 public class ConfiguredReferenceFinder extends AbstractConfiguredArtifactTypeUtil<ReferenceFinder> implements ReferenceFinder {
 
-    public ConfiguredReferenceFinder(ArtifactTypeConfiguration artifactType) {
-        super(artifactType, artifactType.getReferenceFinder());
+    public ConfiguredReferenceFinder(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, artifactType, artifactType.getReferenceFinder());
     }
 
     @Override

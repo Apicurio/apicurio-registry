@@ -12,6 +12,7 @@ import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
 import io.apicurio.registry.content.refs.NoOpReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
+import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -26,8 +27,10 @@ import io.apicurio.registry.rules.validity.NoOpContentValidator;
 public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     private final ArtifactTypeConfiguration artifactType;
+    private final HttpClientService httpClientService;
 
-    public ConfiguredArtifactTypeUtilProvider(ArtifactTypeConfiguration artifactType) {
+    public ConfiguredArtifactTypeUtilProvider(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        this.httpClientService = httpClientService;
         this.artifactType = artifactType;
     }
 
@@ -48,7 +51,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentAccepter.INSTANCE;
         }
-        return new ConfiguredContentAccepter(this.artifactType);
+        return new ConfiguredContentAccepter(this.httpClientService, this.artifactType);
     }
 
     @Override
@@ -57,7 +60,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoopCompatibilityChecker.INSTANCE;
         }
-        return new ConfiguredCompatibilityChecker(this.artifactType);
+        return new ConfiguredCompatibilityChecker(this.httpClientService, this.artifactType);
     }
 
     @Override
@@ -66,7 +69,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentCanonicalizer.INSTANCE;
         }
-        return new ConfiguredContentCanonicalizer(this.artifactType);
+        return new ConfiguredContentCanonicalizer(this.httpClientService, this.artifactType);
     }
 
     @Override
@@ -75,7 +78,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentValidator.INSTANCE;
         }
-        return new ConfiguredContentValidator(this.artifactType);
+        return new ConfiguredContentValidator(this.httpClientService, this.artifactType);
     }
 
     @Override
@@ -89,7 +92,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoopContentDereferencer.INSTANCE;
         }
-        return new ConfiguredContentDereferencer(this.artifactType);
+        return new ConfiguredContentDereferencer(this.httpClientService, this.artifactType);
     }
 
     @Override
@@ -98,6 +101,6 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpReferenceFinder.INSTANCE;
         }
-        return new ConfiguredReferenceFinder(this.artifactType);
+        return new ConfiguredReferenceFinder(this.httpClientService, this.artifactType);
     }
 }

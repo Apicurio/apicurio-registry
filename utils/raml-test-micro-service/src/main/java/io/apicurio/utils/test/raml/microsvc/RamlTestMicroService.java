@@ -36,12 +36,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class RamlTestMicroService extends AbstractVerticle {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final int port;
     private HttpServer server;
+    private AtomicInteger requestCounter = new AtomicInteger(0);
 
     public RamlTestMicroService(int port) {
         this.port = port;
@@ -52,6 +54,8 @@ public class RamlTestMicroService extends AbstractVerticle {
         server = vertx.createHttpServer();
 
         server.requestHandler(req -> {
+            int requestId = requestCounter.incrementAndGet();
+
             if (!"POST".equals(req.method().name())) {
                 req.response()
                         .setStatusCode(405)
@@ -65,6 +69,17 @@ public class RamlTestMicroService extends AbstractVerticle {
                         .setStatusCode(400)
                         .putHeader("content-type", "text/plain")
                         .end("Bad Request: Content-Type must be application/json");
+                return;
+            }
+
+            // Note: fail with a 500 Server Error on every other request.  This is done
+            // so we can test fault tolerance in the Registry webhook client layer.
+            boolean isEven = requestId % 2 == 0;
+            if (isEven) {
+                req.response()
+                        .setStatusCode(500)
+                        .putHeader("content-type", "text/plain")
+                        .end("Server Error: failed for request ID::" + requestId);
                 return;
             }
 

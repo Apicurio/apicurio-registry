@@ -57,7 +57,7 @@ public abstract class AbstractResourceImpl {
 
                 if (artifactTypeProvider.supportsReferencesWithContext()) {
                     RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
-                            .recursivelyResolveReferencesWithContext(content, artifactType, references,
+                            .recursivelyResolveReferencesWithContext(factory, content, artifactType, references,
                                     storage::getContentByReference);
 
                     content = artifactTypeProvider.getContentDereferencer().dereference(

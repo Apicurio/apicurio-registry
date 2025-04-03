@@ -74,7 +74,7 @@ endif::[]
                 <artifact>
                     <groupId>TestGroup</groupId>
                     <artifactId>ExampleAPI</artifactId> <4>
-                    <type>GRAPHQL</type>
+                    <artifactType>GRAPHQL</artifactType>
                     <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
                     <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                     <canonicalize>true</canonicalize>

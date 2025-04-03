@@ -89,7 +89,7 @@ This section shows a simple example of using the Maven plug-in to register an Av
                         <groupId>test-group</groupId> <4>
                         <artifactId>TradeKey</artifactId> 
                         <version>2.0</version>
-                        <type>AVRO</type>
+                        <artifactType>AVRO</artifactType>
                         <file>
                             ${project.basedir}/src/main/resources/schemas/TradeKey.avsc <5>
                         </file>

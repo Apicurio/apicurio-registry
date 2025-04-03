@@ -5,14 +5,15 @@ import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.types.webhooks.beans.ContentAccepterRequest;
 
 import java.util.Map;
 
 public class ConfiguredContentAccepter extends AbstractConfiguredArtifactTypeUtil<ContentAccepter> implements ContentAccepter {
 
-    public ConfiguredContentAccepter(ArtifactTypeConfiguration artifactType) {
-        super(artifactType, artifactType.getContentAccepter());
+    public ConfiguredContentAccepter(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, artifactType, artifactType.getContentAccepter());
     }
 
     @Override

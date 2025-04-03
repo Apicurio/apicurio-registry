@@ -5,6 +5,7 @@ import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.types.webhooks.beans.ContentDereferencerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentDereferencerResponse;
 
@@ -12,8 +13,8 @@ import java.util.Map;
 
 public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTypeUtil<ContentDereferencer> implements ContentDereferencer {
 
-    public ConfiguredContentDereferencer(ArtifactTypeConfiguration artifactType) {
-        super(artifactType, artifactType.getContentDereferencer());
+    public ConfiguredContentDereferencer(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, artifactType, artifactType.getContentDereferencer());
     }
 
     @Override

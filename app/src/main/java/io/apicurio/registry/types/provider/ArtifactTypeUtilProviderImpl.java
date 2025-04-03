@@ -3,6 +3,7 @@ package io.apicurio.registry.types.provider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.config.artifactTypes.ArtifactTypesConfiguration;
+import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.utils.IoUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -22,7 +23,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     Logger log;
 
     @Inject
-    VertxProvider vertxProvider;
+    HttpClientService httpClientService;
 
     @ConfigProperty(name = "apicurio.artifact-types.config-file", defaultValue = "/tmp/apicurio-registry-artifact-types.json")
     @Info(category = "types", description = "Path to a configuration file containing a list of supported artifact types.", availableSince = "3.1.0")
@@ -31,8 +32,6 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
 
     @PostConstruct
     public void init() {
-        vertxProvider.getVertx();
-
         ArtifactTypesConfiguration config = loadArtifactTypeConfiguration();
         if (config != null) {
             loadConfiguredProviders(config);
@@ -67,7 +66,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
         if (!config.getArtifactTypes().isEmpty()) {
             config.getArtifactTypes().forEach(artifactType -> {
                 log.info("Adding artifact type {}", artifactType.getName());
-                providers.add(new ConfiguredArtifactTypeUtilProvider(artifactType));
+                providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, artifactType));
             });
         }
         // TODO validate the config

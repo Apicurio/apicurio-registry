@@ -4,6 +4,7 @@ import io.apicurio.registry.config.artifactTypes.ArtifactTypeConfiguration;
 import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolation;
 import io.apicurio.registry.rules.RuleViolationException;
@@ -20,8 +21,8 @@ import java.util.Set;
 
 public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUtil<ContentValidator> implements ContentValidator {
 
-    public ConfiguredContentValidator(ArtifactTypeConfiguration artifactType) {
-        super(artifactType, artifactType.getContentValidator());
+    public ConfiguredContentValidator(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, artifactType, artifactType.getContentValidator());
     }
 
     @Override

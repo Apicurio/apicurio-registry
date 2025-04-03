@@ -4,6 +4,7 @@ import io.apicurio.registry.config.artifactTypes.ArtifactTypeConfiguration;
 import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
@@ -16,8 +17,8 @@ import java.util.Map;
 
 public class ConfiguredCompatibilityChecker extends AbstractConfiguredArtifactTypeUtil<CompatibilityChecker> implements CompatibilityChecker {
 
-    public ConfiguredCompatibilityChecker(ArtifactTypeConfiguration artifactType) {
-        super(artifactType, artifactType.getCompatibilityChecker());
+    public ConfiguredCompatibilityChecker(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, artifactType, artifactType.getCompatibilityChecker());
     }
 
     @Override

@@ -19,7 +19,7 @@
     "@apicurio/eslint-config": "0.3.0",
     "@kiota-community/kiota-wasm": "0.0.3",
     "@monaco-editor/react": "4.7.0",
-    "@types/luxon": "3.6.0",
+    "@types/luxon": "3.6.2",
     "@types/node": "22.14.0",
     "@types/pluralize": "0.0.33",
     "@types/react": "18.3.20",

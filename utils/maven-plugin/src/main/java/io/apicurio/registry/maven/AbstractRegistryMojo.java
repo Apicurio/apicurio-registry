@@ -25,26 +25,44 @@ import java.util.concurrent.ExecutionException;
 public abstract class AbstractRegistryMojo extends AbstractMojo {
 
     /**
-     * The registry's url. e.g. http://localhost:8080/api/v3
+     * The registry's url. e.g. http://localhost:8080/apis/registry/v3
      */
     @Parameter(required = true, property = "apicurio.url")
     String registryUrl;
 
+    /**
+     * The URL of the authentication server (if required).
+     */
     @Parameter(property = "auth.server.url")
     String authServerUrl;
 
+    /**
+     * The client id to use when authenticating to the auth sever.
+     */
     @Parameter(property = "client.id")
     String clientId;
 
+    /**
+     * The client secret to use when authenticating to the auth sever.
+     */
     @Parameter(property = "client.secret")
     String clientSecret;
 
+    /**
+     * The client scope to use when authenticating to the auth sever.
+     */
     @Parameter(property = "client.scope")
     String clientScope;
 
+    /**
+     * Authentication credentials: username
+     */
     @Parameter(property = "username")
     String username;
 
+    /**
+     * Authentication credentials: password
+     */
     @Parameter(property = "password")
     String password;
 

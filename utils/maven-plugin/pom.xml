@@ -10,7 +10,40 @@
 
   <artifactId>apicurio-registry-maven-plugin</artifactId>
   <packaging>maven-plugin</packaging>
-  <name>apicurio-registry-maven-plugin</name>
+  <name>Apicurio Registry Maven Plugin</name>
+  <description>
+    This plugin facilitates fast and easy integration with the Apicurio Registry and a Maven based
+    build procedure.  It can be used, for example, to register schemas or API designs at build time.
+  </description>
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/Apicurio/apicurio-registry/issues</url>
+  </issueManagement>
+  <scm>
+    <connection>scm:git:git@github.com:apicurio/apicurio-registry.git</connection>
+    <developerConnection>scm:git:git@github.com:apicurio/apicurio-registry.git</developerConnection>
+    <url>https://github.com/Apicurio/apicurio-registry</url>
+  </scm>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-plugin-report-plugin</artifactId>
+        <version>3.15.1</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.11.2</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jxr-plugin</artifactId>
+        <version>3.3.1</version>
+      </plugin>
+    </plugins>
+  </reporting>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

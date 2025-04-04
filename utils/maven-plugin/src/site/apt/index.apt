@@ -1,0 +1,38 @@
+ ------
+ Introduction
+ ------
+ Author
+ ------
+ YYYY-MM-DD
+ ------
+
+
+Apicurio Registry Maven Plugin
+
+  This plugin provides the ability to register and download artifacts from an Apicurio Registry instance during a Maven build.
+
+
+* Goals Overview
+
+  General information about the goals.
+
+  * {{{./register-mojo.html}register}} : Registers an artifact in the Apicurio Registry.
+
+  * {{{./download-mojo.html}download}} : Downloads an artifact from the Apicurio Registry.
+  
+  * {{{./test-update-mojo.html}test-update}} : Tests updating an artifact in the Apicurio Registry. (Deprecated)
+
+  * {{{./merge-mojo.html}merge}} : Merges multiple properties files into a single properties file.
+
+* Usage
+
+  The Apicurio Registry Maven Plugin provides two primary goals:
+
+  * <<register>>:  Registers an artifact (e.g. Avro schema, OpenAPI document) in the Apicurio Registry.  This goal
+  is useful for ensuring that all artifacts required by an application are available in the registry before the
+  application is deployed.
+
+  * <<download>>:  Downloads an artifact from the Apicurio Registry and makes it available as a local file.  This
+  goal is useful for applications that need to dynamically load artifacts from the registry at runtime.
+
+  For more information on configuring the plugin, see the {{{./usage.html}usage page}}, or the documentation for the individual goals.

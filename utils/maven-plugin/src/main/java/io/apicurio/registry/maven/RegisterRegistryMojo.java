@@ -66,7 +66,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     List<RegisterArtifact> artifacts;
 
     /**
-     * Set this to 'true' to skip register. Convenient in case you want to skip for specific occasions.
+     * Set this to 'true' to skip registering the artifact(s). Convenient in case you want to skip for specific occasions.
      */
     @Parameter(property = "skipRegister", defaultValue = "false")
     boolean skip;

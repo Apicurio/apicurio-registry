@@ -1,4 +1,4 @@
-name: Release Maven Artifacts
+name: Release Maven Site
 on:
   workflow_dispatch:
     inputs:
@@ -8,16 +8,14 @@ on:
   release:
     types: [released, prereleased]
 
-
 env:
   # The values are extracted from the github.event context,
   # which is only available when the workflow gets triggered by a release event.
   RELEASE_VERSION: ${{ github.event.release.name }}
   BRANCH: ${{ github.event.release.target_commitish }}
 
-
 jobs:
-  release-maven:
+  release-site:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
     runs-on: ubuntu-22.04
     timeout-minutes: 30
@@ -53,30 +51,38 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up settings.xml
+      - name: Generate Maven Site
         run: |
-          pwd
-          mkdir -p /home/runner/.m2
-          chmod 755 /home/runner/.m2
-          echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
-          cat /home/runner/.m2/settings.xml
+          cd registry
+          mvn clean install -DskipTests
+          cd utils/maven-plugin
+          mvn site
 
-      - name: Import GPG Key
-        uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Apicurio Website Checkout
+        run: |
+          mkdir website
+          cd website
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio.github.io.git"
+          git fetch
+          git checkout main
+          git branch --set-upstream-to=origin/main
+          git pull
 
-      - name: Maven Deploy
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 25
-          max_attempts: 5
-          retry_on: error
-          retry_wait_seconds: 120
-          command: |
-            cd registry
-            mvn deploy --batch-mode -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml
+      - name: Copy Maven Site to Website
+        run: |
+          mkdir -p website/registry/maven-plugin/$RELEASE_VERSION
+          cp -rf registry/utils/maven-plugin/target/site/* website/registry/maven-plugin/$RELEASE_VERSION
+
+      - name: Commit Maven Site to Website
+        run: |
+          cd website
+          git add .
+          git commit -m "Automated Publishing of Maven Site for release $RELEASE_VERSION"
+          git pull origin main
+          git push
 
       - name: Slack Notification (Always)
         if: always()

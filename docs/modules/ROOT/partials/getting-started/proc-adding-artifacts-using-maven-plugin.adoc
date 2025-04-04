@@ -59,7 +59,7 @@ The most common use case for the Maven plug-in is adding artifacts during a buil
 <4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
 <5> You can register multiple artifacts using the specified group ID, artifact ID, and location.
 
-. Build your Maven project, for example, by using the `mvn package` command. 
+. Build your Maven project, for example, by using the `mvn package` command.
 
 [role="_additional-resources"]
 .Additional resources

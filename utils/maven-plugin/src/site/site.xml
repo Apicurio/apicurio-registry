@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <skin>
+        <groupId>org.apache.maven.skins</groupId>
+        <artifactId>maven-fluido-skin</artifactId>
+        <version>1.12.0</version>
+    </skin>
+    <body>
+        <menu name="Overview">
+            <item name="Introduction" href="index.html"/>
+            <item name="Goals" href="plugin-info.html"/>
+            <item name="Usage" href="usage.html"/>
+            <item name="FAQ" href="faq.html"/>
+        </menu>
+
+        <menu name="External Links">
+            <item name="Source Code" href="https://github.com/Apicurio/apicurio-registry/tree/main/utils/maven-plugin"/>
+            <item name="Maven Versions" href="https://search.maven.org/artifact/io.apicurio/apicurio-registry-maven-plugin"/>
+        </menu>
+    </body>
+</project>

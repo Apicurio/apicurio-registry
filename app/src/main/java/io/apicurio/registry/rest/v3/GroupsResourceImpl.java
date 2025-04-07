@@ -328,7 +328,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("ruleType", data.getRuleType());
         requireParameter("config", data.getConfig());
 
-        if (data.getConfig() == null || data.getConfig().isEmpty()) {
+        if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
         }
 
@@ -419,8 +419,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("ruleType", data.getRuleType());
         requireParameter("config", data.getConfig());
 
-        if (data.getConfig() == null || data.getConfig().isEmpty()) {
-            throw new MissingRequiredParameterException("Config");
+        if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
+            throw new MissingRequiredParameterException("config");
         }
 
         RuleConfigurationDto config = new RuleConfigurationDto();

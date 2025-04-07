@@ -176,7 +176,7 @@ public class AdminResourceImpl implements AdminResource {
         RuleType ruleType = data.getRuleType();
         requireParameter("ruleType", ruleType);
 
-        if (data.getConfig() == null || data.getConfig().isEmpty()) {
+        if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("Config");
         }
 

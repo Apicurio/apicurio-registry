@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import {
     Button,
-    EmptyState, EmptyStateActions, EmptyStateBody, EmptyStateFooter,
+    EmptyState, EmptyStateBody,
     EmptyStateHeader, EmptyStateIcon,
     EmptyStateVariant,
     Form,
@@ -9,7 +9,7 @@ import {
     Modal
 } from "@patternfly/react-core";
 import { SearchedBranch, SearchedVersion } from "@sdk/lib/generated-client/models";
-import { If, IfNotEmpty, IfNotLoading, ObjectSelect } from "@apicurio/common-ui-components";
+import { IfNotEmpty, IfNotLoading, ObjectSelect } from "@apicurio/common-ui-components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { shash } from "@utils/string.utils.ts";
 import { PlusCircleIcon } from "@patternfly/react-icons";

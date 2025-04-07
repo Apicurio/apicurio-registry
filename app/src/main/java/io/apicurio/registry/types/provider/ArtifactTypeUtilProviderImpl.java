@@ -14,6 +14,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
 @Default
 @ApplicationScoped
@@ -67,12 +70,30 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
             config.getArtifactTypes().forEach(artifactType -> {
                 log.info("Adding artifact type {}", artifactType.getName());
                 providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, artifactType));
+
+                Set<String> artifactTypes = new HashSet<>();
+                providers.forEach(provider -> {
+                    artifactTypes.add(provider.getArtifactType());
+                });
+
+                // All artifact types must have a valid, non-null "name" property
+                if (Objects.isNull(artifactType.getName()) || artifactType.getName().trim().isEmpty()) {
+                    throw new IllegalArgumentException("Invalid configuration: Artifact type '" + artifactType.getArtifactType() + "' found with missing or empty 'name'.");
+                }
+
+                // All artifact types must have a valid and unique "artifactType" property
+                String type = artifactType.getArtifactType();
+                if (Objects.isNull(type) || type.trim().isEmpty()) {
+                    throw new IllegalArgumentException("Invalid configuration: Artifact type named '" + artifactType.getName() + "' has missing or empty 'artifactType' property.");
+                }
+                if (!artifactTypes.add(type)) {
+                    throw new IllegalArgumentException("Invalid configuration: Duplicate artifactType '" + type + "' found.");
+                }
+
+                log.info("Adding artifact type {}", artifactType.getName());
+                providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, artifactType));
             });
         }
-        // TODO validate the config
-        // 1. all artifact types must be unique (no duplicates)
-        // 2. all artifact types must have a valid "artifactType" property
-        // 2. all artifact types must have a valid "name" property
     }
 
 }

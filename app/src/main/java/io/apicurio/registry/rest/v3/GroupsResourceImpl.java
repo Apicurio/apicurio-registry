@@ -354,6 +354,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("ruleType", ruleType);
         requireParameter("config", data.getConfig());
 
+        if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
+            throw new MissingRequiredParameterException("config");
+        }
+
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
         storage.updateGroupRule(new GroupId(groupId).getRawGroupIdWithNull(), ruleType, dto);
         Rule rval = new Rule();
@@ -480,6 +484,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         requireParameter("artifactId", artifactId);
         requireParameter("ruleType", ruleType);
         requireParameter("config", data.getConfig());
+
+        if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
+            throw new MissingRequiredParameterException("config");
+        }
 
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
         storage.updateArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, ruleType, dto);

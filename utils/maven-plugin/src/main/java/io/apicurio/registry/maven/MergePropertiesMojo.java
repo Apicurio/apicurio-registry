@@ -16,12 +16,21 @@ import java.util.Properties;
 @Mojo(name = "merge")
 public class MergePropertiesMojo extends AbstractMojo {
 
+    /**
+     * The output file location.  This is where the merged properties file will be written.
+     */
     @Parameter(required = true)
     File output;
 
+    /**
+     * A set of input files, each one should be a valid .properties file.
+     */
     @Parameter(required = true)
     List<File> inputs;
 
+    /**
+     * Set to 'true' if the input files should be deleted after the merge.
+     */
     @Parameter(required = false, defaultValue = "false")
     Boolean deleteInputs;
 

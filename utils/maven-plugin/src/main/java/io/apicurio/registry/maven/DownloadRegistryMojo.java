@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutionException;
 public class DownloadRegistryMojo extends AbstractRegistryMojo {
 
     /**
-     * Set of artifact ids to download.
+     * Set of artifact coordinates to download.
      */
     @Parameter(required = true)
     List<DownloadArtifact> artifacts;

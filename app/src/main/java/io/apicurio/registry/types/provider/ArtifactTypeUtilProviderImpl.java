@@ -63,19 +63,19 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     }
 
     private void loadConfiguredProviders(ArtifactTypesConfiguration config) {
+        // The set of loaded artifact types.
+        Set<String> artifactTypes = new HashSet<>();
+
         if (config.getIncludeStandardArtifactTypes()) {
             loadStandardProviders();
+            standardProviders.forEach(provider -> {
+                artifactTypes.add(provider.getArtifactType());
+            });
         }
+
         if (!config.getArtifactTypes().isEmpty()) {
+            // Process each configured artifact type.
             config.getArtifactTypes().forEach(artifactType -> {
-                log.info("Adding artifact type {}", artifactType.getName());
-                providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, artifactType));
-
-                Set<String> artifactTypes = new HashSet<>();
-                providers.forEach(provider -> {
-                    artifactTypes.add(provider.getArtifactType());
-                });
-
                 // All artifact types must have a valid, non-null "name" property
                 if (Objects.isNull(artifactType.getName()) || artifactType.getName().trim().isEmpty()) {
                     throw new IllegalArgumentException("Invalid configuration: Artifact type '" + artifactType.getArtifactType() + "' found with missing or empty 'name'.");
@@ -86,12 +86,15 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
                 if (Objects.isNull(type) || type.trim().isEmpty()) {
                     throw new IllegalArgumentException("Invalid configuration: Artifact type named '" + artifactType.getName() + "' has missing or empty 'artifactType' property.");
                 }
-                if (!artifactTypes.add(type)) {
+
+                // Artifact types must be unique.
+                if (artifactTypes.contains(type)) {
                     throw new IllegalArgumentException("Invalid configuration: Duplicate artifactType '" + type + "' found.");
                 }
 
                 log.info("Adding artifact type {}", artifactType.getName());
                 providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, artifactType));
+                artifactTypes.add(type);
             });
         }
     }

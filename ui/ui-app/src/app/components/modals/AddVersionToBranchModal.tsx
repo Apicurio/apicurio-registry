@@ -1,9 +1,18 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import { Button, Form, FormGroup, Modal } from "@patternfly/react-core";
+import {
+    Button,
+    EmptyState, EmptyStateActions, EmptyStateBody, EmptyStateFooter,
+    EmptyStateHeader, EmptyStateIcon,
+    EmptyStateVariant,
+    Form,
+    FormGroup,
+    Modal
+} from "@patternfly/react-core";
 import { SearchedBranch, SearchedVersion } from "@sdk/lib/generated-client/models";
-import { IfNotLoading, ObjectSelect } from "@apicurio/common-ui-components";
+import { If, IfNotEmpty, IfNotLoading, ObjectSelect } from "@apicurio/common-ui-components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { shash } from "@utils/string.utils.ts";
+import { PlusCircleIcon } from "@patternfly/react-icons";
 
 
 /**
@@ -43,9 +52,17 @@ export const AddVersionToBranchModal: FunctionComponent<AddVersionToBranchModalP
 
     useEffect(() => {
         if (props.isOpen) {
+            setSelectedBranch(undefined);
             search();
         }
     }, [props.isOpen]);
+
+    const noBranches = (
+        <EmptyState variant={EmptyStateVariant.xs}>
+            <EmptyStateHeader titleText="No branches found" headingLevel="h4" icon={<EmptyStateIcon icon={PlusCircleIcon} />} />
+            <EmptyStateBody>No <b>user defined</b> branches found for this artifact.  Create a new branch and try again.</EmptyStateBody>
+        </EmptyState>
+    );
 
     return (
         <Modal
@@ -68,22 +85,24 @@ export const AddVersionToBranchModal: FunctionComponent<AddVersionToBranchModalP
                     onClick={props.onClose}>Cancel</Button>
             ]}
         >
-            <Form>
-                <FormGroup label="Branch" isRequired={false} fieldId="form-branch">
-                    <IfNotLoading isLoading={isLoading}>
-                        <ObjectSelect
-                            noSelectionLabel="Select a branch"
-                            value={selectedBranch}
-                            items={branches || []}
-                            onSelect={setSelectedBranch}
-                            itemToString={item => item.branchId}
-                            itemToTestId={item => `branch-${shash(item.branchId)}`}
-                            toggleId="select-branch-toggle"
-                            appendTo="document"
-                        />
-                    </IfNotLoading>
-                </FormGroup>
-            </Form>
+            <IfNotLoading isLoading={isLoading}>
+                <IfNotEmpty emptyState={noBranches} collection={branches || []}>
+                    <Form>
+                        <FormGroup label="Branch" isRequired={false} fieldId="form-branch">
+                            <ObjectSelect
+                                noSelectionLabel="Select a branch"
+                                value={selectedBranch}
+                                items={branches || []}
+                                onSelect={setSelectedBranch}
+                                itemToString={item => item.branchId}
+                                itemToTestId={item => `branch-${shash(item.branchId)}`}
+                                toggleId="select-branch-toggle"
+                                appendTo="document"
+                            />
+                        </FormGroup>
+                    </Form>
+                </IfNotEmpty>
+            </IfNotLoading>
         </Modal>
     );
 };

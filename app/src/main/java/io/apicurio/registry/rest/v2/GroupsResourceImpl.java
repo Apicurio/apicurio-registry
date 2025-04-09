@@ -1097,14 +1097,19 @@ public class GroupsResourceImpl implements GroupsResource {
         final boolean fcanonical = canonical == null ? Boolean.FALSE : canonical;
 
         String ct = getContentType();
-        if (ct == null || ct.contains("create.extended+json")) {
-            // If the content type is application/vnd.create.extended+json, try to figure out
-            // the content type from the content
-            ct = ContentTypeUtil.determineContentType(content);
+        if (ContentTypeUtil.isApplicationYaml(ct) || (ContentTypeUtil.isApplicationCreateExtended(ct)
+                && ContentTypeUtil.isParsableYaml(content))) {
+            content = ContentTypeUtil.yamlToJson(content);
+            ct = ContentTypes.APPLICATION_JSON;
+        } else {
+            // Determine the content-type to *store* by examining the content.  In v2 we cannot rely on
+            // the content-type provided by the client.
+            if (ct == null || ContentTypeUtil.isApplicationCreateExtended(ct) || ContentTypeUtil.isTextPlain(ct)) {
+                ct = ContentTypeUtil.determineContentType(content);
+            }
         }
 
         try {
-
             String owner = securityIdentity.getPrincipal().getName();
             String artifactId = xRegistryArtifactId;
 
@@ -1112,11 +1117,6 @@ public class GroupsResourceImpl implements GroupsResource {
                 artifactId = idGenerator.generate();
             } else if (!ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
                 throw new InvalidArtifactIdException(ArtifactIdValidator.ARTIFACT_ID_ERROR_MESSAGE);
-            }
-            if (ContentTypeUtil.isApplicationYaml(ct) || (ContentTypeUtil.isApplicationCreateExtended(ct)
-                    && ContentTypeUtil.isParsableYaml(content))) {
-                content = ContentTypeUtil.yamlToJson(content);
-                ct = ContentTypes.APPLICATION_JSON;
             }
 
             TypedContent typedContent = TypedContent.create(content, ct);
@@ -1253,9 +1253,16 @@ public class GroupsResourceImpl implements GroupsResource {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
         String ct = getContentType();
+        // If the content type is YAML, convert it to JSON.
         if (ContentTypeUtil.isApplicationYaml(ct)) {
             content = ContentTypeUtil.yamlToJson(content);
             ct = ContentTypes.APPLICATION_JSON;
+        } else {
+            // Determine the content-type to *store* by examining the content.  In v2 we cannot rely on
+            // the content-type provided by the client.
+            if (ct == null || ContentTypeUtil.isApplicationCreateExtended(ct) || ContentTypeUtil.isTextPlain(ct)) {
+                ct = ContentTypeUtil.determineContentType(content);
+            }
         }
 
         // Transform the given references into dtos and set the contentId, this will also detect if any of the

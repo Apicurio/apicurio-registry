@@ -9,19 +9,21 @@ import io.apicurio.registry.types.ContentTypes;
 import org.xml.sax.InputSource;
 import org.xml.sax.helpers.DefaultHandler;
 
-import java.io.IOException;
-import java.io.StringReader;
-
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+import java.io.IOException;
+import java.io.StringReader;
 
 public final class ContentTypeUtil {
 
     public static final String CT_APPLICATION_JSON = "application/json";
     public static final String CT_APPLICATION_CREATE_EXTENDED = "application/create.extended+json";
+    public static final String CT_APPLICATION_CREATE_EXTENDED_VND = "application/vnd.create.extended+json";
     public static final String CT_APPLICATION_GET_EXTENDED = "application/get.extended+json";
+    public static final String CT_APPLICATION_GET_EXTENDED_VND = "application/vnd.get.extended+json";
     public static final String CT_APPLICATION_YAML = "application/x-yaml";
     public static final String CT_APPLICATION_XML = "application/xml";
+    public static final String CT_TEXT_PLAIN = "text/plain";
 
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
     private static final ObjectMapper jsonMapper = new ObjectMapper();
@@ -59,7 +61,7 @@ public final class ContentTypeUtil {
         if (ct == null) {
             return false;
         }
-        return ct.contains(CT_APPLICATION_CREATE_EXTENDED);
+        return ct.contains(CT_APPLICATION_CREATE_EXTENDED) || ct.contains(CT_APPLICATION_CREATE_EXTENDED_VND);
     }
 
     /**
@@ -71,7 +73,20 @@ public final class ContentTypeUtil {
         if (ct == null) {
             return false;
         }
-        return ct.contains(CT_APPLICATION_GET_EXTENDED);
+        return ct.contains(CT_APPLICATION_GET_EXTENDED) || ct.contains(CT_APPLICATION_GET_EXTENDED_VND);
+    }
+
+    /**
+     * Returns true if the Content-Type indicates plain text.
+     *
+     * @param ct content type
+     */
+    public static boolean isTextPlain(String ct) {
+        if (ct == null) {
+            return false;
+        }
+        // Check for standard text/plain and variations
+        return ct.toLowerCase().contains(CT_TEXT_PLAIN);
     }
 
     /**

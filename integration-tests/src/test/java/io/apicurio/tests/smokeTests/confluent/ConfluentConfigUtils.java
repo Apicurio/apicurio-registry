@@ -12,9 +12,13 @@ import java.net.URL;
 public class ConfluentConfigUtils {
 
     public static Response testCompatibility(String body, String schemaName, int returnCode) {
+        return testCompatibility(body, schemaName, "latest", returnCode);
+    }
+
+    public static Response testCompatibility(String body, String schemaName, String version, int returnCode) {
         try {
             URL url = new URL(ApicurioRegistryBaseIT.getRegistryApiUrl()
-                    + "/ccompat/v7/compatibility/subjects/" + schemaName + "/versions/latest");
+                    + "/ccompat/v7/compatibility/subjects/" + schemaName + "/versions/" + version);
             return BaseHttpUtils.rulesPostRequest(RestConstants.SR, body, url, returnCode);
         } catch (MalformedURLException e) {
             throw new UncheckedIOException(e);

@@ -52,7 +52,7 @@ class RulesResourceConfluentIT extends ConfluentBaseIT {
         ConfluentConfigUtils.testCompatibility(wrap(second), schemeSubject, 200);
 
         LOGGER.info("Checking 'Subject not found' and expected code {}", 404);
-        ConfluentConfigUtils.testCompatibility(wrap(second), "subject-not-found", 404);
+        ConfluentConfigUtils.testCompatibility(wrap(second), "subject-not-found", "1", 404);
 
         LOGGER.info("Checking 'Invalid avro format' and expected code {}", 422);
         ConfluentConfigUtils.testCompatibility(wrap(invalid), schemeSubject, 422);

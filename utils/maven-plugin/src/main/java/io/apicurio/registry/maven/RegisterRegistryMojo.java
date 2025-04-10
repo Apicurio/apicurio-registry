@@ -18,6 +18,7 @@ import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rules.SomeJsonSchema;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -279,7 +280,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             case ArtifactType.JSON:
                 final JsonSchemaDirectoryParser jsonSchemaDirectoryParser = new JsonSchemaDirectoryParser(
                         registryClient);
-                final ParsedDirectoryWrapper<org.everit.json.schema.Schema> jsonSchema = jsonSchemaDirectoryParser
+                final ParsedDirectoryWrapper<SomeJsonSchema> jsonSchema = jsonSchemaDirectoryParser
                         .parse(artifact.getFile());
                 registerArtifact(registryClient, artifact, jsonSchemaDirectoryParser.handleSchemaReferences(
                         artifact, jsonSchema.getSchema(), jsonSchema.getSchemaContents()));

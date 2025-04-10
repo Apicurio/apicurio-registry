@@ -5,12 +5,12 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rules.SomeJsonSchema;
 import io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil;
 import io.apicurio.registry.types.ContentTypes;
 import org.everit.json.schema.ArraySchema;
 import org.everit.json.schema.ObjectSchema;
 import org.everit.json.schema.ReferenceSchema;
-import org.everit.json.schema.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
+public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<SomeJsonSchema> {
 
     private static final String JSON_SCHEMA_EXTENSION = ".json";
     private static final Logger log = LoggerFactory.getLogger(JsonSchemaDirectoryParser.class);
@@ -38,14 +38,20 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
     }
 
     @Override
-    public ParsedDirectoryWrapper<Schema> parse(File rootSchemaFile) {
+    public ParsedDirectoryWrapper<SomeJsonSchema> parse(File rootSchemaFile) {
         return parseDirectory(rootSchemaFile.getParentFile(), rootSchemaFile);
     }
 
     @Override
     public List<ArtifactReference> handleSchemaReferences(RegisterArtifact rootArtifact,
-            org.everit.json.schema.Schema rootSchema, Map<String, TypedContent> fileContents)
+                                                          SomeJsonSchema someRootSchema, Map<String, TypedContent> fileContents)
             throws FileNotFoundException, ExecutionException, InterruptedException {
+
+        if (someRootSchema.getJsonsKema() != null) {
+            log.warn("Reference handling for JSON schema version 2020-12 is not supported yet.");
+            return List.of();
+        }
+        var rootSchema = someRootSchema.getEverit();
 
         if (rootSchema instanceof ObjectSchema) {
 
@@ -68,7 +74,7 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
                     if (nestedSchema.getReferredSchema() instanceof ObjectSchema) {
                         ObjectSchema nestedObjectSchema = (ObjectSchema) nestedSchema.getReferredSchema();
                         nestedArtifactReferences = handleSchemaReferences(nestedRegisterArtifact,
-                                nestedObjectSchema, fileContents);
+                                new SomeJsonSchema(nestedObjectSchema), fileContents);
                     }
 
                     references.add(registerNestedSchema(nestedSchema.getSchemaLocation(),
@@ -87,7 +93,7 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
                         if (arrayElementSchema.getReferredSchema() instanceof ObjectSchema) {
 
                             nestedArtifactReferences = handleSchemaReferences(nestedRegisterArtifact,
-                                    arrayElementSchema, fileContents);
+                                    new SomeJsonSchema(arrayElementSchema), fileContents);
                         }
                         references.add(registerNestedSchema(arrayElementSchema.getSchemaLocation(),
                                 nestedArtifactReferences, nestedRegisterArtifact, fileContents
@@ -107,7 +113,7 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
                         directory.listFiles((dir, name) -> name.endsWith(JSON_SCHEMA_EXTENSION))))
                 .filter(file -> !file.getName().equals(rootSchema.getName())).collect(Collectors.toSet());
 
-        Map<String, Schema> processed = new HashMap<>();
+        Map<String, SomeJsonSchema> processed = new HashMap<>();
         Map<String, TypedContent> schemaContents = new HashMap<>();
 
         while (processed.size() != typesToAdd.size()) {
@@ -120,7 +126,7 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
                     final ContentHandle schemaContent = readSchemaContent(typeToAdd);
                     final TypedContent typedSchemaContent = TypedContent.create(schemaContent,
                             ContentTypes.APPLICATION_JSON);
-                    final Schema schema = JsonUtil.readSchema(schemaContent.content(), schemaContents, false);
+                    final SomeJsonSchema schema = JsonUtil.readSchema(schemaContent.content(), schemaContents, false);
                     processed.put(schema.getId(), schema);
                     schemaContents.put(schema.getId(), typedSchemaContent);
                     fileParsed = true;
@@ -148,17 +154,17 @@ public class JsonSchemaDirectoryParser extends AbstractDirectoryParser<Schema> {
         }
     }
 
-    public static class JsonSchemaWrapper implements ParsedDirectoryWrapper<Schema> {
-        final Schema schema;
+    public static class JsonSchemaWrapper implements ParsedDirectoryWrapper<SomeJsonSchema> {
+        final SomeJsonSchema schema;
         final Map<String, TypedContent> fileContents;
 
-        public JsonSchemaWrapper(Schema schema, Map<String, TypedContent> fileContents) {
+        public JsonSchemaWrapper(SomeJsonSchema schema, Map<String, TypedContent> fileContents) {
             this.schema = schema;
             this.fileContents = fileContents;
         }
 
         @Override
-        public Schema getSchema() {
+        public SomeJsonSchema getSchema() {
             return schema;
         }
 

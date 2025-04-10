@@ -852,6 +852,22 @@ The following {registry} configuration options are available for each component 
 |Skip artifact versions with DISABLED state when retrieving latest artifact version
 |===
 
+== types
+.types configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.artifact-types.config-file`
+|`string`
+|`/tmp/apicurio-registry-artifact-types.json`
+|`3.1.0`
+|Path to a configuration file containing a list of supported artifact types.
+|===
+
 == ui
 .ui configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]

@@ -116,6 +116,19 @@
               <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi-v2.json</inputSpec>
             </configuration>
           </execution>
+          <execution>
+            <id>generate-artifact-type-webhooks</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <projectSettings>
+                <javaPackage>io.apicurio.registry.types.webhooks</javaPackage>
+              </projectSettings>
+              <inputSpec>${project.basedir}/src/main/resources/META-INF/artifact-type-webhooks.json</inputSpec>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>

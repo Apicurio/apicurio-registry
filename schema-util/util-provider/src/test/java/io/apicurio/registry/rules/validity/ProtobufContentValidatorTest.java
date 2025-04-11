@@ -37,7 +37,7 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         TypedContent tableInfo = resourceToTypedContentHandle("table_info.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();
         validator.validate(ValidityLevel.SYNTAX_ONLY, tableInfo,
-                Collections.singletonMap("mode.proto", mode));
+                Collections.singletonMap("sample/mode.proto", mode));
     }
 
     @Test

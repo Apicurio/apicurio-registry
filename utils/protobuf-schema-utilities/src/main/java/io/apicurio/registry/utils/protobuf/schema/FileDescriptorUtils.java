@@ -8,11 +8,11 @@ import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.type.*;
 import com.squareup.wire.Syntax;
-import com.squareup.wire.schema.*;
 import com.squareup.wire.schema.Field;
 import com.squareup.wire.schema.Schema;
 import com.squareup.wire.schema.Service;
 import com.squareup.wire.schema.Type;
+import com.squareup.wire.schema.*;
 import com.squareup.wire.schema.internal.parser.*;
 import kotlin.ranges.IntRange;
 import metadata.ProtobufSchemaMetadata;
@@ -81,7 +81,7 @@ public class FileDescriptorUtils {
     static {
         // Support all the Protobuf WellKnownTypes
         // and the protos from Google API, https://github.com/googleapis/googleapis
-        WELL_KNOWN_DEPENDENCIES = new FileDescriptor[] { ApiProto.getDescriptor().getFile(),
+        WELL_KNOWN_DEPENDENCIES = new FileDescriptor[]{ ApiProto.getDescriptor().getFile(),
                 FieldMaskProto.getDescriptor().getFile(), SourceContextProto.getDescriptor().getFile(),
                 StructProto.getDescriptor().getFile(), TypeProto.getDescriptor().getFile(),
                 TimestampProto.getDescriptor().getFile(), WrappersProto.getDescriptor().getFile(),
@@ -135,7 +135,7 @@ public class FileDescriptorUtils {
     }
 
     public static FileDescriptor protoFileToFileDescriptor(String schemaDefinition, String protoFileName,
-            Optional<String> optionalPackageName) throws DescriptorValidationException {
+                                                           Optional<String> optionalPackageName) throws DescriptorValidationException {
         Objects.requireNonNull(schemaDefinition);
         Objects.requireNonNull(protoFileName);
 
@@ -144,8 +144,8 @@ public class FileDescriptorUtils {
     }
 
     public static FileDescriptor protoFileToFileDescriptor(String schemaDefinition, String protoFileName,
-            Optional<String> optionalPackageName, Map<String, String> schemaDefs,
-            Map<String, Descriptors.FileDescriptor> dependencies) throws DescriptorValidationException {
+                                                           Optional<String> optionalPackageName, Map<String, String> schemaDefs,
+                                                           Map<String, Descriptors.FileDescriptor> dependencies) throws DescriptorValidationException {
         Objects.requireNonNull(schemaDefinition);
         Objects.requireNonNull(protoFileName);
 
@@ -189,7 +189,7 @@ public class FileDescriptorUtils {
      */
 
     public static FileDescriptor parseProtoFileWithDependencies(File mainProtoFile, Set<File> dependencies,
-            Map<String, String> requiredSchemaDeps)
+                                                                Map<String, String> requiredSchemaDeps)
             throws ReadSchemaException, DescriptorValidationException, ParseSchemaException {
         return parseProtoFileWithDependencies(mainProtoFile, dependencies, requiredSchemaDeps, true);
     }
@@ -205,7 +205,7 @@ public class FileDescriptorUtils {
      * dependency.
      */
     public static FileDescriptor parseProtoFileWithDependencies(File mainProtoFile, Set<File> dependencies,
-            Map<String, String> requiredSchemaDeps, boolean failFast)
+                                                                Map<String, String> requiredSchemaDeps, boolean failFast)
             throws DescriptorValidationException, ReadSchemaException, ParseSchemaException {
         Objects.requireNonNull(mainProtoFile);
         Objects.requireNonNull(dependencies);
@@ -218,14 +218,16 @@ public class FileDescriptorUtils {
         final String schemaDefinition;
         try {
             schemaDefinition = new String(Files.readAllBytes(mainProtoFile.toPath()), StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new ReadSchemaException(mainProtoFile, e);
         }
         final ProtoFileElement mainProtoElement;
         try {
             mainProtoElement = ProtoParser.Companion.parse(Location.get(mainProtoFile.getAbsolutePath()),
                     schemaDefinition);
-        } catch (Throwable t) {
+        }
+        catch (Throwable t) {
             throw new ParseSchemaException(mainProtoFile.getName(), t);
         }
         if (requiredSchemaDeps != null) {
@@ -236,14 +238,15 @@ public class FileDescriptorUtils {
     }
 
     private static void readAndParseSchemas(Collection<File> schemas, Map<String, String> schemaContents,
-            Map<String, ProtoFileElement> protoFileElements, boolean failFast)
+                                            Map<String, ProtoFileElement> protoFileElements, boolean failFast)
             throws ReadSchemaException, ParseSchemaException {
         Objects.requireNonNull(schemas);
         for (File schema : schemas) {
             final String schemaContent;
             try {
                 schemaContent = new String(Files.readAllBytes(schema.toPath()), StandardCharsets.UTF_8);
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 if (failFast) {
                     throw new ReadSchemaException(schema, e);
                 }
@@ -253,7 +256,8 @@ public class FileDescriptorUtils {
             try {
                 protoFile = ProtoParser.Companion.parse(Location.get(schema.getAbsolutePath()),
                         schemaContent);
-            } catch (Throwable t) {
+            }
+            catch (Throwable t) {
                 if (failFast) {
                     throw new ParseSchemaException(schema.getName(), t);
                 }
@@ -303,23 +307,30 @@ public class FileDescriptorUtils {
     }
 
     private static void parseSchemas(Collection<ProtobufSchemaContent> schemas,
-            Map<String, String> schemaContents, Map<String, ProtoFileElement> protoFileElements,
-            boolean failFast) throws ParseSchemaException {
+                                     Map<String, String> schemaContents, Map<String, ProtoFileElement> protoFileElements,
+                                     boolean failFast, boolean useSimpleName) throws ParseSchemaException {
         Objects.requireNonNull(schemas);
         for (ProtobufSchemaContent schema : schemas) {
             final ProtoFileElement protoFile;
             try {
                 protoFile = ProtoParser.Companion.parse(DEFAULT_LOCATION, schema.schemaDefinition());
-            } catch (Throwable t) {
+            }
+            catch (Throwable t) {
                 if (failFast) {
                     throw new ParseSchemaException(schema.fileName(), t);
                 }
                 // ignore and move on!
                 continue;
             }
-            final String protoFullName = toProtoFullName(protoFile, schema.fileName());
-            protoFileElements.put(protoFullName, protoFile);
-            schemaContents.put(protoFullName, schema.schemaDefinition());
+            String fileName;
+            if (useSimpleName) {
+                fileName = schema.fileName();
+            }
+            else {
+                fileName = toProtoFullName(protoFile, schema.fileName());
+            }
+            protoFileElements.put(fileName, protoFile);
+            schemaContents.put(fileName, schema.schemaDefinition());
         }
     }
 
@@ -328,7 +339,7 @@ public class FileDescriptorUtils {
      * with {@code failFast} set to {@code true} and {@code requiredSchemaDeps} set to {@code null}.
      */
     public static FileDescriptor parseProtoFileWithDependencies(ProtobufSchemaContent mainProtoFile,
-            Collection<ProtobufSchemaContent> dependencies)
+                                                                Collection<ProtobufSchemaContent> dependencies)
             throws DescriptorValidationException, ParseSchemaException {
         return parseProtoFileWithDependencies(mainProtoFile, dependencies, null, true);
     }
@@ -347,20 +358,21 @@ public class FileDescriptorUtils {
      * dependency.
      */
     public static FileDescriptor parseProtoFileWithDependencies(ProtobufSchemaContent mainProtoFile,
-            Collection<ProtobufSchemaContent> dependencies, Map<String, String> requiredSchemaDeps,
-            boolean failFast) throws DescriptorValidationException, ParseSchemaException {
+                                                                Collection<ProtobufSchemaContent> dependencies, Map<String, String> requiredSchemaDeps,
+                                                                boolean failFast, boolean useSimpleName) throws DescriptorValidationException, ParseSchemaException {
         Objects.requireNonNull(mainProtoFile);
         Objects.requireNonNull(dependencies);
         final Map<String, FileDescriptor> resolvedDependencies = mutableBaseDependenciesByName(
                 dependencies.size());
         final Map<String, String> schemaDefinitions = new HashMap<>(dependencies.size());
         final Map<String, ProtoFileElement> protoFileElements = new HashMap<>(dependencies.size());
-        parseSchemas(dependencies, schemaDefinitions, protoFileElements, failFast);
+        parseSchemas(dependencies, schemaDefinitions, protoFileElements, failFast, useSimpleName);
         final ProtoFileElement mainProtoElement;
         try {
             mainProtoElement = ProtoParser.Companion.parse(DEFAULT_LOCATION,
                     mainProtoFile.schemaDefinition());
-        } catch (Throwable t) {
+        }
+        catch (Throwable t) {
             throw new ParseSchemaException(mainProtoFile.fileName(), t);
         }
         return resolveFileDescriptor(mainProtoElement, mainProtoFile.schemaDefinition(),
@@ -368,10 +380,20 @@ public class FileDescriptorUtils {
                 new HashSet<>(), protoFileElements);
     }
 
+    /**
+     * Same as {@link #parseProtoFileWithDependencies(ProtobufSchemaContent, Collection, Map, boolean, boolean)}, but
+     * with {@code failFast} set to {@code true} and {@code requiredSchemaDeps} set to {@code null}.
+     */
+    public static FileDescriptor parseProtoFileWithDependencies(ProtobufSchemaContent mainProtoFile,
+                                                                Collection<ProtobufSchemaContent> dependencies, Map<String, String> requiredSchemaDeps,
+                                                                boolean failFast) throws DescriptorValidationException, ParseSchemaException {
+        return parseProtoFileWithDependencies(mainProtoFile, dependencies, requiredSchemaDeps, failFast, false);
+    }
+
     private static FileDescriptor resolveFileDescriptor(ProtoFileElement mainProtoElement,
-            String schemaDefinition, String protoFileName, Map<String, String> schemaDefinitions,
-            Map<String, FileDescriptor> resolvedDependencies, Map<String, String> requiredDependentSchemas,
-            Set<String> unresolvedImportNames, Map<String, ProtoFileElement> cachedProtoFileDependencies)
+                                                        String schemaDefinition, String protoFileName, Map<String, String> schemaDefinitions,
+                                                        Map<String, FileDescriptor> resolvedDependencies, Map<String, String> requiredDependentSchemas,
+                                                        Set<String> unresolvedImportNames, Map<String, ProtoFileElement> cachedProtoFileDependencies)
             throws DescriptorValidationException {
         final String mainProtoImportName = toProtoFullName(mainProtoElement, protoFileName);
         if (!unresolvedImportNames.add(mainProtoImportName)) {
@@ -403,7 +425,7 @@ public class FileDescriptorUtils {
                 // try reuse the existing requiredDependentSchemas:
                 // in case of a chain of single-children dependencies it means reusing the same map!
                 final Map<String, String> requiredSubDependencies = requiredDependentSchemas.isEmpty()
-                    ? requiredDependentSchemas : new HashMap<>();
+                        ? requiredDependentSchemas : new HashMap<>();
                 final ProtoFileElement protoFile;
                 if (cachedProtoFileDependencies != null) {
                     protoFile = cachedProtoFileDependencies.get(depFullName);
@@ -416,7 +438,8 @@ public class FileDescriptorUtils {
                     if (protoFile == null) {
                         continue;
                     }
-                } else {
+                }
+                else {
                     protoFile = ProtoParser.Companion.parse(DEFAULT_LOCATION, schemaDep);
                 }
                 fdDep = resolveFileDescriptor(protoFile, schemaDep, fileName, schemaDefinitions,
@@ -460,25 +483,27 @@ public class FileDescriptorUtils {
         final String fileName;
         if (beforeStartFileName != -1) {
             fileName = protoFullName.substring(beforeStartFileName + 1);
-        } else {
+        }
+        else {
             fileName = protoFullName;
         }
         return fileName;
     }
 
     private static FileDescriptorProto toFileDescriptorProto(String schemaDefinition, String protoFileName,
-            Optional<String> optionalPackageName) {
+                                                             Optional<String> optionalPackageName) {
         return toFileDescriptorProto(schemaDefinition, protoFileName, optionalPackageName,
                 Collections.emptyMap());
     }
 
     public static FileDescriptorProto toFileDescriptorProto(String schemaDefinition, String protoFileName,
-            Optional<String> optionalPackageName, Map<String, String> deps) {
+                                                            Optional<String> optionalPackageName, Map<String, String> deps) {
         final ProtobufSchemaLoader.ProtobufSchemaLoaderContext protobufSchemaLoaderContext;
         try {
             protobufSchemaLoaderContext = ProtobufSchemaLoader.loadSchema(optionalPackageName, protoFileName,
                     schemaDefinition, deps);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -507,7 +532,8 @@ public class FileDescriptorUtils {
                 DescriptorProto message = messageElementToDescriptorProto((MessageType) type, schemaContext,
                         element);
                 schema.addMessageType(message);
-            } else if (type instanceof EnumType) {
+            }
+            else if (type instanceof EnumType) {
                 EnumDescriptorProto message = enumElementToProto((EnumType) type);
                 schema.addEnumType(message);
             }
@@ -697,7 +723,7 @@ public class FileDescriptorUtils {
     }
 
     private static DescriptorProto messageElementToDescriptorProto(MessageType messageElem, Schema schema,
-            ProtoFile element) {
+                                                                   ProtoFile element) {
         ProtobufMessage message = new ProtobufMessage();
         message.protoBuilder().setName(messageElem.getType().getSimpleName());
 
@@ -710,7 +736,8 @@ public class FileDescriptorUtils {
             if (type instanceof MessageType) {
                 allNestedTypes.put(type.getLocation(),
                         messageElementToDescriptorProto((MessageType) type, schema, element));
-            } else if (type instanceof EnumType) {
+            }
+            else if (type instanceof EnumType) {
                 message.protoBuilder().addEnumType(enumElementToProto((EnumType) type));
             }
         }
@@ -773,7 +800,7 @@ public class FileDescriptorUtils {
                 }
 
                 String jsonName = getDefaultJsonName(field.getName()).equals(field.getDeclaredJsonName())
-                    ? null : field.getDeclaredJsonName();
+                        ? null : field.getDeclaredJsonName();
                 Boolean isDeprecated = findOptionBoolean(DEPRECATED_OPTION, field.getOptions());
                 Boolean isPacked = findOptionBoolean(PACKED_OPTION, field.getOptions());
                 DescriptorProtos.FieldOptions.CType cType = findOption(CTYPE_OPTION, field.getOptions())
@@ -845,17 +872,20 @@ public class FileDescriptorUtils {
             for (Object elem : reserved.getValues()) {
                 if (elem instanceof String) {
                     message.protoBuilder().addReservedName((String) elem);
-                } else if (elem instanceof Integer) {
+                }
+                else if (elem instanceof Integer) {
                     int tag = (Integer) elem;
                     DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProto.ReservedRange
                             .newBuilder().setStart(tag).setEnd(tag + 1);
                     message.protoBuilder().addReservedRange(rangeBuilder.build());
-                } else if (elem instanceof IntRange) {
+                }
+                else if (elem instanceof IntRange) {
                     IntRange range = (IntRange) elem;
                     DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProto.ReservedRange
                             .newBuilder().setStart(range.getStart()).setEnd(range.getEndInclusive() + 1);
                     message.protoBuilder().addReservedRange(rangeBuilder.build());
-                } else {
+                }
+                else {
                     throw new IllegalStateException(
                             "Unsupported reserved type: " + elem.getClass().getName());
                 }
@@ -868,12 +898,14 @@ public class FileDescriptorUtils {
                     DescriptorProto.ExtensionRange.Builder extensionBuilder = DescriptorProto.ExtensionRange
                             .newBuilder().setStart(tag).setEnd(tag + 1);
                     message.protoBuilder().addExtensionRange(extensionBuilder.build());
-                } else if (elem instanceof IntRange) {
+                }
+                else if (elem instanceof IntRange) {
                     IntRange range = (IntRange) elem;
                     DescriptorProto.ExtensionRange.Builder extensionBuilder = DescriptorProto.ExtensionRange
                             .newBuilder().setStart(range.getStart()).setEnd(range.getEndInclusive() + 1);
                     message.protoBuilder().addExtensionRange(extensionBuilder.build());
-                } else {
+                }
+                else {
                     throw new IllegalStateException(
                             "Unsupported extension type: " + elem.getClass().getName());
                 }
@@ -998,7 +1030,7 @@ public class FileDescriptorUtils {
     }
 
     public static ProtoFileElement fileDescriptorWithDepsToProtoFile(FileDescriptor file,
-            Map<String, ProtoFileElement> dependencies) {
+                                                                     Map<String, ProtoFileElement> dependencies) {
         for (FileDescriptor dependency : file.getDependencies()) {
             String depName = dependency.getName();
             dependencies.put(depName, fileDescriptorWithDepsToProtoFile(dependency, dependencies));
@@ -1045,7 +1077,8 @@ public class FileDescriptorUtils {
             String depName = dependencyList.get(i);
             if (publicDependencyList.contains(i)) {
                 publicImports.add(depName);
-            } else {
+            }
+            else {
                 imports.add(depName);
             }
         }
@@ -1166,7 +1199,8 @@ public class FileDescriptorUtils {
             if (fd.hasOneofIndex()) {
                 FieldElement field = toField(file, fd, true);
                 oneofs.get(fd.getOneofIndex()).getValue().add(field);
-            } else {
+            }
+            else {
                 FieldElement field = toField(file, fd, false);
                 fields.add(field);
             }
@@ -1215,9 +1249,9 @@ public class FileDescriptorUtils {
 
         return new MessageElement(DEFAULT_LOCATION, name, "", nested.build(), options.build(),
                 reserved.build(), fields.build(), oneofs.stream()
-                        // Ignore oneOfs with no fields (like Proto3 Optional)
-                        .filter(e -> e.getValue().build().size() != 0)
-                        .map(e -> toOneof(e.getKey(), e.getValue())).collect(Collectors.toList()),
+                // Ignore oneOfs with no fields (like Proto3 Optional)
+                .filter(e -> e.getValue().build().size() != 0)
+                .map(e -> toOneof(e.getKey(), e.getValue())).collect(Collectors.toList()),
                 extensions.build(), Collections.emptyList(), Collections.emptyList());
     }
 
@@ -1323,7 +1357,7 @@ public class FileDescriptorUtils {
         // option in inferred schema.
         String jsonName = null;
         String defaultValue = fd.hasDefaultValue() && fd.getDefaultValue() != null ? fd.getDefaultValue()
-            : null;
+                : null;
         return new FieldElement(DEFAULT_LOCATION, inOneof ? null : label(file, fd), dataType(fd), name,
                 defaultValue, jsonName, fd.getNumber(), "", options.build());
     }
@@ -1354,7 +1388,8 @@ public class FileDescriptorUtils {
     private static String dataType(FieldDescriptorProto field) {
         if (field.hasTypeName()) {
             return field.getTypeName();
-        } else {
+        }
+        else {
             FieldDescriptorProto.Type type = field.getType();
             return FieldDescriptor.Type.valueOf(type).name().toLowerCase();
         }
@@ -1402,7 +1437,7 @@ public class FileDescriptorUtils {
     }
 
     public static Descriptors.Descriptor toDescriptor(String name, ProtoFileElement protoFileElement,
-            Map<String, ProtoFileElement> dependencies) {
+                                                      Map<String, ProtoFileElement> dependencies) {
         return toDynamicSchema(name, protoFileElement, dependencies).getMessageDescriptor(name);
     }
 
@@ -1420,7 +1455,7 @@ public class FileDescriptorUtils {
      * DynamicSchema is used as a temporary helper class and should not be exposed in the API.
      */
     private static DynamicSchema toDynamicSchema(String name, ProtoFileElement rootElem,
-            Map<String, ProtoFileElement> dependencies) {
+                                                 Map<String, ProtoFileElement> dependencies) {
 
         DynamicSchema.Builder schema = DynamicSchema.newBuilder();
         try {
@@ -1435,7 +1470,8 @@ public class FileDescriptorUtils {
                 if (typeElem instanceof MessageElement) {
                     MessageDefinition message = toDynamicMessage((MessageElement) typeElem);
                     schema.addMessageDefinition(message);
-                } else if (typeElem instanceof EnumElement) {
+                }
+                else if (typeElem instanceof EnumElement) {
                     EnumDefinition enumer = toDynamicEnum((EnumElement) typeElem);
                     schema.addEnumDefinition(enumer);
                 }
@@ -1471,7 +1507,8 @@ public class FileDescriptorUtils {
             }
             schema.setName(name);
             return schema.build();
-        } catch (Descriptors.DescriptorValidationException e) {
+        }
+        catch (Descriptors.DescriptorValidationException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -1481,7 +1518,8 @@ public class FileDescriptorUtils {
         for (TypeElement type : messageElem.getNestedTypes()) {
             if (type instanceof MessageElement) {
                 message.addMessageDefinition(toDynamicMessage((MessageElement) type));
-            } else if (type instanceof EnumElement) {
+            }
+            else if (type instanceof EnumElement) {
                 message.addEnumDefinition(toDynamicEnum((EnumElement) type));
             }
         }
@@ -1528,13 +1566,16 @@ public class FileDescriptorUtils {
             for (Object elem : reserved.getValues()) {
                 if (elem instanceof String) {
                     message.addReservedName((String) elem);
-                } else if (elem instanceof Integer) {
+                }
+                else if (elem instanceof Integer) {
                     int tag = (Integer) elem;
                     message.addReservedRange(tag, tag);
-                } else if (elem instanceof IntRange) {
+                }
+                else if (elem instanceof IntRange) {
                     IntRange range = (IntRange) elem;
                     message.addReservedRange(range.getStart(), range.getEndInclusive());
-                } else {
+                }
+                else {
                     throw new IllegalStateException(
                             "Unsupported reserved type: " + elem.getClass().getName());
                 }

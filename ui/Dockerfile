@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/nginx-122
+FROM registry.access.redhat.com/ubi9/nginx-122
 
 USER root
 

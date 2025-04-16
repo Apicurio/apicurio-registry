@@ -28,6 +28,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -348,6 +349,20 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             // noinspection rawtypes
             Struct ir = (Struct) converter.toConnectData("extjson", bytes).value();
             Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
+
+    @Test
+    public void testJsonConverterNullPayload() throws Exception {
+        try (ExtJsonConverter converter = new ExtJsonConverter(registryClient)) {
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
+            converter.configure(config, false);
+
+            SchemaAndValue result = converter.toConnectData("test-topic", null);
+            
+            Assertions.assertNotNull(result, "Result should not be null");
+            Assertions.assertSame(SchemaAndValue.NULL, result, "Should return SchemaAndValue.NULL for null input");
         }
     }
 }

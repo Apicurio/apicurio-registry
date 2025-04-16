@@ -29,6 +29,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -747,7 +748,94 @@ public class AvroSerdeIT extends ApicurioRegistryBaseIT {
         } finally {
             mock.stop();
         }
+    }
+    @Test
+    public void testAvroUnionWithSpecificReader() throws Exception {
+        String topicName = TestUtils.generateTopic();
+        // Using TopicIdStrategy, artifactId is topicName + "-value"
+        String artifactId = topicName + "-value";
+        kafkaCluster.createTopic(topicName, 1, 1);
 
+        // Define schemas for individual types
+        String type1SchemaString = "{\"type\":\"record\",\"name\":\"Type1\",\"namespace\":\"io.apicurio.tests.union\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"}]}";
+        String type2SchemaString = "{\"type\":\"record\",\"name\":\"Type2\",\"namespace\":\"io.apicurio.tests.union\",\"fields\":[{\"name\":\"value\",\"type\":\"int\"}]}";
+        String type3SchemaString = "{\"type\":\"record\",\"name\":\"Type3\",\"namespace\":\"io.apicurio.tests.union\",\"fields\":[{\"name\":\"active\",\"type\":\"boolean\"}]}";
+
+        // Define the union schema string (used for parsing individual schemas)
+        String unionSchemaString = "[" + type1SchemaString + ", " + type2SchemaString + ", " + type3SchemaString + "]";
+
+        // Parse individual schemas needed for record creation
+        Schema type1Schema = new Schema.Parser().parse(type1SchemaString);
+        Schema type2Schema = new Schema.Parser().parse(type2SchemaString);
+        Schema type3Schema = new Schema.Parser().parse(type3SchemaString);
+
+        // The overall union schema will be registered automatically by the first message sent
+        // Schema unionSchema = new Schema.Parser().parse(unionSchemaString);
+        // Optional: Explicitly register if auto-register is off or for clarity
+        // createArtifact("default", artifactId, ArtifactType.AVRO, unionSchema.toString(), ContentTypes.APPLICATION_JSON, null, null);
+
+        new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>()
+            .withTopic(topicName)
+            .withSerializer(serializer) // AvroKafkaSerializer.class
+            .withDeserializer(deserializer) // AvroKafkaDeserializer.class
+            .withStrategy(TopicIdStrategy.class) // Strategy determines artifactId = topicName + "-value"
+
+            // Producer config
+            .withProducerProperty(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true")
+
+            // Consumer config
+            // *** Key configuration for the issue ***
+            // Generate records cycling through the types
+            .withDataGenerator(i -> {
+                int typeIndex = i % 3;
+                if (typeIndex == 0) {
+                    GenericRecord record1 = new GenericData.Record(type1Schema);
+                    record1.put("id", "record-" + i);
+                    return record1;
+                } else if (typeIndex == 1) {
+                    GenericRecord record2 = new GenericData.Record(type2Schema);
+                    record2.put("value", i);
+                    return record2;
+                } else {
+                    GenericRecord record3 = new GenericData.Record(type3Schema);
+                    record3.put("active", (i % 2 == 0));
+                    return record3;
+                }
+            })
+            // Validate the received record based on its schema name and content
+            .withDataValidator(record -> {
+                Assertions.assertNotNull(record);
+                String schemaName = record.getSchema().getName();
+                if ("Type1".equals(schemaName)) {
+                    Assertions.assertTrue(record.get("id").toString().startsWith("record-"));
+                    return true;
+                } else if ("Type2".equals(schemaName)) {
+                    Assertions.assertTrue(record.get("value") instanceof Integer);
+                    return true;
+                } else if ("Type3".equals(schemaName)) {
+                    Assertions.assertTrue(record.get("active") instanceof Boolean);
+                    return true;
+                }
+                // Fail if it's none of the expected types
+                Assertions.fail("Received record of unexpected type: " + schemaName);
+                return false; // Unreachable, but needed for compilation
+            })
+            // Optional: Add validator to check if artifact was created/updated in registry
+            .withAfterProduceValidator(() -> {
+                return TestUtils.retry(() -> {
+                    // Check that an artifact matching the TopicIdStrategy was created
+                    VersionMetaData meta = registryClient.groups().byGroupId("default").artifacts()
+                            .byArtifactId(artifactId).versions().byVersionExpression("branch=latest")
+                            .get();
+                    // Check schema content if needed (might be complex for unions registered implicitly)
+                    // registryClient.ids().globalIds().byGlobalId(meta.getGlobalId()).get();
+                    Assertions.assertNotNull(meta.getGlobalId());
+                    logger.info("Artifact {} found in registry with globalId {}", artifactId, meta.getGlobalId());
+                    return true;
+                });
+            })
+            .build()
+            .test(); 
     }
 
 }

@@ -25,6 +25,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
@@ -50,25 +51,41 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             references = contentWrapper.getReferences();
         }
         TypedContent typedContent = TypedContent.create(contentHandle, contentType);
-        return converter.convert(contentHandle,
-                ArtifactTypeUtil.determineArtifactType(typedContent, null, RegistryContentUtils
-                        .recursivelyResolveReferences(references, storage::getContentByReference), factory),
+        Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                .recursivelyResolveReferences(references, storage::getContentByReference);
+        String formattedContent = formatContent(contentHandle.content(),
+                ArtifactTypeUtil.determineArtifactType(typedContent, null, resolvedReferences, factory),
+                format,
+                resolvedReferences);
+        return converter.convert(ContentHandle.create(formattedContent),
+                ArtifactTypeUtil.determineArtifactType(typedContent, null, resolvedReferences, factory),
                 references);
     }
 
     @Override
     public String getSchemaContentById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
+        String contentType;
+        List<ArtifactReferenceDto> references;
         if (cconfig.legacyIdModeEnabled.get()) {
             StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(id.longValue());
             contentHandle = artifactVersion.getContent();
+            contentType = artifactVersion.getContentType();
+            references = artifactVersion.getReferences();
         }
         else {
             ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
             contentHandle = contentWrapper.getContent();
+            contentType = contentWrapper.getContentType();
+            references = contentWrapper.getReferences();
         }
-
-        return contentHandle.content();
+        TypedContent typedContent = TypedContent.create(contentHandle, contentType);
+        Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                .recursivelyResolveReferences(references, storage::getContentByReference);
+        return formatContent(contentHandle.content(),
+                ArtifactTypeUtil.determineArtifactType(typedContent, null, resolvedReferences, factory),
+                format,
+                resolvedReferences);
     }
 
     @Override

@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+import "DependencyArtifact.proto";
+
+message MessageWithTransitiveDependency {
+  DependencyMessage dependency = 1;
+}

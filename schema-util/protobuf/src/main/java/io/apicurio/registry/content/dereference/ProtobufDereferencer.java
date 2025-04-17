@@ -11,6 +11,7 @@ import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -36,18 +37,31 @@ public class ProtobufDereferencer implements ContentDereferencer {
             throw new RuntimeException(e);
         }
 
-        // Dereference returns the whole file descriptor bytes representing the main protobuf schema with the
-        // required dependencies.
         return TypedContent.create(ContentHandle.create(outputStream.toByteArray()),
                 ContentTypes.APPLICATION_PROTOBUF);
     }
 
-    /**
-     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(TypedContent, Map)
-     */
     @Override
     public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {
-        // TODO not yet implemented (perhaps cannot be implemented?)
-        return content;
+        // First convert text format to descriptor
+        final ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.getContent().content());
+        
+        // Create map of dependency content from the URLs
+        Map<String, String> schemaDefs = new HashMap<>();
+        for (Map.Entry<String, String> entry : resolvedReferenceUrls.entrySet()) {
+            schemaDefs.put(entry.getKey(), entry.getValue());
+        }
+
+        // Convert to descriptor with dependencies
+        DescriptorProtos.FileDescriptorProto fileDescriptorProto = FileDescriptorUtils.toFileDescriptorProto(
+                content.getContent().content(),
+                FileDescriptorUtils.firstMessage(protoFileElement).getName(),
+                Optional.ofNullable(protoFileElement.getPackageName()),
+                schemaDefs);
+
+        // Convert back to text format
+        ProtoFileElement dereferencedElement = FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptorProto);
+        return TypedContent.create(ContentHandle.create(dereferencedElement.toSchema()),
+                ContentTypes.APPLICATION_PROTOBUF);
     }
 }

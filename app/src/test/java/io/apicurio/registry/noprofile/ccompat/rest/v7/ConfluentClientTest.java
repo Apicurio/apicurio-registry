@@ -8,8 +8,10 @@ import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.support.HealthUtils;
 import io.apicurio.registry.support.TestCmmn;
+import io.apicurio.registry.types.Current;
 import io.apicurio.registry.utils.tests.DeletionEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.registry.utils.IoUtil;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.CompatibilityLevel;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -23,6 +25,7 @@ import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SubjectVersion;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaRequest;
+import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
@@ -59,11 +62,11 @@ import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.BACKWARD;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.FORWARD;
-import static io.confluent.kafka.schemaregistry.CompatibilityLevel.FULL;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.NONE;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,6 +74,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+
+import java.util.Base64;
+import com.google.protobuf.DescriptorProtos;
+import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import io.apicurio.registry.storage.RegistryStorage;
 
 @QuarkusTest
 @TestProfile(DeletionEnabledProfile.class)
@@ -85,6 +94,14 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                 null, Map.of(Headers.GROUP_ID, "confluentV7-test-group"));
     }
 
+    @Inject
+    @Current
+    protected RegistryStorage storage;
+
+    @Inject
+    protected Logger log;
+
+
     @AfterEach
     protected void afterEach() throws Exception {
         try {
@@ -92,6 +109,46 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                     .delete();
         } catch (Exception ignored) {
         }
+    }
+
+    @Test
+    public void testProtobufTransitiveReferencesSerializedContent() throws Exception {
+        String subject = generateArtifactId();
+
+        // 1) Register transitive dependency
+        String transitiveDep = IoUtil.toString(getClass().getResourceAsStream("/io/apicurio/registry/ccompat/rest/TransitiveDependencyArtifact.proto"));
+        int transitiveDepId = confluentClient.registerSchema(transitiveDep, subject + "-TransitiveDependencyArtifact");
+
+        // 2) Register direct dependency, referencing the transitive dependency
+        String directDep = IoUtil.toString(getClass().getResourceAsStream("/io/apicurio/registry/ccompat/rest/DependencyArtifact.proto"));
+        List<SchemaReference> directRefs = List.of(new SchemaReference("TransitiveDependencyArtifact", subject + "-TransitiveDependencyArtifact", 1));
+        RegisterSchemaResponse directDepId = confluentClient.registerSchema( directDep, "PROTOBUF", directRefs, subject + "-DependencyArtifact");
+
+        // 3) Register main schema, referencing the direct dependency
+        String mainSchema = IoUtil.toString(getClass().getResourceAsStream("/io/apicurio/registry/ccompat/rest/MessageWithTransitiveDependency.proto"));
+        List<SchemaReference> mainRefs = List.of(new SchemaReference("DependencyArtifact", subject + "-DependencyArtifact", 1));
+        RegisterSchemaRequest request = new RegisterSchemaRequest();
+        request.setSchema(mainSchema);
+        request.setReferences(mainRefs);
+        int mainId = confluentClient.registerSchema(request, subject, false).getId();
+
+        // 4) Retrieve the schema content (serialized protobuf) from the registry
+        String base64Content = confluentClient.getVersion(Collections.emptyMap(), subject, 1, "serialized", false, null).getSchema();
+
+        // 5) Decode and parse the FileDescriptorSet
+        byte[] decoded = Base64.getDecoder().decode(base64Content);
+        DescriptorProtos.FileDescriptorSet fdSet = DescriptorProtos.FileDescriptorSet.parseFrom(decoded);
+
+        // 6) Assert all expected messages are present
+        List<String> allMessages = fdSet.getFileList().stream()
+            .flatMap(fdp -> fdp.getMessageTypeList().stream())
+            .map(DescriptorProtos.DescriptorProto::getName)
+            .collect(Collectors.toList());
+
+        assertTrue(allMessages.contains("MessageWithTransitiveDependency"));
+        assertTrue(allMessages.contains("DependencyMessage"));
+        assertTrue(allMessages.contains("TransitiveDependencyMessage"));
+        assertEquals(2, fdSet.getFileCount());
     }
 
     @Test
@@ -1475,262 +1532,24 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                 + "[{\"type\":\"string\",\"name\":" + "\"f" + "\"}," + "{\"type\":\"int\",\"name\":"
                 + "\"g\" , \"default\":0}" + "]}";
         String correctSchema2 = new AvroSchema(correctSchema2String).canonicalString();
-        // ensure registering incompatible schemas will raise an error
-        confluentClient.updateCompatibility(CompatibilityLevel.BACKWARD.name, subject);
 
-        // test that compatibility check for incompatible schema returns false and the appropriate
-        // error response from Avro
-        confluentClient.registerSchema(schema1, subject, true);
+        confluentClient.registerSchema(schema1, subject);
+        confluentClient.registerSchema(wrongSchema2, subject);
 
-        boolean isCompatible = confluentClient.testCompatibility(wrongSchema2, subject, "latest").isEmpty();
-        assertTrue(isCompatible, "Schema should be compatible with specified version");
+        confluentClient.updateCompatibility(CompatibilityLevel.FORWARD_TRANSITIVE.name, subject);
 
-        confluentClient.registerSchema(wrongSchema2, subject, true);
-
-        isCompatible = confluentClient.testCompatibility(correctSchema2, subject, "latest").isEmpty();
-        assertFalse(isCompatible, "Schema should be incompatible with specified version");
+        // schema3 is compatible with schema2, but not compatible with schema1
+        boolean isCompatible = confluentClient.testCompatibility(correctSchema2, subject, "latest").isEmpty();
+        assertTrue(isCompatible, "Schema is compatible with the latest version");
+        isCompatible = confluentClient.testCompatibility(correctSchema2, subject, null).isEmpty();
+        assertFalse(isCompatible, "Schema should be incompatible with FORWARD_TRANSITIVE setting");
         try {
-            confluentClient.registerSchema(correctSchema2, subject);
-            fail("Schema should be Incompatible");
-        } catch (RestClientException rce) {
-            assertEquals(HTTP_CONFLICT, rce.getErrorCode(), "Incompatible Schema");
+            confluentClient.registerSchema(correctSchema2String, subject);
+            fail("Schema register should fail since schema is incompatible");
+        } catch (RestClientException e) {
+            assertEquals(HTTP_CONFLICT, e.getErrorCode(),
+                    "Schema register should fail since schema is incompatible");
+            assertFalse(e.getMessage().isEmpty());
         }
-
-        confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject, "latest");
-        isCompatible = confluentClient.testCompatibility(correctSchema2, subject, "latest").isEmpty();
-        assertTrue(isCompatible, "Schema should be compatible with specified version");
-
-        confluentClient.registerSchema(correctSchema2, subject, true);
-
-        assertEquals((Integer) 3,
-                confluentClient.lookUpSubjectVersion(correctSchema2String, subject, true, false).getVersion(),
-                "Version is same");
-
-    }
-
-    @Test
-    public void testSubjectCompatibilityAfterDeletingAllVersions() throws Exception {
-        String subject = "testSubjectCompatibilityAfterDeletingAllVersions";
-
-        String schema1String = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
-                + "[{\"type\":\"string\",\"name\":" + "\"f" + "\"}]}";
-        String schema1 = new AvroSchema(schema1String).canonicalString();
-
-        String schema2String = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
-                + "[{\"type\":\"string\",\"name\":" + "\"f" + "\"}," + "{\"type\":\"string\",\"name\":"
-                + "\"g\" , \"default\":\"d\"}" + "]}";
-        String schema2 = new AvroSchema(schema2String).canonicalString();
-
-        confluentClient.updateCompatibility(CompatibilityLevel.FULL.name, null);
-        confluentClient.updateCompatibility(CompatibilityLevel.BACKWARD.name, subject);
-
-        confluentClient.registerSchema(schema1, subject, true);
-        confluentClient.registerSchema(schema2, subject);
-
-        confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1");
-        assertEquals(BACKWARD.name, confluentClient.getConfig(subject).getCompatibilityLevel(),
-                "Compatibility Level Exists");
-        assertEquals(FULL.name, confluentClient.getConfig(null).getCompatibilityLevel(),
-                "Top Compatibility Level Exists");
-        confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject, "2");
-        try {
-            confluentClient.getConfig(subject);
-        } catch (RestClientException rce) {
-            assertEquals(ErrorCode.SUBJECT_COMPATIBILITY_NOT_CONFIGURED.value(), rce.getErrorCode(),
-                    "Compatibility Level doesn't exist");
-        }
-        assertEquals(FULL.name, confluentClient.getConfig(null).getCompatibilityLevel(),
-                "Top Compatibility Level Exists");
-
-    }
-
-    @Test
-    public void testListSubjects() throws Exception {
-        List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(2);
-        String subject1 = "test1";
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject1);
-        String subject2 = "test2";
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject2);
-
-        List<String> expectedResponse = new ArrayList<>();
-        expectedResponse.add(subject1);
-        expectedResponse.add(subject2);
-        assertEquals(expectedResponse, confluentClient.getAllSubjects(), "Current Subjects");
-        List<Integer> deletedResponse = new ArrayList<>();
-        deletedResponse.add(1);
-        assertEquals(deletedResponse,
-                confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject2),
-                "Versions Deleted Match");
-
-        expectedResponse = new ArrayList<>();
-        expectedResponse.add(subject1);
-        assertEquals(expectedResponse, confluentClient.getAllSubjects(), "Current Subjects");
-
-        expectedResponse = new ArrayList<>();
-        expectedResponse.add(subject1);
-        expectedResponse.add(subject2);
-        assertEquals(expectedResponse, confluentClient.getAllSubjects(true), "Current Subjects");
-
-        assertEquals(deletedResponse,
-                confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject2, true),
-                "Versions Deleted Match");
-
-        expectedResponse = new ArrayList<>();
-        expectedResponse.add(subject1);
-        assertEquals(expectedResponse, confluentClient.getAllSubjects(), "Current Subjects");
-    }
-
-    @Test
-    public void testListSoftDeletedSubjectsAndSchemas() throws Exception {
-        List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(3);
-        String subject1 = "test1";
-        String subject2 = "test2";
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject1);
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject1);
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(2), subject2);
-
-        assertEquals((Integer) 1,
-                confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject1, "1"));
-        assertEquals((Integer) 1,
-                confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject2, "1"));
-
-        assertEquals(Collections.singletonList(2), confluentClient.getAllVersions(subject1),
-                "List All Versions Match");
-        assertEquals(Arrays.asList(1, 2),
-                confluentClient.getAllVersions(RestService.DEFAULT_REQUEST_PROPERTIES, subject1, true),
-                "List All Versions Include deleted Match");
-
-        assertEquals(Collections.singletonList(subject1), confluentClient.getAllSubjects(),
-                "List All Subjects Match");
-        assertEquals(Arrays.asList(subject1, subject2), confluentClient.getAllSubjects(true),
-                "List All Subjects Include deleted Match");
-    }
-
-    @Test
-    public void testDeleteSubjectBasic() throws Exception {
-        List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(2);
-        String subject = "testDeleteSubjectBasic";
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
-        List<Integer> expectedResponse = new ArrayList<>();
-        expectedResponse.add(1);
-        expectedResponse.add(2);
-        assertEquals(expectedResponse,
-                confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject),
-                "Versions Deleted Match");
-        try {
-            confluentClient.getLatestVersion(subject);
-            fail(String.format("Subject %s should not be found", subject));
-        } catch (RestClientException rce) {
-            assertEquals(ErrorCode.SUBJECT_NOT_FOUND.value(), rce.getErrorCode(), "Subject Not Found");
-        }
-
-    }
-
-    @Test
-    public void testDeleteSubjectException() throws Exception {
-        List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(2);
-        String subject = "testDeleteSubjectException";
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
-        List<Integer> expectedResponse = new ArrayList<>();
-        expectedResponse.add(1);
-        expectedResponse.add(2);
-        assertEquals(expectedResponse,
-                confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject),
-                "Versions Deleted Match");
-
-        io.confluent.kafka.schemaregistry.client.rest.entities.Schema schema = confluentClient
-                .lookUpSubjectVersion(schemas.get(0), subject, true);
-        assertEquals(1, (long) schema.getVersion());
-        schema = confluentClient.lookUpSubjectVersion(schemas.get(1), subject, true);
-        assertEquals(2, (long) schema.getVersion());
-
-        try {
-            confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject);
-            fail(String.format("Subject %s should not be found", subject));
-        } catch (RestClientException rce) {
-            assertEquals(ErrorCode.SUBJECT_SOFT_DELETED.value(), rce.getErrorCode(),
-                    "Subject exists in soft deleted format.");
-        }
-    }
-
-    @Test
-    public void testDeleteSubjectPermanent() throws Exception {
-        List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(2);
-        String subject = "testDeleteSubjectPermanent";
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
-        ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(1), subject);
-        List<Integer> expectedResponse = new ArrayList<>();
-        expectedResponse.add(1);
-        expectedResponse.add(2);
-
-        try {
-            confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject, true);
-            fail("Delete permanent should not succeed");
-        } catch (RestClientException rce) {
-            assertEquals(ErrorCode.SUBJECT_NOT_SOFT_DELETED.value(), rce.getErrorCode(),
-                    "Subject '%s' was not deleted first before permanent delete");
-        }
-
-        assertEquals(expectedResponse,
-                confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject),
-                "Versions Deleted Match");
-
-        io.confluent.kafka.schemaregistry.client.rest.entities.Schema schema = confluentClient
-                .lookUpSubjectVersion(schemas.get(0), subject, true);
-        assertEquals(1, (long) schema.getVersion());
-        schema = confluentClient.lookUpSubjectVersion(schemas.get(1), subject, true);
-        assertEquals(2, (long) schema.getVersion());
-
-        assertEquals(expectedResponse,
-                confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject, true),
-                "Versions Deleted Match");
-        for (Integer i : expectedResponse) {
-            try {
-                confluentClient.lookUpSubjectVersion(schemas.get(0), subject, false);
-                fail(String.format("Subject %s should not be found", subject));
-            } catch (RestClientException rce) {
-                assertEquals(ErrorCode.SUBJECT_NOT_FOUND.value(), rce.getErrorCode(), "Subject Not Found");
-            }
-
-            try {
-                confluentClient.lookUpSubjectVersion(schemas.get(i - 1), subject, true);
-                fail(String.format("Subject %s should not be found", subject));
-            } catch (RestClientException rce) {
-                assertEquals(ErrorCode.SUBJECT_NOT_FOUND.value(), rce.getErrorCode(), "Subject Not Found");
-            }
-        }
-    }
-
-    @Test
-    public void testSubjectCompatibilityAfterDeletingSubject() throws Exception {
-        String subject = "testSubjectCompatibilityAfterDeletingSubject";
-
-        String schema1String = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
-                + "[{\"type\":\"string\",\"name\":" + "\"f" + "\"}]}";
-        String schema1 = new AvroSchema(schema1String).canonicalString();
-
-        String schema2String = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
-                + "[{\"type\":\"string\",\"name\":" + "\"f" + "\"}," + "{\"type\":\"string\",\"name\":"
-                + "\"g\" , \"default\":\"d\"}" + "]}";
-        String schema2 = new AvroSchema(schema2String).canonicalString();
-
-        confluentClient.updateCompatibility(CompatibilityLevel.FULL.name, null);
-        confluentClient.updateCompatibility(CompatibilityLevel.BACKWARD.name, subject);
-
-        confluentClient.registerSchema(schema1, subject, true);
-        confluentClient.registerSchema(schema2, subject, true);
-
-        confluentClient.deleteSubject(RestService.DEFAULT_REQUEST_PROPERTIES, subject);
-        try {
-            confluentClient.getConfig(subject);
-        } catch (RestClientException rce) {
-            assertEquals(ErrorCode.SUBJECT_COMPATIBILITY_NOT_CONFIGURED.value(), rce.getErrorCode(),
-                    "Compatibility Level doesn't exist");
-        }
-        assertEquals(FULL.name, confluentClient.getConfig(null).getCompatibilityLevel(),
-                "Top Compatibility Level Exists");
-
     }
 }

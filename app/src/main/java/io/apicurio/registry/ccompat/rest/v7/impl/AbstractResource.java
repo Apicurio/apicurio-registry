@@ -49,32 +49,34 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class AbstractResource {
 
     @Inject
-    Logger log;
+    protected Logger log;
 
     @Inject
     @Current
-    RegistryStorage storage;
+    protected RegistryStorage storage;
 
     @Inject
-    RulesService rulesService;
+    protected RulesService rulesService;
 
     @Inject
-    ApiConverter converter;
+    protected ApiConverter converter;
 
     @Inject
-    CCompatConfig cconfig;
+    protected CCompatConfig cconfig;
 
     @Inject
-    ArtifactTypeUtilProviderFactory factory;
+    protected ArtifactTypeUtilProviderFactory factory;
 
     @Inject
-    SecurityIdentity securityIdentity;
+    protected SecurityIdentity securityIdentity;
+
 
     protected String toSubjectWithGroupConcat(String groupId, String artifactId) {
         return (groupId == null ? "" : groupId) + cconfig.groupConcatSeparator + artifactId;
@@ -372,5 +374,66 @@ public abstract class AbstractResource {
             }
         }
         return then.apply(version);
+    }
+
+    protected String formatContent(String schema, String schemaType, String format, Map<String, TypedContent> resolvedReferences) {
+        if (schemaType != null && schemaType.equals(ArtifactType.PROTOBUF)) {
+            try {
+                switch (format) {
+                    case "serialized":
+                        // Parse the main schema text into a proto file element
+                        ProtoFileElement mainProtoFile = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                            schema);
+
+                        // Create descriptor set builder 
+                        DescriptorProtos.FileDescriptorSet.Builder setBuilder = DescriptorProtos.FileDescriptorSet.newBuilder();
+
+                        // Convert main file to descriptor proto and add it
+                        DescriptorProtos.FileDescriptorProto mainFileDescriptor = FileDescriptorUtils.toFileDescriptorProto(
+                            schema,
+                            FileDescriptorUtils.firstMessage(mainProtoFile).getName(),
+                            Optional.ofNullable(mainProtoFile.getPackageName()),
+                            // Pass the content of resolved references for dependency resolution during proto conversion
+                            resolvedReferences.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getContent().content()))
+                        );
+                        setBuilder.addFile(mainFileDescriptor);
+
+                        // Process all resolved references (direct and transitive) and add their descriptors
+                        for (Map.Entry<String, TypedContent> entry : resolvedReferences.entrySet()) {
+                            try {
+                                String refContent = entry.getValue().getContent().content();
+                                ProtoFileElement refProtoFile = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                                    refContent);
+                                
+                                // Convert reference file to descriptor proto
+                                DescriptorProtos.FileDescriptorProto refFileDescriptor = FileDescriptorUtils.toFileDescriptorProto(
+                                    refContent,
+                                    FileDescriptorUtils.firstMessage(refProtoFile).getName(),
+                                    Optional.ofNullable(refProtoFile.getPackageName()),
+                                    // Pass empty map for deps here, as all needed deps should already be in resolvedReferences
+                                    Collections.emptyMap() 
+                                );
+                                // Avoid adding duplicates if already added via another path or as the main file
+                                if (setBuilder.getFileList().stream().noneMatch(f -> f.getName().equals(refFileDescriptor.getName()))) {
+                                    setBuilder.addFile(refFileDescriptor);
+                                }
+                            } catch (Exception e) {
+                                log.warn("Failed to process protobuf dependency {}: {}", entry.getKey(), e.getMessage());
+                                // Continue with other dependencies if one fails
+                            }
+                        }
+                        
+                        return Base64.getEncoder().encodeToString(setBuilder.build().toByteArray());
+                        
+                    default:
+                        return schema;
+                }
+            } catch (Exception e) {
+                // If any error occurs during format conversion, return original schema
+                log.warn("Error formatting protobuf schema with format '{}': {}", format, e.getMessage());
+                return schema;
+            }
+        }
+        return schema;
     }
 }

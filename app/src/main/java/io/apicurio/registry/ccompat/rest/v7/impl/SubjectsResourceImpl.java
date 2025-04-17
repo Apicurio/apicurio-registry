@@ -176,59 +176,55 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
         final GA ga = getGA(groupId, subject);
 
-        // Check to see if this content is already registered - return the global ID of that content
-        // if it exists. If not, then register the new content.
-        long sid = -1;
-        boolean idFound = false;
         if (null == request) {
             throw new UnprocessableEntityException("The schema provided is null.");
         }
 
         final Map<String, TypedContent> resolvedReferences = resolveReferences(request.getReferences());
+        long sid = -1;
 
         try {
-            ArtifactVersionMetaDataDto dto = lookupSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+            // Try to find an existing, active version with the same content
+            ArtifactVersionMetaDataDto existingDto = lookupSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
                     request.getSchema(), request.getReferences(), request.getSchemaType(), fnormalize);
-            if (dto.getState().equals(VersionState.DISABLED)) {
-                throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
-            }
-            sid = cconfig.legacyIdModeEnabled.get() ? dto.getGlobalId() : dto.getContentId();
-            idFound = true;
-        }
-        catch (ArtifactNotFoundException nfe) {
-            // This is OK - when it happens just move on and create
-        }
 
-        if (!idFound) {
-            try {
-                ContentHandle schemaContent = ContentHandle.create(request.getSchema());
-                String contentType = ContentTypeUtil.determineContentType(schemaContent);
-                TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
+            // lookupSchema throws ArtifactNotFoundException if not found or if the found version is DISABLED.
+            // If we reach here, an active version was found.
+            sid = cconfig.legacyIdModeEnabled.get() ? existingDto.getGlobalId() : existingDto.getContentId();
 
-                // We validate the schema at creation time by inferring the type from the content
-                final String artifactType = ArtifactTypeUtil.determineArtifactType(typedSchemaContent, null,
-                        resolvedReferences, factory);
-                if (request.getSchemaType() != null && !artifactType.equals(request.getSchemaType())) {
-                    throw new UnprocessableEntityException(
-                            String.format("Given schema is not from type: %s", request.getSchemaType()));
-                }
-
-                ArtifactVersionMetaDataDto artifactMeta = createOrUpdateArtifact(ga.getRawArtifactId(),
-                        request.getSchema(), artifactType, request.getReferences(),
-                        ga.getRawGroupIdWithNull());
-                sid = cconfig.legacyIdModeEnabled.get() ? artifactMeta.getGlobalId()
-                        : artifactMeta.getContentId();
-            }
-            catch (InvalidArtifactTypeException ex) {
-                // If no artifact type can be inferred, throw invalid schema ex
-                throw new UnprocessableEntityException(ex.getMessage());
-            }
+        } catch (ArtifactNotFoundException nfe) {
+            // Schema not found or the only matching version is disabled, proceed to create/update
+            ArtifactVersionMetaDataDto newOrUpdatedDto = registerNewSchemaVersion(ga, request, fnormalize, resolvedReferences);
+            sid = cconfig.legacyIdModeEnabled.get() ? newOrUpdatedDto.getGlobalId() : newOrUpdatedDto.getContentId();
         }
 
         BigInteger id = converter.convertUnsigned(sid);
         SchemaId schemaId = new SchemaId();
         schemaId.setId(id.intValue());
         return schemaId;
+    }
+
+    private ArtifactVersionMetaDataDto registerNewSchemaVersion(GA ga, RegisterSchemaRequest request, boolean fnormalize, Map<String, TypedContent> resolvedReferences) {
+        try {
+            ContentHandle schemaContent = ContentHandle.create(request.getSchema());
+            String contentType = ContentTypeUtil.determineContentType(schemaContent);
+            TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
+
+            // We validate the schema at creation time by inferring the type from the content
+            final String artifactType = ArtifactTypeUtil.determineArtifactType(typedSchemaContent, null,
+                    resolvedReferences, factory);
+            if (request.getSchemaType() != null && !artifactType.equals(request.getSchemaType())) {
+                throw new UnprocessableEntityException(
+                        String.format("Given schema is not from type: %s", request.getSchemaType()));
+            }
+
+            return createOrUpdateArtifact(ga.getRawArtifactId(),
+                    request.getSchema(), artifactType, request.getReferences(),
+                    ga.getRawGroupIdWithNull(), fnormalize);
+        } catch (InvalidArtifactTypeException ex) {
+            // If no artifact type can be inferred, throw invalid schema ex
+            throw new UnprocessableEntityException(ex.getMessage());
+        }
     }
 
     @Override

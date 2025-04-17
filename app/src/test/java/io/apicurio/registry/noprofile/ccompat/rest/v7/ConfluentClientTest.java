@@ -56,7 +56,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -1732,5 +1740,64 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         assertEquals(FULL.name, confluentClient.getConfig(null).getCompatibilityLevel(),
                 "Top Compatibility Level Exists");
 
+    }
+
+    @Test
+    public void testConcurrentSchemaRegistration() throws Exception {
+        final int numThreads = 10;
+        final String subject = generateArtifactId();
+        final String schema = "{\"type\":\"record\",\"namespace\":\"mynamespace\",\"name\":\"employee\"," +
+            "\"fields\":[{\"name\":\"firstName\",\"type\":\"string\"},{\"name\":\"lastName\",\"type\":\"string\"}]}";
+        
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        CountDownLatch latch = new CountDownLatch(numThreads);
+        List<Future<Integer>> futures = new ArrayList<>();
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger conflictCount = new AtomicInteger(0);
+
+        // Submit the same schema registration request multiple times concurrently
+        for (int i = 0; i < numThreads; i++) {
+            futures.add(executorService.submit(() -> {
+                try {
+                    latch.countDown();
+                    latch.await(); // Wait for all threads to be ready
+                    int id = confluentClient.registerSchema(schema, subject);
+                    successCount.incrementAndGet();
+                    return id;
+                } catch (RestClientException e) {
+                    if (e.getErrorCode() == 409) { // Conflict error code
+                        conflictCount.incrementAndGet();
+                    }
+                    throw e;
+                }
+            }));
+        }
+
+        // Wait for all tasks to complete
+        Set<Integer> uniqueIds = new HashSet<>();
+        for (Future<Integer> future : futures) {
+            try {
+                Integer id = future.get(5, TimeUnit.SECONDS);
+                if (id != null) {
+                    uniqueIds.add(id);
+                }
+            } catch (ExecutionException e) {
+                if (!(e.getCause() instanceof RestClientException)) {
+                    throw e;
+                }
+            }
+        }
+
+        executorService.shutdown();
+        assertTrue(executorService.awaitTermination(10, TimeUnit.SECONDS));
+
+        // Verify that exactly one registration succeeded and all others received conflicts
+        assertEquals(1, successCount.get(), "Expected exactly one successful registration");
+        assertEquals(numThreads - 1, conflictCount.get(), "Expected all other attempts to fail with conflict");
+        assertEquals(1, uniqueIds.size(), "All successful registrations should return the same ID");
+
+        // Verify that the schema was actually registered
+        io.confluent.kafka.schemaregistry.client.rest.entities.Schema storedSchema = confluentClient.getVersion(subject, 1);
+        assertEquals(schema, storedSchema.getSchema(), "Stored schema should match the registered schema");
     }
 }

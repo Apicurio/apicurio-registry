@@ -1,7 +1,9 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
+import io.apicurio.registry.ccompat.rest.error.SchemaSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
+import io.apicurio.registry.ccompat.rest.v7.beans.Schema;
 import io.apicurio.registry.ccompat.rest.v7.beans.SchemaReference;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -21,7 +23,9 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import com.google.protobuf.DescriptorProtos;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
@@ -107,7 +111,7 @@ public abstract class AbstractResource {
     }
 
     protected ArtifactVersionMetaDataDto createOrUpdateArtifact(String artifactId, String schema,
-                                                                String artifactType, List<SchemaReference> references, String groupId) {
+                                                                String artifactType, List<SchemaReference> references, String groupId, boolean normalize) {
         ArtifactVersionMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
         final List<ArtifactReference> artifactReferences = parsedReferences.stream()

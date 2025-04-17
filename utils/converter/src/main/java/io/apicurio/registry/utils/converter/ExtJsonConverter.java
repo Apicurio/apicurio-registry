@@ -98,6 +98,10 @@ public class ExtJsonConverter extends BaseSerde<JsonNode, Object>
 
     @Override
     public SchemaAndValue toConnectData(String topic, byte[] value) {
+        if (value == null) {
+            return SchemaAndValue.NULL;
+        }
+
         FormatStrategy.IdPayload ip = formatStrategy.toConnectData(value);
 
         long contentId = ip.getContentId();

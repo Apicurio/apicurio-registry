@@ -87,7 +87,7 @@ public class JsonUtil {
             throw new RegistryException(msg);
         }
 
-        switch (specVersion) { // TODO
+        switch (specVersion) {
             case DRAFT_4:
             case DRAFT_6:
             case DRAFT_7:

@@ -14,7 +14,7 @@ import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.SchemaLoaderConfig;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.exception.UnreachableCodeException;
-import io.apicurio.registry.rules.SomeJsonSchema;
+import io.apicurio.registry.rules.ParsedJsonSchema;
 import io.apicurio.registry.rules.validity.JsonSchemaVersion;
 import io.apicurio.registry.types.RegistryException;
 import org.everit.json.schema.loader.SchemaLoader;
@@ -57,8 +57,8 @@ public class JsonUtil {
         readSchema(content, resolvedReferences, true);
     }
 
-    public static SomeJsonSchema readSchema(String content, Map<String, TypedContent> resolvedReferences,
-                                            boolean validateDangling) throws JsonProcessingException {
+    public static ParsedJsonSchema readSchema(String content, Map<String, TypedContent> resolvedReferences,
+                                              boolean validateDangling) throws JsonProcessingException {
 
         var jsonNode = MAPPER.readTree(content);
 
@@ -137,7 +137,7 @@ public class JsonUtil {
         return result;
     }
 
-    private static SomeJsonSchema readSchemaEverit(JsonNode jsonNode, Map<String, TypedContent> resolvedReferences, Set<URI> extractedReferences) throws JsonProcessingException {
+    private static ParsedJsonSchema readSchemaEverit(JsonNode jsonNode, Map<String, TypedContent> resolvedReferences, Set<URI> extractedReferences) throws JsonProcessingException {
         var builder = SchemaLoader.builder().useDefaults(true).draftV7Support();
         for (URI extractedReference : extractedReferences) {
             var resolvedReferenceContent = resolvedReferences.get(extractedReference.toString());
@@ -159,10 +159,10 @@ public class JsonUtil {
         builder.schemaJson(jsonObject);
         var loader = builder.build();
         var schema = loader.load().build();
-        return new SomeJsonSchema(schema);
+        return new ParsedJsonSchema(schema);
     }
 
-    private static SomeJsonSchema readSchemaSKema(JsonNode jsonNode, Map<String, TypedContent> resolvedReferences, Set<URI> extractedReferences) throws JsonProcessingException {
+    private static ParsedJsonSchema readSchemaSKema(JsonNode jsonNode, Map<String, TypedContent> resolvedReferences, Set<URI> extractedReferences) throws JsonProcessingException {
         var resolved = new HashMap<URI, String>();
         for (URI extractedReference : extractedReferences) {
             var resolvedReferenceContent = resolvedReferences.get(extractedReference.toString());
@@ -183,6 +183,6 @@ public class JsonUtil {
         SchemaLoaderConfig config = SchemaLoaderConfig.createDefaultConfig(resolved);
         var jsonValue = new JsonParser(MAPPER.writeValueAsString(jsonNode)).parse();
         var schema = new com.github.erosb.jsonsKema.SchemaLoader(jsonValue, config).load();
-        return new SomeJsonSchema(schema, jsonNode);
+        return new ParsedJsonSchema(schema, jsonNode);
     }
 }

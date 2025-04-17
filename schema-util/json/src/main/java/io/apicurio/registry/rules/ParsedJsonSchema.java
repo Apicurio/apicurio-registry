@@ -14,7 +14,7 @@ import static java.util.Objects.requireNonNull;
  */
 @ToString
 @EqualsAndHashCode
-public class SomeJsonSchema {
+public class ParsedJsonSchema {
 
     @Getter
     private org.everit.json.schema.Schema everit;
@@ -26,12 +26,12 @@ public class SomeJsonSchema {
     @Getter
     private JsonNode jsonsKemaRawJsonNode;
 
-    public SomeJsonSchema(org.everit.json.schema.Schema everit) {
+    public ParsedJsonSchema(org.everit.json.schema.Schema everit) {
         requireNonNull(everit);
         this.everit = everit;
     }
 
-    public SomeJsonSchema(Schema jsonsKema, JsonNode jsonsKemaRawJsonNode) {
+    public ParsedJsonSchema(Schema jsonsKema, JsonNode jsonsKemaRawJsonNode) {
         requireNonNull(jsonsKema);
         requireNonNull(jsonsKemaRawJsonNode);
         this.jsonsKema = jsonsKema;

@@ -22,6 +22,12 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static io.apicurio.tests.utils.Constants.SMOKE;
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -291,4 +297,52 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         assertThat(1, is(confluentService.getAllSubjects().size()));
     }
 
+    @Test
+    void testConcurrentSchemaRegistration() throws Exception {
+        String subject = TestUtils.generateArtifactId();
+        // Use a valid Avro record name instead of the subject UUID
+        String recordName = "TestRecord_" + subject.replace("-", "_"); // Ensure valid chars if needed, or just use a fixed name
+        String schemaDefinition = "{\"type\":\"record\",\"name\":\"" + recordName + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
+        ParsedSchema schema = new AvroSchema(schemaDefinition);
+
+        int numThreads = 50;
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        try {
+            List<CompletableFuture<Integer>> futures = IntStream.range(0, numThreads)
+                    .mapToObj(i -> CompletableFuture.supplyAsync(() -> {
+                        try {
+                            confluentService.reset(); // clear cache
+                            return confluentService.register(subject, schema);
+                        } catch (IOException | RestClientException e) {
+                            throw new CompletionException(e);
+                        }
+                    }, executorService))
+                    .collect(Collectors.toList());
+
+            // Wait for all futures to complete and collect results
+            List<Integer> results = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenApply(v -> futures.stream()
+                            .map(CompletableFuture::join)
+                            .collect(Collectors.toList()))
+                    .get(); // Wait for completion and get the list of IDs
+
+            // Assert all returned IDs are the same and positive
+            assertEquals(numThreads, results.size());
+            int firstId = results.get(0);
+            assertThat("All registered schema IDs should be the same", firstId > 0);
+            results.forEach(id -> assertEquals(firstId, id.intValue(), "Concurrent registration resulted in different IDs"));
+
+            // Verify only one version was actually created
+            List<Integer> versions = confluentService.getAllVersions(subject);
+            assertEquals(1, versions.size(), "Only one version should be created despite concurrent requests");
+            assertEquals(1, versions.get(0).intValue()); // The version number should be 1
+
+        } finally {
+            executorService.shutdown();
+            // Clean up
+            confluentService.deleteSubject(subject, false);
+            confluentService.deleteSubject(subject, true);
+            waitForSubjectDeleted(subject);
+        }
+    }
 }

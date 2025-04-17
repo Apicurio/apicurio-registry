@@ -107,7 +107,7 @@ public abstract class AbstractResource {
     }
 
     protected ArtifactVersionMetaDataDto createOrUpdateArtifact(String artifactId, String schema,
-                                                                String artifactType, List<SchemaReference> references, String groupId) {
+                                                                String artifactType, List<SchemaReference> references, String groupId, boolean normalize) {
         ArtifactVersionMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
         final List<ArtifactReference> artifactReferences = parsedReferences.stream()

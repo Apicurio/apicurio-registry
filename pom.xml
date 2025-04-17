@@ -199,6 +199,7 @@
 
     <!-- JSON Schema Validator -->
     <org.everit.json.schema.version>1.14.5</org.everit.json.schema.version>
+    <json-sKema.version>0.20.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250107</org.json.version>
     <jackson-datatype-json-org.version>2.18.2</jackson-datatype-json-org.version>
@@ -699,6 +700,12 @@
         <artifactId>everit-json-schema</artifactId>
         <version>${org.everit.json.schema.version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.github.erosb</groupId>
+        <artifactId>json-sKema</artifactId>
+        <version>${json-sKema.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>org.json</groupId>
         <artifactId>json</artifactId>

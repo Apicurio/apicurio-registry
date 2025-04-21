@@ -2,19 +2,22 @@ package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.config.artifactTypes.ArtifactTypeConfiguration;
 import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
+import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.http.HttpClientService;
+import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ContentDereferencerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentDereferencerResponse;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
 public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTypeUtil<ContentDereferencer> implements ContentDereferencer {
 
-    public ConfiguredContentDereferencer(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
-        super(httpClientService, artifactType, artifactType.getContentDereferencer());
+    public ConfiguredContentDereferencer(HttpClientService httpClientService, ScriptingService scriptingService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, scriptingService, artifactType, artifactType.getContentDereferencer());
     }
 
     @Override
@@ -61,11 +64,7 @@ public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTyp
 
         @Override
         public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-            // Create the request payload object
-            ContentDereferencerRequest requestBody = new ContentDereferencerRequest();
-            requestBody.setFunction(ContentDereferencerRequest.Function.dereference);
-            requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
-            requestBody.setResolvedReferences(WebhookBeanUtil.resolvedReferenceListToWebhookBean(resolvedReferences));
+            ContentDereferencerRequest requestBody = createDereferenceRequest(content, resolvedReferences);
 
             try {
                 ContentDereferencerResponse responseBody = invokeHook(requestBody, ContentDereferencerResponse.class);
@@ -78,11 +77,7 @@ public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTyp
 
         @Override
         public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {
-            // Create the request payload object
-            ContentDereferencerRequest requestBody = new ContentDereferencerRequest();
-            requestBody.setFunction(ContentDereferencerRequest.Function.rewriteReferences);
-            requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
-            requestBody.setResolvedReferenceUrls(WebhookBeanUtil.resolvedReferenceUrlListToWebhookBean(resolvedReferenceUrls));
+            ContentDereferencerRequest requestBody = createRewriteRefsRequest(content, resolvedReferenceUrls);
 
             try {
                 ContentDereferencerResponse responseBody = invokeHook(requestBody, ContentDereferencerResponse.class);
@@ -93,4 +88,60 @@ public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTyp
             }
         }
     }
+
+    @Override
+    protected ContentDereferencer createScriptDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) throws Exception {
+        return new ConfiguredContentDereferencer.ScriptContentDereferencerDelegate(artifactType, provider);
+    }
+
+    private class ScriptContentDereferencerDelegate extends AbstractScriptDelegate<ContentDereferencerRequest, ContentDereferencerResponse> implements ContentDereferencer {
+
+        protected ScriptContentDereferencerDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
+            super(artifactType, provider);
+        }
+
+        @Override
+        public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+            ContentDereferencerRequest requestBody = createDereferenceRequest(content, resolvedReferences);
+
+            try {
+                ContentDereferencerResponse responseBody = executeScript(requestBody, ContentDereferencerResponse.class);
+                return WebhookBeanUtil.typedContentFromWebhookBean(responseBody.getTypedContent());
+            } catch (Throwable e) {
+                log.error("Error invoking webhook", e);
+                return content;
+            }
+        }
+
+        @Override
+        public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {
+            ContentDereferencerRequest requestBody = createRewriteRefsRequest(content, resolvedReferenceUrls);
+
+            try {
+                ContentDereferencerResponse responseBody = executeScript(requestBody, ContentDereferencerResponse.class);
+                return WebhookBeanUtil.typedContentFromWebhookBean(responseBody.getTypedContent());
+            } catch (Throwable e) {
+                log.error("Error invoking webhook", e);
+                return content;
+            }
+        }
+
+    }
+
+    private static @NotNull ContentDereferencerRequest createRewriteRefsRequest(TypedContent content, Map<String, String> resolvedReferenceUrls) {
+        ContentDereferencerRequest requestBody = new ContentDereferencerRequest();
+        requestBody.setFunction(ContentDereferencerRequest.Function.rewriteReferences);
+        requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
+        requestBody.setResolvedReferenceUrls(WebhookBeanUtil.resolvedReferenceUrlListToWebhookBean(resolvedReferenceUrls));
+        return requestBody;
+    }
+
+    private static @NotNull ContentDereferencerRequest createDereferenceRequest(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+        ContentDereferencerRequest requestBody = new ContentDereferencerRequest();
+        requestBody.setFunction(ContentDereferencerRequest.Function.dereference);
+        requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
+        requestBody.setResolvedReferences(WebhookBeanUtil.resolvedReferenceListToWebhookBean(resolvedReferences));
+        return requestBody;
+    }
+
 }

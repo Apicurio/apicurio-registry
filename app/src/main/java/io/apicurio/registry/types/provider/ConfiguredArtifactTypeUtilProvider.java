@@ -17,6 +17,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.NoOpContentValidator;
+import io.apicurio.registry.script.ScriptingService;
 
 /**
  * An implementation of {@link ArtifactTypeUtilProvider} that comes from a configuration
@@ -28,9 +29,11 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
 
     private final ArtifactTypeConfiguration artifactType;
     private final HttpClientService httpClientService;
+    private final ScriptingService scriptingService;
 
-    public ConfiguredArtifactTypeUtilProvider(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+    public ConfiguredArtifactTypeUtilProvider(HttpClientService httpClientService, ScriptingService scriptingService, ArtifactTypeConfiguration artifactType) {
         this.httpClientService = httpClientService;
+        this.scriptingService = scriptingService;
         this.artifactType = artifactType;
     }
 
@@ -51,7 +54,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentAccepter.INSTANCE;
         }
-        return new ConfiguredContentAccepter(this.httpClientService, this.artifactType);
+        return new ConfiguredContentAccepter(this.httpClientService, this.scriptingService, this.artifactType);
     }
 
     @Override
@@ -60,7 +63,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoopCompatibilityChecker.INSTANCE;
         }
-        return new ConfiguredCompatibilityChecker(this.httpClientService, this.artifactType);
+        return new ConfiguredCompatibilityChecker(this.httpClientService, this.scriptingService, this.artifactType);
     }
 
     @Override
@@ -69,7 +72,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentCanonicalizer.INSTANCE;
         }
-        return new ConfiguredContentCanonicalizer(this.httpClientService, this.artifactType);
+        return new ConfiguredContentCanonicalizer(this.httpClientService, this.scriptingService, this.artifactType);
     }
 
     @Override
@@ -78,7 +81,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentValidator.INSTANCE;
         }
-        return new ConfiguredContentValidator(this.httpClientService, this.artifactType);
+        return new ConfiguredContentValidator(this.httpClientService, this.scriptingService, this.artifactType);
     }
 
     @Override
@@ -92,7 +95,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoopContentDereferencer.INSTANCE;
         }
-        return new ConfiguredContentDereferencer(this.httpClientService, this.artifactType);
+        return new ConfiguredContentDereferencer(this.httpClientService, this.scriptingService, this.artifactType);
     }
 
     @Override
@@ -101,6 +104,6 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpReferenceFinder.INSTANCE;
         }
-        return new ConfiguredReferenceFinder(this.httpClientService, this.artifactType);
+        return new ConfiguredReferenceFinder(this.httpClientService, this.scriptingService, this.artifactType);
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.config.artifactTypes.ArtifactTypesConfiguration;
 import io.apicurio.registry.http.HttpClientService;
+import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.utils.IoUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -27,6 +28,9 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
 
     @Inject
     HttpClientService httpClientService;
+
+    @Inject
+    ScriptingService scriptingService;
 
     @ConfigProperty(name = "apicurio.artifact-types.config-file", defaultValue = "/tmp/apicurio-registry-artifact-types.json")
     @Info(category = "types", description = "Path to a configuration file containing a list of supported artifact types.", availableSince = "3.1.0")
@@ -93,7 +97,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
                 }
 
                 log.info("Adding artifact type {}", artifactType.getName());
-                providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, artifactType));
+                providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, scriptingService, artifactType));
                 artifactTypes.add(type);
             });
         }

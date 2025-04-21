@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Apicurio Registyr Artifact Type Webhooks",
+    "title": "Apicurio Registry Artifact Type Webhooks",
     "version": "3.1.0",
     "description": "Defines the webhooks needed to provide functionality for a custom artifact type."
   },

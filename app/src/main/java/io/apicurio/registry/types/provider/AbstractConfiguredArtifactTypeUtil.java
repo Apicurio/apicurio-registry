@@ -7,6 +7,7 @@ import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.http.HttpClientException;
 import io.apicurio.registry.http.HttpClientService;
+import io.apicurio.registry.script.ScriptingService;
 import org.apache.commons.lang3.ClassUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final HttpClientService httpClientService;
+    protected final ScriptingService scriptingService;
     protected final T delegate;
 
     protected class AbstractWebhookDelegate<I, O> {
@@ -29,6 +31,21 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
 
         protected O invokeHook(I requestBody, Class<O> outputClass) throws HttpClientException {
             return httpClientService.post(provider.getUrl(), requestBody, outputClass);
+        }
+    }
+
+    protected class AbstractScriptDelegate<I, O> {
+
+        protected final ArtifactTypeConfiguration artifactType;
+        protected final ScriptProvider provider;
+
+        protected AbstractScriptDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
+            this.artifactType = artifactType;
+            this.provider = provider;
+        }
+
+        protected O executeScript(I input, Class<O> outputClass) throws HttpClientException {
+            return scriptingService.executeScript(provider.getScript(), input, outputClass);
         }
     }
 
@@ -63,8 +80,10 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
         }
     }
 
-    public AbstractConfiguredArtifactTypeUtil(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType, Provider provider) {
+    public AbstractConfiguredArtifactTypeUtil(HttpClientService httpClientService, ScriptingService scriptingService,
+                                              ArtifactTypeConfiguration artifactType, Provider provider) {
         this.httpClientService = httpClientService;
+        this.scriptingService = scriptingService;
         try {
             this.delegate = createDelegate(artifactType, provider);
         } catch (Exception e) {
@@ -78,7 +97,7 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
         } else if (provider instanceof JavaClassProvider) {
             return createJavaClassDelegate(artifactType, (JavaClassProvider) provider);
         } else if (provider instanceof ScriptProvider) {
-            throw new Exception("ScriptProvider not yet implemented.");
+            return createScriptDelegate(artifactType, (ScriptProvider) provider);
         } else {
             throw new Exception("Unknown provider type: " + provider.getClass().getName());
         }
@@ -87,4 +106,6 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
     protected abstract T createWebhookDelegate(ArtifactTypeConfiguration artifactType, WebhookProvider provider) throws Exception;
 
     protected abstract T createJavaClassDelegate(ArtifactTypeConfiguration artifactType, JavaClassProvider provider) throws Exception;
+
+    protected abstract T createScriptDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) throws Exception;
 }

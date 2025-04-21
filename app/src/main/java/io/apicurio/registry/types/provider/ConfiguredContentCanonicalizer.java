@@ -2,19 +2,22 @@ package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.config.artifactTypes.ArtifactTypeConfiguration;
 import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
+import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.http.HttpClientService;
+import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerResponse;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
 public class ConfiguredContentCanonicalizer extends AbstractConfiguredArtifactTypeUtil<ContentCanonicalizer> implements ContentCanonicalizer {
 
-    public ConfiguredContentCanonicalizer(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
-        super(httpClientService, artifactType, artifactType.getContentCanonicalizer());
+    public ConfiguredContentCanonicalizer(HttpClientService httpClientService, ScriptingService scriptingService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, scriptingService, artifactType, artifactType.getContentCanonicalizer());
     }
 
     @Override
@@ -51,10 +54,7 @@ public class ConfiguredContentCanonicalizer extends AbstractConfiguredArtifactTy
 
         @Override
         public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-            // Create the request payload object
-            ContentCanonicalizerRequest requestBody = new ContentCanonicalizerRequest();
-            requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
-            requestBody.setResolvedReferences(WebhookBeanUtil.resolvedReferenceListToWebhookBean(resolvedReferences));
+            ContentCanonicalizerRequest requestBody = createRequest(content, resolvedReferences);
 
             try {
                 ContentCanonicalizerResponse responseBody = invokeHook(requestBody, ContentCanonicalizerResponse.class);
@@ -65,4 +65,38 @@ public class ConfiguredContentCanonicalizer extends AbstractConfiguredArtifactTy
             }
         }
     }
+
+    @Override
+    protected ContentCanonicalizer createScriptDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) throws Exception {
+        return new ConfiguredContentCanonicalizer.ScriptContentCanonicalizerDelegate(artifactType, provider);
+    }
+
+    private class ScriptContentCanonicalizerDelegate extends AbstractScriptDelegate<ContentCanonicalizerRequest, ContentCanonicalizerResponse> implements ContentCanonicalizer {
+
+        protected ScriptContentCanonicalizerDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
+            super(artifactType, provider);
+        }
+
+        @Override
+        public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+            ContentCanonicalizerRequest requestBody = createRequest(content, resolvedReferences);
+
+            try {
+                ContentCanonicalizerResponse responseBody = executeScript(requestBody, ContentCanonicalizerResponse.class);
+                return WebhookBeanUtil.typedContentFromWebhookBean(responseBody.getTypedContent());
+            } catch (Throwable e) {
+                log.error("Error invoking webhook", e);
+                return content;
+            }
+        }
+
+    }
+
+    private static @NotNull ContentCanonicalizerRequest createRequest(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+        ContentCanonicalizerRequest requestBody = new ContentCanonicalizerRequest();
+        requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
+        requestBody.setResolvedReferences(WebhookBeanUtil.resolvedReferenceListToWebhookBean(resolvedReferences));
+        return requestBody;
+    }
+
 }

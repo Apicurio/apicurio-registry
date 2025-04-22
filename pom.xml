@@ -215,6 +215,7 @@
     <lombok.version>1.18.36</lombok.version>
     <commons-codec.version>1.18.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
+    <quickjs4j.version>999-SNAPSHOT</quickjs4j.version>
     <kafka-clients.version>3.9.0</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>
     <pulsar-clients.version>3.3.4</pulsar-clients.version>
@@ -558,6 +559,16 @@
       </dependency>
 
       <!-- Third Party Libraries -->
+      <dependency>
+        <groupId>io.roastedroot</groupId>
+        <artifactId>quickjs4j</artifactId>
+        <version>${quickjs4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.roastedroot</groupId>
+        <artifactId>quickjs4j-annotations</artifactId>
+        <version>${quickjs4j.version}</version>
+      </dependency>
       <dependency>
         <!-- Overrides the version from the Quarkus BOM -->
         <groupId>org.apache.kafka</groupId>
@@ -1029,6 +1040,11 @@
               <groupId>org.projectlombok</groupId>
               <artifactId>lombok</artifactId>
               <version>${lombok.version}</version>
+            </path>
+            <path>
+              <groupId>io.roastedroot</groupId>
+              <artifactId>quickjs4j-processor</artifactId>
+              <version>${quickjs4j.version}</version>
             </path>
           </annotationProcessorPaths>
         </configuration>

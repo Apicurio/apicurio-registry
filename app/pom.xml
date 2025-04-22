@@ -151,6 +151,14 @@
 
     <!-- Third Party Libraries -->
     <dependency>
+      <groupId>io.roastedroot</groupId>
+      <artifactId>quickjs4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.roastedroot</groupId>
+      <artifactId>quickjs4j-annotations</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>kafka-oauth-client</artifactId>
     </dependency>

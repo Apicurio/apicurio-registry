@@ -299,6 +299,7 @@ annotationTypes:
         // Note: Cannot test this easily because the rewritten content contains URLs based on the host and port
         //       of the test server, which will be dynamic.  Check for the static parts of the URL instead.
 //        Assertions.assertEquals(DEREFERENCED_RAML_CONTENT, rewrittenContent);
+        // TODO: no idea on how to get this to pass
         Assertions.assertTrue(rewrittenContent.contains(groupId));
         Assertions.assertTrue(rewrittenContent.contains("order-xsd"));
     }

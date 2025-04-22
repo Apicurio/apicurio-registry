@@ -75,6 +75,7 @@
     <module>config-index/runtime</module>
     <module>app</module>
     <module>utils/converter</module>
+    <module>utils/flink</module>
     <module>utils/kafka</module>
     <module>utils/maven-plugin</module>
     <module>utils/importexport</module>
@@ -265,10 +266,12 @@
     <proto-plugin.version>0.6.1</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
+    <!-- Flink -->
+    <flink.version>1.20.1</flink.version>
+
     <!-- Kiota -->
     <kiota.libs.version>1.8.4</kiota.libs.version>
     <kiota.community.version>0.0.21</kiota.community.version>
-
     <kiota.version>1.23.0</kiota.version>
     <kiota.timeout>60</kiota.timeout>
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
@@ -536,6 +539,13 @@
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-distro-connect-converter</artifactId>
         <version>${project.version}</version>
+      </dependency>
+
+      <!-- Flink -->
+      <dependency>
+        <groupId>org.apache.flink</groupId>
+        <artifactId>flink-table-api-java</artifactId>
+        <version>${flink.version}</version>
       </dependency>
 
       <!-- Quarkus Dependencies -->

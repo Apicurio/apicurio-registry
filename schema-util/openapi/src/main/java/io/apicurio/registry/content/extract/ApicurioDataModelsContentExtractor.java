@@ -46,7 +46,7 @@ public class ApicurioDataModelsContentExtractor implements ContentExtractor {
         String description;
 
         /**
-         * @see io.apicurio.datamodels.combined.visitors.CombinedVisitorAdapter#visitInfo(io.apicurio.datamodels.core.models.common.Info)
+         * @see CombinedVisitorAdapter#visitInfo(Info)
          */
         @Override
         public void visitInfo(Info node) {

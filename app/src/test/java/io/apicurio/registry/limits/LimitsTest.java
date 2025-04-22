@@ -1,7 +1,6 @@
 package io.apicurio.registry.limits;
 
 import com.microsoft.kiota.ApiException;
-import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -24,14 +23,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import java.io.InputStream;
 import java.util.Map;
 
 @QuarkusTest
 @TestProfile(LimitsTestProfile.class)
-@DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)
 @Tag(ApicurioTestTags.SLOW)
 public class LimitsTest extends AbstractResourceTestBase {
 

@@ -81,6 +81,7 @@
     <module>utils/exportConfluent</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
+    <module>utils/raml-test-micro-service</module>
     <module>schema-resolver</module>
     <module>serdes/generic/serde-common</module>
     <module>serdes/generic/serde-common-avro</module>

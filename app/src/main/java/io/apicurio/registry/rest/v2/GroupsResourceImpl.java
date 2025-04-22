@@ -183,7 +183,7 @@ public class GroupsResourceImpl implements GroupsResource {
             if (dereference && !artifact.getReferences().isEmpty()) {
                 if (artifactTypeProvider.supportsReferencesWithContext()) {
                     RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
-                            .recursivelyResolveReferencesWithContext(contentToReturn,
+                            .recursivelyResolveReferencesWithContext(factory, contentToReturn,
                                     metaData.getArtifactType(), artifact.getReferences(),
                                     storage::getContentByReference);
 
@@ -676,7 +676,7 @@ public class GroupsResourceImpl implements GroupsResource {
         if (dereference && !artifact.getReferences().isEmpty()) {
             if (artifactTypeProvider.supportsReferencesWithContext()) {
                 RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
-                        .recursivelyResolveReferencesWithContext(contentToReturn, metaData.getArtifactType(),
+                        .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType(),
                                 artifact.getReferences(), storage::getContentByReference);
 
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(

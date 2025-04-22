@@ -11,18 +11,33 @@ import java.util.stream.Collectors;
 
 public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
 
-    protected Map<String, ArtifactTypeUtilProvider> map = new ConcurrentHashMap<>();
+    protected Map<String, ArtifactTypeUtilProvider> providerMap = new ConcurrentHashMap<>();
 
-    protected List<ArtifactTypeUtilProvider> providers = new ArrayList<ArtifactTypeUtilProvider>(
+    protected List<ArtifactTypeUtilProvider> standardProviders = new ArrayList<ArtifactTypeUtilProvider>(
             List.of(new ProtobufArtifactTypeUtilProvider(), new OpenApiArtifactTypeUtilProvider(),
                     new AsyncApiArtifactTypeUtilProvider(), new JsonArtifactTypeUtilProvider(),
                     new AvroArtifactTypeUtilProvider(), new GraphQLArtifactTypeUtilProvider(),
                     new KConnectArtifactTypeUtilProvider(), new WsdlArtifactTypeUtilProvider(),
                     new XsdArtifactTypeUtilProvider(), new XmlArtifactTypeUtilProvider()));
 
+    protected List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
+
+    public DefaultArtifactTypeUtilProviderImpl() {
+    }
+
+    public DefaultArtifactTypeUtilProviderImpl(boolean initStandardProviders) {
+        if (initStandardProviders) {
+            loadStandardProviders();
+        }
+    }
+
+    protected void loadStandardProviders() {
+        providers.addAll(standardProviders);
+    }
+
     @Override
     public ArtifactTypeUtilProvider getArtifactTypeProvider(String type) {
-        return map.computeIfAbsent(type,
+        return providerMap.computeIfAbsent(type,
                 t -> providers.stream().filter(a -> a.getArtifactType().equals(t)).findFirst().orElseThrow(
                         () -> new IllegalStateException("No such artifact type provider: " + t)));
     }

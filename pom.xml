@@ -99,6 +99,7 @@
     <module>utils/maven-plugin</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
+    <module>utils/raml-test-micro-service</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
     <module>schema-util/asyncapi</module>

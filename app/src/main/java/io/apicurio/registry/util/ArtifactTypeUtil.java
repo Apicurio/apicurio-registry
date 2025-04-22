@@ -1,5 +1,6 @@
 package io.apicurio.registry.util;
 
+import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -64,7 +65,8 @@ public final class ArtifactTypeUtil {
     private static String discoverType(TypedContent content, Map<String, TypedContent> resolvedReferences,
             ArtifactTypeUtilProviderFactory artifactTypeProviderFactory) throws InvalidArtifactTypeException {
         for (ArtifactTypeUtilProvider provider : artifactTypeProviderFactory.getAllArtifactTypeProviders()) {
-            if (provider.acceptsContent(content, resolvedReferences)) {
+            ContentAccepter contentAccepter = provider.getContentAccepter();
+            if (contentAccepter.acceptsContent(content, resolvedReferences)) {
                 return provider.getArtifactType();
             }
         }

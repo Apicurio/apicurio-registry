@@ -21,7 +21,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "allowDeletes" })
+@JsonPropertyOrder({ "resourceDeleteEnabled" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -31,7 +31,7 @@ import static lombok.AccessLevel.PRIVATE;
 @ToString
 public class AppFeaturesSpec {
 
-    @JsonProperty("allowDeletes")
+    @JsonProperty("resourceDeleteEnabled")
     @JsonPropertyDescription("""
             Apicurio Registry backend 'allow deletes' feature.
             If the value is true, the application will be configured to allow Groups, Artifacts, and
@@ -40,6 +40,6 @@ public class AppFeaturesSpec {
             granular level (e.g. only allow deleting artifact versions) using ENV variables.  This
             option enables deletes for all three resource types.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean allowDeletes;
+    private Boolean resourceDeleteEnabled;
 
 }

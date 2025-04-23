@@ -71,7 +71,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         // Enable deletes if configured in the CR
         boolean allowDeletes = Optional.ofNullable(primary.getSpec().getApp())
                 .map(AppSpec::getFeatures)
-                .map(AppFeaturesSpec::getAllowDeletes)
+                .map(AppFeaturesSpec::getResourceDeleteEnabled)
                 .orElse(Boolean.FALSE);
 
         if (allowDeletes) {

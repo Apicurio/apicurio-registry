@@ -20,7 +20,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({ "enabled", "ownerOnly", "groupAccess", "readAccess", "roleSource", "adminRole",
+@JsonPropertyOrder({ "enabled", "ownerOnlyEnabled", "groupAccessEnabled", "readAccessEnabled", "roleSource", "adminRole",
         "developerRole", "readOnlyRole", "adminOverride" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -37,23 +37,23 @@ public class AuthzSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private Boolean enabled;
 
-    @JsonProperty("ownerOnly")
+    @JsonProperty("ownerOnlyEnabled")
     @JsonPropertyDescription("""
             When owner-only authorization is enabled, only the user who created an artifact can modify or delete that artifact.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean ownerOnly;
+    private Boolean ownerOnlyEnabled;
 
-    @JsonProperty("groupAccess")
+    @JsonProperty("groupAccessEnabled")
     @JsonPropertyDescription("""
             When owner-only authorization and group owner-only authorization are both enabled, only the user who created an artifact group has write access to that artifact group, for example, to add or remove artifacts in that group.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean groupAccess;
+    private Boolean groupAccessEnabled;
 
-    @JsonProperty("readAccess")
+    @JsonProperty("readAccessEnabled")
     @JsonPropertyDescription("""
             When the authenticated read access option is enabled, Apicurio Registry grants at least read-only access to requests from any authenticated user in the same organization, regardless of their user role.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean readAccess;
+    private Boolean readAccessEnabled;
 
     @JsonProperty("roleSource")
     @JsonPropertyDescription("""

@@ -13,7 +13,7 @@ spec:
       authServerUrl: https://simple-keycloak.apps.cluster.example/realms/registry
       redirectUri: https://simple-ui.apps.cluster.example
       logoutUrl: https://simple-ui.apps.cluster.example
-      anonymousReads: true
+      anonymousReadsEnabled: true
       basicAuth:
         enabled: true
         cacheExpiration: 25m

@@ -20,7 +20,7 @@ public class AppFeaturesITTest extends ITBase {
         ApicurioRegistry3 registry = ResourceFactory
                 .deserialize("/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);
         // Set Allow deletes = true
-        registry.getSpec().getApp().setFeatures(AppFeaturesSpec.builder().allowDeletes(true).build());
+        registry.getSpec().getApp().setFeatures(AppFeaturesSpec.builder().resourceDeleteEnabled(true).build());
         client.resource(registry).create();
 
         // Wait for the deployment to exist

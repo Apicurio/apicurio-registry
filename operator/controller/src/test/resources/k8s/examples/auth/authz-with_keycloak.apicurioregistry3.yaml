@@ -15,9 +15,9 @@ spec:
       logoutUrl: https://simple-ui.apps.cluster.example
       authz:
         enabled: true
-        ownerOnly: true
-        groupAccess: true
-        readAccess: true
+        ownerOnlyEnabled: true
+        groupAccessEnabled: true
+        readAccessEnabled: true
         roleSource: token
         adminRole: admin
         developerRole: dev

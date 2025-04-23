@@ -44,9 +44,9 @@ public class AuthzITTest extends BaseAuthITTest {
 
         // Authz exclusive assertions
         Assertions.assertEquals(true, authzSpec.getEnabled());
-        Assertions.assertEquals(true, authzSpec.getOwnerOnly());
-        Assertions.assertEquals(true, authzSpec.getGroupAccess());
-        Assertions.assertEquals(true, authzSpec.getReadAccess());
+        Assertions.assertEquals(true, authzSpec.getOwnerOnlyEnabled());
+        Assertions.assertEquals(true, authzSpec.getGroupAccessEnabled());
+        Assertions.assertEquals(true, authzSpec.getReadAccessEnabled());
         Assertions.assertEquals("token", authzSpec.getRoleSource());
         Assertions.assertEquals("admin", authzSpec.getAdminRole());
         Assertions.assertEquals("dev", authzSpec.getDeveloperRole());

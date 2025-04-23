@@ -31,20 +31,20 @@ public class Authz {
                     createEnvVar(EnvironmentVariables.APICURIO_AUTH_ROLE_BASED_AUTHORIZATION,
                             authzSpec.getEnabled().toString()));
 
-            if (authzSpec.getGroupAccess() != null && authzSpec.getGroupAccess()) {
+            if (authzSpec.getGroupAccessEnabled() != null && authzSpec.getGroupAccessEnabled()) {
                 putIfNotBlank(env,
                         EnvironmentVariables.APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS,
-                        authzSpec.getGroupAccess().toString());
+                        authzSpec.getGroupAccessEnabled().toString());
             }
 
-            if (authzSpec.getOwnerOnly() != null && authzSpec.getOwnerOnly()) {
+            if (authzSpec.getOwnerOnlyEnabled() != null && authzSpec.getOwnerOnlyEnabled()) {
                 putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION,
-                        authzSpec.getOwnerOnly().toString());
+                        authzSpec.getOwnerOnlyEnabled().toString());
             }
 
-            if (authzSpec.getReadAccess() != null && authzSpec.getReadAccess()) {
+            if (authzSpec.getReadAccessEnabled() != null && authzSpec.getReadAccessEnabled()) {
                 putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_AUTHENTICATED_READ_ACCESS_ENABLED,
-                        authzSpec.getReadAccess().toString());
+                        authzSpec.getReadAccessEnabled().toString());
             }
 
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ROLE_SOURCE, authzSpec.getRoleSource());

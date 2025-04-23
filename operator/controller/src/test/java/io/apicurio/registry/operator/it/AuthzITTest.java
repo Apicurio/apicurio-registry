@@ -37,8 +37,8 @@ public class AuthzITTest extends BaseAuthITTest {
         Assertions.assertEquals(true, authSpec.getEnabled());
         Assertions.assertEquals("https://simple-keycloak.apps.cluster.example/realms/registry",
                 authSpec.getAuthServerUrl());
-        Assertions.assertEquals("https://simple-ui.apps.cluster.example", authSpec.getRedirectURI());
-        Assertions.assertEquals("https://simple-ui.apps.cluster.example", authSpec.getLogoutURL());
+        Assertions.assertEquals("https://simple-ui.apps.cluster.example", authSpec.getRedirectUri());
+        Assertions.assertEquals("https://simple-ui.apps.cluster.example", authSpec.getLogoutUrl());
 
         AuthzSpec authzSpec = authSpec.getAuthz();
 

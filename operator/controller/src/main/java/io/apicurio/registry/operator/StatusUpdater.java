@@ -33,8 +33,6 @@ public class StatusUpdater {
 
     private Condition defaultCondition() {
         var condition = new Condition();
-        condition.setObservedGeneration(
-                registry.getMetadata() == null ? null : registry.getMetadata().getGeneration());
         condition.setLastTransitionTime(now());
         return condition;
     }

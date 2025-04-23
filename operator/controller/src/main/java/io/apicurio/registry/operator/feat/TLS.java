@@ -2,7 +2,7 @@ package io.apicurio.registry.operator.feat;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
-import io.apicurio.registry.operator.api.v1.TlsTrafficStatus;
+import io.apicurio.registry.operator.api.v1.spec.InsecureRequests;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.TLSSpec;
 import io.apicurio.registry.operator.utils.SecretKeyRefTool;
@@ -18,6 +18,7 @@ import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_TLS_KEY
 import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_TLS_TRUST_STORE_P12_PASSWORD;
 import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_TLS_TRUST_STORE_P12_PATH;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
+import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 
 public class TLS {
@@ -29,7 +30,9 @@ public class TLS {
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getTls)
                 .map(TLSSpec::getInsecureRequests)
-                .orElse(TlsTrafficStatus.ENABLED.getValue()));
+                .or(() -> of(InsecureRequests.ENABLED))
+                .map(InsecureRequests::getValue)
+                .get());
 
         var keystore = new SecretKeyRefTool(getTlsSpec(primary)
                 .map(TLSSpec::getKeystoreSecretRef)
@@ -71,6 +74,6 @@ public class TLS {
     }
 
     public static boolean insecureRequestsEnabled(TLSSpec tlsSpec) {
-        return TlsTrafficStatus.ENABLED.getValue().equals(tlsSpec.getInsecureRequests());
+        return InsecureRequests.ENABLED.equals(tlsSpec.getInsecureRequests());
     }
 }

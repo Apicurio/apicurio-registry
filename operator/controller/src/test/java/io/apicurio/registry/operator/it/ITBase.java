@@ -24,7 +24,11 @@ import jakarta.enterprise.inject.spi.CDI;
 import jakarta.enterprise.util.TypeLiteral;
 import org.awaitility.Awaitility;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -55,6 +60,13 @@ public abstract class ITBase {
     public static final String GENERATED_RESOURCES_FOLDER = "target/kubernetes/";
     public static final String CRD_FILE = "../model/target/classes/META-INF/fabric8/apicurioregistries3.registry.apicur.io-v1.yml";
     public static final String REMOTE_TESTS_INSTALL_FILE = "test.operator.install-file";
+
+    public static final Duration POLL_INTERVAL_DURATION = ofSeconds(5);
+    public static final Duration SHORT_DURATION = ofSeconds(30);
+    // NOTE: When running remote tests, some extra time might be needed to pull an image before the pod can be run.
+    // TODO: Consider changing the duration based on test type or the situation.
+    public static final Duration MEDIUM_DURATION = ofSeconds(60);
+    public static final Duration LONG_DURATION = ofSeconds(5 * 60);
 
     public enum OperatorDeployment {
         local, remote
@@ -123,7 +135,7 @@ public abstract class ITBase {
     }
 
     protected static void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
-        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get()
                     .getStatus().getReadyReplicas()).isEqualTo(replicas);
@@ -131,7 +143,7 @@ public abstract class ITBase {
     }
 
     protected static void checkDeploymentDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get())
                     .isNull();
@@ -139,7 +151,7 @@ public abstract class ITBase {
     }
 
     protected static void checkServiceExists(ApicurioRegistry3 primary, String component) {
-        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.services()
                     .withName(primary.getMetadata().getName() + "-" + component + "-service").get())
                     .isNotNull();
@@ -147,14 +159,14 @@ public abstract class ITBase {
     }
 
     protected static void checkServiceDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.services()
                     .withName(primary.getMetadata().getName() + "-" + component + "-service").get()).isNull();
         });
     }
 
     protected static void checkIngressExists(ApicurioRegistry3 primary, String component) {
-        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.network().v1().ingresses()
                     .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get())
                     .isNotNull();
@@ -162,7 +174,7 @@ public abstract class ITBase {
     }
 
     protected static void checkIngressDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.network().v1().ingresses()
                     .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get()).isNull();
         });
@@ -172,7 +184,7 @@ public abstract class ITBase {
                                                                         String component) {
         final ValueOrNull<PodDisruptionBudget> rval = new ValueOrNull<>();
 
-        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             PodDisruptionBudget pdb = client.policy().v1().podDisruptionBudget()
                     .withName(primary.getMetadata().getName() + "-" + component + "-poddisruptionbudget")
                     .get();
@@ -186,7 +198,7 @@ public abstract class ITBase {
     protected static NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
         final ValueOrNull<NetworkPolicy> rval = new ValueOrNull<>();
 
-        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             NetworkPolicy networkPolicy = client.network().v1().networkPolicies()
                     .withName(primary.getMetadata().getName() + "-" + component + "-networkpolicy").get();
             assertThat(networkPolicy).isNotNull();
@@ -225,7 +237,7 @@ public abstract class ITBase {
 
     private static void startOperatorLogs() {
         List<Pod> operatorPods = new ArrayList<>();
-        await().atMost(Duration.ofSeconds(30)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             operatorPods.clear();
             operatorPods.addAll(client.pods()
                     .withLabels(Map.of(
@@ -312,8 +324,8 @@ public abstract class ITBase {
     }
 
     static void setDefaultAwaitilityTimings() {
-        Awaitility.setDefaultPollInterval(Duration.ofSeconds(5));
-        Awaitility.setDefaultTimeout(Duration.ofSeconds(5 * 60));
+        Awaitility.setDefaultPollInterval(POLL_INTERVAL_DURATION);
+        Awaitility.setDefaultTimeout(LONG_DURATION);
     }
 
     static void createResources(List<HasMetadata> resources, String resourceType) {

@@ -20,8 +20,8 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({ "enabled", "ownerOnlyEnabled", "groupAccessEnabled", "readAccessEnabled", "roleSource", "adminRole",
-        "developerRole", "readOnlyRole", "adminOverride" })
+@JsonPropertyOrder({"enabled", "ownerOnlyEnabled", "groupAccessEnabled", "readAccessEnabled", "roleSource", "adminRole",
+        "developerRole", "readOnlyRole", "adminOverride"})
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -55,29 +55,11 @@ public class AuthzSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private Boolean readAccessEnabled;
 
-    @JsonProperty("roleSource")
+    @JsonProperty("roles")
     @JsonPropertyDescription("""
-            When set to token, user roles are taken from the authentication token.""")
+            Configure authorization role source and role names.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String roleSource;
-
-    @JsonProperty("adminRole")
-    @JsonPropertyDescription("""
-            The name of the role that indicates a user is an admin.""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private String adminRole;
-
-    @JsonProperty("developerRole")
-    @JsonPropertyDescription("""
-            The name of the role that indicates a user is a developer.""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private String developerRole;
-
-    @JsonProperty("readOnlyRole")
-    @JsonPropertyDescription("""
-            The name of the role that indicates a user has read-only access.""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private String readOnlyRole;
+    private AuthzRolesSpec roles;
 
     @JsonProperty("adminOverride")
     @JsonPropertyDescription("""

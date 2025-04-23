@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.SqlSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
+import io.apicurio.registry.operator.utils.SecretKeyRefTool;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 
@@ -35,8 +36,11 @@ public class PostgresSql {
                             .withValue(dataSource.getUrl()).build());
                     addEnvVar(env, new EnvVarBuilder().withName(ENV_APICURIO_DATASOURCE_USERNAME)
                             .withValue(dataSource.getUsername()).build());
-                    addEnvVar(env, new EnvVarBuilder().withName(ENV_APICURIO_DATASOURCE_PASSWORD)
-                            .withValue(dataSource.getPassword()).build());
+
+                    var password = new SecretKeyRefTool(dataSource.getPassword(), "password");
+                    if (password.isValid()) {
+                        password.applySecretEnvVar(env, ENV_APICURIO_DATASOURCE_PASSWORD);
+                    }
                 });
     }
 }

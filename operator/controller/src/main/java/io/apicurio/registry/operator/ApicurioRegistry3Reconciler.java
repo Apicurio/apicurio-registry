@@ -1,20 +1,49 @@
 package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.resource.app.*;
-import io.apicurio.registry.operator.resource.ui.*;
+import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
+import io.apicurio.registry.operator.resource.app.AppIngressResource;
+import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
+import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
+import io.apicurio.registry.operator.resource.app.AppServiceResource;
+import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
+import io.apicurio.registry.operator.resource.ui.UIIngressResource;
+import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
+import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
+import io.apicurio.registry.operator.resource.ui.UIServiceResource;
 import io.apicurio.registry.operator.status.OperatorErrorConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
 import io.apicurio.registry.operator.updater.IngressCRUpdater;
 import io.apicurio.registry.operator.updater.KafkaSqlCRUpdater;
 import io.apicurio.registry.operator.updater.SqlCRUpdater;
-import io.javaoperatorsdk.operator.api.reconciler.*;
+import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
+import io.javaoperatorsdk.operator.api.reconciler.Context;
+import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
+import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
+import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
+import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
+import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
+import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.resource.ActivationConditions.*;
-import static io.apicurio.registry.operator.resource.ResourceKey.*;
+import static io.apicurio.registry.operator.resource.ActivationConditions.AppIngressActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.AppNetworkPolicyActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.AppPodDisruptionBudgetActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.UINetworkPolicyActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.UIPodDisruptionBudgetActivationCondition;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_INGRESS_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_NETWORK_POLICY_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_POD_DISRUPTION_BUDGET_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_DEPLOYMENT_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_NETWORK_POLICY_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_POD_DISRUPTION_BUDGET_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
 
 @ControllerConfiguration(
         dependents = {
@@ -91,7 +120,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
         // Operator will attempt to update the CR to use the newer fields if possible.
         // This has to be done first, so subsequent functionality can deal with new fields only.
         var update = IngressCRUpdater.update(primary);
-        update = SqlCRUpdater.update(primary) || update;
+        update = SqlCRUpdater.update(primary, context) || update;
         update = KafkaSqlCRUpdater.update(primary) || update;
         if (update) {
             return UpdateControl.updateResource(primary);

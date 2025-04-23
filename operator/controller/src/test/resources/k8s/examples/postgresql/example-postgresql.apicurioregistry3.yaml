@@ -10,7 +10,8 @@ spec:
         dataSource:
           url: jdbc:postgresql://example-postgresql-database:5432/apicurio
           username: username
-          password: password
+          password:
+            name: example-postgresql-database-password
     ingress:
       host: example-postgresql-app.apps.cluster.example
   ui:

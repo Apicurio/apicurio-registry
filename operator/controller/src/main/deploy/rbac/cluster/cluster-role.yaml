@@ -57,3 +57,12 @@ rules:
       - poddisruptionbudgets
     verbs:
       - '*'
+
+  - apiGroups:
+      - ''
+    resources:
+      - secrets
+    verbs:
+      - list
+      - get
+      - create

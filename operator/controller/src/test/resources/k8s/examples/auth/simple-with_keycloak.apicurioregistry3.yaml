@@ -16,7 +16,7 @@ spec:
       anonymousReads: true
       basicAuth:
         enabled: true
-        cacheExpiration: 25
+        cacheExpiration: 25m
       tls:
         tlsVerificationType: none
   ui:

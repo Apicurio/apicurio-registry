@@ -50,7 +50,7 @@ public class Auth {
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_ENABLED,
                     authSpec.getBasicAuth().getEnabled().toString());
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_CACHE_EXPIRATION,
-                    authSpec.getBasicAuth().getCacheExpiration());
+                    Long.toString(authSpec.getBasicAuth().getCacheExpiration().getDuration().toMinutes()));
         }
 
         AuthTLS.configureAuthTLS(authSpec, deployment, env);

@@ -2,9 +2,20 @@ package io.apicurio.registry.operator.updater;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
-import io.apicurio.registry.operator.api.v1.spec.*;
+import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.DataSourceSpec;
+import io.apicurio.registry.operator.api.v1.spec.DeprecatedDataSource;
+import io.apicurio.registry.operator.api.v1.spec.DeprecatedSqlSpec;
+import io.apicurio.registry.operator.api.v1.spec.SecretKeyRef;
+import io.apicurio.registry.operator.api.v1.spec.SqlSpec;
+import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
+import io.apicurio.registry.operator.api.v1.spec.StorageType;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
+import io.javaoperatorsdk.operator.api.reconciler.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.UUID;
 
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
@@ -16,7 +27,7 @@ public class SqlCRUpdater {
     /**
      * @return true if the CR has been updated
      */
-    public static boolean update(ApicurioRegistry3 primary) {
+    public static boolean update(ApicurioRegistry3 primary, Context context) {
         var updated = false;
         var prevDataSource = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getSql).map(DeprecatedSqlSpec::getDataSource);
@@ -44,7 +55,7 @@ public class SqlCRUpdater {
                 } else {
                     log.warn(
                             "Automatic update cannot be performed, "
-                                    + "because the field `app.storage.type` is already set and is not '{}'.",
+                            + "because the field `app.storage.type` is already set and is not '{}'.",
                             StorageType.POSTGRESQL.getValue());
                 }
             } else {
@@ -67,7 +78,7 @@ public class SqlCRUpdater {
                 } else {
                     log.warn(
                             "Automatic update cannot be performed, "
-                                    + "because the field `app.storage.type` is already set and is not '{}'.",
+                            + "because the field `app.storage.type` is already set and is not '{}'.",
                             StorageType.POSTGRESQL.getValue());
                 }
             } else {
@@ -82,15 +93,27 @@ public class SqlCRUpdater {
                 if (storageType.isEmpty() || StorageType.POSTGRESQL.equals(storageType.orElse(null))) {
                     log.info(
                             "Performing automatic CR update from `app.sql.dataSource.password` to `app.storage.sql.dataSource.password`.");
+                    // Create the Secret
+                    var secretName = primary.getMetadata().getName() + "-datasource-password-" + UUID.randomUUID().toString().substring(0, 7);
+                    // @formatter:off
+                    var secret = new SecretBuilder()
+                            .withNewMetadata()
+                                .withNamespace(primary.getMetadata().getNamespace())
+                                .withName(secretName)
+                            .endMetadata()
+                            .addToData("password", prevPassword.get())
+                            .build();
+                    // @formatter:on
+                    context.getClient().resource(secret).create();
                     primary.getSpec().withApp().withStorage().setType(StorageType.POSTGRESQL);
                     primary.getSpec().getApp().getSql().getDataSource().setPassword(null);
                     primary.getSpec().getApp().getStorage().withSql().withDataSource()
-                            .setPassword(prevPassword.get());
+                            .setPassword(SecretKeyRef.builder().name(secretName).build());
                     updated = true;
                 } else {
                     log.warn(
                             "Automatic update cannot be performed, "
-                                    + "because the field `app.storage.type` is already set and is not '{}'.",
+                            + "because the field `app.storage.type` is already set and is not '{}'.",
                             StorageType.POSTGRESQL.getValue());
                 }
             } else {

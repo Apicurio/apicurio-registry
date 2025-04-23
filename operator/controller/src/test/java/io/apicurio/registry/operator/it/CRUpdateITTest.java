@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 
+import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -53,6 +54,10 @@ public class CRUpdateITTest extends ITBase {
                         assertThat(updated).hasSize(1);
                         // We do not care about the operand here, just about the CR structure
                         assertThat(updated.get(0).getSpec()).usingRecursiveComparison()
+                                // We have to specially handle generated Secret name, since we do not know it in advance.
+                                // It should be enough to just make sure it's not blank.
+                                .withEqualsForFields((l, r) -> !isBlank((String) l) && !isBlank((String) r),
+                                        "app.storage.sql.dataSource.password.name")
                                 .isEqualTo(updatedExpected.getSpec());
                     });
         });

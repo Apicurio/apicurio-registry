@@ -30,7 +30,7 @@ spec:
               value: apicurio
       volumes:
         - name: cache-volume
-          emptyDir: {}
+          emptyDir: { }
 ---
 # PostgreSQL StatefulSet Service
 apiVersion: v1
@@ -43,3 +43,12 @@ spec:
   ports:
     - port: 5432
       targetPort: 5432
+---
+# PostgreSQL Password Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: example-postgresql-database-password
+type: Opaque
+data:
+  password: cGFzc3dvcmQ=

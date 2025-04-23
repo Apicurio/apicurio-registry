@@ -1,9 +1,18 @@
 package io.apicurio.registry.operator.api.v1.spec;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
@@ -12,7 +21,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "url", "username", "password" })
+@JsonPropertyOrder({"url", "username", "password"})
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -47,15 +56,13 @@ public class DataSourceSpec {
     /**
      * Configure SQL data source password.
      * <p>
-     * If you want to reference a Secret, you can set the <code>APICURIO_DATASOURCE_PASSWORD</code>
-     * environment variable directly using the <code>app.env</code> field.
+     * References name of a Secret that contains the password. Key <code>password</code> is assumed by default.
      */
     @JsonProperty("password")
     @JsonPropertyDescription("""
             Configure SQL data source password.
-
-            If you want to reference a Secret, you can set the `APICURIO_DATASOURCE_PASSWORD` environment variable \
-            directly using the `app.env` field.""")
+                      
+            References name of a Secret that contains the password. Key `password` is assumed by default.""")
     @JsonSetter(nulls = SKIP)
-    private String password;
+    private SecretKeyRef password;
 }

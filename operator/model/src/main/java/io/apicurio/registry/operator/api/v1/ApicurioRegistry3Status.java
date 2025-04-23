@@ -1,12 +1,21 @@
 package io.apicurio.registry.operator.api.v1;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.operator.api.v1.status.Condition;
-import io.apicurio.registry.operator.api.v1.status.Info;
 import io.javaoperatorsdk.operator.api.ObservedGenerationAwareStatus;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +25,7 @@ import static com.fasterxml.jackson.annotation.Nulls.SKIP;
 import static lombok.AccessLevel.PRIVATE;
 
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "conditions", "info" })
+@JsonPropertyOrder({"conditions"})
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -35,9 +44,4 @@ public class ApicurioRegistry3Status extends ObservedGenerationAwareStatus {
             Apicurio Registry operator and operand conditions.""")
     @JsonSetter(nulls = SKIP)
     private List<Condition> conditions = new ArrayList<>();
-
-    @JsonProperty("info")
-    @JsonPropertyDescription("Information about the Apicurio Registry application")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private Info info;
 }

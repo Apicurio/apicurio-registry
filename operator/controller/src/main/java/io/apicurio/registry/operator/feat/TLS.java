@@ -12,7 +12,11 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import java.util.Map;
 import java.util.Optional;
 
-import static io.apicurio.registry.operator.EnvironmentVariables.*;
+import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_HTTP_INSECURE_REQUESTS;
+import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_TLS_KEY_STORE_P12_PASSWORD;
+import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_TLS_KEY_STORE_P12_PATH;
+import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_TLS_TRUST_STORE_P12_PASSWORD;
+import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_TLS_TRUST_STORE_P12_PATH;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static java.util.Optional.ofNullable;
 

@@ -47,10 +47,10 @@ public class AuthzITTest extends BaseAuthITTest {
         Assertions.assertEquals(true, authzSpec.getOwnerOnlyEnabled());
         Assertions.assertEquals(true, authzSpec.getGroupAccessEnabled());
         Assertions.assertEquals(true, authzSpec.getReadAccessEnabled());
-        Assertions.assertEquals("token", authzSpec.getRoleSource());
-        Assertions.assertEquals("admin", authzSpec.getAdminRole());
-        Assertions.assertEquals("dev", authzSpec.getDeveloperRole());
-        Assertions.assertEquals("read", authzSpec.getReadOnlyRole());
+        Assertions.assertEquals("token", authzSpec.getRoles().getSource());
+        Assertions.assertEquals("admin", authzSpec.getRoles().getAdmin());
+        Assertions.assertEquals("dev", authzSpec.getRoles().getDeveloper());
+        Assertions.assertEquals("read", authzSpec.getRoles().getReadOnly());
 
         // Admin Override assertions
         AdminOverrideSpec adminOverrideSpec = authzSpec.getAdminOverride();
@@ -83,13 +83,13 @@ public class AuthzITTest extends BaseAuthITTest {
                 .contains(EnvironmentVariables.APICURIO_REGISTRY_UI_CLIENT_ID + "=" + "apicurio-registry");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL + "="
-                        + "https://simple-keycloak.apps.cluster.example/realms/registry");
+                          + "https://simple-keycloak.apps.cluster.example/realms/registry");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_UI_AUTH_OIDC_REDIRECT_URI + "="
-                        + "https://simple-ui.apps.cluster.example");
+                          + "https://simple-ui.apps.cluster.example");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_UI_AUTH_OIDC_LOGOUT_URL + "="
-                        + "https://simple-ui.apps.cluster.example");
+                          + "https://simple-ui.apps.cluster.example");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.OIDC_TLS_VERIFICATION + "=" + "required");
 
@@ -100,7 +100,7 @@ public class AuthzITTest extends BaseAuthITTest {
                 EnvironmentVariables.APICURIO_AUTH_AUTHENTICATED_READ_ACCESS_ENABLED + "=" + "true");
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS + "="
-                        + "true");
+                          + "true");
 
         assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
                 .contains(EnvironmentVariables.APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION + "=" + "true");

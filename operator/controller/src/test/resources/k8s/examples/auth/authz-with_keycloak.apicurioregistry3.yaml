@@ -18,10 +18,11 @@ spec:
         ownerOnlyEnabled: true
         groupAccessEnabled: true
         readAccessEnabled: true
-        roleSource: token
-        adminRole: admin
-        developerRole: dev
-        readOnlyRole: read
+        roles:
+          source: token
+          admin: admin
+          developer: dev
+          readOnly: read
         adminOverride:
           enabled: true
           from: token

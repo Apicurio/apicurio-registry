@@ -21,7 +21,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectURI", "authServerUrl", "logoutURL",
+@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectUri", "authServerUrl", "logoutUrl",
         "anonymousReads", "basicAuth", "tls", "authz" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -53,11 +53,11 @@ public class AuthSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private String uiClientId;
 
-    @JsonProperty("redirectURI")
+    @JsonProperty("redirectUri")
     @JsonPropertyDescription("""
             Apicurio Registry UI redirect URI used for redirection after successful authentication.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String redirectURI;
+    private String redirectUri;
 
     @JsonProperty("authServerUrl")
     @JsonPropertyDescription("""
@@ -65,11 +65,11 @@ public class AuthSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private String authServerUrl;
 
-    @JsonProperty("logoutURL")
+    @JsonProperty("logoutUrl")
     @JsonPropertyDescription("""
             Apicurio Registry UI redirect URI used for redirection after logout.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String logoutURL;
+    private String logoutUrl;
 
     @JsonProperty("anonymousReads")
     @JsonPropertyDescription("""

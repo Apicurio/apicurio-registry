@@ -36,8 +36,8 @@ public class Auth {
         putIfNotBlank(env, EnvironmentVariables.APICURIO_REGISTRY_APP_CLIENT_ID, authSpec.getAppClientId());
         putIfNotBlank(env, EnvironmentVariables.APICURIO_REGISTRY_UI_CLIENT_ID, authSpec.getUiClientId());
         putIfNotBlank(env, EnvironmentVariables.APICURIO_UI_AUTH_OIDC_REDIRECT_URI,
-                authSpec.getRedirectURI());
-        putIfNotBlank(env, EnvironmentVariables.APICURIO_UI_AUTH_OIDC_LOGOUT_URL, authSpec.getLogoutURL());
+                authSpec.getRedirectUri());
+        putIfNotBlank(env, EnvironmentVariables.APICURIO_UI_AUTH_OIDC_LOGOUT_URL, authSpec.getLogoutUrl());
         putIfNotBlank(env, EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL,
                 authSpec.getAuthServerUrl());
 

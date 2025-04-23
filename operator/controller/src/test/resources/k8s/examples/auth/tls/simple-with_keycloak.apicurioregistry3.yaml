@@ -11,8 +11,8 @@ spec:
       appClientId: registry-api
       uiClientId: apicurio-registry
       authServerUrl: https://simple-keycloak.apps.cluster.example/realms/registry
-      redirectURI: https://simple-ui.apps.cluster.example
-      logoutURL: https://simple-ui.apps.cluster.example
+      redirectUri: https://simple-ui.apps.cluster.example
+      logoutUrl: https://simple-ui.apps.cluster.example
       tls:
         tlsVerificationType: required
         truststoreSecretRef:

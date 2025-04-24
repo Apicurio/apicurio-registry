@@ -16,6 +16,7 @@ import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.HeadersHack;
+import io.apicurio.registry.rest.InvalidParameterValueException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v3.beans.AddVersionToBranch;
@@ -75,14 +76,17 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
@@ -539,6 +543,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
                 gav.getRawArtifactId(), gav.getRawVersionId());
 
+        // Throw 404 if the version actually has "no content" based on the content-type
+        if (ContentTypes.isEmptyContentType(artifact.getContentType())) {
+            throw new ContentNotFoundException(artifact.getContentId());
+        }
+
         TypedContent contentToReturn = TypedContent.create(artifact.getContent(), artifact.getContentType());
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
                 artifact.getReferences());
@@ -575,9 +584,19 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     "Requested artifact version is not in DRAFT state.  Update disallowed.");
         }
 
+        // Check if the artifact type allows empty content
+        String artifactType = vmd.getArtifactType();
+        ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
+        boolean isEmptyContent = !artifactTypeProvider.getContentTypes().isEmpty();
         ContentHandle content = ContentHandle.create(data.getContent());
-        if (content.bytes().length == 0) {
-            throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+
+        if (isEmptyContent) {
+            data.setContent("");
+            data.setContentType(ContentTypes.APPLICATION_EMPTY);
+        } else {
+            if (content.bytes().length == 0) {
+                throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+            }
         }
 
         // Transform the given references into dtos
@@ -861,11 +880,30 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             Boolean dryRun, CreateArtifact data) {
         requireParameter("groupId", groupId);
         if (data.getFirstVersion() != null) {
-            requireParameter("body.firstVersion.content", data.getFirstVersion().getContent());
-            requireParameter("body.firstVersion.content.content",
-                    data.getFirstVersion().getContent().getContent());
-            requireParameter("body.firstVersion.content.contentType",
-                    data.getFirstVersion().getContent().getContentType());
+            boolean contentRequired = true;
+            if (data.getArtifactType() != null) {
+                Set<String> contentTypes = factory.getArtifactTypeProvider(data.getArtifactType()).getContentTypes();
+                contentRequired = !contentTypes.isEmpty();
+            }
+            if (contentRequired) {
+                requireParameter("body.firstVersion.content", data.getFirstVersion().getContent());
+                requireParameter("body.firstVersion.content.content",
+                        data.getFirstVersion().getContent().getContent());
+                requireParameter("body.firstVersion.content.contentType",
+                        data.getFirstVersion().getContent().getContentType());
+            } else {
+                if (data.getFirstVersion().getContent() == null) {
+                    data.getFirstVersion().setContent(new VersionContent());
+                }
+                if (data.getFirstVersion().getContent().getContent() == null) {
+                    data.getFirstVersion().getContent().setContent("");
+                }
+                if (data.getFirstVersion().getContent().getContentType() == null) {
+                    data.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
+                }
+                requireParameterValue("body.firstVersion.content.contentType", ContentTypes.APPLICATION_EMPTY,
+                        data.getFirstVersion().getContent().getContentType());
+            }
             if (data.getFirstVersion().getBranches() == null) {
                 data.getFirstVersion().setBranches(Collections.emptyList());
             }
@@ -906,8 +944,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         final ContentHandle content = getContent(data);
         final List<ArtifactReference> references = getReferences(data);
 
-        if (content != null && content.bytes().length == 0) {
-            throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+        // If a first version is included, the content must not be empty (unless content is not
+        // required for the artifact type).
+        if (data.getFirstVersion() != null) {
+            final boolean isEmptyContent = ContentTypes.isEmptyContentType(contentType);
+            if (!isEmptyContent) {
+                if (content == null || content.bytes().length == 0) {
+                    throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
+                }
+            }
         }
 
         try {
@@ -918,8 +963,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
             TypedContent typedContent = TypedContent.create(content, contentType);
 
-            String artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, data.getArtifactType(),
-                    factory);
+            String artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, data.getArtifactType(), factory);
 
             final String owner = securityIdentity.getPrincipal().getName();
 
@@ -1014,15 +1058,26 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write, dryRunParam = 2)
     public VersionMetaData createArtifactVersion(String groupId, String artifactId, Boolean dryRun,
             CreateVersion data) {
-        requireParameter("content", data.getContent());
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
-        requireParameter("body.content", data.getContent());
-        requireParameter("body.content.content", data.getContent().getContent());
-        requireParameter("body.content.contentType", data.getContent().getContentType());
+
+        String artifactType = lookupArtifactType(groupId, artifactId);
+        ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
+        boolean isEmptyContent = artifactTypeProvider.getContentTypes().isEmpty();
+        if (!isEmptyContent) {
+            requireParameter("body.content", data.getContent());
+            requireParameter("body.content.content", data.getContent().getContent());
+            requireParameter("body.content.contentType", data.getContent().getContentType());
+        } else {
+            if (data.getContent() == null) {
+                data.setContent(new VersionContent());
+            }
+            data.getContent().setContent("");
+            data.getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
+        }
 
         ContentHandle content = ContentHandle.create(data.getContent().getContent());
-        if (content.bytes().length == 0) {
+        if (!isEmptyContent && content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
         String ct = data.getContent().getContentType();
@@ -1031,8 +1086,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Transform the given references into dtos
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(
                 data.getContent().getReferences());
-
-        String artifactType = lookupArtifactType(groupId, artifactId);
 
         // Apply rules unless the version is DRAFT
         if (!isDraft) {
@@ -1244,6 +1297,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     private static void requireParameter(String parameterName, Object parameterValue) {
         if (parameterValue == null) {
             throw new MissingRequiredParameterException(parameterName);
+        }
+    }
+
+    private static void requireParameterValue(String parameterName, String expectedValue, String actualValue) {
+        if (actualValue != null && expectedValue != null && !actualValue.equals(expectedValue)) {
+            throw new InvalidParameterValueException(parameterName, actualValue, expectedValue);
         }
     }
 

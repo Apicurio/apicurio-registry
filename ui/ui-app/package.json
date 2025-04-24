@@ -1,6 +1,6 @@
 {
   "name": "@apicurio/registry-ui-app",
-  "version": "3.0.7",
+  "version": "3.0.8",
   "description": "Apicurio Registry UI",
   "repository": "https://github.com/Apicurio/apicurio-registry.git",
   "license": "Apache-2.0",
@@ -37,7 +37,7 @@
     "vite-tsconfig-paths": "5.1.4"
   },
   "dependencies": {
-    "@apicurio/apicurio-registry-sdk": "3.0.7",
+    "@apicurio/apicurio-registry-sdk": "3.0.8",
     "@apicurio/common-ui-components": "2.0.7",
     "@apicurio/data-models": "1.1.32",
     "@microsoft/kiota-abstractions": "1.0.0-preview.79",

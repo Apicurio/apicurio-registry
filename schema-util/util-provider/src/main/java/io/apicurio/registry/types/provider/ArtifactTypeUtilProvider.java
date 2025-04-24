@@ -8,6 +8,8 @@ import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 
+import java.util.Set;
+
 /**
  * Interface providing different utils per artifact type * compatibility checker * content canonicalizer *
  * content validator * rules * etc ...
@@ -15,6 +17,8 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 public interface ArtifactTypeUtilProvider {
 
     String getArtifactType();
+
+    Set<String> getContentTypes();
 
     ContentAccepter getContentAccepter();
 

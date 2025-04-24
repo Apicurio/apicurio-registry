@@ -15,12 +15,20 @@ import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.JsonSchemaContentValidator;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+
+import java.util.Set;
 
 public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override
     public String getArtifactType() {
         return ArtifactType.JSON;
+    }
+
+    @Override
+    public Set<String> getContentTypes() {
+        return Set.of(ContentTypes.APPLICATION_JSON);
     }
 
     @Override

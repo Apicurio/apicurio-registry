@@ -278,6 +278,14 @@ public class TestUtils {
         return "ns_" + generateArtifactId().replace("-", "_");
     }
 
+    public static CreateArtifact clientCreateArtifact(String artifactId, String artifactType) {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(artifactType);
+        createArtifact.setFirstVersion(new CreateVersion());
+        return createArtifact;
+    }
+
     public static CreateArtifact clientCreateArtifact(String artifactId, String artifactType, String content,
             String contentType) {
         CreateArtifact createArtifact = new CreateArtifact();

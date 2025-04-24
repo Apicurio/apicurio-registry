@@ -15,12 +15,20 @@ import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.XmlContentValidator;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+
+import java.util.Set;
 
 public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override
     public String getArtifactType() {
         return ArtifactType.XML;
+    }
+
+    @Override
+    public Set<String> getContentTypes() {
+        return Set.of(ContentTypes.APPLICATION_XML);
     }
 
     @Override

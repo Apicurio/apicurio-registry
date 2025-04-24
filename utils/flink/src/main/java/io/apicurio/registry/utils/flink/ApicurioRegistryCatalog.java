@@ -1,5 +1,13 @@
 package io.apicurio.registry.utils.flink;
 
+import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.SystemInfo;
+import io.kiota.http.vertx.VertXRequestAdapter;
+import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
+import io.vertx.core.file.FileSystemOptions;
+import io.vertx.ext.web.client.WebClient;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;
@@ -29,20 +37,75 @@ import java.util.List;
 
 public class ApicurioRegistryCatalog implements Catalog {
 
+    public static final String DEFAULT_DB = "default";
+
+    private final String defaultDb = DEFAULT_DB;
+    private final String name;
+    private final String registryUrl;
+
+    private String authServerUrl;
+    private String clientId;
+    private String clientSecret;
+    private String clientScope;
+    private String username;
+    private String password;
+
+    private volatile Vertx vertx;
+    private volatile RegistryClient registryClient;
+
+    public ApicurioRegistryCatalog(String name, String registryUrl) {
+        this.name = name;
+        this.registryUrl = registryUrl;
+    }
+
+    protected Vertx createVertx() {
+        var options = new VertxOptions();
+        var fsOpts = new FileSystemOptions();
+        fsOpts.setFileCachingEnabled(false);
+        fsOpts.setClassPathResolvingEnabled(false);
+        options.setFileSystemOptions(fsOpts);
+        return Vertx.vertx(options);
+    }
+
+    protected RegistryClient createClient(Vertx vertx) {
+        WebClient provider = null;
+        if (authServerUrl != null && clientId != null && clientSecret != null) {
+            provider = VertXAuthFactory.buildOIDCWebClient(vertx, authServerUrl, clientId, clientSecret,
+                    clientScope);
+        } else if (username != null && password != null) {
+            provider = VertXAuthFactory.buildSimpleAuthWebClient(vertx, username, password);
+        } else {
+            provider = WebClient.create(vertx);
+        }
+
+        var adapter = new VertXRequestAdapter(provider);
+        adapter.setBaseUrl(registryUrl);
+        return new RegistryClient(adapter);
+    }
+
     @Override
     public void open() throws CatalogException {
-
+        this.vertx = createVertx();
+        this.registryClient = createClient(this.vertx);
+        try {
+            SystemInfo systemInfo = this.registryClient.system().info().get();
+            System.out.println("Connected to: " + systemInfo.getName() + " version: " + systemInfo.getVersion());
+        } catch (Exception e) {
+            this.registryClient = null;
+            this.vertx.close();
+            throw new CatalogException("Failed to connect to Apicurio Registry", e);
+        }
     }
 
     @Override
     public void close() throws CatalogException {
-
+        this.vertx.close();
     }
 
     @Nullable
     @Override
     public String getDefaultDatabase() throws CatalogException {
-        return "";
+        return defaultDb;
     }
 
     @Override

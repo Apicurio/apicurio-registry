@@ -2,7 +2,7 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.api.v1.TlsTrafficStatus;
+import io.apicurio.registry.operator.api.v1.spec.InsecureRequests;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyIngressRule;
@@ -138,7 +138,7 @@ public class TlsITTest extends ITBase {
                     REGISTRY_APP_CONTAINER_NAME).getEnv();
 
             assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
-                    .contains(EnvironmentVariables.QUARKUS_HTTP_INSECURE_REQUESTS + "=" + TlsTrafficStatus.ENABLED.getValue());
+                    .contains(EnvironmentVariables.QUARKUS_HTTP_INSECURE_REQUESTS + "=" + InsecureRequests.ENABLED.getValue());
 
             return true;
         });

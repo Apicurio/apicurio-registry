@@ -13,7 +13,8 @@ public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
 
     private static final String DB_PASSWORD = "P4ssw0rd!#";
 
-    private static final DockerImageName IMAGE = DockerImageName.parse("mysql:latest");
+    private static final DockerImageName IMAGE =DockerImageName.parse("mysql:8").asCompatibleSubstituteFor("mysql");
+
     private MySQLContainer<?> database = new MySQLContainer<>(IMAGE).withPassword(DB_PASSWORD);
 
     /**

@@ -11,17 +11,18 @@ spec:
       appClientId: registry-api
       uiClientId: apicurio-registry
       authServerUrl: https://simple-keycloak.apps.cluster.example/realms/registry
-      redirectURI: https://simple-ui.apps.cluster.example
-      logoutURL: https://simple-ui.apps.cluster.example
+      redirectUri: https://simple-ui.apps.cluster.example
+      logoutUrl: https://simple-ui.apps.cluster.example
       authz:
         enabled: true
-        ownerOnly: true
-        groupAccess: true
-        readAccess: true
-        roleSource: token
-        adminRole: admin
-        developerRole: dev
-        readOnlyRole: read
+        ownerOnlyEnabled: true
+        groupAccessEnabled: true
+        readAccessEnabled: true
+        roles:
+          source: token
+          admin: admin
+          developer: dev
+          readOnly: read
         adminOverride:
           enabled: true
           from: token

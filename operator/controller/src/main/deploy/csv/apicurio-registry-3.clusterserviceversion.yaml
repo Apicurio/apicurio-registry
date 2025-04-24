@@ -39,8 +39,7 @@ spec:
 
     **Features**
     - Supports: Apache Avro, AsyncAPI, GraphQL, JSON Schema, Kafka Connect Schema, OpenAPI, Protobuf
-    - Allows you manage event schemas and API designs using the Apicurio Registry web console, 
-      REST API, Maven plug-in, or Java client
+    - Allows you manage event schemas and API designs using the Apicurio Registry web console, REST API, Maven plug-in, or Java client
     - Includes Serializers and Deserializers for Kafka client integration
     - Configurable rules to control schema validity and evolution (compatibility)
     - Storage options: Kafka, PostgreSQL, MySQL, SQL Server, in-memory

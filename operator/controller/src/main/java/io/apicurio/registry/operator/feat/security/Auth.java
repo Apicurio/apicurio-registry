@@ -36,21 +36,21 @@ public class Auth {
         putIfNotBlank(env, EnvironmentVariables.APICURIO_REGISTRY_APP_CLIENT_ID, authSpec.getAppClientId());
         putIfNotBlank(env, EnvironmentVariables.APICURIO_REGISTRY_UI_CLIENT_ID, authSpec.getUiClientId());
         putIfNotBlank(env, EnvironmentVariables.APICURIO_UI_AUTH_OIDC_REDIRECT_URI,
-                authSpec.getRedirectURI());
-        putIfNotBlank(env, EnvironmentVariables.APICURIO_UI_AUTH_OIDC_LOGOUT_URL, authSpec.getLogoutURL());
+                authSpec.getRedirectUri());
+        putIfNotBlank(env, EnvironmentVariables.APICURIO_UI_AUTH_OIDC_LOGOUT_URL, authSpec.getLogoutUrl());
         putIfNotBlank(env, EnvironmentVariables.APICURIO_REGISTRY_AUTH_SERVER_URL,
                 authSpec.getAuthServerUrl());
 
-        if (authSpec.getAnonymousReads() != null && authSpec.getAnonymousReads()) {
+        if (authSpec.getAnonymousReadsEnabled() != null && authSpec.getAnonymousReadsEnabled()) {
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED,
-                    authSpec.getAnonymousReads().toString());
+                    authSpec.getAnonymousReadsEnabled().toString());
         }
 
         if (authSpec.getBasicAuth() != null && authSpec.getBasicAuth().getEnabled()) {
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_ENABLED,
                     authSpec.getBasicAuth().getEnabled().toString());
             putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_CACHE_EXPIRATION,
-                    authSpec.getBasicAuth().getCacheExpiration());
+                    Long.toString(authSpec.getBasicAuth().getCacheExpiration().getDuration().toMinutes()));
         }
 
         AuthTLS.configureAuthTLS(authSpec, deployment, env);

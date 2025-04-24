@@ -9,6 +9,7 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
@@ -265,5 +266,32 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
                 .byArtifactId(artifactId).rules().byRuleType(RuleType.COMPATIBILITY.getValue()).put(rule);
         createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+    }
+
+    @Test
+    public void testAvroSchemaUpdateOptionalField() throws Exception {
+        String artifactId = generateArtifactId();
+        String initialSchema = "{\"type\":\"record\",\"name\":\"ExampleType\",\"fields\":[{\"name\":\"sdfgfsdgsdg\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"},{\"name\":\"field3\",\"type\":\"int\",\"default\":\"\"}]}";
+
+        // Create artifact with initial schema
+        createArtifact(artifactId, ArtifactType.AVRO, initialSchema, ContentTypes.APPLICATION_JSON);
+
+        // Create backwards compatibility rule
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(rule);
+
+        // Try to update schema with incompatible change
+        String updatedSchema = "{\"type\":\"record\",\"name\":\"ExampleType\",\"fields\":[{\"name\":\"sdfgfsdgsdg\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"},{\"name\":\"field3\",\"type\":\"string\",\"default\":\"\"}]}";
+
+        ProblemDetails exception = Assertions.assertThrows(ProblemDetails.class, () -> {
+            createArtifactVersion(artifactId, updatedSchema, ContentTypes.APPLICATION_JSON);
+        });
+
+        Assertions.assertEquals(422, exception.getResponseStatusCode());
+        Assertions.assertNotNull(exception.getDetail(), "AvroTypeException: Invalid default for field field3: \"\" not a \"int\"");
+        Assertions.assertNotNull(exception.getTitle(), "Could not execute compatibility rule on invalid Avro schema");
     }
 }

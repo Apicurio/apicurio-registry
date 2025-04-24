@@ -111,6 +111,7 @@ func (m *ItemArtifactsItemVersionsRequestBuilder) Get(ctx context.Context, reque
 // returns a ProblemDetails error when the service returns a 400 status code
 // returns a ProblemDetails error when the service returns a 404 status code
 // returns a RuleViolationProblemDetails error when the service returns a 409 status code
+// returns a ProblemDetails error when the service returns a 422 status code
 // returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsItemVersionsRequestBuilder) Post(ctx context.Context, body iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateVersionable, requestConfiguration *ItemArtifactsItemVersionsRequestBuilderPostRequestConfiguration) (iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionMetaDataable, error) {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
@@ -121,6 +122,7 @@ func (m *ItemArtifactsItemVersionsRequestBuilder) Post(ctx context.Context, body
 		"400": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"404": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"409": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateRuleViolationProblemDetailsFromDiscriminatorValue,
+		"422": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"500": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 	}
 	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateVersionMetaDataFromDiscriminatorValue, errorMapping)

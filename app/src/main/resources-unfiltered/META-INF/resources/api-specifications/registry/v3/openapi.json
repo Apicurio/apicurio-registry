@@ -1453,6 +1453,9 @@
           "409": {
             "$ref": "#/components/responses/RuleViolationConflict"
           },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
@@ -2009,6 +2012,9 @@
           },
           "409": {
             "$ref": "#/components/responses/RuleViolationConflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
@@ -5406,6 +5412,25 @@
           }
         },
         "description": "The content of one version of one artifact."
+      },
+      "UnprocessableEntity": {
+        "description": "The artifact content is not valid for one of the following reasons:\n* Schema validation failed\n* References could not be validated\n* Required references are missing",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "UnprocessableEntityExample": {
+                "value": {
+                  "error_code": 422,
+                  "message": "The artifact content is invalid: Schema validation failed",
+                  "name": "SchemaValidationException"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },

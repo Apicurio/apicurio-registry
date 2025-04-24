@@ -80,12 +80,14 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     @Info(category = "auth", description = "Enable basic auth", availableSince = "1.1.X-SNAPSHOT", registryAvailableSince = "3.X.X.Final", studioAvailableSince = "1.0.0")
     boolean basicAuthEnabled;
 
+    // TODO: Add suffix?
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration", defaultValue = "10")
-    @Info(category = "auth", description = "Default client credentials token expiration time.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.2.6.Final", studioAvailableSince = "1.0.0")
+    @Info(category = "auth", description = "Default client credentials token expiration time in minutes.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.2.6.Final", studioAvailableSince = "1.0.0")
     Integer accessTokenExpiration;
 
+    // TODO: Add suffix?
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration-offset", defaultValue = "10")
-    @Info(category = "auth", description = "Client credentials token expiration offset from JWT expiration.", availableSince = "0.2.7", registryAvailableSince = "2.5.9.Final", studioAvailableSince = "1.0.0")
+    @Info(category = "auth", description = "Client credentials token expiration offset from JWT expiration, in seconds.", availableSince = "0.2.7", registryAvailableSince = "2.5.9.Final", studioAvailableSince = "1.0.0")
     Integer accessTokenExpirationOffset;
 
     @ConfigProperty(name = "apicurio.authn.basic.scope")

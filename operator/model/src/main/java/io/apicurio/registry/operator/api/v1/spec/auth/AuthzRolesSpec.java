@@ -1,4 +1,4 @@
-package io.apicurio.registry.operator.api.v1.spec;
+package io.apicurio.registry.operator.api.v1.spec.auth;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,12 +16,11 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
-@JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "resourceDeleteEnabled" })
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({"source", "admin", "developer", "readOnly"})
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -29,17 +28,29 @@ import static lombok.AccessLevel.PRIVATE;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class AppFeaturesSpec {
+public class AuthzRolesSpec {
 
-    @JsonProperty("resourceDeleteEnabled")
+    @JsonProperty("source")
     @JsonPropertyDescription("""
-            Apicurio Registry backend 'allow deletes' feature.
-            If the value is true, the application will be configured to allow Groups, Artifacts, and
-            Artifact Versions to be deleted.  By default, resources in Registry are immutable and so
-            cannot be deleted. Registry can be configured to allow deleting of these resources at a
-            granular level (e.g. only allow deleting artifact versions) using ENV variables.  This
-            option enables deletes for all three resource types.""")
+            When set to token, user roles are taken from the authentication token.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean resourceDeleteEnabled;
+    private String source;
 
+    @JsonProperty("admin")
+    @JsonPropertyDescription("""
+            The name of the role that indicates a user is an admin.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private String admin;
+
+    @JsonProperty("developer")
+    @JsonPropertyDescription("""
+            The name of the role that indicates a user is a developer.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private String developer;
+
+    @JsonProperty("readOnly")
+    @JsonPropertyDescription("""
+            The name of the role that indicates a user has read-only access.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private String readOnly;
 }

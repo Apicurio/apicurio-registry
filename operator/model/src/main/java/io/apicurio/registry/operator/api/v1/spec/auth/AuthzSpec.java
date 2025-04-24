@@ -20,8 +20,8 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({ "enabled", "ownerOnly", "groupAccess", "readAccess", "roleSource", "adminRole",
-        "developerRole", "readOnlyRole", "adminOverride" })
+@JsonPropertyOrder({"enabled", "ownerOnlyEnabled", "groupAccessEnabled", "readAccessEnabled", "roleSource", "adminRole",
+        "developerRole", "readOnlyRole", "adminOverride"})
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -37,47 +37,29 @@ public class AuthzSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private Boolean enabled;
 
-    @JsonProperty("ownerOnly")
+    @JsonProperty("ownerOnlyEnabled")
     @JsonPropertyDescription("""
             When owner-only authorization is enabled, only the user who created an artifact can modify or delete that artifact.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean ownerOnly;
+    private Boolean ownerOnlyEnabled;
 
-    @JsonProperty("groupAccess")
+    @JsonProperty("groupAccessEnabled")
     @JsonPropertyDescription("""
             When owner-only authorization and group owner-only authorization are both enabled, only the user who created an artifact group has write access to that artifact group, for example, to add or remove artifacts in that group.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean groupAccess;
+    private Boolean groupAccessEnabled;
 
-    @JsonProperty("readAccess")
+    @JsonProperty("readAccessEnabled")
     @JsonPropertyDescription("""
             When the authenticated read access option is enabled, Apicurio Registry grants at least read-only access to requests from any authenticated user in the same organization, regardless of their user role.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean readAccess;
+    private Boolean readAccessEnabled;
 
-    @JsonProperty("roleSource")
+    @JsonProperty("roles")
     @JsonPropertyDescription("""
-            When set to token, user roles are taken from the authentication token.""")
+            Configure authorization role source and role names.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String roleSource;
-
-    @JsonProperty("adminRole")
-    @JsonPropertyDescription("""
-            The name of the role that indicates a user is an admin.""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private String adminRole;
-
-    @JsonProperty("developerRole")
-    @JsonPropertyDescription("""
-            The name of the role that indicates a user is a developer.""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private String developerRole;
-
-    @JsonProperty("readOnlyRole")
-    @JsonPropertyDescription("""
-            The name of the role that indicates a user has read-only access.""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private String readOnlyRole;
+    private AuthzRolesSpec roles;
 
     @JsonProperty("adminOverride")
     @JsonPropertyDescription("""

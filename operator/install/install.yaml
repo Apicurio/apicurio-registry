@@ -31,7 +31,7 @@ spec:
                     description: |
                       Configure authentication and authorization of Apicurio Registry.
                     properties:
-                      anonymousReads:
+                      anonymousReadsEnabled:
                         description: To allow anonymous users, such as REST API calls
                           with no authentication credentials, to make read-only calls
                           to the REST API, set the following option to true.
@@ -77,49 +77,68 @@ spec:
                                   when FROM is token.
                                 type: string
                             type: object
-                          adminRole:
-                            description: The name of the role that indicates a user
-                              is an admin.
-                            type: string
-                          developerRole:
-                            description: The name of the role that indicates a user
-                              is a developer.
-                            type: string
                           enabled:
                             description: Enabled role-based authorization.
                             type: boolean
-                          groupAccess:
+                          groupAccessEnabled:
                             description: When owner-only authorization and group owner-only
                               authorization are both enabled, only the user who created
                               an artifact group has write access to that artifact
                               group, for example, to add or remove artifacts in that
                               group.
                             type: boolean
-                          ownerOnly:
+                          ownerOnlyEnabled:
                             description: When owner-only authorization is enabled,
                               only the user who created an artifact can modify or
                               delete that artifact.
                             type: boolean
-                          readAccess:
+                          readAccessEnabled:
                             description: When the authenticated read access option
                               is enabled, Apicurio Registry grants at least read-only
                               access to requests from any authenticated user in the
                               same organization, regardless of their user role.
                             type: boolean
-                          readOnlyRole:
-                            description: The name of the role that indicates a user
-                              has read-only access.
-                            type: string
-                          roleSource:
-                            description: When set to token, user roles are taken from
-                              the authentication token.
-                            type: string
+                          roles:
+                            description: Configure authorization role source and role
+                              names.
+                            properties:
+                              admin:
+                                description: The name of the role that indicates a
+                                  user is an admin.
+                                type: string
+                              developer:
+                                description: The name of the role that indicates a
+                                  user is a developer.
+                                type: string
+                              readOnly:
+                                description: The name of the role that indicates a
+                                  user has read-only access.
+                                type: string
+                              source:
+                                description: When set to token, user roles are taken
+                                  from the authentication token.
+                                type: string
+                            type: object
                         type: object
                       basicAuth:
                         description: Client credentials basic auth configuration.
                         properties:
                           cacheExpiration:
-                            description: Client credentials token expiration time.
+                            description: |
+                              Client credentials token expiration time. This value is a string representing a duration:
+
+                              | Abbreviation          | Time Unit    |
+                              |-----------------------|--------------|
+                              | ns, nano, nanos       | Nanosecond   |
+                              | us, µs, micro, micros | Microseconds |
+                              | ms, milli, millis     | Millisecond  |
+                              | s, sec, secs          | Second       |
+                              | m, min, mins          | Minute       |
+                              | h, hr, hour, hours    | Hour         |
+                              | d, day, days          | Day          |
+                              | w, wk, week, weeks    | Week         |
+
+                              Example: "1min1s"
                             type: string
                           enabled:
                             description: Enabled client credentials.
@@ -130,11 +149,11 @@ spec:
                           Enable Apicurio Registry Authentication.
                           In Identity providers like Keycloak, this is the client id used for the Quarkus backend application
                         type: boolean
-                      logoutURL:
+                      logoutUrl:
                         description: Apicurio Registry UI redirect URI used for redirection
                           after logout.
                         type: string
-                      redirectURI:
+                      redirectUri:
                         description: Apicurio Registry UI redirect URI used for redirection
                           after successful authentication.
                         type: string
@@ -234,7 +253,7 @@ spec:
                     description: |
                       Configure features of the Apicurio Registry backend (app).
                     properties:
-                      allowDeletes:
+                      resourceDeleteEnabled:
                         description: |-
                           Apicurio Registry backend 'allow deletes' feature.
                           If the value is true, the application will be configured to allow Groups, Artifacts, and
@@ -3380,8 +3399,18 @@ spec:
                                 description: |-
                                   Configure SQL data source password.
 
-                                  If you want to reference a Secret, you can set the `APICURIO_DATASOURCE_PASSWORD` environment variable directly using the `app.env` field.
-                                type: string
+                                  References name of a Secret that contains the password. Key `password` is assumed by default.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
                               url:
                                 description: |-
                                   Configure SQL data source URL.
@@ -3412,8 +3441,12 @@ spec:
                       Configure tls of Apicurio Registry.
                     properties:
                       insecureRequests:
-                        description: Whether insecure requests are allowed. Default
-                          is <code>enabled</code>.
+                        description: |
+                          If insecure (i.e. http rather than https) requests are allowed. If this is `enabled` then http works as normal. `redirect` will still open the http port, but all requests will be redirected to the HTTPS port. `disabled` will prevent the HTTP port from opening at all.
+                        enum:
+                        - disabled
+                        - enabled
+                        - redirect
                         type: string
                       keystorePasswordSecretRef:
                         description: Name of a Secret that contains the TLS keystore
@@ -6506,14 +6539,6 @@ spec:
                       description: message is a human readable message indicating
                         details about the transition. This may be an empty string.
                       type: string
-                    observedGeneration:
-                      description: observedGeneration represents the .metadata.generation
-                        that the condition was set based upon. For instance, if .metadata.generation
-                        is currently 12, but the .status.conditions[x].observedGeneration
-                        is 9, the condition is out of date with respect to the current
-                        state of the instance.
-                      minimum: 0
-                      type: integer
                     reason:
                       description: reason contains a programmatic identifier indicating
                         the reason for the condition's last transition. Producers
@@ -6547,16 +6572,6 @@ spec:
                   - type
                   type: object
                 type: array
-              info:
-                description: Information about the Apicurio Registry application
-                properties:
-                  appHost:
-                    description: Apicurio Registry backend base URL
-                    type: string
-                  uiHost:
-                    description: Apicurio Registry UI base URL
-                    type: string
-                type: object
               observedGeneration:
                 type: integer
             type: object
@@ -6633,6 +6648,14 @@ rules:
   - poddisruptionbudgets
   verbs:
   - '*'
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - list
+  - get
+  - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

@@ -21,8 +21,8 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectURI", "authServerUrl", "logoutURL",
-        "anonymousReads", "basicAuth", "tls", "authz" })
+@JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectUri", "authServerUrl", "logoutUrl",
+        "anonymousReadsEnabled", "basicAuth", "tls", "authz" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -53,11 +53,11 @@ public class AuthSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private String uiClientId;
 
-    @JsonProperty("redirectURI")
+    @JsonProperty("redirectUri")
     @JsonPropertyDescription("""
             Apicurio Registry UI redirect URI used for redirection after successful authentication.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String redirectURI;
+    private String redirectUri;
 
     @JsonProperty("authServerUrl")
     @JsonPropertyDescription("""
@@ -65,17 +65,17 @@ public class AuthSpec {
     @JsonSetter(nulls = Nulls.SKIP)
     private String authServerUrl;
 
-    @JsonProperty("logoutURL")
+    @JsonProperty("logoutUrl")
     @JsonPropertyDescription("""
             Apicurio Registry UI redirect URI used for redirection after logout.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private String logoutURL;
+    private String logoutUrl;
 
-    @JsonProperty("anonymousReads")
+    @JsonProperty("anonymousReadsEnabled")
     @JsonPropertyDescription("""
             To allow anonymous users, such as REST API calls with no authentication credentials, to make read-only calls to the REST API, set the following option to true.""")
     @JsonSetter(nulls = Nulls.SKIP)
-    private Boolean anonymousReads;
+    private Boolean anonymousReadsEnabled;
 
     @JsonProperty("basicAuth")
     @JsonPropertyDescription("""

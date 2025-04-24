@@ -3,16 +3,18 @@ package io.apicurio.registry.operator.api.v1.spec;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum StorageType {
+public enum InsecureRequests {
 
-    @JsonProperty("postgresql")
-    POSTGRESQL("postgresql"),
-    @JsonProperty("kafkasql")
-    KAFKASQL("kafkasql");
+    @JsonProperty("enabled")
+    ENABLED("enabled"),
+    @JsonProperty("disabled")
+    DISABLED("disabled"),
+    @JsonProperty("redirect")
+    REDIRECT("redirect");
 
     private final String value;
 
-    StorageType(String value) {
+    InsecureRequests(String value) {
         this.value = value;
     }
 

@@ -95,7 +95,11 @@ public class SqlDataUpgrader extends AbstractDataImporter {
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
         try {
-            entity.contentId = contentIdMapping.get(entity.contentId);
+
+            if (contentIdMapping.containsKey(entity.contentId)) {
+                // If the contentId is already mapped, we need to use the new one.
+                entity.contentId = contentIdMapping.get(entity.contentId);
+            }
 
             var oldGlobalId = entity.globalId;
             if (!preserveGlobalId) {

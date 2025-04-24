@@ -1,14 +1,24 @@
 package io.apicurio.registry.operator.api.v1.status;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.fabric8.crd.generator.annotation.SchemaFrom;
-import io.fabric8.generator.annotation.Min;
 import io.fabric8.generator.annotation.Pattern;
 import io.fabric8.generator.annotation.Required;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
@@ -17,7 +27,7 @@ import java.util.Objects;
 import static lombok.AccessLevel.PRIVATE;
 
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({"type", "status", "reason", "message", "lastTransitionTime", "lastUpdateTime", "observedGeneration"})
+@JsonPropertyOrder({"type", "status", "reason", "message", "lastTransitionTime", "lastUpdateTime"})
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -65,17 +75,6 @@ public class Condition {
     @JsonPropertyDescription("message is a human readable message indicating details about the transition. This may be an empty string.")
     @JsonSetter(nulls = Nulls.SKIP)
     private String message;
-
-    /**
-     * observedGeneration represents the .metadata.generation that the condition was set based upon. For
-     * instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is
-     * 9, the condition is out of date with respect to the current state of the instance.
-     */
-    @JsonProperty("observedGeneration")
-    @Min(0.0)
-    @JsonPropertyDescription("observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance.")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private Long observedGeneration;
 
     /**
      * reason contains a programmatic identifier indicating the reason for the condition's last transition.

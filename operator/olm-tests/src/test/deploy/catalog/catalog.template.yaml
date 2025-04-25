@@ -8,5 +8,7 @@ entries:
     name: 3.x
     entries:
       - name: ${PLACEHOLDER_PACKAGE}
+        replaces: apicurio-registry-3.v3.0.7
+      - name: apicurio-registry-3.v3.0.7
   - schema: olm.bundle
     image: ${PLACEHOLDER_BUNDLE_IMAGE}

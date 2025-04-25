@@ -215,6 +215,9 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                 // Try to find an existing, active version with the same content
                 ArtifactVersionMetaDataDto existingDto = lookupSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
                         request.getSchema(), request.getReferences(), request.getSchemaType(), fnormalize);
+                if (existingDto.getState().equals(VersionState.DISABLED)) {
+                    throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+                }
 
                 // lookupSchema throws ArtifactNotFoundException if not found or if the found version is DISABLED.
                 // If we reach here, an active version was found.

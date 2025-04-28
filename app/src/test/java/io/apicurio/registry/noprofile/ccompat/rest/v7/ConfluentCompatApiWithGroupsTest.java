@@ -30,7 +30,6 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.response.ValidatableResponse;
 import jakarta.enterprise.inject.Typed;
 import org.hamcrest.Matchers;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +56,6 @@ public class ConfluentCompatApiWithGroupsTest extends AbstractResourceTestBase {
         return groupId + ":" + artifactId;
     }
 
-    @NotNull
     public String getBasePath() {
         return BASE_PATH;
     }

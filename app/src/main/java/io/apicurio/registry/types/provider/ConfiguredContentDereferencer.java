@@ -10,7 +10,6 @@ import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ContentDereferencerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentDereferencerResponse;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
@@ -128,7 +127,7 @@ public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTyp
 
     }
 
-    private static @NotNull ContentDereferencerRequest createRewriteRefsRequest(TypedContent content, Map<String, String> resolvedReferenceUrls) {
+    private static ContentDereferencerRequest createRewriteRefsRequest(TypedContent content, Map<String, String> resolvedReferenceUrls) {
         ContentDereferencerRequest requestBody = new ContentDereferencerRequest();
         requestBody.setFunction(ContentDereferencerRequest.Function.rewriteReferences);
         requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
@@ -136,7 +135,7 @@ public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTyp
         return requestBody;
     }
 
-    private static @NotNull ContentDereferencerRequest createDereferenceRequest(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+    private static ContentDereferencerRequest createDereferenceRequest(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         ContentDereferencerRequest requestBody = new ContentDereferencerRequest();
         requestBody.setFunction(ContentDereferencerRequest.Function.dereference);
         requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));

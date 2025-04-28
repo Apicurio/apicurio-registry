@@ -2,7 +2,6 @@ package io.apicurio.registry.customTypes;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
 import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,7 +37,7 @@ public class NoContentCustomArtifactTestProfile implements QuarkusTestProfile {
         return props;
     }
 
-    private static @NotNull File createTestConfig() {
+    private static File createTestConfig() {
         FileOutputStream fos = null;
         try {
             File tempFile = File.createTempFile("_" + NoContentCustomArtifactTestProfile.class.getSimpleName() + "_apicurio-registry-artifact-types.", ".json");

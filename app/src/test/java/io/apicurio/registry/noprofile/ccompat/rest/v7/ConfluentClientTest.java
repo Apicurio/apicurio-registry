@@ -56,7 +56,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -68,6 +74,7 @@ import static io.confluent.kafka.schemaregistry.CompatibilityLevel.NONE;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1732,5 +1739,70 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         assertEquals(FULL.name, confluentClient.getConfig(null).getCompatibilityLevel(),
                 "Top Compatibility Level Exists");
 
+    }
+
+    @Test
+    public void testConcurrentSchemaRegistration() throws Exception {
+        final int numThreads = 10;
+        final String subject = generateArtifactId();
+        
+        // Initial schema
+        final String schema1 = "{\"type\":\"record\",\"namespace\":\"mynamespace\",\"name\":\"employee\"," +
+            "\"fields\":[{\"name\":\"firstName\",\"type\":\"string\"},{\"name\":\"lastName\",\"type\":\"string\"}]}";
+                 
+        // Different schema (should create new version)
+        final String schema3 = "{\"type\":\"record\",\"namespace\":\"mynamespace\",\"name\":\"employee\"," +
+            "\"fields\":[{\"name\":\"firstName\",\"type\":\"string\"},{\"name\":\"lastName\",\"type\":\"string\"}," +
+            "{\"name\":\"age\",\"type\":\"int\"}]}";
+
+        // Test Case 1: Initial concurrent registration of the same schema
+        // All threads should get the same ID since it's the same schema
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        CountDownLatch latch = new CountDownLatch(numThreads);
+        List<Future<Integer>> futures = new ArrayList<>();
+        Set<Integer> uniqueIds = new HashSet<>();
+
+        // Submit the same schema registration request multiple times concurrently
+        for (int i = 0; i < numThreads; i++) {
+            futures.add(executorService.submit(() -> {
+                try {
+                    latch.countDown();
+                    latch.await(); // Wait for all threads to be ready
+                    return confluentClient.registerSchema(schema1, subject);
+                } catch (RestClientException e) {
+                    throw e;
+                }
+            }));
+        }
+
+        // Wait for all tasks to complete
+        for (Future<Integer> future : futures) {
+            Integer id = future.get(5, TimeUnit.SECONDS);
+            uniqueIds.add(id);
+        }
+
+        // All registrations of the same schema should return the same ID
+        assertEquals(1, uniqueIds.size(), "All registrations of the same schema should return the same ID");
+        int firstId = uniqueIds.iterator().next();
+
+        // Test Case 2: Register new version of schema
+        int thirdId = confluentClient.registerSchema(schema3, subject);
+        assertNotEquals(firstId, thirdId, "Registration of different schema should create new version with different ID");
+
+        // Verify the versions
+        List<Integer> versions = confluentClient.getAllVersions(subject);
+        assertEquals(2, versions.size(), "Should have exactly 2 versions");
+        
+        // Verify schema contents
+        io.confluent.kafka.schemaregistry.client.rest.entities.Schema schema1Response = confluentClient.getVersion(subject, 1);
+        io.confluent.kafka.schemaregistry.client.rest.entities.Schema schema2Response = confluentClient.getVersion(subject, 2);
+        
+        // First two registrations should have same schema
+        assertEquals(new AvroSchema(schema1).canonicalString(), new AvroSchema(schema1Response.getSchema()).canonicalString());
+        // Third registration should have different schema
+        assertEquals(new AvroSchema(schema3).canonicalString(), new AvroSchema(schema2Response.getSchema()).canonicalString());
+
+        executorService.shutdown();
+        assertTrue(executorService.awaitTermination(10, TimeUnit.SECONDS));
     }
 }

@@ -541,13 +541,6 @@
         <version>${project.version}</version>
       </dependency>
 
-      <!-- Flink -->
-      <dependency>
-        <groupId>org.apache.flink</groupId>
-        <artifactId>flink-table-api-java</artifactId>
-        <version>${flink.version}</version>
-      </dependency>
-
       <!-- Quarkus Dependencies -->
       <dependency>
         <groupId>io.quarkus</groupId>

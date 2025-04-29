@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package io.apicurio.registry.utils.protobuf.schema.syntax3.options;
 
-option php_generic_services = true;
 option php_class_prefix = "Example";
 option php_metadata_namespace = "ExampleOptionsSyntax2";
 option php_namespace = "io.apicurio.registry.utils.protobuf.schema.syntax3.options.example";

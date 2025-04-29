@@ -44,6 +44,7 @@ import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
@@ -74,6 +75,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @QuarkusTest
 @TestProfile(DeletionEnabledProfile.class)
+@Disabled("Confluent hasn't released protobuf-java 4 changes yet. They are meant to be released with CP 8.x which is not out yet.")
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ConfluentClientTest extends AbstractResourceTestBase {
 

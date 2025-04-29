@@ -4,7 +4,7 @@
 
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>2.6.6-SNAPSHOT</version>
+    <version>2.6.9-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>apicurio-registry</name>
 
@@ -151,7 +151,7 @@
         <node.version>16.17.0</node.version>
 
         <!-- Quarkus Version -->
-        <quarkus.version>3.15.2</quarkus.version>
+        <quarkus.version>3.15.3</quarkus.version>
 
         <!-- Jandex -->
         <jandex.version>3.1.8</jandex.version>
@@ -212,7 +212,7 @@
         <httpclient.version>4.5.14</httpclient.version>
         <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
         <apicurio-common-app-components.version>0.2.7.Final</apicurio-common-app-components.version>
-        <apicurio-maven-plugin.version>0.0.2</apicurio-maven-plugin.version>
+        <apicurio-maven-plugin.version>0.0.3</apicurio-maven-plugin.version>
         <sentry.version>1.7.30</sentry.version>
         <kafka-oauth-client.version>0.15.0</kafka-oauth-client.version>
         <kafka-clients.version>3.9.0</kafka-clients.version>
@@ -469,6 +469,12 @@
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-common-app-components-multitenancy</artifactId>
                 <version>${apicurio-common-app-components.version}</version>
+                 <exclusions>
+                    <exclusion>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>

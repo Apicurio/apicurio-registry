@@ -8,7 +8,7 @@ on:
 jobs:
   update-openapi:
     name: Update OpenAPI
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio'
     steps:
       - name: Apicurio Registry Checkout

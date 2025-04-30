@@ -587,10 +587,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Check if the artifact type allows empty content
         String artifactType = vmd.getArtifactType();
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
-        boolean isEmptyContent = !artifactTypeProvider.getContentTypes().isEmpty();
+        boolean isEmptyContent = artifactTypeProvider.getContentTypes().isEmpty();
         ContentHandle content = ContentHandle.create(data.getContent());
 
         if (isEmptyContent) {
+            // TODO fail the request if content is sent to an artifact that requires empty content??
             data.setContent("");
             data.setContentType(ContentTypes.APPLICATION_EMPTY);
         } else {

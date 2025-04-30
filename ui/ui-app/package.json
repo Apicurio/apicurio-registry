@@ -23,7 +23,7 @@
     "@types/node": "22.15.3",
     "@types/pluralize": "0.0.33",
     "@types/react": "18.3.20",
-    "@types/react-dom": "18.3.6",
+    "@types/react-dom": "18.3.7",
     "@typescript-eslint/eslint-plugin": "8.31.1",
     "@typescript-eslint/parser": "8.31.1",
     "@vitejs/plugin-react-swc": "3.9.0",

@@ -45,7 +45,6 @@ import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -1350,7 +1349,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         return created;
     }
 
-    private @NotNull VersionMetaData createOpenAPIArtifact(String groupId, String artifactId)
+    private VersionMetaData createOpenAPIArtifact(String groupId, String artifactId)
             throws Exception {
         CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
                 ARTIFACT_OPENAPI_JSON_CONTENT, ContentTypes.APPLICATION_JSON);

@@ -9,7 +9,6 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ContentAccepterRequest;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
@@ -90,7 +89,7 @@ public class ConfiguredContentAccepter extends AbstractConfiguredArtifactTypeUti
 
     }
 
-    private static @NotNull ContentAccepterRequest createRequest(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+    private static ContentAccepterRequest createRequest(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         ContentAccepterRequest requestBody = new ContentAccepterRequest();
         requestBody.setTypedContent(WebhookBeanUtil.typedContentToWebhookBean(content));
         requestBody.setResolvedReferences(WebhookBeanUtil.resolvedReferenceListToWebhookBean(resolvedReferences));

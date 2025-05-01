@@ -1,8 +1,5 @@
 package io.apicurio.registry.types.provider;
 
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.ContentTypes;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

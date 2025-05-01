@@ -19,6 +19,8 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.NoOpContentValidator;
 import io.apicurio.registry.script.ScriptingService;
 
+import java.util.Set;
+
 /**
  * An implementation of {@link ArtifactTypeUtilProvider} that comes from a configuration
  * file.  The config file typically contains a list of supported artifact types.  Each
@@ -40,6 +42,14 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
     @Override
     public String getArtifactType() {
         return this.artifactType.getArtifactType();
+    }
+
+    @Override
+    public Set<String> getContentTypes() {
+        if (this.artifactType.getContentTypes() == null || this.artifactType.getContentTypes().isEmpty()) {
+            return Set.of();
+        }
+        return Set.of(this.artifactType.getContentTypes().toArray(new String[this.artifactType.getContentTypes().size()]));
     }
 
     @Override

@@ -15,12 +15,20 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.AvroContentValidator;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+
+import java.util.Set;
 
 public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override
     public String getArtifactType() {
         return ArtifactType.AVRO;
+    }
+
+    @Override
+    public Set<String> getContentTypes() {
+        return Set.of(ContentTypes.APPLICATION_JSON);
     }
 
     @Override

@@ -2,7 +2,6 @@ package io.apicurio.registry.storage.dto;
 
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.RegistryStorage;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -68,39 +67,33 @@ public class LazyContentList implements List<TypedContent> {
         throw new UnsupportedOperationException();
     }
 
-    @NotNull
     @Override
     public ListIterator<TypedContent> listIterator() {
         throw new UnsupportedOperationException();
     }
 
-    @NotNull
     @Override
     public ListIterator<TypedContent> listIterator(int index) {
         throw new UnsupportedOperationException();
     }
 
-    @NotNull
     @Override
     public List<TypedContent> subList(int fromIndex, int toIndex) {
         throw new UnsupportedOperationException();
     }
 
-    @NotNull
     @Override
     public Iterator<TypedContent> iterator() {
         return new LazyContentListIterator(this, contentIds.iterator());
     }
 
-    @NotNull
     @Override
     public Object[] toArray() {
         throw new UnsupportedOperationException();
     }
 
-    @NotNull
     @Override
-    public <T> T[] toArray(@NotNull T[] a) {
+    public <T> T[] toArray(T[] a) {
         throw new UnsupportedOperationException();
     }
 
@@ -115,27 +108,27 @@ public class LazyContentList implements List<TypedContent> {
     }
 
     @Override
-    public boolean containsAll(@NotNull Collection<?> c) {
+    public boolean containsAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean addAll(@NotNull Collection<? extends TypedContent> c) {
+    public boolean addAll(Collection<? extends TypedContent> c) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean addAll(int index, @NotNull Collection<? extends TypedContent> c) {
+    public boolean addAll(int index, Collection<? extends TypedContent> c) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean removeAll(@NotNull Collection<?> c) {
+    public boolean removeAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean retainAll(@NotNull Collection<?> c) {
+    public boolean retainAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 

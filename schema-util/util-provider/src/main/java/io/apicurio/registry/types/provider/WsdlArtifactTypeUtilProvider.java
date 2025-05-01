@@ -15,12 +15,20 @@ import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.WsdlContentValidator;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+
+import java.util.Set;
 
 public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override
     public String getArtifactType() {
         return ArtifactType.WSDL;
+    }
+
+    @Override
+    public Set<String> getContentTypes() {
+        return Set.of(ContentTypes.APPLICATION_XML);
     }
 
     @Override

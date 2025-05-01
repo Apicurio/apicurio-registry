@@ -11,7 +11,6 @@ import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ReferenceFinderRequest;
 import io.apicurio.registry.types.webhooks.beans.ReferenceFinderResponse;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
@@ -93,7 +92,7 @@ public class ConfiguredReferenceFinder extends AbstractConfiguredArtifactTypeUti
 
     }
 
-    private static @NotNull ReferenceFinderRequest createRequest(TypedContent content) {
+    private static ReferenceFinderRequest createRequest(TypedContent content) {
         ReferenceFinderRequest requestBody = new ReferenceFinderRequest();
         requestBody.setTypedContent(WebhookBeanUtil.typedContentToWebhookBean(content));
         return requestBody;

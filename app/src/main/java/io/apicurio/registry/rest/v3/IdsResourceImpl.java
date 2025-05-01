@@ -18,6 +18,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.types.ArtifactMediaTypes;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.VersionState;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -49,7 +50,9 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public Response getContentById(long contentId) {
         ContentWrapperDto dto = storage.getContentById(contentId);
-        if (dto.getContentHash() != null && dto.getContentHash().startsWith("draft:")) {
+        boolean isEmptyContent = ContentTypes.isEmptyContentType(dto.getContentType());
+        boolean isDraft = dto.getContentHash() != null && dto.getContentHash().startsWith("draft:");
+        if (isEmptyContent || isDraft) {
             throw new ContentNotFoundException(contentId);
         }
         ContentHandle content = dto.getContent();
@@ -75,6 +78,10 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         }
 
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);
+        boolean isEmptyContent = ContentTypes.isEmptyContentType(artifact.getContentType());
+        if (isEmptyContent) {
+            throw new ContentNotFoundException(artifact.getContentId());
+        }
 
         TypedContent contentToReturn = TypedContent.create(artifact.getContent(), artifact.getContentType());
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,

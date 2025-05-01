@@ -16,7 +16,6 @@ import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.webhooks.beans.ContentValidatorRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentValidatorResponse;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
@@ -161,7 +160,7 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
 
     }
 
-    private static @NotNull ContentValidatorRequest createValidateRequest(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) {
+    private static ContentValidatorRequest createValidateRequest(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) {
         ContentValidatorRequest requestBody = new ContentValidatorRequest();
         requestBody.setFunction(ContentValidatorRequest.Function.validate);
         requestBody.setLevel(level.name());
@@ -170,7 +169,7 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
         return requestBody;
     }
 
-    private static @NotNull ContentValidatorRequest createValidateRefsRequest(TypedContent content, List<ArtifactReference> references) {
+    private static ContentValidatorRequest createValidateRefsRequest(TypedContent content, List<ArtifactReference> references) {
         ContentValidatorRequest requestBody = new ContentValidatorRequest();
         requestBody.setFunction(ContentValidatorRequest.Function.validateReferences);
         requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));

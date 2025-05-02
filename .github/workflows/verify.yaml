@@ -27,7 +27,7 @@ env:
 jobs:
   build-verify:
     name: Verify In Memory Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -86,7 +86,7 @@ jobs:
 
   build-verify-sql:
     name: Verify SQL Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -145,7 +145,7 @@ jobs:
 
   build-verify-kafkasql:
     name: Verify KafkaSQL Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -204,7 +204,7 @@ jobs:
 
   build-mem-native-images:
     name: Build and Test In Memory native images
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -308,7 +308,7 @@ jobs:
 
   build-sql-native-images:
     name: Build and Test SQL native images
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
@@ -418,7 +418,7 @@ jobs:
 
   notify-sdk:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         language: [go, js, python]
@@ -444,7 +444,7 @@ jobs:
 
   trigger-examples-build:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [build-verify]
     steps:
       - name: Repository Dispatch
@@ -457,7 +457,7 @@ jobs:
   # Triggers apicurio-registry-mt-ui build whenever apicurio-registry/ui changes
   trigger-mt-ui-build:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [build-verify]
     steps:
       - uses: actions/checkout@v3

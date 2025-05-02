@@ -19,7 +19,7 @@ on:
 jobs:
   build-verify:
     name: Verify Python SDK
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     # if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'

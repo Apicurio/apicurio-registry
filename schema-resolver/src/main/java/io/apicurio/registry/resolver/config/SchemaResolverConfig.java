@@ -6,6 +6,8 @@ import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -175,7 +177,26 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final boolean DEREFERENCE_DEFAULT = false;
 
     public String getRegistryUrl() {
-        return getString(REGISTRY_URL);
+        String registryUrl = getString(REGISTRY_URL);
+        if (registryUrl != null) {
+            try {
+                URI uri = new URI(registryUrl);
+                String userInfo = uri.getUserInfo();
+                if (userInfo != null) {
+                    String[] credentials = userInfo.split(":", 2);
+                    if (credentials.length == 2) {
+                        // Override username and password if provided in the URL
+                        this.originals.put(AUTH_USERNAME, credentials[0]);
+                        this.originals.put(AUTH_PASSWORD, credentials[1]);
+                    }
+                }
+                // Return the URL without the user info
+                return new URI(uri.getScheme(), null, uri.getHost(), uri.getPort(), uri.getPath(), uri.getQuery(), uri.getFragment()).toString();
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Invalid registry URL: " + registryUrl, e);
+            }
+        }
+        return registryUrl;
     }
 
     public String getTokenEndpoint() {

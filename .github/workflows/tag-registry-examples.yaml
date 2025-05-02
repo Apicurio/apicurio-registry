@@ -20,7 +20,7 @@ on:
 
 jobs:
   tag-registry-examples:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: false # Registry Examples repository is archived, since we moved them to the Registry repository. This workflow can be later removed.
     steps:
       - name: Set Versions

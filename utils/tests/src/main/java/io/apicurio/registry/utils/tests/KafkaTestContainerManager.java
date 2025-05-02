@@ -1,20 +1,4 @@
-/*
- * Copyright 2020 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package io.apicurio.registry.test.utils;
+package io.apicurio.registry.utils.tests;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.strimzi.test.container.StrimziKafkaContainer;
@@ -26,15 +10,15 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import java.util.Collections;
 import java.util.Map;
 
-/**
- * @author Fabian Martinez Gonzalez
- * @author Ales Justin
- * @author Carles Arnal
- */
 public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleManager {
     private static final Logger log = LoggerFactory.getLogger(KafkaTestContainerManager.class);
 
     private StrimziKafkaContainer kafka;
+
+    @Override
+    public int order() {
+        return 10000;
+    }
 
     @Override
     public Map<String, String> start() {
@@ -45,16 +29,12 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
 
             kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
             kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
-            kafka.addEnv("KAFKA_ADVERTISED_LISTENERS",
-                    "PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:9092");
             kafka.withNetwork(Network.SHARED);
             kafka.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("kafka-testcontainer")));
             kafka.start();
 
             String externalBootstrapServers = kafka.getBootstrapServers();
 
-            String bootstrapServers = "broker:19092";
-            System.setProperty("bootstrap.servers.internal", bootstrapServers);
             System.setProperty("bootstrap.servers.external", externalBootstrapServers);
 
             return Map.of(
@@ -70,6 +50,7 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
     public void stop() {
         if (kafka != null) {
             log.info("Stopping the Kafka Test Container");
+            kafka.close();
             kafka.stop();
         }
     }

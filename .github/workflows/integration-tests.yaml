@@ -24,7 +24,7 @@ concurrency:
 jobs:
   prepare-sql-tests:
     name: Prepare for SQL Integration Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
@@ -53,7 +53,7 @@ jobs:
 
   prepare-kafkasql-tests:
     name: Prepare for KafkaSQL Integration Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
@@ -82,7 +82,7 @@ jobs:
 
   prepare-mem-tests:
     name: Prepare for Memory Integration Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
       - name: Show Actor
@@ -111,7 +111,7 @@ jobs:
 
   integration-tests-sql:
     name: Integration Tests SQL
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-sql-tests
     steps:
       - name: Checkout Code
@@ -163,7 +163,7 @@ jobs:
 
   integration-tests-kafkasql:
     name: Integration Tests KafkaSql
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-kafkasql-tests
     steps:
       - name: Checkout Code
@@ -213,7 +213,7 @@ jobs:
 
   integration-tests-ui:
     name: Integration Tests UI
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-sql-tests
     steps:
       - name: Checkout Code
@@ -251,7 +251,7 @@ jobs:
 
   build-examples:
     name: Build and Run Application examples
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare-mem-tests
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'

@@ -85,10 +85,5 @@
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>redpanda</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>

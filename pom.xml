@@ -264,7 +264,7 @@
         <embedded-postgres.version>2.0.7</embedded-postgres.version>
         <strimzi.version>0.105.0</strimzi.version>
         <wiremock.version>3.9.1</wiremock.version>
-
+        <strimzi-test-container.version>0.110.0</strimzi-test-container.version>
         <protoc-artifact-common>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protoc-artifact-common>
     </properties>
 
@@ -789,10 +789,9 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>redpanda</artifactId>
-                <version>${test-containers.version}</version>
-                <scope>test</scope>
+                <groupId>io.strimzi</groupId>
+                <artifactId>strimzi-test-container</artifactId>
+                <version>${strimzi-test-container.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.zonky.test</groupId>

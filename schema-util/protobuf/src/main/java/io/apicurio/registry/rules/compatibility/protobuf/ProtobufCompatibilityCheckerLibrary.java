@@ -273,6 +273,16 @@ public class ProtobufCompatibilityCheckerLibrary {
             }
             return nodot;
         }
+
+        // Handle Protobuf map types
+        if (type != null && type.endsWith("Entry")) {
+            // Check if the type corresponds to a map entry type
+            String mapType = file.getMapType(type);
+            if (mapType != null) {
+                return mapType;
+            }
+        }
+
         return type;
     }
 

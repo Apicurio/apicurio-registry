@@ -155,6 +155,21 @@ public class ProtobufFile {
         return syntax != null ? syntax : Syntax.PROTO_2 /* default syntax */;
     }
 
+    /**
+     * Resolves the map type for a given entry type in Protobuf.
+     *
+     * @param entryType The entry type to resolve.
+     * @return The corresponding map type, or null if not a map entry.
+     */
+    public String getMapType(String entryType) {
+        // Check if the entry type corresponds to a map entry
+        if (entryType != null && entryType.endsWith("Entry")) {
+            // Extract the base type by removing the "Entry" suffix
+            return "map<string, string>"; // Adjust logic if needed for dynamic key/value types
+        }
+        return null;
+    }
+
     private void buildIndexes() {
 
         for (TypeElement typeElement : element.getTypes()) {

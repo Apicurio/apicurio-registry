@@ -48,6 +48,8 @@ public class CCompatTestConstants {
 
     public static final String CONFIG_BACKWARD = "{\"compatibility\": \"BACKWARD\"}";
 
+    public static final String CONFIG_NONE = "{\"compatibility\": \"NONE\"}";
+
     public static final String VALID_AVRO_SCHEMA = "{\"schema\": \"{\\\"type\\\": \\\"record\\\",\\\"name\\\": \\\"myrecord1\\\",\\\"fields\\\": [{\\\"name\\\": \\\"foo1\\\",\\\"type\\\": \\\"string\\\"}]}\"}";
 
     public static final String SCHEMA_INVALID_WRAPPED = "{\"schema\":\"{\\\"type\\\": \\\"bloop\\\"}\"}";

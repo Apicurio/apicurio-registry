@@ -156,20 +156,20 @@
     <!-- /WARNING -->
 
     <!-- Jandex -->
-    <jandex.version>3.1.8</jandex.version>
+    <jandex.version>3.3.0</jandex.version>
 
     <!-- Schema types -->
     <avro.version>1.12.0</avro.version>
-    <json-schema-validator.version>1.5.5</json-schema-validator.version>
+    <json-schema-validator.version>1.5.6</json-schema-validator.version>
     <wire-schema.version>5.1.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio-jvm.version>3.10.2</okio-jvm.version>
-    <okio.version>3.10.2</okio.version>
-    <okio-fake-file-system.version>3.10.2</okio-fake-file-system.version>
+    <okio-jvm.version>3.11.0</okio-jvm.version>
+    <okio.version>3.11.0</okio.version>
+    <okio-fake-file-system.version>3.11.0</okio-fake-file-system.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>3.25.5</protobuf.version>
-    <xmlsec.version>4.0.3</xmlsec.version>
-    <protobuf.googleapi.types.version>2.52.0</protobuf.googleapi.types.version>
+    <xmlsec.version>4.0.4</xmlsec.version>
+    <protobuf.googleapi.types.version>2.55.3</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.4</google.truth.extension.version>
 
@@ -192,40 +192,40 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.2.1</apicurio-data-models.version>
+    <apicurio-data-models.version>2.2.2</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.3</graphql.version>
 
     <!-- JSON Schema Validator -->
     <org.everit.json.schema.version>1.14.5</org.everit.json.schema.version>
-    <json-sKema.version>0.20.0</json-sKema.version>
+    <json-sKema.version>0.22.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250107</org.json.version>
-    <jackson-datatype-json-org.version>2.18.2</jackson-datatype-json-org.version>
-    <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
+    <jackson-datatype-json-org.version>2.19.0</jackson-datatype-json-org.version>
+    <jackson-dataformat-yaml.version>2.19.0</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
-    <openapi-diff.version>2.0.1</openapi-diff.version>
+    <openapi-diff.version>2.1.0</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.25</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.26</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
-    <lombok.version>1.18.36</lombok.version>
+    <lombok.version>1.18.38</lombok.version>
     <commons-codec.version>1.18.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.9.0</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>
-    <pulsar-clients.version>3.3.4</pulsar-clients.version>
-    <commons-beanutils.version>1.10.0</commons-beanutils.version>
+    <pulsar-clients.version>3.3.6</pulsar-clients.version>
+    <commons-beanutils.version>1.10.1</commons-beanutils.version>
 
-    <nats.version>2.20.5</nats.version>
-    <snakeyaml.version>2.3</snakeyaml.version>
+    <nats.version>2.21.1</nats.version>
+    <snakeyaml.version>2.4</snakeyaml.version>
     <woodstox-core.version>7.1.0</woodstox-core.version>
-    <jgit.version>7.1.0.202411261347-r</jgit.version>
-    <awaitility.version>4.2.2</awaitility.version>
+    <jgit.version>7.2.0.202503040940-r</jgit.version>
+    <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.3</assertj.core.version>
-    <semver4j.version>5.6.0</semver4j.version>
+    <semver4j.version>5.7.0</semver4j.version>
 
     <!-- Kafka Connect -->
     <connect.version>3.9.0</connect.version>
@@ -273,7 +273,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
-    <test-containers.version>1.20.4</test-containers.version>
+    <test-containers.version>1.21.0</test-containers.version>
     <keycloak.testcontainers.version>3.6.0</keycloak.testcontainers.version>
     <embedded-postgres.version>2.1.0</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
@@ -935,7 +935,7 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
-          <version>4.9.2</version>
+          <version>4.9.5</version>
           <configuration>
             <recompileMode>incremental</recompileMode>
             <args>

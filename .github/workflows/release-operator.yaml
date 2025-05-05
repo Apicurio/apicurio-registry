@@ -159,11 +159,7 @@ jobs:
         run: |
           git checkout -b "$RELEASE_BRANCH"
           TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
-          BODY="$(curl -s https://raw.githubusercontent.com/k8s-operatorhub/community-operators/main/docs/pull_request_template.md)"
-          # TODO: Remove after first release
-          mkdir operators/apicurio-registry-3
-          # TODO: Remove after first release
-          echo -e "---\nupdateGraph: replaces-mode\nreviewers:\n  - apicurio-ci\n  - carlesarnal\n  - EricWittmann  - jsenko\n" > operators/apicurio-registry-3/ci.yaml
+          BODY="$(curl -s https://raw.githubusercontent.com/k8s-operatorhub/community-operators/main/docs/pull_request_template.md)"          
           cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
           git add .
           git commit -s -m "$TITLE"
@@ -188,10 +184,6 @@ jobs:
           git checkout -b "$RELEASE_BRANCH"
           TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
           BODY="$(curl -s https://raw.githubusercontent.com/redhat-openshift-ecosystem/community-operators-prod/main/docs/pull_request_template.md)"
-          # TODO: Remove after first release
-          mkdir operators/apicurio-registry-3
-          # TODO: Remove after first release
-          echo -e "---\nupdateGraph: replaces-mode\nreviewers:\n  - apicurio-ci\n  - carlesarnal\n  - EricWittmann  - jsenko\n" > operators/apicurio-registry-3/ci.yaml
           cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
           git add .
           git commit -s -m "$TITLE"

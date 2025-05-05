@@ -33,7 +33,7 @@
     "eslint-plugin-react-refresh": "0.4.20",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
-    "vite": "6.3.4",
+    "vite": "6.3.5",
     "vite-tsconfig-paths": "5.1.4"
   },
   "dependencies": {
@@ -54,7 +54,7 @@
     "axios": "1.9.0",
     "buffer": "6.0.3",
     "luxon": "3.6.1",
-    "oidc-client-ts": "3.2.0",
+    "oidc-client-ts": "3.2.1",
     "pluralize": "8.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",

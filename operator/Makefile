@@ -299,9 +299,8 @@ dist: dist-install-file ## TODO
 	sed -i '\|^.*<file>.*</file>.*$$|d' $(DIST_TARGET_DIR)/licenses/licenses.xml
 	# Examples
 	mkdir -p $(DIST_TARGET_DIR)/examples
-	cp -t $(DIST_TARGET_DIR)/examples controller/src/main/deploy/examples/*
-	rm $(DIST_TARGET_DIR)/examples/kustomization.yaml
-	cp -rt $(DIST_TARGET_DIR)/examples controller/src/main/resources/k8s/examples/*
+	# cp -t $(DIST_TARGET_DIR)/examples controller/src/main/deploy/examples/*
+	# rm $(DIST_TARGET_DIR)/examples/kustomization.yaml
 	cp -rt $(DIST_TARGET_DIR)/examples controller/src/test/resources/k8s/examples/*
 	# Install
 	mkdir -p $(DIST_TARGET_DIR)/install

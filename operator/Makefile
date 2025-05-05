@@ -39,7 +39,6 @@ PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
 PREVIOUS_PACKAGE_VERSION ?= 3.0.7
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
-# TODO: Handle `replaces` after first release
 
 CHANNELS ?= 3.x
 DEFAULT_CHANNEL ?= $(CHANNELS)
@@ -100,6 +99,8 @@ export PLACEHOLDER_DATE := $(DATE)
 
 export PLACEHOLDER_PACKAGE_NAME := $(PACKAGE_NAME)
 export PLACEHOLDER_PACKAGE := $(PACKAGE)
+export PLACEHOLDER_PREVIOUS_PACKAGE := $(PREVIOUS_PACKAGE)
+
 export PLACEHOLDER_BUNDLE_IMAGE := $(BUNDLE_IMAGE)
 
 export PLACEHOLDER_CATALOG_NAMESPACE := $(CATALOG_NAMESPACE)
@@ -419,6 +420,7 @@ catalog-subscription-undeploy: ## TODO
 release-catalog-template-update: install-yq
 	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name = "3.x") | .entries[] | select(.name = "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
 	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name = "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
 
 
 .PHONY: dev

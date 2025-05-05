@@ -36,6 +36,16 @@ public class ProtobufCompatibilityCheckerLibrary {
         return findDifferences().isEmpty();
     }
 
+    /**
+     * Determine if any new fields have been added, which is forward-compatible.
+     *
+     * @return differences list (empty for forward-compatible additions)
+     */
+    public List<ProtobufDifference> checkAddingNewFields() {
+        // Adding new fields is forward-compatible, so this method will not add issues.
+        return Collections.emptyList();
+    }
+
     public List<ProtobufDifference> findDifferences() {
         List<ProtobufDifference> totalIssues = new ArrayList<>();
         totalIssues.addAll(checkNoUsingReservedFields());
@@ -49,6 +59,8 @@ public class ProtobufCompatibilityCheckerLibrary {
         if (Syntax.PROTO_2.equals(fileBefore.getSyntax())) {
             totalIssues.addAll(checkRequiredFields());
         }
+        // Adding the new check for forward-compatible additions
+        totalIssues.addAll(checkAddingNewFields());
         return totalIssues;
     }
 

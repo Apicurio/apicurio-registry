@@ -426,7 +426,7 @@ release-catalog-template-update: install-yq
 
 .PHONY: dev
 dev:
-	mvn quarkus:dev
+	export POD_NAMESPACE=$$(kubectl config current-context | awk '{split($$0,x,"/"); printf "%s",x[1]}'); mvn quarkus:dev
 
 
 .PHONY: set-variable

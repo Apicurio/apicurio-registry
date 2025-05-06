@@ -14,6 +14,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
@@ -43,6 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -178,6 +180,36 @@ public abstract class ITBase {
             assertThat(client.network().v1().ingresses()
                     .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get()).isNull();
         });
+    }
+
+    /**
+     * Update the Kubernetes resource, and retry if the update fails because the object has been modified on the server.
+     * Use this method to make tests more resilient.
+     *
+     * @param resource Resource to be updated. The metadata must be set.
+     * @param updater  Reentrant function that updates the resource in-place.
+     * @return The resource after it has been updated.
+     */
+    protected static <T extends HasMetadata> T updateWithRetries(T resource, Consumer<T> updater) {
+        var rval = new ValueOrNull<>(resource);
+        await().atMost(SHORT_DURATION).until(() -> {
+            try {
+                var r = rval.getValue();
+                r = client.resource(r).get();
+                updater.accept(r);
+                r = client.resource(r).update();
+                rval.setValue(r);
+                return true;
+            } catch (KubernetesClientException ex) {
+                if (ex.getMessage().contains("the object has been modified")) {
+                    log.debug("Retrying:", ex);
+                    return false;
+                } else {
+                    throw ex;
+                }
+            }
+        });
+        return rval.getValue();
     }
 
     protected static PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,

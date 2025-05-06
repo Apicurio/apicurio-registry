@@ -2,13 +2,20 @@ package io.apicurio.registry.operator.resource;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
-import io.apicurio.registry.operator.api.v1.spec.*;
+import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
+import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
+import io.apicurio.registry.operator.api.v1.spec.NetworkPolicySpec;
+import io.apicurio.registry.operator.api.v1.spec.PodDisruptionSpec;
+import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
 import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
+import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
 import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
@@ -30,7 +37,7 @@ public class ActivationConditions {
 
         @Override
         public boolean isMet(DependentResource<Ingress, ApicurioRegistry3> resource,
-                ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
             var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                     .map(ComponentSpec::getIngress).map(IngressSpec::getEnabled).orElse(Boolean.TRUE);
@@ -49,7 +56,7 @@ public class ActivationConditions {
             implements Condition<PodDisruptionBudget, ApicurioRegistry3> {
         @Override
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
-                ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
             boolean isEnabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                     .map(ComponentSpec::getPodDisruptionBudget).map(PodDisruptionSpec::getEnabled)
                     .orElse(Boolean.TRUE);
@@ -81,11 +88,26 @@ public class ActivationConditions {
 
     // ===== Registry UI
 
+    public static class UIDeploymentActivationCondition implements Condition<Deployment, ApicurioRegistry3> {
+
+        @Override
+        public boolean isMet(DependentResource<Deployment, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+
+            var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(UiSpec::getEnabled).orElse(Boolean.TRUE);
+            if (!enabled) {
+                ((UIDeploymentResource) resource).delete(primary, context);
+            }
+            return enabled;
+        }
+    }
+
     public static class UIIngressActivationCondition implements Condition<Ingress, ApicurioRegistry3> {
 
         @Override
         public boolean isMet(DependentResource<Ingress, ApicurioRegistry3> resource,
-                ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
 
             var enabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
                     .map(ComponentSpec::getIngress).map(IngressSpec::getEnabled).orElse(Boolean.TRUE);
@@ -104,7 +126,7 @@ public class ActivationConditions {
             implements Condition<PodDisruptionBudget, ApicurioRegistry3> {
         @Override
         public boolean isMet(DependentResource<PodDisruptionBudget, ApicurioRegistry3> resource,
-                ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
             boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
                     .map(ComponentSpec::getPodDisruptionBudget).map(PodDisruptionSpec::getEnabled)
                     .orElse(Boolean.TRUE);

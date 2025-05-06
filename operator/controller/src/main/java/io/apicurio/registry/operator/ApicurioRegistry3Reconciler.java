@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.resource.ActivationConditions;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
@@ -78,7 +79,8 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
                 // ===== Registry UI
                 @Dependent(
                         type = UIDeploymentResource.class,
-                        name = UI_DEPLOYMENT_ID
+                        name = UI_DEPLOYMENT_ID,
+                        activationCondition = ActivationConditions.UIDeploymentActivationCondition.class
                 ),
                 @Dependent(
                         type = UIServiceResource.class,

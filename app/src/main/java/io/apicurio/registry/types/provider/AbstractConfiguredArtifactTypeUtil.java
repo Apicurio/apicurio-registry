@@ -45,7 +45,7 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
         }
 
         protected O executeScript(I input, Class<O> outputClass) throws HttpClientException {
-            return scriptingService.executeScript(provider.getScript(), input, outputClass);
+            return scriptingService.executeScript(provider.getScript(), provider.getScriptType(), input, outputClass);
         }
     }
 

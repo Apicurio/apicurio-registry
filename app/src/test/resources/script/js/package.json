@@ -1,0 +1,14 @@
+{
+    "scripts": {
+        "build": "esbuild index.js --bundle --outfile=dist/out.js",
+        "clean-resources": "rimraf node_modules",
+        "clean": "rimraf dist node_modules"
+    },
+    "devDependencies": {
+        "esbuild": "0.25.2",
+        "rimraf": "^6.0.1"
+    },
+    "dependencies": {
+        "yaml": "^2.7.1"
+    }
+}

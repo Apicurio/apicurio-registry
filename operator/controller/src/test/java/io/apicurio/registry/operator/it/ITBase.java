@@ -290,8 +290,10 @@ public abstract class ITBase {
     }
 
     static void applyStrimziResources() throws IOException {
-        try (BufferedInputStream in = new BufferedInputStream(
-                new URL("https://strimzi.io/install/latest").openStream())) {
+        // TODO: IMPORTANT: Strimzi >0.45 only supports Kraft-based Kafka clusters. Migration needed.
+        // var strimziClusterOperatorURL = new URL("https://strimzi.io/install/latest");
+        var strimziClusterOperatorURL = new URL("https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.45.0/strimzi-cluster-operator-0.45.0.yaml");
+        try (BufferedInputStream in = new BufferedInputStream(strimziClusterOperatorURL.openStream())) {
             List<HasMetadata> resources = Serialization.unmarshal(in);
             resources.forEach(r -> {
                 if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {

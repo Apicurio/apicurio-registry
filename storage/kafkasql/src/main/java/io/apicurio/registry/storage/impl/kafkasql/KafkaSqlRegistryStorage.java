@@ -25,41 +25,8 @@ import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
-import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.ArtifactNotFoundException;
-import io.apicurio.registry.storage.ArtifactStateExt;
-import io.apicurio.registry.storage.ContentNotFoundException;
-import io.apicurio.registry.storage.GroupAlreadyExistsException;
-import io.apicurio.registry.storage.GroupNotFoundException;
-import io.apicurio.registry.storage.LogConfigurationNotFoundException;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.RegistryStorageException;
-import io.apicurio.registry.storage.RoleMappingNotFoundException;
-import io.apicurio.registry.storage.RuleAlreadyExistsException;
-import io.apicurio.registry.storage.RuleNotFoundException;
-import io.apicurio.registry.storage.StorageEvent;
-import io.apicurio.registry.storage.StorageEventType;
-import io.apicurio.registry.storage.VersionAlreadyExistsException;
-import io.apicurio.registry.storage.VersionNotFoundException;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentAndReferencesDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.LogConfigurationDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RoleMappingDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.*;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.impexp.EntityInputStream;
 import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
@@ -77,13 +44,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.DataImporter;
 import io.apicurio.registry.utils.ConcurrentUtil;
-import io.apicurio.registry.utils.impexp.ArtifactRuleEntity;
-import io.apicurio.registry.utils.impexp.ArtifactVersionEntity;
-import io.apicurio.registry.utils.impexp.CommentEntity;
-import io.apicurio.registry.utils.impexp.ContentEntity;
-import io.apicurio.registry.utils.impexp.Entity;
-import io.apicurio.registry.utils.impexp.GlobalRuleEntity;
-import io.apicurio.registry.utils.impexp.GroupEntity;
+import io.apicurio.registry.utils.impexp.*;
 import io.apicurio.registry.utils.kafka.KafkaUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.PostConstruct;
@@ -104,17 +65,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -1367,12 +1318,14 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
 
     protected void importArtifactRule(ArtifactRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
-        submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT, config);
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifactRule(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.type, ActionType.IMPORT, config));
+        coordinator.waitForResponse(reqId);
     }
 
     public void importComment(CommentEntity entity) {
-        submitter.submitComment(tenantContext.tenantId(), entity.commentId, ActionType.IMPORT, entity.globalId,
-                entity.createdBy, new Date(entity.createdOn), entity.value);
+        UUID reqId = ConcurrentUtil.get(submitter.submitComment(tenantContext.tenantId(), entity.commentId, ActionType.IMPORT, entity.globalId,
+                entity.createdBy, new Date(entity.createdOn), entity.value));
+        coordinator.waitForResponse(reqId);
     }
 
     protected void importArtifactVersion(ArtifactVersionEntity entity) {
@@ -1382,18 +1335,21 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
                 .labels(entity.labels)
                 .properties(entity.properties)
                 .build();
-        submitter.submitArtifact(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.version, ActionType.IMPORT,
+        UUID reqId = ConcurrentUtil.get(submitter.submitArtifact(tenantContext.tenantId(), entity.groupId, entity.artifactId, entity.version, ActionType.IMPORT,
                 entity.globalId, entity.artifactType, null, entity.createdBy, new Date(entity.createdOn), metaData, entity.versionId,
-                entity.state, entity.contentId, entity.isLatest);
+                entity.state, entity.contentId, entity.isLatest));
+        coordinator.waitForResponse(reqId);
     }
 
     protected void importContent(ContentEntity entity) {
-        submitter.submitContent(ActionType.IMPORT, tenantContext.tenantId(), entity.contentId, entity.contentHash, entity.canonicalHash, ContentHandle.create(entity.contentBytes), entity.serializedReferences);
+        UUID reqId = ConcurrentUtil.get(submitter.submitContent(ActionType.IMPORT, tenantContext.tenantId(), entity.contentId, entity.contentHash, entity.canonicalHash, ContentHandle.create(entity.contentBytes), entity.serializedReferences));
+        coordinator.waitForResponse(reqId);
     }
 
     protected void importGlobalRule(GlobalRuleEntity entity) {
         RuleConfigurationDto config = new RuleConfigurationDto(entity.configuration);
-        submitter.submitGlobalRule(tenantContext.tenantId(), entity.ruleType, ActionType.IMPORT, config);
+        UUID reqId = ConcurrentUtil.get(submitter.submitGlobalRule(tenantContext.tenantId(), entity.ruleType, ActionType.IMPORT, config));
+        coordinator.waitForResponse(reqId);
     }
 
     protected void importGroup(GroupEntity entity) {
@@ -1407,7 +1363,8 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
         group.setModifiedBy(e.modifiedBy);
         group.setModifiedOn(e.modifiedOn);
         group.setProperties(e.properties);
-        submitter.submitGroup(tenantContext.tenantId(), ActionType.IMPORT, group);
+        UUID reqId = ConcurrentUtil.get(submitter.submitGroup(tenantContext.tenantId(), ActionType.IMPORT, group));
+        coordinator.waitForResponse(reqId);
     }
 
     private void resetContentId() {

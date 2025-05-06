@@ -16,16 +16,25 @@
 
 package io.apicurio.registry.storage.impl.kafkasql;
 
+import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
+import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessCheck;
+import io.apicurio.registry.storage.impl.kafkasql.keys.MessageKey;
+import io.apicurio.registry.storage.impl.kafkasql.values.ActionType;
+import io.apicurio.registry.types.RegistryException;
+import io.quarkus.scheduler.Scheduled;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.slf4j.Logger;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
-import io.apicurio.registry.types.RegistryException;
+import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
 /**
  * Coordinates "write" responses across threads in the Kafka-SQL artifactStore implementation.  Basically this is used
@@ -40,17 +49,34 @@ public class KafkaSqlCoordinator {
     @Inject
     KafkaSqlConfiguration configuration;
 
+    @Inject
+    Logger log;
+
+    @Inject
+    LivenessUtil livenessUtil;
+
+    @Inject
+    PersistenceExceptionLivenessCheck livenessCheck;
+
     private static final Object NULL = new Object();
-    private Map<UUID, CountDownLatch> latches = new ConcurrentHashMap<>();
-    private Map<UUID, Object> returnValues = new ConcurrentHashMap<>();
+
+    private final Map<UUID, WaitingOperation> waitingOperations = new ConcurrentHashMap<>();
+
+    private volatile Instant lastLeakCheck = Instant.now();
 
     /**
      * Creates a UUID for a single operation.
+     * <p>
+     * Arguments are used to provide context in case of an error.
      */
-    public UUID createUUID() {
-        UUID uuid = UUID.randomUUID();
-        latches.put(uuid, new CountDownLatch(1));
-        return uuid;
+    public UUID createUUID(MessageKey key, ActionType actionType) {
+        var operation = new WaitingOperation(key, actionType);
+        waitingOperations.put(operation.getUuid(), operation);
+        return operation.getUuid();
+    }
+
+    public boolean isOurWaitingOperation(UUID uuid) {
+        return waitingOperations.containsKey(uuid);
     }
 
     /**
@@ -63,25 +89,58 @@ public class KafkaSqlCoordinator {
      */
     public Object waitForResponse(UUID uuid) {
         try {
-            latches.get(uuid).await(configuration.responseTimeout(), TimeUnit.MILLISECONDS);
+            var operation = waitingOperations.get(uuid);
+            operation.getLatch().await(configuration.responseTimeout(), TimeUnit.MILLISECONDS);
 
-            Object rval = returnValues.remove(uuid);
+            Object rval = operation.getReturnValue();
             if (rval == NULL) {
                 return null;
             } else if (rval instanceof RegistryException) {
                 throw (RegistryException) rval;
+            } else if (rval instanceof Exception) {
+                throw new RegistryException((Exception) rval);
             }
             return rval;
         } catch (InterruptedException e) {
-          throw new RegistryException("[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
+            throw new RegistryException("[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
         } finally {
-            latches.remove(uuid);
+            waitingOperations.remove(uuid);
+        }
+    }
+
+    @Scheduled(delay = 1, concurrentExecution = SKIP, every = "10s")
+    void checkLeaks() {
+        var now = Instant.now();
+        if (now.isAfter(lastLeakCheck.plus(configuration.responseTimeout() * 2L, ChronoUnit.MILLIS))) {
+            var leaks = waitingOperations.values().stream()
+                    .filter(op -> now.isAfter(op.getCreatedAt().plus(configuration.responseTimeout() * 2L, ChronoUnit.MILLIS)))
+                    .collect(Collectors.toList());
+            leaks.forEach(leak -> {
+                var returnValue = leak.getReturnValue();
+                if (returnValue != null && returnValue != NULL) {
+                    // See also: io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink.processMessage
+                    if (returnValue instanceof Exception && !livenessUtil.isIgnoreError((Exception) returnValue)) {
+                        log.warn("An exception was ignored when processing KafkaSql message (initiated by this node). " +
+                                 "Key = '" + leak.getKey() + "'" +
+                                 (leak.getActionType() != null ? ", action = '" + leak.getActionType() + "'" : ""), (Exception) returnValue);
+                        livenessCheck.suspectWithException((Exception) returnValue);
+                    } else {
+                        log.debug("A return value was ignored when processing KafkaSql message (initiated by this node). " +
+                                  "Key = '" + leak.getKey() + "'" +
+                                  (leak.getActionType() != null ? ", action = '" + leak.getActionType() + "'" : "") +
+                                  ", return value = '" + returnValue + "'.");
+                    }
+                }
+                waitingOperations.remove(leak.getUuid());
+            });
+            lastLeakCheck = now;
         }
     }
 
     /**
      * Countdown the latch for the given UUID.  This will wake up the thread waiting for the response
      * so that it can proceed.
+     *
      * @param uuid
      * @param returnValue
      */
@@ -91,11 +150,13 @@ public class KafkaSqlCoordinator {
             return;
         }
 
+        var operation = waitingOperations.get(uuid);
+
         // If there is no countdown latch, then there is no HTTP thread waiting for
         // a response.  This means one of two possible things:
         //  1) We're in a cluster and the HTTP thread is on another node
         //  2) We're starting up and consuming all the old journal entries
-        if (!latches.containsKey(uuid)) {
+        if (operation == null) {
             return;
         }
 
@@ -105,8 +166,7 @@ public class KafkaSqlCoordinator {
         if (returnValue == null) {
             returnValue = NULL;
         }
-        returnValues.put(uuid, returnValue);
-        latches.get(uuid).countDown();
+        operation.setReturnValue(returnValue);
+        operation.getLatch().countDown();
     }
-
 }

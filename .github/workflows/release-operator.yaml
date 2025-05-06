@@ -195,6 +195,7 @@ jobs:
         run: |
           # We want to use latest-snapshot instead of x.y.z-snapshot
           echo "export IMAGE_TAG=latest-snapshot" >> "$CUSTOM_ENV"
+          echo "export OPERAND_IMAGE_TAG=latest-snapshot" >> "$CUSTOM_ENV"
 
       - name: Prepare post-release changes
         working-directory: registry/operator

@@ -6629,6 +6629,7 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps
   - pods
   - services
   verbs:
@@ -6711,6 +6712,14 @@ spec:
     spec:
       containers:
       - env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: APICURIO_OPERATOR_WATCHED_NAMESPACES
           valueFrom:
             fieldRef:

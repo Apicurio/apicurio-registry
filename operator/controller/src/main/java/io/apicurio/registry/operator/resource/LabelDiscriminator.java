@@ -59,7 +59,7 @@ public class LabelDiscriminator<R extends HasMetadata>
                 var msg = "Expected at most one %s resource with labels %s but got more:\n%s"
                         .formatted(resource.getSimpleName(), labels, filtered.stream().map(ResourceID::fromResource).toList());
                 if (filtered.stream().allMatch(r -> fromResource(filtered.get(0)).equals(fromResource(r)))) {
-                    log.warn(msg);
+                    log.debug(msg);
                     return filtered.stream().max(comparingLong(r -> parseLong(r.getMetadata().getResourceVersion())));
                 } else {
                     throw new OperatorException(msg);

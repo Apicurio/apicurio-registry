@@ -3506,6 +3506,10 @@ spec:
                 description: |
                   Configure Apicurio Registry UI component.
                 properties:
+                  enabled:
+                    description: |
+                      Indicates whether the operator should deploy the UI component.  Defaults to `true`.
+                    type: boolean
                   env:
                     description: Configure a list of environment variables that will
                       be passed to this components' container.

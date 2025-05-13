@@ -30,6 +30,7 @@
   </licenses>
 
   <modules>
+    <module>ai/apicurio-registry-mcp-server</module>
     <module>simple-avro</module>
     <module>simple-json</module>
     <module>confluent-serdes</module>

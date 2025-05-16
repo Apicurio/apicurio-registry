@@ -62,7 +62,6 @@ public class FileDescriptorUtils {
     private static final String OBJC_CLASS_PREFIX_OPTION = "objc_class_prefix";
     private static final String OPTIMIZE_FOR_OPTION = "optimize_for";
     private static final String PHP_CLASS_PREFIX_OPTION = "php_class_prefix";
-    private static final String PHP_GENERIC_SERVICES_OPTION = "php_generic_services";
     private static final String PHP_METADATA_NAMESPACE_OPTION = "php_metadata_namespace";
     private static final String PHP_NAMESPACE_OPTION = "php_namespace";
     private static final String PY_GENERIC_SERVICES_OPTION = "py_generic_services";
@@ -633,13 +632,6 @@ public class FileDescriptorUtils {
             schema.mergeOptions(options);
         }
 
-        Boolean phpGenericServices = findOptionBoolean(PHP_GENERIC_SERVICES_OPTION, element.getOptions());
-        if (phpGenericServices != null) {
-            FileOptions options = DescriptorProtos.FileOptions.newBuilder()
-                    .setPhpGenericServices(phpGenericServices).build();
-            schema.mergeOptions(options);
-        }
-
         String phpClassPrefix = findOptionString(PHP_CLASS_PREFIX_OPTION, element.getOptions());
         if (phpClassPrefix != null) {
             FileOptions options = DescriptorProtos.FileOptions.newBuilder().setPhpClassPrefix(phpClassPrefix)
@@ -1136,11 +1128,6 @@ public class FileDescriptorUtils {
         if (file.getOptions().hasPhpClassPrefix()) {
             OptionElement option = new OptionElement(PHP_CLASS_PREFIX_OPTION, stringKind,
                     file.getOptions().getPhpClassPrefix(), false);
-            options.add(option);
-        }
-        if (file.getOptions().hasPhpGenericServices()) {
-            OptionElement option = new OptionElement(PHP_GENERIC_SERVICES_OPTION, booleanKind,
-                    file.getOptions().getPhpGenericServices(), false);
             options.add(option);
         }
         if (file.getOptions().hasPhpMetadataNamespace()) {

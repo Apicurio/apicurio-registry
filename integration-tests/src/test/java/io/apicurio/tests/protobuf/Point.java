@@ -76,7 +76,6 @@ public final class Point extends com.google.protobuf.GeneratedMessageV3 implemen
             throw new com.google.protobuf.InvalidProtocolBufferException(e).setUnfinishedMessage(this);
         } finally {
             this.unknownFields = unknownFields.build();
-            makeExtensionsImmutable();
         }
     }
 

@@ -384,4 +384,75 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
     }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked", "resource"})
+    public void testDebeziumEventSerialization() {
+        final Map<String, Object> properties = new HashMap<>();
+        properties.put("schemas.enable", true);
+        properties.put("schemas.cache.size", 100);
+        properties.put("apicurio.registry.url", getRegistryV2ApiUrl());
+        properties.put("apicurio.registry.auto-register", true);
+        properties.put("apicurio.registry.find-latest", true);
+        properties.put("apicurio.registry.check-period-ms", 1000);
+
+        AvroConverter keyConverter = new AvroConverter();
+        keyConverter.configure(properties, true);
+
+        AvroConverter valueConverter = new AvroConverter();
+        valueConverter.configure(properties, false);
+
+        org.apache.kafka.connect.data.Schema keySchema = SchemaBuilder.struct()
+                .name("CUSTOMERS.Key")
+                .required()
+                .field("id", SchemaBuilder.INT32_SCHEMA)
+                .build();
+
+        org.apache.kafka.connect.data.Schema recordSchema = SchemaBuilder.struct()
+                .name("CUSTOMERS.Value")
+                .optional()
+                .field("id", SchemaBuilder.INT32_SCHEMA)
+                .field("CUSTOMER_TYPE", SchemaBuilder.string()
+                        .name("io.debezium.data.Enum")
+                        .version(1)
+                        .required()
+                        .defaultValue("b2c")
+                        .build());
+
+        org.apache.kafka.connect.data.Schema envelopeSchema = SchemaBuilder.struct()
+                .name("CUSTOMERS.Envelope")
+                .version(2)
+                .required()
+                .field("before", recordSchema)
+                .field("after", recordSchema)
+                .build();
+
+        // Initial snapshot data
+        Struct key = new Struct(keySchema).put("id", 1);
+        Struct before = null;
+        Struct after = new Struct(recordSchema).put("id", 1).put("CUSTOMER_TYPE", "b2b");
+        Struct value = new Struct(envelopeSchema).put("before", before).put("after", after);
+        keyConverter.fromConnectData("CUSTOMERS", key.schema(), key);
+        valueConverter.fromConnectData("CUSTOMERS", value.schema(), value);
+
+        recordSchema = SchemaBuilder.struct()
+                .name("CUSTOMERS.Value")
+                .optional()
+                .field("id", SchemaBuilder.INT32_SCHEMA)
+                .field("customer_type", SchemaBuilder.INT32_SCHEMA);
+
+        envelopeSchema = SchemaBuilder.struct()
+                .name("CUSTOMERS.Envelope")
+                .version(2)
+                .required()
+                .field("before", recordSchema)
+                .field("after", recordSchema)
+                .build();
+
+        // Streaming data
+        after = new Struct(recordSchema).put("id", 1).put("customer_type", 456);
+        value = new Struct(envelopeSchema).put("before", null).put("after", after);
+        keyConverter.fromConnectData("CUSTOMERS", key.schema(), key);
+        valueConverter.fromConnectData("CUSTOMERS", value.schema(), value);
+    }
 }

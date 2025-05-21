@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@apicurio/apicurio-registry-sdk": "3.0.8",
-    "@apicurio/common-ui-components": "2.0.7",
+    "@apicurio/common-ui-components": "2.0.8",
     "@apicurio/data-models": "1.1.33",
     "@microsoft/kiota-abstractions": "1.0.0-preview.79",
     "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.79",

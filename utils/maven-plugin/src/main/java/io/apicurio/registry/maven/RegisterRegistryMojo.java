@@ -216,7 +216,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         Set<ExternalReference> externalReferences = referenceFinder
                 .findExternalReferences(typedArtifactContent);
 
-        // Register all of the references first, then register the artifact.
+        // Register all the references first, then register the artifact.
         List<ArtifactReference> registeredReferences = new ArrayList<>(externalReferences.size());
         for (ExternalReference externalRef : externalReferences) {
             IndexedResource iresource = index.lookup(externalRef.getResource(),
@@ -423,6 +423,20 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return reference;
     }
 
+    private static boolean isFileAllowedInIndex(File file) {
+        return file.isFile() && (
+                file.getName().toLowerCase().endsWith(".json") ||
+                file.getName().toLowerCase().endsWith(".yml") ||
+                file.getName().toLowerCase().endsWith(".yaml") ||
+                file.getName().toLowerCase().endsWith(".xml") ||
+                file.getName().toLowerCase().endsWith(".xsd") ||
+                file.getName().toLowerCase().endsWith(".wsdl") ||
+                file.getName().toLowerCase().endsWith(".graphql") ||
+                file.getName().toLowerCase().endsWith(".avsc") ||
+                file.getName().toLowerCase().endsWith(".proto")
+        );
+    }
+
     /**
      * Create a local index relative to the given file location.
      *
@@ -431,7 +445,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     private static ReferenceIndex createIndex(File file) {
         ReferenceIndex index = new ReferenceIndex(file.getParentFile().toPath());
         Collection<File> allFiles = FileUtils.listFiles(file.getParentFile(), null, true);
-        allFiles.stream().filter(f -> f.isFile()).forEach(f -> {
+        allFiles.stream().filter(RegisterRegistryMojo::isFileAllowedInIndex).forEach(f -> {
             index.index(f.toPath(), readContent(f));
         });
         return index;

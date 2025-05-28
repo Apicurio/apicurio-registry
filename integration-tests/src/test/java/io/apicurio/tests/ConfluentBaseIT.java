@@ -70,7 +70,7 @@ public abstract class ConfluentBaseIT extends ApicurioRegistryBaseIT {
     protected void clearAllConfluentSubjects() throws IOException, RestClientException {
         int breakerCount = 0;
         boolean broken = false;
-        while (confluentService != null && confluentService.getAllSubjects() != null) {
+        while (confluentService != null && !confluentService.getAllSubjects().isEmpty()) {
             if (breakerCount > 5) {
                 broken = true;
                 break;

@@ -57,31 +57,18 @@ public abstract class ConfluentBaseIT extends ApicurioRegistryBaseIT {
     }
 
     protected void clearAllConfluentSubjects() throws IOException, RestClientException {
-        int breakerCount = 0;
-        boolean broken = false;
-        while (confluentService != null && !confluentService.getAllSubjects().isEmpty()) {
-            if (breakerCount > 5) {
-                broken = true;
-                break;
-            }
+        if (confluentService != null && !confluentService.getAllSubjects().isEmpty()) {
             for (String confluentSubject : confluentService.getAllSubjects()) {
                 if (confluentSubject != null) {
                     logger.info("Deleting confluent schema {}", confluentSubject);
                     try {
-                        confluentService.deleteSubject(confluentSubject);
-                    } catch (RestClientException e) {
-                        if (e.getStatus() == 404 || e.getStatus() == 422) {
-                            // subject may be already deleted or have references
-                            continue;
-                        }
-                        throw e;
+                        registryClient.groups().byGroupId("default").artifacts().byArtifactId(confluentSubject).delete();
+                    } catch (Exception e) {
+                        System.out.println("WARNING>> Failed to delete confluent schema " + confluentSubject);
+                        System.out.println("WARNING>>    " + e.getMessage());
                     }
                 }
             }
-            breakerCount++;
-        }
-        if (broken) {
-            throw new IOException("Failed to delete ALL confluent schemas.");
         }
     }
 

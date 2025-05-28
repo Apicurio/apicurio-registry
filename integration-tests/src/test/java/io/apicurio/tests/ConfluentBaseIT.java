@@ -73,7 +73,7 @@ public abstract class ConfluentBaseIT extends ApicurioRegistryBaseIT {
                 logger.info("Deleting confluent schema {}", confluentSubject);
                 try {
                     registryClient.deleteArtifact("default", confluentSubject);
-                } catch (RestClientException e) {
+                } catch (Exception e) {
                     System.out.println("WARNING>> Failed to delete confluent schema " + confluentSubject);
                     System.out.println("WARNING>>    " + e.getMessage());
                 }

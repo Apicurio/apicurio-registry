@@ -433,6 +433,11 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId) {
+        return proxy(storage -> storage.getGlobalIdsReferencingArtifact(groupId, artifactId));
+    }
+
+    @Override
     public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId,
             String version) {
         return proxy(storage -> storage.getInboundArtifactReferences(groupId, artifactId, version));

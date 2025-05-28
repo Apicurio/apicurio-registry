@@ -1,5 +1,7 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -48,15 +50,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
@@ -139,6 +137,13 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
         // This will throw an exception if the artifact does not exist.
         storage.getArtifactMetaData(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+
+        // Check if there are ANY references to the subject
+        List<Long> globalIdsReferencingSubject = storage.getGlobalIdsReferencingArtifact(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId());
+        if (!globalIdsReferencingSubject.isEmpty()) {
+            throw new ReferenceExistsException(String
+                    .format("There are subjects referencing %s", ga.getRawArtifactId()));
+        }
 
         final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
         if (fpermanent) {
@@ -276,10 +281,9 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         final GA ga = getGA(groupId, subject);
         try {
             if (doesArtifactExist(ga.getRawArtifactId(), ga.getRawGroupIdWithNull())) {
-                final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
-
                 return BigInteger.valueOf(VersionUtil.toLong(parseVersionString(ga.getRawArtifactId(), versionString,
                         ga.getRawGroupIdWithNull(), version -> {
+                            final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
                             List<Long> globalIdsReferencingSchema = storage
                                     .getGlobalIdsReferencingArtifactVersion(ga.getRawGroupIdWithNull(),
                                             ga.getRawArtifactId(), version);
@@ -289,13 +293,11 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                                     || areAllSchemasDisabled(globalIdsReferencingSchema)) {
                                 return processDeleteVersion(ga.getRawArtifactId(), versionString,
                                         ga.getRawGroupIdWithNull(), version, fpermanent, avmd);
-                            }
-                            else {
+                            } else {
                                 // There are other schemas referencing this one, it cannot be deleted.
                                 throw new ReferenceExistsException(String
                                         .format("There are subjects referencing %s", ga.getRawArtifactId()));
                             }
-
                         })));
             }
             else {

@@ -2782,8 +2782,17 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId,
             String version) {
         return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectGlobalIdsReferencingArtifactBy())
+            return handle.createQuery(sqlStatements().selectGlobalIdsReferencingArtifactVersionBy())
                     .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version).mapTo(Long.class)
+                    .list();
+        });
+    }
+
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements().selectGlobalIdsReferencingArtifactBy())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Long.class)
                     .list();
         });
     }

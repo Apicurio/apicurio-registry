@@ -23,6 +23,7 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
+import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
 import io.apicurio.registry.ccompat.rest.v6.SubjectsResource;
 import io.apicurio.registry.ccompat.rest.v7.impl.AbstractResource;
@@ -97,6 +98,12 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     private List<Integer> deleteSubjectPermanent(String groupId, String subject) {
+        List<Long> globalIdsReferencingArtifact = getStorage().getGlobalIdsReferencingArtifact(groupId, subject);
+        if (!globalIdsReferencingArtifact.isEmpty()) {
+            // There are other schemas referencing this subject, it cannot be deleted.
+            throw new ReferenceExistsException(String.format("There are subjects referencing %s", subject));
+        }
+
         return getStorage().deleteArtifact(groupId, subject).stream().map(VersionUtil::toInteger).map(getConverter()::convertUnsigned).collect(Collectors.toList());
     }
 }

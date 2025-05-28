@@ -148,7 +148,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
                 final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
 
                 return VersionUtil.toInteger(parseVersionString(ga.getArtifactId(), versionString, ga.getGroupId(), version -> {
-                    List<Long> globalIdsReferencingSchema = storage.getGlobalIdsReferencingArtifact(ga.getGroupId(), ga.getArtifactId(), version);
+                    List<Long> globalIdsReferencingSchema = storage.getGlobalIdsReferencingArtifactVersion(ga.getGroupId(), ga.getArtifactId(), version);
                     ArtifactVersionMetaDataDto avmd = storage.getArtifactVersionMetaData(ga.getGroupId(), ga.getArtifactId(), version);
                     if (globalIdsReferencingSchema.isEmpty() || areAllSchemasDisabled(globalIdsReferencingSchema)) {
                         return processDeleteVersion(ga.getArtifactId(), versionString, ga.getGroupId(), version, fpermanent, avmd);
@@ -198,7 +198,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
         final GA ga = getGA(groupId, subject);
 
         if (cconfig.legacyIdModeEnabled.get()) {
-            return parseVersionString(ga.getArtifactId(), versionString, ga.getGroupId(), version -> storage.getGlobalIdsReferencingArtifact(ga.getGroupId(), ga.getArtifactId(), version));
+            return parseVersionString(ga.getArtifactId(), versionString, ga.getGroupId(), version -> storage.getGlobalIdsReferencingArtifactVersion(ga.getGroupId(), ga.getArtifactId(), version));
         }
 
         return parseVersionString(ga.getArtifactId(), versionString, ga.getGroupId(), version -> storage.getContentIdsReferencingArtifact(ga.getGroupId(), ga.getArtifactId(), version));

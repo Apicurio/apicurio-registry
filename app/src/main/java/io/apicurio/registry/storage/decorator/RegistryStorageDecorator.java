@@ -971,11 +971,16 @@ public abstract class RegistryStorageDecorator implements RegistryStorage {
     }
 
     /**
-     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalIdsReferencingArtifact(String, String, String)
+     * @see io.apicurio.registry.storage.RegistryStorage#getGlobalIdsReferencingArtifactVersion(String, String, String)
      */
     @Override
-    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
-        return delegate.getGlobalIdsReferencingArtifact(groupId, artifactId, version);
+    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
+        return delegate.getGlobalIdsReferencingArtifactVersion(groupId, artifactId, version);
+    }
+
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId) {
+        return delegate.getGlobalIdsReferencingArtifact(groupId, artifactId);
     }
 
     /**

@@ -1,5 +1,212 @@
 // Metadata created by nebel
-include::{mod-loc}shared/all-attributes.adoc[]
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+
+//:toc:
+//:toclevels: 4
+//:numbered:
+
+// Branding - toggle upstream/downstream content "on/off"
+
+// The following attributes conditionalize content from the Apicurio Registry project:
+// * Upstream-only content tagged with ifdef::apicurio-registry[]...endif::[]
+// * Downstream-only content tagged with ifdef::rh-service-registry[]...endif::[]
+// Untagged content is common
+
+// Upstream condition by default, switch on/off downstream-only
+//:service-registry-downstream:
+
+// upstream
+:apicurio-registry:
+:registry: Apicurio Registry
+:registry-name-full: Apicurio Registry
+:registry-version: 3.0
+:registry-release: 3.0.0
+:registry-docker-version: latest-release
+:registry-v1: 1.3
+:registry-v1-release: 1.3.2.Final
+:registry-v2: 2.6.3
+:operator-version: 1.1.0-v2.4.12.final
+:kafka-streams: Strimzi
+:registry-kafka-version: 3.5
+:keycloak: Keycloak
+:keycloak-version: 18.0
+:kubernetes: Kubernetes
+:kubernetes-with-article: a Kubernetes
+:kubernetes-client: kubectl
+:kubernetes-namespace: namespace
+
+// downstream
+
+//common
+:context: registry
+:version: 2024.Q2
+:attachmentsdir: files
+:registry-ocp-version: 4.14
+:registry-db-version: 15
+:registry-url: \http://MY_REGISTRY_UI_URL/
+
+//integration products
+:amq-version: 2.5
+:productpkg: red_hat_integration
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:
+:ndash: –
+:reg: ®
+:trade: ™
+
+//Include attributes for external linking
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
+
+// Download URLs
+:download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+
+
+// internal links
+:registry-overview: xref:intro-to-the-registry_{context}[]
+:registry-rules: xref:intro-to-registry-rules_{context}[]
+:registry-artifact-reference: xref:registry-artifact-reference_{context}[]
+:registry-rule-reference: xref:registry-rule-reference_{context}[]
+:registry-config-reference: xref:registry-config-reference_{context}[]
+:installing-the-registry-openshift: xref:installing-registry-ocp_{context}[]
+:installing-the-registry-storage-openshift: xref:installing-registry-streams-storage_{context}[]
+:managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui_{context}[]
+:managing-registry-artifacts-api: xref:managing-registry-artifacts-api_{context}[]
+:managing-registry-artifacts-maven: xref:managing-registry-artifacts-maven_{context}[]
+:rest-client: xref:using-the-registry-sdk_{context}[]
+:kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
+:registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
+:registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
 
 [id="managing-registry-artifacts-api_{context}"]
 = Managing {registry} content using the REST API
@@ -23,7 +230,357 @@ This chapter shows examples of how to use the Core Registry API v3 to perform th
 * link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
 //INCLUDES
-include::{mod-loc}getting-started/proc-managing-artifacts-using-rest-api.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-managing-artifact-versions-using-rest-api.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-managing-artifact-references-using-rest-api.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-exporting-importing-using-rest-api.adoc[leveloffset=+1]
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
+
+[id="managing-artifacts-using-rest-api_{context}"]
+= Managing schema and API artifacts using {registry} REST API commands
+
+[role="_abstract"]
+This section shows a simple curl-based example of using the Core Registry API v3 to add and retrieve a simple schema artifact in {registry}.
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+
+.Procedure
+
+. Add an artifact to {registry} using the `/groups/\{groupId\}/artifacts` operation. The following example `curl` command adds a simple schema artifact for a share price application:
++
+[source,bash]
+----
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-raw '{
+    "artifactId": "share-price",
+    "artifactType": "AVRO",
+    "firstVersion": {
+        "content": {
+            "content": "{\"type\":\"record\",\"name\":\" p\",\"namespace\":\"com.example\", \"fields\":[{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"price\",\"type\":\"string\"}]}",
+            "contentType": "application/json"
+        }
+    }
+}'
+----
++
+* This example adds an Apache Avro schema artifact with an artifact ID of `share-price`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID.
+* `MY-REGISTRY-URL` is the
+host name on which {registry} is deployed. For example: `\http://localhost:8080`.
+* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path.
+
+. Verify that the response includes the expected JSON body to confirm that the artifact was added. For example:
++
+[source,bash]
+----
+{"artifact":{"owner":"","createdOn":"2024-09-26T17:24:21Z","modifiedBy":"","modifiedOn":"2024-09-26T17:24:21Z","artifactType":"AVRO","groupId":"my-group","artifactId":"share-price"},"version":{"version":"1","owner":"","createdOn":"2024-09-26T17:24:21Z","artifactType":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2,"artifactId":"share-price"}}
+----
++
+* No version was specified when adding the artifact, so the default version `1` is created automatically.
+* This was the second artifact added to {registry}, so the global ID and content ID have a value of `2`.
+. Retrieve the artifact version content from {registry} using its artifact ID in the API path. In this example, the specified ID is `share-price`:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
+ MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/share-price/versions/1/content
+ {"type":"record","name":"price","namespace":"com.example",
+  "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more details, see the {registry-rest-api}.
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
+
+[id="managing-artifact-versions-using-rest-api_{context}"]
+= Managing schema and API artifact versions using {registry} REST API commands
+
+[role="_abstract"]
+If you do not specify an artifact version number when adding schema and API artifacts using the Core Registry API v3, {registry} generates a version number automatically. The default version when creating a new artifact is `1`.
+
+{registry} also supports custom versioning where you can specify a version number when creating the artifact or artifact version.  Specifying a custom version value overrides the default version normally assigned when creating an artifact or artifact version. You can then use this version value when executing REST API operations that require a version number.
+
+This section shows a simple curl-based example of using the Core Registry API v3 to add and retrieve a custom Apache Avro schema version in {registry}. You can specify custom version numbers to create artifacts, or to add artifact versions.
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+
+.Procedure
+
+. Add an artifact version in the registry using the `/groups/\{groupId\}/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
++
+[source,bash]
+----
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-raw '{
+    "artifactId": "my-share-price",
+    "artifactType": "AVRO",
+    "firstVersion": {
+        "version": "1.1.1",
+        "content": {
+            "content": "{\"type\":\"record\",\"name\":\" p\",\"namespace\":\"com.example\", \"fields\":[{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"price\",\"type\":\"string\"}]}",
+            "contentType": "application/json"
+        }
+    }
+}'
+----
++
+* This example adds an Avro schema artifact with an artifact ID of `my-share-price` and version of `1.1.1`. If you do not specify a version, {registry} automatically generates a default version of `1`.
+* `MY-REGISTRY-URL` is the
+host name on which {registry} is deployed. For example: `\http://localhost:8080`.
+* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path.
+
+. Verify that the response includes the expected JSON body to confirm that the custom artifact version was added. For example:
++
+[source,bash]
+----
+{"artifact":{"owner":"","createdOn":"2024-09-26T17:06:21Z","modifiedBy":"","modifiedOn":"2024-09-26T17:06:21Z","artifactType":"AVRO","groupId":"my-group","artifactId":"my-share-price"},"version":{"version":"1.1.1","owner":"","createdOn":"2024-09-26T17:06:21Z","artifactType":"AVRO","globalId":4,"state":"ENABLED","groupId":"my-group","contentId":4,"artifactId":"my-share-price"}}
+----
+* A custom version of `1.1.1` was specified when adding the artifact.
+* This was the fourth artifact added to the registry, so the global ID and content ID have a value of `4`.
+
+. Retrieve the artifact content from the registry using its artifact ID and version in the API path. In this example, the specified ID is `my-share-price` and the version is `1.1.1`:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
+    MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/my-share-price/versions/1.1.1/content
+{"type":"record","name":"price","namespace":"com.example",
+  "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more details, see the {registry-rest-api}.
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
+
+[id="managing-artifact-references-using-rest-api_{context}"]
+= Managing schema and API artifact references using {registry} REST API commands
+
+[role="_abstract"]
+Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
+
+The following artifact types support artifact references:
+
+* Apache Avro
+* Google Protobuf
+* JSON Schema
+* OpenAPI
+* AsyncAPI
+
+This section shows a simple curl-based example of using the Core Registry API v3 to add and retrieve an artifact reference to a simple Avro schema artifact in {registry}.
+
+This example first creates a schema artifact named `ItemId`:
+
+.ItemId schema
+[source,json]
+----
+{
+    "namespace":"com.example.common",
+    "name":"ItemId",
+    "type":"record",
+    "fields":[
+        {
+            "name":"id",
+            "type":"int"
+        }
+    ]
+}
+----
+
+This example then creates a schema artifact named `Item`, which includes a reference to the nested `ItemId` artifact.
+
+.Item schema with nested ItemId schema
+[source,json]
+----
+{
+    "namespace":"com.example.common",
+    "name":"Item",
+    "type":"record",
+    "fields":[
+        {
+            "name":"itemId",
+            "type":"com.example.common.ItemId"
+        }
+    ]
+}
+----
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+
+.Procedure
+. Add the `ItemId` schema artifact that you want to create the nested artifact reference to using the `/groups/\{groupId\}/artifacts` operation:
++
+[source,bash]
+----
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
+   -H "Content-Type: application/json" \
+   -H "Authorization: Bearer $ACCESS_TOKEN" \
+   --data '{"artifactId":"ItemId","artifactType":"AVRO","firstVersion":{"version":"1.0.0","content":{"content":"{\"namespace\":\"com.example.common\",\"name\":\"ItemId\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"}]}","contentType":"application/json"}}}'
+----
++
+* This example adds an Avro schema artifact with an artifact ID of `ItemId`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID.
+* `MY-REGISTRY-URL` is the
+host name on which {registry} is deployed. For example: `\http://localhost:8080`.
+* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path.
+
+. Verify that the response includes the expected JSON body to confirm that the artifact was added. For example:
++
+[source,bash]
+----
+{"artifact":{"owner":"","createdOn":"2024-09-26T16:27:38Z","modifiedBy":"","modifiedOn":"2024-09-26T16:27:38Z","artifactType":"AVRO","groupId":"my-group","artifactId":"ItemId"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:27:38Z","artifactType":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2,"artifactId":"ItemId"}}
+----
+
+. Add the `Item` schema artifact that includes the artifact reference to the `ItemId` schema using the `/groups/\{groupId\}/artifacts` operation:
++
+[source,bash]
+----
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
+-H 'Content-Type: application/json' \
+-H "Authorization: Bearer $ACCESS_TOKEN" \
+--data-raw '{
+	"artifactId": "Item",
+	"artifactType": "AVRO",
+	"firstVersion": {
+		"version": "1.0.0",
+		"content": {
+			"content": "{\"namespace\":\"com.example.common\",\"name\":\"Item\",\"type\":\"record\",\"fields\":[{\"name\":\"itemId\",\"type\":\"com.example.common.ItemId\"}]}",
+			"contentType": "application/json",
+			"references": [
+				{
+					"name": "com.example.common.ItemId",
+					"groupId": "my-group",
+					"artifactId": "ItemId",
+					"version": "1.0.0"
+				}
+			]
+		}
+	}
+}'
+----
++
+* For artifact references, you must specify the custom content type of `application/create.extended+json`, which extends the `application/json` content type.
+
+. Verify that the response includes the expected JSON body to confirm that the artifact was created with the reference. For example:
++
+[source,bash]
+----
+{"artifact":{"owner":"","createdOn":"2024-09-26T16:28:45Z","modifiedBy":"","modifiedOn":"2024-09-26T16:28:45Z","artifactType":"AVRO","groupId":"my-group","artifactId":"Item"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:28:45Z","artifactType":"AVRO","globalId":3,"state":"ENABLED","groupId":"my-group","contentId":3,"artifactId":"Item"}}
+----
+
+. Retrieve the artifact reference from {registry} by specifying the coordinates of the artifact that includes the reference:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/Item/versions/1.0.0/references
+----
+
+. Verify that the response includes the expected JSON body for this artifact reference. For example:
++
+[source,bash]
+----
+[{"groupId":"my-group","artifactId":"ItemId","version":"1.0.0","name":"com.example.common.ItemId"}]
+----
+
+**Dereference**
+
+There are some situations where having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v3 supports the _references parameter_ in certain operations.
+
+This support is currently implemented for Avro, JSON Schema, Protobuf, OpenAPI and AsyncAPI when the parameter is present in a particular API operation. The parameter is not supported in other schema types.
+
+. Retrieve the dereferenced (inlined) schema content:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/Item/versions/1.0.0/content?references=DEREFERENCE
+----
+
+. Verify that the response includes the expected JSON body for this artifact content with the references inlined. For example:
++
+[source,bash]
+----
+{"type":"record","name":"Item","namespace":"com.example.common","fields":[{"name":"itemId","type":{"type":"record","name":"ItemId","fields":[{"name":"id","type":"int"}]}}]}
+----
+
+This support is currently implemented only for Avro, Protobuf, OpenAPI, AsyncAPI, and JSON Schema artifacts when the `dereference` parameter is specified in the API operation. This parameter is not supported for any other artifact types.
+
+NOTE: For Protobuf artifacts, dereferencing content is supported only when all the schemas belong to the same package.
+
+NOTE: Circular dependencies are allowed by some artifact types (e.g. JSON Schema) but are not supported by {registry}.
+
+[role="_additional-resources"]
+.Additional resources
+* For more details, see the {registry-rest-api}.
+* For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="exporting-importing-using-rest-api_{context}"]
+= Exporting and importing registry data using {registry} REST API commands
+
+[role="_abstract"]
+As an administrator, you can use the Core Registry API v3 to export data from one {registry} instance and import into another {registry} instance, so you can migrate data between different instances.
+
+This section shows a simple curl-based example of using the Core Registry API v3 to export and import existing data in `.zip` format from one {registry} instance to another. All the artifact data contained in the {registry} instance is exported in the `.zip` file.
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+* {registry} instances have been created:
+** The source instance that you want to export data from contains at least one schema or API artifact.
+** The target instance that you want to import data into is empty to preserve unique IDs.
+
+.Procedure
+. Export the {registry} data from your existing source {registry} instance:
++
+[source,bash]
+----
+$ curl MY-REGISTRY-URL/apis/registry/v3/admin/export \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --output my-registry-data.zip
+----
++
+`MY-REGISTRY-URL` is the
+host name on which the source {registry} is deployed. For example: `\http://my-source-registry:8080`.
+
+. Import the registry data into your target {registry} instance:
++
+[source,bash]
+----
+$ curl -X POST "MY-REGISTRY-URL/apis/registry/v3/admin/import" \
+  -H "Content-Type: application/zip" -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-binary @my-registry-data.zip
+----
++
+`MY-REGISTRY-URL` is the
+host name on which the target {registry} is deployed. For example: `\http://my-target-registry:8080`.
+
+
+[role="_additional-resources"]
+.Additional resources
+* For more details, see the `admin` endpoint in the {registry-rest-api}.
+//* For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportV1[Apicurio Registry export utility for 1.x versions].
+
+:leveloffset!:

@@ -1,5 +1,212 @@
 // Metadata created by nebel
-include::{mod-loc}shared/all-attributes.adoc[]
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+
+//:toc:
+//:toclevels: 4
+//:numbered:
+
+// Branding - toggle upstream/downstream content "on/off"
+
+// The following attributes conditionalize content from the Apicurio Registry project:
+// * Upstream-only content tagged with ifdef::apicurio-registry[]...endif::[]
+// * Downstream-only content tagged with ifdef::rh-service-registry[]...endif::[]
+// Untagged content is common
+
+// Upstream condition by default, switch on/off downstream-only
+//:service-registry-downstream:
+
+// upstream
+:apicurio-registry:
+:registry: Apicurio Registry
+:registry-name-full: Apicurio Registry
+:registry-version: 3.0
+:registry-release: 3.0.0
+:registry-docker-version: latest-release
+:registry-v1: 1.3
+:registry-v1-release: 1.3.2.Final
+:registry-v2: 2.6.3
+:operator-version: 1.1.0-v2.4.12.final
+:kafka-streams: Strimzi
+:registry-kafka-version: 3.5
+:keycloak: Keycloak
+:keycloak-version: 18.0
+:kubernetes: Kubernetes
+:kubernetes-with-article: a Kubernetes
+:kubernetes-client: kubectl
+:kubernetes-namespace: namespace
+
+// downstream
+
+//common
+:context: registry
+:version: 2024.Q2
+:attachmentsdir: files
+:registry-ocp-version: 4.14
+:registry-db-version: 15
+:registry-url: \http://MY_REGISTRY_UI_URL/
+
+//integration products
+:amq-version: 2.5
+:productpkg: red_hat_integration
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:
+:ndash: –
+:reg: ®
+:trade: ™
+
+//Include attributes for external linking
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
+
+// Download URLs
+:download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+
+
+// internal links
+:registry-overview: xref:intro-to-the-registry_{context}[]
+:registry-rules: xref:intro-to-registry-rules_{context}[]
+:registry-artifact-reference: xref:registry-artifact-reference_{context}[]
+:registry-rule-reference: xref:registry-rule-reference_{context}[]
+:registry-config-reference: xref:registry-config-reference_{context}[]
+:installing-the-registry-openshift: xref:installing-registry-ocp_{context}[]
+:installing-the-registry-storage-openshift: xref:installing-registry-streams-storage_{context}[]
+:managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui_{context}[]
+:managing-registry-artifacts-api: xref:managing-registry-artifacts-api_{context}[]
+:managing-registry-artifacts-maven: xref:managing-registry-artifacts-maven_{context}[]
+:rest-client: xref:using-the-registry-sdk_{context}[]
+:kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
+:registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
+:registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
 
 [id="registry-artifact-reference_{context}"]
 = {registry} artifact reference
@@ -19,8 +226,307 @@ This chapter provides reference information on the supported artifact types, sta
 * For more information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 //INCLUDES
-include::{mod-loc}getting-started/ref-registry-artifact-types.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-artifact-states.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-group-metadata.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-artifact-metadata.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-artifact-version-metadata.adoc[leveloffset=+1]
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-artifact-types_{context}"]
+
+= {registry} artifact types
+
+[role="_abstract"]
+You can store and manage a wide range of schema and API artifact types in {registry}.
+
+.{registry} artifact types
+[%header,cols=3*]
+|===
+|Type
+|Description
+|Supported versions
+|`ASYNCAPI`
+|AsyncAPI specification
+|`2.0.0` -> `2.0.6`, `3.0.0`
+|`AVRO`
+|Apache Avro schema
+|`1.0` -> `1.12`,
+|`GRAPHQL`
+|GraphQL schema
+|*
+|`JSON`
+|JSON Schema
+|`draft-04`, `draft-07`, `2019-09`, `2020-12`
+|`KCONNECT`
+|Apache Kafka Connect schema
+|`2.0.0`
+|`OPENAPI`
+|OpenAPI specification
+|`2.0.0`, `3.0.0` -> `3.0.3`, `3.1.0`
+|`PROTOBUF`
+|Google protocol buffers schema
+|`proto2`, `proto3`
+|`WSDL`
+|Web Services Definition Language
+|http://schemas.xmlsoap.org/wsdl/
+|`XML`
+|Extensible Markup Language
+|
+|`XSD`
+|XML Schema Definition
+|http://www.w3.org/2001/XMLSchema
+|===
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-artifact-states_{context}"]
+
+= {registry} artifact version states
+
+[role="_abstract"]
+The valid artifact version states in {registry} are `ENABLED`, `DISABLED`, and `DEPRECATED`.
+
+.{registry} artifact version states
+[%header,cols=2*]
+|===
+|State
+|Description
+|`ENABLED`
+|Basic state, all the operations are available.
+|`DISABLED`
+|The artifact version metadata is viewable and searchable using the {registry} web console, but its content cannot be fetched by any client.
+|`DEPRECATED`
+|The artifact version is fully usable but a header is added to the REST API response whenever the artifact version content is fetched.
+|===
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+
+[id="registry-group-metadata_{context}"]
+= {registry} group metadata
+
+[role="_abstract"]
+When a group is created in {registry}, a set of metadata properties is created and stored. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the group is created.
+
+.{registry} system-generated metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`owner`
+|string
+|The name of the user who created the group.
+|`createdOn`
+|date
+|The date and time when the group was created, for example, `2023-10-11T14:15:28Z`.
+|`modifiedBy`
+|string
+|The name of the user who modified the group.
+|`modifiedOn`
+|date
+|The date and time at which the group was modified, for example, `2023-10-11T14:15:28Z`.
+|===
+
+
+.{registry} user-provided or system-generated metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`groupId`
+|string
+|Unique identifier of the artifact group in {registry}, for example, `development` or `production`.
+|===
+
+
+.{registry} editable metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`description`
+|string
+|Optional meaningful description of the group, for example, `This is a simple group for testing`.
+|`labels`
+| map
+|Optional list of user-defined name-value pairs associated with the group. The name and value must be strings, for example, `my-key` and `my-value`.
+|===
+
+.Updating group metadata
+* You can use the {registry} REST API or web console to update the set of editable metadata properties.
+* You can update the `state` property only by using the {registry} REST API.
+
+[role="_additional-resources"]
+.Additional resources
+For more details, see the `/groups/\{groupId\}` endpoint in the {registry-rest-api}.
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+
+[id="registry-artifact-metadata_{context}"]
+= {registry} artifact metadata
+
+[role="_abstract"]
+When an artifact is added to {registry}, a set of metadata properties is created and stored. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact is created.
+
+.{registry} system-generated metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`createdOn`
+|date
+|The date and time when the artifact was created, for example, `2023-10-11T14:15:28Z`.
+|`globalId`
+|integer
+|Globally unique identifier of an artifact version in {registry}. For example, a global ID of `1` is assigned to the first artifact version created in {registry}.
+|`modifiedBy`
+|string
+|The name of the user who modified the artifact.
+|`modifiedOn`
+|date
+|The date and time at which the artifact was modified, for example, `2023-10-11T14:15:28Z`.
+|===
+
+
+.{registry} user-provided or system-generated metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`groupId`
+|string
+|Unique identifier of an artifact group in {registry}, for example, `development` or `production`. When creating an artifact by using the {registry} web console, if you do not provide a group ID, this is set to `default`. You must provide a group ID when using the Apicurio Registry REST API, Java client, or Maven plug-in.
+|`artifactId`
+|string
+|Unique identifier of an artifact in {registry}. You can provide an artifact ID or use the UUID generated by {registry}, for example, `8d168cad-1865-4e6c-bb7e-04e8be005bea`. Different versions of an artifact use the same artifact ID, but have different global IDs.
+|`artifactType`
+|ArtifactType
+|The supported artifact type, for example, `AVRO`, `OPENAPI`, or `PROTOBUF`.
+|===
+
+
+.{registry} editable metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`name`
+|string
+|Optional human-readable name of the artifact, for example, `My first Avro schema`.
+|`description`
+|string
+|Optional meaningful description of the artifact, for example, `This is a simple OpenAPI for testing`.
+|`labels`
+| map
+|Optional list of user-defined name-value pairs associated with the artifact. The name and value must be strings, for example, `my-key` and `my-value`.
+|`owner`
+|string
+|The name of the user who owns the artifact.
+|===
+
+.Updating artifact metadata
+* You can use the {registry} REST API or web console to update the set of editable metadata properties.
+
+[role="_additional-resources"]
+.Additional resources
+For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoint in the {registry-rest-api}.
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+
+[id="registry-artifact-version-metadata_{context}"]
+= {registry} artifact version metadata
+
+[role="_abstract"]
+When an artifact version is added to a {registry} artifact, a set of metadata properties is created and stored along with the artifact version content. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact version is created.
+
+.{registry} system-generated metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`owner`
+|string
+|The name of the user who created the artifact version.
+|`createdOn`
+|date
+|The date and time when the artifact version was created, for example, `2023-10-11T14:15:28Z`.
+|`modifiedBy`
+|string
+|The user who modified the artifact version.
+|`modifiedOn`
+|date
+|The date and time at which the artifact version was modified, for example, `2023-10-11T14:15:28Z`.
+|`contentId`
+|integer
+|Unique identifier of artifact version content in {registry}. The same content ID can be shared by multiple artifact versions when artifact versions have identical content. For example, a content ID of `4` can be used by multiple artifact versions with the same content, even across multiple artifacts.
+|`globalId`
+|integer
+|Globally unique identifier of an artifact version in {registry}. For example, a global ID of `1` is assigned to the first artifact version created in {registry}.
+|===
+
+
+.{registry} user-provided or system-generated metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`groupId`
+|string
+|Unique identifier of an artifact group in {registry}, for example, `development` or `production`.
+|`artifactId`
+|string
+|Unique identifier of an artifact in {registry}.
+|`version`
+|integer
+|The version string of the artifact version. If not provided, the system will generate a new sequential version.  You can provide a version when using the {registry} REST API, SDKs, or Maven plug-in, for example, `2.1.6`.
+|===
+
+
+.{registry} editable metadata
+[.table-expandable,width="100%",cols="1,1,2",options="header"]
+|===
+|Property
+|Type
+|Description
+|`name`
+|string
+|Optional human-readable name of the artifact version, for example, `Version One`.
+|`description`
+|string
+|Optional meaningful description of the artifact version, for example, `This is the first version for testing`.
+|`labels`
+| map
+|Optional list of user-defined name-value pairs associated with the artifact version. The name and value must be strings, for example, `my-key` and `my-value`.
+|`state`
+|ArtifactState
+|The state of the artifact version: `ENABLED`, `DISABLED`, or `DEPRECATED`. Defaults to `ENABLED`.
+|===
+
+.Updating artifact version metadata
+* You can use the {registry} REST API or web console to update the set of editable metadata properties.
+* You can update the `state` property only by using the {registry} REST API.
+
+[role="_additional-resources"]
+.Additional resources
+For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}/versions/\{versionId\}` endpoint in the {registry-rest-api}.
+
+:leveloffset!:

@@ -1,5 +1,212 @@
 // Metadata created by nebel
-include::{mod-loc}shared/all-attributes.adoc[]
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+
+//:toc:
+//:toclevels: 4
+//:numbered:
+
+// Branding - toggle upstream/downstream content "on/off"
+
+// The following attributes conditionalize content from the Apicurio Registry project:
+// * Upstream-only content tagged with ifdef::apicurio-registry[]...endif::[]
+// * Downstream-only content tagged with ifdef::rh-service-registry[]...endif::[]
+// Untagged content is common
+
+// Upstream condition by default, switch on/off downstream-only
+//:service-registry-downstream:
+
+// upstream
+:apicurio-registry:
+:registry: Apicurio Registry
+:registry-name-full: Apicurio Registry
+:registry-version: 3.0
+:registry-release: 3.0.0
+:registry-docker-version: latest-release
+:registry-v1: 1.3
+:registry-v1-release: 1.3.2.Final
+:registry-v2: 2.6.3
+:operator-version: 1.1.0-v2.4.12.final
+:kafka-streams: Strimzi
+:registry-kafka-version: 3.5
+:keycloak: Keycloak
+:keycloak-version: 18.0
+:kubernetes: Kubernetes
+:kubernetes-with-article: a Kubernetes
+:kubernetes-client: kubectl
+:kubernetes-namespace: namespace
+
+// downstream
+
+//common
+:context: registry
+:version: 2024.Q2
+:attachmentsdir: files
+:registry-ocp-version: 4.14
+:registry-db-version: 15
+:registry-url: \http://MY_REGISTRY_UI_URL/
+
+//integration products
+:amq-version: 2.5
+:productpkg: red_hat_integration
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:
+:ndash: –
+:reg: ®
+:trade: ™
+
+//Include attributes for external linking
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
+
+// Download URLs
+:download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+
+
+// internal links
+:registry-overview: xref:intro-to-the-registry_{context}[]
+:registry-rules: xref:intro-to-registry-rules_{context}[]
+:registry-artifact-reference: xref:registry-artifact-reference_{context}[]
+:registry-rule-reference: xref:registry-rule-reference_{context}[]
+:registry-config-reference: xref:registry-config-reference_{context}[]
+:installing-the-registry-openshift: xref:installing-registry-ocp_{context}[]
+:installing-the-registry-storage-openshift: xref:installing-registry-streams-storage_{context}[]
+:managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui_{context}[]
+:managing-registry-artifacts-api: xref:managing-registry-artifacts-api_{context}[]
+:managing-registry-artifacts-maven: xref:managing-registry-artifacts-maven_{context}[]
+:rest-client: xref:using-the-registry-sdk_{context}[]
+:kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
+:registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
+:registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
 
 [id="registry-rule-reference_{context}"]
 = {registry} content rule reference
@@ -17,6 +224,150 @@ This chapter provides reference information on the supported content rule types,
 * For more information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 //INCLUDES
-include::{mod-loc}getting-started/ref-registry-rule-types.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-rule-maturity-matrix.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-rule-precedence.adoc[leveloffset=+1]
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-rule-types_{context}"]
+= {registry} content rule types
+
+[role="_abstract"]
+You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. Theses rule types apply to both global rules and artifact-specific rules.
+
+.{registry} content rule types
+[%header,cols=2*]
+|===
+|Type
+|Description
+|`VALIDITY`
+a| Validate content before adding it to {registry}. The possible configuration values for this rule are as follows:
+
+* `FULL`: The validation is both syntax and semantic.
+* `SYNTAX_ONLY`: The validation is syntax only.
+* `NONE`: All validation checks are disabled.
+
+|`COMPATIBILITY`
+a| Enforce a compatibility level when updating artifacts (for example, select `BACKWARD` for backwards compatibility). Ensures that new artifacts are compatible with previously added artifact versions or clients. The possible configuration values for this rule are as follows:
+
+* `FULL`: The new artifact is forward and backward compatible with the most recently added artifact.
+* `FULL_TRANSITIVE`: The new artifact is forward and backward compatible with all previously added artifacts.
+* `BACKWARD`: Clients using the new artifact can read data written using the most recently added artifact.
+* `BACKWARD_TRANSITIVE`: Clients using the new artifact can read data written using all previously added artifacts.
+* `FORWARD`: Clients using the most recently added artifact can read data written using the new artifact.
+* `FORWARD_TRANSITIVE`: Clients using all previously added artifacts can read data written using the new artifact.
+* `NONE`: All backward and forward compatibility checks are disabled.
+
+|`INTEGRITY`
+a| Enforce artifact reference integrity when creating or updating artifacts. Enable and configure this rule to ensure that any artifact references provided are correct. The possible configuration values for this rule are as follows:
+
+* `FULL`: All artifact reference integrity checks are enabled.
+* `NO_DUPLICATES`: Detect if there are any duplicate artifact references.
+* `REFS_EXIST`: Detect if there are any references to non-existent artifacts.
+* `ALL_REFS_MAPPED`: Ensure that all artifact references are mapped.
+* `NONE`: All artifact reference integrity checks are disabled.
+|===
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-rule-maturity-matrix_{context}"]
+= {registry} content rule maturity
+
+[role="_abstract"]
+Not all content rules are fully implemented for every artifact type supported by {registry}. The following table shows the current maturity level for each rule and artifact type:
+
+.{registry} content rule maturity matrix
+[%header,cols=4*]
+|===
+|Artifact type
+|Validity rule
+|Compatibility rule
+|Integrity rule
+|*Avro*
+a| Full
+a| Full
+a| Full
+|*Protobuf*
+a| Full
+a| Full
+a| Full
+|*JSON Schema*
+a| Full
+a| Full
+a| Mapping detection not supported
+|*OpenAPI*
+a| Full
+a| Full
+a| Full
+|*AsyncAPI*
+a| Syntax Only
+a| None
+a| Full
+|*GraphQL*
+a| Syntax Only
+a| None
+a| Mapping detection not supported
+|*Kafka Connect*
+a| Syntax Only
+a| None
+a| Mapping detection not supported
+|*WSDL*
+a| Full
+a| None
+a| Mapping detection not supported
+|*XML*
+a| Full
+a| None
+a| Mapping detection not supported
+|*XSD*
+a| Full
+a| None
+a| Mapping detection not supported
+|===
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-rule-precedence_{context}"]
+= {registry} content rule precedence
+
+[role="_abstract"]
+When you add or update an artifact, {registry} applies rules to check the validity, compatibility, or integrity of the artifact content. Configured artifact-specific rules override the equivalent configured global rules, as shown in the following table.
+
+.{registry} content rule precedence
+[%header,cols=4*]
+|===
+|Artifact-specific rule
+|Global rule
+|Rule applied to this artifact
+|Global rule available for other artifacts?
+|Enabled
+|Enabled
+|Artifact-specific
+|Yes
+|Disabled
+|Enabled
+|Global
+|Yes
+|Disabled
+|Disabled
+|None
+|No
+|Enabled, set to None
+|Enabled
+|None
+|Yes
+|Disabled
+|Enabled, set to None
+|None
+|No
+|===
+
+:leveloffset!:

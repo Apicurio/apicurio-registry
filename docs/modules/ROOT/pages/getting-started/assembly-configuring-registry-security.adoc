@@ -1,11 +1,218 @@
 // Metadata created by nebel
-include::{mod-loc}shared/all-attributes.adoc[]
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+
+//:toc:
+//:toclevels: 4
+//:numbered:
+
+// Branding - toggle upstream/downstream content "on/off"
+
+// The following attributes conditionalize content from the Apicurio Registry project:
+// * Upstream-only content tagged with ifdef::apicurio-registry[]...endif::[]
+// * Downstream-only content tagged with ifdef::rh-service-registry[]...endif::[]
+// Untagged content is common
+
+// Upstream condition by default, switch on/off downstream-only
+//:service-registry-downstream:
+
+// upstream
+:apicurio-registry:
+:registry: Apicurio Registry
+:registry-name-full: Apicurio Registry
+:registry-version: 3.0
+:registry-release: 3.0.0
+:registry-docker-version: latest-release
+:registry-v1: 1.3
+:registry-v1-release: 1.3.2.Final
+:registry-v2: 2.6.3
+:operator-version: 1.1.0-v2.4.12.final
+:kafka-streams: Strimzi
+:registry-kafka-version: 3.5
+:keycloak: Keycloak
+:keycloak-version: 18.0
+:kubernetes: Kubernetes
+:kubernetes-with-article: a Kubernetes
+:kubernetes-client: kubectl
+:kubernetes-namespace: namespace
+
+// downstream
+
+//common
+:context: registry
+:version: 2024.Q2
+:attachmentsdir: files
+:registry-ocp-version: 4.14
+:registry-db-version: 15
+:registry-url: \http://MY_REGISTRY_UI_URL/
+
+//integration products
+:amq-version: 2.5
+:productpkg: red_hat_integration
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:
+:ndash: –
+:reg: ®
+:trade: ™
+
+//Include attributes for external linking
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
+
+// Download URLs
+:download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+
+
+// internal links
+:registry-overview: xref:intro-to-the-registry_{context}[]
+:registry-rules: xref:intro-to-registry-rules_{context}[]
+:registry-artifact-reference: xref:registry-artifact-reference_{context}[]
+:registry-rule-reference: xref:registry-rule-reference_{context}[]
+:registry-config-reference: xref:registry-config-reference_{context}[]
+:installing-the-registry-openshift: xref:installing-registry-ocp_{context}[]
+:installing-the-registry-storage-openshift: xref:installing-registry-streams-storage_{context}[]
+:managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui_{context}[]
+:managing-registry-artifacts-api: xref:managing-registry-artifacts-api_{context}[]
+:managing-registry-artifacts-maven: xref:managing-registry-artifacts-maven_{context}[]
+:rest-client: xref:using-the-registry-sdk_{context}[]
+:kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
+:registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
+:registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
 
 [id="configuring-registry-security_{context}"]
 = Configuring {registry} security options
 
 [role="_abstract"]
-This chapter explains how to set configuration options for {registry} security. For example, this includes authentication in {keycloak} or Microsoft Azure Active Directory and role-based authorization in {registry}. 
+This chapter explains how to set configuration options for {registry} security. For example, this includes authentication in {keycloak} or Microsoft Azure Active Directory and role-based authorization in {registry}.
 
 * xref:registry-security-keycloak_{context}[]
 * xref:registry-security-azure_{context}[]
@@ -14,6 +221,610 @@ This chapter explains how to set configuration options for {registry} security. 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
 //INCLUDES
-include::{mod-loc}getting-started/proc-configuring-registry-security-keycloak.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-configuring-registry-security-azure.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-security-configuration.adoc[leveloffset=+1]
+:leveloffset: +1
+
+// Metadata created by nebel
+
+[id="registry-security-keycloak_{context}"]
+
+= Configuring {registry} authentication and authorization with {keycloak}
+
+[role="_abstract"]
+This section explains how to manually configure authentication and authorization options for {registry} and {keycloak}.
+
+[NOTE]
+====
+Alternatively, for details on how to configure these settings automatically,
+see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html#registry-security-keycloak[{registry} Operator documentation].
+====
+
+The {registry} web console and core REST API support authentication in {keycloak} based on OAuth and OpenID Connect (OIDC). The same {keycloak} realm and users are federated across the {registry} web console and core REST API using OpenID Connect so that you only require one set of credentials.
+
+{registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization settings are disabled by default.
+
+.Prerequisites
+* {keycloak} is installed and running. For more details, see the
+link:https://www.keycloak.org/documentation[{keycloak} user documentation].
+* {registry} is installed and running.
+
+.Procedure
+
+. In the {keycloak} Admin Console, create a {keycloak} realm for {registry}. By default, {registry} expects a realm name of `registry`. For details on creating realms, see the
+link:https://www.keycloak.org/documentation[{keycloak} user documentation].
+
+. Create a {keycloak} client for the {registry} API. By default, {registry} expects the following settings:
+** *Client ID*: `registry-api`
+** *Client Protocol*: `openid-connect`
+** *Access Type*: `bearer-only`
++
+You can use the defaults for the other client settings.
++
+NOTE: If you are using {keycloak} service accounts, the client *Access Type* must be `confidential` instead of `bearer-only`.
+
+. Create a {keycloak} client for the {registry} web console. By default, {registry} expects the following settings:
+** *Client ID*: `apicurio-registry`
+** *Client Protocol*: `openid-connect`
+** *Access Type*: `public`
+** *Valid Redirect URLs*: `\http://my-registry-url:8080/*`
+** *Web Origins*: `+`
++
+You can use the defaults for the other client settings.
+
+. In your {registry} deployment on OpenShift, set the following {registry} environment variables to configure authentication using {keycloak}:
++
+.Configuration for {registry} authentication with {keycloak}
+[.table-expandable,width="100%",cols="5,6,2,4",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+|`QUARKUS_OIDC_TENANT_ENABLED`
+|Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication using {keycloak}.
+|String
+|`false`
+|`QUARKUS_OIDC_AUTH_SERVER_URL`
+|The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
+|String
+|-
+|`QUARKUS_OIDC_CLIENT_ID`
+|The client ID for the {registry} REST API.
+|String
+|`registry-api`
+|`APICURIO_UI_AUTH_OIDC_CLIENT-ID`
+|The client ID for the {registry} web console.
+|String
+|`apicurio-registry`
+|===
++
+TIP: For an example of setting environment variables on OpenShift, see xref:configuring-liveness-readiness-probes_{context}[].
+
+. Set the following option to `true` to enable {registry} user roles in {keycloak}:
++
+.Configuration for {registry} role-based authorization
+[%header,cols="2,2,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
+|`apicurio.auth.role-based-authorization`
+|Boolean
+|`false`
+|===
+
+. When {registry} user roles are enabled, you must assign {registry} users to at least one of the following default user roles in your {keycloak} realm:
++
+.Default user roles for registry authentication and authorization
+[.table-expandable,width="100%",cols="2,2,2,2,4",options="header"]
+|===
+|Role
+|Read artifacts
+|Write artifacts
+|Global rules
+|Summary
+|`sr-admin`
+|Yes
+|Yes
+|Yes
+|Full access to all create, read, update, and delete operations.
+|`sr-developer`
+|Yes
+|Yes
+|No
+|Access to create, read, update, and delete operations, except configuring global rules. This role can configure artifact-specific rules.
+|`sr-readonly`
+|Yes
+|No
+|No
+|Access to read and search operations only. This role cannot configure any rules.
+|===
+
+. Set the following to `true` to enable owner-only authorization for updates to schema and API artifacts in {registry}:
++
+.Configuration for owner-only authorization
+[.table-expandable,width="100%",cols="2,2,1,1",options="header"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`APICURIO_AUTH_OWNER-ONLY-AUTHORIZATION_LIMIT-GROUP-ACCESS`
+|`apicurio.auth.owner-only-authorization.limit-group-access`
+|Boolean
+|`false`
+|===
+
+
+[role="_additional-resources"]
+.Additional resources
+* For details on configuring non-default user role names, see xref:registry-security-settings_{context}[].
+* For an open source example application and Keycloak realm, see https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/distro/docker-compose[Docker Compose example of Apicurio Registry with Keycloak].
+* For details on how to use {keycloak} in a production environment, see
+the link:https://www.keycloak.org/documentation[Keycloak documentation].
+
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+
+[id="registry-security-azure_{context}"]
+
+= Configuring {registry} authentication and authorization with Microsoft Azure Active Directory
+
+[role="_abstract"]
+This section explains how to manually configure authentication and authorization options for {registry} and Microsoft Azure Active Directory (Azure AD).
+
+The {registry} web console and core REST API support authentication in Azure AD based on OpenID Connect (OIDC) and the OAuth Authorization Code Flow. {registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} authentication and authorization settings are disabled by default.
+
+To secure {registry} with Azure AD, you require a valid directory in Azure AD with specific configuration. This involves registering the {registry} application in the Azure AD portal with recommended settings and configuring environment variables in {registry}.
+
+.Prerequisites
+* Azure AD is installed and running. For more details, see the link:https://learn.microsoft.com/en-us/azure[Microsoft Azure AD user documentation].
+* {registry} is installed and running.
+
+.Procedure
+
+. Log in to the Azure AD portal using your email address or GitHub account.
+
+. In the navigation menu, select *Manage > App registrations > New registration*, and complete the following settings:
++
+** *Name*: Enter your application name. For example: `apicurio-registry-example`
+** *Supported account types*: Click *Accounts in any organizational directory*.
+** *Redirect URI*: Select *Single-page application* from the list, and enter your {registry} web console application host. For example: `\https://test-registry.com/ui/`
++
+IMPORTANT: You must register your {registry} application host as a *Redirect URI*. When logging in, users are redirected from {registry} to Azure AD for authentication, and you want to send them back to your application afterwards. Azure AD does not allow any redirect URLs that are not registered.
+
+. Click *Register*. You can view your app registration details by selecting *Manage > App registrations* > *apicurio-registry-example*.
+
+. Select *Manage > Authentication* and ensure that the application is configured with your redirect URLs and tokens as follows:
+** *Redirect URIs*: For example: `\https://test-registry.com/ui/`
+** *Implicit grant and hybrid flows*: Click *ID tokens (used for implicit and hybrid flows)*
+
+. Select *Azure AD > Admin > App registrations > Your app > Application (client) ID*. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
+
+. Select *Azure AD > Admin > App registrations > Your app > Directory (tenant) ID*. For example: `\https://login.microsoftonline.com/1a2bc34d-567e-89f1-g0hi-1j2kl3m4no56/v2.0`
+
+. In {registry}, configure the following environment variables with your Azure AD settings:
++
+.Configuration for Azure AD settings in {registry}
+[.table-expandable,width="100%",cols="6,4,6",options="header"]
+|===
+|Environment variable
+|Description
+|Setting
+|`QUARKUS_OIDC_CLIENT-ID`
+|The client application ID for the {registry} REST API
+|Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
+|`APICURIO_UI_AUTH_OIDC_CLIENT-ID`
+|The client application ID for the {registry} web console.
+|Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
+|`QUARKUS_OIDC_AUTH-SERVER-URL`
+|The URL for authentication in Azure AD.
+|Your Azure AD Application (tenant) ID obtained in step 6. For example: `\https://login.microsoftonline.com/1a2bc34d-567e-89f1-g0hi-1j2kl3m4no56/v2.0`.
+|===
+
+. In {registry}, configure the following environment variables for {registry}-specific settings:
++
+.Configuration for {registry}-specific settings
+[.table-expandable,width="100%",cols="6,5,4",options="header"]
+|===
+|Environment variable
+|Description
+|Setting
+|`QUARKUS_OIDC_TENANT-ENABLED`
+|Enables authentication for {registry}.
+|`true`
+|`QUARKUS_HTTP_CORS_ORIGINS`
+|The host for your {registry} deployment for cross-origin resource sharing (CORS).
+|For example: `\https://test-registry.com`
+|`APICURIO_UI_AUTH_OIDC_REDIRECT-URI`
+|The host for your {registry} web console.
+|For example: `\https://test-registry.com/ui`
+|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
+|Enables role-based authorization in {registry}.
+|`true`
+|`QUARKUS_OIDC_ROLES_ROLE-CLAIM-PATH`
+|The name of the claim in which Azure AD stores roles.
+|`roles`
+|===
++
+NOTE: When you enable roles in {registry}, you must also create the same roles in Azure AD as application roles. The default roles expected by {registry} are `sr-admin`, `sr-developer`, and `sr-readonly`.
+
+
+[role="_additional-resources"]
+.Additional resources
+* For details on configuring non-default user role names, see xref:registry-security-settings_{context}[].
+* For more details on using Azure AD, see the link:https://learn.microsoft.com/en-us/azure[Microsoft Azure AD user documentation].
+
+
+
+
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+
+[id="registry-security-settings_{context}"]
+
+= {registry} authentication and authorization configuration options
+
+[role="_abstract"]
+{registry} provides authentication options for OpenID Connect with {keycloak} and HTTP basic authentication.
+
+{registry} provides authorization options for role-based and content-based approaches:
+
+* Role-based authorization for default admin, write, and read-only user roles.
+* Content-based authorization for schema or API artifacts, where only the owner of the artifacts or artifact group can update or delete artifacts.
+
+IMPORTANT: All authentication and authorization options in {registry} are disabled by default. Before enabling any of these options, you must first set the `QUARKUS_OIDC_TENANT_ENABLED` option to `true`.
+
+This chapter provides details on the following configuration options:
+
+* xref:registry-security-authn-keycloak[{registry} authentication by using OpenID Connect with {keycloak}]
+* xref:registry-security-authn-http[{registry} authentication by using HTTP basic]
+* xref:registry-security-rbac-enabled[{registry} role-based authorization]
+* xref:registry-security-obac-enabled[{registry} owner-only authorization]
+* xref:registry-security-auth-read[{registry} authenticated read access]
+* xref:registry-security-anon-read[{registry} anonymous read-only access]
+
+[discrete]
+[id="registry-security-authn-keycloak"]
+== {registry} authentication by using OpenID Connect with {keycloak}
+
+You can set the following environment variables to configure authentication for the {registry} web console and API with {keycloak}:
+
+.Configuration for {registry} authentication with {keycloak}
+[.table-expandable,width="100%",cols="5,6,2,4",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+|`QUARKUS_OIDC_TENANT-ENABLED`
+|Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication using {keycloak}.
+|String
+|`false`
+|`QUARKUS_OIDC_AUTH-SERVER-URL`
+|The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
+|String
+|-
+|`QUARKUS_OIDC_CLIENT-ID`
+|The client ID for the {registry} REST API.
+|String
+|`registry-api`
+|`APICURIO_UI_AUTH_OIDC_CLIENT-ID`
+|The client ID for the {registry} web console.
+|String
+|`apicurio-registry`
+
+|`QUARKUS_OIDC_TLS_TRUST_STORE_FILE`
+| Specifies the file path to the TLS trust store used by Quarkus for securing OpenID Connect (OIDC) communications. The trust store can be populated with the trusted certificates needed to establish secure TLS connections with the OIDC provider.
+|String
+|-
+
+|`QUARKUS_OIDC_TLS_TRUST_STORE_PASSWORD`
+|The password required to access the TLS trust store file.
+|String
+|-
+
+|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
+|Enables or disables role-based authorization.
+|Boolean
+|False
+
+|===
+
+[discrete]
+[id="registry-security-authn-http"]
+== {registry} authentication by using HTTP basic
+
+By default, {registry} supports authentication by using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the {registry} REST API.  However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration options to `true`:
+
+.Configuration for {registry} HTTP basic authentication
+[%header,cols="4,4,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`QUARKUS_OIDC_TENANT-ENABLED`
+|`quarkus.oidc.tenant-enabled`
+|Boolean
+|`false`
+|`APICURIO_AUTHN_BASIC-CLIENT-CREDENTIALS.ENABLED`
+|`apicurio.authn.basic-client-credentials.enabled`
+|Boolean
+|`false`
+|===
+
+[discrete]
+=== {registry} HTTP basic client credentials cache expiry
+
+You can also configure the HTTP basic client credentials cache expiry time. By default, when using HTTP basic authentication, {registry} caches JWT tokens, and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default.
+
+When using {keycloak}, it is best to set this configuration to your {keycloak} JWT expiry time minus one minute. For example, if you have the expiry time set to `5` mins in {keycloak}, you should set the following configuration option to `4` mins:
+
+.Configuration for HTTP basic client credentials cache expiry
+[%header,cols="4,4,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`APICURIO_AUTHN_BASIC-CLIENT-CREDENTIALS_CACHE-EXPIRATION`
+|`apicurio.authn.basic-client-credentials.cache-expiration`
+|Integer
+|`10`
+|===
+
+
+[discrete]
+[id=registry-security-rbac-enabled]
+==  {registry} role-based authorization
+
+You can set the following options to `true` to enable role-based authorization in {registry}:
+
+.Configuration for {registry} role-based authorization
+[%header,cols="4,4,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`QUARKUS_OIDC_TENANT-ENABLED`
+|`quarkus.oidc.tenant-enabled`
+|Boolean
+|`false`
+|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
+|`apicurio.auth.role-based-authorization`
+|Boolean
+|`false`
+|===
+
+You can then configure role-based authorization to use roles included in the user's authentication token (for example, granted when authenticating by using {keycloak}), or to use role mappings managed internally by {registry}.
+
+[discrete]
+=== Use roles assigned in {keycloak}
+
+To enable using roles assigned by {keycloak}, set the following environment variables:
+
+.Configuration for {registry} role-based authorization by using {keycloak}
+[id="registry-security-rbac-keycloak-settings"]
+[.table-expandable,width="100%",cols="6,6,2,3",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+|`APICURIO_AUTH_ROLE-SOURCE`
+| When set to `token`, user roles are taken from the authentication token.
+|String
+|`token`
+|`APICURIO_AUTH_ROLES_ADMIN`
+|The name of the role that indicates a user is an admin.
+|String
+|`sr-admin`
+|`APICURIO_AUTH_ROLES_DEVELOPER`
+|The name of the role that indicates a user is a developer.
+|String
+|`sr-developer`
+|`APICURIO_AUTH_ROLES_READONLY`
+|The name of the role that indicates a user has read-only access.
+|String
+|`sr-readonly`
+|===
+
+When {registry} is configured to use roles from {keycloak}, you must assign {registry} users to at least one
+of the following user roles in {keycloak}. However, you can configure different user role names by using the environment variables in xref:registry-security-rbac-keycloak-settings[].
+
+.{registry} roles for authentication and authorization
+[.table-expandable,width="100%",cols="2,2,2,2,4",options="header"]
+|===
+|Role name
+|Read artifacts
+|Write artifacts
+|Global rules
+|Description
+|`sr-admin`
+|Yes
+|Yes
+|Yes
+|Full access to all create, read, update, and delete operations.
+|`sr-developer`
+|Yes
+|Yes
+|No
+|Access to create, read, update, and delete operations, except configuring global rules and import/export. This role can configure artifact-specific rules only.
+|`sr-readonly`
+|Yes
+|No
+|No
+|Access to read and search operations only. This role cannot configure any rules.
+|===
+
+[discrete]
+=== Manage roles directly in {registry}
+
+To enable using roles managed internally by {registry}, set the following environment variable:
+
+.Configuration for {registry} role-based authorization by using internal role mappings
+[.table-expandable,width="100%",cols="6,6,2,3",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+|`APICURIO_AUTH_ROLE-SOURCE`
+| When set to `application`, user roles are managed internally by {registry}.
+|String
+|`token`
+|===
+
+When using internally managed role mappings, users can be assigned a role by using the `/admin/roleMappings`
+endpoint in the {registry} REST API.  For more details, see {registry-rest-api}.
+
+Users can be granted exactly one role: `ADMIN`, `DEVELOPER`, or `READ_ONLY`. Only users with admin
+privileges can grant access to other users.
+
+
+[discrete]
+=== {registry} admin-override configuration
+
+Because there are no default admin users in {registry}, it is usually helpful to configure another way for users to be identified as admins. You can configure this admin-override feature by using the following environment variables:
+
+.Configuration for {registry} admin-override
+[.table-expandable,width="100%",cols="6,6,2,3",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+|`APICURIO_AUTH_ADMIN-OVERRIDE_ENABLED`
+| Enables the admin-override feature.
+|String
+|`false`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_FROM`
+|Where to look for admin-override information.  Only `token` is currently supported.
+|String
+|`token`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_TYPE`
+|The type of information used to determine if a user is an admin.  Values depend on the value of the FROM variable, for example, `role` or `claim` when FROM is `token`.
+|String
+|`role`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_ROLE`
+|The name of the role that indicates a user is an admin.
+|String
+|`sr-admin`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_CLAIM`
+|The name of a JWT token claim to use for determining admin-override.
+|String
+|`org-admin`
+|`APICURIO_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE`
+|The value that the JWT token claim indicated by the CLAIM variable must be for the user to be granted admin-override.
+|String
+|`true`
+|===
+
+For example, you can use this admin-override feature to assign the `sr-admin` role to a single user
+in {keycloak}, which grants that user the admin role.  That user can then use the `/admin/roleMappings`
+REST API (or associated UI) to grant roles to additional users (including additional admins).
+
+[discrete]
+[id=registry-security-obac-enabled]
+== {registry} owner-only authorization
+
+You can set the following options to `true` to enable owner-only authorization for updates to artifacts or artifact groups in {registry}:
+
+.Configuration for owner-only authorization
+[%header,cols="4,4,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+
+|`QUARKUS_OIDC_TENANT_ENABLED`
+|`quarkus.oidc.tenant-enabled`
+|Boolean
+|`false`
+
+|`APICURIO_AUTH_OWNER-ONLY-AUTHORIZATION`
+|`apicurio.auth.owner-only-authorization`
+|Boolean
+|`false`
+
+|`APICURIO_AUTH_OWNER-ONLY-AUTHORIZATION_LIMIT-GROUP-ACCESS`
+|`apicurio.auth.owner-only-authorization.limit-group-access`
+|Boolean
+|`false`
+|===
+
+When owner-only authorization is enabled, only the user who created an artifact can modify or delete that artifact.
+
+When owner-only authorization and group owner-only authorization are both enabled, only the user who created an artifact group has write access to that artifact group, for example, to add or remove artifacts in that group.
+
+[discrete]
+[id=registry-security-auth-read]
+== {registry} authenticated read access
+
+When the authenticated read access option is enabled, {registry} grants at least read-only access to requests from any authenticated user in the same organization, regardless of their user role.
+
+To enable authenticated read access, you must first enable role-based authorization, and then ensure that the following options are set to `true`:
+
+.Configuration for authenticated read access
+[%header,cols="4,4,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`QUARKUS_OIDC_TENANT-ENABLED`
+|`quarkus.oidc.tenant-enabled`
+|Boolean
+|`false`
+|`APICURIO_AUTH_AUTHENTICATED-READ-ACCESS_ENABLED`
+|`apicurio.auth.authenticated-read-access.enabled`
+|Boolean
+|`false`
+|===
+
+For more details, see xref:registry-security-rbac-enabled[].
+
+[discrete]
+[id=registry-security-anon-read]
+== {registry} anonymous read-only access
+
+In addition to the two main types of authorization (role-based and owner-based authorization), {registry}
+supports an anonymous read-only access option.
+
+To allow anonymous users, such as REST API calls with no authentication credentials, to make read-only
+calls to the REST API, set the following options to `true`:
+
+.Configuration for anonymous read-only access
+[%header,cols="4,4,1,1"]
+|===
+|Environment variable
+|Java system property
+|Type
+|Default value
+|`QUARKUS_OIDC_TENANT-ENABLED`
+|`quarkus.oidc.tenant-enabled`
+|Boolean
+|`false`
+|`APICURIO_AUTH_ANONYMOUS-READ-ACCESS_ENABLED`
+|`apicurio.auth.anonymous-read-access.enabled`
+|Boolean
+|`false`
+|===
+
+
+[role="_additional-resources"]
+.Additional resources
+* For an example of how to set environment variables in your {registry} deployment on OpenShift, see xref:configuring-liveness-readiness-probes_{context}[]
+* For details on configuring custom authentication for {registry}, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]
+
+:leveloffset!:

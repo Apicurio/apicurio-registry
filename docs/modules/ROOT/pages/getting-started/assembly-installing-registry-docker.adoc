@@ -1,5 +1,212 @@
 // Metadata created by nebel
-include::{mod-loc}shared/all-attributes.adoc[]
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+
+//:toc:
+//:toclevels: 4
+//:numbered:
+
+// Branding - toggle upstream/downstream content "on/off"
+
+// The following attributes conditionalize content from the Apicurio Registry project:
+// * Upstream-only content tagged with ifdef::apicurio-registry[]...endif::[]
+// * Downstream-only content tagged with ifdef::rh-service-registry[]...endif::[]
+// Untagged content is common
+
+// Upstream condition by default, switch on/off downstream-only
+//:service-registry-downstream:
+
+// upstream
+:apicurio-registry:
+:registry: Apicurio Registry
+:registry-name-full: Apicurio Registry
+:registry-version: 3.0
+:registry-release: 3.0.0
+:registry-docker-version: latest-release
+:registry-v1: 1.3
+:registry-v1-release: 1.3.2.Final
+:registry-v2: 2.6.3
+:operator-version: 1.1.0-v2.4.12.final
+:kafka-streams: Strimzi
+:registry-kafka-version: 3.5
+:keycloak: Keycloak
+:keycloak-version: 18.0
+:kubernetes: Kubernetes
+:kubernetes-with-article: a Kubernetes
+:kubernetes-client: kubectl
+:kubernetes-namespace: namespace
+
+// downstream
+
+//common
+:context: registry
+:version: 2024.Q2
+:attachmentsdir: files
+:registry-ocp-version: 4.14
+:registry-db-version: 15
+:registry-url: \http://MY_REGISTRY_UI_URL/
+
+//integration products
+:amq-version: 2.5
+:productpkg: red_hat_integration
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:
+:ndash: –
+:reg: ®
+:trade: ™
+
+//Include attributes for external linking
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
+
+// Download URLs
+:download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+
+
+// internal links
+:registry-overview: xref:intro-to-the-registry_{context}[]
+:registry-rules: xref:intro-to-registry-rules_{context}[]
+:registry-artifact-reference: xref:registry-artifact-reference_{context}[]
+:registry-rule-reference: xref:registry-rule-reference_{context}[]
+:registry-config-reference: xref:registry-config-reference_{context}[]
+:installing-the-registry-openshift: xref:installing-registry-ocp_{context}[]
+:installing-the-registry-storage-openshift: xref:installing-registry-streams-storage_{context}[]
+:managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui_{context}[]
+:managing-registry-artifacts-api: xref:managing-registry-artifacts-api_{context}[]
+:managing-registry-artifacts-maven: xref:managing-registry-artifacts-maven_{context}[]
+:rest-client: xref:using-the-registry-sdk_{context}[]
+:kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
+:registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
+:registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
 
 [id="installing-the-registry-docker_{context}"]
 = Installing {registry} using Docker
@@ -10,7 +217,7 @@ This chapter explains how to install and run {registry} using Docker with the fo
 * xref:installing-registry-in-memory-storage_{context}[]
 * xref:installing-registry-sql-storage_{context}[]
 * xref:installing-registry-kafka-storage_{context}[]
- 
+
 .Prerequisites
 * {registry-overview}
 
@@ -21,6 +228,203 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 
 //INCLUDES
-include::{mod-loc}getting-started/proc-installing-registry-in-memory-storage.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-installing-registry-sql-storage.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-installing-registry-kafka-storage.adoc[leveloffset=+1]
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-in-memory-storage_{context}"]
+= Installing {registry} with in-memory storage
+
+[role="_abstract"]
+This section explains how to install and run {registry} with simple in-memory storage from a container image.
+
+NOTE: The in-memory storage option is suitable for development only. All data is lost when the container image is restarted.
+
+.Prerequisites
+
+* You must have Docker installed and the Docker daemon running.
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
+
+.Procedure
+
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry:VERSION
+----
++
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry/tags.
+
+. Run the container image:
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 apicurio/apicurio-registry:VERSION
+----
+
+NOTE: All storage variants of {registry} 3.x now share the same container image of `apicurio/apicurio-registry`.  This is in contrast to the separate container images used by {registry} 2.x.  Choosing a storage variant is now a matter of configuring the single backend/server container image.
+
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/apis/registry/v3/groups/my-group/artifacts
+----
+
+. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
++
+[source,bash]
+----
+{"name":"price","createdBy":"","createdOn":"2021-03-19T17:48:17+0000","modifiedOn":"2021-03-19T17:48:17+0000","id":"share-price","version":1,"type":"AVRO","globalId":12,"state":"ENABLED","groupId":"my-group","contentId":12}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[].
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-sql-storage_{context}"]
+= Installing {registry} with SQL database storage
+
+[role="_abstract"]
+This section explains how to install and run {registry} with storage in a PostgreSQL database from a container image. This storage option is suitable for production environments.
+
+.Prerequisites
+
+* You must have Docker installed and the Docker daemon running.
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
+* You must already have a PostgreSQL database server installed and running. For example:
++
+[source,bash]
+----
+$ postgres -D /usr/local/pgsql/data
+----
++
+For more details, see https://www.postgresql.org/docs/12/server-start.html
+
+.Procedure
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry:VERSION
+----
++
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry/tags.
+
+. Run the container image and specify the following environment variable for your Postgresql system:
++
+** `APICURIO_STORAGE_KIND` - The storage variant.  Set this to `sql`.
+** `APICURIO_STORAGE_SQL_KIND` - The type of SQL database to use.  Set this to `postgresql`
+** `APICURIO_DATASOURCE_URL` - The database connection URL.
+** `APICURIO_DATASOURCE_USERNAME`, `APICURIO_DATASOURCE_PASSWORD` - The credentials for the PostgreSQL server.
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 \
+-e "APICURIO_STORAGE_KIND=sql" \
+-e "APICURIO_STORAGE_SQL_KIND=postgresql" \
+-e "APICURIO_DATASOURCE_URL=jdbc:postgresql://postgres/apicurio-registry" \
+-e "APICURIO_DATASOURCE_USERNAME=apicurio-registry" \
+-e "APICURIO_DATASOURCE_PASSWORD=password" \
+apicurio/apicurio-registry:VERSION
+----
+
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-price","artifactType":"AVRO","name":"Share Price","labels":{"environment":"DEV","category":"finance"},"firstVersion":{"version":"1.0.0","content":{"content":"{\"type\":\"record\",\"name\":\"price\",\"namespace\":\"com.example\",\"fields\":[{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"price\",\"type\":\"string\"}]}","contentType":"application/json"}}}' http://localhost:8080/apis/registry/v3/groups/my-group/artifacts
+----
+. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
++
+[source,bash]
+----
+{"artifact":{"name":"Share Price","owner":"","createdOn":"2024-09-26T16:26:03Z","modifiedBy":"","modifiedOn":"2024-09-26T16:26:03Z","artifactType":"AVRO","labels":{"environment":"DEV","category":"finance"},"groupId":"my-group","artifactId":"share-price"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:26:03Z","artifactType":"AVRO","globalId":1,"state":"ENABLED","groupId":"my-group","contentId":1,"artifactId":"share-price"}}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[].
+* For more details on PostgreSQL, see the link:https://www.postgresql.org/docs/12/index.html[PostgreSQL documentation].
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-kafka-storage_{context}"]
+= Installing {registry} with Apache Kafka storage
+
+
+[role="_abstract"]
+This topic explains how to install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses a Kafka topic for storage, along with an in-memory H2 database. This storage option is suitable for production environments.
+
+.Prerequisites
+
+* You must have Docker installed and the Docker daemon running.
+* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
+* Ensure that `KAFKA_HOME` is set to the location of your Kafka-based system.
+* You must already have your Kafka broker running. For example:
++
+[source,bash]
+----
+$KAFKA_HOME/bin/zookeeper-server-start.sh $KAFKA_HOME/config/zookeeper.properties &
+$KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties &
+----
++
+For more details, see https://kafka.apache.org/quickstart.
+
+.Procedure
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry:VERSION
+----
++
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry/tags.
+
+. Run the container image and specify the following environment variable for your Kafka system:
++
+** `APICURIO_STORAGE_KIND` - Set this to `kafkasql`
+** `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS` - The address(es) of your Kafka broker(s).
++
+For example:
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 -e "APICURIO_STORAGE_KIND=kafkasql" -e "APICURIO_KAFKASQL_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry:latest
+----
+
+
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create a simple Avro schema artifact for a share price application in the registry:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-price","artifactType":"AVRO","name":"Share Price","labels":{"environment":"DEV","category":"finance"},"firstVersion":{"version":"1.0.0","content":{"content":"{\"type\":\"record\",\"name\":\"price\",\"namespace\":\"com.example\",\"fields\":[{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"price\",\"type\":\"string\"}]}","contentType":"application/json"}}}' http://localhost:8080/apis/registry/v3/groups/my-group/artifacts
+----
+. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
++
+[source,bash]
+----
+{"artifact":{"name":"Share Price","owner":"","createdOn":"2024-09-26T16:26:03Z","modifiedBy":"","modifiedOn":"2024-09-26T16:26:03Z","artifactType":"AVRO","labels":{"environment":"DEV","category":"finance"},"groupId":"my-group","artifactId":"share-price"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:26:03Z","artifactType":"AVRO","globalId":1,"state":"ENABLED","groupId":"my-group","contentId":1,"artifactId":"share-price"}}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[].
+* For more details on Apache Kafka, see https://kafka.apache.org/documentation/.
+
+:leveloffset!:

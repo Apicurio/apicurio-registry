@@ -1,5 +1,212 @@
 // Metadata created by nebel
-include::{mod-loc}shared/all-attributes.adoc[]
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+
+//:toc:
+//:toclevels: 4
+//:numbered:
+
+// Branding - toggle upstream/downstream content "on/off"
+
+// The following attributes conditionalize content from the Apicurio Registry project:
+// * Upstream-only content tagged with ifdef::apicurio-registry[]...endif::[]
+// * Downstream-only content tagged with ifdef::rh-service-registry[]...endif::[]
+// Untagged content is common
+
+// Upstream condition by default, switch on/off downstream-only
+//:service-registry-downstream:
+
+// upstream
+:apicurio-registry:
+:registry: Apicurio Registry
+:registry-name-full: Apicurio Registry
+:registry-version: 3.0
+:registry-release: 3.0.0
+:registry-docker-version: latest-release
+:registry-v1: 1.3
+:registry-v1-release: 1.3.2.Final
+:registry-v2: 2.6.3
+:operator-version: 1.1.0-v2.4.12.final
+:kafka-streams: Strimzi
+:registry-kafka-version: 3.5
+:keycloak: Keycloak
+:keycloak-version: 18.0
+:kubernetes: Kubernetes
+:kubernetes-with-article: a Kubernetes
+:kubernetes-client: kubectl
+:kubernetes-namespace: namespace
+
+// downstream
+
+//common
+:context: registry
+:version: 2024.Q2
+:attachmentsdir: files
+:registry-ocp-version: 4.14
+:registry-db-version: 15
+:registry-url: \http://MY_REGISTRY_UI_URL/
+
+//integration products
+:amq-version: 2.5
+:productpkg: red_hat_integration
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:
+:ndash: –
+:reg: ®
+:trade: ™
+
+//Include attributes for external linking
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
+
+// Download URLs
+:download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+
+
+// internal links
+:registry-overview: xref:intro-to-the-registry_{context}[]
+:registry-rules: xref:intro-to-registry-rules_{context}[]
+:registry-artifact-reference: xref:registry-artifact-reference_{context}[]
+:registry-rule-reference: xref:registry-rule-reference_{context}[]
+:registry-config-reference: xref:registry-config-reference_{context}[]
+:installing-the-registry-openshift: xref:installing-registry-ocp_{context}[]
+:installing-the-registry-storage-openshift: xref:installing-registry-streams-storage_{context}[]
+:managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui_{context}[]
+:managing-registry-artifacts-api: xref:managing-registry-artifacts-api_{context}[]
+:managing-registry-artifacts-maven: xref:managing-registry-artifacts-maven_{context}[]
+:rest-client: xref:using-the-registry-sdk_{context}[]
+:kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
+:registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
+:registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
 
 [id="using-kafka-client-serdes_{context}"]
 = Validating Kafka messages using serializers/deserializers in Java clients
@@ -22,14 +229,431 @@ This chapter explains how to use Kafka client SerDes in your producer and consum
 * You have installed {registry}.
 * You have created Kafka producer and consumer client applications.
 +
-ifdef::rh-service-registry[]
-For more details on Kafka client applications, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
-endif::[]
 
 //INCLUDES
-include::{mod-loc}getting-started/con-registry-serdes-concepts.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/con-registry-serdes-strategy.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-registry-serdes-register.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-registry-serdes-config-consumer.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-registry-serdes-config-producer.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-registry-serdes-config-stream.adoc[leveloffset=+1]
+:leveloffset: +1
+
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-concepts-serde_{context}']
+
+= Kafka client applications and {registry}
+
+[role="_abstract"]
+{registry} decouples schema management from client application configuration. You can enable a Java client application to use a schema from {registry} by specifying its URL in your client code.
+
+You can store the schemas in {registry} to serialize and deserialize messages, which are referenced from your client applications to ensure that the messages that they send and receive are compatible with those schemas. Kafka client applications can push or pull their schemas from {registry} at runtime.
+
+Schemas can evolve, so you can define rules in {registry}, for example, to ensure that schema changes are valid and do not break previous versions used by applications. {registry} checks for compatibility by comparing a modified schema with previous schema versions.
+
+[discrete]
+== {registry} schema technologies
+{registry} provides schema registry support for schema technologies such as:
+
+* Avro
+* Protobuf
+* JSON Schema
+
+These schema technologies can be used by client applications through the Kafka client serializer/deserializer (SerDes) services provided by {registry}.  The maturity and usage of the SerDes classes provided by {registry} might vary. The sections that follow provide more details about each schema type.
+
+[discrete]
+== Producer schema configuration
+
+A producer client application uses a serializer to put the messages that it sends to a specific broker topic into the correct data format.
+
+To enable a producer to use {registry} for serialization:
+
+* xref:registry-serdes-register_{context}[Define and register your schema with {registry}] (if it does not already exist).
+* xref:registry-serdes-config-producer_{context}[Configure your producer client code] with the following:
+
+** URL of {registry}
+** {registry} serializer to use with messages
+** Strategy to map the Kafka message to a schema artifact in {registry}
+** Strategy to look up or register the schema used for serialization in {registry}
+
+After registering your schema, when you start Kafka and {registry}, you can access the schema to format messages sent to the Kafka broker topic by the producer. Alternatively, depending on configuration, the producer can automatically register the schema on first use.
+
+If a schema already exists, you can create a new version using the registry REST API based on compatibility rules defined in {registry}. Versions are used for compatibility checking as a schema evolves. A group ID, artifact ID, and version represents a unique tuple that identifies a schema.
+
+[discrete]
+== Consumer schema configuration
+A consumer client application uses a deserializer to get the messages that it consumes from a specific broker topic into the correct data format.
+
+To enable a consumer to use {registry} for deserialization:
+
+* xref:registry-serdes-register_{context}[Define and register your schema with {registry}] (if it does not already exist)
+* xref:registry-serdes-config-consumer_{context}[Configure the consumer client code]  with the following:
+** URL of {registry}
+** {registry} deserializer to use with the messages
+** Input data stream for deserialization
+
+.Retrieve schemas using a content ID
+By default, the schema is retrieved from {registry} by the deserializer using a content ID (which is an ID unique to the *content* of an artifact version, but not unique to the version itself), which is specified in the message being consumed. The schema content ID can be located in the message headers or in the message payload, depending on the configuration of the producer application.  By default, the content ID will be located in the message body.
+
+When locating the content ID in the message payload, the format of the data begins with a magic byte, used as a signal to consumers, followed by the content ID, and the message data as normal. For example:
+
+[source,shell,subs="+quotes,attributes"]
+----
+# ...
+[MAGIC_BYTE]
+[CONTENT_ID]
+[MESSAGE DATA]
+----
+
+Then when you start Kafka and {registry}, you can access the schema to format messages received from the Kafka broker topic.
+
+.Retrieve schemas using a global ID
+Alternatively, you can configure to retrieve schemas from {registry} based on the global ID, which is the unique ID of the artifact version.  The same options are available to you when using global ID instead of contentID.  You can either send the global ID in the message headers or the message body (default).
+
+When locating the global ID in the message payload, the format of the data begins with a magic byte, used as a signal to consumers, followed by the global ID, and the message data as normal. For example:
+
+[source,shell,subs="+quotes,attributes"]
+----
+# ...
+[MAGIC_BYTE]
+[GLOBAL_ID]
+[MESSAGE DATA]
+----
+
+
+:leveloffset!:
+:leveloffset: +1
+
+// Module included in the following assemblies:
+// assembly-using-kafka-client-serdes
+
+[id='registry-serdes-concepts-strategy_{context}']
+= Strategies to look up a schema in {registry}
+
+[role="_abstract"]
+The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and global ID under which the message schema is registered in {registry}. For a given topic and message, you can use different implementations of the `ArtifactReferenceResolverStrategy` Java interface to return a reference to an artifact in the registry.
+
+The classes for each strategy are in the `io.apicurio.registry.serde.strategy` package. Specific strategy classes for Avro SerDes are in the `io.apicurio.registry.serde.avro.strategy package`. The default strategy is the `TopicIdStrategy`, which looks for {registry} artifacts with the same name as the Kafka topic receiving messages.
+
+.Example
+[source,java,subs="+quotes,attributes"]
+----
+public ArtifactReference artifactReference(String topic, boolean isKey, T schema) {
+        return ArtifactReference.builder()
+                .groupId(null)
+                .artifactId(String.format("%s-%s", topic, isKey ? "key" : "value"))
+                .build();
+
+----
+
+* The `topic` parameter is the name of the Kafka topic receiving the message.
+* The `isKey` parameter is `true` when the message key is serialized, and `false` when the message value is serialized.
+* The `schema` parameter is the schema of the message serialized or deserialized.
+* The `ArtifactReference` returned contains the artifact ID under which the schema is registered.
+
+Which lookup strategy you use depends on how and where you store your schema. For example, you might use a strategy that uses a _record ID_ if you have different Kafka topics with the same Avro message type.
+
+
+[discrete]
+== Artifact resolver strategy
+
+The artifact resolver strategy provides a way to map the Kafka topic and message information to an artifact in {registry}. The common convention for the mapping is to combine the Kafka topic name with the `key` or `value`, depending on whether the serializer is used for the Kafka message key or value.
+
+However, you can use alternative conventions for the mapping by using a strategy provided by {registry}, or by creating a custom Java class that implements `io.apicurio.registry.serde.strategy.ArtifactReferenceResolverStrategy`.
+
+[discrete]
+[id='service-registry-concepts-artifactid-{context}']
+== Strategies to return a reference to an artifact
+
+{registry} provides the following strategies to return a reference to an artifact based on an implementation of `ArtifactReferenceResolverStrategy`:
+
+`RecordIdStrategy`:: Avro-specific strategy that uses the full name of the schema.
+`TopicRecordIdStrategy`:: Avro-specific strategy that uses the topic name and the full name of the schema.
+`TopicIdStrategy`:: Default strategy that uses the topic name and `key` or `value` suffix.
+`SimpleTopicIdStrategy`:: Simple strategy that only uses the topic name.
+
+
+[discrete]
+== DefaultSchemaResolver interface
+
+The default schema resolver locates and identifies the specific version of the schema registered under the artifact reference provided by the artifact resolver strategy. Every version of every artifact has a single globally unique identifier that can be used to retrieve the content of that artifact. This global ID is included in every Kafka message so that a deserializer can properly fetch the schema from Apicurio Registry.
+
+The default schema resolver can look up an existing artifact version, or it can register one if not found, depending on which strategy is used. You can also provide your own strategy by creating a custom Java class that implements `io.apicurio.registry.resolver.SchemaResolver`. However, it is recommended to use the `DefaultSchemaResolver` and specify configuration properties instead.
+
+[discrete]
+[id='configuring-globalid-strategy-{context}']
+== Configuration for registry lookup options
+
+When using the `DefaultSchemaResolver`, you can configure its behavior using application properties. The following table shows some commonly used examples:
+
+.{registry} lookup configuration options
+[%header,cols="5,3,5,2"]
+
+|===
+|Property
+|Type
+|Description
+|Default
+
+|`apicurio.registry.find-latest`
+|`boolean`
+|Specify whether the serializer tries to find the latest artifact in the registry for the corresponding group ID and artifact ID.
+|`false`
+
+|`apicurio.registry.use-id`
+|`String`
+|Instructs the serializer to write the specified ID to Kafka and instructs the deserializer to use this ID to find the schema.
+|None
+
+|`apicurio.registry.auto-register`
+|`boolean`
+|Specify whether the serializer tries to create an artifact in the registry. The JSON Schema serializer does not support this.
+|`false`
+
+|`apicurio.registry.check-period-ms`
+|`String`
+|Specify how long to cache the global ID in milliseconds. If not configured, the global ID is fetched every time.
+|None
+
+|===
+
+:leveloffset!:
+:leveloffset: +1
+
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-register_{context}']
+= Registering a schema in {registry}
+
+[role="_abstract"]
+After you have defined a schema in the appropriate format, such as Apache Avro, you can add the schema to {registry}.
+
+You can add the schema using the following approaches:
+
+* {registry} web console
+* curl command using the {registry} REST API
+* Maven plug-in supplied with {registry}
+* Schema configuration added to your client code
+
+Client applications cannot use {registry} until you have registered your schemas.
+
+[discrete]
+== {registry} web console
+
+When {registry} is installed, you can connect to the web console from the `ui` endpoint:
+
+`\http://MY-REGISTRY-URL/ui`
+
+From the console, you can add, view and configure schemas. You can also create the rules that prevent invalid content being added to the registry.
+
+
+[discrete]
+== Curl command example
+
+[source,shell,subs="+quotes,attributes"]
+----
+ curl -X POST -H "Content-type: application/json; artifactType=AVRO" \
+   -H "X-Registry-ArtifactId: share-price" \ <1>
+   --data '{
+     "type":"record",
+     "name":"price",
+     "namespace":"com.example",
+     "fields":[{"name":"symbol","type":"string"},
+     {"name":"price","type":"string"}]}'
+   https://my-cluster-my-registry-my-project.example.com/apis/registry/v3/groups/my-group/artifacts -s <2>
+----
+<1> Simple Avro schema artifact.
+<2> OpenShift route name that exposes {registry}.
+
+[discrete]
+== Maven plug-in example
+
+[source,xml,subs="+quotes,attributes"]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+      <execution>
+        <phase>generate-sources</phase>
+        <goals>
+            <goal>register</goal>  <1>
+        </goals>
+        <configuration>
+            <registryUrl>http://REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+            <artifacts>
+                <artifact>
+                    <groupId>TestGroup</groupId> <3>
+                    <artifactId>FullNameRecord</artifactId>
+                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file>
+                    <ifExists>FAIL</ifExists>
+                </artifact>
+                <artifact>
+                    <groupId>TestGroup</groupId>
+                    <artifactId>ExampleAPI</artifactId> <4>
+                    <artifactType>GRAPHQL</artifactType>
+                    <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
+                    <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                    <canonicalize>true</canonicalize>
+                </artifact>
+            </artifacts>
+        </configuration>
+    </execution>
+  </executions>
+ </plugin>
+----
+<1> Specify `register` as the execution goal to upload the schema artifact to the registry.
+<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
+<3> Specify the {registry} artifact group ID.
+<4> You can upload multiple artifacts using the specified group ID, artifact ID, and location.
+
+
+:leveloffset!:
+:leveloffset: +1
+
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-config-consumer_{context}']
+= Using a schema from a Kafka consumer client
+
+[role="_abstract"]
+This procedure describes how to configure a Kafka consumer client written in Java to use a schema from {registry}.
+
+.Prerequisites
+
+* {registry} is installed
+* The schema is registered with {registry}
+
+.Procedure
+
+. Configure the client with the URL of {registry}. For example:
++
+[source,java,subs="+quotes,attributes"]
+----
+String registryUrl = "https://registry.example.com/apis/registry/v3";
+Properties props = new Properties();
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, registryUrl);
+----
+
+. Configure the client with the {registry} deserializer. For example:
++
+[source,java,subs="+quotes,attributes"]
+----
+// Configure Kafka settings
+props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, SERVERS);
+props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "Consumer-" + TOPIC_NAME);
+props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
+props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+// Configure deserializer settings
+props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+    AvroKafkaDeserializer.class.getName()); <1>
+props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+    AvroKafkaDeserializer.class.getName()); <2>
+----
+<1> The deserializer provided by {registry}.
+<2> The deserialization is in Apache Avro JSON format.
+
+:leveloffset!:
+:leveloffset: +1
+
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-config-producer_{context}']
+= Using a schema from a Kafka producer client
+
+[role="_abstract"]
+This procedure describes how to configure a Kafka producer client written in Java to use a schema from {registry}.
+
+.Prerequisites
+
+* {registry} is installed
+* The schema is registered with {registry}
+
+.Procedure
+
+. Configure the client with the URL of {registry}. For example:
++
+[source,java,subs="+quotes,attributes"]
+----
+String registryUrl = "https://registry.example.com/apis/registry/v3";
+Properties props = new Properties();
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, registryUrl);
+----
+
+. Configure the client with the serializer, and the strategy to look up the schema in {registry}. For example:
++
+[source,java,subs="+quotes,attributes"]
+----
+props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "my-cluster-kafka-bootstrap:9092");
+props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <1>
+props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <2>
+props.put(SerdeConfig.FIND_LATEST_ARTIFACT, Boolean.TRUE); <3>
+----
+<1> The serializer for the message key provided by {registry}.
+<2> The serializer for the message value provided by {registry}.
+<3> The lookup strategy to find the global ID for the schema.
+
+:leveloffset!:
+:leveloffset: +1
+
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-config-stream_{context}']
+= Using a schema from a Kafka Streams application
+
+[role="_abstract"]
+This procedure describes how to configure a Kafka Streams client written in Java to use an Apache Avro schema from {registry}.
+
+.Prerequisites
+
+* {registry} is installed
+* The schema is registered with {registry}
+
+.Procedure
+
+. Create and configure a Java client with the {registry} URL:
++
+[source,java,subs="+quotes,attributes"]
+----
+String registryUrl = "https://registry.example.com/apis/registry/v3";
+
+RegistryService client = RegistryClient.cached(registryUrl);
+----
+
+. Configure the serializer and deserializer:
++
+[source,java,subs="+quotes,attributes"]
+----
+Serializer<LogInput> serializer = new AvroKafkaSerializer<LogInput>(); <1>
+
+Deserializer<LogInput> deserializer = new AvroKafkaDeserializer <LogInput>(); <2>
+
+Serde<LogInput> logSerde = Serdes.serdeFrom(
+    serializer,
+    deserializer
+);
+
+Map<String, Object> config = new HashMap<>();
+config.put(SerdeConfig.REGISTRY_URL, registryUrl);
+config.put(AvroSerdeConfig.USE_SPECIFIC_AVRO_READER, true);
+logSerde.configure(config, false); <3>
+
+----
++
+<1> The Avro serializer provided by {registry}.
+<2> The Avro deserializer provided by {registry}.
+<3> Configures the {registry} URL and the Avro reader for deserialization in Avro format.
+
+. Create the Kafka Streams client:
++
+[source,java,subs="+quotes,attributes"]
+----
+KStream<String, LogInput> input = builder.stream(
+    INPUT_TOPIC,
+    Consumed.with(Serdes.String(), logSerde)
+);
+----
+
+:leveloffset!:

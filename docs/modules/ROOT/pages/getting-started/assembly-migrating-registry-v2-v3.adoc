@@ -1,9 +1,216 @@
 // Metadata created by nebel
-include::{mod-loc}shared/all-attributes.adoc[]
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+
+//:toc:
+//:toclevels: 4
+//:numbered:
+
+// Branding - toggle upstream/downstream content "on/off"
+
+// The following attributes conditionalize content from the Apicurio Registry project:
+// * Upstream-only content tagged with ifdef::apicurio-registry[]...endif::[]
+// * Downstream-only content tagged with ifdef::rh-service-registry[]...endif::[]
+// Untagged content is common
+
+// Upstream condition by default, switch on/off downstream-only
+//:service-registry-downstream:
+
+// upstream
+:apicurio-registry:
+:registry: Apicurio Registry
+:registry-name-full: Apicurio Registry
+:registry-version: 3.0
+:registry-release: 3.0.0
+:registry-docker-version: latest-release
+:registry-v1: 1.3
+:registry-v1-release: 1.3.2.Final
+:registry-v2: 2.6.3
+:operator-version: 1.1.0-v2.4.12.final
+:kafka-streams: Strimzi
+:registry-kafka-version: 3.5
+:keycloak: Keycloak
+:keycloak-version: 18.0
+:kubernetes: Kubernetes
+:kubernetes-with-article: a Kubernetes
+:kubernetes-client: kubectl
+:kubernetes-namespace: namespace
+
+// downstream
+
+//common
+:context: registry
+:version: 2024.Q2
+:attachmentsdir: files
+:registry-ocp-version: 4.14
+:registry-db-version: 15
+:registry-url: \http://MY_REGISTRY_UI_URL/
+
+//integration products
+:amq-version: 2.5
+:productpkg: red_hat_integration
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:
+:ndash: –
+:reg: ®
+:trade: ™
+
+//Include attributes for external linking
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
+
+// Download URLs
+:download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+
+
+// internal links
+:registry-overview: xref:intro-to-the-registry_{context}[]
+:registry-rules: xref:intro-to-registry-rules_{context}[]
+:registry-artifact-reference: xref:registry-artifact-reference_{context}[]
+:registry-rule-reference: xref:registry-rule-reference_{context}[]
+:registry-config-reference: xref:registry-config-reference_{context}[]
+:installing-the-registry-openshift: xref:installing-registry-ocp_{context}[]
+:installing-the-registry-storage-openshift: xref:installing-registry-streams-storage_{context}[]
+:managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui_{context}[]
+:managing-registry-artifacts-api: xref:managing-registry-artifacts-api_{context}[]
+:managing-registry-artifacts-maven: xref:managing-registry-artifacts-maven_{context}[]
+:rest-client: xref:using-the-registry-sdk_{context}[]
+:kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
+:registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
+:registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+:LinkRedHatIntegrationDownloads: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration
+:NameRedHatIntegrationDownloads: Red Hat Integration Downloads
+
+:LinkOLMDocs: https://docs.openshift.com/container-platform/latest/operators/understanding/olm/olm-understanding-olm.html
+:NameOLMDocs: Operator Lifecycle Manager
+
+:LinkOperatorHub: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOperatorHub: OperatorHub
+
+// Service Registry titles
+:ServiceRegistryURLVersion: 2024.q2
+:RegistryProductURL: service_registry
+
+
+:LinkServiceRegistryInstall: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/installing_and_deploying_{RegistryProductURL}_on_openshift/index
+:NameServiceRegistryInstall: Installing and deploying {registry-name-full} on OpenShift
+
+:LinkServiceRegistryUser: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/{RegistryProductURL}_user_guide/index
+:NameServiceRegistryUser: {registry-name-full} User Guide
+
+:LinkServiceRegistryMigration: https://access.redhat.com/documentation/en-us/{productpkg}/{ServiceRegistryURLVersion}/html-single/migrating_{RegistryProductURL}_deployments/index
+:NameServiceRegistryMigration: Migrating {registry-name-full} deployments
+
+:LinkServiceRegistryRESTAPI: https://access.redhat.com/webassets/avalon/d/Red_Hat_build_of_Apicurio_Registry-3.0-Apicurio_Registry_User_Guide-en-US/files/registry-rest-api.htm
+:NameServiceRegistryRESTAPI: Apicurio Registry v3 core REST API documentation
+
+
+
+:LinkOpenShiftAddOperator: https://docs.openshift.com/container-platform/latest/operators/admin/olm-adding-operators-to-cluster.html
+:NameOpenShiftAddOperator: Adding Operators to an OpenShift cluster
+
+:LinkOpenShiftIntroOperator: https://docs.openshift.com/container-platform/latest/operators/understanding/olm-understanding-operatorhub.html
+:NameOpenShiftIntroOperator: Understanding OperatorHub
+
+// AMQ Streams titles
+:StreamsName: AMQ Streams
+:AMQStreamsURLVersion: 2.6
+
+:LinkStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_openshift/index
+:NameStreamsOpenShift: Using {StreamsName} on OpenShift
+
+:LinkDeployStreamsOpenShift: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/deploying_and_managing_amq_streams_on_openshift/index
+:NameDeployStreamsOpenShift: Deploying and Managing {StreamsName} on OpenShift
+
+:LinkStreamsRhel: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/{AMQStreamsURLVersion}/html-single/using_amq_streams_on_rhel/index
+:NameStreamsRhel: Using {StreamsName} on RHEL
+
+
+// Debezium titles
+:DebeziumURLVersion: 2023.q4
+
+:LinkDebeziumInstallOpenShift: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_openshift/
+:NameDebeziumInstallOpenShift: Installing Debezium on OpenShift
+
+:LinkDebeziumInstallRHEL: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/installing_change_data_capture_on_rhel/
+:NameDebeziumInstallRHEL: Installing Debezium on RHEL
+
+:LinkDebeziumGettingStarted: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/getting_started_with_change_data_capture/index
+:NameDebeziumGettingStarted: Getting Started with Debezium
+
+:LinkDebeziumUserGuide: https://access.redhat.com/documentation/en-us/red_hat_integration/{DebeziumURLVersion}/html-single/debezium_user_guide/index
+:NameDebeziumUserGuide: Debezium User Guide
 
 
 [id="migrating-the-registry_{context}"]
-= Migrating an existing {registry} deployment 
+= Migrating an existing {registry} deployment
 
 [role="_abstract"]
 This chapter explains how to migrate an existing {registry} deployment from version 2.x to version 3.x.
@@ -13,6 +220,187 @@ This chapter explains how to migrate an existing {registry} deployment from vers
 * xref:migrating-registry-applications_{context}[]
 
 //INCLUDES
-include::{mod-loc}getting-started/con-registry-migration.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-migrating-registry-data.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-migrating-registry-applications.adoc[leveloffset=+1]
+:leveloffset: +1
+
+// Metadata created by nebel
+
+[id="registry-migration_{context}"]
+= Migration from {registry} 2.x to 3.x
+
+[role="_abstract"]
+{registry} 3.x includes new features with breaking changes from the previous {registry} 2.x release. This section describes the major changes between {registry} 2.x and version 3.x, along with the best approach to migrating.
+
+Because of the breaking changes in 3.x, there is no automatic upgrade and a migration process is required. This involves exporting the data in your existing registry to a new registry. You must also review your existing registry client applications and update their configurations to meet the new requirements.
+
+When migrating to version 3.x, you must take the following major changes into account:
+
+== Data storage changes
+All of the storage options from 2.x continue to be supported in 3.x, but any data currently in either the Kafka topic
+or in the database is no longer compatible with 3.x.  This means that, in order to migrate from 2.x to 3.x, you will
+need to use the Export feature of {registry} to create a .ZIP file containing all of your 2.x data.
+
+The in-memory storage option is also still available, but is not suitable for production workloads.
+
+For details on how to deploy {registry} 3.x with your chosen storage option,
+see {installing-the-registry-storage-openshift}.
+
+== New v3 REST API
+{registry} 3.x includes a new REST API with support for empty artifacts, artifact branches, group level rules, new search capabilities, and much more. {registry} still supports version 2.x of the core REST API as well as various compatibility APIs, for example, the Confluent schema registry API v7.  However, version 2 of the Core REST API is now deprecated.
+
+== All new SDKs replace the Java client
+* The {registry} Java client classes are no longer available in version 3.x and have been replaced by a new SDK generated using Kiota.
+
+* In addition to Java, SDKs are now provided for Typescript, Python, and Golang.
+
+* The Kafka client serializer and deserializer (SerDes) classes are available in version 3.x....
+
+== Deployment configuration has changed
+{registry} 3.x has changed a number of configuration options and added some new ones.  Options you may be using when deploying
+2.x are likely still available, but may have been renamed.
+
+[role="_additional-resources"]
+.Additional resources
+* For more details on the v3 REST API, see the link:{attachmentsdir}/registry-rest-api.htm[Registry REST API documentation].
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="migrating-registry-data_{context}"]
+= Migrating {registry} data
+
+[role="_abstract"]
+Migrating data to {registry} 3.x requires exporting all data from your existing {registry} 2.x deployment and importing it into the new 3.x deployment. If you are using {registry} as a schema registry for Kafka applications, data migration is critical because each Kafka message carries the global identifier for the schema stored in {registry}. This identifier must be preserved during registry data migration.
+
+Both {registry} 3.x and 2.x provide an API to bulk import/export all data from your registry deployment, which guarantees that all identifiers are kept when importing data from your existing registry. The export API downloads a custom `.zip` file containing all the information for your artifacts. The import API accepts this `.zip` and loads all artifacts into the registry in a single batch.
+
+The {registry} 3.x import feature is able to import `.zip` contents created from either a 2.x or 3.x deployment.
+
+.Prerequisites
+* Running a {registry} instance of the 2.x server you are exporting from and the 3.x instance you are importing into.
+
+.Procedure
+
+. Export all the data from {registry} 2.x using the Export feature, which can be accessed from the UI or the REST API. This generates a `all-artifacts.zip` file in a directory of your choice.
+. Import the `.zip` file into {registry} 3.x using the import API:
++
+[source,bash, subs="attributes+"]
+----
+curl -X POST "http://new-registry.my-company.com/apis/registry/v3/admin/import" \
+  -H "Accept: application/json" -H "Content-Type: application/zip" \
+  --data-binary @all-artifacts.zip
+----
+
+. Check that all the artifacts have been imported into the new 3.x registry by running these commands and comparing the count field:
++
+[source,bash, subs="attributes+"]
+----
+curl "http://old-registry.my-company.com/apis/registry/v2/search/artifacts"
+----
++
+[source,bash, subs="attributes+"]
+----
+curl "http://new-registry.my-company.com/apis/registry/v3/search/artifacts"
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For more details on the import/export REST API, see
+{managing-registry-artifacts-api}
+
+:leveloffset!:
+:leveloffset: +1
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="migrating-registry-applications_{context}"]
+= Migrating {registry} client applications
+
+[role="_abstract"]
+You must review your existing {registry} client applications to ensure that the Maven dependencies and Java client configuration meet the new requirements for version 3.x. For example, this includes new Maven dependencies for the {registry} Java REST client libraries or Kafka client serializer/deserializer (Serdes) libraries. You must also update your Java application configuration with the new registry v3 API path.
+
+
+.Prerequisites
+* Existing {registry} {registry-v2} Java client application or Kafka client producer and consumer Java applications with SerDes
+
+.Procedure
+. If you are using the {registry} Java REST client, you must change the Maven dependencies for the {registry} Java client libraries, which have been repackaged in version 3.x:
++
+[source, xml, subs="attributes+"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-java-sdk</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+----
+
+. In your Java client application, you must change your registry URL configuration, from pointing to the existing v2 API path to the new v3 path. Starting with v3, we use Vertx as the default platform for our rest client, due to this change, a RequestAdapter is required when the client is created. For example:
++
+[source,java, subs="attributes+"]
+----
+public class ClientExample {
+
+
+     public static void main(String[] args) throws Exception {
+         VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
+         vertXRequestAdapter.setBaseUrl("https://new-registry.my-company.com/apis/registry/v3");
+         RegistryClient client = new RegistryClient(vertXRequestAdapter);
+    }
+}
+----
++
+You can find more details on the Java client in
+{rest-client}.
+
+. If you are using the {registry} SerDes libraries, you must change the Maven dependencies, which have been repackaged in version 3.x. In {registry} {registry-v2}, the SerDes libraries were provided into three separate Maven modules, while this is still true, the names have been changed:
++
+[source, xml, subs="attributes+"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+----
++
+In {registry} 3.x, the SerDes libraries have been significantly refactored to make them re-usable for other messaging platforms like Apache Pulsar, that's why the Apache Kafka specific ones have been renamed.
++
+
+. In your Kafka producer and consumer Java applications, you must change your registry URL configuration from pointing to the existing v2 API path to the new v3 path. For example:
++
+_Existing registry v2 API path_:
++
+[source,java]
+----
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v3");
+----
++
+_New registry v3 API path_:
++
+[source,java, subs="attributes+"]
+----
+props.putIfAbsent(SerdeConfig.REGISTRY_URL, "http://new-registry.my-company.com/apis/registry/v3");
+----
++
+The refactored SerDes libraries also include other important changes to configuration properties. For more details on SerDes configuration, see
+{kafka-client-serdes}.
+
+[role="_additional-resources"]
+.Additional resources
+* For detailed configuration examples, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry example applications].
+
+:leveloffset!:

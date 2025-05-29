@@ -375,4 +375,55 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         assertEquals(DEVELOPER_USERNAME, amd.getOwner());
     }
 
+    @Test
+    public void testUpdateArtifactOwnerByAdmin() throws Exception {
+        var adapter_dev1 = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        adapter_dev1.setBaseUrl(registryV3ApiUrl);
+        RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
+        var adapter_admin = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, ADMIN_USERNAME, ADMIN_PASSWORD));
+        adapter_admin.setBaseUrl(registryV3ApiUrl);
+        RegistryClient client_admin = new RegistryClient(adapter_admin);
+
+        // Preparation
+        final String groupId = "testUpdateArtifactOwnerOnlyByOwner";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1.0";
+        final String name = "testUpdateArtifactOwnerOnlyByOwnerName";
+        final String description = "testUpdateArtifactOwnerOnlyByOwnerDescription";
+
+        // Execution
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.getFirstVersion().setVersion(version);
+        createArtifact.getFirstVersion().setName(name);
+        createArtifact.getFirstVersion().setDescription(description);
+        createArtifact.setName(name);
+        createArtifact.setDescription(description);
+        final VersionMetaData created = client_dev1.groups().byGroupId(groupId).artifacts()
+                .post(createArtifact).getVersion();
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getArtifactId());
+        assertEquals(version, created.getVersion());
+        assertEquals(DEVELOPER_USERNAME, created.getOwner());
+
+        // Get the artifact owner via the REST API and verify it
+        ArtifactMetaData amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .get();
+        assertEquals(DEVELOPER_USERNAME, amd.getOwner());
+
+        // Update the owner by admin (should work!)
+        EditableArtifactMetaData eamd = new EditableArtifactMetaData();
+        eamd.setOwner(DEVELOPER_2_USERNAME);
+        client_admin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd);
+
+        // Should be the new owner
+        amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertEquals(DEVELOPER_2_USERNAME, amd.getOwner());
+    }
+
 }

@@ -136,7 +136,7 @@ public class Ticket1062Test extends AbstractResourceTestBase {
         Assertions.assertNotNull(addressVMD);
         Assertions.assertEquals(addressId, addressVMD.getId());
 
-        // Try to delete the "contact" artifact itself - using the ccompat API - should fail
+        // Try to delete the "address" artifact itself - using the ccompat API - should fail
         Assertions.assertThrows(RestClientException.class, () -> {
             confluentClient.deleteSubject(Map.of(), addressId);
         });

@@ -671,7 +671,7 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION})
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public Comment addArtifactVersionComment(String groupId, String artifactId, String version, NewComment data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -686,7 +686,7 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "comment_id"})
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);
@@ -716,7 +716,7 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     @Override
     @Audited(extractParameters = {"0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "comment_id"})
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId, NewComment data) {
         requireParameter("groupId", groupId);
         requireParameter("artifactId", artifactId);

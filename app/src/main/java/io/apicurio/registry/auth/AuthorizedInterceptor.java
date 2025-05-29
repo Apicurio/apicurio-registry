@@ -167,9 +167,14 @@ public class AuthorizedInterceptor {
         }
 
         // If Owner-only is enabled, apply ownership rules
-        if (authConfig.ownerOnlyAuthorizationEnabled.get() && !obac.isAuthorized(context)) {
-            log.warn("OBAC enabled and operation not permitted due to wrong owner.");
-            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName() + " is not authorized to perform the requested operation.");
+        if (authConfig.ownerOnlyAuthorizationEnabled.get()) {
+            if (authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin()) {
+                // User is admin, that's good enough.
+            } else if (!obac.isAuthorized(context)) {
+                log.warn("OBAC enabled and operation not permitted due to wrong owner.");
+                throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
+                        + " is not authorized to perform the requested operation.");
+            }
         }
 
         return context.proceed();

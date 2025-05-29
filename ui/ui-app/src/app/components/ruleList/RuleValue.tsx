@@ -9,7 +9,7 @@ export type RuleValueProps = {
     type: RuleListType;
     actions: React.ReactElement;
     label: React.ReactElement;
-    resourceOwner?: string;
+    resourceOwner?: string | null;
 };
 
 export const RuleValue: FunctionComponent<RuleValueProps> = (props: RuleValueProps) => {

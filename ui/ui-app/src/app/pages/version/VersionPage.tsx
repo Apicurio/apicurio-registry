@@ -272,6 +272,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                     <VersionPageHeader
                         onDelete={onDeleteVersion}
                         onDownload={doDownloadVersion}
+                        artifact={artifact}
                         version={version as string}
                         groupId={gid}
                         artifactId={artifactId as string} />

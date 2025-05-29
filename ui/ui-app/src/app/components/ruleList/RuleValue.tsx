@@ -9,6 +9,7 @@ export type RuleValueProps = {
     type: RuleListType;
     actions: React.ReactElement;
     label: React.ReactElement;
+    resourceOwner?: string;
 };
 
 export const RuleValue: FunctionComponent<RuleValueProps> = (props: RuleValueProps) => {
@@ -16,7 +17,7 @@ export const RuleValue: FunctionComponent<RuleValueProps> = (props: RuleValuePro
     const user = useUserService();
     const readOnly: boolean = config.featureReadOnly();
     const userIsAdmin: boolean = user.isUserAdmin();
-    const userIsDev: boolean = user.isUserDeveloper();
+    const userIsDev: boolean = user.isUserDeveloper(props.resourceOwner);
 
     const isEditable: boolean = !readOnly && (props.type === RuleListType.Global ? userIsAdmin : userIsDev);
 

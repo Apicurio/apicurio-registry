@@ -87,8 +87,7 @@ The most common use case for the Maven plug-in is adding artifacts during a buil
  * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
  * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples].
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
@@ -157,8 +156,7 @@ You can use the Maven plug-in to download artifacts from {registry}. This is oft
  * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
  * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples].
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
@@ -222,8 +220,7 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
  * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
  * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples].
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/assembly-managing-registry-artifacts-maven.adoc
@@ -351,8 +348,7 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
 
 
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/assembly-managing-registry-artifacts-maven.adoc

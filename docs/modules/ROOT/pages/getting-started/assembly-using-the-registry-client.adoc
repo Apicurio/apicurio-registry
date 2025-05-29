@@ -53,8 +53,7 @@ You can access the {registry} Golang SDK by adding the correct dependency to you
 https://github.com/Apicurio/apicurio-registry/tree/main/go-sdk
 
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
@@ -130,8 +129,7 @@ TBD
 
 TBD
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/assembly-using-the-registry-sdk.adoc

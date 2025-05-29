@@ -109,8 +109,7 @@ When locating the global ID in the message payload, the format of the data begin
 ----
 
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Module included in the following assemblies:
 // assembly-using-kafka-client-serdes
@@ -205,8 +204,7 @@ When using the `DefaultSchemaResolver`, you can configure its behavior using app
 
 |===
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
@@ -298,8 +296,7 @@ From the console, you can add, view and configure schemas. You can also create t
 <4> You can upload multiple artifacts using the specified group ID, artifact ID, and location.
 
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
@@ -345,8 +342,7 @@ props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
 <1> The deserializer provided by {registry}.
 <2> The deserialization is in Apache Avro JSON format.
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
@@ -386,8 +382,7 @@ props.put(SerdeConfig.FIND_LATEST_ARTIFACT, Boolean.TRUE); <3>
 <2> The serializer for the message value provided by {registry}.
 <3> The lookup strategy to find the global ID for the schema.
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes

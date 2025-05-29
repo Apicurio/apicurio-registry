@@ -54,8 +54,7 @@ see {installing-the-registry-storage-openshift}.
 .Additional resources
 * For more details on the v3 REST API, see the link:{attachmentsdir}/registry-rest-api.htm[Registry REST API documentation].
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
@@ -102,8 +101,7 @@ curl "http://new-registry.my-company.com/apis/registry/v3/search/artifacts"
 * For more details on the import/export REST API, see
 {managing-registry-artifacts-api}
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc

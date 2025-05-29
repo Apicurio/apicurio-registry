@@ -60,8 +60,7 @@ You can configure optional rules to govern the evolution of your {registry} cont
 
 * OpenID Connect (OIDC) authentication using {keycloak}.
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
@@ -238,8 +237,7 @@ You can manage artifact references using the {registry} core REST API, Maven plu
 ** {managing-registry-artifacts-maven}.
 * For a Java example, see the https://github.com/Apicurio/apicurio-registry/tree/main/examples/serdes-with-references[Apicurio Registry SerDes with references demonstration].
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
@@ -262,8 +260,7 @@ The {registry} web console is available from `{registry-url}`.
 .Additional resources
 * {managing-registry-artifacts-ui}
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
@@ -310,8 +307,7 @@ Applications using Confluent client libraries can use {registry} as a drop-in re
 * For more information on the Core Registry API v3, see the {registry-rest-api}.
 * For API documentation on the Core Registry API v3 and all compatible APIs, browse to the `/apis` endpoint of your {registry}, for example, `\http://MY-REGISTRY-URL/apis`.
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
@@ -344,8 +340,7 @@ Applications using Confluent client libraries can use {registry} as a drop-in re
 * {installing-the-registry-openshift}
 * {installing-the-registry-storage-openshift}
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
@@ -373,8 +368,7 @@ These implementations include custom Java classes for each supported message typ
 .Additional resources
 * {kafka-client-serdes}
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
@@ -406,8 +400,7 @@ The Avro and JSON Schema serializers and deserializers (SerDes) provided by {reg
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/event-driven-architecture[Example of using Debezium to monitor the PostgreSQL database used by Apicurio Registry]
 * link:https://kafka.apache.org/documentation/#connect[Apache Kafka Connect documentation]
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
@@ -434,8 +427,7 @@ These applications demonstrate use cases such as the following examples:
 .Additional resources
 * For more details, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 

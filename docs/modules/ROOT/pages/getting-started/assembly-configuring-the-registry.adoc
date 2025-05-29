@@ -55,8 +55,7 @@ Configure the following environment variable:
 
 * `REGISTRY_FEATURE_READ_ONLY`: Set to `true` to enable read-only mode. Defaults to `false`.
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
@@ -105,8 +104,7 @@ Alternatively, you can perform these steps using the OpenShift `oc` command. For
 * link:https://docs.openshift.com/container-platform/{registry-ocp-version}/applications/application-health.html[OpenShift documentation on monitoring application health]
 //* TBD
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc

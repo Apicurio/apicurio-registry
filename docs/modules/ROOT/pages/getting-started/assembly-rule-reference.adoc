@@ -60,8 +60,7 @@ a| Enforce artifact reference integrity when creating or updating artifacts. Ena
 * `NONE`: All artifact reference integrity checks are disabled.
 |===
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
@@ -121,8 +120,7 @@ a| None
 a| Mapping detection not supported
 |===
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc

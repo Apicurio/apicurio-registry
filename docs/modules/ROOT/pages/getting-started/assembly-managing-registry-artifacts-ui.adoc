@@ -59,8 +59,7 @@ Configure the following environment variable:
 
 * `REGISTRY_FEATURE_READ_ONLY`: Set to `true` to enable read-only mode. Defaults to `false`.
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
@@ -113,8 +112,7 @@ image::images/getting-started/registry-web-console-artifact-version.png[Artifact
 * xref:configuring-rules-using-console_{context}[]
 * {registry-rule-reference}
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
@@ -204,8 +202,7 @@ WARNING: Deleting an artifact deletes the artifact and all of its versions, and 
 * xref:configuring-rules-using-console_{context}[]
 * {registry-rule-reference}
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
@@ -261,8 +258,7 @@ NOTE: To disable an artifact-specific, group-specific, or global rule, click the
 * xref:adding-artifacts-using-console_{context}[]
 * {registry-rule-reference}
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
@@ -304,8 +300,7 @@ xref:../getting-started/assembly-configuring-the-registry.adoc[].
 .Additional resources
 * xref:../getting-started/assembly-configuring-the-registry.adoc[]
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
@@ -413,8 +408,7 @@ Not selected by default.
 .Additional resources
 * xref:../getting-started/assembly-configuring-the-registry.adoc[]
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc

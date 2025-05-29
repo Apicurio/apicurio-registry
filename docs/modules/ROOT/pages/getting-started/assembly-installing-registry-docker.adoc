@@ -77,8 +77,7 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 * For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 * For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[].
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
@@ -149,8 +148,7 @@ $ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-
 * For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[].
 * For more details on PostgreSQL, see the link:https://www.postgresql.org/docs/12/index.html[PostgreSQL documentation].
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc

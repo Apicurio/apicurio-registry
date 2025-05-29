@@ -105,8 +105,7 @@ For details on how to configure SerDes for different schema technologies, see th
 
 
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
@@ -353,8 +352,7 @@ The `DefaultFallbackArtifactProvider` uses the following properties to configure
 `application.properties` file.
 For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
@@ -435,14 +433,13 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
 .Additional resources
 * For an example application, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Simple Avro example]
 
-:leveloffset!:
-:leveloffset: +2
+
 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-types-avro_{context}']
-= Configure Avro SerDes with {registry}
+== Configure Avro SerDes with {registry}
 
 [role="_abstract"]
 This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for Apache Avro.
@@ -564,14 +561,13 @@ When using these schemas with Avro SerDes, two artifacts are created in {registr
 ** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Simple Avro example]
 ** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]
 
-:leveloffset!:
-:leveloffset: +2
+
 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-types-json_{context}']
-= Configure JSON Schema SerDes with {registry}
+== Configure JSON Schema SerDes with {registry}
 
 [role="_abstract"]
 This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for JSON Schema.
@@ -677,15 +673,14 @@ In this example, a given citizen has a city. In {registry}, a citizen artifact w
 ** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Simple JSON Schema example]
 ** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]
 
-:leveloffset!:
-:leveloffset: +2
+
 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-types-protobuf_{context}']
 
-= Configure Protobuf SerDes with {registry}
+== Configure Protobuf SerDes with {registry}
 
 [role="_abstract"]
 This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for Google Protobuf.

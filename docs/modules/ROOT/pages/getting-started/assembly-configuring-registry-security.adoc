@@ -157,8 +157,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 the link:https://www.keycloak.org/documentation[Keycloak documentation].
 
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
@@ -255,8 +254,7 @@ NOTE: When you enable roles in {registry}, you must also create the same roles i
 
 
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 

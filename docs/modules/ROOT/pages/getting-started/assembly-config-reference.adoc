@@ -935,8 +935,7 @@ The following {registry} configuration options are available for each component 
 |===
 
 
-:leveloffset!:
-:leveloffset: +1
+
 
 [id="migration-table_{context}"]
 = {registry} version 2 to version 3 configuration changes

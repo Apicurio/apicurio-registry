@@ -63,8 +63,7 @@ If you do not already have {kafka-streams} installed, you can install the {kafka
 * link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
 * link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}]
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
@@ -164,16 +163,13 @@ WARNING: You must configure the Kafka topic used by {registry} (named `kafkasql-
 * For more details on installing Strimzi and on creating Kafka clusters and topics, see https://strimzi.io/docs/overview/latest/
 
 
-:leveloffset!:
-:leveloffset: +2
-
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="registry-kafka-topic-names_{context}"]
 
 [role="_abstract"]
-= Kafka topic name configuration
+== Kafka topic name configuration
 The default Kafka topic name that {registry} uses to store data is `kafkasql-journal`. This topic is created automatically by {registry}. However, you can override this behavior or the default topic name by setting the appropriate environment variable or Java system property:
 
 .Kafka topic name configuration
@@ -190,8 +186,7 @@ The default Kafka topic name that {registry} uses to store data is `kafkasql-jou
 | `true`
 |===
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 //
@@ -239,8 +234,7 @@ When you set these environment variables, the Kafka producer and consumer applic
 * For an example of how to set {registry} environment variables on OpenShift, see
 _Configuring {registry} health checks on OpenShift_ in xref:getting-started/assembly-configuring-the-registry.adoc[]
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 //
@@ -286,8 +280,7 @@ IMPORTANT: You must read the documentation from your chosen *PostgreSQL* Operato
 
 
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc

@@ -86,8 +86,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 .Additional resources
 * For more details, see the {registry-rest-api}.
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
@@ -156,8 +155,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 .Additional resources
 * For more details, see the {registry-rest-api}.
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
@@ -323,8 +321,7 @@ NOTE: Circular dependencies are allowed by some artifact types (e.g. JSON Schema
 * For more details, see the {registry-rest-api}.
 * For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
 
-:leveloffset!:
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc

@@ -1278,8 +1278,13 @@ public class KafkaSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
-        return sqlStore.getGlobalIdsReferencingArtifact(groupId, artifactId, version);
+    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
+        return sqlStore.getGlobalIdsReferencingArtifactVersion(groupId, artifactId, version);
+    }
+
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId) {
+        return sqlStore.getGlobalIdsReferencingArtifact(groupId, artifactId);
     }
 
     @Override

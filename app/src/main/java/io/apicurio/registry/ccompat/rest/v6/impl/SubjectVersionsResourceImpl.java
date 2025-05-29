@@ -138,7 +138,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
             if (doesArtifactExist(subject, null)) {
 
                 return VersionUtil.toInteger(parseVersionString(subject, versionString, null, version -> {
-                    List<Long> globalIdsReferencingSchema = getStorage().getGlobalIdsReferencingArtifact(null, subject, version);
+                    List<Long> globalIdsReferencingSchema = getStorage().getGlobalIdsReferencingArtifactVersion(null, subject, version);
                     ArtifactVersionMetaDataDto avmd = getStorage().getArtifactVersionMetaData(null, subject, version);
                     if (globalIdsReferencingSchema.isEmpty() || areAllSchemasDisabled(globalIdsReferencingSchema)) {
                         getStorage().deleteArtifactVersion(null, subject, version);
@@ -171,7 +171,7 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
     public List<Long> getSchemasReferencedBy(String subject, String versionString) throws Exception {
         logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         if (getCconfig().getLegacyIdModeEnabled().get()) {
-            return parseVersionString(subject, versionString, null, version -> getStorage().getGlobalIdsReferencingArtifact(null, subject, version));
+            return parseVersionString(subject, versionString, null, version -> getStorage().getGlobalIdsReferencingArtifactVersion(null, subject, version));
         }
 
         return parseVersionString(subject, versionString, null

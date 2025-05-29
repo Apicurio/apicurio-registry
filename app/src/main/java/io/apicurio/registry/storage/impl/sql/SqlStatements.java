@@ -411,6 +411,11 @@ public interface SqlStatements {
     /**
      * A statement to select global ids of artifact versions with content referencing an artifact
      */
+    public String selectGlobalIdsReferencingArtifactVersionBy();
+
+    /**
+     * A statement to select global ids of artifact versions with content referencing an artifact
+     */
     public String selectGlobalIdsReferencingArtifactBy();
 
     /**

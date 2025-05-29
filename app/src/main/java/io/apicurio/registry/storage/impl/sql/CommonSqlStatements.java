@@ -1084,8 +1084,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String selectGlobalIdsReferencingArtifactBy() {
+    public String selectGlobalIdsReferencingArtifactVersionBy() {
         return "SELECT DISTINCT v.globalId FROM versions v JOIN artifactreferences ar ON v.tenantId=ar.tenantId AND v.contentId=ar.contentId WHERE ar.tenantId=? AND ar.groupId=? AND ar.artifactId=? AND ar.version=?";
+    }
+
+    @Override
+    public String selectGlobalIdsReferencingArtifactBy() {
+        return "SELECT DISTINCT v.globalId FROM versions v JOIN artifactreferences ar ON v.tenantId=ar.tenantId AND v.contentId=ar.contentId WHERE ar.tenantId=? AND ar.groupId=? AND ar.artifactId=?";
     }
 
     @Override

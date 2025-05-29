@@ -59,9 +59,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         return new RegistryClient(adapter);
     }
 
-    private static final CreateArtifact createArtifact;
-    static {
-        createArtifact = TestUtils.clientCreateArtifact(AuthTestLocalRoles.class.getSimpleName(),
+    private static CreateArtifact clientCreateArtifact() {
+        return TestUtils.clientCreateArtifact(AuthTestLocalRoles.class.getSimpleName(),
                 ArtifactType.JSON, ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
     }
 
@@ -103,6 +102,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         });
         assertArtifactNotFound(exception2);
 
+        CreateArtifact createArtifact = clientCreateArtifact();
         createArtifact.setArtifactId(artifactId);
         var exception3 = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId("testReadOnly").artifacts().post(createArtifact);
@@ -140,6 +140,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         try {
             client.groups().byGroupId(groupId).artifacts().get();
 
+            CreateArtifact createArtifact = clientCreateArtifact();
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
             TestUtils.retry(
@@ -179,6 +180,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         try {
             client.groups().byGroupId(groupId).artifacts().get();
 
+            CreateArtifact createArtifact = clientCreateArtifact();
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
             TestUtils.retry(
@@ -207,6 +209,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
+        CreateArtifact createArtifact = clientCreateArtifact();
+
         var devAdapter = new VertXRequestAdapter(
                 buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         devAdapter.setBaseUrl(registryV3ApiUrl);
@@ -248,6 +252,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testGetArtifactOwner() throws Exception {
+        CreateArtifact createArtifact = clientCreateArtifact();
+
         var adapter = new VertXRequestAdapter(
                 buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
@@ -277,6 +283,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testUpdateArtifactOwner() throws Exception {
+        CreateArtifact createArtifact = clientCreateArtifact();
+
         var adapter = new VertXRequestAdapter(
                 buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter.setBaseUrl(registryV3ApiUrl);
@@ -323,6 +331,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
+        CreateArtifact createArtifact = clientCreateArtifact();
+
         var adapter_dev1 = new VertXRequestAdapter(
                 buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter_dev1.setBaseUrl(registryV3ApiUrl);
@@ -377,6 +387,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testUpdateArtifactOwnerByAdmin() throws Exception {
+        CreateArtifact createArtifact = clientCreateArtifact();
+
         var adapter_dev1 = new VertXRequestAdapter(
                 buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         adapter_dev1.setBaseUrl(registryV3ApiUrl);
@@ -387,12 +399,12 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         RegistryClient client_admin = new RegistryClient(adapter_admin);
 
         // Preparation
-        final String groupId = "testUpdateArtifactOwnerOnlyByOwner";
+        final String groupId = "testUpdateArtifactOwnerByAdmin";
         final String artifactId = generateArtifactId();
 
         final String version = "1.0";
-        final String name = "testUpdateArtifactOwnerOnlyByOwnerName";
-        final String description = "testUpdateArtifactOwnerOnlyByOwnerDescription";
+        final String name = "testUpdateArtifactOwnerByAdminName";
+        final String description = "testUpdateArtifactOwnerByAdminDescription";
 
         // Execution
         createArtifact.setArtifactId(artifactId);
@@ -424,6 +436,122 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         // Should be the new owner
         amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals(DEVELOPER_2_USERNAME, amd.getOwner());
+    }
+
+    @Test
+    public void testDeleteArtifactOnlyIfOwner() throws Exception {
+        CreateArtifact createArtifact = clientCreateArtifact();
+
+        var adapter_dev1 = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        adapter_dev1.setBaseUrl(registryV3ApiUrl);
+        RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
+        var adapter_dev2 = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
+        adapter_dev2.setBaseUrl(registryV3ApiUrl);
+        RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
+
+        // Preparation
+        final String groupId = "testDeleteArtifactOnlyIfOwner";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1.0";
+        final String name = "testDeleteArtifactOnlyIfOwnerName";
+        final String description = "testDeleteArtifactOnlyIfOwnerDescription";
+
+        // Execution - create artifact
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.getFirstVersion().setVersion(version);
+        createArtifact.getFirstVersion().setName(name);
+        createArtifact.getFirstVersion().setDescription(description);
+        createArtifact.setName(name);
+        createArtifact.setDescription(description);
+        final VersionMetaData created = client_dev1.groups().byGroupId(groupId).artifacts()
+                .post(createArtifact).getVersion();
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getArtifactId());
+        assertEquals(version, created.getVersion());
+        assertEquals(DEVELOPER_USERNAME, created.getOwner());
+
+        // Get the artifact owner via the REST API and verify it
+        ArtifactMetaData amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .get();
+        assertEquals(DEVELOPER_USERNAME, amd.getOwner());
+
+        // Try to delete the artifact by dev2 (should fail)
+        var exception1 = assertThrows(Exception.class, () -> {
+            client_dev2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
+        });
+        assertForbidden(exception1);
+
+        // Should still exist
+        amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertNotNull(amd);
+
+        // Delete the artifact by dev1 (should work)
+        client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
+
+        // Should not exist
+        var exception2 = assertThrows(Exception.class, () -> {
+            client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        });
+        assertNotFound(exception2);
+    }
+
+    @Test
+    public void testDeleteArtifactIfAdmin() throws Exception {
+        CreateArtifact createArtifact = clientCreateArtifact();
+
+        var adapter_dev1 = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        adapter_dev1.setBaseUrl(registryV3ApiUrl);
+        RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
+        var adapter_admin = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, ADMIN_USERNAME, ADMIN_PASSWORD));
+        adapter_admin.setBaseUrl(registryV3ApiUrl);
+        RegistryClient client_admin = new RegistryClient(adapter_admin);
+
+        // Preparation
+        final String groupId = "testDeleteArtifactIfAdmin";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1.0";
+        final String name = "testDeleteArtifactIfAdminName";
+        final String description = "testDeleteArtifactIfAdminDescription";
+
+        // Execution - create artifact
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.getFirstVersion().setVersion(version);
+        createArtifact.getFirstVersion().setName(name);
+        createArtifact.getFirstVersion().setDescription(description);
+        createArtifact.setName(name);
+        createArtifact.setDescription(description);
+        final VersionMetaData created = client_dev1.groups().byGroupId(groupId).artifacts()
+                .post(createArtifact).getVersion();
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(artifactId, created.getArtifactId());
+        assertEquals(version, created.getVersion());
+        assertEquals(DEVELOPER_USERNAME, created.getOwner());
+
+        // Get the artifact owner via the REST API and verify it
+        ArtifactMetaData amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .get();
+        assertEquals(DEVELOPER_USERNAME, amd.getOwner());
+
+        // Try to delete the artifact by admin (should work)
+        client_admin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
+
+        // Should not exist
+        var exception2 = assertThrows(Exception.class, () -> {
+            client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        });
+        assertNotFound(exception2);
     }
 
 }

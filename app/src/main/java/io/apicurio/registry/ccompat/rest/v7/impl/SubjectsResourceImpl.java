@@ -24,6 +24,7 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.dto.Schema;
 import io.apicurio.registry.ccompat.dto.SchemaInfo;
+import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
 import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
@@ -109,6 +110,12 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public List<Integer> deleteSubject(String subject, Boolean permanent, String groupId) throws Exception {
         GA ga = getGA(groupId, subject);
+
+        List<Long> globalIdsReferencingArtifact = getStorage().getGlobalIdsReferencingArtifact(ga.getGroupId(), ga.getArtifactId());
+        if (!globalIdsReferencingArtifact.isEmpty()) {
+            // There are other schemas referencing this subject, it cannot be deleted.
+            throw new ReferenceExistsException(String.format("There are subjects referencing %s", subject));
+        }
 
         final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
         if (fpermanent) {

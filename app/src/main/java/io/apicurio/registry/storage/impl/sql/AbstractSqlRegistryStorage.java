@@ -3355,12 +3355,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * @see RegistryStorage#getGlobalIdsReferencingArtifact(String, String, String)
+     * @see RegistryStorage#getGlobalIdsReferencingArtifactVersion(String, String, String)
      */
     @Override
-    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId, String version) {
+    public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId, String version) {
         return handles.withHandleNoException(handle -> {
-            String sql = sqlStatements().selectGlobalIdsReferencingArtifactBy();
+            String sql = sqlStatements().selectGlobalIdsReferencingArtifactVersionBy();
             return handle.createQuery(sql)
                     .bind(0, tenantContext().tenantId())
                     .bind(1, normalizeGroupId(groupId))
@@ -3369,6 +3369,23 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .mapTo(Long.class)
                     .list();
         });
+    }
+
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId) {
+        return handles.withHandleNoException(handle -> {
+            String sql = sqlStatements().selectGlobalIdsReferencingArtifactBy();
+            return handle.createQuery(sql)
+                    .bind(0, tenantContext().tenantId())
+                    .bind(1, normalizeGroupId(groupId))
+                    .bind(2, artifactId)
+                    .mapTo(Long.class)
+                    .list();
+        });
+    }
+
+    public static String getGlobalIdSequence() {
+        return GLOBAL_ID_SEQUENCE;
     }
 
     /**

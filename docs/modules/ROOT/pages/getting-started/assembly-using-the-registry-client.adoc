@@ -11,12 +11,12 @@ You can write a {registry} client application (in Java, Typescript, Python, or G
 * xref:registry-sdk-config_{context}[]
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
 [id="registry-sdk-intro_{context}"]
-= {registry} SDK
+== {registry} SDK
 
 [role="_abstract"]
 You can manage artifacts stored in {registry} by using one of the provided SDKs. You can perform any desired operation supported by the REST API, including create, read, update, or delete of artifacts. You can even use the {registry} SDKs to perform administrator functions, such as managing global rules or importing and exporting {registry} data.
@@ -28,26 +28,26 @@ You can use any of the following SDKs provided as part of {registry}:
 - Python
 - Golang
 
-=== Java
+==== Java
 You can access the {registry} Java SDK by adding the correct dependency to your Apache Maven project.
 For more details, see xref:writing-registry-sdk_registry[].
 
 The {registry} client is implemented by using the HTTP client provided by the JDK, which you can customize as needed. For example, you can add custom headers or enable configuration options for Transport Layer Security (TLS) authentication.
 For more details, see xref:registry-sdk-config_registry[].
 
-=== Typescript
+==== Typescript
 You can access the {registry} Typescript SDK by adding the correct dependency to your application's `package.json`
 file (assumes a node.js application):
 
 https://www.npmjs.com/package/@apicurio/apicurio-registry-sdk
 
-=== Python
+==== Python
 You can access the {registry} Python SDK by adding the correct dependency to your python project (assumes you
 are using pypi):
 
 https://pypi.org/project/apicurioregistrysdk/
 
-=== Golang
+==== Golang
 You can access the {registry} Golang SDK by adding the correct dependency to your project:
 
 https://github.com/Apicurio/apicurio-registry/tree/main/go-sdk
@@ -59,12 +59,12 @@ https://github.com/Apicurio/apicurio-registry/tree/main/go-sdk
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="writing-registry-sdk_{context}"]
-= Writing {registry} SDK applications
+== Writing {registry} SDK applications
 
 [role="_abstract"]
 You can write a client application to manage artifacts stored in {registry} by using one of the {registry} SDKs.
 
-== Using the {registry} Java SDK
+=== Using the {registry} Java SDK
 
 .Prerequisites
 * {registry} is installed and running in your environment.
@@ -117,15 +117,15 @@ When the client is created, you can use all of the operations available in the {
 
 * For details on how to use the {registry} Kafka client serializers/deserializers (SerDes) in producer and consumer applications, see {kafka-client-serdes}.
 
-== Using the {registry} Typescript SDK
+=== Using the {registry} Typescript SDK
 
 TBD
 
-== Using the {registry} Python SDK
+=== Using the {registry} Python SDK
 
 TBD
 
-== Using the {registry} Golang SDK
+=== Using the {registry} Golang SDK
 
 TBD
 
@@ -135,7 +135,7 @@ TBD
 // ParentAssemblies: assemblies/getting-started/assembly-using-the-registry-sdk.adoc
 
 [id="registry-sdk-config_{context}"]
-= {registry} Java SDK configuration
+== {registry} Java SDK configuration
 
 [role="_abstract"]
 The {registry} Java client includes the following configuration options, based on the client factory:
@@ -159,12 +159,12 @@ You must also provide an authentication server to authenticate the requests.
 |===
 
 [discrete]
-== Custom header configuration
+=== Custom header configuration
 To configure custom headers, you must add the `apicurio.registry.request.headers` prefix to the `configs` map key. For example, a `configs` map key of `apicurio.registry.request.headers.Authorization` with a value of `Basic: YWxhZGRpbjpvcGVuc2VzYW1` sets the `Authorization` header with the same value.
 
 
 [discrete]
-== TLS configuration options
+=== TLS configuration options
 You can configure Transport Layer Security (TLS) authentication for the {registry} Java client using the following properties:
 
 * `apicurio.registry.request.ssl.truststore.location`
@@ -181,4 +181,4 @@ You can configure Transport Layer Security (TLS) authentication for the {registr
 * For details on how to configure authentication for {registry} Kafka client serializers/deserializers (SerDes), see
 {kafka-client-serdes}.
 
-:leveloffset!:
+

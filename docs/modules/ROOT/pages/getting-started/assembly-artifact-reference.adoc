@@ -18,14 +18,14 @@ This chapter provides reference information on the supported artifact types, sta
 * For more information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-artifact-types_{context}"]
 
-= {registry} artifact types
+== {registry} artifact types
 
 [role="_abstract"]
 You can store and manage a wide range of schema and API artifact types in {registry}.
@@ -75,7 +75,7 @@ You can store and manage a wide range of schema and API artifact types in {regis
 
 [id="registry-artifact-states_{context}"]
 
-= {registry} artifact version states
+== {registry} artifact version states
 
 [role="_abstract"]
 The valid artifact version states in {registry} are `ENABLED`, `DISABLED`, and `DEPRECATED`.
@@ -98,7 +98,7 @@ The valid artifact version states in {registry} are `ENABLED`, `DISABLED`, and `
 // Metadata created by nebel
 
 [id="registry-group-metadata_{context}"]
-= {registry} group metadata
+== {registry} group metadata
 
 [role="_abstract"]
 When a group is created in {registry}, a set of metadata properties is created and stored. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the group is created.
@@ -163,7 +163,7 @@ For more details, see the `/groups/\{groupId\}` endpoint in the {registry-rest-a
 // Metadata created by nebel
 
 [id="registry-artifact-metadata_{context}"]
-= {registry} artifact metadata
+== {registry} artifact metadata
 
 [role="_abstract"]
 When an artifact is added to {registry}, a set of metadata properties is created and stored. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact is created.
@@ -239,7 +239,7 @@ For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoin
 // Metadata created by nebel
 
 [id="registry-artifact-version-metadata_{context}"]
-= {registry} artifact version metadata
+== {registry} artifact version metadata
 
 [role="_abstract"]
 When an artifact version is added to a {registry} artifact, a set of metadata properties is created and stored along with the artifact version content. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact version is created.
@@ -317,4 +317,4 @@ When an artifact version is added to a {registry} artifact, a set of metadata pr
 .Additional resources
 For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}/versions/\{versionId\}` endpoint in the {registry-rest-api}.
 
-:leveloffset!:
+

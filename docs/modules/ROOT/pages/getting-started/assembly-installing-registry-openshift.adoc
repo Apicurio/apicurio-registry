@@ -16,14 +16,14 @@ This chapter explains how to install {registry} on OpenShift Container Platform:
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Metadata created by nebel
 //
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-operatorhub_{context}"]
-= Installing {registry} from the OpenShift OperatorHub
+== Installing {registry} from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
 [role="_abstract"]
@@ -65,4 +65,4 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 * link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
 * link:https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator community in GitHub]
 
-:leveloffset!:
+

@@ -21,7 +21,7 @@ This chapter explains how to install and configure your chosen registry storage 
 
 //INCLUDES
 //include::{mod-loc}getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
-:leveloffset: +1
+
 
 // Metadata created by nebel
 //
@@ -29,7 +29,7 @@ This chapter explains how to install and configure your chosen registry storage 
 
 [id="installing-kafka-streams-operatorhub_{context}"]
 
-= Installing {kafka-streams} from the OpenShift OperatorHub
+== Installing {kafka-streams} from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
 If you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
@@ -69,7 +69,7 @@ If you do not already have {kafka-streams} installed, you can install the {kafka
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="setting-up-kafka-streams-storage_{context}"]
-= Configuring {registry} with Kafka storage on OpenShift
+== Configuring {registry} with Kafka storage on OpenShift
 
 [role="_abstract"]
 This section explains how to configure Kafka-based storage for {registry} using {kafka-streams} on OpenShift. The `kafkasql` storage option uses Kafka storage with an in-memory H2 database for caching. This storage option is suitable for production environments when `persistent` storage is configured for the Kafka cluster on OpenShift.
@@ -169,7 +169,7 @@ WARNING: You must configure the Kafka topic used by {registry} (named `kafkasql-
 [id="registry-kafka-topic-names_{context}"]
 
 [role="_abstract"]
-== Kafka topic name configuration
+=== Kafka topic name configuration
 The default Kafka topic name that {registry} uses to store data is `kafkasql-journal`. This topic is created automatically by {registry}. However, you can override this behavior or the default topic name by setting the appropriate environment variable or Java system property:
 
 .Kafka topic name configuration
@@ -194,7 +194,7 @@ The default Kafka topic name that {registry} uses to store data is `kafkasql-jou
 
 [id="configuring-kafka-oauth_{context}"]
 
-= Configuring OAuth authentication for Kafka storage
+== Configuring OAuth authentication for Kafka storage
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
 [role="_abstract"]
@@ -241,7 +241,7 @@ _Configuring {registry} health checks on OpenShift_ in xref:getting-started/asse
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-postgresql-operatorhub_{context}"]
-= Installing a PostgreSQL database from the OpenShift OperatorHub
+== Installing a PostgreSQL database from the OpenShift OperatorHub
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
 If you do not already have a PostgreSQL database Operator installed, you can install a PostgreSQL Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
@@ -287,7 +287,7 @@ IMPORTANT: You must read the documentation from your chosen *PostgreSQL* Operato
 
 [id="setting-up-postgresql-storage_{context}"]
 
-= Configuring {registry} with PostgreSQL database storage on OpenShift
+== Configuring {registry} with PostgreSQL database storage on OpenShift
 
 [role="_abstract"]
 This section explains how to configure storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. This section shows a simple example using the PostgreSQL Operator by Dev4Ddevs.com.
@@ -372,4 +372,4 @@ http://example-apicurioregistry-sql.my-project.my-domain-name.com/
  * link:https://access.crunchydata.com/documentation/postgres-operator/4.3.2/quickstart/[Crunchy PostgreSQL Operator QuickStart]
  * https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator QuickStart]
 
-:leveloffset!:
+

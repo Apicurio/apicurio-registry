@@ -20,13 +20,13 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 * For details on building from source, see https://github.com/Apicurio/apicurio-registry.
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-in-memory-storage_{context}"]
-= Installing {registry} with in-memory storage
+== Installing {registry} with in-memory storage
 
 [role="_abstract"]
 This section explains how to install and run {registry} with simple in-memory storage from a container image.
@@ -83,7 +83,7 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-sql-storage_{context}"]
-= Installing {registry} with SQL database storage
+== Installing {registry} with SQL database storage
 
 [role="_abstract"]
 This section explains how to install and run {registry} with storage in a PostgreSQL database from a container image. This storage option is suitable for production environments.
@@ -154,7 +154,7 @@ $ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="installing-registry-kafka-storage_{context}"]
-= Installing {registry} with Apache Kafka storage
+== Installing {registry} with Apache Kafka storage
 
 
 [role="_abstract"]
@@ -217,4 +217,4 @@ $ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-
 * For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[].
 * For more details on Apache Kafka, see https://kafka.apache.org/documentation/.
 
-:leveloffset!:
+

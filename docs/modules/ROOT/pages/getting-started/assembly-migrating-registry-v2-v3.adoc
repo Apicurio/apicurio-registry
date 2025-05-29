@@ -12,12 +12,12 @@ This chapter explains how to migrate an existing {registry} deployment from vers
 * xref:migrating-registry-applications_{context}[]
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
 [id="registry-migration_{context}"]
-= Migration from {registry} 2.x to 3.x
+== Migration from {registry} 2.x to 3.x
 
 [role="_abstract"]
 {registry} 3.x includes new features with breaking changes from the previous {registry} 2.x release. This section describes the major changes between {registry} 2.x and version 3.x, along with the best approach to migrating.
@@ -26,7 +26,7 @@ Because of the breaking changes in 3.x, there is no automatic upgrade and a migr
 
 When migrating to version 3.x, you must take the following major changes into account:
 
-== Data storage changes
+=== Data storage changes
 All of the storage options from 2.x continue to be supported in 3.x, but any data currently in either the Kafka topic
 or in the database is no longer compatible with 3.x.  This means that, in order to migrate from 2.x to 3.x, you will
 need to use the Export feature of {registry} to create a .ZIP file containing all of your 2.x data.
@@ -36,17 +36,17 @@ The in-memory storage option is also still available, but is not suitable for pr
 For details on how to deploy {registry} 3.x with your chosen storage option,
 see {installing-the-registry-storage-openshift}.
 
-== New v3 REST API
+=== New v3 REST API
 {registry} 3.x includes a new REST API with support for empty artifacts, artifact branches, group level rules, new search capabilities, and much more. {registry} still supports version 2.x of the core REST API as well as various compatibility APIs, for example, the Confluent schema registry API v7.  However, version 2 of the Core REST API is now deprecated.
 
-== All new SDKs replace the Java client
+=== All new SDKs replace the Java client
 * The {registry} Java client classes are no longer available in version 3.x and have been replaced by a new SDK generated using Kiota.
 
 * In addition to Java, SDKs are now provided for Typescript, Python, and Golang.
 
 * The Kafka client serializer and deserializer (SerDes) classes are available in version 3.x....
 
-== Deployment configuration has changed
+=== Deployment configuration has changed
 {registry} 3.x has changed a number of configuration options and added some new ones.  Options you may be using when deploying
 2.x are likely still available, but may have been renamed.
 
@@ -60,7 +60,7 @@ see {installing-the-registry-storage-openshift}.
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="migrating-registry-data_{context}"]
-= Migrating {registry} data
+== Migrating {registry} data
 
 [role="_abstract"]
 Migrating data to {registry} 3.x requires exporting all data from your existing {registry} 2.x deployment and importing it into the new 3.x deployment. If you are using {registry} as a schema registry for Kafka applications, data migration is critical because each Kafka message carries the global identifier for the schema stored in {registry}. This identifier must be preserved during registry data migration.
@@ -107,7 +107,7 @@ curl "http://new-registry.my-company.com/apis/registry/v3/search/artifacts"
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="migrating-registry-applications_{context}"]
-= Migrating {registry} client applications
+== Migrating {registry} client applications
 
 [role="_abstract"]
 You must review your existing {registry} client applications to ensure that the Maven dependencies and Java client configuration meet the new requirements for version 3.x. For example, this includes new Maven dependencies for the {registry} Java REST client libraries or Kafka client serializer/deserializer (Serdes) libraries. You must also update your Java application configuration with the new registry v3 API path.
@@ -193,4 +193,4 @@ The refactored SerDes libraries also include other important changes to configur
 .Additional resources
 * For detailed configuration examples, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry example applications].
 
-:leveloffset!:
+

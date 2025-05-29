@@ -22,13 +22,13 @@ This chapter shows examples of how to use the Core Registry API v3 to perform th
 * link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
 
 [id="managing-artifacts-using-rest-api_{context}"]
-= Managing schema and API artifacts using {registry} REST API commands
+== Managing schema and API artifacts using {registry} REST API commands
 
 [role="_abstract"]
 This section shows a simple curl-based example of using the Core Registry API v3 to add and retrieve a simple schema artifact in {registry}.
@@ -92,7 +92,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
 
 [id="managing-artifact-versions-using-rest-api_{context}"]
-= Managing schema and API artifact versions using {registry} REST API commands
+== Managing schema and API artifact versions using {registry} REST API commands
 
 [role="_abstract"]
 If you do not specify an artifact version number when adding schema and API artifacts using the Core Registry API v3, {registry} generates a version number automatically. The default version when creating a new artifact is `1`.
@@ -161,7 +161,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
 
 [id="managing-artifact-references-using-rest-api_{context}"]
-= Managing schema and API artifact references using {registry} REST API commands
+== Managing schema and API artifact references using {registry} REST API commands
 
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
@@ -327,7 +327,7 @@ NOTE: Circular dependencies are allowed by some artifact types (e.g. JSON Schema
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="exporting-importing-using-rest-api_{context}"]
-= Exporting and importing registry data using {registry} REST API commands
+== Exporting and importing registry data using {registry} REST API commands
 
 [role="_abstract"]
 As an administrator, you can use the Core Registry API v3 to export data from one {registry} instance and import into another {registry} instance, so you can migrate data between different instances.
@@ -372,4 +372,4 @@ host name on which the target {registry} is deployed. For example: `\http://my-t
 * For more details, see the `admin` endpoint in the {registry-rest-api}.
 //* For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportV1[Apicurio Registry export utility for 1.x versions].
 
-:leveloffset!:
+

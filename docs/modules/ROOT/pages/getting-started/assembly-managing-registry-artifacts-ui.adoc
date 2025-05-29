@@ -17,11 +17,11 @@ You can manage schema and API artifacts stored in {registry} by using the {regis
 
 //INCLUDES
 
-:leveloffset: +1
+
 
 
 [id="configuring-registry-ui_{context}"]
-= Configuring the {registry} web console
+== Configuring the {registry} web console
 
 [role="_abstract"]
 You can set optional environment variables to configure the {registry} web console specifically for your deployment environment or to customize its behavior.
@@ -30,7 +30,7 @@ You can set optional environment variables to configure the {registry} web conso
 * You have already installed {registry}.
 
 [discrete]
-== Configuring the web console deployment environment
+=== Configuring the web console deployment environment
 
 When you access the {registry} web console in your browser, some initial configuration settings are loaded. The following configuration settings are required:
 
@@ -44,7 +44,7 @@ Configure the following environment variables to override the default URL:
 * `REGISTRY_API_URL`: Specifies the URL for the core {registry} server REST API v3. For example, `\https://registry-api.my-domain.com/apis/registry/v3`
 
 [discrete]
-== Configuring the web console in read-only mode
+=== Configuring the web console in read-only mode
 
 You can configure the {registry} web console in read-only mode as an optional feature. This mode disables all features in the {registry} web console that allow users to make changes to registered artifacts. For example, this includes the following:
 
@@ -65,7 +65,7 @@ Configure the following environment variable:
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="browsing-artifacts-using-console_{context}"]
-= Viewing artifacts using the {registry} web console
+== Viewing artifacts using the {registry} web console
 
 [role="_abstract"]
 You can use the {registry} web console to browse the schema and API artifacts stored in {registry}. This section shows a simple example of viewing {registry} groups, artifacts, versions, and rules.
@@ -118,7 +118,7 @@ image::images/getting-started/registry-web-console-artifact-version.png[Artifact
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="adding-artifacts-using-console_{context}"]
-= Adding artifacts using the {registry} web console
+== Adding artifacts using the {registry} web console
 
 [role="_abstract"]
 You can use the {registry} web console to upload schema and API artifacts to {registry}. This section shows simple examples of creating {registry} artifacts and adding new artifact versions.
@@ -208,7 +208,7 @@ WARNING: Deleting an artifact deletes the artifact and all of its versions, and 
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="configuring-rules-using-console_{context}"]
-= Configuring content rules using the {registry} web console
+== Configuring content rules using the {registry} web console
 
 [role="_abstract"]
 You can use the {registry} web console to configure optional rules to prevent invalid or incompatible content from being added to {registry}. All configured artifact-specific, group-specific, or global rules must pass before a new artifact version can be uploaded to {registry}. Configured artifact-specific rules override any configured group-specific rules, which in turn override any global rules. This section shows a simple example of configuring global, group-specific, and artifact-specific rules.
@@ -264,7 +264,7 @@ NOTE: To disable an artifact-specific, group-specific, or global rule, click the
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="changing-artifact-owner-using-console_{context}"]
-= Changing an artifact owner using the {registry} web console
+== Changing an artifact owner using the {registry} web console
 
 [role="_abstract"]
 As an administrator or as an owner of a schema or API artifact, you can use the {registry} web console to change the artifact owner to another user account.
@@ -306,7 +306,7 @@ xref:../getting-started/assembly-configuring-the-registry.adoc[].
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="configuring-settings-using-console_{context}"]
-= Configuring {registry} settings using the web console
+== Configuring {registry} settings using the web console
 
 [role="_abstract"]
 As an administrator, you can use the {registry} web console to configure dynamic settings for {registry} at runtime. You can manage configuration options for features such as authentication, authorization, and API compatibility.
@@ -414,7 +414,7 @@ Not selected by default.
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="exporting-importing-using-web-console_{context}"]
-= Exporting and importing data using the {registry} web console
+== Exporting and importing data using the {registry} web console
 
 [role="_abstract"]
 As an administrator, you can use the {registry} web console to export data from one {registry} instance, and import this data into another {registry} instance. You can use this feature to easily migrate data between different instances.
@@ -447,4 +447,4 @@ The following example shows how to export and import existing data in a `.zip` f
 //[role="_additional-resources"]
 //.Additional resources
 
-:leveloffset!:
+

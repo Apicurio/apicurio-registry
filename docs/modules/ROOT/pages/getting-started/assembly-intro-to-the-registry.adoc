@@ -18,12 +18,12 @@ This chapter introduces {registry} concepts and features and provides details on
 * xref:registry-distros_{context}[]
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
 [id="registry-overview_{context}"]
-= What is {registry}?
+== What is {registry}?
 
 [role="_abstract"]
 {registry} is a datastore for sharing standard event schemas and API designs across event-driven and API architectures. You can use {registry} to decouple the structure of your data from your client applications, and to share and manage your data types and API descriptions at runtime using a REST interface.
@@ -38,7 +38,7 @@ You can configure optional rules to govern the evolution of your {registry} cont
 
 
 [discrete]
-== {registry} capabilities
+=== {registry} capabilities
 
 * Multiple payload formats for standard event schema and API specifications such as Apache Avro, JSON Schema, Google Protobuf, AsyncAPI, OpenAPI, and more.
 
@@ -65,7 +65,7 @@ You can configure optional rules to govern the evolution of your {registry} cont
 // Metadata created by nebel
 
 [id="registry-artifacts_{context}"]
-= Schema and API artifacts in {registry}
+== Schema and API artifacts in {registry}
 
 [role="_abstract"]
 The items stored in {registry}, such as event schemas and API designs, are known as registry _artifacts_. The following shows an example of an Apache Avro schema artifact in JSON format for a simple share price application:
@@ -94,7 +94,7 @@ When a schema or API design is added as an artifact in {registry}, client applic
 
 Artifacts have metadata, both generated and editable.  Standard metadata for an artifact includes (but may not be limited to):
 
-=== Generated or immutable properties
+==== Generated or immutable properties
 
 - groupId
 - artifactId
@@ -103,14 +103,14 @@ Artifacts have metadata, both generated and editable.  Standard metadata for an 
 - modifiedBy
 - modifiedOn
 
-=== Editable properties
+==== Editable properties
 - name
 - description
 - labels
 - owner
 
 [discrete]
-== Artifact Versions
+=== Artifact Versions
 Every artifact is composed of zero or more _artifact version_s.  Only artifact versions have actual
 content (as well as metadata).  These versions represent the evolution of the content of an artifact,
 and are immutable.  You can think of an Artifact as an ordered sequence of Versions, typically with
@@ -119,7 +119,7 @@ the most recent version representing the "current" schema or API design content.
 
 Artifact Versions have metadata, both generated and editable.  Standard metadata for an artifact version includes (but may not be limited to):
 
-=== Generated or immutable properties
+==== Generated or immutable properties
 
 - groupId
 - artifactId
@@ -131,7 +131,7 @@ Artifact Versions have metadata, both generated and editable.  Standard metadata
 - modifiedBy
 - modifiedOn
 
-=== Editable properties
+==== Editable properties
 - name
 - description
 - labels
@@ -139,7 +139,7 @@ Artifact Versions have metadata, both generated and editable.  Standard metadata
 
 
 [discrete]
-== Groups of schemas and APIs
+=== Groups of schemas and APIs
 
 An _artifact group_ is an optional named collection of schema or API artifacts. Each group contains a logically related set of schemas or API designs, typically managed by a single entity, belonging to a particular application or organization.
 
@@ -149,7 +149,7 @@ Schema and API groups can contain multiple artifact types. For example, you coul
 
 Groups have metadata, both generated and editable.  Standard metadata for a group includes (but may not be limited to):
 
-=== Generated or immutable properties
+==== Generated or immutable properties
 
 - groupId
 - owner
@@ -157,7 +157,7 @@ Groups have metadata, both generated and editable.  Standard metadata for a grou
 - modifiedBy
 - modifiedOn
 
-=== Editable properties
+==== Editable properties
 - description
 - labels
 
@@ -173,7 +173,7 @@ NOTE: Specifying a group is optional when using the {registry} web console, and 
 
 
 [discrete]
-== References to other schemas and APIs
+=== References to other schemas and APIs
 
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API components, and then referencing them from multiple locations. For example, you can specify a reference in JSON Schema or OpenAPI using a `$ref` statement, or in Google Protobuf using an `import` statement, or in Apache Avro using a nested namespace.
 
@@ -220,7 +220,7 @@ An artifact reference is stored in {registry} as a collection of artifact metada
 You can manage artifact references using the {registry} core REST API, Maven plug-in, and Java serializers/deserializers (SerDes). {registry} stores the artifact references along with the artifact content. {registry} also maintains a collection of all artifact references so you can search them or list all references for a specific artifact.
 
 [discrete]
-=== Supported artifact types
+==== Supported artifact types
 {registry} currently supports artifact references for the following artifact types only:
 
 * Avro
@@ -242,7 +242,7 @@ You can manage artifact references using the {registry} core REST API, Maven plu
 // Metadata created by nebel
 
 [id="registry-web-console_{context}"]
-= Manage content using the {registry} web console
+== Manage content using the {registry} web console
 
 [role="_abstract"]
 You can use the {registry} web console to browse and search the schema and API artifacts and optional groups stored in the registry, and to add new schema and API artifacts, groups, and versions. You can search for artifacts by label, name, group, and description. You can view an artifact’s content or its available versions, or download an artifact file locally.
@@ -267,7 +267,7 @@ The {registry} web console is available from `{registry-url}`.
 [id="registry-rest-api_{context}"]
 
 [role="_abstract"]
-= {registry} REST API for clients
+== {registry} REST API for clients
 Client applications can use the Core Registry API v3 to manage the schema and API artifacts in {registry}. This API provides operations for the following features:
 
 Admin::
@@ -294,7 +294,7 @@ Users::
 Get the current {registry} user.
 
 [discrete]
-== Compatibility with other schema registry REST APIs
+=== Compatibility with other schema registry REST APIs
 {registry} also provides compatibility with the following schema registries by including implementations of their respective REST APIs:
 
 * {registry} Core Registry API v2
@@ -312,7 +312,7 @@ Applications using Confluent client libraries can use {registry} as a drop-in re
 // Metadata created by nebel
 
 [id="registry-storage_{context}"]
-= {registry} storage options
+== {registry} storage options
 
 [role="_abstract"]
 {registry} provides the following options for the underlying storage of registry data:
@@ -346,7 +346,7 @@ Applications using Confluent client libraries can use {registry} as a drop-in re
 
 
 [id="client-serde_{context}"]
-=  Validate Kafka messages using schemas and Java client serializers/deserializers
+==  Validate Kafka messages using schemas and Java client serializers/deserializers
 
 [role="_abstract"]
 Kafka producer applications can use serializers to encode messages that conform to a specific event schema. Kafka consumer applications can then use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID.
@@ -373,7 +373,7 @@ These implementations include custom Java classes for each supported message typ
 // Metadata created by nebel
 
 [id="kafka-connect_{context}"]
-= Stream data to external systems with Kafka Connect converters
+== Stream data to external systems with Kafka Connect converters
 
 [role="_abstract"]
 You can use {registry} with Apache Kafka Connect to stream data between Kafka and external systems. Using Kafka Connect, you can define connectors for different systems to move large volumes of data into and out of Kafka-based systems.
@@ -405,7 +405,7 @@ The Avro and JSON Schema serializers and deserializers (SerDes) provided by {reg
 // Metadata created by nebel
 
 [id="registry-demo_{context}"]
-= {registry} demonstration examples
+== {registry} demonstration examples
 
 [role="_abstract"]
 {registry} provides open source example applications that demonstrate how to use {registry} in different use case scenarios. For example, these include storing schemas used by Kafka serializer and deserializer (SerDes) Java classes. These classes fetch the schema from {registry} for use when producing or consuming operations to serialize, deserialize, or validate the Kafka message payload.
@@ -432,7 +432,7 @@ These applications demonstrate use cases such as the following examples:
 // Metadata created by nebel
 
 [id="registry-distros_{context}"]
-= {registry} available distributions
+== {registry} available distributions
 
 [role="_abstract"]
 {registry} provides the following components as part of its distribution.
@@ -457,4 +457,4 @@ These applications demonstrate use cases such as the following examples:
 
 
 
-:leveloffset!:
+

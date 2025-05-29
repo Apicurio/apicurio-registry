@@ -16,13 +16,13 @@ This chapter provides reference information on the supported content rule types,
 * For more information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-rule-types_{context}"]
-= {registry} content rule types
+== {registry} content rule types
 
 [role="_abstract"]
 You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. Theses rule types apply to both global rules and artifact-specific rules.
@@ -66,7 +66,7 @@ a| Enforce artifact reference integrity when creating or updating artifacts. Ena
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-rule-maturity-matrix_{context}"]
-= {registry} content rule maturity
+== {registry} content rule maturity
 
 [role="_abstract"]
 Not all content rules are fully implemented for every artifact type supported by {registry}. The following table shows the current maturity level for each rule and artifact type:
@@ -126,7 +126,7 @@ a| Mapping detection not supported
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-rule-precedence_{context}"]
-= {registry} content rule precedence
+== {registry} content rule precedence
 
 [role="_abstract"]
 When you add or update an artifact, {registry} applies rules to check the validity, compatibility, or integrity of the artifact content. Configured artifact-specific rules override the equivalent configured global rules, as shown in the following table.
@@ -160,4 +160,4 @@ When you add or update an artifact, {registry} applies rules to check the validi
 |No
 |===
 
-:leveloffset!:
+

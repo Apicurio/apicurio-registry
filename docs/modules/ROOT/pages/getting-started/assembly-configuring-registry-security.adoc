@@ -13,13 +13,13 @@ This chapter explains how to set configuration options for {registry} security. 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Metadata created by nebel
 
 [id="registry-security-keycloak_{context}"]
 
-= Configuring {registry} authentication and authorization with {keycloak}
+== Configuring {registry} authentication and authorization with {keycloak}
 
 [role="_abstract"]
 This section explains how to manually configure authentication and authorization options for {registry} and {keycloak}.
@@ -163,7 +163,7 @@ the link:https://www.keycloak.org/documentation[Keycloak documentation].
 
 [id="registry-security-azure_{context}"]
 
-= Configuring {registry} authentication and authorization with Microsoft Azure Active Directory
+== Configuring {registry} authentication and authorization with Microsoft Azure Active Directory
 
 [role="_abstract"]
 This section explains how to manually configure authentication and authorization options for {registry} and Microsoft Azure Active Directory (Azure AD).
@@ -260,7 +260,7 @@ NOTE: When you enable roles in {registry}, you must also create the same roles i
 
 [id="registry-security-settings_{context}"]
 
-= {registry} authentication and authorization configuration options
+== {registry} authentication and authorization configuration options
 
 [role="_abstract"]
 {registry} provides authentication options for OpenID Connect with {keycloak} and HTTP basic authentication.
@@ -283,7 +283,7 @@ This chapter provides details on the following configuration options:
 
 [discrete]
 [id="registry-security-authn-keycloak"]
-== {registry} authentication by using OpenID Connect with {keycloak}
+=== {registry} authentication by using OpenID Connect with {keycloak}
 
 You can set the following environment variables to configure authentication for the {registry} web console and API with {keycloak}:
 
@@ -330,7 +330,7 @@ You can set the following environment variables to configure authentication for 
 
 [discrete]
 [id="registry-security-authn-http"]
-== {registry} authentication by using HTTP basic
+=== {registry} authentication by using HTTP basic
 
 By default, {registry} supports authentication by using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the {registry} REST API.  However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration options to `true`:
 
@@ -352,7 +352,7 @@ By default, {registry} supports authentication by using OpenID Connect. Users or
 |===
 
 [discrete]
-=== {registry} HTTP basic client credentials cache expiry
+==== {registry} HTTP basic client credentials cache expiry
 
 You can also configure the HTTP basic client credentials cache expiry time. By default, when using HTTP basic authentication, {registry} caches JWT tokens, and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default.
 
@@ -374,7 +374,7 @@ When using {keycloak}, it is best to set this configuration to your {keycloak} J
 
 [discrete]
 [id=registry-security-rbac-enabled]
-==  {registry} role-based authorization
+===  {registry} role-based authorization
 
 You can set the following options to `true` to enable role-based authorization in {registry}:
 
@@ -398,7 +398,7 @@ You can set the following options to `true` to enable role-based authorization i
 You can then configure role-based authorization to use roles included in the user's authentication token (for example, granted when authenticating by using {keycloak}), or to use role mappings managed internally by {registry}.
 
 [discrete]
-=== Use roles assigned in {keycloak}
+==== Use roles assigned in {keycloak}
 
 To enable using roles assigned by {keycloak}, set the following environment variables:
 
@@ -457,7 +457,7 @@ of the following user roles in {keycloak}. However, you can configure different 
 |===
 
 [discrete]
-=== Manage roles directly in {registry}
+==== Manage roles directly in {registry}
 
 To enable using roles managed internally by {registry}, set the following environment variable:
 
@@ -482,7 +482,7 @@ privileges can grant access to other users.
 
 
 [discrete]
-=== {registry} admin-override configuration
+==== {registry} admin-override configuration
 
 Because there are no default admin users in {registry}, it is usually helpful to configure another way for users to be identified as admins. You can configure this admin-override feature by using the following environment variables:
 
@@ -525,7 +525,7 @@ REST API (or associated UI) to grant roles to additional users (including additi
 
 [discrete]
 [id=registry-security-obac-enabled]
-== {registry} owner-only authorization
+=== {registry} owner-only authorization
 
 You can set the following options to `true` to enable owner-only authorization for updates to artifacts or artifact groups in {registry}:
 
@@ -559,7 +559,7 @@ When owner-only authorization and group owner-only authorization are both enable
 
 [discrete]
 [id=registry-security-auth-read]
-== {registry} authenticated read access
+=== {registry} authenticated read access
 
 When the authenticated read access option is enabled, {registry} grants at least read-only access to requests from any authenticated user in the same organization, regardless of their user role.
 
@@ -586,7 +586,7 @@ For more details, see xref:registry-security-rbac-enabled[].
 
 [discrete]
 [id=registry-security-anon-read]
-== {registry} anonymous read-only access
+=== {registry} anonymous read-only access
 
 In addition to the two main types of authorization (role-based and owner-based authorization), {registry}
 supports an anonymous read-only access option.
@@ -617,4 +617,4 @@ calls to the REST API, set the following options to `true`:
 * For an example of how to set environment variables in your {registry} deployment on OpenShift, see xref:configuring-liveness-readiness-probes_{context}[]
 * For details on configuring custom authentication for {registry}, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]
 
-:leveloffset!:
+

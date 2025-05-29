@@ -17,13 +17,13 @@ When developing client applications, you can use the {registry} Maven plug-in to
 * Apache Maven is installed and configured in your environment.
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="adding-artifacts-using-maven-plugin_{context}"]
-= Adding schema and API artifacts using the Maven plug-in
+== Adding schema and API artifacts using the Maven plug-in
 
 [role="_abstract"]
 The most common use case for the Maven plug-in is adding artifacts during a build of your client application. You can accomplish this by using the `register` execution goal.
@@ -93,7 +93,7 @@ The most common use case for the Maven plug-in is adding artifacts during a buil
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="downloading-artifacts-using-maven-plugin_{context}"]
-= Downloading schema and API artifacts using the Maven plug-in
+== Downloading schema and API artifacts using the Maven plug-in
 
 [role="_abstract"]
 You can use the Maven plug-in to download artifacts from {registry}. This is often useful, for example, when generating code from a registered schema.
@@ -162,7 +162,7 @@ You can use the Maven plug-in to download artifacts from {registry}. This is oft
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="testing-artifacts-using-maven-plugin_{context}"]
-= Testing schema and API artifacts using the Maven plug-in
+== Testing schema and API artifacts using the Maven plug-in
 
 [role="_abstract"]
 You might want to verify that an artifact can be registered without actually making any changes. This is often useful when rules are configured in {registry}. Testing the artifact results in a failure if the artifact content violates any of the configured rules.
@@ -226,7 +226,7 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
 // ParentAssemblies: assemblies/getting-started/assembly-managing-registry-artifacts-maven.adoc
 
 [id="adding-artifact-references-manually-using-maven-plugin_{context}"]
-= Adding artifact references manually using the {registry} Maven plug-in
+== Adding artifact references manually using the {registry} Maven plug-in
 
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
@@ -354,7 +354,7 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
 // ParentAssemblies: assemblies/getting-started/assembly-managing-registry-artifacts-maven.adoc
 
 [id="adding-artifact-references-automatically-using-maven-plugin_{context}"]
-= Adding artifact references automatically using the {registry} Maven plug-in
+== Adding artifact references automatically using the {registry} Maven plug-in
 
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
@@ -473,4 +473,4 @@ This section shows a simple example of using the Maven plug-in to register an Av
 
 
 
-:leveloffset!:
+

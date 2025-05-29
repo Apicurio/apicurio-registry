@@ -19,13 +19,13 @@ This chapter provides detailed information on how to configure Kafka serializers
 * You have read {kafka-client-serdes}.
 
 //INCLUDES
-:leveloffset: +1
+
 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-concepts-constants_{context}']
-= {registry} serializer/deserializer configuration in client applications
+== {registry} serializer/deserializer configuration in client applications
 
 [role="_abstract"]
 You can configure specific client serializer/deserializer (SerDes) services and schema lookup strategies directly in a client application using the example constants shown in this section.
@@ -34,7 +34,7 @@ The following sections show examples of commonly used SerDes constants and confi
 
 
 [discrete]
-== Configuration for SerDes services
+=== Configuration for SerDes services
 
 [source,java,subs="+quotes,attributes"]
 ----
@@ -54,7 +54,7 @@ For example, you may change it from the default ID format `Integer` that's also 
 
 
 [discrete]
-== Configuration for SerDes lookup strategies
+=== Configuration for SerDes lookup strategies
 
 [source,java,subs="+quotes,attributes"]
 ----
@@ -74,7 +74,7 @@ public class SerdeConfig {
 * For more details on configuration options, see xref:registry-serdes-config-props_{context}[]
 
 [discrete]
-== Configuration for Kafka converters
+=== Configuration for Kafka converters
 
 [source,java,subs="+quotes,attributes"]
 ----
@@ -92,7 +92,7 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
 * For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class]
 
 [discrete]
-== Configuration for different schema types
+=== Configuration for different schema types
 
 For details on how to configure SerDes for different schema technologies, see the following:
 
@@ -111,13 +111,13 @@ For details on how to configure SerDes for different schema technologies, see th
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-serdes-config-props_{context}"]
-= {registry} serializer/deserializer configuration properties
+== {registry} serializer/deserializer configuration properties
 
 [role="_abstract"]
 This section provides reference information on Java configuration properties for {registry} Kafka serializers/deserializers (SerDes).
 
 [discrete]
-== SchemaResolver interface
+=== SchemaResolver interface
 
 {registry} SerDes are based on the `SchemaResolver` interface, which abstracts access to the registry and applies the same lookup logic for the SerDes classes of all supported formats.
 
@@ -140,7 +140,7 @@ NOTE: The `DefaultSchemaResolver` is recommended and provides useful features fo
 For some advanced use cases, you might use a custom implementation of `SchemaResolver`.
 
 [discrete]
-== DefaultSchemaResolver class
+=== DefaultSchemaResolver class
 
 You can use the `DefaultSchemaResolver` to configure features such as:
 
@@ -150,7 +150,7 @@ You can use the `DefaultSchemaResolver` to configure features such as:
 * Fall-back options for deserializers
 
 [discrete]
-=== Configuration for registry API access options
+==== Configuration for registry API access options
 
 The `DefaultSchemaResolver` provides the following properties to configure access to the core registry API:
 
@@ -195,7 +195,7 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 |===
 
 [discrete]
-=== Configuration for registry lookup options
+==== Configuration for registry lookup options
 
 The `DefaultSchemaResolver` uses the following properties to configure how to look up artifacts in {registry}.
 
@@ -270,7 +270,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |===
 
 [discrete]
-=== Configuration to read/write registry artifacts in Kafka
+==== Configuration to read/write registry artifacts in Kafka
 
 The `DefaultSchemaResolver` uses the following properties to configure how artifact information is written to and read from Kafka.
 
@@ -300,7 +300,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how artif
 |===
 
 [discrete]
-=== Configuration for deserializer fall-back options
+==== Configuration for deserializer fall-back options
 
 The `DefaultSchemaResolver` uses the following property to configure a fall-back provider for all deserializers.
 
@@ -358,7 +358,7 @@ For more details, see the https://quarkus.io/guides/config#overriding-properties
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-types-serde_{context}']
-= How to configure different client serializer/deserializer types
+== How to configure different client serializer/deserializer types
 
 [role="_abstract"]
 When using schemas in your Kafka client applications, you must choose which specific schema type to use, depending on your use case. {registry} provides SerDe Java classes for Apache Avro, JSON Schema, and Google Protobuf. The following sections explain how to configure Kafka applications to use each type.
@@ -367,7 +367,7 @@ You can also use Kafka to implement custom serializer and deserializer classes, 
 
 
 [discrete]
-== Kafka application configuration for serializers/deserializers
+=== Kafka application configuration for serializers/deserializers
 Using the SerDe classes provided by {registry} in your Kafka application involves setting the correct configuration properties. The following simple Avro examples show how to configure a serializer in a Kafka producer application and how to configure a deserializer in a Kafka consumer application.
 
 .Example serializer configuration in a Kafka producer
@@ -439,7 +439,7 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-types-avro_{context}']
-== Configure Avro SerDes with {registry}
+=== Configure Avro SerDes with {registry}
 
 [role="_abstract"]
 This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for Apache Avro.
@@ -567,7 +567,7 @@ When using these schemas with Avro SerDes, two artifacts are created in {registr
 //  assembly-using-kafka-client-serdes
 
 [id='registry-serdes-types-json_{context}']
-== Configure JSON Schema SerDes with {registry}
+=== Configure JSON Schema SerDes with {registry}
 
 [role="_abstract"]
 This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for JSON Schema.
@@ -680,7 +680,7 @@ In this example, a given citizen has a city. In {registry}, a citizen artifact w
 
 [id='registry-serdes-types-protobuf_{context}']
 
-== Configure Protobuf SerDes with {registry}
+=== Configure Protobuf SerDes with {registry}
 
 [role="_abstract"]
 This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for Google Protobuf.
@@ -784,4 +784,4 @@ In this example, two Protobuf artifacts are stored in {registry}, one for `Table
 ** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Protobuf Bean and Protobuf Find Latest examples]
 ** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]
 
-:leveloffset!:
+

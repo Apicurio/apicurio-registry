@@ -17,10 +17,10 @@ This chapter provides reference information on the configuration options that ar
 {registry-client-serdes-config}.
 
 //INCLUDES
-:leveloffset: +1
+
 
 [id="all-registry-configs_{context}"]
-= {registry} configuration options
+== {registry} configuration options
 
 The following {registry} configuration options are available for each component category:
 
@@ -55,7 +55,7 @@ The following {registry} configuration options are available for each component 
 |
 |===
 
-== api
+=== api
 .api configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -81,7 +81,7 @@ The following {registry} configuration options are available for each component 
 |Disable APIs
 |===
 
-== auth
+=== auth
 .auth configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -227,7 +227,7 @@ The following {registry} configuration options are available for each component 
 |Authentication server token endpoint.
 |===
 
-== cache
+=== cache
 .cache configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -243,7 +243,7 @@ The following {registry} configuration options are available for each component 
 |Registry cache enabled
 |===
 
-== ccompat
+=== ccompat
 .ccompat configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -279,7 +279,7 @@ The following {registry} configuration options are available for each component 
 |Canonical hash mode (compatibility API)
 |===
 
-== download
+=== download
 .download configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -295,7 +295,7 @@ The following {registry} configuration options are available for each component 
 |Download link expiry
 |===
 
-== gitops
+=== gitops
 .gitops configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -326,7 +326,7 @@ The following {registry} configuration options are available for each component 
 |Path to GitOps working directory, which is used to store the local git repository.
 |===
 
-== health
+=== health
 .health configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -427,7 +427,7 @@ The following {registry} configuration options are available for each component 
 |Storage metrics cache check period
 |===
 
-== import
+=== import
 .import configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -463,7 +463,7 @@ The following {registry} configuration options are available for each component 
 |Temporary work directory to use when importing data.
 |===
 
-== limits
+=== limits
 .limits configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -539,7 +539,7 @@ The following {registry} configuration options are available for each component 
 |Storage metrics cache max size.
 |===
 
-== redirects
+=== redirects
 .redirects configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -570,7 +570,7 @@ The following {registry} configuration options are available for each component 
 |Override the port used for generating externally-accessible URLs.
 |===
 
-== rest
+=== rest
 .rest configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -616,7 +616,7 @@ The following {registry} configuration options are available for each component 
 |Max size of the labels (in bytes) per item from within search results
 |===
 
-== semver
+=== semver
 .semver configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -642,7 +642,7 @@ The following {registry} configuration options are available for each component 
 |Validate that all artifact versions conform to Semantic Versioning 2 format (https://semver.org).
 |===
 
-== storage
+=== storage
 .storage configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -873,7 +873,7 @@ The following {registry} configuration options are available for each component 
 |Skip artifact versions with DISABLED state when retrieving latest artifact version
 |===
 
-== ui
+=== ui
 .ui configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
 |===
@@ -938,14 +938,14 @@ The following {registry} configuration options are available for each component 
 
 
 [id="migration-table_{context}"]
-= {registry} version 2 to version 3 configuration changes
+== {registry} version 2 to version 3 configuration changes
 
 {registry} v3 has simplified the configuration options, removing duplicates and improving consistency.
 For most options, the only change is ssrenaming of the prefix from `registry` to `apicurio`, for example, changing `registry.kafkasql.bootstrap.servers` to `apicurio.kafkasql.bootstrap.servers`.
 
 NOTE: For each configuration property you can override the value by using the corresponding environment variable, for example, `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS`.s
 
-== api
+=== api
 .api configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -957,7 +957,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.disable.apis`
 |===
 
-== auth
+=== auth
 .auth configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1017,7 +1017,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`quarkus.oidc.token-path`
 |===
 
-== cache
+=== cache
 .cache configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1027,7 +1027,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.config.cache.enabled`
 |===
 
-== ccompat
+=== ccompat
 .ccompat configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1041,7 +1041,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.ccompat.use-canonical-hash`
 |===
 
-== download
+=== download
 .download configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1051,7 +1051,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.download.href.ttl.seconds`
 |===
 
-== events
+=== events
 .events configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1061,7 +1061,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`removed`
 |===
 
-== health
+=== health
 .health configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1105,7 +1105,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.storage.metrics.cache.check-period.ms`
 |===
 
-== import
+=== import
 .import configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1115,7 +1115,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.import.url`
 |===
 
-== kafka
+=== kafka
 .kafka configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1127,7 +1127,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`Removed`
 |===
 
-== limits
+=== limits
 .limits configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1161,7 +1161,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.storage.metrics.cache.max-size`
 |===
 
-== redirects
+=== redirects
 .redirects configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1177,7 +1177,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.url.override.port`
 |===
 
-== rest
+=== rest
 .rest configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1191,7 +1191,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.rest.artifact.download.ssl-validation.disabled`
 |===
 
-== store
+=== store
 .store configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1203,7 +1203,7 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.sql.init`
 |===
 
-== ui
+=== ui
 .ui configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -1223,4 +1223,4 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.ui.features.settings`
 |===
 
-:leveloffset!:
+

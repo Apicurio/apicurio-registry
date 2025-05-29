@@ -242,6 +242,9 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         Auth authDev = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_CLIENT_ID, "test1");
         RegistryClient clientDev = createClient(authDev);
 
+        Auth authDev2 = new OidcAuth(httpClient, JWKSMockServer.DEVELOPER_2_CLIENT_ID, "test1");
+        RegistryClient clientDev2 = createClient(authDev2);
+
         Auth authAdmin = new OidcAuth(httpClient, JWKSMockServer.ADMIN_CLIENT_ID, "test1");
         RegistryClient clientAdmin = createClient(authAdmin);
 
@@ -274,6 +277,25 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         rule.setType(RuleType.COMPATIBILITY);
         rule.setConfig(CompatibilityLevel.BACKWARD.name());
         clientAdmin.createArtifactRule(groupId, artifactId2, rule);
+
+        // Dev User will create an artifact
+        String artifactId3 = TestUtils.generateArtifactId();
+        clientDev.createArtifact(groupId, artifactId3, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+
+        // Admin user can delete the artifact (because they are an admin)
+        clientAdmin.deleteArtifact(groupId, artifactId3);
+
+        // Dev User will create another artifact
+        String artifactId4 = TestUtils.generateArtifactId();
+        clientDev.createArtifact(groupId, artifactId4, ArtifactType.JSON, new ByteArrayInputStream("{}".getBytes()));
+
+        // Dev2 User cannot delete the artifact (is **NOT** the owner)
+        Assertions.assertThrows(ForbiddenException.class, () -> {
+            clientDev2.deleteArtifact(groupId, artifactId4);
+        });
+
+        // Dev User CAN delete the artifact (is the owner)
+        clientDev.deleteArtifact(groupId, artifactId4);
     }
 
     @Test

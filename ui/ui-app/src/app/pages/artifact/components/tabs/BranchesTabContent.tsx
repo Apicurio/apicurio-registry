@@ -72,7 +72,7 @@ export const BranchesTabContent: FunctionComponent<BranchesTabContentProps> = (p
     }, [props.artifact, paging]);
 
     const toolbar = (
-        <BranchesTabToolbar results={results} paging={paging} onPageChange={setPaging} onCreateBranch={props.onCreateBranch} />
+        <BranchesTabToolbar artifact={props.artifact} results={results} paging={paging} onPageChange={setPaging} onCreateBranch={props.onCreateBranch} />
     );
 
     const emptyState = (

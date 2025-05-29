@@ -187,6 +187,7 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
                 </IfFeature>
                 <PageSection className="ps_artifact-branch-header" variant={PageSectionVariants.light}>
                     <BranchPageHeader
+                        artifact={artifact}
                         onDelete={onDeleteBranch}
                         branch={branch as BranchMetaData}
                         groupId={gid}

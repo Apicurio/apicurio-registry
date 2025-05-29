@@ -3,12 +3,14 @@ import "./VersionPageHeader.css";
 import { Button, Flex, FlexItem, Text, TextContent, TextVariants } from "@patternfly/react-core";
 import { IfAuth, IfFeature } from "@app/components";
 import { If } from "@apicurio/common-ui-components";
+import { ArtifactMetaData } from "@sdk/lib/generated-client/models";
 
 
 /**
  * Properties
  */
-export type ArtifactVersionPageHeaderProps = {
+export type VersionPageHeaderProps = {
+    artifact: ArtifactMetaData | undefined;
     groupId: string;
     artifactId: string;
     version: string;
@@ -19,7 +21,7 @@ export type ArtifactVersionPageHeaderProps = {
 /**
  * Models the page header for the Artifact page.
  */
-export const VersionPageHeader: FunctionComponent<ArtifactVersionPageHeaderProps> = (props: ArtifactVersionPageHeaderProps) => {
+export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (props: VersionPageHeaderProps) => {
     return (
         <Flex className="example-border">
             <FlexItem>
@@ -38,7 +40,7 @@ export const VersionPageHeader: FunctionComponent<ArtifactVersionPageHeaderProps
             <FlexItem align={{ default: "alignRight" }}>
                 <Button id="download-artifact-button" variant="primary"
                     data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
-                <IfAuth isDeveloper={true}>
+                <IfAuth isDeveloper={true} owner={props.artifact?.owner}>
                     <IfFeature feature="readOnly" isNot={true}>
                         <IfFeature feature="deleteVersion" is={true}>
                             <Button id="delete-artifact-button" variant="danger"

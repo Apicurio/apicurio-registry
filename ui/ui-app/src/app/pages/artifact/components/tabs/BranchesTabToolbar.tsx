@@ -3,7 +3,7 @@ import "./BranchesTabToolbar.css";
 import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Paging } from "@models/paging.model.ts";
 import { IfAuth, IfFeature } from "@app/components";
-import {ArtifactMetaData, BranchSearchResults} from "@sdk/lib/generated-client/models";
+import { ArtifactMetaData, BranchSearchResults } from "@sdk/lib/generated-client/models";
 
 
 /**

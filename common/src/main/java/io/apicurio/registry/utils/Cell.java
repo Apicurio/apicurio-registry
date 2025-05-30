@@ -10,7 +10,8 @@ import java.util.Optional;
 import static java.util.Optional.ofNullable;
 
 /**
- * One-item non-thread-safe container used to pass values out of lambda functions.
+ * One-item non-thread-safe container that can be used to pass a value out of a lambda function.
+ * <p>
  * If you need a thread-safe alternative, use an {@link java.util.concurrent.atomic.AtomicReference}.
  */
 @EqualsAndHashCode
@@ -37,15 +38,15 @@ public class Cell<T> {
         return value;
     }
 
+    public Optional<T> getOptional() {
+        return ofNullable(get());
+    }
+
     public void set(T value) {
         this.value = value;
     }
 
     public boolean isSet() {
         return value != null;
-    }
-
-    public Optional<T> toOptional() {
-        return ofNullable(value);
     }
 }

@@ -6718,10 +6718,10 @@ spec:
         - name: QUARKUS_PROFILE
           value: prod
         - name: REGISTRY_APP_IMAGE
-          value: quay.io/apicurio/apicurio-registry:3.0.8
+          value: quay.io/apicurio/apicurio-registry:latest-snapshot
         - name: REGISTRY_UI_IMAGE
-          value: quay.io/apicurio/apicurio-registry-ui:3.0.8
-        image: quay.io/apicurio/apicurio-registry-3-operator:3.0.8
+          value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+        image: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

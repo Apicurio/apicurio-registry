@@ -8,6 +8,8 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.operator.AnnotationManager.updateResourceAnnotations;
+import static io.apicurio.registry.operator.CRContext.getCRContext;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.UIIngressDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_KEY;
@@ -15,6 +17,7 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_KEY;
 import static io.apicurio.registry.operator.utils.IngressUtils.getHost;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
+import static io.apicurio.registry.operator.utils.Utils.isBlank;
 
 @KubernetesDependent(resourceDiscriminator = UIIngressDiscriminator.class)
 public class UIIngressResource extends CRUDKubernetesDependentResource<Ingress, ApicurioRegistry3> {
@@ -31,6 +34,13 @@ public class UIIngressResource extends CRUDKubernetesDependentResource<Ingress, 
 
         var sOpt = context.getSecondaryResource(UI_SERVICE_KEY.getKlass(), UI_SERVICE_KEY.getDiscriminator());
         sOpt.ifPresent(s -> withIngressRule(s, i, rule -> rule.setHost(getHost(COMPONENT_UI, primary))));
+
+        updateResourceAnnotations(context, i, getCRContext(primary).getUiIngressAnnotations(), primary.withSpec().withUi().withIngress().getAnnotations());
+
+        var icn = primary.withSpec().withUi().withIngress().getIngressClassName();
+        if(!isBlank(icn)) {
+            i.getSpec().setIngressClassName(icn);
+        }
 
         log.trace("Desired {} is {}", UI_INGRESS_KEY.getId(), toYAML(i));
         return i;

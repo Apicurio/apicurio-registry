@@ -1,0 +1,17 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: ingress-annotations
+spec:
+  app:
+    ingress:
+      host: ingress-annotations-app.apps.cluster.example
+      annotations:
+        kubernetes.io/ingress.class: haproxy
+        color: yellow
+  ui:
+    ingress:
+      host: ingress-annotations-ui.apps.cluster.example
+      annotations:
+        kubernetes.io/ingress.class: haproxy
+        color: pink

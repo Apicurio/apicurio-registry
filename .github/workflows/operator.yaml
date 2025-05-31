@@ -104,6 +104,12 @@ jobs:
             echo "No changes to the install file.";
           fi
 
+      - name: Setup tmate session on failure
+        if: failure()
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+
   operator-publish:
     name: Publish Operator
     runs-on: ubuntu-latest

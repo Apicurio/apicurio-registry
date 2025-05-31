@@ -5,22 +5,20 @@ import io.apicurio.common.apps.logging.Logged;
 import io.apicurio.common.apps.multitenancy.ApicurioTenantContext;
 import io.apicurio.common.apps.multitenancy.TenantContext;
 import io.apicurio.common.apps.multitenancy.TenantContextLoader;
+import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
+import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessCheck;
 import io.apicurio.registry.storage.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.ArtifactNotFoundException;
 import io.apicurio.registry.storage.RegistryStorageException;
 import io.apicurio.registry.storage.dto.ArtifactOwnerDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter;
-import io.apicurio.registry.storage.impl.kafkasql.MessageType;
+import io.apicurio.registry.storage.impl.kafkasql.*;
 import io.apicurio.registry.storage.impl.kafkasql.keys.*;
 import io.apicurio.registry.storage.impl.kafkasql.upgrade.KafkaSqlUpgraderManager;
 import io.apicurio.registry.storage.impl.kafkasql.values.*;
 import io.apicurio.registry.storage.impl.sql.IdGenerator;
 import io.apicurio.registry.storage.impl.sql.IdGenerator.StaticIdGenerator;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
-import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.utils.impexp.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.control.ActivateRequestContext;
@@ -62,6 +60,15 @@ public class KafkaSqlSink {
     @Inject
     KafkaSqlUpgraderManager upgraderManager;
 
+    @Inject
+    LivenessUtil livenessUtil;
+
+    @Inject
+    PersistenceExceptionLivenessCheck livenessCheck;
+
+    @Inject
+    KafkaSqlConfiguration configuration;
+
     /**
      * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single
      * message in the topic.  Each message represents some attempt to modify the registry data.  So
@@ -83,12 +90,38 @@ public class KafkaSqlSink {
             log.trace("Processed message key: {} value: {} result: {}", record.key().getType().name(), record.value() != null ? record.value().toString() : "", result != null ? result.toString() : "");
             log.debug("Kafka message successfully processed. Notifying listeners of response.");
             coordinator.notifyResponse(requestId, result);
-        } catch (RegistryException e) {
-            log.debug("Registry exception detected: {}", e.getMessage());
-            coordinator.notifyResponse(requestId, e);
-        } catch (Throwable e) {
-            log.debug("Unexpected exception detected: {}", e.getMessage());
-            coordinator.notifyResponse(requestId, new RegistryException(e));
+        } catch (Exception ex) {
+            // Check whether we have initiated the message.
+            // If yes, it will be handled in an HTTP thread, or by the leak handler.
+            if (!coordinator.isOurWaitingOperation(requestId)) {
+                /*
+                 * We either did not initiate the message, or we have been restarted since then.
+                 * We have to be careful with how we handle this. There are three scenarios that I can see:
+                 *
+                 *  1. The local h2 DB is corrupted, and otherwise benign message caused an exception.
+                 *  2. The message could not be processed by h2 because the topic has become corrupted.
+                 *  3. The topic is OK, but we sent a message into the topic that will cause an exception.
+                 *
+                 * We want to fail liveness check in case 1 and 2, but we want to ignore the exception in case 3,
+                 * because that message will be read everytime a pod is restarted, and if there are too many of those,
+                 * liveness check will always fail, and the topic becomes basically unusable.
+                 * We will rely on liveness code to ignore the correct exceptions, which can also be configured
+                 * by the user in the worst case.
+                 */
+                if (!livenessUtil.isIgnoreError(ex)) {
+                    if (!configuration.ignoreKafkaSqlTopicExceptions()) {
+                        log.warn("An exception has occurred when processing KafkaSql message (probably initiated by another node). " +
+                                 "Key = '" + record.key() + "'" +
+                                 (record.value() != null ? ", action = '" + record.value().getAction() + "'" : ""), ex);
+                        livenessCheck.suspectWithException(ex);
+                    } else {
+                        log.debug("Ignoring an exception that has occurred when processing KafkaSql message (probably initiated by another node). " +
+                                  "Key = '" + record.key() + "'" +
+                                  (record.value() != null ? ", action = '" + record.value().getAction() + "'" : ""), ex);
+                    }
+                }
+            }
+            coordinator.notifyResponse(requestId, ex);
         }
     }
 

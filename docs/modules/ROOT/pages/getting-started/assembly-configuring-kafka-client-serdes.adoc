@@ -1,4 +1,3 @@
-// Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="configuring-kafka-client-serdes_{context}"]
@@ -20,9 +19,769 @@ This chapter provides detailed information on how to configure Kafka serializers
 * You have read {kafka-client-serdes}.
 
 //INCLUDES
-include::{mod-loc}getting-started/con-registry-serdes-constants.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-serdes-config-props.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/con-registry-serdes-types.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/con-registry-serdes-avro.adoc[leveloffset=+2]
-include::{mod-loc}getting-started/con-registry-serdes-json.adoc[leveloffset=+2]
-include::{mod-loc}getting-started/con-registry-serdes-protobuf.adoc[leveloffset=+2]
+
+
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-concepts-constants_{context}']
+== {registry} serializer/deserializer configuration in client applications
+
+[role="_abstract"]
+You can configure specific client serializer/deserializer (SerDes) services and schema lookup strategies directly in a client application using the example constants shown in this section.
+
+The following sections show examples of commonly used SerDes constants and configuration options.
+
+
+[discrete]
+=== Configuration for SerDes services
+
+[source,java,subs="+quotes,attributes"]
+----
+public class SerdeConfig {
+
+   public static final String REGISTRY_URL = "apicurio.registry.url"; <1>
+   public static final String ID_HANDLER = "apicurio.registry.id-handler"; <2>
+----
+. The required URL of {registry}.
+. Extends ID handling to support other ID formats and make them compatible with {registry} SerDes services.
+For example, you may change it from the default ID format `Integer` that's also compatible with Confluent's ID format to `Long`.
+
+[role="_additional-resources"]
+.Additional resources
+
+** For more details on configuration options, see xref:registry-serdes-config-props_{context}[]
+
+
+[discrete]
+=== Configuration for SerDes lookup strategies
+
+[source,java,subs="+quotes,attributes"]
+----
+public class SerdeConfig {
+
+   public static final String ARTIFACT_RESOLVER_STRATEGY = "apicurio.registry.artifact-resolver-strategy"; <1>
+   public static final String SCHEMA_RESOLVER = "apicurio.registry.schema-resolver"; <2>
+...
+----
+<1> Java class that implements the artifact resolver strategy and maps between the Kafka SerDes and artifact ID.  Defaults to the topic ID strategy. This is only used by the serializer class.
+<2> Java class that implements the schema resolver. Defaults to `DefaultSchemaResolver`. This is used by the serializer and deserializer classes.
+
+[role="_additional-resources"]
+.Additional resources
+
+* For more details on look up strategies, see {kafka-client-serdes}
+* For more details on configuration options, see xref:registry-serdes-config-props_{context}[]
+
+[discrete]
+=== Configuration for Kafka converters
+
+[source,java,subs="+quotes,attributes"]
+----
+public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> implements Converter, Closeable {
+
+   public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer"; <1>
+   public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer"; <2>
+----
+. The required serializer to use with the {registry} Kafka converter.
+. The required deserializer to use with the {registry} Kafka converter.
+
+[role="_additional-resources"]
+.Additional resources
+
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class]
+
+[discrete]
+=== Configuration for different schema types
+
+For details on how to configure SerDes for different schema technologies, see the following:
+
+* xref:registry-serdes-types-avro_registry[]
+* xref:registry-serdes-types-json_registry[]
+* xref:registry-serdes-types-protobuf_registry[]
+
+
+
+
+
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-serdes-config-props_{context}"]
+== {registry} serializer/deserializer configuration properties
+
+[role="_abstract"]
+This section provides reference information on Java configuration properties for {registry} Kafka serializers/deserializers (SerDes).
+
+[discrete]
+=== SchemaResolver interface
+
+{registry} SerDes are based on the `SchemaResolver` interface, which abstracts access to the registry and applies the same lookup logic for the SerDes classes of all supported formats.
+
+.Configuration property for SchemaResolver interface
+[.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
+|===
+|Constant
+|Property
+|Description
+|Type
+|Default
+|`SCHEMA_RESOLVER`
+|`apicurio.registry.schema-resolver`
+|Used by serializers and deserializers. Fully-qualified Java classname that implements `SchemaResolver`.
+|String
+|`io.apicurio.registry.resolver.DefaultSchemaResolver`
+|===
+
+NOTE: The `DefaultSchemaResolver` is recommended and provides useful features for most use cases.
+For some advanced use cases, you might use a custom implementation of `SchemaResolver`.
+
+[discrete]
+=== DefaultSchemaResolver class
+
+You can use the `DefaultSchemaResolver` to configure features such as:
+
+* Access to the registry API
+* How to look up artifacts in the registry
+* How to write and read artifact information to and from Kafka
+* Fall-back options for deserializers
+
+[discrete]
+==== Configuration for registry API access options
+
+The `DefaultSchemaResolver` provides the following properties to configure access to the core registry API:
+
+.Configuration properties for access to registry API
+[.table-expandable,width="100%",cols="4,5,5,3,2",options="header"]
+|===
+|Constant
+|Property
+|Description
+|Type
+|Default
+|`REGISTRY_URL`
+|`apicurio.registry.url`
+|Used by serializers and deserializers. URL to access the registry API.
+|`String`
+|None
+|`AUTH_TOKEN_ENDPOINT`
+|`apicurio.registry.auth.service.token.endpoint`
+|Used by serializers and deserializers. URL of the token endpoint.
+|`String`
+|None
+|`AUTH_CLIENT_ID`
+|`apicurio.registry.auth.client.id`
+|Used by serializers and deserializers. Client ID to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
+|`String`
+|None
+|`AUTH_CLIENT_SECRET`
+|`apicurio.registry.auth.client.secret`
+|Used by serializers and deserializers. Client secret to access the authentication service. Required when accessing a secure registry using the OAuth client credentials flow.
+|`String`
+|None
+|`AUTH_USERNAME`
+|`apicurio.registry.auth.username`
+|Used by serializers and deserializers. Username to access the registry. Required when accessing a secure registry using HTTP basic authentication.
+|`String`
+|None
+|`AUTH_PASSWORD`
+|`apicurio.registy.auth.password`
+|Used by serializers and deserializers. Password to access the registry. Required when accessing a secure registry using HTTP basic authentication.
+|`String`
+|None
+|===
+
+[discrete]
+==== Configuration for registry lookup options
+
+The `DefaultSchemaResolver` uses the following properties to configure how to look up artifacts in {registry}.
+
+.Configuration properties for registry artifact lookup
+[.table-expandable,width="100%",cols="5,5,5,3,4",options="header"]
+|===
+|Constant
+|Property
+|Description
+|Type
+|Default
+|`ARTIFACT_RESOLVER_STRATEGY`
+|`apicurio.registry.artifact-resolver-strategy`
+|Used by serializers only. Fully-qualified Java classname that implements `ArtifactReferenceResolverStrategy` and maps each Kafka message to an `ArtifactReference` (`groupId`, `artifactId`, and version).  For example, the default strategy uses the topic name as the schema `artifactId`.
+|`String`
+|`io.apicurio.registry.serde.strategy.TopicIdStrategy`
+|`EXPLICIT_ARTIFACT_GROUP_ID`
+|`apicurio.registry.artifact.group-id`
+|Used by serializers only. Sets the `groupId` used for querying or creating an artifact. Overrides the `groupId` returned by the `ArtifactResolverStrategy`.
+|`String`
+|None
+|`EXPLICIT_ARTIFACT_ID`
+|`apicurio.registry.artifact.artifact-id`
+|Used by serializers only. Sets the `artifactId` used for querying or creating an artifact. Overrides the `artifactId` returned by the `ArtifactResolverStrategy`.
+|`String`
+|None
+|`EXPLICIT_ARTIFACT_VERSION`
+|`apicurio.registry.artifact.version`
+|Used by serializers only. Sets the artifact version used for querying or creating an artifact. Overrides the version returned by the `ArtifactResolverStrategy`.
+|`String`
+|None
+|`FIND_LATEST_ARTIFACT`
+|`apicurio.registry.find-latest`
+|Used by serializers only. Specifies whether the serializer tries to find the latest artifact in the registry for the corresponding group ID and artifact ID.
+|`boolean`
+|`false`
+|`AUTO_REGISTER_ARTIFACT`
+|`apicurio.registry.auto-register`
+|Used by serializers only. Specifies whether the serializer tries to create an artifact in the registry. The JSON Schema serializer does not support this feature.
+|`boolean, boolean String`
+|`false`
+|`DEREFERENCE_SCHEMA`
+|`apicurio.registry.dereference-schema`
+|Used to indicate the serdes to dereference the schema. This is used in two different situation, once the schema is registered, instructs the serdes to ask the server for the schema dereferenced. It is also used to instruct the serializer to dereference the schema before registering it Registry, but this is only supported for Avro.
+|`boolean`
+|`false`
+|`AUTO_REGISTER_ARTIFACT_IF_EXISTS`
+|`apicurio.registry.auto-register.if-exists`
+|Used by serializers only. Configures the behavior of the client when there is a conflict creating an artifact because the artifact already exists. Available values are `FAIL`, `UPDATE`, `RETURN`, or `RETURN_OR_UPDATE`.
+|`String`
+|`RETURN_OR_UPDATE`
+|`CHECK_PERIOD_MS`
+|`apicurio.registry.check-period-ms`
+|Used by serializers and deserializers. Specifies how long to cache artifacts before auto-eviction (milliseconds). If set to zero, artifacts are fetched every time.
+|`java.time.Duration, non-negative Number, or integer String`
+|`30000`
+|`RETRY_BACKOFF_MS`
+|`apicurio.registry.retry-backoff-ms`
+|Used by serializers and deserializers. If a schema can not be be retrieved from the Registry, it may retry a number of times. This configuration option controls the delay between the retry attempts (milliseconds).
+|`java.time.Duration, non-negative Number, or integer String`
+|`300`
+|`RETRY_COUNT`
+|`apicurio.registry.retry-count`
+|Used by serializers and deserializers. If a schema can not be be retrieved from the Registry, it may retry a number of times. This configuration option controls the number of retry attempts.
+|`non-negative Number, or integer String`
+|`3`
+|`USE_ID`
+|`apicurio.registry.use-id`
+|Used by serializers and deserializers. Configures to use the specified `IdOption` as the identifier for artifacts. Options are `globalId` and `contentId`. Instructs the serializer to write the specified ID to Kafka, and instructs the deserializer to use this ID to find the schema.
+|`String`
+|`contentId`
+|===
+
+[discrete]
+==== Configuration to read/write registry artifacts in Kafka
+
+The `DefaultSchemaResolver` uses the following properties to configure how artifact information is written to and read from Kafka.
+
+.Configuration properties to read/write artifact information in Kafka
+[.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
+|===
+|Constant
+|Property
+|Description
+|Type
+|Default
+|`ENABLE_HEADERS`
+|`apicurio.registry.headers.enabled`
+|Used by serializers and deserializers. Configures to read/write the artifact identifier to Kafka message headers instead of in the message payload.
+|`boolean`
+|`false`
+|`HEADERS_HANDLER`
+|`apicurio.registry.headers.handler`
+|Used by serializers and deserializers. Fully-qualified Java classname that implements `HeadersHandler` and writes/reads the artifact identifier to/from the Kafka message headers.
+|`String`
+|`io.apicurio.registry.serde.headers.DefaultHeadersHandler`
+|`ID_HANDLER`
+|`apicurio.registry.id-handler`
+|Used by serializers and deserializers. Fully-qualified Java classname of a class that implements `IdHandler` and writes/reads the artifact identifier to/from the message payload. Default to a 4 byte format that includes the contentId in the message payload.
+|`String`
+|`io.apicurio.registry.serde.Default4ByteIdHandler`
+|===
+
+[discrete]
+==== Configuration for deserializer fall-back options
+
+The `DefaultSchemaResolver` uses the following property to configure a fall-back provider for all deserializers.
+
+.Configuration property for deserializer fall-back provider
+[.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
+|===
+|Constant
+|Property
+|Description
+|Type
+|Default
+|`FALLBACK_ARTIFACT_PROVIDER`
+|`apicurio.registry.fallback.provider`
+|Only used by deserializers. Sets a custom implementation of `FallbackArtifactProvider` for resolving the artifact used for deserialization. `FallbackArtifactProvider` configures a fallback artifact to fetch from the registry in case the lookup fails.
+|`String`
+|`io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider`
+|===
+
+The `DefaultFallbackArtifactProvider` uses the following properties to configure deserializer fall-back options:
+
+.Configuration properties for deserializer fall-back options
+[.table-expandable,width="100%",cols="5,5,5,3,2",options="header"]
+|===
+|Constant
+|Property
+|Description
+|Type
+|Default
+|`FALLBACK_ARTIFACT_ID`
+|`apicurio.registry.fallback.artifact-id`
+|Used by deserializers only. Sets the `artifactId` used as fallback for resolving the artifact used for deserialization.
+|`String`
+|None
+|`FALLBACK_ARTIFACT_GROUP_ID`
+|`apicurio.registry.fallback.group-id`
+|Used by deserializers only. Sets the `groupId` used as fallback for resolving the group used for deserialization.
+|`String`
+|None
+|`FALLBACK_ARTIFACT_VERSION`
+|`apicurio.registry.fallback.version`
+|Used by deserializers only. Sets the version used as fallback for resolving the artifact used for deserialization.
+|`String`
+|None
+|===
+
+.Additional resources
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/config/SerdeConfig.java[SerdeConfig Java class].
+* You can configure application properties as Java system properties or include them in the Quarkus
+`application.properties` file.
+For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
+
+
+
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-types-serde_{context}']
+== How to configure different client serializer/deserializer types
+
+[role="_abstract"]
+When using schemas in your Kafka client applications, you must choose which specific schema type to use, depending on your use case. {registry} provides SerDe Java classes for Apache Avro, JSON Schema, and Google Protobuf. The following sections explain how to configure Kafka applications to use each type.
+
+You can also use Kafka to implement custom serializer and deserializer classes, and leverage {registry} functionality using the {registry} REST Java client.
+
+
+[discrete]
+=== Kafka application configuration for serializers/deserializers
+Using the SerDe classes provided by {registry} in your Kafka application involves setting the correct configuration properties. The following simple Avro examples show how to configure a serializer in a Kafka producer application and how to configure a deserializer in a Kafka consumer application.
+
+.Example serializer configuration in a Kafka producer
+[source,java,subs="+quotes,attributes"]
+----
+// Create the Kafka producer
+private static Producer<Object, Object> createKafkaProducer() {
+    Properties props = new Properties();
+
+    // Configure standard Kafka settings
+    props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, SERVERS);
+    props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + TOPIC_NAME);
+    props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
+
+    // Use {registry}-provided Kafka serializer for Avro
+    props.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName());
+
+    // Configure the {registry} location
+    props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
+
+    // Register the schema artifact if not found in the registry.
+    props.putIfAbsent(SerdeConfig.AUTO_REGISTER_ARTIFACT, Boolean.TRUE);
+
+    // Create the Kafka producer
+    Producer<Object, Object> producer = new KafkaProducer<>(props);
+    return producer;
+}
+----
+
+.Example deserializer configuration in a Kafka consumer
+[source,java,subs="+quotes,attributes"]
+----
+// Create the Kafka consumer
+private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
+    Properties props = new Properties();
+
+    // Configure standard Kafka settings
+    props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, SERVERS);
+    props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "Consumer-" + TOPIC_NAME);
+    props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+    props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
+    props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+    // Use {registry}-provided Kafka deserializer for Avro
+    props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+    props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
+
+    // Configure the {registry} location
+    props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
+
+    // No other configuration needed because the schema globalId the deserializer uses is sent
+    // in the payload. The deserializer extracts the globalId and uses it to look up the schema
+    // from the registry.
+
+    // Create the Kafka consumer
+    KafkaConsumer<Long, GenericRecord> consumer = new KafkaConsumer<>(props);
+    return consumer;
+}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For an example application, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Simple Avro example]
+
+
+
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-types-avro_{context}']
+=== Configure Avro SerDes with {registry}
+
+[role="_abstract"]
+This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for Apache Avro.
+
+{registry} provides the following Kafka client SerDes classes for Avro:
+
+* `io.apicurio.registry.serde.avro.AvroKafkaSerializer`
+* `io.apicurio.registry.serde.avro.AvroKafkaDeserializer`
+
+.Configure the Avro serializer
+You can configure the Avro serializer class with the following:
+
+* {registry} URL
+* Artifact resolver strategy
+* ID location
+* ID encoding
+* Avro datum provider
+* Avro encoding
+
+.ID location
+The serializer passes the unique ID of the schema as part of the Kafka message so that consumers can use the correct schema for deserialization. The ID can be in the message payload or in the message headers. The default location is the message payload. To send the ID in the message headers, set the following configuration property:
+----
+props.putIfAbsent(SerdeConfig.ENABLE_HEADERS, "true")
+----
+The property name is `apicurio.registry.headers.enabled`.
+
+
+.ID encoding
+You can customize how the schema ID is encoded when passing it in the Kafka message body. Set the `apicurio.registry.id-handler` configuration property to a class that implements the `io.apicurio.registry.serde.IdHandler` interface. {registry} provides the following implementations:
+
+* `io.apicurio.registry.serde.Default4ByteIdHandler`: Stores the ID as an 4-byte long
+* `io.apicurio.registry.serde.Legacy8ByteIdHandler`:  Stores the ID as an 8-byte integer
+
+{registry} represents the schema ID as a long, but for legacy reasons, or for compatibility with other registries or SerDe classes, you might want to use 4 bytes when sending the ID.
+
+.Avro datum provider
+Avro provides different datum writers and readers to write and read data. {registry} supports three different types:
+
+* Generic
+* Specific
+* Reflect
+
+The {registry} `AvroDatumProvider` is the abstraction of which type is used, where `DefaultAvroDatumProvider` is used by default.
+
+You can set the following configuration options:
+
+* `apicurio.registry.avro-datum-provider`: Specifies a fully-qualified Java class name of the `AvroDatumProvider` implementation, for example `io.apicurio.registry.serde.avro.ReflectAvroDatumProvider`
+* `apicurio.registry.use-specific-avro-reader`: Set to `true` to use a specific type when using `DefaultAvroDatumProvider`
+
+.Avro encoding
+When using Avro to serialize data, you can use the Avro binary encoding format to ensure the data is encoded in as efficient a format as possible. Avro also supports encoding the data as JSON, which makes it easier to inspect the payload of each message, for example, for logging or debugging.
+
+You can set the Avro encoding by configuring the `apicurio.registry.avro.encoding` property with a value of `JSON` or `BINARY`. The default is `BINARY`.
+
+.Configure the Avro deserializer
+You must configure the Avro deserializer class to match the following configuration settings of the serializer:
+
+* {registry} URL
+* ID encoding
+* Avro datum provider
+* Avro encoding
+
+See the serializer section for these configuration options. The property names and values are the same.
+
+[NOTE]
+====
+The following options are not required when configuring the deserializer:
+
+* Artifact resolver strategy
+* ID location
+====
+
+The deserializer class can determine the values for these options from the message. The strategy is not required because the serializer is responsible for sending the ID as part of the message.
+
+The ID location is determined by checking for the magic byte at the start of the message payload. If that byte is found, the ID is read from the message payload using the configured handler. If the magic byte is not found, the ID is read from the message headers.
+
+.Avro SerDes and artifact references
+When working with Avro messages and a schema with nested records, a new artifact is registered per nested record. For example, the following `TradeKey` schema includes a nested `Exchange` schema:
+
+.TradeKey schema with nested Exchange schema
+[source,json]
+----
+{
+  "namespace": "com.kubetrade.schema.trade",
+  "type": "record",
+  "name": "TradeKey",
+  "fields": [
+    {
+      "name": "exchange",
+      "type": "com.kubetrade.schema.common.Exchange"
+    },
+    {
+      "name": "key",
+      "type": "string"
+    }
+  ]
+}
+----
+
+.Exchange schema
+[source,json]
+----
+{
+  "namespace": "com.kubetrade.schema.common",
+  "type": "enum",
+  "name": "Exchange",
+  "symbols" : ["GEMINI"]
+}
+----
+
+When using these schemas with Avro SerDes, two artifacts are created in {registry}, one for the `TradeKey` schema and one for the `Exchange` schema. Whenever a message using the `TradeKey` schema is serialized or deserialized, both schemas are retrieved, allowing you to split your definitions into different files.
+
+
+[role="_additional-resources"]
+.Additional resources
+
+* For more details on Avro configuration, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/avro-serde/src/main/java/io/apicurio/registry/serde/avro/AvroSerdeConfig.java[AvroSerdeConfig Java class]
+* For Java example applications, see:
+** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Simple Avro example]
+** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]
+
+
+
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-types-json_{context}']
+=== Configure JSON Schema SerDes with {registry}
+
+[role="_abstract"]
+This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for JSON Schema.
+
+{registry} provides the following Kafka client SerDes classes for JSON Schema:
+
+* `io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer`
+* `io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer`
+
+Unlike Apache Avro, JSON Schema is not a serialization technology, but is instead a validation technology. As a result, configuration options for JSON Schema are quite different. For example, there is no encoding option, because data is always encoded as JSON.
+
+.Configure the JSON Schema serializer
+
+You can configure the JSON Schema serializer class as follows:
+
+* {registry} URL
+* Artifact resolver strategy
+* Schema validation
+
+The only non-standard configuration property is JSON Schema validation, which is enabled by default. You can disable this by setting
+`apicurio.registry.serde.validation-enabled` to `"false"`. For example:
+----
+props.putIfAbsent(SerdeConfig.VALIDATION_ENABLED, Boolean.FALSE)
+----
+
+.Configure the JSON Schema deserializer
+
+You can configure the JSON Schema deserializer class as follows:
+
+* {registry} URL
+* Schema validation
+* Class for deserializing data
+
+You must provide the location of {registry} so that the schema can be loaded. The other configuration is optional.
+
+NOTE: Deserializer validation only works if the serializer passes the global ID in the Kafka message, which will only happen when validation is enabled in the serializer.
+
+.JSON Schema SerDes and artifact references
+The JSON Schema SerDes cannot discover the schema from the message payload, so the schema artifact must be registered beforehand, and this also applies artifact references.
+
+Depending on the content of the schema, if the `$ref` value is a URL, the SerDes try to resolve the referenced schema using that URL, and then validation works as usual, validating the data against the main schema, and validating the nested value against the nested schema. Support for referencing artifacts in {registry} has also been implemented.
+
+For example, the following `citizen.json` schema references the `city.json` schema:
+
+.citizen.json schema with reference to city.json schema
+[source,json]
+----
+{
+ "$id": "https://example.com/citizen.schema.json",
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "Citizen",
+ "type": "object",
+ "properties": {
+   "firstName": {
+     "type": "string",
+     "description": "The citizen's first name."
+   },
+   "lastName": {
+     "type": "string",
+     "description": "The citizen's last name."
+   },
+   "age": {
+     "description": "Age in years which must be equal to or greater than zero.",
+     "type": "integer",
+     "minimum": 0
+   },
+   "city": {
+     "$ref": "city.json"
+   }
+ }
+}
+----
+
+.city.json schema
+[source,json]
+----
+{
+ "$id": "https://example.com/city.schema.json",
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "City",
+ "type": "object",
+ "properties": {
+   "name": {
+     "type": "string",
+     "description": "The city's name."
+   },
+   "zipCode": {
+     "type": "integer",
+     "description": "The zip code.",
+     "minimum": 0
+   }
+ }
+}
+----
+
+In this example, a given citizen has a city. In {registry}, a citizen artifact with a reference to the city artifact is created using the name `city.json`. In the SerDes, when the citizen schema is fetched, the city schema is also fetched because it is referenced from the citizen schema. When serializing/deserializing data, the reference name is used to resolve the nested schema, allowing validation against the citizen schema and the nested city schema.
+
+
+[role="_additional-resources"]
+.Additional resources
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/jsonschema-serde/src/main/java/io/apicurio/registry/serde/jsonschema/JsonSchemaKafkaDeserializerConfig.java[JsonSchemaKafkaDeserializerConfig Java class]
+* For Java example applications, see:
+** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Simple JSON Schema example]
+** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]
+
+
+
+// Module included in the following assemblies:
+//  assembly-using-kafka-client-serdes
+
+[id='registry-serdes-types-protobuf_{context}']
+
+=== Configure Protobuf SerDes with {registry}
+
+[role="_abstract"]
+This topic explains how to use the Kafka client serializer and deserializer (SerDes) classes for Google Protobuf.
+
+{registry} provides the following Kafka client SerDes classes for Protobuf:
+
+* `io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer`
+* `io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer`
+
+.Configure the Protobuf serializer
+
+You can configure the Protobuf serializer class as follows:
+
+* {registry} URL
+* Artifact resolver strategy
+* ID location
+* ID encoding
+* Schema validation
+
+For details on these configuration options, see the following sections:
+
+* xref:registry-serdes-concepts-constants_registry[]
+* xref:registry-serdes-types-avro_registry[]
+
+.Configure the Protobuf deserializer
+
+You must configure the Protobuf deserializer class to match the following configuration settings in the serializer:
+
+* {registry} URL
+* ID encoding
+
+The configuration property names and values are the same as for the serializer.
+
+[NOTE]
+====
+The following options are not required when configuring the deserializer:
+
+* Artifact resolver strategy
+* ID location
+====
+
+The deserializer class can determine the values for these options from the message. The strategy is not required because the serializer is responsible for sending the ID as part of the message.
+
+The ID location is determined by checking for the magic byte at the start of the message payload. If that byte is found, the ID is read from the message payload using the configured handler. If the magic byte is not found, the ID is read from the message headers.
+
+NOTE: The Protobuf deserializer does not deserialize to your exact Protobuf Message implementation, but rather to a `DynamicMessage` instance. There is no appropriate API to do otherwise.
+
+.Protobuf SerDes and artifact references
+When a complex Protobuf message with an `import` statement is used, the imported Protobuf messages are stored in {registry} as separate artifacts. Then when {registry} gets the main schema to check a Protobuf message, the referenced schemes are also retrieved so the full message schema can be checked and serialized.
+
+For example, the following `table_info.proto` schema file includes the imported `mode.proto` schema file:
+
+.table_info.proto file with imported mode.proto file
+[source,bash]
+----
+syntax = "proto3";
+package sample;
+option java_package = "io.api.sample";
+option java_multiple_files = true;
+
+import "sample/mode.proto";
+
+message TableInfo {
+
+ int32 winIndex = 1;
+ Mode mode = 2;
+ int32 min = 3;
+ int32 max = 4;
+ string id = 5;
+ string dataAdapter = 6;
+ string schema = 7;
+ string selector = 8;
+ string subscription_id = 9;
+}
+----
+
+.mode.proto file
+[source,bash]
+----
+syntax = "proto3";
+package sample;
+option java_package = "io.api.sample";
+option java_multiple_files = true;
+
+enum Mode {
+
+MODE_UNKNOWN = 0;
+RAW = 1;
+MERGE = 2;
+DISTINCT = 3;
+COMMAND = 4;
+}
+----
+
+In this example, two Protobuf artifacts are stored in {registry}, one for `TableInfo` and one for `Mode`. However, because `Mode` is part of `TableInfo`, whenever `TableInfo` is fetched to check a message in the SerDes, `Mode` is also returned as an artifact referenced by `TableInfo`.
+
+
+[role="_additional-resources"]
+.Additional resources
+* For Java example applications, see:
+** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Protobuf Bean and Protobuf Find Latest examples]
+** link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]
+
+

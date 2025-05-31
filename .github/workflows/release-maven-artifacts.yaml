@@ -58,7 +58,7 @@ jobs:
           pwd
           mkdir -p /home/runner/.m2
           chmod 755 /home/runner/.m2
-          echo "<settings><servers><server><id>${{ secrets.OSSRH_ID }}</id><username>${{ secrets.OSSRH_USERNAME }}</username><password>${{ secrets.OSSRH_TOKEN }}</password></server></servers><profiles><profile><id>${{ secrets.OSSRH_ID }}</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE}}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
+          echo "<settings><servers><server><id>central</id><username>${{ secrets.CENTRAL_USERNAME }}</username><password>${{ secrets.CENTRAL_TOKEN }}</password></server></servers><profiles><profile><id>central</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE }}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
           cat /home/runner/.m2/settings.xml
 
       - name: Import GPG Key

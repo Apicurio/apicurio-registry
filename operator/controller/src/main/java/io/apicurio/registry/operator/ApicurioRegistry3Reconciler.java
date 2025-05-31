@@ -29,6 +29,7 @@ import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.operator.CRContext.deleteCRContext;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppNetworkPolicyActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppPodDisruptionBudgetActivationCondition;
@@ -140,6 +141,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
 
     @Override
     public DeleteControl cleanup(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+        deleteCRContext(primary);
         StatusManager.clean(primary);
         return DeleteControl.defaultDelete();
     }

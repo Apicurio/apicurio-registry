@@ -417,8 +417,8 @@ catalog-subscription-undeploy: ## TODO
 
 .PHONY: release-catalog-template-update
 release-catalog-template-update: install-yq
-	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name = "3.x") | .entries[] | select(.name = "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
-	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name = "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
 	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
 
 

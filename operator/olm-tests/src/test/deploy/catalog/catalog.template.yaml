@@ -11,7 +11,7 @@ entries:
         replaces: apicurio-registry-3.v3.0.8
       - name: apicurio-registry-3.v3.0.8
         replaces: apicurio-registry-3.v3.0.7
-      - name: apicurio-registry-3.v3.0.8
+      - name: apicurio-registry-3.v3.0.7
   - schema: olm.bundle
     image: ${PLACEHOLDER_BUNDLE_IMAGE}
   - schema: olm.bundle

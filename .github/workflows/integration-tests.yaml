@@ -61,9 +61,13 @@ jobs:
       - name: Build Application
         run: ./mvnw clean package -am --no-transfer-progress -Pprod -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
-      - name: Build and Push Application image
+      - name: Build Application image
         run: |
-          docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
+          docker buildx build -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h ./distro/docker/target/docker
+
+      - name: Push Application image
+        run: |
+          docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests

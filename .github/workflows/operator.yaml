@@ -104,6 +104,24 @@ jobs:
             echo "No changes to the install file.";
           fi
 
+#      - name: Install debug tools on failure
+#        if: failure()
+#        run: |
+#          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+#          echo >> /home/runner/.bashrc
+#          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
+#          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+#          brew install derailed/k9s/k9s
+#          # Run tests e.g.:
+#          # make BUILD_OPTS=--no-transfer-progress remote-tests-all &> 1.log
+#          # tail -f 1.log
+#
+#      - name: Setup tmate session on failure
+#        if: failure()
+#        uses: mxschmitt/action-tmate@v3
+#        with:
+#          limit-access-to-actor: true
+
   operator-publish:
     name: Publish Operator
     runs-on: ubuntu-latest

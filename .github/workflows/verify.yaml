@@ -229,13 +229,13 @@ jobs:
         run: |
           ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
 
-      - name: Build and Push Temporary image for testing
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
+      - name: Build Temporary image for testing
         run: |
-          docker build --push -f ./distro/docker/target/docker/Dockerfile.native -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d app/
+          docker build -f ./distro/docker/target/docker/Dockerfile.native -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h app/
+
+      - name: Push Temporary image for testing
+        run: |
+          docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h
 
       - name: Setup Minikube
         uses: manusa/actions-setup-minikube@v2.13.0
@@ -249,10 +249,10 @@ jobs:
         run: minikube tunnel &> /dev/null &
 
       - name: Run Integration Tests - Native
-        run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - Native - Auth
-        run: ./mvnw verify -am -Pauth --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am -Pauth --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()

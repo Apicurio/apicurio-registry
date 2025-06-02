@@ -61,11 +61,11 @@ jobs:
       - name: Build Application
         run: ./mvnw clean package -am --no-transfer-progress -Pprod -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
-      - name: Build Application image
+      - name: Build temporary Application image
         run: |
           docker buildx build -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h ./distro/docker/target/docker
 
-      - name: Push Application image
+      - name: Push temporary Application image
         run: |
           docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
 
@@ -139,13 +139,13 @@ jobs:
         run: minikube tunnel &> /dev/null &
 
       - name: Run Integration Tests - H2
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - auth - H2
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - migration - H2
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()
@@ -184,13 +184,13 @@ jobs:
         run: minikube tunnel &> /dev/null &
 
       - name: Run Integration Tests - Postgresql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - auth - Postgresql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - migration - Postgresql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()
@@ -230,16 +230,16 @@ jobs:
         run: minikube tunnel &> /dev/null &
 
       - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - auth - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - migration - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - snapshotting - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pkafkasql-snapshotting -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pkafkasql-snapshotting -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()
@@ -270,9 +270,9 @@ jobs:
       - name: Run UI tests
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
           echo "Starting Registry UI"
-          docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:1d
+          docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:6h
 
           cd ui/tests
           npm install
@@ -335,7 +335,7 @@ jobs:
       - name: Run Legacy Integration Tests (Core API v2)
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
           cd registry-v2
           ./mvnw -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true
           cd integration-tests
@@ -363,7 +363,7 @@ jobs:
       - name: Run SDK tests
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
 
           cd typescript-sdk
           npm install
@@ -388,7 +388,7 @@ jobs:
           cache: 'maven'
 
       - name: Run Apicurio Registry application
-        run: docker run -d -p 8080:8080 -it ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:1d
+        run: docker run -d -p 8080:8080 -it ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
 
       - name: Build Apicurio Registry with Examples
         run: cd apicurio-registry && mvn clean install -DskipTests -Pexamples

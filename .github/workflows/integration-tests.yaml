@@ -92,13 +92,9 @@ jobs:
 
       - name: Build and Push UI container image
         working-directory: ui
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
         run: |
-          docker build -t $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG .
-          docker push $IMAGE_REPO/apicurio/apicurio-registry-ui:$IMAGE_TAG
+          docker build -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:6h .
+          docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:6h
 
   integration-tests-h2:
     name: Integration Tests H2

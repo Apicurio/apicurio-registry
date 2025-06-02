@@ -21,6 +21,10 @@ import java.net.URL;
 @ApplicationScoped
 public class ImportLifecycleBean {
 
+    private enum ImportStatus {
+        UNKNOWN, SKIPPED, STARTED, COMPLETE, ERROR
+    }
+
     @Inject
     Logger log;
 
@@ -34,26 +38,40 @@ public class ImportLifecycleBean {
     @Inject
     AdminResourceImpl v3Admin;
 
+    private ImportStatus importStatus = ImportStatus.UNKNOWN;
+
     void onStorageReady(@ObservesAsync StorageEvent ev) {
-        if (StorageEventType.READY.equals(ev.getType())
-                && importExportProps.registryImportUrlProp.isPresent()) {
-            log.info("Import URL exists.");
-            final URL registryImportUrl = importExportProps.registryImportUrlProp.get();
-            try (final InputStream registryImportZip = new BufferedInputStream(
-                    registryImportUrl.openStream())) {
-                log.info("Importing {} on startup.", registryImportUrl);
-                v3Admin.importData(null, null, null, registryImportZip);
-                log.info("Registry successfully imported from {}", registryImportUrl);
-            } catch (IOException ioe) {
-                log.error("Registry import from {} failed", registryImportUrl, ioe);
-            } catch (ReadOnlyStorageException rose) {
-                log.error("Registry import failed, because the storage is in read-only mode.");
-            } catch (ConflictException ce) {
-                log.info("Import skipped, registry not empty.");
-            } catch (Exception e) {
-                log.error("Registry import failed", e);
+        if (StorageEventType.READY.equals(ev.getType())) {
+            if (importExportProps.registryImportUrlProp.isPresent()) {
+                log.info("Import URL exists.");
+                final URL registryImportUrl = importExportProps.registryImportUrlProp.get();
+                importStatus = ImportStatus.STARTED;
+                try (final InputStream registryImportZip = new BufferedInputStream(
+                        registryImportUrl.openStream())) {
+                    log.info("Importing {} on startup.", registryImportUrl);
+                    v3Admin.importData(null, null, null, registryImportZip);
+                    log.info("Registry successfully imported from {}", registryImportUrl);
+                    importStatus = ImportStatus.COMPLETE;
+                } catch (IOException ioe) {
+                    log.error("Registry import from {} failed", registryImportUrl, ioe);
+                    importStatus = ImportStatus.ERROR;
+                } catch (ReadOnlyStorageException rose) {
+                    log.error("Registry import failed, because the storage is in read-only mode.");
+                    importStatus = ImportStatus.ERROR;
+                } catch (ConflictException ce) {
+                    log.info("Import skipped, registry not empty.");
+                    importStatus = ImportStatus.ERROR;
+                } catch (Exception e) {
+                    log.error("Registry import failed", e);
+                    importStatus = ImportStatus.ERROR;
+                }
+            } else {
+                importStatus = ImportStatus.SKIPPED;
             }
         }
     }
 
+    public boolean isReady() {
+        return importStatus == ImportStatus.SKIPPED || importStatus == ImportStatus.COMPLETE;
+    }
 }

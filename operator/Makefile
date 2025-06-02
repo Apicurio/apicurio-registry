@@ -360,10 +360,12 @@ catalog-build: install-opm ## TODO
 	$(call target_dir,$(CATALOG_TARGET_DIR))
 	# Create catalog.yaml
 	mkdir -p $(CATALOG_TARGET_DIR)/configs
-	cat $(CATALOG_DIR)/catalog.template.yaml | envsubst > $(CATALOG_TARGET_DIR)/catalog.yaml
+	cat $(CATALOG_DIR)/catalog.template.yaml | envsubst >$(CATALOG_TARGET_DIR)/catalog.yaml
 	# Build
-	cd $(CATALOG_TARGET_DIR) && $(OPM) alpha render-template basic catalog.yaml --output=yaml > configs/index.yaml
+	cd $(CATALOG_TARGET_DIR) && $(OPM) alpha render-template basic catalog.yaml --output=yaml >configs/index.yaml
 	cd $(CATALOG_TARGET_DIR) && $(OPM) generate dockerfile configs
+	# Workaround for Docker error: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 3)
+	sed -i 's|^FROM \(.*\) as builder$$|FROM \1 AS builder|g' $(CATALOG_TARGET_DIR)/configs.Dockerfile
 
 
 .PHONY: catalog-image-build

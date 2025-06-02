@@ -11,6 +11,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static io.apicurio.registry.operator.utils.Utils.updateResourceManually;
+
 /**
  * Keeps track of not only the annotations that have been added, but also of those that have been deleted.
  */
@@ -54,15 +56,10 @@ public class AnnotationManager {
     }
 
     public static void updateResourceAnnotations(Context<ApicurioRegistry3> context, HasMetadata resource, AnnotationManager annotations, Map<String, String> sourceAnnotations) {
-        // We need to use the client to support annotation removal:
-        var fresh = context.getClient().resource(resource).get();
-        if (fresh != null) {
+        updateResourceManually(context, resource, r -> {
             annotations.replace(sourceAnnotations);
-            annotations.update(fresh.getMetadata().getAnnotations());
-            if (annotations.isChanged()) {
-                context.getClient().resource(fresh).update();
-                annotations.reset();
-            }
-        }
+            annotations.update(r.getMetadata().getAnnotations());
+            return annotations.isChanged();
+        }, annotations::reset);
     }
 }

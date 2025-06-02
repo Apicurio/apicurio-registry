@@ -6,8 +6,8 @@ spec:
   app:
     ingress:
       host: ingress-class-name-app.apps.cluster.example
-      ingressClassName: haproxy1
+      ingressClassName: haproxy-app
   ui:
     ingress:
       host: ingress-class-name-ui.apps.cluster.example
-      ingressClassName: haproxy2
+      ingressClassName: haproxy-ui

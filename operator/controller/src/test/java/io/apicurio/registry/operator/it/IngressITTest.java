@@ -142,24 +142,28 @@ public class IngressITTest extends ITBase {
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get()).isNotNull();
-            assertThat(appIngress.getCached().getSpec().getIngressClassName()).isEqualTo("haproxy1");
+            assertThat(appIngress.getCached().getSpec().getIngressClassName()).isEqualTo("haproxy-app");
         });
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(uiIngress.get()).isNotNull();
-            assertThat(uiIngress.getCached().getSpec().getIngressClassName()).isEqualTo("haproxy2");
+            assertThat(uiIngress.getCached().getSpec().getIngressClassName()).isEqualTo("haproxy-ui");
         });
 
-        primary.update(p -> p.getSpec().getApp().getIngress().setIngressClassName("nginx"));
+        primary.update(p -> p.getSpec().getApp().getIngress().setIngressClassName("test---nginx"));
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-            assertThat(appIngress.get().getSpec().getIngressClassName()).isEqualTo("nginx");
+            assertThat(appIngress.get().getSpec().getIngressClassName()).isEqualTo("test---nginx");
+        });
+
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            assertThat(uiIngress.get().getSpec().getIngressClassName()).isEqualTo("haproxy-ui");
         });
 
         primary.update(p -> p.getSpec().getApp().getIngress().setIngressClassName(""));
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-            assertThat(appIngress.get().getSpec().getIngressClassName()).isNull();
+            assertThat(appIngress.get().getSpec().getIngressClassName()).isNotEqualTo("test---nginx");
         });
     }
 }

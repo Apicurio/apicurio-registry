@@ -9,6 +9,7 @@
         <version>2.6.10-SNAPSHOT</version>
     </parent>
     <artifactId>apicurio-registry-integration-tests</artifactId>
+    <name>apicurio-registry-integration-tests</name>
 
     <properties>
         <skipTests>true</skipTests>

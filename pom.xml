@@ -256,6 +256,9 @@
     <version.license-maven-plugin>2.5.0</version.license-maven-plugin>
     <version.exec-maven-plugin>3.5.0</version.exec-maven-plugin>
 
+    <!-- Central-Publishing-Maven-Plugin -->
+    <version.org.sonatype.central-publishing-maven-plugin>0.7.0</version.org.sonatype.central-publishing-maven-plugin>
+
     <!-- Plugin Deps -->
     <version.puppycrawl>8.45.1</version.puppycrawl>
     <apicurio-maven-plugin.version>0.0.3</apicurio-maven-plugin.version>
@@ -1199,7 +1202,7 @@
           <plugin>
             <groupId>org.sonatype.central</groupId>
             <artifactId>central-publishing-maven-plugin</artifactId>
-            <version>0.7.0</version>
+            <version>${version.org.sonatype.central-publishing-maven-plugin}</version>
             <extensions>true</extensions>
             <configuration>
               <publishingServerId>central</publishingServerId>

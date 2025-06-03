@@ -4,6 +4,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -36,4 +37,6 @@ public interface ArtifactTypeUtilProvider {
     ReferenceFinder getReferenceFinder();
 
     boolean supportsReferencesWithContext();
+
+    ReferenceArtifactIdentifierExtractor getReferenceArtifactIdentifierExtractor();
 }

@@ -730,7 +730,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION })
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public Comment addArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             NewComment data) {
         requireParameter("groupId", groupId);
@@ -752,7 +752,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3",
             "comment_id" })
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId) {
         requireParameter("groupId", groupId);
@@ -793,7 +793,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3",
             "comment_id" })
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void updateArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId, NewComment data) {
         requireParameter("groupId", groupId);

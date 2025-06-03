@@ -1,4 +1,3 @@
-// Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="registry-config-reference_{context}"]
@@ -6,7 +5,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-This chapter provides reference information on the configuration options that are available for {registry}. 
+This chapter provides reference information on the configuration options that are available for {registry}.
 
 * xref:all-registry-configs_{context}[]
 
@@ -14,14 +13,1214 @@ This chapter provides reference information on the configuration options that ar
 * For details on migrating a 2.x Apicurio Registry deployment to 3.x see xref:migration-table_{context}[]
 
 * For details on setting configuration options by using the Core Registry API, see the `/admin/config/properties` endpoint in the {registry-rest-api}.
-* For details on client configuration options for Kafka serializers and deserializers, see 
-ifdef::apicurio-registry[]
+* For details on client configuration options for Kafka serializers and deserializers, see
 {registry-client-serdes-config}.
-endif::[]
-ifdef::rh-service-registry[]
-the link:{LinkServiceRegistryUser}[{NameServiceRegistryUser}].
-endif::[]
 
 //INCLUDES
-include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-config-migration.adoc[leveloffset=+1]
+
+
+[id="all-registry-configs_{context}"]
+== {registry} configuration options
+
+The following {registry} configuration options are available for each component category:
+
+==
+. configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.app.date`
+|`string`
+|
+|`3.0.4`
+|
+|`apicurio.app.description`
+|`string`
+|
+|`3.0.4`
+|
+|`apicurio.app.name`
+|`string`
+|
+|`3.0.4`
+|
+|`apicurio.app.version`
+|`string`
+|
+|`3.0.4`
+|
+|===
+
+=== api
+.api configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.api.errors.include-stack-in-response`
+|`boolean`
+|`false`
+|`2.1.4.Final`
+|Include stack trace in errors responses
+|`apicurio.apis.v3.base-href`
+|`string`
+|`_`
+|`2.5.0.Final`
+|API base href (URI)
+|`apicurio.disable.apis`
+|`optional<list<string>>`
+|
+|`2.0.0.Final`
+|Disable APIs
+|===
+
+=== auth
+.auth configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.auth.admin-override.claim`
+|`string`
+|`org-admin`
+|`2.1.0.Final`
+|Auth admin override claim
+|`apicurio.auth.admin-override.claim-value`
+|`string`
+|`true`
+|`2.1.0.Final`
+|Auth admin override claim value
+|`apicurio.auth.admin-override.enabled`
+|`boolean`
+|`false`
+|`2.1.0.Final`
+|Auth admin override enabled
+|`apicurio.auth.admin-override.from`
+|`string`
+|`token`
+|`2.1.0.Final`
+|Auth admin override from
+|`apicurio.auth.admin-override.role`
+|`string`
+|`sr-admin`
+|`2.1.0.Final`
+|Auth admin override role
+|`apicurio.auth.admin-override.type`
+|`string`
+|`role`
+|`2.1.0.Final`
+|Auth admin override type
+|`apicurio.auth.admin-override.user`
+|`string`
+|`admin`
+|`3.0.0`
+|Auth admin override user name
+|`apicurio.auth.anonymous-read-access.enabled`
+|`boolean [dynamic]`
+|`false`
+|`2.1.0.Final`
+|Anonymous read access
+|`apicurio.auth.authenticated-read-access.enabled`
+|`boolean [dynamic]`
+|`false`
+|`2.1.4.Final`
+|Authenticated read access
+|`apicurio.auth.owner-only-authorization`
+|`boolean [dynamic]`
+|`false`
+|`2.0.0.Final`
+|Artifact owner-only authorization
+|`apicurio.auth.owner-only-authorization.limit-group-access`
+|`boolean [dynamic]`
+|`false`
+|`2.1.0.Final`
+|Artifact group owner-only authorization
+|`apicurio.auth.role-based-authorization`
+|`boolean`
+|`false`
+|`2.1.0.Final`
+|Enable role based authorization
+|`apicurio.auth.role-source`
+|`string`
+|`token`
+|`2.1.0.Final`
+|Auth roles source
+|`apicurio.auth.role-source.header.name`
+|`string`
+|
+|`2.4.3.Final`
+|Header authorization name
+|`apicurio.auth.roles.admin`
+|`string`
+|`sr-admin`
+|`2.0.0.Final`
+|Auth roles admin
+|`apicurio.auth.roles.developer`
+|`string`
+|`sr-developer`
+|`2.1.0.Final`
+|Auth roles developer
+|`apicurio.auth.roles.readonly`
+|`string`
+|`sr-readonly`
+|`2.1.0.Final`
+|Auth roles readonly
+|`apicurio.authn.audit.log.prefix`
+|`string`
+|`audit`
+|`2.2.6`
+|Prefix used for application audit logging.
+|`apicurio.authn.basic-client-credentials.cache-expiration`
+|`integer`
+|`10`
+|`2.2.6.Final`
+|Default client credentials token expiration time in minutes.
+|`apicurio.authn.basic-client-credentials.cache-expiration-offset`
+|`integer`
+|`10`
+|`2.5.9.Final`
+|Client credentials token expiration offset from JWT expiration, in seconds.
+|`apicurio.authn.basic-client-credentials.enabled`
+|`boolean [dynamic]`
+|`false`
+|`2.1.0.Final`
+|Enable basic auth client credentials
+|`apicurio.authn.basic.scope`
+|`optional<string>`
+|
+|`2.5.0.Final`
+|Client credentials scope.
+|`quarkus.http.auth.basic`
+|`boolean`
+|`false`
+|`3.0.0`
+|Enable basic auth
+|`quarkus.oidc.client-id`
+|`string`
+|
+|`2.0.0.Final`
+|Client identifier used by the server for authentication.
+|`quarkus.oidc.client-secret`
+|`optional<string>`
+|
+|`2.1.0.Final`
+|Client secret used by the server for authentication.
+|`quarkus.oidc.tenant-enabled`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Enable auth
+|`quarkus.oidc.token-path`
+|`string`
+|
+|`2.1.0.Final`
+|Authentication server token endpoint.
+|===
+
+=== cache
+.cache configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.config.cache.enabled`
+|`boolean`
+|`true`
+|`2.2.2.Final`
+|Registry cache enabled
+|===
+
+=== ccompat
+.ccompat configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.ccompat.group-concat.enabled`
+|`boolean`
+|`false`
+|`2.6.2.Final`
+|Enable group support via concatenation in subject (compatibility API)
+|`apicurio.ccompat.group-concat.separator`
+|`string`
+|`:`
+|`2.6.2.Final`
+|Separator to use when group concatenation is enabled (compatibility API)
+|`apicurio.ccompat.legacy-id-mode.enabled`
+|`boolean [dynamic]`
+|`false`
+|`2.0.2.Final`
+|Legacy ID mode (compatibility API)
+|`apicurio.ccompat.max-subjects`
+|`integer [dynamic]`
+|`1000`
+|`2.4.2.Final`
+|Maximum number of Subjects returned (compatibility API)
+|`apicurio.ccompat.use-canonical-hash`
+|`boolean [dynamic]`
+|`false`
+|`2.3.0.Final`
+|Canonical hash mode (compatibility API)
+|===
+
+=== download
+.download configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.download.href.ttl.seconds`
+|`long [dynamic]`
+|`30`
+|`2.1.2.Final`
+|Download link expiry
+|===
+
+=== gitops
+.gitops configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.gitops.id`
+|`string`
+|
+|`3.0.0`
+|Identifier of this Registry instance. Only data that references this identifier will be loaded.
+|`apicurio.gitops.repo.origin.branch`
+|`string`
+|`main`
+|`3.0.0`
+|Name of the branch in the remote git repository containing data to be loaded.
+|`apicurio.gitops.repo.origin.uri`
+|`string`
+|
+|`3.0.0`
+|URI of the remote git repository containing data to be loaded.
+|`apicurio.gitops.workdir`
+|`string`
+|`/tmp/apicurio-registry-gitops`
+|`3.0.0`
+|Path to GitOps working directory, which is used to store the local git repository.
+|===
+
+=== health
+.health configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.liveness.errors.ignored`
+|`optional<list<string>>`
+|
+|`1.2.3.Final`
+|Ignored liveness errors
+|`apicurio.metrics.persistence-exception-liveness-check.counter-reset-window-duration.seconds`
+|`integer`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of persistence liveness check
+|`apicurio.metrics.persistence-exception-liveness-check.error-threshold`
+|`integer`
+|`1`
+|`1.0.2.Final`
+|Error threshold of persistence liveness check
+|`apicurio.metrics.persistence-exception-liveness-check.logging.disabled`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Disable logging of persistence liveness check
+|`apicurio.metrics.persistence-exception-liveness-check.status-reset-window-duration.seconds`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of persistence liveness check
+|`apicurio.metrics.persistence-timeout-readiness-check.error-threshold`
+|`integer`
+|`5`
+|`1.0.2.Final`
+|Error threshold of persistence readiness check
+|`apicurio.metrics.persistence-timeout-readiness-check.timeout.seconds`
+|`integer`
+|`15`
+|`1.0.2.Final`
+|Timeout of persistence readiness check
+|`apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of persistence readiness check
+|`apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds`
+|`integer`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of response liveness check
+|`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
+|`integer`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of persistence readiness check
+|`apicurio.metrics.response-error-liveness-check.disabled`
+|`boolean`
+|`false`
+|`2.0.0.Final`
+|Disable logging of response liveness check
+|`apicurio.metrics.response-error-liveness-check.error-threshold`
+|`integer`
+|`1`
+|`1.0.2.Final`
+|Error threshold of response liveness check
+|`apicurio.metrics.response-error-liveness-check.status-reset-window-duration.seconds`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of response liveness check
+|`apicurio.metrics.response-timeout-readiness-check.counter-reset-window-duration.seconds`
+|`instance<integer>`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of response readiness check
+|`apicurio.metrics.response-timeout-readiness-check.error-threshold`
+|`instance<integer>`
+|`1`
+|`1.0.2.Final`
+|Error threshold of response readiness check
+|`apicurio.metrics.response-timeout-readiness-check.timeout.seconds`
+|`instance<integer>`
+|`10`
+|`1.0.2.Final`
+|Timeout of response readiness check
+|`apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds`
+|`instance<integer>`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of response readiness check
+|`apicurio.storage.metrics.cache.check-period.ms`
+|`long`
+|`30000`
+|`2.1.0.Final`
+|Storage metrics cache check period
+|===
+
+=== import
+.import configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.import.preserveContentId`
+|`boolean`
+|`true`
+|`3.0.0`
+|When set to true, content IDs from the import file will be used (otherwise new IDs will be generated).  Defaults to 'true'.
+|`apicurio.import.preserveGlobalId`
+|`boolean`
+|`true`
+|`3.0.0`
+|When set to true, global IDs from the import file will be used (otherwise new IDs will be generated).  Defaults to 'true'.
+|`apicurio.import.requireEmptyRegistry`
+|`boolean`
+|`true`
+|`3.0.0`
+|When set to true, importing data will only work when the registry is empty.  Defaults to 'true'.
+|`apicurio.import.url`
+|`optional<url>`
+|
+|`2.1.0.Final`
+|The import URL
+|`apicurio.import.work-dir`
+|`string`
+|
+|`3.0.0`
+|Temporary work directory to use when importing data.
+|===
+
+=== limits
+.limits configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.limits.config.max-artifact-labels`
+|`long`
+|`-1`
+|`2.2.3.Final`
+|Max artifact labels
+|`apicurio.limits.config.max-artifact-properties`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact properties
+|`apicurio.limits.config.max-artifacts`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifacts
+|`apicurio.limits.config.max-description-length`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact description length
+|`apicurio.limits.config.max-label-size.bytes`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact label size
+|`apicurio.limits.config.max-name-length`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact name length
+|`apicurio.limits.config.max-property-key-size.bytes`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact property key size
+|`apicurio.limits.config.max-property-value-size.bytes`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max artifact property value size
+|`apicurio.limits.config.max-requests-per-second`
+|`long`
+|`-1`
+|`2.2.3.Final`
+|Max artifact requests per second
+|`apicurio.limits.config.max-schema-size.bytes`
+|`long`
+|`-1`
+|`2.2.3.Final`
+|Max schema size (bytes)
+|`apicurio.limits.config.max-total-schemas`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max total schemas
+|`apicurio.limits.config.max-versions-per-artifact`
+|`long`
+|`-1`
+|`2.1.0.Final`
+|Max versions per artifacts
+|`apicurio.storage.metrics.cache.max-size`
+|`long`
+|`1000`
+|`2.4.1.Final`
+|Storage metrics cache max size.
+|===
+
+=== redirects
+.redirects configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.redirects`
+|`map<string, string>`
+|
+|`2.1.2.Final`
+|Registry redirects
+|`apicurio.redirects.enabled`
+|`boolean`
+|
+|`2.1.2.Final`
+|Enable redirects
+|`apicurio.url.override.host`
+|`optional<string>`
+|
+|`2.5.0.Final`
+|Override the hostname used for generating externally-accessible URLs. The host and port overrides are useful when deploying Registry with HTTPS passthrough Ingress or Route. In cases like these, the request URL (and port) that is then re-used for redirection does not belong to actual external URL used by the client, because the request is proxied. The redirection then fails because the target URL is not reachable.
+|`apicurio.url.override.port`
+|`optional<integer>`
+|
+|`2.5.0.Final`
+|Override the port used for generating externally-accessible URLs.
+|===
+
+=== rest
+.rest configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.rest.artifact.download.max-size.bytes`
+|`int`
+|`1000000`
+|`2.2.6`
+|Max size of the artifact allowed to be downloaded from URL
+|`apicurio.rest.artifact.download.ssl-validation.disabled`
+|`boolean`
+|`false`
+|`2.2.6`
+|Skip SSL validation when downloading artifacts from URL
+|`apicurio.rest.deletion.artifact-version.enabled`
+|`boolean [dynamic]`
+|`false`
+|`2.4.2`
+|Enables artifact version deletion
+|`apicurio.rest.deletion.artifact.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.0`
+|Enables artifact deletion
+|`apicurio.rest.deletion.group.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.0`
+|Enables group deletion
+|`apicurio.rest.mutability.artifact-version-content.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.2`
+|Enables artifact version mutability
+|`apicurio.rest.search-results.labels.max-size.bytes`
+|`int`
+|`512`
+|`3.0.3`
+|Max size of the labels (in bytes) per item from within search results
+|===
+
+=== semver
+.semver configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.semver.branching.coerce`
+|`boolean [dynamic]`
+|`false`
+|`3.0.0`
+|If true, invalid versions will be coerced to Semantic Versioning 2 format (https://semver.org) if possible.
+|`apicurio.semver.branching.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.0`
+|Automatically create or update branches for major ('A.x') and minor ('A.B.x') artifact versions.
+|`apicurio.semver.validation.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.0`
+|Validate that all artifact versions conform to Semantic Versioning 2 format (https://semver.org).
+|===
+
+=== storage
+.storage configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.datasource.blue.db-kind`
+|`string`
+|`h2`
+|`3.0.0`
+|Gitops blue datasource db kind
+|`apicurio.datasource.blue.jdbc.initial-size`
+|`string`
+|`20`
+|`3.0.0`
+|Gitops blue datasource pool initial size
+|`apicurio.datasource.blue.jdbc.max-size`
+|`string`
+|`100`
+|`3.0.0`
+|Gitops blue datasource pool max size
+|`apicurio.datasource.blue.jdbc.min-size`
+|`string`
+|`20`
+|`3.0.0`
+|Gitops blue datasource pool minimum size
+|`apicurio.datasource.blue.jdbc.url`
+|`string`
+|`jdbc:h2:mem:registry_db`
+|`3.0.0`
+|Gitops blue datasource jdbc url
+|`apicurio.datasource.blue.password`
+|`string`
+|`sa`
+|`3.0.0`
+|Gitops blue datasource password
+|`apicurio.datasource.blue.username`
+|`string`
+|`sa`
+|`3.0.0`
+|Gitops blue datasource username
+|`apicurio.datasource.green.db-kind`
+|`string`
+|`h2`
+|`3.0.0`
+|Gitops green datasource db kind
+|`apicurio.datasource.green.jdbc.initial-size`
+|`string`
+|`20`
+|`3.0.0`
+|Gitops green datasource pool initial size
+|`apicurio.datasource.green.jdbc.max-size`
+|`string`
+|`100`
+|`3.0.0`
+|Gitops green datasource pool max size
+|`apicurio.datasource.green.jdbc.min-size`
+|`string`
+|`20`
+|`3.0.0`
+|Gitops green datasource pool minimum size
+|`apicurio.datasource.green.jdbc.url`
+|`string`
+|`jdbc:h2:mem:registry_db`
+|`3.0.0`
+|Gitops green datasource jdbc url
+|`apicurio.datasource.green.password`
+|`string`
+|`sa`
+|`3.0.0`
+|Gitops green datasource password
+|`apicurio.datasource.green.username`
+|`string`
+|`sa`
+|`3.0.0`
+|Gitops green datasource username
+|`apicurio.events.kafka.topic`
+|`string`
+|`registry-events`
+|
+|Storage event topic
+|`apicurio.kafkasql.bootstrap.servers`
+|`string`
+|
+|
+|Kafka sql storage bootstrap servers
+|`apicurio.kafkasql.consumer.group-prefix`
+|`string`
+|`apicurio-`
+|
+|Kafka sql storage prefix for consumer group name
+|`apicurio.kafkasql.consumer.poll.timeout`
+|`integer`
+|`5000`
+|
+|Kafka sql storage consumer poll timeout
+|`apicurio.kafkasql.coordinator.response-timeout`
+|`integer`
+|`30000`
+|
+|Kafka sql storage coordinator response timeout
+|`apicurio.kafkasql.security.protocol`
+|`optional<string>`
+|
+|
+|Kafka sql storage security protocol
+|`apicurio.kafkasql.security.sasl.client-id`
+|`string`
+|
+|
+|Kafka sql storage sasl client identifier
+|`apicurio.kafkasql.security.sasl.client-secret`
+|`string`
+|
+|
+|Kafka sql storage sasl client secret
+|`apicurio.kafkasql.security.sasl.enabled`
+|`boolean`
+|`false`
+|
+|Kafka sql storage sasl enabled
+|`apicurio.kafkasql.security.sasl.login.callback.handler.class`
+|`string`
+|
+|
+|Kafka sql storage sasl login callback handler
+|`apicurio.kafkasql.security.sasl.mechanism`
+|`string`
+|
+|
+|Kafka sql storage sasl mechanism
+|`apicurio.kafkasql.security.sasl.token.endpoint`
+|`string`
+|
+|
+|Kafka sql storage sasl token endpoint
+|`apicurio.kafkasql.security.ssl.truststore.location`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl truststore location
+|`apicurio.kafkasql.security.ssl.truststore.type`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl truststore type
+|`apicurio.kafkasql.snapshot.every.seconds`
+|`string`
+|`86400s`
+|`3.0.0`
+|Kafka sql journal topic snapshot every
+|`apicurio.kafkasql.snapshots.topic`
+|`string`
+|`kafkasql-snapshots`
+|`3.0.0`
+|Kafka sql storage topic name
+|`apicurio.kafkasql.ssl.key.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl key password
+|`apicurio.kafkasql.ssl.keystore.location`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore location
+|`apicurio.kafkasql.ssl.keystore.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore password
+|`apicurio.kafkasql.ssl.keystore.type`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore type
+|`apicurio.kafkasql.ssl.truststore.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl truststore password
+|`apicurio.kafkasql.topic`
+|`string`
+|`kafkasql-journal`
+|
+|Kafka sql storage topic name
+|`apicurio.kafkasql.topic.auto-create`
+|`boolean`
+|`true`
+|
+|Kafka sql storage topic auto create
+|`apicurio.sql.db-schema`
+|`string`
+|`*`
+|`3.0.6`
+|Database schema name (only needed when running two instances of Registry against the same database, in multiple schemas)
+|`apicurio.sql.init`
+|`boolean`
+|`true`
+|`2.0.0.Final`
+|SQL init
+|`apicurio.storage.kind`
+|`string`
+|
+|`3.0.0`
+|Application storage variant, for example, sql, kafkasql, or gitops
+|`apicurio.storage.read-only.enabled`
+|`boolean [dynamic]`
+|`false`
+|`2.5.0.Final`
+|Enable Registry storage read-only mode
+|`apicurio.storage.snapshot.location`
+|`string`
+|`./`
+|`3.0.0`
+|Kafka sql snapshots store location
+|`apicurio.storage.sql.kind`
+|`string`
+|`h2`
+|`3.0.0`
+|Application datasource database type
+|`artifacts.skip.disabled.latest`
+|`boolean`
+|`true`
+|`2.4.2`
+|Skip artifact versions with DISABLED state when retrieving latest artifact version
+|===
+
+=== ui
+.ui configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.ui.auth.oidc.client-id`
+|`string`
+|`apicurio-registry-ui`
+|`3.0.0`
+|The OIDC clientId
+|`apicurio.ui.auth.oidc.logout-url`
+|`string`
+|`f5`
+|`3.0.0`
+|The OIDC logout URL
+|`apicurio.ui.auth.oidc.redirect-uri`
+|`string`
+|`/`
+|`3.0.0`
+|The OIDC redirectUri
+|`apicurio.ui.auth.oidc.scope`
+|`string`
+|`openid profile email`
+|`3.0.8`
+|UI auth OIDC scope value
+|`apicurio.ui.contextPath`
+|`string`
+|`/`
+|`3.0.0`
+|Context path of the UI
+|`apicurio.ui.docsUrl`
+|`string`
+|`/docs/`
+|`3.0.0`
+|URL of the Documentation component
+|`apicurio.ui.features.breadcrumbs`
+|`string`
+|`true`
+|`3.0.0`
+|Enabled to show breadcrumbs in the UI
+|`apicurio.ui.features.read-only.enabled`
+|`string`
+|`false`
+|`3.0.0`
+|Enabled to set the UI to read-only mode
+|`apicurio.ui.features.settings`
+|`string`
+|`true`
+|`3.0.0`
+|Enabled to show the Settings tab in the UI
+|`apicurio.ui.navPrefixPath`
+|`string`
+|`/`
+|`3.0.0`
+|Navigation prefix for all UI paths
+|===
+
+
+
+
+[id="migration-table_{context}"]
+== {registry} version 2 to version 3 configuration changes
+
+{registry} v3 has simplified the configuration options, removing duplicates and improving consistency.
+For most options, the only change is ssrenaming of the prefix from `registry` to `apicurio`, for example, changing `registry.kafkasql.bootstrap.servers` to `apicurio.kafkasql.bootstrap.servers`.
+
+NOTE: For each configuration property you can override the value by using the corresponding environment variable, for example, `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS`.s
+
+=== api
+.api configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.api.errors.include-stack-in-response`
+|`apicurio.api.errors.include-stack-in-response`
+|`registry.disable.apis`
+|`apicurio.disable.apis`
+|===
+
+=== auth
+.auth configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.auth.admin-override.claim`
+|`apicurio.auth.admin-override.claim`
+|`registry.auth.admin-override.claim-value`
+|`apicurio.auth.admin-override.claim-value`
+|`registry.auth.admin-override.enabled`
+|`apicurio.auth.admin-override.enabled`
+|`registry.auth.admin-override.from`
+|`apicurio.auth.admin-override.from`
+|`registry.auth.admin-override.role`
+|`apicurio.auth.admin-override.role`
+|`registry.auth.admin-override.type`
+|`apicurio.auth.admin-override.type`
+|`registry.auth.anonymous-read-access.enabled`
+|`apicurio.auth.anonymous-read-access.enabled`
+|`registry.auth.audit.log.prefix`
+|`apicurio.authn.audit.log.prefix`
+|`registry.auth.authenticated-read-access.enabled`
+|`apicurio.auth.authenticated-read-access.enabled`
+|`registry.auth.basic-auth-client-credentials.cache-expiration`
+|`apicurio.authn.basic-client-credentials.cache-expiration`
+|`registry.auth.basic-auth-client-credentials.cache-expiration-offset`
+|`apicurio.authn.basic-client-credentials.cache-expiration-offset`
+|`registry.auth.basic-auth-client-credentials.enabled`
+|`apicurio.authn.basic-client-credentials.enabled`
+|`registry.auth.basic-auth.scope`
+|`apicurio.authn.basic.scope`
+|`registry.auth.client-id`
+|`quarkus.oidc.client-id`
+|`registry.auth.client-secret`
+|`quarkus.oidc.client-secret`
+|`registry.auth.enabled`
+|`quarkus.oidc.tenant-enabled`
+|`registry.auth.owner-only-authorization`
+|`apicurio.auth.owner-only-authorization`
+|`registry.auth.owner-only-authorization.limit-group-access`
+|`apicurio.auth.owner-only-authorization.limit-group-access`
+|`registry.auth.role-based-authorization`
+|`apicurio.auth.role-based-authorization`
+|`registry.auth.role-source`
+|`apicurio.auth.role-source`
+|`registry.auth.role-source.header.name`
+|`apicurio.auth.role-source.header.name`
+|`registry.auth.roles.admin`
+|`apicurio.auth.roles.admin`
+|`registry.auth.roles.developer`
+|`apicurio.auth.roles.developer`
+|`registry.auth.roles.readonly`
+|`apicurio.auth.roles.readonly`
+|`registry.auth.tenant-owner-is-admin.enabled`
+|`Removed`
+|`registry.auth.token.endpoint`
+|`quarkus.oidc.token-path`
+|===
+
+=== cache
+.cache configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.config.cache.enabled`
+|`apicurio.config.cache.enabled`
+|===
+
+=== ccompat
+.ccompat configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.ccompat.legacy-id-mode.enabled`
+|`apicurio.ccompat.legacy-id-mode.enabled`
+|`registry.ccompat.max-subjects`
+|`apicurio.ccompat.max-subjects`
+|`registry.ccompat.use-canonical-hash`
+|`apicurio.ccompat.use-canonical-hash`
+|===
+
+=== download
+.download configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.download.href.ttl`
+|`apicurio.download.href.ttl.seconds`
+|===
+
+=== events
+.events configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.events.ksink`
+|`removed`
+|===
+
+=== health
+.health configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.liveness.errors.ignored`
+|`apicurio.liveness.errors.ignored`
+|`registry.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.response-timeout-readiness-check.counter-reset-window-duration.seconds`
+|`registry.metrics.PersistenceExceptionLivenessCheck.disableLogging`
+|`apicurio.metrics.persistence-exception-liveness-check.logging.disabled`
+|`registry.metrics.PersistenceExceptionLivenessCheck.errorThreshold`
+|`apicurio.metrics.persistence-exception-liveness-check.error-threshold`
+|`registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.persistence-exception-liveness-check.status-reset-window-duration.seconds`
+|`registry.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
+|`registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold`
+|`apicurio.metrics.persistence-timeout-readiness-check.error-threshold`
+|`registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds`
+|`registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec`
+|`apicurio.metrics.persistence-timeout-readiness-check.timeout.seconds`
+|`registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds`
+|`registry.metrics.ResponseErrorLivenessCheck.disableLogging`
+|`apicurio.metrics.response-error-liveness-check.disabled`
+|`registry.metrics.ResponseErrorLivenessCheck.errorThreshold`
+|`apicurio.metrics.response-error-liveness-check.error-threshold`
+|`registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.response-error-liveness-check.status-reset-window-duration.seconds`
+|`registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.response-timeout-readiness-check.counter-reset-window-duration.seconds`
+|`registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold`
+|`apicurio.metrics.response-timeout-readiness-check.error-threshold`
+|`registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds`
+|`registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec`
+|`apicurio.metrics.response-timeout-readiness-check.timeout.seconds`
+|`registry.storage.metrics.cache.check-period`
+|`apicurio.storage.metrics.cache.check-period.ms`
+|===
+
+=== import
+.import configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.import.url`
+|`apicurio.import.url`
+|===
+
+=== kafka
+.kafka configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.events.kafka.topic`
+|`apicurio.events.kafka.topic`
+|`registry.events.kafka.topic-partition`
+|`Removed`
+|===
+
+=== limits
+.limits configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.limits.config.max-artifact-labels`
+|`apicurio.limits.config.max-artifact-labels`
+|`registry.limits.config.max-artifact-properties`
+|`apicurio.limits.config.max-artifact-properties`
+|`registry.limits.config.max-artifacts`
+|`apicurio.limits.config.max-artifact`
+|`registry.limits.config.max-description-length`
+|`apicurio.limits.config.max-description-length`
+|`registry.limits.config.max-label-size`
+|`apicurio.limits.config.max-label-size`
+|`registry.limits.config.max-name-length`
+|`apicurio.limits.config.max-name-length`
+|`registry.limits.config.max-property-key-size`
+|`apicurio.limits.config.max-property-key-size`
+|`registry.limits.config.max-property-value-size`
+|`apicurio.limits.config.max-property-value-size`
+|`registry.limits.config.max-requests-per-second`
+|`apicurio.limits.config.max-requests-per-second`
+|`registry.limits.config.max-schema-size-bytes`
+|`apicurio.limits.config.max-schema-size-bytes`
+|`registry.limits.config.max-total-schemas`
+|`apicurio.limits.config.max-total-schemas`
+|`registry.limits.config.max-versions-per-artifact`
+|`apicurio.limits.config.max-versions-per-artifact`
+|`registry.storage.metrics.cache.max-size`
+|`apicurio.storage.metrics.cache.max-size`
+|===
+
+=== redirects
+.redirects configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.enable-redirects`
+|`apicurio.redirects.enabled`
+|`registry.redirects`
+|`apicurio.redirects`
+|`registry.url.override.host`
+|`apicurio.url.override.host`
+|`registry.url.override.port`
+|`apicurio.url.override.port`
+|===
+
+=== rest
+.rest configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.rest.artifact.deletion.enabled`
+|`apicurio.rest.artifact.deletion.enabled`
+|`registry.rest.artifact.download.maxSize`
+|`apicurio.rest.artifact.download.max-size.bytes`
+|`registry.rest.artifact.download.skipSSLValidation`
+|`apicurio.rest.artifact.download.ssl-validation.disabled`
+|===
+
+=== store
+.store configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`artifacts.skip.disabled.latest`
+|`artifacts.skip.disabled.latest`
+|`registry.sql.init`
+|`apicurio.sql.init`
+|===
+
+=== ui
+.ui configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.ui.config.auth.oidc.client-id`
+|`apicurio.ui.auth.oidc.client-id`
+|`registry.ui.config.auth.oidc.redirect-url`
+|`apicurio.ui.auth.oidc.redirect-uri`
+|`registry.ui.config.auth.oidc.url`
+|`quarkus.oidc.auth-server-url`
+|`registry.ui.config.uiContextPath`
+|`apicurio.ui.contextPath`
+|`registry.ui.features.readOnly`
+|`apicurio.ui.features.read-only.enabled`
+|`registry.ui.features.settings`
+|`apicurio.ui.features.settings`
+|===
+
+

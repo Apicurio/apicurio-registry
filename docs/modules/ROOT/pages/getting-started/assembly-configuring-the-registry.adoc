@@ -1,4 +1,3 @@
-// Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="configuring-the-registry_{context}"]
@@ -7,17 +6,185 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 This chapter explains how to set important configuration options for your {registry} deployment. This includes features such as the {registry} web console, logging, and health checks:
 
-ifdef::apicurio-registry[]
 * xref:configuring-registry-ui_{context}[]
-endif::[]
 * xref:configuring-liveness-readiness-probes_{context}[]
 * xref:registry-liveness-env-vars_{context}[]
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
 //INCLUDES
-ifdef::apicurio-registry[]
-include::{mod-loc}getting-started/proc-configuring-registry-ui.adoc[leveloffset=+1]
-endif::[]
-include::{mod-loc}getting-started/proc-configuring-liveness-readiness-probes.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-liveness-env-vars.adoc[leveloffset=+1]
+
+
+
+[id="configuring-registry-ui_{context}"]
+== Configuring the {registry} web console
+
+[role="_abstract"]
+You can set optional environment variables to configure the {registry} web console specifically for your deployment environment or to customize its behavior.
+
+.Prerequisites
+* You have already installed {registry}.
+
+[discrete]
+=== Configuring the web console deployment environment
+
+When you access the {registry} web console in your browser, some initial configuration settings are loaded. The following configuration settings are required:
+
+* URL for core {registry} server REST API v3
+
+Typically the {registry} operator will automatically configure the UI component with the REST API v3 URL.  However, you can override this value by configuring the appropriate environment variable in the UI component deployment configuration.
+
+.Procedure
+Configure the following environment variables to override the default URL:
+
+* `REGISTRY_API_URL`: Specifies the URL for the core {registry} server REST API v3. For example, `\https://registry-api.my-domain.com/apis/registry/v3`
+
+[discrete]
+=== Configuring the web console in read-only mode
+
+You can configure the {registry} web console in read-only mode as an optional feature. This mode disables all features in the {registry} web console that allow users to make changes to registered artifacts. For example, this includes the following:
+
+* Creating a group
+* Creating an artifact
+* Uploading a new artifact version
+* Updating artifact metadata
+* Deleting an artifact
+
+.Procedure
+Configure the following environment variable:
+
+* `REGISTRY_FEATURE_READ_ONLY`: Set to `true` to enable read-only mode. Defaults to `false`.
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="configuring-liveness-readiness-probes_{context}"]
+
+=== Configuring {registry} health checks on OpenShift
+
+[role="_abstract"]
+You can configure optional environment variables for liveness and readiness probes to monitor the health of the {registry} server on OpenShift:
+
+* _Liveness probes_ test if the application can make progress. If the application cannot make progress, OpenShift automatically restarts the failing Pod.
+
+* _Readiness probes_ test if the application is ready to process requests. If the application is not ready, it can become overwhelmed by requests, and OpenShift stops sending requests for the time that the probe fails. If other Pods are OK, they continue to receive requests.
+
+IMPORTANT: The default values of the liveness and readiness environment variables are designed for most cases and should only be changed if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. These values should be kept as low as possible to avoid unnecessary overhead.
+
+.Prerequisites
+* You must have an OpenShift cluster with cluster administrator access.
+* You must have already installed {registry} on OpenShift.
+* You must have already installed and configured your chosen {registry} storage in either {kafka-streams} or PostgreSQL.
+
+.Procedure
+
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
+. Click *Installed Operators* > *{registry}*.
+
+. On the *ApicurioRegistry* tab, click the Operator custom resource for your deployment, for example, *example-apicurioregistry*.
+
+. In the main overview page, find the *Deployment Name* section and the corresponding `DeploymentConfig` name for your {registry} deployment, for example, *example-apicurioregistry*.
+
+. In the left navigation menu, click *Workloads* > *Deployment Configs*, and select your `DeploymentConfig` name.
+
+. Click the *Environment* tab, and enter your environment variables in the *Single values env* section, for example:
+** *NAME*: `LIVENESS_STATUS_RESET`
+** *VALUE*: `350`
+
+. Click *Save* at the bottom.
++
+Alternatively, you can perform these steps using the OpenShift `oc` command. For more details, see the link:https://docs.openshift.com/container-platform/{registry-ocp-version}/cli_reference/openshift_cli/getting-started-cli.html[OpenShift CLI documentation].
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-liveness-env-vars_{context}[]
+* link:https://docs.openshift.com/container-platform/{registry-ocp-version}/applications/application-health.html[OpenShift documentation on monitoring application health]
+//* TBD
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+[id="registry-liveness-env-vars_{context}"]
+== Environment variables for {registry} health checks
+
+This section describes the available environment variables for {registry} health checks on OpenShift. These include liveness and readiness probes to monitor the health of the {registry} server on OpenShift. For an example procedure, see xref:configuring-liveness-readiness-probes_{context}[].
+
+IMPORTANT: The following environment variables are provided for reference only. The default values are designed for most cases and should only be changed if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. These values should be kept as low as possible to avoid unnecessary overhead.
+
+[discrete]
+=== Liveness environment variables
+
+.Environment variables for {registry} liveness probes
+//[%header,cols="5,5,2,5"]
+[.table-expandable,width="100%",cols="5,5,2,5",options="header"]
+|===
+|Name
+|Description
+|Type
+|Default
+|`LIVENESS_ERROR_THRESHOLD`
+|Number of liveness issues or errors that can occur before the liveness probe fails.
+|Integer
+|`1`
+|`LIVENESS_COUNTER_RESET`
+|Period in which the threshold number of errors must occur. For example, if this value is 60 and the threshold is 1, the check fails after two errors occur in 1 minute
+|Seconds
+|`60`
+|`LIVENESS_STATUS_RESET`
+|Number of seconds that must elapse without any more errors for the liveness probe to reset to OK status.
+|Seconds
+|`300`
+|`LIVENESS_ERRORS_IGNORED`
+|Comma-separated list of ignored liveness exceptions.
+|String
+|`io.grpc.StatusRuntimeException,org.apache.kafka.streams.errors.InvalidStateStoreException`
+|===
+
+NOTE: Because OpenShift automatically restarts a Pod that fails a liveness check, the liveness settings, unlike readiness settings, do not directly affect behavior of {registry} on OpenShift.
+
+[discrete]
+=== Readiness environment variables
+
+.Environment variables for {registry} readiness probes
+//[%header,cols="4,5,2,2"]
+[.table-expandable,width="100%",cols="4,5,2,2",options="header"]
+|===
+|Name
+|Description
+|Type
+|Default
+|`READINESS_ERROR_THRESHOLD`
+|Number of readiness issues or errors that can occur before the readiness probe fails.
+|Integer
+|`1`
+|`READINESS_COUNTER_RESET`
+|Period in which the threshold number of errors must occur. For example, if this value is 60 and the threshold is 1, the check fails after two errors occur in 1 minute.
+|Seconds
+|`60`
+|`READINESS_STATUS_RESET`
+|Number of seconds that must elapse without any more errors for the liveness probe to reset to OK status. In this case, this means how long the Pod stays not ready, until it returns to normal operation.
+|Seconds
+|`300`
+|`READINESS_TIMEOUT`
+a|Readiness tracks the timeout of two operations:
+
+* How long it takes for storage requests to complete
+* How long it takes for HTTP REST API requests to return a response
+
+If these operations take more time than the configured timeout, this is counted as a readiness issue or error. This value controls the timeouts for both operations.
+|Seconds
+|`5`
+|===
+
+
+.Additional resources
+* xref:configuring-liveness-readiness-probes_{context}[]
+* link:https://docs.openshift.com/container-platform/{registry-ocp-version}/applications/application-health.html[OpenShift documentation on monitoring application health]
+//* TBD
+
+

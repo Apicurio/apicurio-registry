@@ -7,7 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.net.URL;
 import java.util.Optional;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_IMPORT;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_IMPORT;
 
 @Singleton
 public class ImportExportConfigProperties {

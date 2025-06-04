@@ -19,7 +19,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 
 @ApplicationScoped
 public class RegistryStorageProducer {

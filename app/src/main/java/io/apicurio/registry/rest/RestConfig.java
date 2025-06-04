@@ -7,7 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.function.Supplier;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_REST;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_REST;
 
 @Singleton
 public class RestConfig {

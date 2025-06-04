@@ -13,7 +13,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 
 public class BlueDatasourceProducer {
 

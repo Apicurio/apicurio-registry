@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import java.util.List;
 import java.util.Optional;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_HEALTH;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_HEALTH;
 
 @ApplicationScoped
 public class LivenessUtil {

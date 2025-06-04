@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 
 @ApplicationScoped
 public class KafkaSqlFactory {

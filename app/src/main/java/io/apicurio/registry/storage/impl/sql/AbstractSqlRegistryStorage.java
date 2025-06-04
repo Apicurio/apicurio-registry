@@ -162,7 +162,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;

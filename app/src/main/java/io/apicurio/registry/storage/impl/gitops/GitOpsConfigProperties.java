@@ -5,7 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import lombok.Getter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_GITOPS;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_GITOPS;
 
 @ApplicationScoped
 public class GitOpsConfigProperties {

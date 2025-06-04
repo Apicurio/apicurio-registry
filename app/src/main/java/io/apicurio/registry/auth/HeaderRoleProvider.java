@@ -9,7 +9,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.Objects;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_AUTH;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUTH;
 
 @RequestScoped
 public class HeaderRoleProvider implements RoleProvider {

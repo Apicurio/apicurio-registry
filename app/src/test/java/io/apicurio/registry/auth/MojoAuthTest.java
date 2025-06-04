@@ -1,6 +1,5 @@
 package io.apicurio.registry.auth;
 
-import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
 import io.apicurio.registry.noprofile.maven.RegistryMojoTestBase;
@@ -21,19 +20,15 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_AUTH;
-
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
 public class MojoAuthTest extends RegistryMojoTestBase {
 
     @ConfigProperty(name = "quarkus.oidc.token-path")
-    @Info(category = CATEGORY_AUTH, description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrlConfigured;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled")
-    @Info(category = CATEGORY_AUTH, description = "OIDC tenant enabled", availableSince = "2.0.0.Final")
     Boolean authEnabled;
 
     String clientSecret = "test1";

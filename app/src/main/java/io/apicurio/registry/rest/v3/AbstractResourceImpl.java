@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_API;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
 
 public abstract class AbstractResourceImpl {
 

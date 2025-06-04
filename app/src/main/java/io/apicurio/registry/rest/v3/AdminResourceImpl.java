@@ -77,7 +77,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_DOWNLOAD;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_DOWNLOAD;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_NAME;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;

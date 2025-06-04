@@ -30,28 +30,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target({ElementType.FIELD, ElementType.METHOD})
 public @interface Info {
 
-    String CATEGORY_API = "api";
-    String CATEGORY_AUTH = "auth";
-    String CATEGORY_CACHE = "cache";
-    String CATEGORY_CCOMPAT = "ccompat";
-    String CATEGORY_DOWNLOAD = "download";
-    String CATEGORY_GITOPS = "gitops";
-    String CATEGORY_HEALTH = "health";
-    /**
-     * Properties that belong to this category will not show up in the documentation.
-     */
-    String CATEGORY_HIDDEN = "hidden";
-    String CATEGORY_IMPORT = "import";
-    String CATEGORY_LIMITS = "limits";
-    String CATEGORY_REDIRECTS = "redirects";
-    String CATEGORY_REST = "rest";
-    String CATEGORY_SEMVER = "semver";
-    String CATEGORY_STORAGE = "storage";
-    String CATEGORY_SYSTEM = "system";
-    String CATEGORY_UI = "ui";
-
     @Nonbinding
-    String category() default "";
+    ConfigPropertyCategory category();
 
     @Nonbinding
     String description() default "";

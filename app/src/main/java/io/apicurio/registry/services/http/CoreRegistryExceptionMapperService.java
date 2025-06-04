@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_API;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
 @ApplicationScoped

@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_REDIRECTS;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_REDIRECTS;
 
 @ApplicationScoped
 public class RedirectFilter implements Filter {

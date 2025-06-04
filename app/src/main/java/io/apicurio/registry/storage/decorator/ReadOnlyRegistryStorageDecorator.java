@@ -34,7 +34,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.util.List;
 import java.util.function.Supplier;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 
 @ApplicationScoped
 public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorReadOnlyBase

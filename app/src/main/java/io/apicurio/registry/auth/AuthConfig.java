@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 
 import java.util.function.Supplier;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_AUTH;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUTH;
 
 @Singleton
 public class AuthConfig {

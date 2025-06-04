@@ -4,7 +4,7 @@ import io.apicurio.common.apps.config.Info;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_UI;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_UI;
 
 @Singleton
 public class UserInterfaceConfigProperties {

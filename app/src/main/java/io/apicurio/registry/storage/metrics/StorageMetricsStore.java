@@ -19,8 +19,8 @@ import org.slf4j.Logger;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_HEALTH;
-import static io.apicurio.common.apps.config.Info.CATEGORY_LIMITS;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_HEALTH;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_LIMITS;
 
 /**
  * This class provides a set of counters. Counters such as "number of artifacts" This counters have to be

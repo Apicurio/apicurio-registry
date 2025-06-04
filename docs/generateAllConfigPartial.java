@@ -276,7 +276,17 @@ public class generateAllConfigPartial {
             var categories = new HashSet<String>();
             categories.addAll(allConfiguration.values().stream().map(c -> c.getCategory()).collect(Collectors.toList()));
 
-            ((HashSet) categories).remove("unknown");
+            if(categories.contains("")) {
+                var issues = allConfiguration
+                        .values()
+                        .stream()
+                        .filter(c -> "".equals(c.getCategory()))
+                        .map(Option::getName)
+                        .collect(Collectors.joining(", "));
+                throw new RuntimeException("Every configuration property must have a non-empty category. The following properties do not: " + issues);
+            }
+
+            categories.remove("hidden");
 
             for (var category : categories.stream().sorted().collect(Collectors.toList())) {
 

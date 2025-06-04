@@ -8,11 +8,13 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.Set;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+
 @ApplicationScoped
 public class StorageBehaviorProperties {
 
     @ConfigProperty(name = "artifacts.skip.disabled.latest", defaultValue = "true")
-    @Info(category = "storage", description = "Skip artifact versions with DISABLED state when retrieving latest artifact version", availableSince = "2.4.2")
+    @Info(category = CATEGORY_STORAGE, description = "Skip artifact versions with DISABLED state when retrieving latest artifact version", availableSince = "2.4.2")
     boolean skipLatestDisabledArtifacts;
 
     public Set<VersionState> getDefaultArtifactRetrievalBehavior() {

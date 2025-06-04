@@ -77,6 +77,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_DOWNLOAD;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_NAME;
 import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
@@ -123,7 +124,7 @@ public class AdminResourceImpl implements AdminResource {
 
     @Dynamic(label = "Download link expiry", description = "The number of seconds that a generated link to a .zip download file is active before expiring.")
     @ConfigProperty(name = "apicurio.download.href.ttl.seconds", defaultValue = "30")
-    @Info(category = "download", description = "Download link expiry", availableSince = "2.1.2.Final")
+    @Info(category = CATEGORY_DOWNLOAD, description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
 
     private static void requireParameter(String parameterName, Object parameterValue) {

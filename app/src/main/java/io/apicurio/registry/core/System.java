@@ -25,6 +25,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_SYSTEM;
+
 /**
  * @author eric.wittmann@gmail.com
  */
@@ -33,22 +35,22 @@ public class System {
 
     @Inject
     @ConfigProperty(name = "apicurio.app.name")
-    @Info(registryAvailableSince = "3.0.4")
+    @Info(category = CATEGORY_SYSTEM, registryAvailableSince = "3.0.4")
     String name;
 
     @Inject
     @ConfigProperty(name = "apicurio.app.description")
-    @Info(registryAvailableSince = "3.0.4")
+    @Info(category = CATEGORY_SYSTEM, registryAvailableSince = "3.0.4")
     String description;
 
     @Inject
     @ConfigProperty(name = "apicurio.app.version")
-    @Info(registryAvailableSince = "3.0.4")
+    @Info(category = CATEGORY_SYSTEM, registryAvailableSince = "3.0.4")
     String version;
 
     @Inject
     @ConfigProperty(name = "apicurio.app.date")
-    @Info(registryAvailableSince = "3.0.4")
+    @Info(category = CATEGORY_SYSTEM, registryAvailableSince = "3.0.4")
     String date;
 
     public String getName() {

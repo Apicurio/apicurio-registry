@@ -19,6 +19,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+
 @ApplicationScoped
 public class RegistryStorageProducer {
 
@@ -29,7 +31,7 @@ public class RegistryStorageProducer {
     Instance<RegistryStorageDecorator> decorators;
 
     @ConfigProperty(name = "apicurio.storage.kind")
-    @Info(category = "storage", description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0")
     String registryStorageType;
 
     private RegistryStorage cachedCurrent;

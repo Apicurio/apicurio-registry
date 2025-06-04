@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 
 import java.time.Duration;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_HEALTH;
+
 /**
  * Fail readiness check if the duration of processing a artifactStore operation is too high.
  */
@@ -29,7 +31,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * Maximum number of timeouts as captured by this interceptor, before the readiness check fails.
      */
     @ConfigProperty(name = "apicurio.metrics.persistence-timeout-readiness-check.error-threshold", defaultValue = "5")
-    @Info(category = "health", description = "Error threshold of persistence readiness check", availableSince = "1.0.2.Final")
+    @Info(category = CATEGORY_HEALTH, description = "Error threshold of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configErrorThreshold;
 
     /**
@@ -37,7 +39,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * set the threshold to 1 and this configuration option to 60. TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds", defaultValue = "60")
-    @Info(category = "health", description = "Counter reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
+    @Info(category = CATEGORY_HEALTH, description = "Counter reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
     /**
@@ -45,14 +47,14 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * further errors.
      */
     @ConfigProperty(name = "apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds", defaultValue = "300")
-    @Info(category = "health", description = "Status reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
+    @Info(category = CATEGORY_HEALTH, description = "Status reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configStatusResetWindowDurationSec;
 
     /**
      * Set the operation duration in seconds, after which it's considered an error.
      */
     @ConfigProperty(name = "apicurio.metrics.persistence-timeout-readiness-check.timeout.seconds", defaultValue = "15")
-    @Info(category = "health", description = "Timeout of persistence readiness check", availableSince = "1.0.2.Final")
+    @Info(category = CATEGORY_HEALTH, description = "Timeout of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configTimeoutSec;
 
     private Duration timeoutSec;

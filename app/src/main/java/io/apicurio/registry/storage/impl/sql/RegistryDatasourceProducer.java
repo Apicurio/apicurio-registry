@@ -11,13 +11,15 @@ import org.slf4j.Logger;
 
 import java.sql.SQLException;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+
 public class RegistryDatasourceProducer {
 
     @Inject
     Logger log;
 
     @ConfigProperty(name = "apicurio.storage.sql.kind", defaultValue = "h2")
-    @Info(category = "storage", description = "Application datasource database type", availableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Application datasource database type", availableSince = "3.0.0")
     String databaseType;
 
     @Inject

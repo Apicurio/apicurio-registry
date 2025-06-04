@@ -19,6 +19,9 @@ import org.slf4j.Logger;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_HEALTH;
+import static io.apicurio.common.apps.config.Info.CATEGORY_LIMITS;
+
 /**
  * This class provides a set of counters. Counters such as "number of artifacts" This counters have to be
  * "distributed" or at least work in a clustered deployment. Currently, this implementation uses {@link Cache}
@@ -37,12 +40,12 @@ public class StorageMetricsStore {
 
     @Inject
     @ConfigProperty(defaultValue = "30000", name = "apicurio.storage.metrics.cache.check-period.ms")
-    @Info(category = "health", description = "Storage metrics cache check period", availableSince = "2.1.0.Final")
+    @Info(category = CATEGORY_HEALTH, description = "Storage metrics cache check period", availableSince = "2.1.0.Final")
     Long limitsCheckPeriod;
 
     @Inject
     @ConfigProperty(defaultValue = "1000", name = "apicurio.storage.metrics.cache.max-size")
-    @Info(category = "limits", description = "Storage metrics cache max size.", availableSince = "2.4.1.Final")
+    @Info(category = CATEGORY_LIMITS, description = "Storage metrics cache max size.", availableSince = "2.4.1.Final")
     Long cacheMaxSize;
 
     private static final String TOTAL_SCHEMAS_KEY = "TOTAL_SCHEMAS";

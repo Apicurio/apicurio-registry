@@ -9,11 +9,13 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.Objects;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_AUTH;
+
 @RequestScoped
 public class HeaderRoleProvider implements RoleProvider {
 
     @ConfigProperty(name = "apicurio.auth.role-source.header.name")
-    @Info(category = "auth", description = "Header authorization name", availableSince = "2.4.3.Final")
+    @Info(category = CATEGORY_AUTH, description = "Header authorization name", availableSince = "2.4.3.Final")
     String roleHeader;
 
     @Inject

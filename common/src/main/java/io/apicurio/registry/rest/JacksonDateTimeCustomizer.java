@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_API;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
 
 @Singleton
 public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {

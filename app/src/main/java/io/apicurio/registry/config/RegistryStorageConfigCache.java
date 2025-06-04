@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_CACHE;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_CACHE;
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
 @ApplicationScoped

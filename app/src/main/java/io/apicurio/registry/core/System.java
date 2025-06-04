@@ -25,7 +25,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_SYSTEM;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYSTEM;
 
 /**
  * @author eric.wittmann@gmail.com

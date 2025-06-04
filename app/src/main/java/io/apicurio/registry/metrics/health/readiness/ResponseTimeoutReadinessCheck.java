@@ -22,7 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_HEALTH;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_HEALTH;
 
 @ApplicationScoped
 @Readiness

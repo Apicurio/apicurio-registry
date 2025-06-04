@@ -12,7 +12,7 @@ import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.Liveness;
 import org.slf4j.Logger;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_HEALTH;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_HEALTH;
 
 @ApplicationScoped
 @Liveness

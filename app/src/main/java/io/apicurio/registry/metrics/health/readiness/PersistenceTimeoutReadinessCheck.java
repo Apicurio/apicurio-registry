@@ -14,7 +14,7 @@ import org.slf4j.Logger;
 
 import java.time.Duration;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_HEALTH;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_HEALTH;
 
 /**
  * Fail readiness check if the duration of processing a artifactStore operation is too high.

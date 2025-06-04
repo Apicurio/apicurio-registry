@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_API;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
 
 @ApplicationScoped
 public class DisabledApisMatcherService {

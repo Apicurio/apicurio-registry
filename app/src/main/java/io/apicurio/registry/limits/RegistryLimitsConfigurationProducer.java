@@ -7,7 +7,7 @@ import jakarta.ws.rs.Produces;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_LIMITS;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_LIMITS;
 
 public class RegistryLimitsConfigurationProducer {
 

@@ -8,7 +8,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.Set;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 
 @ApplicationScoped
 public class StorageBehaviorProperties {

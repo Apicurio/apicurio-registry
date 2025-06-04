@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 
 import java.sql.SQLException;
 
-import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 
 public class RegistryDatasourceProducer {
 

@@ -7,6 +7,8 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+
 @ApplicationScoped
 public class SqlStatementsProducer {
 
@@ -14,7 +16,7 @@ public class SqlStatementsProducer {
     Logger log;
 
     @ConfigProperty(name = "apicurio.storage.sql.kind", defaultValue = "h2")
-    @Info(category = "storage", description = "Datasource Db kind", availableSince = "2.0.0.Final")
+    @Info(category = CATEGORY_STORAGE, description = "Datasource Db kind", availableSince = "2.0.0.Final")
     String databaseType;
 
     /**

@@ -22,6 +22,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_HEALTH;
+
 @ApplicationScoped
 @Readiness
 @Default
@@ -39,7 +41,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * seconds, before the readiness check fails.
      */
     @ConfigProperty(name = "apicurio.metrics.response-timeout-readiness-check.error-threshold", defaultValue = "1")
-    @Info(category = "health", description = "Error threshold of response readiness check", availableSince = "1.0.2.Final")
+    @Info(category = CATEGORY_HEALTH, description = "Error threshold of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configErrorThreshold;
 
     /**
@@ -47,7 +49,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * set the threshold to 1 and this configuration option to 60. TODO report the absolute count as a metric?
      */
     @ConfigProperty(name = "apicurio.metrics.response-timeout-readiness-check.counter-reset-window-duration.seconds", defaultValue = "60")
-    @Info(category = "health", description = "Counter reset window duration of response readiness check", availableSince = "1.0.2.Final")
+    @Info(category = CATEGORY_HEALTH, description = "Counter reset window duration of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configCounterResetWindowDurationSec;
 
     /**
@@ -55,7 +57,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * further errors.
      */
     @ConfigProperty(name = "apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds", defaultValue = "300")
-    @Info(category = "health", description = "Status reset window duration of response readiness check", availableSince = "1.0.2.Final")
+    @Info(category = CATEGORY_HEALTH, description = "Status reset window duration of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configStatusResetWindowDurationSec;
 
     /**
@@ -63,7 +65,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * some endpoints. Add a way to ignore those.
      */
     @ConfigProperty(name = "apicurio.metrics.response-timeout-readiness-check.timeout.seconds", defaultValue = "10")
-    @Info(category = "health", description = "Timeout of response readiness check", availableSince = "1.0.2.Final")
+    @Info(category = CATEGORY_HEALTH, description = "Timeout of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configTimeoutSec;
 
     private Duration timeoutSec;

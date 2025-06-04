@@ -14,15 +14,17 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_REDIRECTS;
+
 @ApplicationScoped
 public class RedirectFilter implements Filter {
 
     @ConfigProperty(name = "apicurio.redirects.enabled")
-    @Info(category = "redirects", description = "Enable redirects", availableSince = "2.1.2.Final")
+    @Info(category = CATEGORY_REDIRECTS, description = "Enable redirects", availableSince = "2.1.2.Final")
     Boolean redirectsEnabled;
 
     @ConfigProperty(name = "apicurio.redirects")
-    @Info(category = "redirects", description = "Registry redirects", availableSince = "2.1.2.Final")
+    @Info(category = CATEGORY_REDIRECTS, description = "Registry redirects", availableSince = "2.1.2.Final")
     Map<String, String> redirectsConfig;
     Map<String, String> redirects = new HashMap<>();
 

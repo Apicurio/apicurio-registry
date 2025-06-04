@@ -26,57 +26,59 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
+
 @ApplicationScoped
 public class KafkaSqlFactory {
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.bootstrap.servers")
-    @Info(category = "storage", description = "Kafka sql storage bootstrap servers")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage bootstrap servers")
     String bootstrapServers;
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.topic", defaultValue = "kafkasql-journal")
-    @Info(category = "storage", description = "Kafka sql storage topic name")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage topic name")
     String topic;
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.snapshots.topic", defaultValue = "kafkasql-snapshots")
-    @Info(category = "storage", description = "Kafka sql storage topic name", registryAvailableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage topic name", registryAvailableSince = "3.0.0")
     String snapshotsTopic;
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.snapshot.every.seconds", defaultValue = "86400s")
-    @Info(category = "storage", description = "Kafka sql journal topic snapshot every", registryAvailableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql journal topic snapshot every", registryAvailableSince = "3.0.0")
     String snapshotEvery;
 
     @Inject
     @ConfigProperty(name = "apicurio.storage.snapshot.location", defaultValue = "./")
-    @Info(category = "storage", description = "Kafka sql snapshots store location", registryAvailableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql snapshots store location", registryAvailableSince = "3.0.0")
     String snapshotStoreLocation;
 
     @Inject
     @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
-    @Info(category = "storage", description = "Kafka sql storage event topic", registryAvailableSince = "3.0.1")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage event topic", registryAvailableSince = "3.0.1")
     String eventsTopic;
 
     @Inject
     @RegistryProperties(value = "apicurio.kafkasql.topic")
-    @Info(category = "storage", description = "Kafka sql storage topic properties")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage topic properties")
     Properties topicProperties;
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.topic.auto-create", defaultValue = "true")
-    @Info(category = "storage", description = "Kafka sql storage topic auto create")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage topic auto create")
     Boolean topicAutoCreate;
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.consumer.poll.timeout", defaultValue = "5000")
-    @Info(category = "storage", description = "Kafka sql storage consumer poll timeout")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage consumer poll timeout")
     Integer pollTimeout;
 
     @Inject
     @ConfigProperty(name = "apicurio.kafkasql.coordinator.response-timeout", defaultValue = "30000")
-    @Info(category = "storage", description = "Kafka sql storage coordinator response timeout")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage coordinator response timeout")
     Integer responseTimeout;
 
     @Inject
@@ -90,7 +92,7 @@ public class KafkaSqlFactory {
     Properties consumerProperties;
 
     @ConfigProperty(name = "apicurio.kafkasql.consumer.group-prefix", defaultValue = "apicurio-")
-    @Info(category = "storage", description = "Kafka sql storage prefix for consumer group name")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage prefix for consumer group name")
     String groupPrefix;
 
     @Inject
@@ -99,59 +101,59 @@ public class KafkaSqlFactory {
     Properties adminProperties;
 
     @ConfigProperty(name = "apicurio.kafkasql.security.sasl.enabled", defaultValue = "false")
-    @Info(category = "storage", description = "Kafka sql storage sasl enabled")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl enabled")
     boolean saslEnabled;
 
     @ConfigProperty(name = "apicurio.kafkasql.security.protocol", defaultValue = "")
-    @Info(category = "storage", description = "Kafka sql storage security protocol")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage security protocol")
     Optional<String> protocol;
 
     @ConfigProperty(name = "apicurio.kafkasql.security.sasl.mechanism", defaultValue = "")
-    @Info(category = "storage", description = "Kafka sql storage sasl mechanism")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl mechanism")
     String saslMechanism;
 
     @ConfigProperty(name = "apicurio.kafkasql.security.sasl.client-id", defaultValue = "")
-    @Info(category = "storage", description = "Kafka sql storage sasl client identifier")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl client identifier")
     String clientId;
 
     @ConfigProperty(name = "apicurio.kafkasql.security.sasl.client-secret", defaultValue = "")
-    @Info(category = "storage", description = "Kafka sql storage sasl client secret")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl client secret")
     String clientSecret;
 
     @ConfigProperty(name = "apicurio.kafkasql.security.sasl.token.endpoint", defaultValue = "")
-    @Info(category = "storage", description = "Kafka sql storage sasl token endpoint")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl token endpoint")
     String tokenEndpoint;
 
     @ConfigProperty(name = "apicurio.kafkasql.security.sasl.login.callback.handler.class", defaultValue = "")
-    @Info(category = "storage", description = "Kafka sql storage sasl login callback handler")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl login callback handler")
     String loginCallbackHandler;
 
     @ConfigProperty(name = "apicurio.kafkasql.security.ssl.truststore.location")
-    @Info(category = "storage", description = "Kafka sql storage ssl truststore location")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl truststore location")
     Optional<String> trustStoreLocation;
 
     @ConfigProperty(name = "apicurio.kafkasql.security.ssl.truststore.type")
-    @Info(category = "storage", description = "Kafka sql storage ssl truststore type")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl truststore type")
     Optional<String> trustStoreType;
 
     @ConfigProperty(name = "apicurio.kafkasql.ssl.truststore.password")
-    @Info(category = "storage", description = "Kafka sql storage ssl truststore password")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl truststore password")
     Optional<String> trustStorePassword;
 
     @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.location")
-    @Info(category = "storage", description = "Kafka sql storage ssl keystore location")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore location")
     Optional<String> keyStoreLocation;
 
     @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.type")
-    @Info(category = "storage", description = "Kafka sql storage ssl keystore type")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore type")
     Optional<String> keyStoreType;
 
     @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.password")
-    @Info(category = "storage", description = "Kafka sql storage ssl keystore password")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore password")
     Optional<String> keyStorePassword;
 
     @ConfigProperty(name = "apicurio.kafkasql.ssl.key.password")
-    @Info(category = "storage", description = "Kafka sql storage ssl key password")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl key password")
     Optional<String> keyPassword;
 
     @ApplicationScoped

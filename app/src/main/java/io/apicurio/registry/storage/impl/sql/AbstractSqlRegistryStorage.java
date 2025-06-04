@@ -162,6 +162,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_STORAGE;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
@@ -230,16 +231,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @ConfigProperty(name = "apicurio.sql.init", defaultValue = "true")
-    @Info(category = "storage", description = "SQL init", availableSince = "2.0.0.Final")
+    @Info(category = CATEGORY_STORAGE, description = "SQL init", availableSince = "2.0.0.Final")
     boolean initDB;
 
     @ConfigProperty(name = "apicurio.sql.db-schema", defaultValue = "*")
-    @Info(category = "storage", description = "Database schema name (only needed when running two instances of Registry against the same database, in multiple schemas)", availableSince = "3.0.6")
+    @Info(category = CATEGORY_STORAGE, description = "Database schema name (only needed when running two instances of Registry against the same database, in multiple schemas)", availableSince = "3.0.6")
     String dbSchema;
 
     @Inject
     @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
-    @Info(category = "storage", description = "Storage event topic")
+    @Info(category = CATEGORY_STORAGE, description = "Storage event topic")
     String eventsTopic;
 
     @Inject

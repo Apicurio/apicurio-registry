@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_API;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
 @ApplicationScoped
@@ -41,7 +42,7 @@ public class CoreRegistryExceptionMapperService {
     HttpStatusCodeMap codeMap;
 
     @ConfigProperty(name = "apicurio.api.errors.include-stack-in-response", defaultValue = "false")
-    @Info(category = "api", description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
+    @Info(category = CATEGORY_API, description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
     boolean includeStackTrace;
 
     public Response mapException(Throwable t) {

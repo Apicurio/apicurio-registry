@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_AUTH;
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -35,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.oidc.token-path")
-    @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
+    @Info(category = CATEGORY_AUTH, description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrl;
 
     final String groupId = "authTestGroupId";

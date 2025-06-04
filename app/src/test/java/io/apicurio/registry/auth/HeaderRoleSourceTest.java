@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
+import static io.apicurio.common.apps.config.Info.CATEGORY_AUTH;
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 
 @QuarkusTest
@@ -36,7 +37,7 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
             + "    \"fields\" : [{\"name\" : \"age\", \"type\" : \"int\"}]\r\n" + "} ";
 
     @ConfigProperty(name = "quarkus.oidc.token-path")
-    @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
+    @Info(category = CATEGORY_AUTH, description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrlConfigured;
 
     @Override

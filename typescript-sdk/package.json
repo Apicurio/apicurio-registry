@@ -46,6 +46,6 @@
     "uuid": "11.1.0",
     "vite": "6.3.5",
     "vite-plugin-dts": "4.5.4",
-    "vitest": "3.2.1"
+    "vitest": "3.2.2"
   }
 }

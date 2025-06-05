@@ -218,7 +218,7 @@ jobs:
         working-directory: registry/operator
         run: |
           source "$CUSTOM_ENV"
-          make INSTALL_FILE=install/install.yaml dist-install-file
+          make SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file
           git add install/*
 
       - name: Commit & push post-release changes

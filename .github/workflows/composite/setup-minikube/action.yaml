@@ -4,6 +4,9 @@ inputs:
   github_token:
     description: GitHub token
     required: true
+  olm_version:
+    description: OLM version to install
+    default: 0.32.0 # See https://github.com/operator-framework/operator-lifecycle-manager/releases
 
 runs:
   using: composite
@@ -22,11 +25,44 @@ runs:
         'github token': ${{ inputs.github_token }}
         'start args': --force
 
-    - name: Enable Minikube features
+    - name: Enable Ingress
       shell: bash
       run: |
         minikube addons enable ingress
-        minikube addons enable olm
+
+    - name: Install OLM
+      # `minikube addons enable olm` is not used because of warnings:
+      #
+      # ```
+      # ! olm is a 3rd party addon and is not maintained or verified by minikube maintainers, enable at your own risk.
+      # ! olm does not currently have an associated maintainer.
+      # ! The OLM addon has stopped working, for more details visit: https://github.com/operator-framework/operator-lifecycle-manager/issues/2534
+      #   - Using image quay.io/operator-framework/olm
+      #   - Using image quay.io/operatorhubio/catalog
+      # * The 'olm' addon is enabled
+      # ```
+      #
+      # there were issues with pulling OperatorHub catalog image:
+      #
+      # ```
+      # Events:
+      # Type     Reason          Age                     From               Message
+      # ----     ------          ----                    ----               -------
+      # Normal   Scheduled       8m46s                   default-scheduler  Successfully assigned olm/operatorhubio-catalog-pcvqp to fv-az1314-43
+      # Normal   SandboxChanged  8m44s                   kubelet            Pod sandbox changed, it will be killed and re-created.
+      # Warning  Failed          7m59s (x3 over 8m44s)   kubelet            Failed to pull image "quay.io/operatorhubio/catalog@sha256:e08a1cd21fe72dd1be92be738b4bf1515298206dac5479c17a4b3ed119e30bd4": rpc error: code = Unknown desc = Error response from daemon: manifest for quay.io/operatorhubio/catalog@sha256:e08a1cd21fe72dd1be92be738b4bf1515298206dac5479c17a4b3ed119e30bd4 not found: manifest unknown: manifest unknown
+      # Warning  Failed          7m59s (x3 over 8m44s)   kubelet            Error: ErrImagePull
+      # Warning  Failed          7m24s (x7 over 8m44s)   kubelet            Error: ImagePullBackOff
+      # Normal   Pulling         7m12s (x4 over 8m45s)   kubelet            Pulling image "quay.io/operatorhubio/catalog@sha256:e08a1cd21fe72dd1be92be738b4bf1515298206dac5479c17a4b3ed119e30bd4"
+      # Normal   BackOff         3m45s (x21 over 8m44s)  kubelet            Back-off pulling image "quay.io/operatorhubio/catalog@sha256:e08a1cd21fe72dd1be92be738b4bf1515298206dac5479c17a4b3ed119e30bd4"
+      #
+      # and the OLM smoke test was failing.
+      shell: bash
+      run: |
+        curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v${{ inputs.olm_version }}/install.sh -o install-olm.sh
+        chmod +x install-olm.sh
+        ./install-olm.sh v${{ inputs.olm_version }}
+        rm install-olm.sh
 
     - name: Setup Minikube tunnel
       shell: bash

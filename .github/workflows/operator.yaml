@@ -104,6 +104,8 @@ jobs:
             echo "No changes to the install file.";
           fi
 
+      # Uncomment if you need to debug the tests:
+
 #      - name: Install debug tools on failure
 #        if: failure()
 #        run: |
@@ -112,8 +114,9 @@ jobs:
 #          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
 #          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 #          brew install derailed/k9s/k9s
+#          . ~/.bashrc
 #          # Run tests e.g.:
-#          # make BUILD_OPTS=--no-transfer-progress remote-tests-all &> 1.log
+#          # make BUILD_OPTS=--no-transfer-progress remote-tests-all &> 1.log &
 #          # tail -f 1.log
 #
 #      - name: Setup tmate session on failure

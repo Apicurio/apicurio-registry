@@ -37,7 +37,7 @@ public abstract class BaseAuthITTest extends ITBase {
 
         resources.add(0, configMap);
 
-        createResources(resources, "Keycloak");
+        createResources(resources);
 
         await().ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments().withName("keycloak").get().getStatus().getReadyReplicas())

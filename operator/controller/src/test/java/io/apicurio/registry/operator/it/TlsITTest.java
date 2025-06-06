@@ -29,7 +29,7 @@ public class TlsITTest extends ITBase {
         List<HasMetadata> resources = Serialization
                 .unmarshal(AuthITTest.class.getResourceAsStream("/k8s/examples/tls/secrets.yaml"));
 
-        createResources(resources, "tls-secrets");
+        createResources(resources);
     }
 
     /**

@@ -21,4 +21,4 @@ entries:
   - schema: olm.bundle
     image: quay.io/apicurio/apicurio-registry-3-operator-bundle:3.0.8
   - schema: olm.bundle
-    image: quay.io/apicurio/apicurio-registry-3-operator-bundle:3.0.10-snapshot
+    image: quay.io/apicurio/apicurio-registry-3-operator-bundle:3.0.9

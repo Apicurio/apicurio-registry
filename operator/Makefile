@@ -51,6 +51,8 @@ BUNDLE_IMAGE_TAG ?= $(LC_VERSION)
 BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(BUNDLE_IMAGE_TAG)
 ADDITIONAL_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(ADDITIONAL_BUNDLE_TAG)
 
+PREVIOUS_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(PREVIOUS_PACKAGE_VERSION)
+
 ### Catalog
 
 CATALOG_NAMESPACE ?= olm
@@ -421,7 +423,7 @@ catalog-subscription-undeploy: ## TODO
 release-catalog-template-update: install-yq
 	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
 	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
-	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(PREVIOUS_BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
 
 
 .PHONY: dev

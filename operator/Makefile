@@ -237,8 +237,8 @@ build: ## TODO
 	mvn clean install $(BUILD_OPTS_EXT)
 
 
-.PHONY: remote-tests-all
-remote-tests-all: ## TODO
+.PHONY: test-remote-all
+test-remote-all: ## TODO
 	# Do not run `mvn clean` when not necessary.
 ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
 	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
@@ -431,11 +431,11 @@ dev:
 	export POD_NAMESPACE=$$(kubectl config current-context | awk '{split($$0,x,"/"); printf "%s",x[1]}'); mvn quarkus:dev
 
 
-.PHONY: set-variable
-set-variable:
+.PHONY: variable-set
+variable-set:
 	sed -i 's|^\( *$(VAR) *\??=\) *\([^ ]*\)\(.*\)$$|\1 $(VAL)\3|g' Makefile
 
 
-.PHONY: get-variable
-get-variable:
+.PHONY: variable-get
+variable-get:
 	@echo $($(VAR))

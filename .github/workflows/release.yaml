@@ -112,7 +112,7 @@ jobs:
         working-directory: registry/operator
         run: |
           make dist-install-file
-          cp "$(make VAR=INSTALL_FILE get-variable)" install/install.yaml
+          cp "$(make VAR=INSTALL_FILE variable-get)" install/install.yaml
           git add install/*
 
       - name: (Operator) Commit pre-release changes

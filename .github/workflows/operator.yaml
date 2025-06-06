@@ -82,7 +82,7 @@ jobs:
       - name: Run remote and OLM tests on Minikube
         working-directory: operator
         run: |
-          make BUILD_OPTS=--no-transfer-progress remote-tests-all
+          make BUILD_OPTS=--no-transfer-progress test-remote-all
 
       - name: Update install file
         working-directory: operator
@@ -116,7 +116,7 @@ jobs:
 #          brew install derailed/k9s/k9s
 #          . ~/.bashrc
 #          # Run tests e.g.:
-#          # make BUILD_OPTS=--no-transfer-progress remote-tests-all &> 1.log &
+#          # make BUILD_OPTS=--no-transfer-progress test-remote-all &> 1.log &
 #          # tail -f 1.log
 #
 #      - name: Setup tmate session on failure

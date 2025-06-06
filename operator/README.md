@@ -266,11 +266,11 @@ OLM tests are similar to the remote tests in that the operator is deployed into 
 4. Run:
    ```shell
    make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
-   mvn verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(make VAR=CATALOG_IMAGE get-variable)
+   mvn verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(make VAR=CATALOG_IMAGE variable-get)
    ```
    or
    ```shell
-   make remote-tests-all
+   make test-remote-all
    ```
    for convenience.
 

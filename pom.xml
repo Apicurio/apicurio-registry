@@ -215,7 +215,7 @@
     <commons-codec.version>1.18.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.9.0</kafka-clients.version>
-    <debezium.version>2.6.2.Final</debezium.version>
+    <debezium.version>2.7.4.Final</debezium.version>
     <pulsar-clients.version>3.3.4</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
@@ -277,11 +277,11 @@
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <test-containers.version>1.20.4</test-containers.version>
-    <keycloak.testcontainers.version>3.6.0</keycloak.testcontainers.version>
+    <keycloak.testcontainers.version>3.7.0</keycloak.testcontainers.version>
     <embedded-postgres.version>2.1.0</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock-jre8.version>3.0.1</wiremock-jre8.version>
-    <strimzi-test-container.version>0.107.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.110.0</strimzi-test-container.version>
   </properties>
 
   <dependencyManagement>

@@ -8,6 +8,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.http.HttpClientService;
+import io.apicurio.registry.script.ArtifactTypeScriptProvider;
 import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ReferenceFinderRequest;
 import io.apicurio.registry.types.webhooks.beans.ReferenceFinderResponse;
@@ -71,7 +72,7 @@ public class ConfiguredReferenceFinder extends AbstractConfiguredArtifactTypeUti
         return new ConfiguredReferenceFinder.ScriptReferenceFinderDelegate(artifactType, provider);
     }
 
-    private class ScriptReferenceFinderDelegate extends AbstractScriptDelegate<ReferenceFinderRequest, ReferenceFinderResponse> implements ReferenceFinder {
+    private class ScriptReferenceFinderDelegate extends AbstractScriptDelegate implements ReferenceFinder {
 
         protected ScriptReferenceFinderDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
             super(artifactType, provider);
@@ -80,13 +81,16 @@ public class ConfiguredReferenceFinder extends AbstractConfiguredArtifactTypeUti
         @Override
         public Set<ExternalReference> findExternalReferences(TypedContent content) {
             ReferenceFinderRequest requestBody = createRequest(content);
+            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
 
             try {
-                ReferenceFinderResponse responseBody = executeScript(requestBody, ReferenceFinderResponse.class);
+                ReferenceFinderResponse responseBody = scriptProvider.findExternalReferences(requestBody);
                 return WebhookBeanUtil.externalReferencesFromWebhookBean(responseBody.getExternalReferences());
             } catch (Throwable e) {
-                log.error("Error invoking webhook", e);
+                log.error("Error invoking script", e);
                 return Set.of();
+            } finally {
+                closeScriptProvider(scriptProvider);
             }
         }
 

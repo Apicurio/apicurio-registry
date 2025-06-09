@@ -151,6 +151,18 @@
 
     <!-- Third Party Libraries -->
     <dependency>
+      <groupId>io.roastedroot</groupId>
+      <artifactId>quickjs4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.roastedroot</groupId>
+      <artifactId>quickjs4j-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.roastedroot</groupId>
+      <artifactId>quickjs4j-processor</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>kafka-oauth-client</artifactId>
     </dependency>
@@ -356,6 +368,24 @@
       </testResource>
     </testResources>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+            <path>
+              <groupId>io.roastedroot</groupId>
+              <artifactId>quickjs4j-processor</artifactId>
+              <version>${quickjs4j.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>io.quarkus</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>

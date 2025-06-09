@@ -7,6 +7,7 @@ import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.http.HttpClientService;
+import io.apicurio.registry.script.ArtifactTypeScriptProvider;
 import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerResponse;
@@ -70,7 +71,7 @@ public class ConfiguredContentCanonicalizer extends AbstractConfiguredArtifactTy
         return new ConfiguredContentCanonicalizer.ScriptContentCanonicalizerDelegate(artifactType, provider);
     }
 
-    private class ScriptContentCanonicalizerDelegate extends AbstractScriptDelegate<ContentCanonicalizerRequest, ContentCanonicalizerResponse> implements ContentCanonicalizer {
+    private class ScriptContentCanonicalizerDelegate extends AbstractScriptDelegate implements ContentCanonicalizer {
 
         protected ScriptContentCanonicalizerDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
             super(artifactType, provider);
@@ -79,13 +80,16 @@ public class ConfiguredContentCanonicalizer extends AbstractConfiguredArtifactTy
         @Override
         public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
             ContentCanonicalizerRequest requestBody = createRequest(content, resolvedReferences);
+            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
 
             try {
-                ContentCanonicalizerResponse responseBody = executeScript(requestBody, ContentCanonicalizerResponse.class);
+                ContentCanonicalizerResponse responseBody = scriptProvider.canonicalize(requestBody);
                 return WebhookBeanUtil.typedContentFromWebhookBean(responseBody.getTypedContent());
             } catch (Throwable e) {
-                log.error("Error invoking webhook", e);
+                log.error("Error invoking script", e);
                 return content;
+            } finally {
+                closeScriptProvider(scriptProvider);
             }
         }
 

@@ -1,0 +1,23 @@
+{
+  "name": "js-artifact-types-test",
+  "private": false,
+  "version": "1.0.0",
+  "type": "module",
+  "devDependencies": {
+    "cp": "0.2.0",
+    "esbuild": "0.25.5",
+    "rimraf": "6.0.1",
+    "typescript": "5.8.3"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "transpile": "tsc --p ./tsconfig-build.json",
+    "build-library": "esbuild dist/src/test/resources-unfiltered/js-artifact-types-test/RamlArtifactType.js --bundle --outfile=dist/js-artifact-types-test.js --format=esm",
+    "build": "npm run transpile && npm run build-library"
+  },
+  "dependencies": {
+    "clean": "4.0.2",
+    "run": "1.5.0",
+    "yaml": "2.8.0"
+  }
+}

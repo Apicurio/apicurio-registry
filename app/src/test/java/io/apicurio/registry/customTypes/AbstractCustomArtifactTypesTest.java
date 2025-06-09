@@ -32,7 +32,7 @@ public abstract class AbstractCustomArtifactTypesTest extends AbstractResourceTe
 #%RAML 1.0
 title: Mobile Order API
 baseUri: http://localhost:8081/api
-version: 1.0
+version: "1.0"
 
 uses:
   assets: assets.lib.raml
@@ -63,8 +63,11 @@ annotationTypes:
               type: ~include schemas/order.xsd
             """;
 
-    private static String minifyContent(String content) {
-        return content.replaceAll("(?m)^\s*$\n?", "");
+    private static String canonicalizeContent(String content) {
+        String converted = content
+                .replace("use to query all orders of a user", "USE TO QUERY ALL ORDERS OF A USER")
+                .replace("Lists all orders of a specific user", "LIST ALL ORDERS OF A SPECIFIC USER");
+        return converted;
     }
 
     @Test
@@ -110,8 +113,8 @@ annotationTypes:
 
     @Test
     public void testContentCanonicalizer() {
-        String content = RAML_CONTENT.replace("Mobile Order API", "testCreateRAMLArtifact");
-        String minContent = minifyContent(content);
+        String content = RAML_CONTENT.replace("Mobile Order API", "testContentCanonicalizer");
+        String canonicalizedContent = canonicalizeContent(content);
 
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
@@ -130,14 +133,14 @@ annotationTypes:
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
 
-        // Search for the minified content.  Will not work unless we set canonical=true
-        body = new ByteArrayInputStream(minContent.getBytes());
+        // Search for the canonicalized content.  Will not work unless we set canonical=true
+        body = new ByteArrayInputStream(canonicalizedContent.getBytes());
         results = clientV3.search().versions().post(body, ContentTypes.APPLICATION_YAML);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(0, results.getCount());
 
-        // Search for the minified content again, this time with canonical=true - should work.
-        body = new ByteArrayInputStream(minContent.getBytes());
+        // Search for the canonicalized content again, this time with canonical=true - should work.
+        body = new ByteArrayInputStream(canonicalizedContent.getBytes());
         results = clientV3.search().versions().post(body, ContentTypes.APPLICATION_YAML, config -> {
             config.queryParameters.artifactType = "RAML";
             config.queryParameters.canonical = true;
@@ -177,7 +180,7 @@ annotationTypes:
         // Create from invalid content
         Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
             String invalidArtifactId = TestUtils.generateArtifactId();
-            CreateArtifact createArtifactInvalid = TestUtils.clientCreateArtifact(validArtifactId, "RAML", invalidContent, ContentTypes.APPLICATION_YAML);
+            CreateArtifact createArtifactInvalid = TestUtils.clientCreateArtifact(invalidArtifactId, "RAML", invalidContent, ContentTypes.APPLICATION_YAML);
             createArtifactInvalid.getFirstVersion().setVersion("1.0");
             clientV3.groups().byGroupId(groupId).artifacts().post(createArtifactInvalid);
         });
@@ -199,7 +202,7 @@ annotationTypes:
         clientV3.groups().byGroupId(groupId).rules().post(createRule);
 
         String v1Content = RAML_CONTENT;
-        String v2Content = RAML_CONTENT.replace("version: 1.0", "version: 2.0");
+        String v2Content = RAML_CONTENT.replace("version: \"1.0\"", "version: \"2.0\"");
 
         // Create v1
         String artifactId = TestUtils.generateArtifactId();
@@ -228,7 +231,7 @@ annotationTypes:
 ---
 title: "Mobile Order API"
 baseUri: "http://localhost:8081/api"
-version: 1.0
+version: "1.0"
 uses:
   assets: "assets.lib.raml"
 annotationTypes:

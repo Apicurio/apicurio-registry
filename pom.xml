@@ -136,6 +136,7 @@
 
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
@@ -220,6 +221,7 @@
     <debezium.version>2.6.2.Final</debezium.version>
     <pulsar-clients.version>3.3.4</pulsar-clients.version>
     <commons-beanutils.version>1.10.0</commons-beanutils.version>
+    <quickjs4j.version>0.0.5</quickjs4j.version>
 
     <nats.version>2.20.5</nats.version>
     <snakeyaml.version>2.3</snakeyaml.version>
@@ -727,6 +729,22 @@
       </dependency>
 
       <dependency>
+        <groupId>io.roastedroot</groupId>
+        <artifactId>quickjs4j</artifactId>
+        <version>${quickjs4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.roastedroot</groupId>
+        <artifactId>quickjs4j-annotations</artifactId>
+        <version>${quickjs4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.roastedroot</groupId>
+        <artifactId>quickjs4j-processor</artifactId>
+        <version>${quickjs4j.version}</version>
+      </dependency>
+
+      <dependency>
         <groupId>com.fasterxml.woodstox</groupId>
         <artifactId>woodstox-core</artifactId>
         <version>${woodstox-core.version}</version>
@@ -1025,6 +1043,7 @@
         <configuration>
           <source>${maven.compiler.source}</source>
           <target>${maven.compiler.target}</target>
+          <release>${maven.compiler.release}</release>
           <showDeprecation>false</showDeprecation>
           <showWarnings>false</showWarnings>
           <annotationProcessorPaths>

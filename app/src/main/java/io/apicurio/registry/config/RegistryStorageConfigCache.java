@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_CACHE;
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
 @ApplicationScoped
@@ -29,7 +30,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase
     Logger log;
 
     @ConfigProperty(name = "apicurio.config.cache.enabled", defaultValue = "true")
-    @Info(category = "cache", description = "Registry cache enabled", availableSince = "2.2.2.Final")
+    @Info(category = CATEGORY_CACHE, description = "Registry cache enabled", availableSince = "2.2.2.Final")
     boolean enabled;
 
     private Map<String, DynamicConfigPropertyDto> configCache = new ConcurrentHashMap<>();

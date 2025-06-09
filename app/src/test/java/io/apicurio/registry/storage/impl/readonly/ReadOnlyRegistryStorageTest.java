@@ -117,6 +117,8 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getConfigProperty1", new State(false, s -> s.getConfigProperty(null))),
                 entry("getContentIdsReferencingArtifactVersion3",
                         new State(false, s -> s.getContentIdsReferencingArtifactVersion(null, null, null))),
+                entry("getGlobalIdsReferencingArtifact2",
+                        new State(false, s -> s.getGlobalIdsReferencingArtifact(null, null))),
                 entry("getGlobalIdsReferencingArtifactVersion3",
                         new State(false, s -> s.getGlobalIdsReferencingArtifactVersion(null, null, null))),
                 entry("getGlobalRule1", new State(false, s -> s.getGlobalRule(null))),

@@ -163,6 +163,8 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         groups.deleteArtifact(groupId as string, artifactId as string).then( () => {
             pleaseWait(false, "");
             appNavigation.navigateTo("/explore");
+        }).catch(error => {
+            setPageError(toPageError(error, "Error deleting an artifact."));
         });
     };
 

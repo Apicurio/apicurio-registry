@@ -5,12 +5,12 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.8-SNAPSHOT</version>
+    <version>3.0.10-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-examples</artifactId>
-  <version>3.0.8-SNAPSHOT</version>
+  <version>3.0.10-SNAPSHOT</version>
   <packaging>pom</packaging>
   <description>Open Source API &amp; Schema Registry</description>
 

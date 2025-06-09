@@ -162,6 +162,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
@@ -230,16 +231,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @ConfigProperty(name = "apicurio.sql.init", defaultValue = "true")
-    @Info(category = "storage", description = "SQL init", availableSince = "2.0.0.Final")
+    @Info(category = CATEGORY_STORAGE, description = "SQL init", availableSince = "2.0.0.Final")
     boolean initDB;
 
     @ConfigProperty(name = "apicurio.sql.db-schema", defaultValue = "*")
-    @Info(category = "storage", description = "Database schema name (only needed when running two instances of Registry against the same database, in multiple schemas)", availableSince = "3.0.6")
+    @Info(category = CATEGORY_STORAGE, description = "Database schema name (only needed when running two instances of Registry against the same database, in multiple schemas)", availableSince = "3.0.6")
     String dbSchema;
 
     @Inject
     @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
-    @Info(category = "storage", description = "Storage event topic")
+    @Info(category = CATEGORY_STORAGE, description = "Storage event topic")
     String eventsTopic;
 
     @Inject
@@ -2782,8 +2783,17 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId,
             String version) {
         return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectGlobalIdsReferencingArtifactBy())
+            return handle.createQuery(sqlStatements().selectGlobalIdsReferencingArtifactVersionBy())
                     .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version).mapTo(Long.class)
+                    .list();
+        });
+    }
+
+    @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements().selectGlobalIdsReferencingArtifactBy())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Long.class)
                     .list();
         });
     }

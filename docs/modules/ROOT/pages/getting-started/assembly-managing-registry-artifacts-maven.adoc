@@ -1,4 +1,3 @@
-// Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="managing-registry-artifacts-maven_{context}"]
@@ -18,9 +17,460 @@ When developing client applications, you can use the {registry} Maven plug-in to
 * Apache Maven is installed and configured in your environment.
 
 //INCLUDES
-include::{mod-loc}getting-started/proc-adding-artifacts-using-maven-plugin.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-downloading-artifacts-using-maven-plugin.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-testing-artifacts-using-maven-plugin.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-adding-artifact-references-manually-using-maven-plugin.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-adding-artifact-references-automatically-using-maven-plugin.adoc[leveloffset=+1]
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="adding-artifacts-using-maven-plugin_{context}"]
+== Adding schema and API artifacts using the Maven plug-in
+
+[role="_abstract"]
+The most common use case for the Maven plug-in is adding artifacts during a build of your client application. You can accomplish this by using the `register` execution goal.
+
+.Prerequisites
+* You have created a Maven project for your client application. For more details, see the https://maven.apache.org/index.html[Apache Maven documentation].
+
+.Procedure
+. Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register an artifact. The following example shows registering Apache Avro and GraphQL schemas:
++
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+      <execution>
+        <phase>generate-sources</phase>
+        <goals>
+            <goal>register</goal>  <1>
+        </goals>
+        <configuration>
+            <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+            <authServerUrl>MY-AUTH-SERVER</authServerUrl>
+            <clientId>MY-CLIENT-ID</clientId>
+            <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+            <clientScope>MY-CLIENT-SCOPE</clientScope>
+            <artifacts>
+                <artifact>
+                    <groupId>TestGroup</groupId> <4>
+                    <artifactId>FullNameRecord</artifactId>
+                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file>
+                    <ifExists>FAIL</ifExists>
+                </artifact>
+                <artifact>
+                    <groupId>TestGroup</groupId>
+                    <artifactId>ExampleAPI</artifactId> <5>
+                    <artifactType>GRAPHQL</artifactType>
+                    <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
+                    <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                    <canonicalize>true</canonicalize>
+                </artifact>
+            </artifacts>
+        </configuration>
+    </execution>
+  </executions>
+ </plugin>
+----
++
+<1> Specify `register` as the execution goal to upload the schema artifact to {registry}.
+<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
+<3> If authentication is required, you can specify your authentication server and client credentials.
+<4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
+<5> You can register multiple artifacts using the specified group ID, artifact ID, and location.
+
+. Build your Maven project, for example, by using the `mvn package` command.
+
+[role="_additional-resources"]
+.Additional resources
+ * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
+ * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples].
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="downloading-artifacts-using-maven-plugin_{context}"]
+== Downloading schema and API artifacts using the Maven plug-in
+
+[role="_abstract"]
+You can use the Maven plug-in to download artifacts from {registry}. This is often useful, for example, when generating code from a registered schema.
+
+.Prerequisites
+* You have created a Maven project for your client application. For more details, see the https://maven.apache.org/index.html[Apache Maven documentation].
+
+.Procedure
+. Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to download an artifact. The following example shows downloading Apache Avro and GraphQL schemas.
++
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+    <execution>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>download</goal> <1>
+      </goals>
+      <configuration>
+          <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+          <authServerUrl>MY-AUTH-SERVER</authServerUrl>
+          <clientId>MY-CLIENT-ID</clientId>
+          <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+          <clientScope>MY-CLIENT-SCOPE</clientScope>
+          <artifacts>
+              <artifact>
+                  <groupId>TestGroup</groupId> <4>
+                  <artifactId>FullNameRecord</artifactId> <5>
+                  <file>${project.build.directory}/classes/record.avsc</file>
+                  <overwrite>true</overwrite>
+              </artifact>
+              <artifact>
+                  <groupId>TestGroup</groupId>
+                  <artifactId>ExampleAPI</artifactId>
+                  <version>1</version>
+                  <file>${project.build.directory}/classes/example.graphql</file>
+                  <overwrite>true</overwrite>
+              </artifact>
+          </artifacts>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+----
++
+<1> Specify `download` as the execution goal.
+<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
+<3> If authentication is required, you can specify your authentication server and client credentials.
+<4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
+<5> You can download multiple artifacts to a specified directory using the artifact ID.
+
+. Build your Maven project, for example, by using the `mvn package` command.
+
+[role="_additional-resources"]
+.Additional resources
+ * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
+ * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples].
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="testing-artifacts-using-maven-plugin_{context}"]
+== Testing schema and API artifacts using the Maven plug-in
+
+[role="_abstract"]
+You might want to verify that an artifact can be registered without actually making any changes. This is often useful when rules are configured in {registry}. Testing the artifact results in a failure if the artifact content violates any of the configured rules.
+
+NOTE: When testing artifacts using the Maven plug-in, even if the artifact passes the test, no content is added to {registry}.
+
+.Prerequisites
+* You have created a Maven project for your client application. For more details, see the https://maven.apache.org/index.html[Apache Maven documentation].
+
+
+.Procedure
+. Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to test an artifact. The following example shows testing an Apache Avro schema:
++
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+      <execution>
+        <phase>generate-sources</phase>
+        <goals>
+            <goal>test-update</goal>  <1>
+        </goals>
+        <configuration>
+            <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+            <authServerUrl>MY-AUTH-SERVER</authServerUrl>
+            <clientId>MY-CLIENT-ID</clientId>
+            <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+            <clientScope>MY-CLIENT-SCOPE</clientScope>
+            <artifacts>
+                <artifact>
+                    <groupId>TestGroup</groupId> <4>
+                    <artifactId>FullNameRecord</artifactId>
+                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file> <5>
+                </artifact>
+            </artifacts>
+        </configuration>
+    </execution>
+  </executions>
+ </plugin>
+----
++
+<1> Specify `test-update` as the execution goal to test the schema artifact.
+<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
+<3> If authentication is required, you can specify your authentication server and client credentials.
+<4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
+<5> You can test multiple artifacts from a specified directory using the artifact ID.
+
+. Build your Maven project, for example, by using the `mvn package` command.
+
+[role="_additional-resources"]
+.Additional resources
+ * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
+ * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples].
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/assembly-managing-registry-artifacts-maven.adoc
+
+[id="adding-artifact-references-manually-using-maven-plugin_{context}"]
+== Adding artifact references manually using the {registry} Maven plug-in
+
+[role="_abstract"]
+Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
+
+The following artifact types support artifact references:
+
+* Apache Avro
+* Google Protobuf
+* JSON Schema
+* OpenAPI
+* AsyncAPI
+
+This section shows a simple example of using the {registry} Maven plug-in to manually register an artifact reference to a simple Avro schema artifact stored in {registry}. This example assumes that the following `Exchange` schema artifact has already been created in {registry}:
+
+.Exchange schema
+[source,json]
+----
+{
+  "namespace": "com.kubetrade.schema.common",
+  "type": "enum",
+  "name": "Exchange",
+  "symbols" : ["GEMINI"]
+}
+----
+
+This example then creates a `TradeKey` schema artifact, which includes a reference to the nested `Exchange` schema artifact:
+
+.TradeKey schema with nested reference to Exchange schema
+[source,json]
+----
+{
+  "namespace": "com.kubetrade.schema.trade",
+  "type": "record",
+  "name": "TradeKey",
+  "fields": [
+    {
+      "name": "exchange",
+      "type": "com.kubetrade.schema.common.Exchange"
+    },
+    {
+      "name": "key",
+      "type": "string"
+    }
+  ]
+}
+----
+
+.Prerequisites
+* You have created a Maven project for your client application. For more details, see the https://maven.apache.org/index.html[Apache Maven documentation].
+* The referenced `Exchange` schema artifact is already created in {registry}.
+
+.Procedure
+. Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register the `TradeKey` schema, which includes a nested reference to the `Exchange` schema as follows:
++
+[source,xml]
+----
+<plugin>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-maven-plugin</artifactId>
+    <version>${apicurio-registry.version}</version>
+    <executions>
+        <execution>
+            <phase>generate-sources</phase>
+            <goals>
+                <goal>register</goal> <1>
+            </goals>
+            <configuration>
+                <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+                <authServerUrl>MY-AUTH-SERVER</authServerUrl>
+                <clientId>MY-CLIENT-ID</clientId>
+                <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+                <clientScope>MY-CLIENT-SCOPE</clientScope>
+                <artifacts>
+                    <artifact>
+                        <groupId>test-group</groupId> <4>
+                        <artifactId>TradeKey</artifactId>
+                        <version>2.0</version>
+                        <artifactType>AVRO</artifactType>
+                        <file>
+                            ${project.basedir}/src/main/resources/schemas/TradeKey.avsc
+                        </file>
+                        <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                        <canonicalize>true</canonicalize>
+                        <references>
+                            <reference> <5>
+                                <name>com.kubetrade.schema.common.Exchange</name>
+                                <groupId>test-group</groupId>
+                                <artifactId>Exchange</artifactId>
+                                <version>2.0</version>
+                                <artifactType>AVRO</artifactType>
+                                <file>
+                                    ${project.basedir}/src/main/resources/schemas/Exchange.avsc
+                                </file>
+                                <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                                <canonicalize>true</canonicalize>
+                            </reference>
+                        </references>
+                    </artifact>
+                </artifacts>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+----
++
+<1> Specify `register` as the execution goal to upload the schema artifacts to {registry}.
+<2> Specify the {registry} URL by using the `../apis/registry/v3` endpoint.
+<3> If authentication is required, you can specify your authentication server and client credentials.
+<4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
+<5> Specify the {registry} artifact reference using its group ID, artifact ID, version, type, and location. You can register multiple artifact references in this way.
+
+. Build your Maven project, for example, by using the `mvn package` command.
+
+[role="_additional-resources"]
+.Additional resources
+ * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
+ * For an open source example of using the {registry} Maven plug-in to manually register an artifact reference, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/avro-maven-with-references[avro-maven-with-references demonstration example].
+ * For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
+
+
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/assembly-managing-registry-artifacts-maven.adoc
+
+[id="adding-artifact-references-automatically-using-maven-plugin_{context}"]
+== Adding artifact references automatically using the {registry} Maven plug-in
+
+[role="_abstract"]
+Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
+
+The following artifact types support artifact references:
+
+* Apache Avro
+* Google Protobuf
+* JSON Schema
+* OpenAPI
+* AsyncAPI
+
+You can specify a single artifact and configure the {registry} Maven plugin to automatically detect all references to artifacts located in the same directory, and to automatically register those references. This is a Technology Preview feature.
+
+[IMPORTANT]
+====
+Technology Preview features are not supported with Red{nbsp}Hat production service level agreements (SLAs) and might not be functionally complete.
+Red{nbsp}Hat does not recommend using them in production.
+These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process.
+
+For more information about the support scope of Red{nbsp}Hat Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview/[Technology Preview Features Support Scope].
+====
+
+This section shows a simple example of using the Maven plug-in to register an Avro schema and automatically detect and register an artifact reference to a simple schema artifact. This example assumes that the parent `TradeKey` artifact and the nested `Exchange` schema artifact are both available in the same directory:
+
+.TradeKey schema with nested reference to Exchange schema
+[source,json]
+----
+{
+  "namespace": "com.kubetrade.schema.trade",
+  "type": "record",
+  "name": "TradeKey",
+  "fields": [
+    {
+      "name": "exchange",
+      "type": "com.kubetrade.schema.common.Exchange"
+    },
+    {
+      "name": "key",
+      "type": "string"
+    }
+  ]
+}
+----
+
+.Exchange schema
+[source,json]
+----
+{
+  "namespace": "com.kubetrade.schema.common",
+  "type": "enum",
+  "name": "Exchange",
+  "symbols" : ["GEMINI"]
+}
+----
+
+.Prerequisites
+* You have created a Maven project for your client application. For more details, see the https://maven.apache.org/index.html[Apache Maven documentation].
+* The `TradeKey` schema artifact and the nested `Exchange` schema artifact files are both located in the same directory.
+
+.Procedure
+. Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to register the `TradeKey` schema, which includes a nested reference to the `Exchange` schema as follows:
++
+[source,xml]
+----
+<plugin>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-maven-plugin</artifactId>
+    <version>${apicurio-registry.version}</version>
+    <executions>
+        <execution>
+            <phase>generate-sources</phase>
+            <goals>
+                <goal>register</goal> <1>
+            </goals>
+            <configuration>
+                <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+                <authServerUrl>MY-AUTH-SERVER</authServerUrl>
+                <clientId>MY-CLIENT-ID</clientId>
+                <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+                <clientScope>MY-CLIENT-SCOPE</clientScope>
+                <artifacts>
+                    <artifact>
+                        <groupId>test-group</groupId> <4>
+                        <artifactId>TradeKey</artifactId>
+                        <version>2.0</version>
+                        <artifactType>AVRO</artifactType>
+                        <file>
+                            ${project.basedir}/src/main/resources/schemas/TradeKey.avsc <5>
+                        </file>
+                        <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+                        <canonicalize>true</canonicalize>
+                        <autoRefs>true</autoRefs> <6>
+                    </artifact>
+                </artifacts>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+----
++
+<1> Specify `register` as the execution goal to upload the schema artifacts to {registry}.
+<2> Specify the {registry} URL by using the `../apis/registry/v3` endpoint.
+<3> If authentication is required, you can specify your authentication server and client credentials.
+<4> Specify the parent artifact group ID that contains the references. You can specify the `default` group if you do not want to use a unique group ID.
+<5> Specify the location of the parent artifact file. All referenced artifacts must also be located in the same directory.
+<6> Set the `<autoRefs>` option to true to automatically detect and register all references to artifacts in the same directory. You can register multiple artifact references in this way.
+
+. Build your Maven project, for example, by using the `mvn package` command.
+
+[role="_additional-resources"]
+.Additional resources
+ * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
+ * For an open source example of using the {registry} Maven plug-in to automatically register multiple artifact references, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/avro-maven-with-references-auto[avro-maven-with-references-auto demonstration example].
+ * For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
+
+
+
 

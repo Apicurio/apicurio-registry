@@ -8,7 +8,9 @@ import io.apicurio.registry.content.canon.GraphQLContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
+import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.NoOpReferenceFinder;
+import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
@@ -78,6 +80,11 @@ public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     @Override
     public boolean supportsReferencesWithContext() {
         return false;
+    }
+
+    @Override
+    protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
+        return new DefaultReferenceArtifactIdentifierExtractor();
     }
 
 }

@@ -11,6 +11,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Optional;
 
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_REDIRECTS;
+
 /**
  * Utility to generate absolute URLs.
  */
@@ -18,15 +20,15 @@ import java.util.Optional;
 public class URLUtil {
 
     @ConfigProperty(name = "apicurio.url.override.host")
-    @Info(category = "redirects", description = "Override the hostname used for generating externally-accessible URLs. "
-            + "The host and port overrides are useful when deploying Registry with HTTPS passthrough Ingress or Route. "
-            + "In cases like these, the request URL (and port) that is then re-used for redirection "
-            + "does not belong to actual external URL used by the client, because the request is proxied. "
-            + "The redirection then fails because the target URL is not reachable.", availableSince = "2.5.0.Final")
+    @Info(category = CATEGORY_REDIRECTS, description = "Override the hostname used for generating externally-accessible URLs. "
+                                                       + "The host and port overrides are useful when deploying Registry with HTTPS passthrough Ingress or Route. "
+                                                       + "In cases like these, the request URL (and port) that is then re-used for redirection "
+                                                       + "does not belong to actual external URL used by the client, because the request is proxied. "
+                                                       + "The redirection then fails because the target URL is not reachable.", availableSince = "2.5.0.Final")
     Optional<String> urlOverrideHost;
 
     @ConfigProperty(name = "apicurio.url.override.port")
-    @Info(category = "redirects", description = "Override the port used for generating externally-accessible URLs.", availableSince = "2.5.0.Final")
+    @Info(category = CATEGORY_REDIRECTS, description = "Override the port used for generating externally-accessible URLs.", availableSince = "2.5.0.Final")
     Optional<Integer> urlOverridePort;
 
     @Inject

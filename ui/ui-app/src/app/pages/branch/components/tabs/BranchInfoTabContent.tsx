@@ -49,7 +49,7 @@ export const BranchInfoTabContent: FunctionComponent<BranchInfoTabContentProps> 
                                 <FlexItem className="title">Branch metadata</FlexItem>
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                                     <If condition={!(props.branch.systemDefined || false)}>
-                                        <IfAuth isDeveloper={true}>
+                                        <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                                             <IfFeature feature="readOnly" isNot={true}>
                                                 <Button id="edit-action"
                                                     data-testid="version-btn-edit"

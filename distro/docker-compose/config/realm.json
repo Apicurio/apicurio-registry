@@ -517,6 +517,37 @@
       "groups": []
     },
     {
+      "id": "91058f32-3c88-11f0-ba59-083a885f86ce",
+      "username": "developer2",
+      "enabled": true,
+      "email": "developer2@example.org",
+      "emailVerified": true,
+      "firstName": "Devtwo",
+      "lastName": "Eloper",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "developer",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "sr-developer",
+        "offline_access",
+        "uma_authorization",
+        "User"
+      ],
+      "clientRoles": {
+        "account": [
+          "view-applications",
+          "view-profile",
+          "manage-account"
+        ]
+      },
+      "requiredActions": [],
+      "groups": []
+    },
+    {
       "id": "cb42baf4-041a-11f0-9cd7-aab64c422d44",
       "username": "user",
       "enabled": true,

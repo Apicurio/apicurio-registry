@@ -37,7 +37,7 @@ NAMESPACE ?= default
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
-PREVIOUS_PACKAGE_VERSION ?= 3.0.7
+PREVIOUS_PACKAGE_VERSION ?= 3.0.9
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 CHANNELS ?= 3.x
@@ -50,6 +50,8 @@ BUNDLE_IMAGE_NAME ?= $(IMAGE_NAME)-bundle
 BUNDLE_IMAGE_TAG ?= $(LC_VERSION)
 BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(BUNDLE_IMAGE_TAG)
 ADDITIONAL_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(ADDITIONAL_BUNDLE_TAG)
+
+PREVIOUS_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(PREVIOUS_PACKAGE_VERSION)
 
 ### Catalog
 
@@ -235,8 +237,8 @@ build: ## TODO
 	mvn clean install $(BUILD_OPTS_EXT)
 
 
-.PHONY: remote-tests-all
-remote-tests-all: ## TODO
+.PHONY: test-remote-all
+test-remote-all: ## TODO
 	# Do not run `mvn clean` when not necessary.
 ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
 	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
@@ -360,10 +362,12 @@ catalog-build: install-opm ## TODO
 	$(call target_dir,$(CATALOG_TARGET_DIR))
 	# Create catalog.yaml
 	mkdir -p $(CATALOG_TARGET_DIR)/configs
-	cat $(CATALOG_DIR)/catalog.template.yaml | envsubst > $(CATALOG_TARGET_DIR)/catalog.yaml
+	cat $(CATALOG_DIR)/catalog.template.yaml | envsubst >$(CATALOG_TARGET_DIR)/catalog.yaml
 	# Build
-	cd $(CATALOG_TARGET_DIR) && $(OPM) alpha render-template basic catalog.yaml --output=yaml > configs/index.yaml
+	cd $(CATALOG_TARGET_DIR) && $(OPM) alpha render-template basic catalog.yaml --output=yaml >configs/index.yaml
 	cd $(CATALOG_TARGET_DIR) && $(OPM) generate dockerfile configs
+	# Workaround for Docker error: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 3)
+	sed -i 's|^FROM \(.*\) as builder$$|FROM \1 AS builder|g' $(CATALOG_TARGET_DIR)/configs.Dockerfile
 
 
 .PHONY: catalog-image-build
@@ -417,21 +421,21 @@ catalog-subscription-undeploy: ## TODO
 
 .PHONY: release-catalog-template-update
 release-catalog-template-update: install-yq
-	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name = "3.x") | .entries[] | select(.name = "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
-	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name = "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
-	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(PREVIOUS_BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
 
 
 .PHONY: dev
 dev:
-	mvn quarkus:dev
+	export POD_NAMESPACE=$$(kubectl config current-context | awk '{split($$0,x,"/"); printf "%s",x[1]}'); mvn quarkus:dev
 
 
-.PHONY: set-variable
-set-variable:
+.PHONY: variable-set
+variable-set:
 	sed -i 's|^\( *$(VAR) *\??=\) *\([^ ]*\)\(.*\)$$|\1 $(VAL)\3|g' Makefile
 
 
-.PHONY: get-variable
-get-variable:
+.PHONY: variable-get
+variable-get:
 	@echo $($(VAR))

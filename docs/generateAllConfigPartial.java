@@ -1,6 +1,8 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //DEPS org.jboss:jandex:3.1.7
 
+
+import io.apicurio.common.apps.config.ConfigPropertyCategory;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
@@ -8,14 +10,22 @@ import org.jboss.jandex.IndexReader;
 import org.jboss.jandex.Main;
 import org.jboss.jandex.Type;
 
-import java.io.*;
-import java.util.*;
-import java.net.*;
-import java.nio.charset.*;
-import java.nio.file.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
-
-import static java.lang.System.*;
 
 public class generateAllConfigPartial {
 
@@ -121,7 +131,7 @@ public class generateAllConfigPartial {
         }
     }
 
-    public static Map<String, Option> extractConfigurations(String jarFile, Map<String, Option> allConfiguration) {
+    public static Map<String, Option> extractConfigurations(String jarFile, Map<String, Option> allConfiguration) throws Exception {
         Main.main(new String[]{jarFile});
 
         // Jandex dance
@@ -181,7 +191,8 @@ public class generateAllConfigPartial {
                         throw new IllegalArgumentException("The field: \"" + annotation.target() + "\" is annotated with @ConfigProperty but not with @io.apicurio.common.apps.config.Info");
                     }
 
-                    var category = Optional.ofNullable(info.get().value("category")).map(v -> v.value().toString()).orElse("");
+                    var variant = (String) info.get().value("category").value();
+                    var category = ConfigPropertyCategory.valueOf(variant).getRawValue();
                     var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
 
                     var availableSince = Optional.ofNullable(info.get().value("registryAvailableSince"))
@@ -276,7 +287,7 @@ public class generateAllConfigPartial {
             var categories = new HashSet<String>();
             categories.addAll(allConfiguration.values().stream().map(c -> c.getCategory()).collect(Collectors.toList()));
 
-            ((HashSet) categories).remove("unknown");
+            categories.remove("hidden");
 
             for (var category : categories.stream().sorted().collect(Collectors.toList())) {
 

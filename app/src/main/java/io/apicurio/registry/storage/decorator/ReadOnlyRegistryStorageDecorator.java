@@ -34,6 +34,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.util.List;
 import java.util.function.Supplier;
 
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
+
 @ApplicationScoped
 public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorReadOnlyBase
         implements RegistryStorageDecorator {
@@ -43,7 +45,7 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     @Dynamic(label = "Storage read-only mode", description = "When selected, "
             + "Registry will return an error for operations that write to the storage (this property excepted).")
     @ConfigProperty(name = READ_ONLY_MODE_ENABLED_PROPERTY_NAME, defaultValue = "false")
-    @Info(category = "storage", description = "Enable Registry storage read-only mode", availableSince = "2.5.0.Final")
+    @Info(category = CATEGORY_STORAGE, description = "Enable Registry storage read-only mode", availableSince = "2.5.0.Final")
     Supplier<Boolean> readOnlyModeEnabled;
 
     @Override

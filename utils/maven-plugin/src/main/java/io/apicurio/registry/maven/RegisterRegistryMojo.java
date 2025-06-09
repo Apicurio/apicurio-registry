@@ -10,14 +10,7 @@ import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.maven.refs.IndexedResource;
 import io.apicurio.registry.maven.refs.ReferenceIndex;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ArtifactReference;
-import io.apicurio.registry.rest.client.models.CreateArtifact;
-import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.IfArtifactExists;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
-import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
-import io.apicurio.registry.rest.client.models.VersionContent;
-import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.rules.ParsedJsonSchema;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -31,20 +24,12 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -196,7 +181,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private VersionMetaData registerWithAutoRefs(RegistryClient registryClient, RegisterArtifact artifact,
-            ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException,
+                                                 ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException,
             ExecutionException, InterruptedException, MojoExecutionException, MojoFailureException {
         if (loopDetected(artifact, registrationStack)) {
             throw new RuntimeException(
@@ -213,6 +198,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         ArtifactTypeUtilProvider provider = this.utilProviderFactory
                 .getArtifactTypeProvider(artifact.getArtifactType());
         ReferenceFinder referenceFinder = provider.getReferenceFinder();
+        var referenceArtifactIdentifierExtractor = provider.getReferenceArtifactIdentifierExtractor();
         Set<ExternalReference> externalReferences = referenceFinder
                 .findExternalReferences(typedArtifactContent);
 
@@ -231,9 +217,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             // If the resource isn't already registered, then register it now.
             if (!iresource.isRegistered()) {
                 // TODO: determine the artifactId better (type-specific logic here?)
-                String artifactId = externalRef.getResource();
+                String artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
+                String groupId = referenceArtifactIdentifierExtractor.extractGroupId(externalRef.getResource());
                 File localFile = getLocalFile(iresource.getPath());
-                RegisterArtifact refArtifact = buildFromRoot(artifact, artifactId);
+                RegisterArtifact refArtifact = buildFromRoot(artifact, artifactId, groupId);
                 refArtifact.setArtifactType(iresource.getType());
                 refArtifact.setVersion(null);
                 refArtifact.setFile(localFile);
@@ -293,7 +280,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,
-            List<ArtifactReference> references) throws FileNotFoundException, ExecutionException,
+                                             List<ArtifactReference> references) throws FileNotFoundException, ExecutionException,
             InterruptedException, MojoExecutionException, MojoFailureException {
         if (artifact.getFile() != null) {
             return registerArtifact(registryClient, artifact, new FileInputStream(artifact.getFile()),
@@ -304,7 +291,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private VersionMetaData getArtifactVersionMetadata(RegistryClient registryClient,
-            RegisterArtifact artifact) {
+                                                       RegisterArtifact artifact) {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
         String version = artifact.getVersion();
@@ -318,7 +305,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,
-            InputStream artifactContent, List<ArtifactReference> references)
+                                             InputStream artifactContent, List<ArtifactReference> references)
             throws ExecutionException, InterruptedException, MojoFailureException, MojoExecutionException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
@@ -326,7 +313,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         String type = artifact.getArtifactType();
         Boolean canonicalize = artifact.getCanonicalize();
         String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON
-            : artifact.getContentType();
+                : artifact.getContentType();
         String data = null;
         try {
             if (artifact.getMinify() != null && artifact.getMinify()) {
@@ -388,7 +375,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private List<ArtifactReference> processArtifactReferences(RegistryClient registryClient,
-            List<RegisterArtifactReference> referencedArtifacts) throws FileNotFoundException,
+                                                              List<RegisterArtifactReference> referencedArtifacts) throws FileNotFoundException,
             ExecutionException, InterruptedException, MojoExecutionException, MojoFailureException {
         List<ArtifactReference> references = new ArrayList<>();
         for (RegisterArtifactReference artifact : referencedArtifacts) {
@@ -414,7 +401,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private static ArtifactReference buildReferenceFromMetadata(VersionMetaData metaData,
-            String referenceName) {
+                                                                String referenceName) {
         ArtifactReference reference = new ArtifactReference();
         reference.setName(referenceName);
         reference.setArtifactId(metaData.getArtifactId());
@@ -426,14 +413,14 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     private static boolean isFileAllowedInIndex(File file) {
         return file.isFile() && (
                 file.getName().toLowerCase().endsWith(".json") ||
-                file.getName().toLowerCase().endsWith(".yml") ||
-                file.getName().toLowerCase().endsWith(".yaml") ||
-                file.getName().toLowerCase().endsWith(".xml") ||
-                file.getName().toLowerCase().endsWith(".xsd") ||
-                file.getName().toLowerCase().endsWith(".wsdl") ||
-                file.getName().toLowerCase().endsWith(".graphql") ||
-                file.getName().toLowerCase().endsWith(".avsc") ||
-                file.getName().toLowerCase().endsWith(".proto")
+                        file.getName().toLowerCase().endsWith(".yml") ||
+                        file.getName().toLowerCase().endsWith(".yaml") ||
+                        file.getName().toLowerCase().endsWith(".xml") ||
+                        file.getName().toLowerCase().endsWith(".xsd") ||
+                        file.getName().toLowerCase().endsWith(".wsdl") ||
+                        file.getName().toLowerCase().endsWith(".graphql") ||
+                        file.getName().toLowerCase().endsWith(".avsc") ||
+                        file.getName().toLowerCase().endsWith(".proto")
         );
     }
 
@@ -452,7 +439,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private void addExistingReferencesToIndex(RegistryClient registryClient, ReferenceIndex index,
-            List<ExistingReference> existingReferences) throws ExecutionException, InterruptedException {
+                                              List<ExistingReference> existingReferences) throws ExecutionException, InterruptedException {
         if (existingReferences != null && !existingReferences.isEmpty()) {
             for (ExistingReference ref : existingReferences) {
                 VersionMetaData vmd;
@@ -479,11 +466,11 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    protected static RegisterArtifact buildFromRoot(RegisterArtifact rootArtifact, String artifactId) {
+    protected static RegisterArtifact buildFromRoot(RegisterArtifact rootArtifact, String artifactId, String groupId) {
         RegisterArtifact nestedSchema = new RegisterArtifact();
         nestedSchema.setCanonicalize(rootArtifact.getCanonicalize());
         nestedSchema.setArtifactId(artifactId);
-        nestedSchema.setGroupId(rootArtifact.getGroupId());
+        nestedSchema.setGroupId(groupId == null ? rootArtifact.getGroupId() : groupId);
         nestedSchema.setContentType(rootArtifact.getContentType());
         nestedSchema.setArtifactType(rootArtifact.getArtifactType());
         nestedSchema.setMinify(rootArtifact.getMinify());
@@ -504,7 +491,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
      * @param registrationStack
      */
     private static boolean loopDetected(RegisterArtifact artifact,
-            Stack<RegisterArtifact> registrationStack) {
+                                        Stack<RegisterArtifact> registrationStack) {
         for (RegisterArtifact stackArtifact : registrationStack) {
             if (artifact.getFile().equals(stackArtifact.getFile())) {
                 return true;

@@ -1,0 +1,13 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: ingress-class-name
+spec:
+  app:
+    ingress:
+      host: ingress-class-name-app.apps.cluster.example
+      ingressClassName: haproxy-app
+  ui:
+    ingress:
+      host: ingress-class-name-ui.apps.cluster.example
+      ingressClassName: haproxy-ui

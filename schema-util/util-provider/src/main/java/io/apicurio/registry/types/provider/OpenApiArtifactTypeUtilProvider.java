@@ -8,7 +8,9 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.OpenApiDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.OpenApiContentExtractor;
+import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.OpenApiReferenceFinder;
+import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -80,6 +82,11 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     @Override
     public boolean supportsReferencesWithContext() {
         return true;
+    }
+
+    @Override
+    protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
+        return new DefaultReferenceArtifactIdentifierExtractor();
     }
 
 }

@@ -6,18 +6,13 @@ include::partial$shared/all-attributes.adoc[]
 This chapter explains how to install {operator} on Kubernetes or OpenShift.
 It also shows how to install the {kafka-streams} or Java Persistence API (PostgreSQL) storage option:
 
-ifdef::apicurio-registry[]
 * xref:install-registry-operator-olm-on-kubernetes[]
-endif::[]
-
 * xref:install-registry-operator-olm[]
 * xref:install-kafka-operatorhub[]
 * xref:install-postgresql-operatorhub[]
 
 // INCLUDES
-ifdef::apicurio-registry[]
 include::partial$proc-install-olm-kubernetes.adoc[leveloffset=+1]
-endif::[]
 include::partial$proc-install-olm-sr.adoc[leveloffset=+1]
 include::partial$proc-install-kafka.adoc[leveloffset=+1]
 include::partial$proc-install-postgresql.adoc[leveloffset=+1]

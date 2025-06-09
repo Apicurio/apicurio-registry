@@ -1208,7 +1208,6 @@
               <publishingServerId>central</publishingServerId>
               <waitUntil>published</waitUntil>
               <autoPublish>true</autoPublish>
-              <autoReleaseAfterClose>true</autoReleaseAfterClose>
             </configuration>
           </plugin>
           <plugin>

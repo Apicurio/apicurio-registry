@@ -1222,6 +1222,7 @@
                 </goals>
                 <phase>verify</phase>
                 <configuration>
+                  <passphraseEnvName>MAVEN_GPG_PASSPHRASE</passphraseEnvName>
                   <!-- Prevent `gpg` from using pinentry programs -->
                   <gpgArguments>
                     <arg>--pinentry-mode</arg>

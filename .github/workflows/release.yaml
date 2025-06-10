@@ -15,6 +15,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-22.04
+    env:
+      MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
     if: github.repository_owner == 'Apicurio'
     env:
       IS_PRE_RELEASE: false

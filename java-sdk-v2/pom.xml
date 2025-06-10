@@ -22,7 +22,11 @@
     <version>3.0.10-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
+
   <artifactId>apicurio-registry-v2-java-sdk</artifactId>
+
+  <name>apicurio-registry-v2-java-sdk</name>
+
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
   </properties>

@@ -10,6 +10,8 @@
 
   <artifactId>apicurio-registry-config-definitions</artifactId>
 
+  <name>apicurio-registry-config-definitions</name>
+
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
   </properties>

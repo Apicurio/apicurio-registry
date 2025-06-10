@@ -22,7 +22,11 @@
     <version>3.0.10-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
+
   <artifactId>apicurio-registry-java-sdk</artifactId>
+
+  <name>apicurio-registry-java-sdk</name>
+
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
     <maven.compiler.source>11</maven.compiler.source>

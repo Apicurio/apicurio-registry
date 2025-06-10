@@ -10,6 +10,8 @@
 
   <artifactId>apicurio-registry-config-index-deployment</artifactId>
 
+  <name>apicurio-registry-config-index-deployment</name>
+
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
   </properties>
@@ -26,6 +28,16 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc-deployment</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.junit.platform</groupId>
+          <artifactId>junit-platform-launcher</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.junit.jupiter</groupId>
+          <artifactId>junit-jupiter</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

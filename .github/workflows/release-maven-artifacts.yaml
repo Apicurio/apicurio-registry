@@ -6,7 +6,7 @@ on:
         description: 'Release tag name'
         required: true
   release:
-    types: [released, prereleased]
+    types: [ released, prereleased ]
 
 
 env:
@@ -22,7 +22,8 @@ jobs:
     runs-on: ubuntu-22.04
     env: 
       MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-    timeout-minutes: 30
+    # TODO: Update timeouts after the next release:
+    # timeout-minutes: 130
     steps:
       - name: Fetch Release Details
         if: github.event_name == 'workflow_dispatch'
@@ -70,15 +71,21 @@ jobs:
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Maven Deploy
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 25
-          max_attempts: 5
-          retry_on: error
-          retry_wait_seconds: 120
-          command: |
-            cd registry
-            mvn deploy --batch-mode -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml
+        working-directory: registry
+        run: |
+          mvn -B --settings /home/runner/.m2/settings.xml deploy -Pprod -Prelease -DskipTests
+
+      # TODO: Use after the next release if needed, with updated timeouts:
+      #      - name: Maven Deploy
+      #        uses: nick-fields/retry@v3
+      #        working-directory: registry
+      #        with:
+      #          timeout_minutes: 25
+      #          max_attempts: 5
+      #          retry_on: error
+      #          retry_wait_seconds: 120
+      #          command: |
+      #            mvn -B --settings /home/runner/.m2/settings.xml deploy -Pprod -Prelease -DskipTests
 
       - name: Slack Notification (Always)
         if: always()
@@ -97,3 +104,9 @@ jobs:
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
           curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
+
+      - name: Setup tmate session on failure
+        if: failure()
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true

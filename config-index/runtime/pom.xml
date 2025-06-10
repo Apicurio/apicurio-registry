@@ -10,6 +10,8 @@
 
   <artifactId>apicurio-registry-config-index</artifactId>
 
+  <name>apicurio-registry-config-index</name>
+
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
   </properties>

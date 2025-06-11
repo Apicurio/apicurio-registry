@@ -31,9 +31,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentAndReferencesDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.interceptor.Interceptors;
 
 import java.util.Arrays;

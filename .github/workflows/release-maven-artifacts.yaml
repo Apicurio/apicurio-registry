@@ -6,7 +6,7 @@ on:
         description: 'Release tag name'
         required: true
   release:
-    types: [released, prereleased]
+    types: [ released, prereleased ]
 
 
 env:
@@ -20,7 +20,10 @@ jobs:
   release-maven:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    env: 
+      MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+    # TODO: Update timeouts after the next release:
+    # timeout-minutes: 130
     steps:
       - name: Fetch Release Details
         if: github.event_name == 'workflow_dispatch'
@@ -58,7 +61,7 @@ jobs:
           pwd
           mkdir -p /home/runner/.m2
           chmod 755 /home/runner/.m2
-          echo "<settings><servers><server><id>central</id><username>${{ secrets.CENTRAL_USERNAME }}</username><password>${{ secrets.CENTRAL_TOKEN }}</password></server></servers><profiles><profile><id>central</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable><gpg.passphrase>${{ secrets.GPG_PASSPHRASE }}</gpg.passphrase></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
+          echo "<settings><servers><server><id>central</id><username>${{ secrets.CENTRAL_USERNAME }}</username><password>${{ secrets.CENTRAL_TOKEN }}</password></server></servers><profiles><profile><id>central</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
           cat /home/runner/.m2/settings.xml
 
       - name: Import GPG Key
@@ -68,15 +71,21 @@ jobs:
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Maven Deploy
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 25
-          max_attempts: 5
-          retry_on: error
-          retry_wait_seconds: 120
-          command: |
-            cd registry
-            mvn deploy --batch-mode -Pprod -Prelease -DskipTests --settings /home/runner/.m2/settings.xml
+        working-directory: registry
+        run: |
+          mvn -B --settings /home/runner/.m2/settings.xml deploy -Pprod -Prelease -DskipTests
+
+      # TODO: Use after the next release if needed, with updated timeouts:
+      #      - name: Maven Deploy
+      #        uses: nick-fields/retry@v3
+      #        working-directory: registry
+      #        with:
+      #          timeout_minutes: 25
+      #          max_attempts: 5
+      #          retry_on: error
+      #          retry_wait_seconds: 120
+      #          command: |
+      #            mvn -B --settings /home/runner/.m2/settings.xml deploy -Pprod -Prelease -DskipTests
 
       - name: Slack Notification (Always)
         if: always()
@@ -95,3 +104,9 @@ jobs:
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
           curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
+
+      - name: Setup tmate session on failure
+        if: failure()
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true

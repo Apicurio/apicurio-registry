@@ -22,6 +22,7 @@ import io.apicurio.registry.ccompat.dto.CompatibilityLevelDto;
 import io.apicurio.registry.ccompat.dto.CompatibilityLevelParamDto;
 import io.apicurio.registry.ccompat.dto.SchemaContent;
 import io.apicurio.registry.ccompat.rest.ContentTypes;
+import io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants;
 import io.apicurio.registry.rest.v2.beans.UpdateState;
 import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactState;
@@ -358,7 +359,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     @Test
     public void testGetSchemaById() throws Exception {
         //VERIFY AVRO, no schema type should be returned
-        registerSchemaAndVerify(SCHEMA_SIMPLE_WRAPPED, "subject_test_avro", null);
+        registerSchemaAndVerify(SCHEMA_SIMPLE_WRAPPED_INT, "subject_test_avro", null);
         //VERIFY JSON, JSON must be returned as schemaType
         registerSchemaAndVerify(JSON_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_json", "JSON");
         //VERIFY PROTOBUF, PROTOBUF must be returned as schemaType
@@ -387,14 +388,12 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     }
 
     private void verifySchemaType(long globalId, String schemaType) {
-        System.out.println("---------->>> (TEST) verifySchemaType: " + schemaType);
         //Verify
         Assertions.assertEquals(given()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .get(getBasePath() + "/schemas/ids/{id}", globalId)
                 .then()
-                .log().all()
                 .statusCode(200)
                 .extract()
                 .body().jsonPath().get("schemaType"), schemaType);

@@ -60,6 +60,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             references = artifactVersion.getReferences();
             ArtifactMetaDataDto amd = storage.getArtifactMetaData(id);
             artifactType = amd.getType();
+            System.out.println("---------->>> (CCOMPAT #1) Detected artifact type: " + artifactType);
         } else {
             ContentAndReferencesDto contentAndReferences = storage.getArtifactByContentId(id);
             contentHandle = contentAndReferences.getContent();
@@ -70,6 +71,8 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
                 throw new ArtifactNotFoundException("ContentId: " + id);
             }
             artifactType = artifacts.get(0).getType();
+            System.out.println("---------->>> (CCOMPAT #2) Detected artifact type: " + artifactType);
+            System.out.println("---------->>>     " + artifacts.get(0));
         }
         return converter.convert(contentHandle, artifactType, references);
     }

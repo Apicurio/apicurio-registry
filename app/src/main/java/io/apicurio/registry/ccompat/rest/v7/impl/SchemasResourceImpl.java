@@ -51,6 +51,8 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public SchemaInfo getSchema(int id, String subject, String groupId) {
+        System.out.println("---------->>> (CCOMPAT) getSchema()  -------------");
+
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
         String artifactType;
@@ -61,6 +63,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             ArtifactMetaDataDto amd = storage.getArtifactMetaData(id);
             artifactType = amd.getType();
             System.out.println("---------->>> (CCOMPAT #1) Detected artifact type: " + artifactType);
+            System.out.println("---------->>> (CCOMPAT #1)     " + amd);
         } else {
             ContentAndReferencesDto contentAndReferences = storage.getArtifactByContentId(id);
             contentHandle = contentAndReferences.getContent();
@@ -74,6 +77,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             System.out.println("---------->>> (CCOMPAT #2) Detected artifact type: " + artifactType);
             System.out.println("---------->>>     " + artifacts.get(0));
         }
+        System.out.println("---------->>> (CCOMPAT) returning artifact type: " + artifactType);
         return converter.convert(contentHandle, artifactType, references);
     }
 

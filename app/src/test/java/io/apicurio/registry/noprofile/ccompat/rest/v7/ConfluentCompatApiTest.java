@@ -387,6 +387,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     }
 
     private void verifySchemaType(long globalId, String schemaType) {
+        System.out.println("---------->>> (TEST) verifySchemaType: " + schemaType);
         //Verify
         Assertions.assertEquals(given()
                 .when()

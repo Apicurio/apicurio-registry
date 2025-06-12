@@ -436,6 +436,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .get(getBasePath() + "/schemas/ids/{id}", globalId)
                 .then()
+                .log().all()
                 .statusCode(200)
                 .extract()
                 .body().jsonPath().get("schemaType"), schemaType);

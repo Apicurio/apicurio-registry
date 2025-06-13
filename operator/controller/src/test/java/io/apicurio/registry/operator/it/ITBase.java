@@ -2,10 +2,12 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.Constants;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.testutils.Utils;
 import io.apicurio.registry.utils.Cell;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.apiextensions.v1.CustomResourceDefinition;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
@@ -15,13 +17,11 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.utils.Serialization;
+import io.fabric8.kubernetes.client.dsl.Updatable;
+import io.fabric8.kubernetes.client.utils.KubernetesSerialization;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
-import io.quarkiverse.operatorsdk.runtime.QuarkusConfigurationService;
-import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.CDI;
 import jakarta.enterprise.util.TypeLiteral;
 import org.awaitility.Awaitility;
@@ -37,16 +37,17 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URL;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import static io.apicurio.registry.operator.resource.Labels.getOperatorSelectorLabels;
+import static io.apicurio.registry.operator.testutils.Utils.withRetries;
 import static io.apicurio.registry.utils.Cell.cell;
 import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,24 +62,24 @@ public abstract class ITBase {
     public static final String INGRESS_HOST_PROP = "test.operator.ingress-host";
     public static final String INGRESS_SKIP_PROP = "test.operator.ingress-skip";
     public static final String CLEANUP = "test.operator.cleanup";
-    public static final String GENERATED_RESOURCES_FOLDER = "target/kubernetes/";
     public static final String CRD_FILE = "../model/target/classes/META-INF/fabric8/apicurioregistries3.registry.apicur.io-v1.yml";
     public static final String REMOTE_TESTS_INSTALL_FILE = "test.operator.install-file";
 
     public static final Duration POLL_INTERVAL_DURATION = ofSeconds(5);
+
     public static final Duration SHORT_DURATION = ofSeconds(30);
-    // NOTE: When running remote tests, some extra time might be needed to pull an image before the pod can be run.
-    // TODO: Consider changing the duration based on test type or the situation.
     public static final Duration MEDIUM_DURATION = ofSeconds(60);
     public static final Duration LONG_DURATION = ofSeconds(5 * 60);
+
+    public static final int RETRIES = 3;
 
     public enum OperatorDeployment {
         local, remote
     }
 
+    protected static final KubernetesSerialization serialization = new KubernetesSerialization();
+
     protected static OperatorDeployment operatorDeployment;
-    protected static Instance<Reconciler<? extends HasMetadata>> reconcilers;
-    protected static QuarkusConfigurationService configuration;
     protected static KubernetesClient client;
     protected static PodLogManager podLogManager;
     protected static PortForwardManager portForwardManager;
@@ -93,10 +94,7 @@ public abstract class ITBase {
     protected static HostAliasManager hostAliasManager;
 
     @BeforeAll
-    public static void before() throws Exception {
-        configuration = CDI.current().select(QuarkusConfigurationService.class).get();
-        reconcilers = CDI.current().select(new TypeLiteral<>() {
-        });
+    public static void beforeAllBase() throws Exception {
         operatorDeployment = ConfigProvider.getConfig().getValue(OPERATOR_DEPLOYMENT_PROP,
                 OperatorDeployment.class);
         deploymentTarget = ConfigProvider.getConfig().getValue(DEPLOYMENT_TARGET, String.class);
@@ -118,20 +116,19 @@ public abstract class ITBase {
             createTestResources();
             startOperatorLogs();
         } else {
-            createOperator();
-            registerReconcilers();
-            operator.start();
+            startLocalOperator();
         }
     }
 
     @BeforeEach
     public void beforeEach(TestInfo testInfo) {
         String testClassName = testInfo.getTestClass().map(c -> c.getSimpleName() + ".").orElse("");
-        log.info("\n" +
-                 "------- STARTING: {}{}\n" +
-                 "------- Namespace: {}\n" +
-                 "------- Mode: {}\n" +
-                 "------- Deployment target: {}",
+        log.info("""
+
+                        ------- STARTING: {}{}
+                        ------- Namespace: {}
+                        ------- Mode: {}
+                        ------- Deployment target: {}""",
                 testClassName, testInfo.getDisplayName(),
                 namespace,
                 ((operatorDeployment == OperatorDeployment.remote) ? "remote" : "local"),
@@ -186,30 +183,27 @@ public abstract class ITBase {
 
     /**
      * Update the Kubernetes resource, and retry if the update fails because the object has been modified on the server.
-     * Use this method to make tests more resilient.
      *
-     * @param resource Resource to be updated. The metadata must be set.
+     * @param resource Resource to be updated.
      * @param updater  Reentrant function that updates the resource in-place.
      * @return The resource after it has been updated.
      */
     protected static <T extends HasMetadata> T updateWithRetries(T resource, Consumer<T> updater) {
         var rval = cell(resource);
-        await().atMost(SHORT_DURATION).until(() -> {
-            try {
-                var r = rval.get();
-                r = client.resource(r).get();
-                updater.accept(r);
-                r = client.resource(r).update();
-                rval.set(r);
-                return true;
-            } catch (KubernetesClientException ex) {
-                if (ex.getMessage().contains("the object has been modified")) {
-                    log.debug("Retrying:", ex);
-                    return false;
-                } else {
-                    throw ex;
-                }
-            }
+        Utils.updateWithRetries(() -> {
+            var r = rval.get();
+            r = client.resource(r).get();
+            updater.accept(r);
+            r = client.resource(r).update();
+            rval.set(r);
+        });
+        return rval.get();
+    }
+
+    protected static <T extends HasMetadata> T createOrReplaceWithRetries(T resource) {
+        Cell<T> rval = cell();
+        Utils.updateWithRetries(() -> {
+            rval.set(client.resource(resource).createOr(Updatable::update));
         });
         return rval.get();
     }
@@ -252,7 +246,7 @@ public abstract class ITBase {
         var installFileRaw = Files.readString(installFilePath);
         // We're not editing the deserialized resources to replicate the user experience
         installFileRaw = installFileRaw.replace("PLACEHOLDER_NAMESPACE", namespace);
-        return Serialization.unmarshal(installFileRaw);
+        return serialization.unmarshal(installFileRaw);
     }
 
     private static void createTestResources() throws Exception {
@@ -263,20 +257,15 @@ public abstract class ITBase {
                 d.getSpec().getTemplate().getSpec().getContainers()
                         .forEach(c -> c.setImagePullPolicy("IfNotPresent"));
             }
-            client.resource(r).inNamespace(namespace).createOrReplace();
+            createOrReplaceWithRetries(r);
         });
     }
 
     private static void startOperatorLogs() {
         List<Pod> operatorPods = new ArrayList<>();
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(SHORT_DURATION).untilAsserted(() -> {
             operatorPods.clear();
-            operatorPods.addAll(client.pods()
-                    .withLabels(Map.of(
-                            "app.kubernetes.io/name", "apicurio-registry-operator",
-                            "app.kubernetes.io/component", "operator",
-                            "app.kubernetes.io/part-of", "apicurio-registry"))
-                    .list().getItems());
+            operatorPods.addAll(client.pods().withLabels(getOperatorSelectorLabels()).list().getItems());
             assertThat(operatorPods).hasSize(1);
         });
         podLogManager.startPodLog(ResourceID.fromResource(operatorPods.get(0)));
@@ -286,47 +275,42 @@ public abstract class ITBase {
         if (cleanup) {
             log.info("Deleting generated resources from Namespace {}", namespace);
             loadTestResources().forEach(r -> {
-                client.resource(r).inNamespace(namespace).delete();
+                client.resource(r).delete();
             });
         }
     }
 
     private static void createCRDs() {
-        log.info("Creating CRDs");
-        try {
-            var crd = client.load(new FileInputStream(CRD_FILE));
-            crd.createOrReplace();
-            await().ignoreExceptions().until(() -> {
-                crd.resources().forEach(r -> assertThat(r.get()).isNotNull());
-                return true;
-            });
-        } catch (Exception e) {
-            log.warn("Failed to create the CRD, retrying", e);
-            createCRDs();
-        }
+        withRetries(() -> {
+            var crd = serialization.unmarshal(new FileInputStream(CRD_FILE), CustomResourceDefinition.class);
+            if (client.resource(crd).get() == null) {
+                log.info("Creating CRD");
+                client.resource(crd).create();
+            }
+            return null;
+        }, RETRIES);
     }
 
-    private static void registerReconcilers() {
-        log.info("Registering reconcilers for operator : {} [{}]", operator, operatorDeployment);
-
-        for (Reconciler<?> reconciler : reconcilers) {
-            log.info("Register and apply : {}", reconciler.getClass().getName());
-            operator.register(reconciler);
-        }
-    }
-
-    private static void createOperator() {
+    private static void startLocalOperator() {
         operator = new Operator(configurationServiceOverrider -> {
             configurationServiceOverrider.withKubernetesClient(client);
         });
+        log.info("Registering reconcilers for operator : {} [{}]", operator, operatorDeployment);
+        // @formatter:off
+        for (Reconciler<?> reconciler : CDI.current().select(new TypeLiteral<Reconciler<?>>() {})) {
+            // @formatter:on
+            log.info("Registering reconciler {}", reconciler.getClass().getName());
+            operator.register(reconciler);
+        }
+        operator.start();
     }
 
-    static void applyStrimziResources() throws IOException {
+    static void applyStrimziResources() throws Exception {
         // TODO: IMPORTANT: Strimzi >0.45 only supports Kraft-based Kafka clusters. Migration needed.
         // var strimziClusterOperatorURL = new URL("https://strimzi.io/install/latest");
-        var strimziClusterOperatorURL = new URL("https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.45.0/strimzi-cluster-operator-0.45.0.yaml");
+        var strimziClusterOperatorURL = new URI("https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.45.0/strimzi-cluster-operator-0.45.0.yaml").toURL();
         try (BufferedInputStream in = new BufferedInputStream(strimziClusterOperatorURL.openStream())) {
-            List<HasMetadata> resources = Serialization.unmarshal(in);
+            List<HasMetadata> resources = serialization.unmarshal(in);
             resources.forEach(r -> {
                 if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
                     var crb = (ClusterRoleBinding) r;
@@ -335,11 +319,10 @@ public abstract class ITBase {
                     var crb = (RoleBinding) r;
                     crb.getSubjects().forEach(s -> s.setNamespace(namespace));
                 }
-                log.info("Creating Strimzi resource kind {} in namespace {}", r.getKind(), namespace);
-                client.resource(r).inNamespace(namespace).createOrReplace();
-                await().atMost(Duration.ofMinutes(2)).ignoreExceptions().until(() -> {
-                    assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
-                    return true;
+                log.info("Creating Strimzi resource {} {}/{}", r.getKind(), namespace, r.getMetadata().getName());
+                createOrReplaceWithRetries(r);
+                await().atMost(MEDIUM_DURATION.multipliedBy(2)).untilAsserted(() -> {
+                    assertThat(client.resource(r).get()).isNotNull();
                 });
             });
         }
@@ -362,47 +345,46 @@ public abstract class ITBase {
         Awaitility.setDefaultTimeout(LONG_DURATION);
     }
 
-    static void createResources(List<HasMetadata> resources, String resourceType) {
+    static void createResources(List<HasMetadata> resources) {
         resources.forEach(r -> {
-            log.info("Creating {} resource kind {} in namespace {}", resourceType, r.getKind(), namespace);
-            client.resource(r).inNamespace(namespace).createOrReplace();
-            await().ignoreExceptions().until(() -> {
-                assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
-                return true;
-            });
+            log.info("Creating {} {}/{}", r.getKind(), namespace, r.getMetadata().getName());
+            withRetries(() -> {
+                client.resource(r).createOr(Updatable::update);
+                await().atMost(SHORT_DURATION).untilAsserted(() -> {
+                    assertThat(client.resource(r).get()).isNotNull();
+                });
+            }, RETRIES);
         });
     }
 
     @AfterEach
-    public void cleanup() {
+    public void afterEach() {
         if (cleanup) {
             log.info("Deleting CRs");
             client.resources(ApicurioRegistry3.class).delete();
             await().untilAsserted(() -> {
-                var registryDeployments = client.apps().deployments().inNamespace(namespace)
-                        .withLabels(Constants.BASIC_LABELS).list().getItems();
+                var registryDeployments = client.apps().deployments().withLabels(Constants.BASIC_LABELS).list().getItems();
                 assertThat(registryDeployments.size()).isZero();
             });
         }
     }
 
     @AfterAll
-    public static void after() throws Exception {
+    public static void afterAll() throws Exception {
+        podLogManager.stopAndWait();
         portForwardManager.stop();
         if (operatorDeployment == OperatorDeployment.local) {
             log.info("Stopping Operator");
             operator.stop();
-
-            log.info("Creating new K8s Client");
-            // create a new client bc operator has closed the old one
-            client = createK8sClient(namespace);
         } else {
             cleanTestResources();
         }
-        podLogManager.stopAndWait();
         if (cleanup) {
-            log.info("Deleting namespace : {}", namespace);
-            assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
+            log.info("Deleting namespace {}", namespace);
+            // Local operator closes the client.
+            try (var client = createK8sClient(namespace)) {
+                client.namespaces().withName(namespace).delete();
+            }
         }
         client.close();
     }

@@ -50,6 +50,7 @@ import static io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants.S
 import static io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants.SCHEMA_SIMPLE_DEFAULT_QUOTED;
 import static io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants.SCHEMA_SIMPLE_JSON_QUOTED;
 import static io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED;
+import static io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED_INT;
 import static io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED_WITH_DEFAULT_QUOTED;
 import static io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED_WITH_JSON_DEFAULT;
 import static io.apicurio.registry.noprofile.ccompat.rest.CCompatTestConstants.SCHEMA_SIMPLE_WRAPPED_WITH_TYPE;
@@ -401,7 +402,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
     @Test
     public void testGetSchemaById() throws Exception {
         //VERIFY AVRO, no schema type should be returned
-        registerSchemaAndVerify(SCHEMA_SIMPLE_WRAPPED, "subject_test_avro", null);
+        registerSchemaAndVerify(SCHEMA_SIMPLE_WRAPPED_INT, "subject_test_avro", null);
         //VERIFY JSON, JSON must be returned as schemaType
         registerSchemaAndVerify(JSON_SCHEMA_SIMPLE_WRAPPED_WITH_TYPE, "subject_test_json", "JSON");
         //VERIFY PROTOBUF, PROTOBUF must be returned as schemaType
@@ -436,6 +437,7 @@ public class ConfluentCompatApiTest extends AbstractResourceTestBase {
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .get(getBasePath() + "/schemas/ids/{id}", globalId)
                 .then()
+                .statusCode(200)
                 .extract()
                 .body().jsonPath().get("schemaType"), schemaType);
     }

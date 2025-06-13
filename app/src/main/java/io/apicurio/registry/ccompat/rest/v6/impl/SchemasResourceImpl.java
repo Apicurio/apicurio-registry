@@ -32,9 +32,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentAndReferencesDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import org.slf4j.Logger;
@@ -63,10 +61,13 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         logger.warn("The Confluent V6 compatibility API is deprecated and will be removed in future versions");
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
+        String artifactType;
         if (getCconfig().getLegacyIdModeEnabled().get()) {
             StoredArtifactDto artifactVersion = getStorage().getArtifactVersion(id);
             contentHandle = artifactVersion.getContent();
             references = artifactVersion.getReferences();
+            ArtifactMetaDataDto amd = getStorage().getArtifactMetaData(id);
+            artifactType = amd.getType();
         } else {
             ContentAndReferencesDto contentAndReferences = getStorage().getArtifactByContentId(id);
             contentHandle = getStorage().getArtifactByContentId(id).getContent();
@@ -76,16 +77,9 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
                 //the contentId points to an orphaned content
                 throw new ArtifactNotFoundException("ContentId: " + id);
             }
+            artifactType = artifacts.get(0).getType();
         }
-        return getConverter().convert(contentHandle,
-                ArtifactTypeUtil.determineArtifactType(
-                        contentHandle,
-                        null,
-                        null,
-                        RegistryContentUtils.recursivelyResolveReferences(references, r -> getStorage().getContentByReference(r)),
-                        getFactory().getAllArtifactTypes()
-                ),
-                references);
+        return getConverter().convert(contentHandle, artifactType, references);
     }
 
     @Override

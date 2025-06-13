@@ -31,9 +31,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentAndReferencesDto;
 import io.apicurio.registry.storage.dto.StoredArtifactDto;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.interceptor.Interceptors;
 
 import java.util.Arrays;
@@ -55,29 +53,25 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     public SchemaInfo getSchema(int id, String subject, String groupId) {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
+        String artifactType;
         if (cconfig.legacyIdModeEnabled.get()) {
             StoredArtifactDto artifactVersion = storage.getArtifactVersion(id);
             contentHandle = artifactVersion.getContent();
             references = artifactVersion.getReferences();
+            ArtifactMetaDataDto amd = storage.getArtifactMetaData(id);
+            artifactType = amd.getType();
         } else {
             ContentAndReferencesDto contentAndReferences = storage.getArtifactByContentId(id);
-            contentHandle = storage.getArtifactByContentId(id).getContent();
+            contentHandle = contentAndReferences.getContent();
             references = contentAndReferences.getReferences();
             List<ArtifactMetaDataDto> artifacts = storage.getArtifactVersionsByContentId(id);
             if (artifacts == null || artifacts.isEmpty()) {
                 //the contentId points to an orphaned content
                 throw new ArtifactNotFoundException("ContentId: " + id);
             }
+            artifactType = artifacts.get(0).getType();
         }
-        return converter.convert(contentHandle,
-                ArtifactTypeUtil.determineArtifactType(
-                        contentHandle,
-                        null,
-                        null,
-                        RegistryContentUtils.recursivelyResolveReferences(references, storage::getContentByReference),
-                        factory.getAllArtifactTypes()
-                ),
-                references);
+        return converter.convert(contentHandle, artifactType, references);
     }
 
     @Override

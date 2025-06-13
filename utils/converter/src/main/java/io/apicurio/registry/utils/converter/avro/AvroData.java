@@ -11,6 +11,7 @@ import io.apicurio.registry.utils.converter.ConnectEnum;
 import io.apicurio.registry.utils.converter.ConnectUnion;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.JsonProperties;
+import org.apache.avro.LogicalType;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericEnumSymbol;
 import org.apache.avro.generic.GenericFixed;
@@ -87,8 +88,8 @@ public class AvroData {
 
     private static final Map<String, Schema.Type> NON_AVRO_TYPES_BY_TYPE_CODE = new HashMap<>();
 
-    private static Pattern NAME_START_CHAR = Pattern.compile("^[A-Za-z_]");
-    private static Pattern NAME_INVALID_CHARS = Pattern.compile("[^A-Za-z0-9_]");
+    private static final Pattern NAME_START_CHAR = Pattern.compile("^[A-Za-z_]");
+    private static final Pattern NAME_INVALID_CHARS = Pattern.compile("[^A-Za-z0-9_]");
 
     static {
         NON_AVRO_TYPES_BY_TYPE_CODE.put(CONNECT_TYPE_INT8, Schema.Type.INT8);
@@ -99,16 +100,16 @@ public class AvroData {
     private static final Map<Schema.Type, List<Class>> SIMPLE_AVRO_SCHEMA_TYPES = new HashMap<>();
 
     static {
-        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.INT32, Arrays.asList((Class) Integer.class));
-        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.INT64, Arrays.asList((Class) Long.class));
-        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.FLOAT32, Arrays.asList((Class) Float.class));
-        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.FLOAT64, Arrays.asList((Class) Double.class));
-        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.BOOLEAN, Arrays.asList((Class) Boolean.class));
-        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.STRING, Arrays.asList((Class) CharSequence.class));
+        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.INT32, List.of(Integer.class));
+        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.INT64, List.of(Long.class));
+        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.FLOAT32, List.of(Float.class));
+        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.FLOAT64, List.of(Double.class));
+        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.BOOLEAN, List.of(Boolean.class));
+        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.STRING, List.of(CharSequence.class));
         SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.BYTES,
-                Arrays.asList((Class) ByteBuffer.class, (Class) byte[].class, (Class) GenericFixed.class));
-        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.ARRAY, Arrays.asList((Class) Collection.class));
-        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.MAP, Arrays.asList((Class) Map.class));
+                Arrays.asList(ByteBuffer.class, byte[].class, GenericFixed.class));
+        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.ARRAY, List.of(Collection.class));
+        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.MAP, List.of(Map.class));
     }
 
     private static final Map<Schema.Type, org.apache.avro.Schema.Type> CONNECT_TYPES_TO_AVRO_TYPES = new HashMap<>();
@@ -234,52 +235,111 @@ public class AvroData {
     static final String CONNECT_AVRO_DECIMAL_PRECISION_PROP = "connect.decimal.precision";
     static final Integer CONNECT_AVRO_DECIMAL_PRECISION_DEFAULT = 64;
 
-    private static final HashMap<String, LogicalTypeConverter> TO_AVRO_LOGICAL_CONVERTERS = new HashMap<>();
+    private static final HashMap<String, ToAvroLogicalTypeConverter> TO_AVRO_LOGICAL_CONVERTERS = new HashMap<>();
+
+    public static void registerToAvroLogicalTypeConverter(ToAvroLogicalTypeConverter toAvroLogicalTypeConverter) {
+        TO_AVRO_LOGICAL_CONVERTERS.put(toAvroLogicalTypeConverter.kafkaConnectLogicalTypeName(), toAvroLogicalTypeConverter);
+    }
+
+    private static class ConnectDecimalToAvro implements ToAvroLogicalTypeConverter {
+        @Override
+        public Object convert(Schema schema, Object value) {
+            if (!(value instanceof BigDecimal)) {
+                throw new DataException(
+                        "Invalid type for Decimal, expected BigDecimal but was " + value.getClass());
+            }
+            return Decimal.fromLogical(schema, (BigDecimal) value);
+        }
+
+        @Override
+        public String kafkaConnectLogicalTypeName() {
+            return Decimal.LOGICAL_NAME;
+        }
+
+        @Override
+        public LogicalType avroLogicalType(Schema schema) {
+            String precisionString = schema.parameters().get(CONNECT_AVRO_DECIMAL_PRECISION_PROP);
+            String scaleString = schema.parameters().get(Decimal.SCALE_FIELD);
+            int precision = precisionString == null ? CONNECT_AVRO_DECIMAL_PRECISION_DEFAULT
+                    : Integer.parseInt(precisionString);
+            int scale = scaleString == null ? 0 : Integer.parseInt(scaleString);
+
+            return org.apache.avro.LogicalTypes.decimal(precision, scale);
+        }
+    }
+
+    private static class ConnectDateToAvro implements ToAvroLogicalTypeConverter {
+        @Override
+        public Object convert(Schema schema, Object value) {
+            if (!(value instanceof java.util.Date)) {
+                throw new DataException(
+                        "Invalid type for Date, expected Date but was " + value.getClass());
+            }
+            return Date.fromLogical(schema, (java.util.Date) value);
+        }
+
+        @Override
+        public String kafkaConnectLogicalTypeName() {
+            return Date.LOGICAL_NAME;
+        }
+
+        @Override
+        public LogicalType avroLogicalType(Schema schema) {
+            return org.apache.avro.LogicalTypes.date();
+        }
+    }
+
+    private static class ConnectTimeToAvro implements ToAvroLogicalTypeConverter {
+        @Override
+        public Object convert(Schema schema, Object value) {
+            if (!(value instanceof java.util.Date)) {
+                throw new DataException(
+                        "Invalid type for Time, expected Date but was " + value.getClass());
+            }
+            return Time.fromLogical(schema, (java.util.Date) value);
+        }
+
+        @Override
+        public String kafkaConnectLogicalTypeName() {
+            return Time.LOGICAL_NAME;
+        }
+
+        @Override
+        public LogicalType avroLogicalType(Schema schema) {
+            return org.apache.avro.LogicalTypes.timeMillis();
+        }
+    }
+
+    private static class ConnectTimestampToAvro implements ToAvroLogicalTypeConverter {
+        @Override
+        public Object convert(Schema schema, Object value) {
+            if (!(value instanceof java.util.Date)) {
+                throw new DataException(
+                        "Invalid type for Timestamp, expected Date but was " + value.getClass());
+            }
+            return Timestamp.fromLogical(schema, (java.util.Date) value);
+        }
+
+        @Override
+        public String kafkaConnectLogicalTypeName() {
+            return Timestamp.LOGICAL_NAME;
+        }
+
+        @Override
+        public LogicalType avroLogicalType(Schema schema) {
+            return org.apache.avro.LogicalTypes.timestampMillis();
+        }
+    }
 
     static {
-        TO_AVRO_LOGICAL_CONVERTERS.put(Decimal.LOGICAL_NAME, new LogicalTypeConverter() {
-            @Override
-            public Object convert(Schema schema, Object value) {
-                if (!(value instanceof BigDecimal)) {
-                    throw new DataException(
-                            "Invalid type for Decimal, expected BigDecimal but was " + value.getClass());
-                }
-                return Decimal.fromLogical(schema, (BigDecimal) value);
-            }
-        });
+        registerToAvroLogicalTypeConverter(new ConnectDecimalToAvro());
+        registerToAvroLogicalTypeConverter(new ConnectDateToAvro());
+        registerToAvroLogicalTypeConverter(new ConnectTimeToAvro());
+        registerToAvroLogicalTypeConverter(new ConnectTimestampToAvro());
 
-        TO_AVRO_LOGICAL_CONVERTERS.put(Date.LOGICAL_NAME, new LogicalTypeConverter() {
-            @Override
-            public Object convert(Schema schema, Object value) {
-                if (!(value instanceof java.util.Date)) {
-                    throw new DataException(
-                            "Invalid type for Date, expected Date but was " + value.getClass());
-                }
-                return Date.fromLogical(schema, (java.util.Date) value);
-            }
-        });
-
-        TO_AVRO_LOGICAL_CONVERTERS.put(Time.LOGICAL_NAME, new LogicalTypeConverter() {
-            @Override
-            public Object convert(Schema schema, Object value) {
-                if (!(value instanceof java.util.Date)) {
-                    throw new DataException(
-                            "Invalid type for Time, expected Date but was " + value.getClass());
-                }
-                return Time.fromLogical(schema, (java.util.Date) value);
-            }
-        });
-
-        TO_AVRO_LOGICAL_CONVERTERS.put(Timestamp.LOGICAL_NAME, new LogicalTypeConverter() {
-            @Override
-            public Object convert(Schema schema, Object value) {
-                if (!(value instanceof java.util.Date)) {
-                    throw new DataException(
-                            "Invalid type for Timestamp, expected Date but was " + value.getClass());
-                }
-                return Timestamp.fromLogical(schema, (java.util.Date) value);
-            }
-        });
+        for (ToAvroLogicalTypeConverter toAvroLogicalTypeConverter : ServiceLoader.load(ToAvroLogicalTypeConverter.class)) {
+            registerToAvroLogicalTypeConverter(toAvroLogicalTypeConverter);
+        }
     }
 
     private int unionIndex = 0;
@@ -931,65 +991,19 @@ public class AvroData {
                 }
             }
 
-            boolean forceLegacyDecimal = false;
             // the new and correct way to handle logical types
             if (schema.name() != null) {
-                if (Decimal.LOGICAL_NAME.equalsIgnoreCase(schema.name())) {
-                    String precisionString = schema.parameters().get(CONNECT_AVRO_DECIMAL_PRECISION_PROP);
-                    String scaleString = schema.parameters().get(Decimal.SCALE_FIELD);
-                    int precision = precisionString == null ? CONNECT_AVRO_DECIMAL_PRECISION_DEFAULT
-                        : Integer.parseInt(precisionString);
-                    int scale = scaleString == null ? 0 : Integer.parseInt(scaleString);
-                    if (scale < 0 || scale > precision) {
-                        log.trace(
-                                "Scale and precision of {} and {} cannot be serialized as native Avro logical "
-                                        + "decimal type; reverting to legacy serialization method",
-                                scale, precision);
-                        // We cannot use the Avro Java library's support for the decimal logical type when the
-                        // scale is either negative or greater than the precision as this violates the Avro
-                        // spec
-                        // and causes the Avro library to throw an exception, so we fall back in this case to
-                        // using the legacy method for encoding decimal logical type information.
-                        // Can't add a key/value pair with the CONNECT_AVRO_DECIMAL_PRECISION_PROP key to the
-                        // schema's parameters since the parameters for Connect schemas are immutable, so we
-                        // just track this in a local boolean variable instead.
-                        forceLegacyDecimal = true;
-                    } else {
-                        org.apache.avro.LogicalTypes.decimal(precision, scale).addToSchema(baseSchema);
+                ToAvroLogicalTypeConverter logicalConverter = TO_AVRO_LOGICAL_CONVERTERS.get(schema.name());
+                if (logicalConverter != null) {
+                    LogicalType logicalType =  logicalConverter.avroLogicalType(schema);
+                    try {
+                        // this calls also validation for the avro logical type
+                        // in case of decimal the scale and precision will be validated
+                        logicalType.addToSchema(baseSchema);
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Conversion for connect type '" + schema.name() +
+                                "' to avro logical type '" + logicalType.getName() + "' failed validation", e);
                     }
-                } else if (Time.LOGICAL_NAME.equalsIgnoreCase(schema.name())) {
-                    org.apache.avro.LogicalTypes.timeMillis().addToSchema(baseSchema);
-                } else if (Timestamp.LOGICAL_NAME.equalsIgnoreCase(schema.name())) {
-                    org.apache.avro.LogicalTypes.timestampMillis().addToSchema(baseSchema);
-                } else if (Date.LOGICAL_NAME.equalsIgnoreCase(schema.name())) {
-                    org.apache.avro.LogicalTypes.date().addToSchema(baseSchema);
-                }
-            }
-
-            // Initially, to add support for logical types a new property was added
-            // with key `logicalType`. This enabled logical types for avro schemas but not others,
-            // such as parquet. The use of 'addToSchema` above supersedes this method here,
-            // which should eventually be removed.
-            // Keeping for backwards compatibility until a major version upgrade happens.
-
-            // Below follows the older method of supporting logical types via properties.
-            // It is retained for now and will be deprecated eventually.
-            // Only Avro named types (record, enum, fixed) may contain namespace + name. Only Connect's
-            // struct converts to one of those (record), so for everything else that has a name we store
-            // the full name into a special property. For uniformity, we also duplicate this info into
-            // the same field in records as well even though it will also be available in the namespace()
-            // and name().
-            if (schema.name() != null) {
-                if (Decimal.LOGICAL_NAME.equalsIgnoreCase(schema.name())
-                        && (schema.parameters().containsKey(CONNECT_AVRO_DECIMAL_PRECISION_PROP)
-                                || forceLegacyDecimal)) {
-                    baseSchema.addProp(AVRO_LOGICAL_TYPE_PROP, AVRO_LOGICAL_DECIMAL);
-                } else if (Time.LOGICAL_NAME.equalsIgnoreCase(schema.name())) {
-                    baseSchema.addProp(AVRO_LOGICAL_TYPE_PROP, AVRO_LOGICAL_TIME_MILLIS);
-                } else if (Timestamp.LOGICAL_NAME.equalsIgnoreCase(schema.name())) {
-                    baseSchema.addProp(AVRO_LOGICAL_TYPE_PROP, AVRO_LOGICAL_TIMESTAMP_MILLIS);
-                } else if (Date.LOGICAL_NAME.equalsIgnoreCase(schema.name())) {
-                    baseSchema.addProp(AVRO_LOGICAL_TYPE_PROP, AVRO_LOGICAL_DATE);
                 }
             }
 
@@ -1144,7 +1158,7 @@ public class AvroData {
             }
 
             // If this is a logical type, convert it from the convenient Java type to the underlying
-            // serializeable format
+            // serializable format
             Object defaultVal = toAvroLogical(schema, value);
 
             switch (schema.type()) {
@@ -1187,7 +1201,7 @@ public class AvroData {
                                 .entrySet()) {
                             JsonNode entryDef = defaultValueFromConnect(schema.valueSchema(),
                                     entry.getValue());
-                            node.put(entry.getKey(), entryDef);
+                            node.set(entry.getKey(), entryDef);
                         }
                         return node;
                     } else {
@@ -1214,7 +1228,7 @@ public class AvroData {
                         if (isUnion) {
                             return fieldDef;
                         }
-                        node.put(fieldName, fieldDef);
+                        node.set(fieldName, fieldDef);
                     }
                     return node;
                 }
@@ -2185,11 +2199,6 @@ public class AvroData {
         return result;
     }
 
-    private interface LogicalTypeConverter {
-
-        Object convert(Schema schema, Object value);
-    }
-
     public static Schema nonOptional(Schema schema) {
         return new ConnectSchema(schema.type(), false, schema.defaultValue(), schema.name(), schema.version(),
                 schema.doc(), schema.parameters(), fields(schema), keySchema(schema), valueSchema(schema));
@@ -2253,8 +2262,8 @@ public class AvroData {
     }
 
     static class Pair<K, V> {
-        private K key;
-        private V value;
+        private final K key;
+        private final V value;
 
         public Pair(K key, V value) {
             this.key = key;

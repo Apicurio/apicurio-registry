@@ -1,10 +1,18 @@
 package io.apicurio.registry.utils.converter.avro;
 
+import io.apicurio.registry.serde.avro.NonRecordContainer;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 public class AvroDataTest {
 
@@ -73,4 +81,47 @@ public class AvroDataTest {
         org.apache.avro.Schema aSchema = avroData.fromConnectSchema(avroData.toConnectSchema(bSchema));
         Assertions.assertEquals(bSchema.toString(), aSchema.toString());
     }
+
+    @Test
+    public void testDecimalWithIncompatibleScale() {
+        BigDecimal decimal = BigDecimal.valueOf(0, 2);
+        Schema connectSchema = Decimal.builder(2).parameter(AvroData.CONNECT_AVRO_DECIMAL_PRECISION_PROP, "1").build();
+
+        SchemaAndValue connectValue = new SchemaAndValue(connectSchema, decimal);
+        AvroData avroData = new AvroData(0);
+        //noinspection unchecked
+        NonRecordContainer<Object> result = (NonRecordContainer<Object>) avroData.fromConnectData(connectValue.schema(), connectValue.value());
+
+        // no logical type should be set because this decimal is according to avro specification not allowed
+        // "Scale must be zero or a positive integer less than or equal to the precision."
+        Assertions.assertNull(result.getSchema().getLogicalType());
+    }
+
+    @Test
+    public void testCustomLogicalTypeConverter() {
+        Instant inst = Instant.now();
+        long microsSinceEpoch = TimeUnit.SECONDS.toMicros(inst.getEpochSecond()) + TimeUnit.NANOSECONDS.toMicros(inst.getNano());
+
+        String typeSchemaString =
+                "{" +
+                        "  \"type\" : \"long\"," +
+                        "  \"connect.version\" : 1," +
+                        "  \"connect.name\" : \"" + CustomKafkaConnectLogicalType.LOGICAL_NAME + "\"," +
+                        "  \"logicalType\" : \"timestamp-micros\"" +
+                        "}";
+        org.apache.avro.Schema expectedAvroSchema = new org.apache.avro.Schema.Parser().parse(typeSchemaString);
+
+        Schema connectSchema = CustomKafkaConnectLogicalType.builder().build();
+
+
+        SchemaAndValue connectValue = new SchemaAndValue(connectSchema, microsSinceEpoch);
+        AvroData avroData = new AvroData(0);
+        //noinspection unchecked
+        NonRecordContainer<Object> result = (NonRecordContainer<Object>) avroData.fromConnectData(connectValue.schema(), connectValue.value());
+
+        Assertions.assertEquals(expectedAvroSchema, result.getSchema());
+        Assertions.assertEquals(LogicalTypes.timestampMicros(), result.getSchema().getLogicalType());
+        Assertions.assertEquals(microsSinceEpoch, (long) result.getValue());
+    }
+
 }

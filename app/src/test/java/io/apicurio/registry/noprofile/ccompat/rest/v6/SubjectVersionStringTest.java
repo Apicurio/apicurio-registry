@@ -50,7 +50,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
 
         // Create first
         var cid1 = given()
-                .log().all()
+//                .log().all()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(objectMapper.writeValueAsString(schemaContent1))
@@ -63,7 +63,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         this.waitForContentId(cid1.getId());
 
         var versions1 = given()
-                .log().all()
+//                .log().all()
                 .when()
                 .get("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
                 .then()
@@ -75,7 +75,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
 
         // Create second
         var cid2 = given()
-                .log().all()
+//                .log().all()
                 .when()
                 .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
                 .body(objectMapper.writeValueAsString(schemaContent2))
@@ -88,7 +88,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         this.waitForContentId(cid2.getId());
 
         var versions2 = given()
-                .log().all()
+//                .log().all()
                 .when()
                 .get("/ccompat/v6/subjects/{subject}/versions", SUBJECT)
                 .then()
@@ -110,7 +110,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
 
     private Schema getSubjectVersion(String subject, String version) {
         var response = given()
-                .log().all()
+//                .log().all()
                 .when()
                 .get("/ccompat/v6/subjects/{subject}/versions/{version}", subject, version)
                 .then()
@@ -119,7 +119,7 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         log.info("Response to get version {} of subject {} is: {}", version, subject, response);
 
         return given()
-                .log().all()
+//                .log().all()
                 .when()
                 .get("/ccompat/v6/subjects/{subject}/versions/{version}", subject, version)
                 .then()

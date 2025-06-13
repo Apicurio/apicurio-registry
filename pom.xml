@@ -268,7 +268,7 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.8.4</kiota.libs.version>
+    <kiota.libs.version>1.8.5</kiota.libs.version>
     <kiota.community.version>0.0.21</kiota.community.version>
 
     <kiota.version>1.23.0</kiota.version>

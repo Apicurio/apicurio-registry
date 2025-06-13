@@ -219,7 +219,9 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                 .get(QuarkusHttpUser.AUTH_FAILURE_HANDLER);
         BiConsumer<RoutingContext, Throwable> auditWrapper = (ctx, ex) -> {
             // this sends the http response
-            failureHandler.accept(ctx, ex);
+            if (failureHandler != null) {
+                failureHandler.accept(ctx, ex);
+            }
             // if it was an error response log it
             if (ctx.response().getStatusCode() >= 400) {
                 Map<String, String> metadata = new HashMap<>();

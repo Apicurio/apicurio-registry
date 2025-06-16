@@ -7,6 +7,7 @@ import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.http.HttpClientService;
+import io.apicurio.registry.script.ArtifactTypeScriptProvider;
 import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ContentAccepterRequest;
 
@@ -69,7 +70,7 @@ public class ConfiguredContentAccepter extends AbstractConfiguredArtifactTypeUti
         return new ScriptContentAccepterDelegate(artifactType, provider);
     }
 
-    private class ScriptContentAccepterDelegate extends AbstractScriptDelegate<ContentAccepterRequest, Boolean> implements ContentAccepter {
+    private class ScriptContentAccepterDelegate extends AbstractScriptDelegate implements ContentAccepter {
 
         protected ScriptContentAccepterDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
             super(artifactType, provider);
@@ -78,12 +79,15 @@ public class ConfiguredContentAccepter extends AbstractConfiguredArtifactTypeUti
         @Override
         public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
             ContentAccepterRequest requestBody = createRequest(content, resolvedReferences);
+            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
 
             try {
-                return executeScript(requestBody, Boolean.class);
+                return scriptProvider.acceptsContent(requestBody);
             } catch (Throwable e) {
                 log.error("Error executing script", e);
                 return false;
+            } finally {
+                closeScriptProvider(scriptProvider);
             }
         }
 

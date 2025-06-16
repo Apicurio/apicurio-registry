@@ -106,8 +106,7 @@ public class AvroData {
         SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.FLOAT64, List.of(Double.class));
         SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.BOOLEAN, List.of(Boolean.class));
         SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.STRING, List.of(CharSequence.class));
-        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.BYTES,
-                Arrays.asList(ByteBuffer.class, byte[].class, GenericFixed.class));
+        SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.BYTES, List.of(ByteBuffer.class, byte[].class, GenericFixed.class));
         SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.ARRAY, List.of(Collection.class));
         SIMPLE_AVRO_SCHEMA_TYPES.put(Schema.Type.MAP, List.of(Map.class));
     }

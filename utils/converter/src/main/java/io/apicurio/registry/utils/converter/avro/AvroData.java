@@ -232,8 +232,8 @@ public class AvroData {
     static final String AVRO_LOGICAL_DECIMAL_SCALE_PROP = "scale";
     static final String AVRO_LOGICAL_DECIMAL_PRECISION_PROP = "precision";
     static final String CONNECT_AVRO_FIXED_SIZE_PROP = "connect.fixed.size";
-    static final String CONNECT_AVRO_DECIMAL_PRECISION_PROP = "connect.decimal.precision";
-    static final Integer CONNECT_AVRO_DECIMAL_PRECISION_DEFAULT = 64;
+    public static final String CONNECT_AVRO_DECIMAL_PRECISION_PROP = "connect.decimal.precision";
+    public static final Integer CONNECT_AVRO_DECIMAL_PRECISION_DEFAULT = 64;
 
     private static final HashMap<String, ToAvroLogicalTypeConverter> TO_AVRO_LOGICAL_CONVERTERS = new HashMap<>();
 
@@ -241,7 +241,7 @@ public class AvroData {
         TO_AVRO_LOGICAL_CONVERTERS.put(toAvroLogicalTypeConverter.kafkaConnectLogicalTypeName(), toAvroLogicalTypeConverter);
     }
 
-    private static class ConnectDecimalToAvro implements ToAvroLogicalTypeConverter {
+    public static class ConnectDecimalToAvro implements ToAvroLogicalTypeConverter {
         @Override
         public Object convert(Schema schema, Object value) {
             if (!(value instanceof BigDecimal)) {
@@ -268,7 +268,7 @@ public class AvroData {
         }
     }
 
-    private static class ConnectDateToAvro implements ToAvroLogicalTypeConverter {
+    public static class ConnectDateToAvro implements ToAvroLogicalTypeConverter {
         @Override
         public Object convert(Schema schema, Object value) {
             if (!(value instanceof java.util.Date)) {
@@ -289,7 +289,7 @@ public class AvroData {
         }
     }
 
-    private static class ConnectTimeToAvro implements ToAvroLogicalTypeConverter {
+    public static class ConnectTimeToAvro implements ToAvroLogicalTypeConverter {
         @Override
         public Object convert(Schema schema, Object value) {
             if (!(value instanceof java.util.Date)) {
@@ -310,7 +310,7 @@ public class AvroData {
         }
     }
 
-    private static class ConnectTimestampToAvro implements ToAvroLogicalTypeConverter {
+    public static class ConnectTimestampToAvro implements ToAvroLogicalTypeConverter {
         @Override
         public Object convert(Schema schema, Object value) {
             if (!(value instanceof java.util.Date)) {
@@ -868,18 +868,6 @@ public class AvroData {
                             .size(Integer.parseInt(schema.parameters().get(CONNECT_AVRO_FIXED_SIZE_PROP)));
                 } else {
                     baseSchema = org.apache.avro.SchemaBuilder.builder().bytesType();
-                }
-                if (Decimal.LOGICAL_NAME.equalsIgnoreCase(schema.name())) {
-                    int scale = Integer.parseInt(schema.parameters().get(Decimal.SCALE_FIELD));
-                    baseSchema.addProp(AVRO_LOGICAL_DECIMAL_SCALE_PROP, new IntNode(scale));
-                    if (schema.parameters().containsKey(CONNECT_AVRO_DECIMAL_PRECISION_PROP)) {
-                        String precisionValue = schema.parameters().get(CONNECT_AVRO_DECIMAL_PRECISION_PROP);
-                        int precision = Integer.parseInt(precisionValue);
-                        baseSchema.addProp(AVRO_LOGICAL_DECIMAL_PRECISION_PROP, new IntNode(precision));
-                    } else {
-                        baseSchema.addProp(AVRO_LOGICAL_DECIMAL_PRECISION_PROP,
-                                new IntNode(CONNECT_AVRO_DECIMAL_PRECISION_DEFAULT));
-                    }
                 }
                 break;
             case ARRAY:

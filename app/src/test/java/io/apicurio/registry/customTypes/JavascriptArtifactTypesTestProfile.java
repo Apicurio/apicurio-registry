@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JavaClassArtifactTypesTestProfile implements QuarkusTestProfile {
+public class JavascriptArtifactTypesTestProfile implements QuarkusTestProfile {
 
     private static final String CONFIG_FILE = """
             {
@@ -24,29 +24,24 @@ public class JavaClassArtifactTypesTestProfile implements QuarkusTestProfile {
                             "application/json",
                             "application/x-yaml"
                         ],
+                        "scriptLocation": "js-artifact-types-test/dist/js-artifact-types-test.js",
                         "contentAccepter": {
-                            "type": "java",
-                            "classname": "io.apicurio.utils.test.raml.microsvc.RamlContentAccepter"
+                            "type": "script"
                         },
                         "contentCanonicalizer": {
-                            "type": "java",
-                            "classname": "io.apicurio.utils.test.raml.microsvc.RamlContentCanonicalizer"
+                            "type": "script"
                         },
                         "contentValidator": {
-                            "type": "java",
-                            "classname": "io.apicurio.utils.test.raml.microsvc.RamlContentValidator"
+                            "type": "script"
                         },
                         "compatibilityChecker": {
-                            "type": "java",
-                            "classname": "io.apicurio.utils.test.raml.microsvc.RamlCompatibilityChecker"
+                            "type": "script"
                         },
                         "contentDereferencer": {
-                            "type": "java",
-                            "classname": "io.apicurio.utils.test.raml.microsvc.RamlContentDereferencer"
+                            "type": "script"
                         },
                         "referenceFinder": {
-                            "type": "java",
-                            "classname": "io.apicurio.utils.test.raml.microsvc.RamlReferenceFinder"
+                            "type": "script"
                         }
                     }
                 ]
@@ -66,7 +61,7 @@ public class JavaClassArtifactTypesTestProfile implements QuarkusTestProfile {
     private static File createTestConfig() {
         FileOutputStream fos = null;
         try {
-            File tempFile = File.createTempFile("_JavaClassArtifactTypesTestProfile_apicurio-registry-artifact-types.", ".json");
+            File tempFile = File.createTempFile("_JavascriptArtifactTypesTestProfile_apicurio-registry-artifact-types.", ".json");
             fos = new FileOutputStream(tempFile);
             IOUtils.write(CONFIG_FILE, fos, StandardCharsets.UTF_8);
             return tempFile;

@@ -39,6 +39,9 @@ public class ArtifactTypeConfiguration {
     @JsonProperty("contentTypes")
     private List<String> contentTypes = new ArrayList<String>();
 
+    @JsonProperty("scriptLocation")
+    private String scriptLocation;
+
     @JsonProperty("contentAccepter")
     @JsonPropertyDescription("")
     private Provider contentAccepter;
@@ -105,6 +108,16 @@ public class ArtifactTypeConfiguration {
     @JsonProperty("contentTypes")
     public void setContentTypes(List<String> contentTypes) {
         this.contentTypes = contentTypes;
+    }
+
+    @JsonProperty("scriptLocation")
+    public String getScriptLocation() {
+        return scriptLocation;
+    }
+
+    @JsonProperty("scriptLocation")
+    public void setScriptLocation(String scriptLocation) {
+        this.scriptLocation = scriptLocation;
     }
 
     @JsonProperty("contentAccepter")

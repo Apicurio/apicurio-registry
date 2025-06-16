@@ -7,6 +7,7 @@ import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.http.HttpClientException;
 import io.apicurio.registry.http.HttpClientService;
+import io.apicurio.registry.script.ArtifactTypeScriptProvider;
 import io.apicurio.registry.script.ScriptingService;
 import org.apache.commons.lang3.ClassUtils;
 import org.slf4j.Logger;
@@ -34,7 +35,7 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
         }
     }
 
-    protected class AbstractScriptDelegate<I, O> {
+    protected class AbstractScriptDelegate {
 
         protected final ArtifactTypeConfiguration artifactType;
         protected final ScriptProvider provider;
@@ -44,8 +45,21 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
             this.provider = provider;
         }
 
-        protected O executeScript(I input, Class<O> outputClass) throws HttpClientException {
-            return scriptingService.executeScript(provider.getScript(), input, outputClass);
+        protected ArtifactTypeScriptProvider createScriptProvider() {
+            String scriptLocation = provider.getScriptLocation();
+            if (scriptLocation == null) {
+                scriptLocation = artifactType.getScriptLocation();
+            }
+            return scriptingService.createScriptProvider(scriptLocation);
+        }
+
+        protected void closeScriptProvider(ArtifactTypeScriptProvider scriptProvider) {
+            try {
+                ((AutoCloseable) scriptProvider).close();
+            } catch (Exception e) {
+                log.warn("Error closing script provider", e);
+                throw new RuntimeException(e);
+            }
         }
     }
 

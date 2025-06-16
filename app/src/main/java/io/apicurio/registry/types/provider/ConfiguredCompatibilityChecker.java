@@ -9,6 +9,7 @@ import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.script.ArtifactTypeScriptProvider;
 import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.CompatibilityCheckerRequest;
 import io.apicurio.registry.types.webhooks.beans.CompatibilityCheckerResponse;
@@ -82,7 +83,7 @@ public class ConfiguredCompatibilityChecker extends AbstractConfiguredArtifactTy
         return new ConfiguredCompatibilityChecker.ScriptCompatibilityCheckerDelegate(artifactType, provider);
     }
 
-    private class ScriptCompatibilityCheckerDelegate extends AbstractScriptDelegate<CompatibilityCheckerRequest, CompatibilityCheckerResponse> implements CompatibilityChecker {
+    private class ScriptCompatibilityCheckerDelegate extends AbstractScriptDelegate implements CompatibilityChecker {
 
         protected ScriptCompatibilityCheckerDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
             super(artifactType, provider);
@@ -93,9 +94,10 @@ public class ConfiguredCompatibilityChecker extends AbstractConfiguredArtifactTy
                                                               TypedContent proposedArtifact, Map<String, TypedContent> resolvedReferences) {
             // Create the request payload object
             CompatibilityCheckerRequest requestBody = createRequest(compatibilityLevel, existingArtifacts, proposedArtifact, resolvedReferences);
+            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
 
             try {
-                CompatibilityCheckerResponse responseBody = executeScript(requestBody, CompatibilityCheckerResponse.class);
+                CompatibilityCheckerResponse responseBody = scriptProvider.testCompatibility(requestBody);
                 List<IncompatibleDifference> incompatibleDifferences = responseBody.getIncompatibleDifferences();
                 if (incompatibleDifferences == null || incompatibleDifferences.isEmpty()) {
                     return CompatibilityExecutionResult.compatible();
@@ -103,9 +105,11 @@ public class ConfiguredCompatibilityChecker extends AbstractConfiguredArtifactTy
                     return CompatibilityExecutionResult.incompatibleOrEmpty(WebhookBeanUtil.compatibilityDifferenceSetFromWebhookBean(incompatibleDifferences));
                 }
             } catch (Throwable e) {
-                log.error("Error invoking webhook", e);
+                log.error("Error invoking script", e);
                 return CompatibilityExecutionResult.incompatible(
                         "Error invoking Compatibility Checker webhook for '" + this.artifactType.getArtifactType() + "': " + e.getMessage());
+            } finally {
+                closeScriptProvider(scriptProvider);
             }
         }
 

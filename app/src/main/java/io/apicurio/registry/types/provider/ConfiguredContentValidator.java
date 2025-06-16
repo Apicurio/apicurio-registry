@@ -12,6 +12,7 @@ import io.apicurio.registry.rules.RuleViolationException;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.script.ArtifactTypeScriptProvider;
 import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.webhooks.beans.ContentValidatorRequest;
@@ -115,7 +116,7 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
         return new ConfiguredContentValidator.ScriptContentValidatorDelegate(artifactType, provider);
     }
 
-    private class ScriptContentValidatorDelegate extends AbstractScriptDelegate<ContentValidatorRequest, ContentValidatorResponse> implements ContentValidator {
+    private class ScriptContentValidatorDelegate extends AbstractScriptDelegate implements ContentValidator {
 
         protected ScriptContentValidatorDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
             super(artifactType, provider);
@@ -124,9 +125,10 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
         @Override
         public void validate(ValidityLevel level, TypedContent content, Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
             ContentValidatorRequest requestBody = createValidateRequest(level, content, resolvedReferences);
+            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
 
             try {
-                ContentValidatorResponse responseBody = executeScript(requestBody, ContentValidatorResponse.class);
+                ContentValidatorResponse responseBody = scriptProvider.validate(requestBody);
                 List<io.apicurio.registry.types.webhooks.beans.RuleViolation> rvs = responseBody.getRuleViolations();
                 if (rvs != null && !rvs.isEmpty()) {
                     Set<RuleViolation> violations = WebhookBeanUtil.ruleViolationSetFromWebhookBean(rvs);
@@ -135,16 +137,19 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
             } catch (RuleViolationException rve) {
                 throw rve;
             } catch (Throwable e) {
-                log.error("Error invoking webhook", e);
+                log.error("Error invoking script", e);
+            } finally {
+                closeScriptProvider(scriptProvider);
             }
         }
 
         @Override
         public void validateReferences(TypedContent content, List<ArtifactReference> references) throws RuleViolationException {
             ContentValidatorRequest requestBody = createValidateRefsRequest(content, references);
+            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
 
             try {
-                ContentValidatorResponse responseBody = executeScript(requestBody, ContentValidatorResponse.class);
+                ContentValidatorResponse responseBody = scriptProvider.validateReferences(requestBody);
                 List<io.apicurio.registry.types.webhooks.beans.RuleViolation> rvs = responseBody.getRuleViolations();
                 if (rvs != null && !rvs.isEmpty()) {
                     Set<RuleViolation> violations = WebhookBeanUtil.ruleViolationSetFromWebhookBean(rvs);
@@ -154,7 +159,9 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
             } catch (RuleViolationException rve) {
                 throw rve;
             } catch (Throwable e) {
-                log.error("Error invoking webhook", e);
+                log.error("Error invoking script", e);
+            } finally {
+                closeScriptProvider(scriptProvider);
             }
         }
 

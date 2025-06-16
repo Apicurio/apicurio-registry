@@ -1,17 +1,18 @@
 package io.apicurio.registry.script;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class ScriptingService {
 
-    public <I, O> O executeScript(String script, I input, Class<O> outputClass) throws ScriptExecutionException {
-        try {
-            // Execute script here using chicory
-            throw new UnsupportedOperationException("Scripting support not implemented yet");
-        } catch (Exception e) {
-            throw new ScriptExecutionException(e);
-        }
+    @Inject
+    ArtifactTypeScriptProviderContext context;
+
+    public ArtifactTypeScriptProvider createScriptProvider(String scriptLocation) {
+        String script = ScriptInterfaceUtils.loadScriptLibrary(scriptLocation);
+        ArtifactTypeScriptProvider_Proxy proxy = new ArtifactTypeScriptProvider_Proxy(script, context);
+        return proxy;
     }
 
 }

@@ -9,37 +9,23 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
     "type",
-    "scriptType",
-    "script"
+    "scriptLocation"
 })
 @io.quarkus.runtime.annotations.RegisterForReflection
 public class ScriptProvider extends Provider
 {
-    @JsonProperty("scriptType")
-    private String scriptType;
 
-    @JsonProperty("script")
-    private String script;
+    @JsonProperty("scriptLocation")
+    private String scriptLocation;
 
-
-    @JsonProperty("scriptType")
-    public String getScriptType() {
-        return scriptType;
+    @JsonProperty("scriptLocation")
+    public String getScriptLocation() {
+        return scriptLocation;
     }
 
-    @JsonProperty("scriptType")
-    public void setScriptType(String scriptType) {
-        this.scriptType = scriptType;
-    }
-
-    @JsonProperty("script")
-    public String getScript() {
-        return script;
-    }
-
-    @JsonProperty("script")
-    public void setScript(String script) {
-        this.script = script;
+    @JsonProperty("scriptLocation")
+    public void setScriptLocation(String scriptLocation) {
+        this.scriptLocation = scriptLocation;
     }
 
 }

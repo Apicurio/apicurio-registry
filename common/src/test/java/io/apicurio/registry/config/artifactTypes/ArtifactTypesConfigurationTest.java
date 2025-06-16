@@ -64,8 +64,7 @@ public class ArtifactTypesConfigurationTest {
                         ],
                         "contentAccepter": {
                             "type": "script",
-                            "scriptType": "lua",
-                            "script": "LUA_SCRIPT_CONTENT"
+                            "scriptLocation": "LUA_SCRIPT_LOCATION"
                         }
                     }
                 ]
@@ -152,8 +151,7 @@ public class ArtifactTypesConfigurationTest {
         Assertions.assertNotNull(config.getArtifactTypes().get(0).getContentAccepter());
         Assertions.assertEquals(ScriptProvider.class, config.getArtifactTypes().get(0).getContentAccepter().getClass());
         Assertions.assertEquals("script", config.getArtifactTypes().get(0).getContentAccepter().getType());
-        Assertions.assertEquals("lua", ((ScriptProvider) config.getArtifactTypes().get(0).getContentAccepter()).getScriptType());
-        Assertions.assertEquals("LUA_SCRIPT_CONTENT", ((ScriptProvider) config.getArtifactTypes().get(0).getContentAccepter()).getScript());
+        Assertions.assertEquals("LUA_SCRIPT_LOCATION", ((ScriptProvider) config.getArtifactTypes().get(0).getContentAccepter()).getScriptLocation());
     }
 
     @Test

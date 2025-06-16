@@ -66,7 +66,7 @@ public class WebhookArtifactTypesTestProfile implements QuarkusTestProfile {
     private static File createTestConfig() {
         FileOutputStream fos = null;
         try {
-            File tempFile = File.createTempFile("_CustomArtifactTypesTestProfile_apicurio-registry-artifact-types.", ".json");
+            File tempFile = File.createTempFile("_WebhookArtifactTypesTestProfile_apicurio-registry-artifact-types.", ".json");
             fos = new FileOutputStream(tempFile);
             IOUtils.write(CONFIG_FILE, fos, StandardCharsets.UTF_8);
             return tempFile;

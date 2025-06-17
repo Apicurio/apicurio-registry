@@ -96,7 +96,7 @@ export interface AuthConfig {
     obacEnabled: boolean;
 }
 
-// Used when `type=keycloakjs`
+// Used when `type=keycloakjs` or `type=oidc`
 export interface OidcJsAuthConfig extends AuthConfig {
     options?: any;
 }

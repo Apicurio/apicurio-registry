@@ -742,6 +742,11 @@ The following {registry} configuration options are available for each component 
 |`openid profile email`
 |`2.6.8.Final`
 |UI auth OIDC scope value
+|`registry.ui.config.auth.oidc.token-type`
+|`string`
+|`access`
+|`2.2.12.Final`
+|OIDC token type to use ('id' or 'access') when invoking REST API endpoints.
 |`registry.ui.config.auth.oidc.url`
 |`string`
 |`none`

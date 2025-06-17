@@ -84,6 +84,13 @@ jobs:
         run: |
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm -t docker.io/apicurio/apicurio-registry:latest-snapshot -t quay.io/apicurio/apicurio-registry:latest-snapshot --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
+      - name: Build and push Apicurio Registry MCP Server image
+        if: github.event_name == 'push'
+        run: |
+          docker buildx build --push -f ./mcp/target/docker/Dockerfile.jvm \
+              -t quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot \
+              --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./mcp/target/docker
+
       - name: List docker images (debug)
         if: github.event_name == 'push' && failure()
         run: |

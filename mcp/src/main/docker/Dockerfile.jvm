@@ -1,0 +1,14 @@
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:latest
+
+ENV JAVA_APP_DIR=/deployments \
+    APP_URL="${docker.app.file}" \
+    JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager" \
+    AB_ENABLED=jmx_exporter
+
+ADD "$APP_URL" /deployments
+
+USER root
+
+RUN chmod -R "ug=rwx" /deployments && chown -R 1001:0 /deployments
+
+USER 1001

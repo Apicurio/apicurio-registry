@@ -69,50 +69,51 @@
   </developers>
 
   <modules>
+    <module>app</module>
     <module>common</module>
     <module>config-index/definitions</module>
     <module>config-index/deployment</module>
     <module>config-index/runtime</module>
-    <module>app</module>
-    <module>utils/converter</module>
-    <module>utils/kafka</module>
-    <module>utils/maven-plugin</module>
-    <module>utils/importexport</module>
-    <module>utils/exportConfluent</module>
-    <module>utils/protobuf-schema-utilities</module>
-    <module>utils/tests</module>
+    <module>distro</module>
+    <module>docs</module>
+    <module>go-sdk</module>
+    <module>java-sdk-v2</module>
+    <module>java-sdk</module>
+    <module>mcp</module>
+    <module>operator</module>
     <module>schema-resolver</module>
-    <module>serdes/generic/serde-common</module>
     <module>serdes/generic/serde-common-avro</module>
     <module>serdes/generic/serde-common-jsonschema</module>
     <module>serdes/generic/serde-common-protobuf</module>
-    <module>serdes/kafka/serde-kafka-common</module>
+    <module>serdes/generic/serde-common</module>
     <module>serdes/kafka/avro-serde</module>
-    <module>serdes/kafka/protobuf-serde</module>
     <module>serdes/kafka/jsonschema-serde</module>
-    <module>serdes/pulsar/avro-serde</module>
+    <module>serdes/kafka/protobuf-serde</module>
+    <module>serdes/kafka/serde-kafka-common</module>
     <module>serdes/nats/avro-serde</module>
-    <module>distro</module>
-    <module>docs</module>
-    <module>java-sdk</module>
-    <module>java-sdk-v2</module>
-    <module>go-sdk</module>
+    <module>serdes/pulsar/avro-serde</module>
+    <module>utils/converter</module>
+    <module>utils/exportConfluent</module>
+    <module>utils/importexport</module>
+    <module>utils/kafka</module>
+    <module>utils/maven-plugin</module>
+    <module>utils/protobuf-schema-utilities</module>
+    <module>utils/tests</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
-    <module>schema-util/common</module>
-    <module>schema-util/json</module>
-    <module>schema-util/protobuf</module>
     <module>schema-util/asyncapi</module>
     <module>schema-util/avro</module>
+    <module>schema-util/common</module>
     <module>schema-util/graphql</module>
+    <module>schema-util/json</module>
     <module>schema-util/kconnect</module>
     <module>schema-util/openapi</module>
+    <module>schema-util/protobuf</module>
+    <module>schema-util/util-provider</module>
     <module>schema-util/wsdl</module>
     <module>schema-util/xml</module>
     <module>schema-util/xsd</module>
-    <module>schema-util/util-provider</module>
 
-    <module>operator</module>
   </modules>
 
   <scm>

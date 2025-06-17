@@ -45,6 +45,13 @@
     </dependency>
 
     <dependency>
+      <!-- TODO: Create a parent pom.xml for the extension, otherwise Maven can't resolve module build order properly. -->
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-config-index-deployment</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-common-rest-client-jdk</artifactId>
       <scope>test</scope>

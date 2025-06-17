@@ -114,6 +114,7 @@ public class ConfigJsServlet extends HttpServlet {
                 config.auth.options.put("url", uiConfig.getOidcUrl());
                 config.auth.options.put("redirectUri", uiConfig.getOidcRedirectUrl());
                 config.auth.options.put("scope", uiConfig.getScope());
+                config.auth.options.put("tokenType", uiConfig.getOidcTokenType());
             }
 
             config.auth.rbacEnabled = authConfig.isRbacEnabled();

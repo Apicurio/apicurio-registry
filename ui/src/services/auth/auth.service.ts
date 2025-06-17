@@ -180,8 +180,12 @@ export class AuthService implements Service {
 
     public getToken = () => this.keycloak.token;
 
-    public getOidcToken = () => {
+    public getOidcAccessToken = () => {
         return this.oidcUser.access_token;
+    };
+
+    public getOidcIdToken = () => {
+        return this.oidcUser.id_token;
     };
 
     public isAuthenticationEnabled(): boolean {
@@ -270,7 +274,8 @@ export class AuthService implements Service {
                     return Promise.reject(error);
                 });
             } else if (self.config.authType() === "oidc") {
-                config.headers.Authorization = `Bearer ${this.getOidcToken()}`;
+                const token: string | undefined = self.config.authOptions().tokenType === "id" ? this.getOidcIdToken() : this.getOidcAccessToken();
+                config.headers.Authorization = `Bearer ${token}`;
                 return Promise.resolve(config);
             } else {
                 return Promise.resolve(config);

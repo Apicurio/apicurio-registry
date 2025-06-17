@@ -245,6 +245,21 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 NOTE: When you enable roles in {registry}, you must also create the same roles in Azure AD as application roles. The default roles expected by {registry} are `sr-admin`, `sr-developer`, and `sr-readonly`.
 
 
+. In {registry} UI, configure the following environment variables:
+
+[.table-expandable,width="100%",cols="6,5,4",options="header"]
+|===
+|Environment variable
+|Description
+|Setting
+|`REGISTRY_AUTH_TYPE`
+|
+|`oidc`
+|`REGISTRY_AUTH_TOKEN_TYPE`
+|Which token to use. Azure AD has non-standard access tokens, so we need to use id tokens.
+|`id`
+|===
+
 [role="_additional-resources"]
 .Additional resources
 * For details on configuring non-default user role names, see xref:registry-security-settings_{context}[].

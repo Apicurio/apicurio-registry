@@ -6,7 +6,7 @@ on:
         description: 'Release tag name'
         required: true
   release:
-    types: [released, prereleased]
+    types: [ released, prereleased ]
 
 
 env:
@@ -50,7 +50,7 @@ jobs:
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
-        
+
       - name: Inspect builder
         run: |
           echo "Name:      ${{ steps.buildx.outputs.name }}"
@@ -74,7 +74,7 @@ jobs:
 
       - name: Download Source Code
         run: git clone --branch $RELEASE_VERSION --single-branch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git registry
-        
+
       # We have faced issues in the past where a github release was created from a wrong commit
       # This step will ensure that the release was created from the right commit  
       - name: Verify Project Version
@@ -124,6 +124,14 @@ jobs:
         run: |
           make config-show
           make ADDITIONAL_IMAGE_TAG=latest image-build image-push          
+
+      - name: Build and push Apicurio Registry MCP Server image
+        working-directory: registry/mcp
+        run: |
+          docker buildx build --push -f ./target/docker/Dockerfile.jvm \
+              -t quay.io/apicurio/apicurio-registry-mcp-server:$RELEASE_VERSION \
+              -t quay.io/apicurio/apicurio-registry-mcp-server:latest \
+              --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./target/docker
 
       - name: Build and Push Multi-arch Application Images
         run: |

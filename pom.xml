@@ -221,7 +221,7 @@
     <debezium.version>2.6.2.Final</debezium.version>
     <pulsar-clients.version>3.3.4</pulsar-clients.version>
     <commons-beanutils.version>1.10.0</commons-beanutils.version>
-    <quickjs4j.version>0.0.5</quickjs4j.version>
+    <quickjs4j.version>0.0.6</quickjs4j.version>
 
     <nats.version>2.20.5</nats.version>
     <snakeyaml.version>2.3</snakeyaml.version>

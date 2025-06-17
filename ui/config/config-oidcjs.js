@@ -14,7 +14,7 @@ var ApicurioRegistryConfig = {
         options: {
             url: "http://localhost:8090",
             redirectUri: "http://localhost:8888",
-            clientId:"apicurio-registry",
+            clientId: "apicurio-registry",
         }
     },
     features: {

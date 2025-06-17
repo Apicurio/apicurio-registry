@@ -98,6 +98,11 @@ public class UiConfigProperties {
     @Info(category = "ui", description = "UI auth OIDC scope value", availableSince = "2.6.8.Final")
     String scope;
 
+    @Inject
+    @ConfigProperty(name = "registry.ui.config.auth.oidc.token-type", defaultValue = "access")
+    @Info(category = "ui", description = "OIDC token type to use ('id' or 'access') when invoking REST API endpoints.", availableSince = "2.2.12.Final")
+    String oidcTokenType;
+
     private final Map<String, Object> keycloakConfig;
 
     /**
@@ -166,6 +171,10 @@ public class UiConfigProperties {
 
     public String getOidcRedirectUrl() {
         return oidcRedirectUri;
+    }
+
+    public String getOidcTokenType() {
+        return oidcTokenType;
     }
 
     public String getScope() {

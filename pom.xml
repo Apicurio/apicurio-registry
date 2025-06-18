@@ -162,7 +162,7 @@
     <!-- Schema types -->
     <avro.version>1.12.0</avro.version>
     <json-schema-validator.version>1.5.5</json-schema-validator.version>
-    <wire-schema.version>5.1.0</wire-schema.version>
+    <wire-schema.version>5.2.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio-jvm.version>3.10.2</okio-jvm.version>
     <okio.version>3.10.2</okio.version>

@@ -7,21 +7,28 @@ This chapter explains how to configure the available {registry} storage options:
 
 * xref:registry-persistence-options[]
 
+ifdef::apicurio-registry[]
 * xref:registry-persistence-mem[]
+endif::[]
+
 * xref:registry-persistence-sql[]
 * xref:registry-persistence-kafkasql-plain[]
 * xref:registry-persistence-kafkasql-tls[]
 * xref:registry-persistence-kafkasql-scram[]
 
 
+ifdef::apicurio-registry[]
 NOTE: This chapter mostly focuses on storage configuration procedures for OpenShift using OperatorHub UI.
 If you are deploying to Kubernetes, you can use command line tools to perform the equivalent steps.
 The {operator} supports the same configuration options on OpenShift and Kubernetes.
+endif::[]
 
 // INCLUDES
 include::partial$con-persistence-options.adoc[leveloffset=+1]
 
+ifdef::apicurio-registry[]
 include::partial$proc-persistence-mem.adoc[leveloffset=+1]
+endif::[]
 include::partial$proc-persistence-sql.adoc[leveloffset=+1]
 include::partial$proc-persistence-kafkasql-plain.adoc[leveloffset=+1]
 include::partial$proc-persistence-kafkasql-tls.adoc[leveloffset=+1]

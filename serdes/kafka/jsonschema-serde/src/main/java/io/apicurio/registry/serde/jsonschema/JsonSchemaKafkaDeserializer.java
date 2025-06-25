@@ -2,9 +2,9 @@ package io.apicurio.registry.serde.jsonschema;
 
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistrySDK;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.KafkaDeserializer;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import org.apache.kafka.common.header.Headers;
@@ -20,22 +20,22 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
         super(new JsonSchemaDeserializer<>());
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClient client) {
-        super(new JsonSchemaDeserializer<>(client));
+    public JsonSchemaKafkaDeserializer(RegistrySDK sdk) {
+        super(new JsonSchemaDeserializer<>(sdk));
     }
 
     public JsonSchemaKafkaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaDeserializer<>(schemaResolver));
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaDeserializer<>(client, schemaResolver));
+    public JsonSchemaKafkaDeserializer(RegistrySDK sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(new JsonSchemaDeserializer<>(sdk, schemaResolver));
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClient client,
+    public JsonSchemaKafkaDeserializer(RegistrySDK sdk,
             ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
             SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaDeserializer<>(client, schemaResolver, strategy));
+        super(new JsonSchemaDeserializer<>(sdk, schemaResolver, strategy));
     }
 
     @SuppressWarnings("unchecked")

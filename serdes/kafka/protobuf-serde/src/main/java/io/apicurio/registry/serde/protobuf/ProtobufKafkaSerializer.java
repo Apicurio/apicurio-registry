@@ -3,8 +3,8 @@ package io.apicurio.registry.serde.protobuf;
 import com.google.protobuf.Message;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistrySDK;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.KafkaSerializer;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import org.apache.kafka.common.header.Headers;
@@ -22,22 +22,22 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
         super(new ProtobufSerializer<>());
     }
 
-    public ProtobufKafkaSerializer(RegistryClient client) {
-        super(new ProtobufSerializer<>(client));
+    public ProtobufKafkaSerializer(RegistrySDK sdk) {
+        super(new ProtobufSerializer<>(sdk));
     }
 
     public ProtobufKafkaSerializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(new ProtobufSerializer<>(schemaResolver));
     }
 
-    public ProtobufKafkaSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufSerializer<>(client, schemaResolver));
+    public ProtobufKafkaSerializer(RegistrySDK sdk, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(new ProtobufSerializer<>(sdk, schemaResolver));
     }
 
-    public ProtobufKafkaSerializer(RegistryClient client,
+    public ProtobufKafkaSerializer(RegistrySDK sdk,
             ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
             SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufSerializer<>(client, schemaResolver, strategy));
+        super(new ProtobufSerializer<>(sdk, schemaResolver, strategy));
     }
 
     @Override

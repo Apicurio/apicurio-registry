@@ -8,6 +8,8 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistrySDKImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -60,12 +62,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
     private RegistryClient restClient;
+    private RegistrySDK sdk;
 
     @BeforeEach
     public void createIsolatedClient() {
         var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
+        sdk = new RegistrySDKImpl(restClient);
     }
 
     @Test
@@ -82,8 +86,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(sdk);
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(sdk)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -133,8 +137,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         Person person = new Person("Carles", "Arnal", 30);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(sdk);
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(sdk)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -189,8 +193,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(sdk);
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(sdk)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -240,8 +244,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(sdk);
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(sdk)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -340,8 +344,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
-        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(sdk);
+            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(sdk)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -488,8 +492,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
-        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(sdk);
+            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(sdk)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -666,8 +670,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
-        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(sdk);
+            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(sdk)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -827,7 +831,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
                 .builder().globalId(global.getGlobalId()).groupId("GLOBAL")// .version("4")
                 .artifactId("sample.account.json").build();
 
-        SchemaResolver<JsonSchema, Object> sr = new DefaultSchemaResolver<>(client);
+        SchemaResolver<JsonSchema, Object> sr = new DefaultSchemaResolver<>(sdk);
         Map<String, String> configs = new HashMap<>();
         configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT, DefaultSchemaResolver.class.getName());
         configs.put(SerdeConfig.CHECK_PERIOD_MS, "600000");

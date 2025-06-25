@@ -52,9 +52,15 @@ jobs:
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h ./distro/docker/target/docker
 
-      - name: Push temporary Application image
-        run: |
-          docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
+      - name: Push Temporary image for testing
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          retry_wait_seconds: 60
+          command: |
+            docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests
@@ -90,11 +96,21 @@ jobs:
         working-directory: ui
         run: npm run package
 
-      - name: Build and Push UI container image
+      - name: Build UI container image
         working-directory: ui
         run: |
           docker build -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:6h .
-          docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:6h
+
+      - name: Push Temporary UI image for testing
+        uses: nick-fields/retry@v3
+        working-directory: ui
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          retry_wait_seconds: 60
+          command: |
+            docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:6h
 
   integration-tests-h2:
     name: Integration Tests H2

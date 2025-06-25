@@ -241,8 +241,14 @@ jobs:
           docker build -f ./distro/docker/target/docker/Dockerfile.native -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h app/
 
       - name: Push Temporary image for testing
-        run: |
-          docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          retry_wait_seconds: 60
+          command: |
+            docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h
 
       - name: Setup Minikube
         uses: manusa/actions-setup-minikube@v2.13.0

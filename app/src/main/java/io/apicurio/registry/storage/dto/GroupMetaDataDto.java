@@ -2,7 +2,6 @@ package io.apicurio.registry.storage.dto;
 
 import lombok.*;
 
-import java.io.Serializable;
 import java.util.Map;
 
 @NoArgsConstructor
@@ -12,7 +11,7 @@ import java.util.Map;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class GroupMetaDataDto implements Serializable {
+public class GroupMetaDataDto {
 
     private static final long serialVersionUID = -9015518049780762742L;
 

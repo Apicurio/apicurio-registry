@@ -8,8 +8,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.io.Serializable;
-
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -17,7 +15,7 @@ import java.io.Serializable;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class BranchMetaDataDto implements Serializable {
+public class BranchMetaDataDto {
 
     private String groupId;
     private String artifactId;

@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.Optional;
+import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
 
@@ -48,5 +49,10 @@ public class Cell<T> {
 
     public boolean isSet() {
         return value != null;
+    }
+
+    public T map(Function<T, T> mapper) {
+        value = mapper.apply(value);
+        return value;
     }
 }

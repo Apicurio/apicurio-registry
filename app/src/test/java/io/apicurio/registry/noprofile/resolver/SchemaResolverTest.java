@@ -6,6 +6,8 @@ import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistrySDKImpl;
 import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
@@ -43,9 +45,9 @@ public class SchemaResolverTest extends AbstractResourceTestBase {
 
     @Test
     public void testDynamicStrategy() throws Exception {
-
         SchemaResolver<Schema, GenericRecord> resolver = new DefaultSchemaResolver<>();
-        resolver.setClient(restClient);
+        RegistrySDK sdk = new RegistrySDKImpl(restClient);
+        resolver.setSDK(sdk);
         Map<String, Object> config = new HashMap<>();
         config.put(SerdeConfig.FIND_LATEST_ARTIFACT, true);
         resolver.configure(config, new SchemaParser<Schema, GenericRecord>() {

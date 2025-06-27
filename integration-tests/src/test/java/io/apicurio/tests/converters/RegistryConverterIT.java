@@ -2,6 +2,8 @@ package io.apicurio.tests.converters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistrySDKImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.BaseSerde;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
@@ -26,9 +28,9 @@ import io.apicurio.tests.utils.Constants;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.data.SchemaAndValue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -323,7 +325,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     private void testJson(RegistryClient restClient, FormatStrategy formatStrategy,
             Function<byte[], Integer> fn) throws Exception {
-        try (ExtJsonConverter converter = new ExtJsonConverter(restClient)) {
+        RegistrySDK sdk = new RegistrySDKImpl(restClient);
+        try (ExtJsonConverter converter = new ExtJsonConverter(sdk)) {
             converter.setFormatStrategy(formatStrategy);
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
@@ -354,7 +357,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testJsonConverterNullPayload() throws Exception {
-        try (ExtJsonConverter converter = new ExtJsonConverter(registryClient)) {
+        RegistrySDK sdk = new RegistrySDKImpl(registryClient);
+        try (ExtJsonConverter converter = new ExtJsonConverter(sdk)) {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
             converter.configure(config, false);

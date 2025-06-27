@@ -4,6 +4,8 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.api.sample.TableNotification;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistrySDKImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
@@ -33,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
     private RegistryClient restClient;
+    private RegistrySDK sdk;
     private String groupId = "protobuf-serde-test";
 
     @BeforeEach
@@ -40,17 +43,20 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
         var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
+
         CreateRule rule = new CreateRule();
         rule.setConfig("SYNTAX_ONLY");
         rule.setRuleType(RuleType.VALIDITY);
         restClient.admin().rules().post(rule);
+
+        sdk = new RegistrySDKImpl(restClient);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testProto() throws Exception {
-        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(restClient);
-                Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(sdk);
+                Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(sdk)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
@@ -90,8 +96,8 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testProtobufSchemaWithReferences() {
-        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(restClient);
-                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(sdk);
+                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(sdk)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
@@ -110,8 +116,8 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Test
     public void testProtobufSchemaWithReferencesDereferenced() {
-        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(restClient);
-                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(restClient)) {
+        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(sdk);
+                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(sdk)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);

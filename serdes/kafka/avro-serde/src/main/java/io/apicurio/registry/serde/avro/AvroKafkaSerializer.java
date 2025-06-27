@@ -2,8 +2,8 @@ package io.apicurio.registry.serde.avro;
 
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistrySDK;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.KafkaSerializer;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.header.Headers;
@@ -20,21 +20,21 @@ public class AvroKafkaSerializer<U> extends KafkaSerializer<Schema, U> {
         super(new AvroSerializer<>());
     }
 
-    public AvroKafkaSerializer(RegistryClient client) {
-        super(new AvroSerializer<>(client));
+    public AvroKafkaSerializer(RegistrySDK sdk) {
+        super(new AvroSerializer<>(sdk));
     }
 
     public AvroKafkaSerializer(SchemaResolver<Schema, U> schemaResolver) {
         super(new AvroSerializer<>(schemaResolver));
     }
 
-    public AvroKafkaSerializer(RegistryClient client, SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroSerializer<>(client, schemaResolver));
+    public AvroKafkaSerializer(RegistrySDK sdk, SchemaResolver<Schema, U> schemaResolver) {
+        super(new AvroSerializer<>(sdk, schemaResolver));
     }
 
-    public AvroKafkaSerializer(RegistryClient client, ArtifactReferenceResolverStrategy<Schema, U> strategy,
+    public AvroKafkaSerializer(RegistrySDK sdk, ArtifactReferenceResolverStrategy<Schema, U> strategy,
             SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroSerializer<>(client, strategy, schemaResolver));
+        super(new AvroSerializer<>(sdk, strategy, schemaResolver));
     }
 
     @Override

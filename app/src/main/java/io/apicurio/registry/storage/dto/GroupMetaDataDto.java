@@ -31,7 +31,7 @@ import java.util.Map;
 @Builder
 @EqualsAndHashCode
 @ToString
-public class GroupMetaDataDto implements Serializable {
+public class GroupMetaDataDto {
 
     private static final long serialVersionUID = -9015518049780762742L;
 

@@ -1063,12 +1063,17 @@ public class FileDescriptorUtils {
         }
         ImmutableList.Builder<String> imports = ImmutableList.builder();
         ImmutableList.Builder<String> publicImports = ImmutableList.builder();
+        ImmutableList.Builder<String> weakImports = ImmutableList.builder();
         List<String> dependencyList = file.getDependencyList();
         Set<Integer> publicDependencyList = new HashSet<>(file.getPublicDependencyList());
+        Set<Integer> weakDependencyList = new HashSet<>(file.getWeakDependencyList());
         for (int i = 0; i < dependencyList.size(); i++) {
             String depName = dependencyList.get(i);
             if (publicDependencyList.contains(i)) {
                 publicImports.add(depName);
+            }
+            else if (weakDependencyList.contains(i)) {
+                weakImports.add(depName);
             }
             else {
                 imports.add(depName);
@@ -1161,7 +1166,7 @@ public class FileDescriptorUtils {
             options.add(option);
         }
         return new ProtoFileElement(DEFAULT_LOCATION, packageName, syntax, imports.build(),
-                publicImports.build(), types.build(), services.build(), Collections.emptyList(),
+                publicImports.build(), weakImports.build(), types.build(), services.build(), Collections.emptyList(),
                 options.build());
     }
 

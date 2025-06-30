@@ -29,7 +29,8 @@ import static lombok.AccessLevel.PROTECTED;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "env", "ingress", "host", "podDisruptionBudget", "networkPolicy", "podTemplateSpec" })
+// Keep properties and fields alphabetical
+@JsonPropertyOrder(alphabetic = true)
 @NoArgsConstructor(access = PROTECTED)
 @AllArgsConstructor(access = PROTECTED)
 @SuperBuilder(toBuilder = true)
@@ -43,8 +44,8 @@ public abstract class ComponentSpec {
      * Configure a list of environment variables that will be passed to this components' container.
      *
      * @see <a href=
-     *      "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#envvar-v1-core">Kubernetes
-     *      documentation</a>
+     * "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#envvar-v1-core">Kubernetes
+     * documentation</a>
      */
     @JsonProperty("env")
     @JsonPropertyDescription("""
@@ -70,8 +71,8 @@ public abstract class ComponentSpec {
      * other contents of <code>ApicurioRegistry3</code> CR.
      *
      * @see <a href=
-     *      "https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplateSpec">Kubernetes
-     *      documentation</a>
+     * "https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplateSpec">Kubernetes
+     * documentation</a>
      * @see ContainerNames
      */
     @JsonProperty("podTemplateSpec")
@@ -86,7 +87,7 @@ public abstract class ComponentSpec {
 
     /**
      * @deprecated Use the `(component).ingress.host` field instead. The operator will attempt to update the
-     *             field automatically.
+     * field automatically.
      */
     @JsonProperty("host")
     @JsonPropertyDescription("""

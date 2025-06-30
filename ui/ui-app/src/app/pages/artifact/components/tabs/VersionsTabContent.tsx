@@ -88,7 +88,7 @@ export const VersionsTabContent: FunctionComponent<VersionsTabContentProps> = (p
     }, [props.artifact, paging, sortBy, sortOrder]);
 
     const toolbar = (
-        <VersionsTabToolbar results={results} paging={paging} onPageChange={setPaging} onCreateVersion={props.onCreateVersion} />
+        <VersionsTabToolbar artifact={props.artifact} results={results} paging={paging} onPageChange={setPaging} onCreateVersion={props.onCreateVersion} />
     );
 
     const emptyState = (

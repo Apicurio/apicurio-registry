@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import java.util.List;
 import java.util.Optional;
 
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_HEALTH;
+
 @ApplicationScoped
 public class LivenessUtil {
 
@@ -21,7 +23,7 @@ public class LivenessUtil {
 
     @Inject
     @ConfigProperty(name = "apicurio.liveness.errors.ignored")
-    @Info(category = "health", description = "Ignored liveness errors", availableSince = "1.2.3.Final")
+    @Info(category = CATEGORY_HEALTH, description = "Ignored liveness errors", availableSince = "1.2.3.Final")
     Optional<List<String>> ignored;
 
     public boolean isIgnoreError(Throwable ex) {

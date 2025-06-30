@@ -3,13 +3,14 @@ import "./BranchPageHeader.css";
 import { Button, Flex, FlexItem, Text, TextContent, TextVariants } from "@patternfly/react-core";
 import { IfAuth, IfFeature } from "@app/components";
 import { If } from "@apicurio/common-ui-components";
-import { BranchMetaData } from "@sdk/lib/generated-client/models";
+import { ArtifactMetaData, BranchMetaData } from "@sdk/lib/generated-client/models";
 
 
 /**
  * Properties
  */
 export type ArtifactBranchPageHeaderProps = {
+    artifact: ArtifactMetaData | undefined;
     groupId: string;
     artifactId: string;
     branch: BranchMetaData;
@@ -37,7 +38,7 @@ export const BranchPageHeader: FunctionComponent<ArtifactBranchPageHeaderProps> 
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
                 <If condition={!(props.branch.systemDefined || false)}>
-                    <IfAuth isDeveloper={true}>
+                    <IfAuth isDeveloper={true} owner={props.artifact?.owner}>
                         <IfFeature feature="readOnly" isNot={true}>
                             <Button id="delete-branch-button" variant="danger"
                                 data-testid="header-btn-delete" onClick={props.onDelete}>Delete branch</Button>

@@ -136,4 +136,20 @@ class ConfigurationTest {
         config = new SchemaResolverConfig(originals);
         assertEquals(123L, config.getRetryCount());
     }
+
+    @Test
+    void testRegistryUrlWithCredentials() {
+        var originals = new HashMap<String, Object>();
+        originals.put("apicurio.registry.url", "https://user:pass@registry.example.com");
+
+        var config = new SchemaResolverConfig(originals);
+        config.getRegistryUrl(); // Trigger the URL parsing
+
+        // Verify that the credentials are extracted and set correctly
+        assertEquals("user", config.getAuthUsername());
+        assertEquals("pass", config.getAuthPassword());
+
+        // Verify that the returned URL does not include the credentials
+        assertEquals("https://registry.example.com", config.getRegistryUrl());
+    }
 }

@@ -6,7 +6,9 @@ import io.apicurio.registry.content.canon.XmlContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.WsdlOrXsdContentExtractor;
+import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.NoOpReferenceFinder;
+import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -98,6 +100,11 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     public boolean supportsReferencesWithContext() {
         return false;
+    }
+
+    @Override
+    protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
+        return new DefaultReferenceArtifactIdentifierExtractor();
     }
 
 }

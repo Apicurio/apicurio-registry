@@ -102,4 +102,5 @@ spec:
     name: Apicurio
   selector: {}
   version: 0.0.0
+  replaces: ${PLACEHOLDER_PREVIOUS_PACKAGE}
   minKubeVersion: 1.25.0

@@ -1,4 +1,3 @@
-// Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="registry-config-reference_{context}"]
@@ -6,7 +5,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-This chapter provides reference information on the configuration options that are available for {registry}. 
+This chapter provides reference information on the configuration options that are available for {registry}.
 
 * xref:all-registry-configs_{context}[]
 
@@ -14,14 +13,297 @@ This chapter provides reference information on the configuration options that ar
 * For details on migrating a 2.x Apicurio Registry deployment to 3.x see xref:migration-table_{context}[]
 
 * For details on setting configuration options by using the Core Registry API, see the `/admin/config/properties` endpoint in the {registry-rest-api}.
-* For details on client configuration options for Kafka serializers and deserializers, see 
-ifdef::apicurio-registry[]
+* For details on client configuration options for Kafka serializers and deserializers, see
 {registry-client-serdes-config}.
-endif::[]
-ifdef::rh-service-registry[]
-the link:{LinkServiceRegistryUser}[{NameServiceRegistryUser}].
-endif::[]
 
 //INCLUDES
+
 include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-config-migration.adoc[leveloffset=+1]
+
+[id="migration-table_{context}"]
+== {registry} version 2 to version 3 configuration changes
+
+{registry} v3 has simplified the configuration options, removing duplicates and improving consistency.
+For most options, the only change is ssrenaming of the prefix from `registry` to `apicurio`, for example, changing `registry.kafkasql.bootstrap.servers` to `apicurio.kafkasql.bootstrap.servers`.
+
+NOTE: For each configuration property you can override the value by using the corresponding environment variable, for example, `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS`.s
+
+=== api
+.api configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.api.errors.include-stack-in-response`
+|`apicurio.api.errors.include-stack-in-response`
+|`registry.disable.apis`
+|`apicurio.disable.apis`
+|===
+
+=== auth
+.auth configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.auth.admin-override.claim`
+|`apicurio.auth.admin-override.claim`
+|`registry.auth.admin-override.claim-value`
+|`apicurio.auth.admin-override.claim-value`
+|`registry.auth.admin-override.enabled`
+|`apicurio.auth.admin-override.enabled`
+|`registry.auth.admin-override.from`
+|`apicurio.auth.admin-override.from`
+|`registry.auth.admin-override.role`
+|`apicurio.auth.admin-override.role`
+|`registry.auth.admin-override.type`
+|`apicurio.auth.admin-override.type`
+|`registry.auth.anonymous-read-access.enabled`
+|`apicurio.auth.anonymous-read-access.enabled`
+|`registry.auth.audit.log.prefix`
+|`apicurio.authn.audit.log.prefix`
+|`registry.auth.authenticated-read-access.enabled`
+|`apicurio.auth.authenticated-read-access.enabled`
+|`registry.auth.basic-auth-client-credentials.cache-expiration`
+|`apicurio.authn.basic-client-credentials.cache-expiration`
+|`registry.auth.basic-auth-client-credentials.cache-expiration-offset`
+|`apicurio.authn.basic-client-credentials.cache-expiration-offset`
+|`registry.auth.basic-auth-client-credentials.enabled`
+|`apicurio.authn.basic-client-credentials.enabled`
+|`registry.auth.basic-auth.scope`
+|`apicurio.authn.basic.scope`
+|`registry.auth.client-id`
+|`quarkus.oidc.client-id`
+|`registry.auth.client-secret`
+|`quarkus.oidc.client-secret`
+|`registry.auth.enabled`
+|`quarkus.oidc.tenant-enabled`
+|`registry.auth.owner-only-authorization`
+|`apicurio.auth.owner-only-authorization`
+|`registry.auth.owner-only-authorization.limit-group-access`
+|`apicurio.auth.owner-only-authorization.limit-group-access`
+|`registry.auth.role-based-authorization`
+|`apicurio.auth.role-based-authorization`
+|`registry.auth.role-source`
+|`apicurio.auth.role-source`
+|`registry.auth.role-source.header.name`
+|`apicurio.auth.role-source.header.name`
+|`registry.auth.roles.admin`
+|`apicurio.auth.roles.admin`
+|`registry.auth.roles.developer`
+|`apicurio.auth.roles.developer`
+|`registry.auth.roles.readonly`
+|`apicurio.auth.roles.readonly`
+|`registry.auth.tenant-owner-is-admin.enabled`
+|`Removed`
+|`registry.auth.token.endpoint`
+|`quarkus.oidc.token-path`
+|===
+
+=== cache
+.cache configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.config.cache.enabled`
+|`apicurio.config.cache.enabled`
+|===
+
+=== ccompat
+.ccompat configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.ccompat.legacy-id-mode.enabled`
+|`apicurio.ccompat.legacy-id-mode.enabled`
+|`registry.ccompat.max-subjects`
+|`apicurio.ccompat.max-subjects`
+|`registry.ccompat.use-canonical-hash`
+|`apicurio.ccompat.use-canonical-hash`
+|===
+
+=== download
+.download configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.download.href.ttl`
+|`apicurio.download.href.ttl.seconds`
+|===
+
+=== events
+.events configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.events.ksink`
+|`removed`
+|===
+
+=== health
+.health configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.liveness.errors.ignored`
+|`apicurio.liveness.errors.ignored`
+|`registry.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.response-timeout-readiness-check.counter-reset-window-duration.seconds`
+|`registry.metrics.PersistenceExceptionLivenessCheck.disableLogging`
+|`apicurio.metrics.persistence-exception-liveness-check.logging.disabled`
+|`registry.metrics.PersistenceExceptionLivenessCheck.errorThreshold`
+|`apicurio.metrics.persistence-exception-liveness-check.error-threshold`
+|`registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.persistence-exception-liveness-check.status-reset-window-duration.seconds`
+|`registry.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
+|`registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold`
+|`apicurio.metrics.persistence-timeout-readiness-check.error-threshold`
+|`registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds`
+|`registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec`
+|`apicurio.metrics.persistence-timeout-readiness-check.timeout.seconds`
+|`registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds`
+|`registry.metrics.ResponseErrorLivenessCheck.disableLogging`
+|`apicurio.metrics.response-error-liveness-check.disabled`
+|`registry.metrics.ResponseErrorLivenessCheck.errorThreshold`
+|`apicurio.metrics.response-error-liveness-check.error-threshold`
+|`registry.metrics.ResponseErrorLivenessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.response-error-liveness-check.status-reset-window-duration.seconds`
+|`registry.metrics.ResponseTimeoutReadinessCheck.counterResetWindowDurationSec`
+|`apicurio.metrics.response-timeout-readiness-check.counter-reset-window-duration.seconds`
+|`registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold`
+|`apicurio.metrics.response-timeout-readiness-check.error-threshold`
+|`registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec`
+|`apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds`
+|`registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec`
+|`apicurio.metrics.response-timeout-readiness-check.timeout.seconds`
+|`registry.storage.metrics.cache.check-period`
+|`apicurio.storage.metrics.cache.check-period.ms`
+|===
+
+=== import
+.import configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.import.url`
+|`apicurio.import.url`
+|===
+
+=== kafka
+.kafka configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.events.kafka.topic`
+|`apicurio.events.kafka.topic`
+|`registry.events.kafka.topic-partition`
+|`Removed`
+|===
+
+=== limits
+.limits configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.limits.config.max-artifact-labels`
+|`apicurio.limits.config.max-artifact-labels`
+|`registry.limits.config.max-artifact-properties`
+|`apicurio.limits.config.max-artifact-properties`
+|`registry.limits.config.max-artifacts`
+|`apicurio.limits.config.max-artifact`
+|`registry.limits.config.max-description-length`
+|`apicurio.limits.config.max-description-length`
+|`registry.limits.config.max-label-size`
+|`apicurio.limits.config.max-label-size`
+|`registry.limits.config.max-name-length`
+|`apicurio.limits.config.max-name-length`
+|`registry.limits.config.max-property-key-size`
+|`apicurio.limits.config.max-property-key-size`
+|`registry.limits.config.max-property-value-size`
+|`apicurio.limits.config.max-property-value-size`
+|`registry.limits.config.max-requests-per-second`
+|`apicurio.limits.config.max-requests-per-second`
+|`registry.limits.config.max-schema-size-bytes`
+|`apicurio.limits.config.max-schema-size-bytes`
+|`registry.limits.config.max-total-schemas`
+|`apicurio.limits.config.max-total-schemas`
+|`registry.limits.config.max-versions-per-artifact`
+|`apicurio.limits.config.max-versions-per-artifact`
+|`registry.storage.metrics.cache.max-size`
+|`apicurio.storage.metrics.cache.max-size`
+|===
+
+=== redirects
+.redirects configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.enable-redirects`
+|`apicurio.redirects.enabled`
+|`registry.redirects`
+|`apicurio.redirects`
+|`registry.url.override.host`
+|`apicurio.url.override.host`
+|`registry.url.override.port`
+|`apicurio.url.override.port`
+|===
+
+=== rest
+.rest configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.rest.artifact.deletion.enabled`
+|`apicurio.rest.artifact.deletion.enabled`
+|`registry.rest.artifact.download.maxSize`
+|`apicurio.rest.artifact.download.max-size.bytes`
+|`registry.rest.artifact.download.skipSSLValidation`
+|`apicurio.rest.artifact.download.ssl-validation.disabled`
+|===
+
+=== store
+.store configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`artifacts.skip.disabled.latest`
+|`artifacts.skip.disabled.latest`
+|`registry.sql.init`
+|`apicurio.sql.init`
+|===
+
+=== ui
+.ui configuration options
+[.table-expandable,width="100%",cols="2,2",options="header"]
+|===
+|Name
+|New Option
+|`registry.ui.config.auth.oidc.client-id`
+|`apicurio.ui.auth.oidc.client-id`
+|`registry.ui.config.auth.oidc.redirect-url`
+|`apicurio.ui.auth.oidc.redirect-uri`
+|`registry.ui.config.auth.oidc.url`
+|`quarkus.oidc.auth-server-url`
+|`registry.ui.config.uiContextPath`
+|`apicurio.ui.contextPath`
+|`registry.ui.features.readOnly`
+|`apicurio.ui.features.read-only.enabled`
+|`registry.ui.features.settings`
+|`apicurio.ui.features.settings`
+|===
+
+

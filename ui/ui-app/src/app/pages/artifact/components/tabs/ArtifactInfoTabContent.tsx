@@ -61,7 +61,7 @@ export const ArtifactInfoTabContent: FunctionComponent<ArtifactInfoTabContentPro
                                 <FlexItem className="type"><ArtifactTypeIcon artifactType={props.artifact.artifactType!} /></FlexItem>
                                 <FlexItem className="title">Artifact metadata</FlexItem>
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                    <IfAuth isDeveloper={true}>
+                                    <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                                         <IfFeature feature="readOnly" isNot={true}>
                                             <Button id="edit-action"
                                                 data-testid="artifact-btn-edit"
@@ -153,6 +153,7 @@ export const ArtifactInfoTabContent: FunctionComponent<ArtifactInfoTabContentPro
                         </p>
                         <RuleList
                             type={RuleListType.Artifact}
+                            resourceOwner={props.artifact.owner}
                             rules={props.rules}
                             onEnableRule={props.onEnableRule}
                             onDisableRule={props.onDisableRule}

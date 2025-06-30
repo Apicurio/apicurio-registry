@@ -10,6 +10,7 @@ import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.v3.V3ApiUtil;
@@ -345,6 +346,11 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return references.stream()
                 .peek(r -> r.setGroupId(new GroupId(r.getGroupId()).getRawGroupIdWithNull()))
                 .map(V3ApiUtil::referenceToDto).collect(Collectors.toList());
+    }
+
+    protected void assertNotFound(Exception exception) {
+        Assertions.assertEquals(ProblemDetails.class, exception.getClass());
+        Assertions.assertEquals(404, ((ApiException) exception).getResponseStatusCode());
     }
 
     protected void assertForbidden(Exception exception) {

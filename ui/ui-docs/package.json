@@ -1,6 +1,6 @@
 {
   "name": "@apicurio/registry-ui-docs",
-  "version": "3.0.8",
+  "version": "3.0.10",
   "description": "Apicurio Registry UI Docs",
   "repository": "https://github.com/Apicurio/apicurio-registry.git",
   "license": "Apache-2.0",
@@ -13,25 +13,25 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "0.3.0",
-    "@types/react": "18.3.20",
-    "@types/react-dom": "18.3.6",
-    "@typescript-eslint/eslint-plugin": "8.31.0",
-    "@typescript-eslint/parser": "8.31.0",
-    "@vitejs/plugin-react-swc": "3.9.0",
+    "@types/react": "18.3.23",
+    "@types/react-dom": "18.3.7",
+    "@typescript-eslint/eslint-plugin": "8.35.0",
+    "@typescript-eslint/parser": "8.35.0",
+    "@vitejs/plugin-react-swc": "3.10.2",
     "eslint": "8.57.1",
     "eslint-plugin-react-hooks": "5.2.0",
     "eslint-plugin-react-refresh": "0.4.20",
     "rimraf": "6.0.1",
     "typescript": "5.8.3",
-    "vite": "6.3.3",
+    "vite": "6.3.5",
     "vite-tsconfig-paths": "5.1.4"
   },
   "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "mobx": "6.13.7",
-    "styled-components": "6.1.17",
-    "core-js": "3.41.0",
+    "styled-components": "6.1.19",
+    "core-js": "3.43.0",
     "redoc": "2.5.0"
   }
 }

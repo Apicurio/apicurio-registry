@@ -67,7 +67,7 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                                             onClick={props.onGenerateClient}
                                             variant="link">Generate client SDK</Button>
                                     </If>
-                                    <IfAuth isDeveloper={true}>
+                                    <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                                         <IfFeature feature="readOnly" isNot={true}>
                                             <Button id="edit-action"
                                                 data-testid="version-btn-edit"

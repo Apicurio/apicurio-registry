@@ -128,7 +128,7 @@ public class StatusConditionsTest extends ITBase {
                         .addNewContainer()
                             .withName(REGISTRY_APP_CONTAINER_NAME)
                             .withNewResources()
-                                .addToRequests("invalid", Quantity.parse("1"))
+                                .addToRequests("intentionally-invalid", Quantity.parse("1"))
                             .endResources()
                         .endContainer()
                     .endSpec()

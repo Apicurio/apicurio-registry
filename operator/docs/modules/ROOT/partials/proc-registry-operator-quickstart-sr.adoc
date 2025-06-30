@@ -26,7 +26,7 @@ oc new-project "$NAMESPACE"
 +
 [source,bash]
 ----
-cat install/install.yaml | sed "s/apicurio-registry-operator-namespace/$NAMESPACE/g" | oc apply -f -
+cat install/install.yaml | sed "s/PLACEHOLDER_NAMESPACE/$NAMESPACE/g" | oc apply -f - 
 ----
 
 . Enter `oc get deployment` to check the readiness of the {operator}. For example, the output should be as follows:

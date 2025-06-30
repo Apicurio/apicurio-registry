@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.8-SNAPSHOT</version>
+    <version>3.0.10-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -114,6 +114,7 @@
                 </goals>
                 <phase>process-resources</phase>
                 <configuration>
+                  <jbangargs>-cp "${projectRoot}/config-index/definitions/target/classes"</jbangargs>
                   <script>${project.basedir}/generateAllConfigPartial.java</script>
                   <args>
                     <arg>${project.version}</arg>

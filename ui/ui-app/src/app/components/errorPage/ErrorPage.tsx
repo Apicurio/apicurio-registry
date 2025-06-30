@@ -2,10 +2,6 @@ import React, { FunctionComponent, useState } from "react";
 import "./ErrorPage.css";
 import {
     Button,
-    ClipboardCopyButton,
-    CodeBlock,
-    CodeBlockAction,
-    CodeBlockCode,
     EmptyState,
     EmptyStateActions,
     EmptyStateBody,
@@ -18,6 +14,7 @@ import {
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";
 import { PageError } from "@app/pages";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { CodeEditor, Language } from "@patternfly/react-code-editor";
 
 
 export type ErrorPageProps = {
@@ -59,27 +56,6 @@ export const ErrorPage: FunctionComponent<ErrorPageProps> = (props: ErrorPagePro
         window.location.reload();
     };
 
-    const actions = (
-        <React.Fragment>
-            <CodeBlockAction>
-                <ClipboardCopyButton
-                    id="basic-copy-button"
-                    textId="code-content"
-                    aria-label="Copy to clipboard"
-                    onClick={() => {}}
-                    // onClick={(e) => onClick(e, code)}
-                    // exitDelay={copied ? 1500 : 600}
-                    maxWidth="110px"
-                    variant="plain"
-                    // onTooltipHidden={() => setCopied(false)}
-                >
-                    {/*{copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}*/}
-                    Copy to clipboard
-                </ClipboardCopyButton>
-            </CodeBlockAction>
-        </React.Fragment>
-    );
-
     return (
         <React.Fragment>
             <PageSection className="ps_error" variant={PageSectionVariants.light}>
@@ -111,9 +87,20 @@ export const ErrorPage: FunctionComponent<ErrorPageProps> = (props: ErrorPagePro
                     <div className="separator">&nbsp;</div>
                     {
                         isShowDetails ?
-                            <CodeBlock actions={actions}>
-                                <CodeBlockCode id="code-content">{errorDetail()}</CodeBlockCode>
-                            </CodeBlock>
+                            <CodeEditor
+                                code={errorDetail()}
+                                width="700px"
+                                isReadOnly={true}
+                                isLineNumbersVisible={false}
+                                isMinimapVisible={false}
+                                onChange={() => {}}
+                                language={Language.json}
+                                onEditorDidMount={(editor, monaco) => {
+                                    editor.layout();
+                                    monaco.editor.getModels()[0].updateOptions({ tabSize: 4 });
+                                }}
+                                height="sizeToFit"
+                            />
                             :
                             <div/>
                     }

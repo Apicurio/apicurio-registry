@@ -1,0 +1,38 @@
+name: Build-only Workflow
+on:
+  push:
+    paths:
+      - 'docs/**'
+    branches: [ main ]
+  pull_request:
+    paths:
+      - 'docs/**'
+    branches: [ main ]
+
+concurrency:
+  # Only run once for latest commit per ref and cancel other (previous) runs.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Show Actor
+        run: echo ${{github.actor}}
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Get maven wrapper
+        run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
+
+      - name: Build Application
+        run: ./mvnw clean package -am --no-transfer-progress -Pprod -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5

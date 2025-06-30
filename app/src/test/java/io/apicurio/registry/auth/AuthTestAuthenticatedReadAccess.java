@@ -1,6 +1,5 @@
 package io.apicurio.registry.auth;
 
-import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -26,7 +25,6 @@ import org.junit.jupiter.api.Test;
 public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.oidc.token-path")
-    @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrl;
 
     final String groupId = getClass().getSimpleName() + "Group";

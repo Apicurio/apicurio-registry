@@ -8,6 +8,10 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
+
+import static io.apicurio.registry.operator.AnnotationManager.updateResourceAnnotations;
+import static io.apicurio.registry.operator.CRContext.getCRContext;
 import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppIngressDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_INGRESS_KEY;
@@ -15,6 +19,9 @@ import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_KEY
 import static io.apicurio.registry.operator.utils.IngressUtils.getHost;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
+import static io.apicurio.registry.operator.utils.Utils.isBlank;
+import static io.apicurio.registry.operator.utils.Utils.updateResourceManually;
+import static io.apicurio.registry.utils.Cell.cell;
 
 @KubernetesDependent(resourceDiscriminator = AppIngressDiscriminator.class)
 public class AppIngressResource extends CRUDKubernetesDependentResource<Ingress, ApicurioRegistry3> {
@@ -33,7 +40,25 @@ public class AppIngressResource extends CRUDKubernetesDependentResource<Ingress,
                 APP_SERVICE_KEY.getDiscriminator());
         sOpt.ifPresent(s -> withIngressRule(s, i, rule -> rule.setHost(getHost(COMPONENT_APP, primary))));
 
-        log.trace("Desired {} is {}", APP_INGRESS_KEY.getId(), toYAML(i));
+        // Standard approach does not work properly :(
+        updateResourceAnnotations(context, i, getCRContext(primary).getAppIngressAnnotations(), primary.withSpec().withApp().withIngress().getAnnotations());
+
+        var desired = cell(primary.withSpec().withApp().withIngress().getIngressClassName());
+        if (isBlank(desired.get())) {
+            desired.set(null);
+        }
+        i.getSpec().setIngressClassName(desired.get());
+        // Standard approach does not work properly :(
+        updateResourceManually(context, i, r -> {
+            var actual = r.getSpec().getIngressClassName();
+            if (!Objects.equals(actual, desired.get())) {
+                r.getSpec().setIngressClassName(desired.get());
+                return true;
+            }
+            return false;
+        });
+
+        log.trace("Desired {} is:\n\n{}\n\n", APP_INGRESS_KEY.getId(), toYAML(i));
         return i;
     }
 }

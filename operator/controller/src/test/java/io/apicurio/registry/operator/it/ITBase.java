@@ -2,6 +2,7 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.Constants;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.utils.Cell;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -14,6 +15,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
@@ -43,7 +45,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
+import static io.apicurio.registry.utils.Cell.cell;
 import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -180,32 +184,60 @@ public abstract class ITBase {
         });
     }
 
+    /**
+     * Update the Kubernetes resource, and retry if the update fails because the object has been modified on the server.
+     * Use this method to make tests more resilient.
+     *
+     * @param resource Resource to be updated. The metadata must be set.
+     * @param updater  Reentrant function that updates the resource in-place.
+     * @return The resource after it has been updated.
+     */
+    protected static <T extends HasMetadata> T updateWithRetries(T resource, Consumer<T> updater) {
+        var rval = cell(resource);
+        await().atMost(SHORT_DURATION).until(() -> {
+            try {
+                var r = rval.get();
+                r = client.resource(r).get();
+                updater.accept(r);
+                r = client.resource(r).update();
+                rval.set(r);
+                return true;
+            } catch (KubernetesClientException ex) {
+                if (ex.getMessage().contains("the object has been modified")) {
+                    log.debug("Retrying:", ex);
+                    return false;
+                } else {
+                    throw ex;
+                }
+            }
+        });
+        return rval.get();
+    }
+
     protected static PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,
                                                                         String component) {
-        final ValueOrNull<PodDisruptionBudget> rval = new ValueOrNull<>();
-
+        final Cell<PodDisruptionBudget> rval = cell();
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             PodDisruptionBudget pdb = client.policy().v1().podDisruptionBudget()
                     .withName(primary.getMetadata().getName() + "-" + component + "-poddisruptionbudget")
                     .get();
             assertThat(pdb).isNotNull();
-            rval.setValue(pdb);
+            rval.set(pdb);
         });
 
-        return rval.getValue();
+        return rval.get();
     }
 
     protected static NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
-        final ValueOrNull<NetworkPolicy> rval = new ValueOrNull<>();
-
+        final Cell<NetworkPolicy> rval = cell();
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             NetworkPolicy networkPolicy = client.network().v1().networkPolicies()
                     .withName(primary.getMetadata().getName() + "-" + component + "-networkpolicy").get();
             assertThat(networkPolicy).isNotNull();
-            rval.setValue(networkPolicy);
+            rval.set(networkPolicy);
         });
 
-        return rval.getValue();
+        return rval.get();
     }
 
     static KubernetesClient createK8sClient(String namespace) {
@@ -290,8 +322,10 @@ public abstract class ITBase {
     }
 
     static void applyStrimziResources() throws IOException {
-        try (BufferedInputStream in = new BufferedInputStream(
-                new URL("https://strimzi.io/install/latest").openStream())) {
+        // TODO: IMPORTANT: Strimzi >0.45 only supports Kraft-based Kafka clusters. Migration needed.
+        // var strimziClusterOperatorURL = new URL("https://strimzi.io/install/latest");
+        var strimziClusterOperatorURL = new URL("https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.45.0/strimzi-cluster-operator-0.45.0.yaml");
+        try (BufferedInputStream in = new BufferedInputStream(strimziClusterOperatorURL.openStream())) {
             List<HasMetadata> resources = Serialization.unmarshal(in);
             resources.forEach(r -> {
                 if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
@@ -371,24 +405,5 @@ public abstract class ITBase {
             assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
         }
         client.close();
-    }
-
-    private static class ValueOrNull<T> {
-        private T value;
-
-        ValueOrNull() {
-        }
-
-        ValueOrNull(T value) {
-            this.value = value;
-        }
-
-        public void setValue(T value) {
-            this.value = value;
-        }
-
-        public T getValue() {
-            return value;
-        }
     }
 }

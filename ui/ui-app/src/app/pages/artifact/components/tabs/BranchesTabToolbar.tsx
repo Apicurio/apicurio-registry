@@ -3,13 +3,14 @@ import "./BranchesTabToolbar.css";
 import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Paging } from "@models/paging.model.ts";
 import { IfAuth, IfFeature } from "@app/components";
-import { BranchSearchResults } from "@sdk/lib/generated-client/models";
+import { ArtifactMetaData, BranchSearchResults } from "@sdk/lib/generated-client/models";
 
 
 /**
  * Properties
  */
 export type BranchesToolbarProps = {
+    artifact: ArtifactMetaData;
     results: BranchSearchResults;
     paging: Paging;
     onPageChange: (paging: Paging) => void;
@@ -42,7 +43,7 @@ export const BranchesTabToolbar: FunctionComponent<BranchesToolbarProps> = (prop
         <Toolbar id="branches-toolbar-1" className="branches-toolbar">
             <ToolbarContent>
                 <ToolbarItem className="create-branch-item">
-                    <IfAuth isDeveloper={true}>
+                    <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                         <IfFeature feature="readOnly" isNot={true}>
                             <Button className="btn-header-create-branch" data-testid="btn-toolbar-create-branch"
                                 variant="primary" onClick={props.onCreateBranch}>Create branch</Button>

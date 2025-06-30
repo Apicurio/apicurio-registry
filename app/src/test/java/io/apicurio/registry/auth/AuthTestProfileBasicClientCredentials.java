@@ -1,6 +1,5 @@
 package io.apicurio.registry.auth;
 
-import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -35,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.oidc.token-path")
-    @Info(category = "auth", description = "Auth token endpoint", availableSince = "2.1.0.Final")
     String authServerUrl;
 
     final String groupId = "authTestGroupId";

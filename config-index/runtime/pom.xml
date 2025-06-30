@@ -4,11 +4,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.8-SNAPSHOT</version>
+    <version>3.0.10-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-config-index</artifactId>
+
+  <name>apicurio-registry-config-index</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

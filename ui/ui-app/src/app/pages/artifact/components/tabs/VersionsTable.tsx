@@ -15,6 +15,7 @@ import {
 } from "@sdk/lib/generated-client/models";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { Flex, FlexItem, Label } from "@patternfly/react-core";
+import { UserService, useUserService } from "@services/useUserService.ts";
 
 export type VersionsTableProps = {
     artifact: ArtifactMetaData;
@@ -41,6 +42,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
 
     const appNavigation: AppNavigation = useAppNavigation();
     const config: ConfigService = useConfigService();
+    const user: UserService = useUserService();
 
     const columns: any[] = [
         { index: 0, id: "version", label: "Version", width: 40, sortable: true, sortBy: VersionSortByObject.Version },
@@ -113,7 +115,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
         const actions: (VersionAction | VersionActionSeparator)[] = [
             { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` },
         ];
-        if (!config.featureReadOnly()) {
+        if (!config.featureReadOnly() && user.isUserDeveloper(props.artifact.owner)) {
             actions.push(
                 { label: "Add to branch", onClick: () => props.onAddToBranch(version), testId: `add-to-branch-version-${vhash}` },
             );

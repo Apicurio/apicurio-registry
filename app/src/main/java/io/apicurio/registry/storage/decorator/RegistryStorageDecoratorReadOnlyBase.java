@@ -306,6 +306,11 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
+    public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId) {
+        return delegate.getGlobalIdsReferencingArtifact(groupId, artifactId);
+    }
+
+    @Override
     public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId,
             String version) {
         return delegate.getInboundArtifactReferences(groupId, artifactId, version);

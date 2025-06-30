@@ -19,4 +19,20 @@ public final class Labels {
                 "app.kubernetes.io/part-of", "apicurio-registry"
         );
     }
+
+    public static Map<String, String> getOperatorSelectorLabels() {
+        return Map.of(
+                "app", "apicurio-registry-operator",
+                "app.kubernetes.io/name", "apicurio-registry-operator",
+                "app.kubernetes.io/component", "operator",
+                "app.kubernetes.io/instance", "apicurio-registry-operator",
+                "app.kubernetes.io/part-of", "apicurio-registry"
+        );
+    }
+
+    public static Map<String, String> getMinimalOperatorSelectorLabels() {
+        return Map.of(
+                "app", "apicurio-registry-operator"
+        );
+    }
 }

@@ -32,7 +32,7 @@ export const ArtifactPageHeader: FunctionComponent<ArtifactPageHeaderProps> = (p
                 </TextContent>
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
-                <IfAuth isDeveloper={true}>
+                <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                     <IfFeature feature="readOnly" isNot={true}>
                         <IfFeature feature="deleteArtifact" is={true}>
                             <Button id="delete-artifact-button" variant="danger"

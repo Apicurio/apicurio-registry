@@ -14,6 +14,8 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
+
 @ApplicationScoped
 public class DisabledApisMatcherService {
 
@@ -26,7 +28,7 @@ public class DisabledApisMatcherService {
 
     @Inject
     @ConfigProperty(name = "apicurio.disable.apis")
-    @Info(category = "api", description = "Disable APIs", availableSince = "2.0.0.Final")
+    @Info(category = CATEGORY_API, description = "Disable APIs", availableSince = "2.0.0.Final")
     Optional<List<String>> disableRegexps;
 
     public void init(@Observes StartupEvent ev) {

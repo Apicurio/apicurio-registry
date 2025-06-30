@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
+
 public abstract class AbstractResourceImpl {
 
     @Inject
@@ -42,7 +44,7 @@ public abstract class AbstractResourceImpl {
     HttpServletRequest request;
 
     @ConfigProperty(name = "apicurio.apis.v3.base-href", defaultValue = "_")
-    @Info(category = "api", description = "API base href (URI)", availableSince = "2.5.0.Final")
+    @Info(category = CATEGORY_API, description = "API base href (URI)", availableSince = "2.5.0.Final")
     String apiBaseHref;
 
     /**

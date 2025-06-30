@@ -84,6 +84,13 @@ jobs:
         run: |
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm -t docker.io/apicurio/apicurio-registry:latest-snapshot -t quay.io/apicurio/apicurio-registry:latest-snapshot --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
+      - name: Build and push Apicurio Registry MCP Server image
+        if: github.event_name == 'push'
+        run: |
+          docker buildx build --push -f ./mcp/target/docker/Dockerfile.jvm \
+              -t quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot \
+              --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./mcp/target/docker
+
       - name: List docker images (debug)
         if: github.event_name == 'push' && failure()
         run: |
@@ -229,13 +236,19 @@ jobs:
         run: |
           ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
 
-      - name: Build and Push Temporary image for testing
-        env:
-          IMAGE_REPO: ttl.sh/${{ github.sha }}
-          # maximum allowed
-          IMAGE_TAG: 1d
+      - name: Build Temporary image for testing
         run: |
-          docker build --push -f ./distro/docker/target/docker/Dockerfile.native -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d app/
+          docker build -f ./distro/docker/target/docker/Dockerfile.native -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h app/
+
+      - name: Push Temporary image for testing
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          retry_wait_seconds: 60
+          command: |
+            docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h
 
       - name: Setup Minikube
         uses: manusa/actions-setup-minikube@v2.13.0
@@ -249,10 +262,10 @@ jobs:
         run: minikube tunnel &> /dev/null &
 
       - name: Run Integration Tests - Native
-        run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - Native - Auth
-        run: ./mvnw verify -am -Pauth --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:1d -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am -Pauth --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-native:6h -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()

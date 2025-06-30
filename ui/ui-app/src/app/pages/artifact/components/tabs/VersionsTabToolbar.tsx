@@ -3,13 +3,14 @@ import "./VersionsTabToolbar.css";
 import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Paging } from "@models/paging.model.ts";
 import { IfAuth, IfFeature } from "@app/components";
-import { VersionSearchResults } from "@sdk/lib/generated-client/models";
+import { ArtifactMetaData, VersionSearchResults } from "@sdk/lib/generated-client/models";
 
 
 /**
  * Properties
  */
 export type VersionsToolbarProps = {
+    artifact: ArtifactMetaData;
     results: VersionSearchResults;
     paging: Paging;
     onPageChange: (paging: Paging) => void;
@@ -42,7 +43,7 @@ export const VersionsTabToolbar: FunctionComponent<VersionsToolbarProps> = (prop
         <Toolbar id="versions-toolbar-1" className="versions-toolbar">
             <ToolbarContent>
                 <ToolbarItem className="create-version-item">
-                    <IfAuth isDeveloper={true}>
+                    <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                         <IfFeature feature="readOnly" isNot={true}>
                             <Button className="btn-header-create-version" data-testid="btn-toolbar-create-version"
                                 variant="primary" onClick={props.onCreateVersion}>Create version</Button>

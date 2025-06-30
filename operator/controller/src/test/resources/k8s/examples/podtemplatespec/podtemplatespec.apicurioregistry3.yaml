@@ -1,0 +1,25 @@
+# IMPORTANT: This example CR uses the in-memory storage for simplicity.
+# This storage type is not supported because it is not suitable for production deployments.
+# Please refer to the PostgreSQL and KafkaSQL examples
+# for information on how to configure a production-ready storage.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: podtemplatespec-example
+spec:
+  app:
+    env:
+      - name: APICURIO_IMPORT_URL
+        value: file:///tmp/export/export.zip
+    podTemplateSpec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            volumeMounts:
+              - name: export-data
+                mountPath: "/tmp/export"
+                readOnly: true
+        volumes:
+          - name: export-data
+            configMap:
+              name: export-data

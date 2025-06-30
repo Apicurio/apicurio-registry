@@ -20,6 +20,8 @@ const AUTH_CLIENT_ID=process.env["REGISTRY_AUTH_CLIENT_ID"];
 const AUTH_CLIENT_SCOPES=process.env["REGISTRY_AUTH_CLIENT_SCOPES"];
 const AUTH_REDIRECT_URL=process.env["REGISTRY_AUTH_REDIRECT_URL"];
 const AUTH_LOGOUT_URL=process.env["REGISTRY_AUTH_LOGOUT_URL"];
+const AUTH_TOKEN_TYPE=process.env["REGISTRY_AUTH_TOKEN_TYPE"];
+const AUTH_LOG_TOKENS=process.env["REGISTRY_AUTH_LOG_TOKENS"];
 
 const FEATURE_READ_ONLY=process.env["REGISTRY_FEATURE_READ_ONLY"];
 const FEATURE_BREADCRUMBS=process.env["REGISTRY_FEATURE_BREADCRUMBS"];
@@ -80,6 +82,12 @@ if (AUTH_TYPE === "oidc") {
     }
     if (AUTH_LOGOUT_URL) {
         CONFIG.auth.options.logoutUrl = AUTH_LOGOUT_URL;
+    }
+    if (AUTH_TOKEN_TYPE) {
+        CONFIG.auth.options.tokenType = AUTH_TOKEN_TYPE;
+    }
+    if (AUTH_LOG_TOKENS) {
+        CONFIG.auth.options.logTokens = AUTH_LOG_TOKENS;
     }
 }
 

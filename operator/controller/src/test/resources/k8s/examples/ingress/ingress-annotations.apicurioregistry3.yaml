@@ -1,0 +1,21 @@
+# IMPORTANT: This example CR uses the in-memory storage for simplicity.
+# This storage type is not supported because it is not suitable for production deployments.
+# Please refer to the PostgreSQL and KafkaSQL examples
+# for information on how to configure a production-ready storage.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: ingress-annotations
+spec:
+  app:
+    ingress:
+      host: ingress-annotations-app.apps.cluster.example
+      annotations:
+        kubernetes.io/ingress.class: haproxy
+        color: yellow
+  ui:
+    ingress:
+      host: ingress-annotations-ui.apps.cluster.example
+      annotations:
+        kubernetes.io/ingress.class: haproxy
+        color: pink

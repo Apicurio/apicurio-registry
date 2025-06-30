@@ -3,6 +3,7 @@ package io.apicurio.registry.metrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Default;
 import jakarta.inject.Inject;
@@ -47,6 +48,16 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
     // instead of on each method (or jakarta.ws.rs.core.Application).
     // See https://docs.oracle.com/javaee/7/api/javax/ws/rs/NameBinding.html
     static final Pattern ENABLED_PATTERN = Pattern.compile("/apis/.*");
+
+    @PostConstruct
+    protected void initializeCounters() {
+        for (int statusCode = 100; statusCode < 501; statusCode += 100) {
+            String statusGroup = getStatusGroup(statusCode);
+            Counter.builder(REST_REQUESTS_COUNTER).description(REST_REQUESTS_COUNTER_DESCRIPTION)
+                    .tag(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, statusGroup)
+                    .register(registry);
+        }
+    }
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {

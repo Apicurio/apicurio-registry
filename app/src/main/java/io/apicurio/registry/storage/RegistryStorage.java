@@ -832,6 +832,14 @@ public interface RegistryStorage extends DynamicConfigStorage {
     List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId, String version);
 
     /**
+     * Gets a list of global IDs that have at least one reference to any version of the given artifact.
+     * @param groupId
+     * @param artifactId
+     * @return list of global IDs of artifact verions that reference any version of the artifact
+     */
+    List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId);
+
+    /**
      * Gets a list of inbound references for a given artifact version.
      * 
      * @param groupId

@@ -1,4 +1,3 @@
-// Metadata created by nebel
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="using-the-registry-sdk_{context}"]
@@ -12,6 +11,174 @@ You can write a {registry} client application (in Java, Typescript, Python, or G
 * xref:registry-sdk-config_{context}[]
 
 //INCLUDES
-include::{mod-loc}getting-started/con-registry-sdk.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/proc-writing-registry-sdk.adoc[leveloffset=+1]
-include::{mod-loc}getting-started/ref-registry-sdk.adoc[leveloffset=+1]
+
+
+// Metadata created by nebel
+
+[id="registry-sdk-intro_{context}"]
+== {registry} SDK
+
+[role="_abstract"]
+You can manage artifacts stored in {registry} by using one of the provided SDKs. You can perform any desired operation supported by the REST API, including create, read, update, or delete of artifacts. You can even use the {registry} SDKs to perform administrator functions, such as managing global rules or importing and exporting {registry} data.
+
+You can use any of the following SDKs provided as part of {registry}:
+
+- Java
+- Typescript
+- Python
+- Golang
+
+==== Java
+You can access the {registry} Java SDK by adding the correct dependency to your Apache Maven project.
+For more details, see xref:writing-registry-sdk_registry[].
+
+The {registry} client is implemented by using the HTTP client provided by the JDK, which you can customize as needed. For example, you can add custom headers or enable configuration options for Transport Layer Security (TLS) authentication.
+For more details, see xref:registry-sdk-config_registry[].
+
+==== Typescript
+You can access the {registry} Typescript SDK by adding the correct dependency to your application's `package.json`
+file (assumes a node.js application):
+
+https://www.npmjs.com/package/@apicurio/apicurio-registry-sdk
+
+==== Python
+You can access the {registry} Python SDK by adding the correct dependency to your python project (assumes you
+are using pypi):
+
+https://pypi.org/project/apicurioregistrysdk/
+
+==== Golang
+You can access the {registry} Golang SDK by adding the correct dependency to your project:
+
+https://github.com/Apicurio/apicurio-registry/tree/main/go-sdk
+
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="writing-registry-sdk_{context}"]
+== Writing {registry} SDK applications
+
+[role="_abstract"]
+You can write a client application to manage artifacts stored in {registry} by using one of the {registry} SDKs.
+
+=== Using the {registry} Java SDK
+
+.Prerequisites
+* {registry} is installed and running in your environment.
+* You have created a Maven project for your Java client application. For more details, see https://maven.apache.org/index.html[Apache Maven].
+
+.Procedure
+. Add the following dependency to your Maven project:
++
+[source,xml,subs="+quotes,attributes"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-java-sdk</artifactId>
+    <version>${apicurio-registry.version}</version>
+</dependency>
+----
+
+. Create the {registry} client as follows:
++
+[source,java,subs="+quotes,attributes"]
+----
+import io.vertx.core.Vertx;public class ClientExample {
+
+    public static void main(String[] args) throws Exception {
+        // Create a registry client
+        String registryUrl = "https://my-registry.my-domain.com/apis/registry/v3"; <1>
+        Vertx vertx = Vertx.vertx(); <2>
+        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
+        vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
+
+        RegistryClient client = new RegistryClient(vertXRequestAdapter); <3>
+
+        // Use client here
+
+        vertx.close(); <4>
+    }
+}
+----
++
+<1> If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client will automatically append `/apis/registry/v3`.
+<2> Create a new Vertx object (needed by the VertxRequestAdapter)
+<3> For more options when creating a {registry} client, see the Java client configuration in the next section.
+<4> When you are done with the client, close the Vertx object to free its resources.
+
+When the client is created, you can use all of the operations available in the {registry} REST API in the client. For more details, see the {registry-rest-api}.
+
+[role="_additional-resources"]
+.Additional resources
+* For an open source example of how to use and customize the {registry} client, see the https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry REST client demonstration].
+
+* For details on how to use the {registry} Kafka client serializers/deserializers (SerDes) in producer and consumer applications, see {kafka-client-serdes}.
+
+=== Using the {registry} Typescript SDK
+
+TBD
+
+=== Using the {registry} Python SDK
+
+TBD
+
+=== Using the {registry} Golang SDK
+
+TBD
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/assembly-using-the-registry-sdk.adoc
+
+[id="registry-sdk-config_{context}"]
+== {registry} Java SDK configuration
+
+[role="_abstract"]
+The {registry} Java client includes the following configuration options, based on the client factory:
+
+.{registry} Java client configuration options
+[%header,cols="1,2,1"]
+|===
+|Option
+|Description
+|Arguments
+|Plain client
+|Basic REST client used to interact with a running {registry}.
+|`baseUrl`
+|Client with custom configuration
+|{registry} client using the configuration provided by the user.
+|`baseUrl`, `Map<String Object> configs`
+|Client with custom configuration and authentication
+|{registry} client that accepts a map containing custom configuration. For example, this is useful to add custom headers to the calls.
+You must also provide an authentication server to authenticate the requests.
+|`baseUrl, Map<String Object> configs, Auth auth`
+|===
+
+[discrete]
+=== Custom header configuration
+To configure custom headers, you must add the `apicurio.registry.request.headers` prefix to the `configs` map key. For example, a `configs` map key of `apicurio.registry.request.headers.Authorization` with a value of `Basic: YWxhZGRpbjpvcGVuc2VzYW1` sets the `Authorization` header with the same value.
+
+
+[discrete]
+=== TLS configuration options
+You can configure Transport Layer Security (TLS) authentication for the {registry} Java client using the following properties:
+
+* `apicurio.registry.request.ssl.truststore.location`
+* `apicurio.registry.request.ssl.truststore.password`
+* `apicurio.registry.request.ssl.truststore.type`
+* `apicurio.registry.request.ssl.keystore.location`
+* `apicurio.registry.request.ssl.keystore.password`
+* `apicurio.registry.request.ssl.keystore.type`
+* `apicurio.registry.request.ssl.key.password`
+
+
+[role="_additional-resources"]
+.Additional resources
+* For details on how to configure authentication for {registry} Kafka client serializers/deserializers (SerDes), see
+{kafka-client-serdes}.
+
+

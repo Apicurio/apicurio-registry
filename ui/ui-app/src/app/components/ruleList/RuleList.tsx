@@ -20,6 +20,7 @@ export type RuleListProps = {
     onConfigureRule: (ruleType: string, config: string) => void;
     rules: Rule[];
     type: RuleListType;
+    resourceOwner?: string | null;
 };
 
 const NAME_COLUMN_WIDTH: string = "250px";
@@ -176,7 +177,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <RuleValue type={props.type} actions={validityRuleActions} label={validityRuleLabel} />
+                        <RuleValue type={props.type} resourceOwner={props.resourceOwner} actions={validityRuleActions} label={validityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>
@@ -194,7 +195,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <RuleValue type={props.type} actions={compatibilityRuleActions} label={compatibilityRuleLabel} />
+                        <RuleValue type={props.type} resourceOwner={props.resourceOwner} actions={compatibilityRuleActions} label={compatibilityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>
@@ -212,7 +213,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                         </Tooltip>
                     </FlexItem>
                     <FlexItem className="rule-actions">
-                        <RuleValue type={props.type} actions={integrityRuleActions} label={integrityRuleLabel} />
+                        <RuleValue type={props.type} resourceOwner={props.resourceOwner} actions={integrityRuleActions} label={integrityRuleLabel} />
                     </FlexItem>
                 </Flex>
             </GridItem>

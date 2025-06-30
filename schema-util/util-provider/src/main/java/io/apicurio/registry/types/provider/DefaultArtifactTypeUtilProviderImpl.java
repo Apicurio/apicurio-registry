@@ -54,4 +54,5 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
 
         return contentType;
     }
+
 }

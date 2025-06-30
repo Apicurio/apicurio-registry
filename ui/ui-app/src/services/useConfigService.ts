@@ -178,6 +178,8 @@ function overrideObject(base: any, overrides: any | undefined): any {
         };
     }
     const rval: any = {};
+
+    // Override any properties found in "base" with the same named property in "overrides"
     Object.getOwnPropertyNames(base).forEach(propertyName => {
         const baseValue: any = base[propertyName];
         const overrideValue: any = overrides[propertyName];
@@ -189,6 +191,15 @@ function overrideObject(base: any, overrides: any | undefined): any {
             }
         } else {
             rval[propertyName] = baseValue;
+        }
+    });
+
+    // Add anything from "overrides" that is not already in "base"
+    Object.getOwnPropertyNames(overrides).forEach(propertyName => {
+        const baseValue: any = base[propertyName];
+        const overrideValue: any = overrides[propertyName];
+        if (baseValue === undefined) {
+            rval[propertyName] = overrideValue;
         }
     });
     return rval;

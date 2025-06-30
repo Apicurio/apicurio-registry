@@ -27,11 +27,11 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 @Documented
 @Retention(RUNTIME)
-@Target({ ElementType.FIELD, ElementType.METHOD })
+@Target({ElementType.FIELD, ElementType.METHOD})
 public @interface Info {
 
     @Nonbinding
-    String category() default "";
+    ConfigPropertyCategory category();
 
     @Nonbinding
     String description() default "";

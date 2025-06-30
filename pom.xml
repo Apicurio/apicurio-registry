@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.0.8-SNAPSHOT</version>
+  <version>3.0.10-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -69,50 +69,51 @@
   </developers>
 
   <modules>
+    <module>app</module>
     <module>common</module>
     <module>config-index/definitions</module>
     <module>config-index/deployment</module>
     <module>config-index/runtime</module>
-    <module>app</module>
-    <module>utils/converter</module>
-    <module>utils/kafka</module>
-    <module>utils/maven-plugin</module>
-    <module>utils/importexport</module>
-    <module>utils/exportConfluent</module>
-    <module>utils/protobuf-schema-utilities</module>
-    <module>utils/tests</module>
+    <module>distro</module>
+    <module>docs</module>
+    <module>go-sdk</module>
+    <module>java-sdk-v2</module>
+    <module>java-sdk</module>
+    <module>mcp</module>
+    <module>operator</module>
     <module>schema-resolver</module>
-    <module>serdes/generic/serde-common</module>
     <module>serdes/generic/serde-common-avro</module>
     <module>serdes/generic/serde-common-jsonschema</module>
     <module>serdes/generic/serde-common-protobuf</module>
-    <module>serdes/kafka/serde-kafka-common</module>
+    <module>serdes/generic/serde-common</module>
     <module>serdes/kafka/avro-serde</module>
-    <module>serdes/kafka/protobuf-serde</module>
     <module>serdes/kafka/jsonschema-serde</module>
-    <module>serdes/pulsar/avro-serde</module>
+    <module>serdes/kafka/protobuf-serde</module>
+    <module>serdes/kafka/serde-kafka-common</module>
     <module>serdes/nats/avro-serde</module>
-    <module>distro</module>
-    <module>docs</module>
-    <module>java-sdk</module>
-    <module>java-sdk-v2</module>
-    <module>go-sdk</module>
+    <module>serdes/pulsar/avro-serde</module>
+    <module>utils/converter</module>
+    <module>utils/exportConfluent</module>
+    <module>utils/importexport</module>
+    <module>utils/kafka</module>
+    <module>utils/maven-plugin</module>
+    <module>utils/protobuf-schema-utilities</module>
+    <module>utils/tests</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
-    <module>schema-util/common</module>
-    <module>schema-util/json</module>
-    <module>schema-util/protobuf</module>
     <module>schema-util/asyncapi</module>
     <module>schema-util/avro</module>
+    <module>schema-util/common</module>
     <module>schema-util/graphql</module>
+    <module>schema-util/json</module>
     <module>schema-util/kconnect</module>
     <module>schema-util/openapi</module>
+    <module>schema-util/protobuf</module>
+    <module>schema-util/util-provider</module>
     <module>schema-util/wsdl</module>
     <module>schema-util/xml</module>
     <module>schema-util/xsd</module>
-    <module>schema-util/util-provider</module>
 
-    <module>operator</module>
   </modules>
 
   <scm>
@@ -161,7 +162,7 @@
     <!-- Schema types -->
     <avro.version>1.12.0</avro.version>
     <json-schema-validator.version>1.5.5</json-schema-validator.version>
-    <wire-schema.version>5.1.0</wire-schema.version>
+    <wire-schema.version>5.2.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio-jvm.version>3.10.2</okio-jvm.version>
     <okio.version>3.10.2</okio.version>
@@ -214,21 +215,21 @@
     <lombok.version>1.18.36</lombok.version>
     <commons-codec.version>1.18.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
-    <kafka-clients.version>3.9.0</kafka-clients.version>
+    <kafka-clients.version>3.9.1</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>
     <pulsar-clients.version>3.3.4</pulsar-clients.version>
-    <commons-beanutils.version>1.10.0</commons-beanutils.version>
+    <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
     <nats.version>2.20.5</nats.version>
     <snakeyaml.version>2.3</snakeyaml.version>
     <woodstox-core.version>7.1.0</woodstox-core.version>
-    <jgit.version>7.1.0.202411261347-r</jgit.version>
+    <jgit.version>7.1.1.202505221757-r</jgit.version>
     <awaitility.version>4.2.2</awaitility.version>
     <assertj.core.version>3.27.3</assertj.core.version>
     <semver4j.version>5.6.0</semver4j.version>
 
     <!-- Kafka Connect -->
-    <connect.version>3.9.0</connect.version>
+    <connect.version>3.9.1</connect.version>
 
     <!-- Specifications -->
     <annotation-api.version>1.3.5</annotation-api.version>
@@ -256,6 +257,9 @@
     <version.license-maven-plugin>2.5.0</version.license-maven-plugin>
     <version.exec-maven-plugin>3.5.0</version.exec-maven-plugin>
 
+    <!-- Central-Publishing-Maven-Plugin -->
+    <version.org.sonatype.central-publishing-maven-plugin>0.7.0</version.org.sonatype.central-publishing-maven-plugin>
+
     <!-- Plugin Deps -->
     <version.puppycrawl>8.45.1</version.puppycrawl>
     <apicurio-maven-plugin.version>0.0.3</apicurio-maven-plugin.version>
@@ -265,7 +269,7 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.8.4</kiota.libs.version>
+    <kiota.libs.version>1.8.6</kiota.libs.version>
     <kiota.community.version>0.0.21</kiota.community.version>
 
     <kiota.version>1.23.0</kiota.version>
@@ -1194,22 +1198,17 @@
     </profile>
     <profile>
       <id>release</id>
-      <distributionManagement>
-        <snapshotRepository>
-          <id>ossrh</id>
-          <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-      </distributionManagement>
       <build>
         <plugins>
           <plugin>
-            <groupId>org.sonatype.plugins</groupId>
-            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${version.org.sonatype.central-publishing-maven-plugin}</version>
             <extensions>true</extensions>
             <configuration>
-              <serverId>ossrh</serverId>
-              <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+              <publishingServerId>central</publishingServerId>
+              <waitUntil>published</waitUntil>
+              <autoPublish>true</autoPublish>
             </configuration>
           </plugin>
           <plugin>
@@ -1224,6 +1223,7 @@
                 </goals>
                 <phase>verify</phase>
                 <configuration>
+                  <passphraseEnvName>MAVEN_GPG_PASSPHRASE</passphraseEnvName>
                   <!-- Prevent `gpg` from using pinentry programs -->
                   <gpgArguments>
                     <arg>--pinentry-mode</arg>

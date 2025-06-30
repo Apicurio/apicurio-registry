@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.resource.ActivationConditions;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
@@ -28,6 +29,7 @@ import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.operator.CRContext.deleteCRContext;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppNetworkPolicyActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppPodDisruptionBudgetActivationCondition;
@@ -78,7 +80,8 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
                 // ===== Registry UI
                 @Dependent(
                         type = UIDeploymentResource.class,
-                        name = UI_DEPLOYMENT_ID
+                        name = UI_DEPLOYMENT_ID,
+                        activationCondition = ActivationConditions.UIDeploymentActivationCondition.class
                 ),
                 @Dependent(
                         type = UIServiceResource.class,
@@ -138,6 +141,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
 
     @Override
     public DeleteControl cleanup(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+        deleteCRContext(primary);
         StatusManager.clean(primary);
         return DeleteControl.defaultDelete();
     }

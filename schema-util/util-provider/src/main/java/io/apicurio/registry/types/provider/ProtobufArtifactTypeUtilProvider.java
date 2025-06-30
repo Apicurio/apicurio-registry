@@ -8,7 +8,9 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.ProtobufDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
+import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ProtobufReferenceFinder;
+import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.ProtobufCompatibilityChecker;
@@ -83,6 +85,11 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     @Override
     public boolean supportsReferencesWithContext() {
         return false;
+    }
+
+    @Override
+    protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
+        return new DefaultReferenceArtifactIdentifierExtractor();
     }
 
 }

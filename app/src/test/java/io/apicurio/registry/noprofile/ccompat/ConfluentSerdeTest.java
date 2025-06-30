@@ -9,11 +9,13 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializerConfig;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 
 @QuarkusTest
+@Disabled("Confluent hasn't released protobuf-java 4 changes yet. They are meant to be released with CP 8.x which is not out yet.")
 public class ConfluentSerdeTest extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.http.test-port")

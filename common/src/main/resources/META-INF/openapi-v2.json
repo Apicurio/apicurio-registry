@@ -2233,16 +2233,6 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/VersionSearchResults"
-                                },
-                                "examples": {
-                                    "All Versions": {
-                                        "value": [
-                                            5,
-                                            6,
-                                            10,
-                                            103
-                                        ]
-                                    }
                                 }
                             }
                         },

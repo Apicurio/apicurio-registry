@@ -6,8 +6,8 @@ import org.apache.kafka.connect.data.Schema;
 /**
  * The Apicurio AvroConverter may be extending to support more avro logical type conversions
  * from 3rd party kafka connect schemas, e.g. debezium types.
- *
- * <p>Apicurio {@link AvroData} may discover implementations of this interface using the Java {@link java.util.ServiceLoader} mechanism.
+ * <p>
+ * Apicurio {@link AvroData} may discover implementations of this interface using the Java {@link java.util.ServiceLoader} mechanism.
  * To support this, implementations of this interface should also contain a service provider configuration file in
  * {@code META-INF/services/io.apicurio.registry.utils.converter.avro.ToAvroLogicalTypeConverter}.
  * <p>

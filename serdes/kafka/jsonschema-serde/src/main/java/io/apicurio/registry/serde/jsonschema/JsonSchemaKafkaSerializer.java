@@ -3,8 +3,8 @@ package io.apicurio.registry.serde.jsonschema;
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.KafkaSerializer;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
 import org.apache.kafka.common.header.Headers;
@@ -27,22 +27,22 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
         super(new JsonSchemaSerializer<>());
     }
 
-    public JsonSchemaKafkaSerializer(RegistryClient client) {
-        super(new JsonSchemaSerializer<>(client));
+    public JsonSchemaKafkaSerializer(RegistryClientFacade sdk) {
+        super(new JsonSchemaSerializer<>(sdk));
     }
 
     public JsonSchemaKafkaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaSerializer<>(schemaResolver));
     }
 
-    public JsonSchemaKafkaSerializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaSerializer<>(client, schemaResolver));
+    public JsonSchemaKafkaSerializer(RegistryClientFacade sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(new JsonSchemaSerializer<>(sdk, schemaResolver));
     }
 
-    public JsonSchemaKafkaSerializer(RegistryClient client,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
-            SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaSerializer<>(client, strategy, schemaResolver));
+    public JsonSchemaKafkaSerializer(RegistryClientFacade sdk,
+                                     ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
+                                     SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(new JsonSchemaSerializer<>(sdk, strategy, schemaResolver));
     }
 
     /**

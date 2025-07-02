@@ -1,7 +1,7 @@
 package io.apicurio.registry.resolver;
 
 import io.apicurio.registry.resolver.client.RegistryArtifactReference;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
@@ -27,7 +27,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         super();
     }
 
-    public DefaultSchemaResolver(RegistrySDK sdk) {
+    public DefaultSchemaResolver(RegistryClientFacade sdk) {
         this.sdk = sdk;
     }
 
@@ -287,7 +287,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             String version = artifactReference.getVersion();
             String autoCreate = this.autoCreateBehavior;
             boolean canonical = false;
-            RegistryVersionCoordinates versionCoordinates = this.sdk.createArtifact(artifactType, groupId, artifactId,
+            RegistryVersionCoordinates versionCoordinates = this.sdk.createSchema(artifactType, groupId, artifactId,
                     version, autoCreate, canonical, rawSchemaString, List.of());
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
@@ -314,7 +314,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             boolean canonical = false;
             List<RegistryArtifactReference> artifactReferences = referenceLookups.stream().map(
                     RegistryArtifactReference::fromSchemaLookupResult).toList();
-            RegistryVersionCoordinates versionCoordinates = this.sdk.createArtifact(artifactType, groupId, artifactId,
+            RegistryVersionCoordinates versionCoordinates = this.sdk.createSchema(artifactType, groupId, artifactId,
                     version, autoCreate, canonical, rawSchemaString, artifactReferences);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();

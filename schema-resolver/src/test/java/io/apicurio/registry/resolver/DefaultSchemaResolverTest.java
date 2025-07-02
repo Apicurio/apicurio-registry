@@ -1,7 +1,7 @@
 package io.apicurio.registry.resolver;
 
 import com.microsoft.kiota.RequestAdapter;
-import io.apicurio.registry.resolver.client.RegistrySDKImpl;
+import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ public class DefaultSchemaResolverTest {
         String schemaContent = "schema content";
         RequestAdapter mockRequestAdapter = new MockRequestAdapter(schemaContent);
         RegistryClient client = new RegistryClient(mockRequestAdapter);
-        resolver.setSDK(new RegistrySDKImpl(client));
+        resolver.setSDK(new RegistryClientFacadeImpl(client));
         Map<String, String> configs = new HashMap<>();
         SchemaParser<String, String> schemaParser = new MockSchemaParser();
         resolver.configure(configs, schemaParser);
@@ -40,7 +40,7 @@ public class DefaultSchemaResolverTest {
         String schemaContent = "more schema content";
         MockRequestAdapter adapter = new MockRequestAdapter(schemaContent);
         RegistryClient client = new RegistryClient(adapter);
-        resolver.setSDK(new RegistrySDKImpl(client));
+        resolver.setSDK(new RegistryClientFacadeImpl(client));
         Map<String, String> configs = new HashMap<>();
         SchemaParser<String, String> schemaParser = new MockSchemaParser();
         resolver.configure(configs, schemaParser);

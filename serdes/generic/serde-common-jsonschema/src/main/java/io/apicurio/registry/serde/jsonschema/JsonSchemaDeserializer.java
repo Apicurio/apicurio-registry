@@ -9,7 +9,7 @@ import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractDeserializer;
@@ -34,11 +34,11 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         super();
     }
 
-    public JsonSchemaDeserializer(RegistrySDK sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaDeserializer(RegistryClientFacade sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
         super(sdk, schemaResolver);
     }
 
-    public JsonSchemaDeserializer(RegistrySDK sdk) {
+    public JsonSchemaDeserializer(RegistryClientFacade sdk) {
         super(sdk);
     }
 
@@ -46,12 +46,12 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         super(schemaResolver);
     }
 
-    public JsonSchemaDeserializer(RegistrySDK sdk, SchemaResolver<JsonSchema, T> schemaResolver,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
+    public JsonSchemaDeserializer(RegistryClientFacade sdk, SchemaResolver<JsonSchema, T> schemaResolver,
+                                  ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
         super(sdk, strategy, schemaResolver);
     }
 
-    public JsonSchemaDeserializer(RegistrySDK sdk, Boolean validationEnabled) {
+    public JsonSchemaDeserializer(RegistryClientFacade sdk, Boolean validationEnabled) {
         this(sdk);
         this.validationEnabled = validationEnabled;
     }

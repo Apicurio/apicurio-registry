@@ -1,8 +1,8 @@
 package io.apicurio.registry.noprofile;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.resolver.client.RegistrySDK;
-import io.apicurio.registry.resolver.client.RegistrySDKImpl;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
@@ -42,7 +42,7 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        RegistrySDK sdk = new RegistrySDKImpl(clientV3);
+        RegistryClientFacade sdk = new RegistryClientFacadeImpl(clientV3);
         try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(sdk);
             JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(sdk)) {
 

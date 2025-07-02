@@ -1,7 +1,7 @@
 package io.apicurio.registry.serde;
 
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 
 /**
@@ -13,7 +13,7 @@ public abstract class AbstractKafkaSerDe<T, U> extends BaseSerde<T, U> {
         super();
     }
 
-    public AbstractKafkaSerDe(RegistrySDK sdk) {
+    public AbstractKafkaSerDe(RegistryClientFacade sdk) {
         super(sdk);
     }
 
@@ -21,12 +21,12 @@ public abstract class AbstractKafkaSerDe<T, U> extends BaseSerde<T, U> {
         super(schemaResolver);
     }
 
-    public AbstractKafkaSerDe(RegistrySDK sdk, SchemaResolver<T, U> schemaResolver) {
+    public AbstractKafkaSerDe(RegistryClientFacade sdk, SchemaResolver<T, U> schemaResolver) {
         super(sdk, schemaResolver);
     }
 
-    public AbstractKafkaSerDe(RegistrySDK sdk, ArtifactReferenceResolverStrategy<T, U> strategy,
-            SchemaResolver<T, U> schemaResolver) {
+    public AbstractKafkaSerDe(RegistryClientFacade sdk, ArtifactReferenceResolverStrategy<T, U> strategy,
+                              SchemaResolver<T, U> schemaResolver) {
         super(sdk, strategy, schemaResolver);
     }
 }

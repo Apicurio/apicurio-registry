@@ -23,6 +23,10 @@ public class RegistryArtifactReference {
         return create(ref.getName(), ref.getGroupId(), ref.getArtifactId(), ref.getVersion());
     }
 
+    public static RegistryArtifactReference fromClientArtifactReference(io.apicurio.registry.rest.client.v2.models.ArtifactReference ref) {
+        return create(ref.getName(), ref.getGroupId(), ref.getArtifactId(), ref.getVersion());
+    }
+
     public static RegistryArtifactReference fromSchemaLookupResult(SchemaLookupResult<?> refLookup) {
         return create(refLookup.getParsedSchema().referenceName(), refLookup.getGroupId(), refLookup.getArtifactId(),
                 refLookup.getVersion());

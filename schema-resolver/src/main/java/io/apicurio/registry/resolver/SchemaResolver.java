@@ -1,6 +1,6 @@
 package io.apicurio.registry.resolver;
 
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl;
@@ -17,7 +17,7 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
     default void configure(Map<String, ?> configs, SchemaParser<SCHEMA, DATA> schemaMapper) {
     }
 
-    public void setSDK(RegistrySDK sdk);
+    public void setSDK(RegistryClientFacade sdk);
 
     public void setArtifactResolverStrategy(
             ArtifactReferenceResolverStrategy<SCHEMA, DATA> artifactResolverStrategy);

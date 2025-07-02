@@ -7,7 +7,7 @@ import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
@@ -31,17 +31,17 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         super();
     }
 
-    public JsonSchemaSerializer(RegistrySDK sdk,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
-            SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaSerializer(RegistryClientFacade sdk,
+                                ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
+                                SchemaResolver<JsonSchema, T> schemaResolver) {
         super(sdk, artifactResolverStrategy, schemaResolver);
     }
 
-    public JsonSchemaSerializer(RegistrySDK sdk) {
+    public JsonSchemaSerializer(RegistryClientFacade sdk) {
         super(sdk);
     }
 
-    public JsonSchemaSerializer(RegistrySDK sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaSerializer(RegistryClientFacade sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
         super(sdk, schemaResolver);
     }
 
@@ -49,7 +49,7 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         super(schemaResolver);
     }
 
-    public JsonSchemaSerializer(RegistrySDK sdk, Boolean validationEnabled) {
+    public JsonSchemaSerializer(RegistryClientFacade sdk, Boolean validationEnabled) {
         this(sdk);
         this.validationEnabled = validationEnabled;
     }

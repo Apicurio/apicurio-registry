@@ -1,8 +1,8 @@
 package io.apicurio.registry.noprofile.serde;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.resolver.client.RegistrySDK;
-import io.apicurio.registry.resolver.client.RegistrySDKImpl;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
@@ -53,7 +53,7 @@ public class AvroPulsarSerdeTest extends AbstractResourceTestBase {
             Supplier<VersionMetaData> artifactFinder) throws Exception {
         Schema schema = new Schema.Parser().parse(
                 "{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test_group_avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
-        RegistrySDK sdk = new RegistrySDKImpl(restClient);
+        RegistryClientFacade sdk = new RegistryClientFacadeImpl(restClient);
         try (AvroSerializer<GenericData.Record> serializer = new AvroSerializer<>(sdk);
             AvroDeserializer<GenericData.Record> deserializer = new AvroDeserializer<>(sdk)) {
 

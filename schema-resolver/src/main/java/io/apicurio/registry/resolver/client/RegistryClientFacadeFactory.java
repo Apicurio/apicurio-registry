@@ -6,14 +6,24 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 
+import java.util.logging.Logger;
+
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 
-public class RegistrySDKFactory {
+/**
+ * Factory used to create instances of {@link RegistryClientFacade}.  Typically the
+ * factory will create the correct implementation of the interface based on the
+ * endpoint URL of the Registry Core API configured.  For example, if the URL contains
+ * "/apis/v2", then a v2 implementation will be created.
+ *
+ */
+public class RegistryClientFacadeFactory {
 
+    private static final Logger logger = Logger.getLogger(RegistryClientFacadeFactory.class.getSimpleName());
     public static Vertx vertx;
 
-    public static RegistrySDK createSDK(SchemaResolverConfig config) {
+    public static RegistryClientFacade createSDK(SchemaResolverConfig config) {
         String baseUrl = config.getRegistryUrl();
         if (baseUrl == null) {
             throw new IllegalArgumentException(
@@ -30,7 +40,7 @@ public class RegistrySDKFactory {
         }
     }
 
-    private static RegistrySDK createSDK_v3(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
+    private static RegistryClientFacade createSDK_v3(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
         String baseUrl = config.getRegistryUrl();
         String tokenEndpoint = config.getTokenEndpoint();
 
@@ -53,10 +63,11 @@ public class RegistrySDKFactory {
             throw new IllegalStateException(e);
         }
 
-        return new RegistrySDKImpl(client, shouldCloseVertx ? vertx : null);
+        return new RegistryClientFacadeImpl(client, shouldCloseVertx ? vertx : null);
     }
 
-    private static RegistrySDK createSDK_v2(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
+    private static RegistryClientFacade createSDK_v2(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
+        logger.warning("Using a deprecated version (2.x) of Apicurio Registry.  It is recommended to upgrade your Apicurio Registry.");
         String baseUrl = config.getRegistryUrl();
         // TODO implement a v2 sdk!
         return null;

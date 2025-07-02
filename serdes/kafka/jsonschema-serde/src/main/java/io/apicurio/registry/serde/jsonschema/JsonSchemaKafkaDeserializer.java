@@ -2,7 +2,7 @@ package io.apicurio.registry.serde.jsonschema;
 
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.KafkaDeserializer;
@@ -20,7 +20,7 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
         super(new JsonSchemaDeserializer<>());
     }
 
-    public JsonSchemaKafkaDeserializer(RegistrySDK sdk) {
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade sdk) {
         super(new JsonSchemaDeserializer<>(sdk));
     }
 
@@ -28,13 +28,13 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
         super(new JsonSchemaDeserializer<>(schemaResolver));
     }
 
-    public JsonSchemaKafkaDeserializer(RegistrySDK sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaDeserializer<>(sdk, schemaResolver));
     }
 
-    public JsonSchemaKafkaDeserializer(RegistrySDK sdk,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
-            SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade sdk,
+                                       ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
+                                       SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaDeserializer<>(sdk, schemaResolver, strategy));
     }
 

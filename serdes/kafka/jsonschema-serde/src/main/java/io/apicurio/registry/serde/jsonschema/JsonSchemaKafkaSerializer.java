@@ -3,7 +3,7 @@ package io.apicurio.registry.serde.jsonschema;
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.KafkaSerializer;
 import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
@@ -27,7 +27,7 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
         super(new JsonSchemaSerializer<>());
     }
 
-    public JsonSchemaKafkaSerializer(RegistrySDK sdk) {
+    public JsonSchemaKafkaSerializer(RegistryClientFacade sdk) {
         super(new JsonSchemaSerializer<>(sdk));
     }
 
@@ -35,13 +35,13 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
         super(new JsonSchemaSerializer<>(schemaResolver));
     }
 
-    public JsonSchemaKafkaSerializer(RegistrySDK sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaKafkaSerializer(RegistryClientFacade sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaSerializer<>(sdk, schemaResolver));
     }
 
-    public JsonSchemaKafkaSerializer(RegistrySDK sdk,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
-            SchemaResolver<JsonSchema, T> schemaResolver) {
+    public JsonSchemaKafkaSerializer(RegistryClientFacade sdk,
+                                     ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
+                                     SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaSerializer<>(sdk, strategy, schemaResolver));
     }
 

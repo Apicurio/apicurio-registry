@@ -4,8 +4,8 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.api.sample.TableNotification;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.resolver.client.RegistrySDK;
-import io.apicurio.registry.resolver.client.RegistrySDKImpl;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
     private RegistryClient restClient;
-    private RegistrySDK sdk;
+    private RegistryClientFacade sdk;
     private String groupId = "protobuf-serde-test";
 
     @BeforeEach
@@ -49,7 +49,7 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
         rule.setRuleType(RuleType.VALIDITY);
         restClient.admin().rules().post(rule);
 
-        sdk = new RegistrySDKImpl(restClient);
+        sdk = new RegistryClientFacadeImpl(restClient);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

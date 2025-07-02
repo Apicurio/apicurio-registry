@@ -8,7 +8,7 @@ import com.google.protobuf.Message;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractDeserializer;
@@ -43,16 +43,16 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         super();
     }
 
-    public ProtobufDeserializer(RegistrySDK sdk, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+    public ProtobufDeserializer(RegistryClientFacade sdk, SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(sdk, schemaResolver);
     }
 
-    public ProtobufDeserializer(RegistrySDK sdk, SchemaResolver<ProtobufSchema, U> schemaResolver,
-            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
+    public ProtobufDeserializer(RegistryClientFacade sdk, SchemaResolver<ProtobufSchema, U> schemaResolver,
+                                ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
         super(sdk, strategy, schemaResolver);
     }
 
-    public ProtobufDeserializer(RegistrySDK sdk) {
+    public ProtobufDeserializer(RegistryClientFacade sdk) {
         super(sdk);
     }
 

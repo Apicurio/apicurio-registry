@@ -5,7 +5,7 @@ import io.apicurio.registry.protobuf.ProtobufDifference;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
 import io.apicurio.registry.serde.AbstractSerializer;
@@ -29,13 +29,13 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
         super();
     }
 
-    public ProtobufSerializer(RegistrySDK sdk,
-            ArtifactReferenceResolverStrategy<ProtobufSchema, U> artifactResolverStrategy,
-            SchemaResolver<ProtobufSchema, U> schemaResolver) {
+    public ProtobufSerializer(RegistryClientFacade sdk,
+                              ArtifactReferenceResolverStrategy<ProtobufSchema, U> artifactResolverStrategy,
+                              SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(sdk, artifactResolverStrategy, schemaResolver);
     }
 
-    public ProtobufSerializer(RegistrySDK sdk) {
+    public ProtobufSerializer(RegistryClientFacade sdk) {
         super(sdk);
     }
 
@@ -43,12 +43,12 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
         super(schemaResolver);
     }
 
-    public ProtobufSerializer(RegistrySDK sdk, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+    public ProtobufSerializer(RegistryClientFacade sdk, SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(sdk, schemaResolver);
     }
 
-    public ProtobufSerializer(RegistrySDK sdk, SchemaResolver<ProtobufSchema, U> schemaResolver,
-            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
+    public ProtobufSerializer(RegistryClientFacade sdk, SchemaResolver<ProtobufSchema, U> schemaResolver,
+                              ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
         super(sdk, strategy, schemaResolver);
     }
 

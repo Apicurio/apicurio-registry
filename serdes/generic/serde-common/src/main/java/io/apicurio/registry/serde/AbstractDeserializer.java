@@ -4,7 +4,7 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
@@ -26,7 +26,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         this.baseSerde = new BaseSerde<>();
     }
 
-    public AbstractDeserializer(RegistrySDK sdk) {
+    public AbstractDeserializer(RegistryClientFacade sdk) {
         this.baseSerde = new BaseSerde<>(sdk);
     }
 
@@ -34,11 +34,11 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         this.baseSerde = new BaseSerde<>(schemaResolver);
     }
 
-    public AbstractDeserializer(RegistrySDK sdk, SchemaResolver<T, U> schemaResolver) {
+    public AbstractDeserializer(RegistryClientFacade sdk, SchemaResolver<T, U> schemaResolver) {
         this.baseSerde = new BaseSerde<>(sdk, schemaResolver);
     }
 
-    public AbstractDeserializer(RegistrySDK sdk, ArtifactReferenceResolverStrategy<T, U> strategy,
+    public AbstractDeserializer(RegistryClientFacade sdk, ArtifactReferenceResolverStrategy<T, U> strategy,
                                 SchemaResolver<T, U> schemaResolver) {
         this.baseSerde = new BaseSerde<>(sdk, strategy, schemaResolver);
     }

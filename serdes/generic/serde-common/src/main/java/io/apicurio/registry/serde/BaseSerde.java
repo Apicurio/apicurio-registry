@@ -3,7 +3,7 @@ package io.apicurio.registry.serde;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.config.SerdeConfig;
@@ -32,7 +32,7 @@ public class BaseSerde<T, U> implements AutoCloseable {
         super();
     }
 
-    public BaseSerde(RegistrySDK sdk) {
+    public BaseSerde(RegistryClientFacade sdk) {
         this.schemaResolver = new DefaultSchemaResolver<>();
         this.schemaResolver.setSDK(sdk);
     }
@@ -41,13 +41,13 @@ public class BaseSerde<T, U> implements AutoCloseable {
         this.schemaResolver = schemaResolver;
     }
 
-    public BaseSerde(RegistrySDK sdk, SchemaResolver<T, U> schemaResolver) {
+    public BaseSerde(RegistryClientFacade sdk, SchemaResolver<T, U> schemaResolver) {
         this.schemaResolver = schemaResolver;
         this.schemaResolver.setSDK(sdk);
     }
 
-    public BaseSerde(RegistrySDK sdk, ArtifactReferenceResolverStrategy<T, U> strategy,
-            SchemaResolver<T, U> schemaResolver) {
+    public BaseSerde(RegistryClientFacade sdk, ArtifactReferenceResolverStrategy<T, U> strategy,
+                     SchemaResolver<T, U> schemaResolver) {
         this.schemaResolver = schemaResolver;
         this.schemaResolver.setSDK(sdk);
         this.schemaResolver.setArtifactResolverStrategy(strategy);

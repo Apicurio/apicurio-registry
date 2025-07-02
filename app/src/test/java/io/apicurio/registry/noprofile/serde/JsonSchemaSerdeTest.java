@@ -8,8 +8,8 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
-import io.apicurio.registry.resolver.client.RegistrySDKImpl;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -62,14 +62,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
     private RegistryClient restClient;
-    private RegistrySDK sdk;
+    private RegistryClientFacade sdk;
 
     @BeforeEach
     public void createIsolatedClient() {
         var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
         restClient = new RegistryClient(adapter);
-        sdk = new RegistrySDKImpl(restClient);
+        sdk = new RegistryClientFacadeImpl(restClient);
     }
 
     @Test

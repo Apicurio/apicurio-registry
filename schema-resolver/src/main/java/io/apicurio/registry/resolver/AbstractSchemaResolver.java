@@ -1,8 +1,8 @@
 package io.apicurio.registry.resolver;
 
 import io.apicurio.registry.resolver.client.RegistryArtifactReference;
-import io.apicurio.registry.resolver.client.RegistrySDK;
-import io.apicurio.registry.resolver.client.RegistrySDKFactory;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.client.RegistryClientFacadeFactory;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
@@ -24,7 +24,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected SchemaResolverConfig config;
     protected SchemaParser<S, T> schemaParser;
-    protected RegistrySDK sdk;
+    protected RegistryClientFacade sdk;
     protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
 
     protected String explicitArtifactGroupId;
@@ -39,7 +39,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         this.config = new SchemaResolverConfig(configs);
         if (sdk == null) {
-            sdk = RegistrySDKFactory.createSDK(config);
+            sdk = RegistryClientFacadeFactory.createSDK(config);
         }
 
         Object ais = config.getArtifactResolverStrategy();
@@ -76,7 +76,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     @Override
-    public void setSDK(RegistrySDK sdk) {
+    public void setSDK(RegistryClientFacade sdk) {
         this.sdk = sdk;
     }
 
@@ -227,7 +227,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     protected void loadFromVersionCoordinates(RegistryVersionCoordinates version,
-                                           SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
+                                              SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
         resultBuilder.globalId(version.getGlobalId());
         resultBuilder.contentId(version.getContentId());
         resultBuilder.groupId(version.getGroupId());

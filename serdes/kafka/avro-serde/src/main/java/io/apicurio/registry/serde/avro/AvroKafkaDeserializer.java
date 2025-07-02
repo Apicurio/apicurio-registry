@@ -1,7 +1,7 @@
 package io.apicurio.registry.serde.avro;
 
 import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.KafkaDeserializer;
 import org.apache.avro.Schema;
@@ -17,7 +17,7 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
         super(new AvroDeserializer<>());
     }
 
-    public AvroKafkaDeserializer(RegistrySDK sdk) {
+    public AvroKafkaDeserializer(RegistryClientFacade sdk) {
         super(new AvroDeserializer<>(sdk));
     }
 
@@ -25,12 +25,12 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
         super(new AvroDeserializer<>(schemaResolver));
     }
 
-    public AvroKafkaDeserializer(RegistrySDK sdk, SchemaResolver<Schema, U> schemaResolver) {
+    public AvroKafkaDeserializer(RegistryClientFacade sdk, SchemaResolver<Schema, U> schemaResolver) {
         super(new AvroDeserializer<>(sdk, schemaResolver));
     }
 
-    public AvroKafkaDeserializer(RegistrySDK sdk, ArtifactReferenceResolverStrategy<Schema, U> strategy,
-            SchemaResolver<Schema, U> schemaResolver) {
+    public AvroKafkaDeserializer(RegistryClientFacade sdk, ArtifactReferenceResolverStrategy<Schema, U> strategy,
+                                 SchemaResolver<Schema, U> schemaResolver) {
         super(new AvroDeserializer<>(sdk, strategy, schemaResolver));
     }
 

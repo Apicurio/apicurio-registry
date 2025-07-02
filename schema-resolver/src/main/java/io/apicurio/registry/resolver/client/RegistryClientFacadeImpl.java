@@ -11,16 +11,20 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class RegistrySDKImpl implements RegistrySDK {
+/**
+ * An implementation of @{@link RegistryClientFacade} that uses version 3 of the
+ * Apicurio Registry Core API.
+ */
+public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     private final RegistryClient client;
     private Vertx vertx;
 
-    public RegistrySDKImpl(RegistryClient client) {
+    public RegistryClientFacadeImpl(RegistryClient client) {
         this(client, null);
     }
 
-    public RegistrySDKImpl(RegistryClient client, Vertx vertx) {
+    public RegistryClientFacadeImpl(RegistryClient client, Vertx vertx) {
         this.client = client;
         this.vertx = vertx;
     }
@@ -111,8 +115,8 @@ public class RegistrySDKImpl implements RegistrySDK {
     }
 
     @Override
-    public RegistryVersionCoordinates createArtifact(String artifactType, String groupId, String artifactId, String version,
-            String autoCreateBehavior, boolean canonical, String schemaString, List<RegistryArtifactReference> references) {
+    public RegistryVersionCoordinates createSchema(String artifactType, String groupId, String artifactId, String version,
+                                                   String autoCreateBehavior, boolean canonical, String schemaString, List<RegistryArtifactReference> references) {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(artifactType);

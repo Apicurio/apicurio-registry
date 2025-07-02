@@ -2,8 +2,8 @@ package io.apicurio.tests.converters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.resolver.client.RegistrySDK;
-import io.apicurio.registry.resolver.client.RegistrySDKImpl;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.BaseSerde;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
@@ -325,7 +325,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     private void testJson(RegistryClient restClient, FormatStrategy formatStrategy,
             Function<byte[], Integer> fn) throws Exception {
-        RegistrySDK sdk = new RegistrySDKImpl(restClient);
+        RegistryClientFacade sdk = new RegistryClientFacadeImpl(restClient);
         try (ExtJsonConverter converter = new ExtJsonConverter(sdk)) {
             converter.setFormatStrategy(formatStrategy);
             Map<String, Object> config = new HashMap<>();
@@ -357,7 +357,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testJsonConverterNullPayload() throws Exception {
-        RegistrySDK sdk = new RegistrySDKImpl(registryClient);
+        RegistryClientFacade sdk = new RegistryClientFacadeImpl(registryClient);
         try (ExtJsonConverter converter = new ExtJsonConverter(sdk)) {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());

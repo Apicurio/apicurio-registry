@@ -9,7 +9,7 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaParser;
-import io.apicurio.registry.resolver.client.RegistrySDK;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.serde.BaseSerde;
@@ -47,7 +47,7 @@ public class ExtJsonConverter extends BaseSerde<JsonNode, Object>
         this(null);
     }
 
-    public ExtJsonConverter(RegistrySDK sdk) {
+    public ExtJsonConverter(RegistryClientFacade sdk) {
         super(sdk);
         this.jsonConverter = new JsonConverter();
         this.deserializingConverter = new JsonConverter();

@@ -9,10 +9,8 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +27,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean autoCreateArtifact;
     private String autoCreateBehavior;
     private boolean findLatest;
+    private SchemaByContentResolverClient schemaByContentResolverClient;
 
     private static final Logger logger = Logger.getLogger(DefaultSchemaResolver.class.getSimpleName());
 
@@ -63,6 +62,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         this.autoCreateArtifact = config.autoRegisterArtifact();
         this.autoCreateBehavior = config.autoRegisterArtifactIfExists();
         this.findLatest = config.findLatest();
+        this.schemaByContentResolverClient = new SchemaByContentResolverClient(client);
     }
 
     /**
@@ -266,45 +266,17 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
+        return schemaCache.getByContent(rawSchemaString, schemaString -> {
 
-            logger.info(String.format("Retrieving schema content using string: %s", rawSchemaString));
-
-            InputStream is = new ByteArrayInputStream(contentKey.getBytes(StandardCharsets.UTF_8));
-            String at = schemaParser.artifactType();
-            String ct = toContentType(at);
-            VersionSearchResults results = client.search().versions().post(is, ct, config -> {
-                config.queryParameters.groupId = artifactReference.getGroupId() == null ? "default"
-                    : artifactReference.getGroupId();
-                config.queryParameters.artifactId = artifactReference.getArtifactId();
-                config.queryParameters.canonical = true;
-                config.queryParameters.artifactType = at;
-                config.queryParameters.orderby = VersionSortBy.GlobalId;
-                config.queryParameters.order = SortOrder.Desc;
-            });
-
-            if (results.getCount() == 0) {
-                is = new ByteArrayInputStream(contentKey.getBytes(StandardCharsets.UTF_8));
-                results = client.search().versions().post(is, ct, config -> {
-                    config.queryParameters.groupId = artifactReference.getGroupId() == null ? "default"
-                        : artifactReference.getGroupId();
-                    config.queryParameters.artifactId = artifactReference.getArtifactId();
-                    config.queryParameters.canonical = false;
-                    config.queryParameters.artifactType = at;
-                    config.queryParameters.orderby = VersionSortBy.GlobalId;
-                    config.queryParameters.order = SortOrder.Desc;
-                });
-
-                if (results.getCount() == 0) {
-                    throw new RuntimeException(
-                            String.format("Could not resolve artifact reference by content: %s",
-                                    rawSchemaString) + "&" + artifactReference);
-                }
-            }
+            String artifactType = schemaParser.artifactType();
+            SearchedVersion searchedVersion = this.schemaByContentResolverClient.handleResolveSchemaByContent(
+                    schemaString,
+                    artifactReference,
+                    artifactType,
+                    toContentType(artifactType));
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            loadFromSearchedVersion(results.getVersions().get(0), result);
+            loadFromSearchedVersion(searchedVersion, result);
 
             result.parsedSchema(parsedSchema);
 

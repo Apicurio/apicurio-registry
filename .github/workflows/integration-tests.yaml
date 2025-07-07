@@ -103,13 +103,13 @@ jobs:
 
       - name: Push Temporary UI image for testing
         uses: nick-fields/retry@v3
-        working-directory: ui
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: error
           retry_wait_seconds: 60
           command: |
+            cd ui
             docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:6h
 
   integration-tests-h2:

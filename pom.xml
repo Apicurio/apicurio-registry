@@ -207,9 +207,9 @@
     <jackson-dataformat-yaml.version>2.15.2</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
-    <openapi-diff.version>2.0.1</openapi-diff.version>
+    <openapi-diff.version>2.1.2</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.25</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.30</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.36</lombok.version>
@@ -269,7 +269,7 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.8.5</kiota.libs.version>
+    <kiota.libs.version>1.8.8</kiota.libs.version>
     <kiota.community.version>0.0.21</kiota.community.version>
 
     <kiota.version>1.23.0</kiota.version>

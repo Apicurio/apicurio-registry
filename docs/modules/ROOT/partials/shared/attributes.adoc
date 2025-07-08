@@ -43,8 +43,8 @@ ifdef::service-registry-downstream[]
 :rh-service-registry:
 :org-name: Red Hat
 :prodnamefull: {org-name} Integration
-:registry-name-full: Service Registry
-:registry: Service Registry
+:registry-name-full: Red Hat build of Apicurio Registry
+:registry: Apicurio Registry
 :registry-version: 3.0
 :registry-release: 3.0.0-redhat-00001
 :registry-v1-release: 1.3.2.Final-redhat-00002
@@ -58,13 +58,6 @@ ifdef::service-registry-downstream[]
 :kubernetes-with-article: an OpenShift
 :kubernetes-client: oc
 :kubernetes-namespace: project
-
-ifdef::RHAF[]
-:prodnamefull: {org-name} Application Foundations
-:registry-name-full: Red Hat build of Apicurio Registry
-:registry: Apicurio Registry
-:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?product=rhboar&downloadType=distributions
-endif::[]
 
 endif::[]
 

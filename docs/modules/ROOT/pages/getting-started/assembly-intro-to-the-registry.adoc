@@ -36,6 +36,10 @@ Using {registry} to decouple your data structure from your applications reduces 
 
 You can configure optional rules to govern the evolution of your {registry} content. These include rules to ensure that uploaded content is valid, or is compatible with other versions. Any configured rules must pass before new versions can be uploaded to {registry}, which ensures that time is not wasted on invalid or incompatible schemas or API designs.
 
+ifndef::apicurio-registry[]
+{registry-name-full} is based on the Apicurio Registry open source community project. For details, see https://github.com/apicurio/apicurio-registry. 
+endif::[]
+
 
 [discrete]
 === {registry} capabilities
@@ -323,8 +327,10 @@ Applications using Confluent client libraries can use {registry} as a drop-in re
 |Storage option
 |Description
 
+ifdef::apicurio-registry[]
 |In-memory
 |The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The PostgreSQL or Kafka storage option is recommended for a production environment.
+endif::[]
 
 |PostgreSQL database
 |PostgreSQL is the recommended data storage option for performance, stability, and data management (backup/restore, and so on) in a production environment.
@@ -336,10 +342,14 @@ Applications using Confluent client libraries can use {registry} as a drop-in re
 
 [role="_additional-resources"]
 .Additional resources
+ifdef::apicurio-registry[]
 * {installing-the-registry-docker}
 * {installing-the-registry-openshift}
 * {installing-the-registry-storage-openshift}
-
+endif::[]
+ifdef::rh-service-registry[]
+* For more details on storage options, see link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
+endif::[]
 
 
 // Metadata created by nebel

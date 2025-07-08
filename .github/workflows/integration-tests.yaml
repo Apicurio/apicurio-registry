@@ -29,8 +29,10 @@ jobs:
     steps:
       - name: Show Actor
         run: echo ${{github.actor}}
+
       - name: Checkout Code
         uses: actions/checkout@v3
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -50,7 +52,7 @@ jobs:
 
       - name: Build temporary Application image
         run: |
-          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h ./distro/docker/target/docker
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t ghcr.io/apicurio/apicurio-registry:${{ github.sha }} ./distro/docker/target/docker
 
       - name: Push Temporary image for testing
         uses: nick-fields/retry@v3
@@ -60,7 +62,8 @@ jobs:
           retry_on: error
           retry_wait_seconds: 60
           command: |
-            docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
+            docker push ghcr.io/apicurio/apicurio-registry:${{ github.sha }}
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests
@@ -99,7 +102,7 @@ jobs:
       - name: Build UI container image
         working-directory: ui
         run: |
-          docker build -t ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:6h .
+          docker build -t ghcr.io/apicurio/apicurio-registry-ui:${{ github.sha }} .
 
       - name: Push Temporary UI image for testing
         uses: nick-fields/retry@v3
@@ -110,7 +113,8 @@ jobs:
           retry_wait_seconds: 60
           command: |
             cd ui
-            docker push ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:6h
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
+            docker push ghcr.io/apicurio/apicurio-registry-ui:${{ github.sha }}
 
   integration-tests-h2:
     name: Integration Tests H2
@@ -137,14 +141,17 @@ jobs:
       - name: Prepare minikube tunnel
         run: minikube tunnel &> /dev/null &
 
+      - name: Login to ghcr.io
+        run: echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
+
       - name: Run Integration Tests - H2
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-in-memory-image=ghcr.io/apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - auth - H2
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-in-memory-image=ghcr.io/apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - migration - H2
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-in-memory-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-in-memory-image=ghcr.io/apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()
@@ -182,14 +189,17 @@ jobs:
       - name: Prepare minikube tunnel
         run: minikube tunnel &> /dev/null &
 
+      - name: Login to ghcr.io
+        run: echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
+
       - name: Run Integration Tests - Postgresql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=ghcr.io/apicurio/apicurio-registry:${{ github.sha }}  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - auth - Postgresql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-sql-image=ghcr.io/apicurio/apicurio-registry:${{ github.sha }}  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - migration - Postgresql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-sql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-sql-image=ghcr.io/apicurio/apicurio-registry:${{ github.sha }}  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()
@@ -228,17 +238,20 @@ jobs:
       - name: Prepare minikube tunnel
         run: minikube tunnel &> /dev/null &
 
+      - name: Login to ghcr.io
+        run: echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
+
       - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=ghcr.io/apicurio/apicurio-registry:${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - auth - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-kafkasql-image=ghcr.io/apicurio/apicurio-registry:${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - migration - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-kafkasql-image=ghcr.io/apicurio/apicurio-registry:${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - snapshotting - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pkafkasql-snapshotting -Dregistry-kafkasql-image=ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pkafkasql-snapshotting -Dregistry-kafkasql-image=ghcr.io/apicurio/apicurio-registry:${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()
@@ -266,12 +279,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/tests/package-lock.json'
 
+      - name: Login to ghcr.io
+        run: echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
+
       - name: Run UI tests
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
+          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ghcr.io/apicurio/apicurio-registry:${{ github.sha }}
           echo "Starting Registry UI"
-          docker run -it -p 8888:8080 -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry-ui:6h
+          docker run -it -p 8888:8080 -d ghcr.io/apicurio/apicurio-registry-ui:${{ github.sha }}
 
           cd ui/tests
           npm install
@@ -331,10 +347,13 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Login to ghcr.io
+        run: echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
+
       - name: Run Legacy Integration Tests (Core API v2)
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
+          docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ghcr.io/apicurio/apicurio-registry:${{ github.sha }}
           cd registry-v2
           ./mvnw -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true
           cd integration-tests
@@ -359,10 +378,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Login to ghcr.io
+        run: echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
+
       - name: Run SDK tests
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
+          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d ghcr.io/apicurio/apicurio-registry:${{ github.sha }}
 
           cd typescript-sdk
           npm install
@@ -386,8 +408,11 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Login to ghcr.io
+        run: echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
+
       - name: Run Apicurio Registry application
-        run: docker run -d -p 8080:8080 -it ttl.sh/${{ github.sha }}/apicurio/apicurio-registry:6h
+        run: docker run -d -p 8080:8080 -it ghcr.io/apicurio/apicurio-registry:${{ github.sha }}
 
       - name: Build Apicurio Registry with Examples
         run: cd apicurio-registry && mvn clean install -DskipTests -Pexamples

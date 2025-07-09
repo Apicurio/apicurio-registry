@@ -128,10 +128,10 @@ public abstract class ITBase {
     public void beforeEach(TestInfo testInfo) {
         String testClassName = testInfo.getTestClass().map(c -> c.getSimpleName() + ".").orElse("");
         log.info("\n" +
-                 "------- STARTING: {}{}\n" +
-                 "------- Namespace: {}\n" +
-                 "------- Mode: {}\n" +
-                 "------- Deployment target: {}",
+                        "------- STARTING: {}{}\n" +
+                        "------- Namespace: {}\n" +
+                        "------- Mode: {}\n" +
+                        "------- Deployment target: {}",
                 testClassName, testInfo.getDisplayName(),
                 namespace,
                 ((operatorDeployment == OperatorDeployment.remote) ? "remote" : "local"),

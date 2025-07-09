@@ -26,7 +26,6 @@ public class AuthTLS {
         putIfNotBlank(env, EnvironmentVariables.OIDC_TLS_VERIFICATION,
                 authSpec.getTls().getTlsVerificationType());
 
-        // spotless:off
         var truststore = new SecretKeyRefTool(getAuthTLSSpec(authSpec)
                 .map(AuthTLSSpec::getTruststoreSecretRef)
                 .orElse(null), "ca.p12");
@@ -34,7 +33,7 @@ public class AuthTLS {
         var truststorePassword = new SecretKeyRefTool(getAuthTLSSpec(authSpec)
                 .map(AuthTLSSpec::getTruststorePasswordSecretRef)
                 .orElse(null), "ca.password");
-        // spotless:on
+
         if (truststore.isValid() && truststorePassword.isValid()) {
             truststore.applySecretVolume(deployment, REGISTRY_APP_CONTAINER_NAME);
             addEnvVar(env, OIDC_TLS_TRUSTSTORE_LOCATION, truststore.getSecretVolumeKeyPath());
@@ -43,9 +42,7 @@ public class AuthTLS {
     }
 
     private static Optional<AuthTLSSpec> getAuthTLSSpec(AuthSpec primary) {
-        // spotless:off
         return ofNullable(primary)
                 .map(AuthSpec::getTls);
-        // spotless:on
     }
 }

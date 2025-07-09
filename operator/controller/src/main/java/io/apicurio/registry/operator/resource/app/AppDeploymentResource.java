@@ -33,13 +33,13 @@ import java.util.Map;
 import java.util.Optional;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
+import static io.apicurio.registry.operator.utils.Mapper.copy;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 
-@KubernetesDependent(resourceDiscriminator = AppDeploymentDiscriminator.class)
+@KubernetesDependent
 public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(AppDeploymentResource.class);
@@ -49,7 +49,8 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
     }
 
     @Override
-    protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+    protected Deployment desired(ApicurioRegistry3 _primary, Context<ApicurioRegistry3> context) {
+        var primary = copy(_primary);
         StatusManager.get(primary).getConditionManager(ReadyConditionManager.class).recordIsActive(APP_DEPLOYMENT_KEY);
         var deployment = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
 

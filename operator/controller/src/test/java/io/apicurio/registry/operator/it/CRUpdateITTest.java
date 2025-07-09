@@ -44,7 +44,6 @@ public class CRUpdateITTest extends ITBase {
             var updatedExpected = ResourceFactory.deserialize(testCase.get(1), ApicurioRegistry3.class);
 
             client.resource(deprecated).create();
-
             await().ignoreExceptionsInstanceOf(KubernetesClientException.class)
                     .timeout(Duration.ofSeconds(60)).untilAsserted(() -> {
                         var updated = client

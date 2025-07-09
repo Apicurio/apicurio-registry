@@ -1,14 +1,11 @@
 package io.apicurio.registry.operator.resource;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
-import io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDiscriminator;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
-import io.javaoperatorsdk.operator.api.reconciler.ResourceDiscriminator;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -16,7 +13,8 @@ import lombok.ToString;
 
 import java.util.function.Function;
 
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.*;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 
 @AllArgsConstructor
 @Getter
@@ -38,64 +36,31 @@ public class ResourceKey<R> {
     public static final String UI_POD_DISRUPTION_BUDGET_ID = "UIPodDisruptionBudgetResource";
     public static final String UI_NETWORK_POLICY_ID = "UINetworkPolicyResource";
 
-    public static final ResourceKey<ApicurioRegistry3> REGISTRY_KEY = new ResourceKey<>(
-            REGISTRY_ID, ApicurioRegistry3.class,
-            null, null
-    );
+    public static final ResourceKey<ApicurioRegistry3> REGISTRY_KEY = new ResourceKey<>(REGISTRY_ID, ApicurioRegistry3.class, null, null);
 
     // ===== Registry App
 
-    public static final ResourceKey<Deployment> APP_DEPLOYMENT_KEY = new ResourceKey<>(
-            APP_DEPLOYMENT_ID, Deployment.class,
-            AppDeploymentDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultAppDeployment
-    );
+    public static final ResourceKey<Deployment> APP_DEPLOYMENT_KEY = new ResourceKey<>(APP_DEPLOYMENT_ID, Deployment.class, COMPONENT_APP, ResourceFactory.INSTANCE::getDefaultAppDeployment);
 
-    public static final ResourceKey<Service> APP_SERVICE_KEY = new ResourceKey<>(
-            APP_SERVICE_ID, Service.class,
-            AppServiceDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultAppService
-    );
+    public static final ResourceKey<Service> APP_SERVICE_KEY = new ResourceKey<>(APP_SERVICE_ID, Service.class, COMPONENT_APP, ResourceFactory.INSTANCE::getDefaultAppService);
 
-    public static final ResourceKey<Ingress> APP_INGRESS_KEY = new ResourceKey<>(
-            APP_INGRESS_ID, Ingress.class,
-            AppIngressDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultAppIngress
-    );
+    public static final ResourceKey<Ingress> APP_INGRESS_KEY = new ResourceKey<>(APP_INGRESS_ID, Ingress.class, COMPONENT_APP, ResourceFactory.INSTANCE::getDefaultAppIngress);
 
-    public static final ResourceKey<NetworkPolicy> APP_NETWORK_POLICY_KEY = new ResourceKey<>(
-            APP_NETWORK_POLICY_ID, NetworkPolicy.class,
-            AppNetworkPolicyDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultAppNetworkPolicy
-    );
+    public static final ResourceKey<NetworkPolicy> APP_NETWORK_POLICY_KEY = new ResourceKey<>(APP_NETWORK_POLICY_ID, NetworkPolicy.class, COMPONENT_APP, ResourceFactory.INSTANCE::getDefaultAppNetworkPolicy);
 
-    public static final ResourceKey<PodDisruptionBudget> APP_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(
-            APP_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class,
-            AppPodDisruptionBudgetDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultAppPodDisruptionBudget
-    );
+    public static final ResourceKey<PodDisruptionBudget> APP_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(APP_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class, COMPONENT_APP, ResourceFactory.INSTANCE::getDefaultAppPodDisruptionBudget);
 
     // ===== Registry UI
 
-    public static final ResourceKey<Deployment> UI_DEPLOYMENT_KEY = new ResourceKey<>(
-            UI_DEPLOYMENT_ID, Deployment.class,
-            UIDeploymentDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUIDeployment
-    );
+    public static final ResourceKey<Deployment> UI_DEPLOYMENT_KEY = new ResourceKey<>(UI_DEPLOYMENT_ID, Deployment.class, COMPONENT_UI, ResourceFactory.INSTANCE::getDefaultUIDeployment);
 
-    public static final ResourceKey<Service> UI_SERVICE_KEY = new ResourceKey<>(
-            UI_SERVICE_ID, Service.class,
-            UIServiceDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUIService
-    );
+    public static final ResourceKey<Service> UI_SERVICE_KEY = new ResourceKey<>(UI_SERVICE_ID, Service.class, COMPONENT_UI, ResourceFactory.INSTANCE::getDefaultUIService);
 
-    public static final ResourceKey<Ingress> UI_INGRESS_KEY = new ResourceKey<>(
-            UI_INGRESS_ID, Ingress.class,
-            UIIngressDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUIIngress
-    );
+    public static final ResourceKey<Ingress> UI_INGRESS_KEY = new ResourceKey<>(UI_INGRESS_ID, Ingress.class, COMPONENT_UI, ResourceFactory.INSTANCE::getDefaultUIIngress);
 
-    public static final ResourceKey<NetworkPolicy> UI_NETWORK_POLICY_KEY = new ResourceKey<>(
-            UI_NETWORK_POLICY_ID, NetworkPolicy.class,
-            UINetworkPolicyDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUINetworkPolicy
-    );
+    public static final ResourceKey<NetworkPolicy> UI_NETWORK_POLICY_KEY = new ResourceKey<>(UI_NETWORK_POLICY_ID, NetworkPolicy.class, COMPONENT_UI, ResourceFactory.INSTANCE::getDefaultUINetworkPolicy);
 
-    public static final ResourceKey<PodDisruptionBudget> UI_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(
-            UI_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class,
-            UiPodDisruptionBudgetDiscriminator.INSTANCE, ResourceFactory.INSTANCE::getDefaultUIPodDisruptionBudget
-    );
+    public static final ResourceKey<PodDisruptionBudget> UI_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(UI_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class, COMPONENT_UI, ResourceFactory.INSTANCE::getDefaultUIPodDisruptionBudget);
 
     @EqualsAndHashCode.Include
     @ToString.Include
@@ -105,7 +70,7 @@ public class ResourceKey<R> {
     @ToString.Include
     private Class<R> klass;
 
-    private ResourceDiscriminator<R, ApicurioRegistry3> discriminator;
+    private String component;
 
     private Function<ApicurioRegistry3, R> factory;
 }

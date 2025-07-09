@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
 
@@ -20,30 +22,34 @@ public class IngressCRUpdater {
      * @return true if the CR has been updated
      */
     public static boolean update(ApicurioRegistry3 primary) {
-        var updatedApp = updateComponent(ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp),
-                "app");
-        var updatedUi = updateComponent(ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi),
-                "ui");
+        var updatedApp = updateComponent(ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp), COMPONENT_APP);
+        var updatedUi = updateComponent(ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi), COMPONENT_UI);
         return updatedApp || updatedUi;
     }
 
-    private static boolean updateComponent(Optional<? extends ComponentSpec> component,
-            String componentFieldName) {
-        var host = component.map(ComponentSpec::getHost).filter(h -> !isBlank(h));
-        var ingressHost = component.map(ComponentSpec::getIngress).map(IngressSpec::getHost)
+    @SuppressWarnings("deprecation")
+    private static boolean updateComponent(Optional<? extends ComponentSpec> component, String componentFieldName) {
+
+        var oldHost = component
+                .map(ComponentSpec::getHost)
                 .filter(h -> !isBlank(h));
-        if (host.isPresent()) {
+
+        var newHost = component
+                .map(ComponentSpec::getIngress)
+                .map(IngressSpec::getHost)
+                .filter(h -> !isBlank(h));
+
+        if (oldHost.isPresent()) {
             log.warn("CR field `{}.host` is DEPRECATED and should not be used.", componentFieldName);
-            if (ingressHost.isEmpty()) {
-                log.info("Performing automatic CR update from `{}.host` to `{}.ingress.host`.",
-                        componentFieldName, componentFieldName);
+            if (newHost.isEmpty() || oldHost.equals(newHost)) { // We need to handle a situation where the fields are partially migrated.
+
+                log.info("Performing automatic CR update from `{}.host` to `{}.ingress.host`.", componentFieldName, componentFieldName);
                 component.get().setHost(null);
-                component.get().withIngress().setHost(host.get());
+                component.get().withIngress().setHost(oldHost.get());
+
                 return true;
             } else {
-                log.warn(
-                        "Automatic update cannot be performed, because the target field `{}.ingress.host` is already set.",
-                        componentFieldName);
+                log.warn("Automatic update cannot be performed, because the target field `{}.ingress.host` is already set.", componentFieldName);
             }
         }
         return false;

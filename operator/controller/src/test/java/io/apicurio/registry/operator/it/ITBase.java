@@ -1,6 +1,8 @@
 package io.apicurio.registry.operator.it;
 
+import io.apicurio.registry.operator.App;
 import io.apicurio.registry.operator.Constants;
+import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.utils.Cell;
 import io.fabric8.kubernetes.api.model.HasMetadata;
@@ -17,15 +19,9 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.utils.Serialization;
-import io.javaoperatorsdk.operator.Operator;
-import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
-import io.quarkiverse.operatorsdk.runtime.QuarkusConfigurationService;
-import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.CDI;
-import jakarta.enterprise.util.TypeLiteral;
 import org.awaitility.Awaitility;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,6 +35,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -51,6 +48,7 @@ import static io.apicurio.registry.utils.Cell.cell;
 import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.eclipse.microprofile.config.ConfigProvider.getConfig;
 
 public abstract class ITBase {
 
@@ -61,7 +59,6 @@ public abstract class ITBase {
     public static final String INGRESS_HOST_PROP = "test.operator.ingress-host";
     public static final String INGRESS_SKIP_PROP = "test.operator.ingress-skip";
     public static final String CLEANUP = "test.operator.cleanup";
-    public static final String GENERATED_RESOURCES_FOLDER = "target/kubernetes/";
     public static final String CRD_FILE = "../model/target/classes/META-INF/fabric8/apicurioregistries3.registry.apicur.io-v1.yml";
     public static final String REMOTE_TESTS_INSTALL_FILE = "test.operator.install-file";
 
@@ -77,8 +74,6 @@ public abstract class ITBase {
     }
 
     protected static OperatorDeployment operatorDeployment;
-    protected static Instance<Reconciler<? extends HasMetadata>> reconcilers;
-    protected static QuarkusConfigurationService configuration;
     protected static KubernetesClient client;
     protected static PodLogManager podLogManager;
     protected static PortForwardManager portForwardManager;
@@ -86,21 +81,17 @@ public abstract class ITBase {
     protected static String deploymentTarget;
     protected static String namespace;
     protected static boolean cleanup;
-
     protected static boolean strimziInstalled = false;
-    private static Operator operator;
+    private static App app;
     protected static JobManager jobManager;
     protected static HostAliasManager hostAliasManager;
 
     @BeforeAll
     public static void before() throws Exception {
-        configuration = CDI.current().select(QuarkusConfigurationService.class).get();
-        reconcilers = CDI.current().select(new TypeLiteral<>() {
-        });
-        operatorDeployment = ConfigProvider.getConfig().getValue(OPERATOR_DEPLOYMENT_PROP,
+        operatorDeployment = getConfig().getValue(OPERATOR_DEPLOYMENT_PROP,
                 OperatorDeployment.class);
-        deploymentTarget = ConfigProvider.getConfig().getValue(DEPLOYMENT_TARGET, String.class);
-        cleanup = ConfigProvider.getConfig().getValue(CLEANUP, Boolean.class);
+        deploymentTarget = getConfig().getValue(DEPLOYMENT_TARGET, String.class);
+        cleanup = getConfig().getValue(CLEANUP, Boolean.class);
 
         setDefaultAwaitilityTimings();
         namespace = calculateNamespace();
@@ -118,9 +109,7 @@ public abstract class ITBase {
             createTestResources();
             startOperatorLogs();
         } else {
-            createOperator();
-            registerReconcilers();
-            operator.start();
+            startOperator();
         }
     }
 
@@ -128,10 +117,10 @@ public abstract class ITBase {
     public void beforeEach(TestInfo testInfo) {
         String testClassName = testInfo.getTestClass().map(c -> c.getSimpleName() + ".").orElse("");
         log.info("\n" +
-                 "------- STARTING: {}{}\n" +
-                 "------- Namespace: {}\n" +
-                 "------- Mode: {}\n" +
-                 "------- Deployment target: {}",
+                        "------- STARTING: {}{}\n" +
+                        "------- Namespace: {}\n" +
+                        "------- Mode: {}\n" +
+                        "------- Deployment target: {}",
                 testClassName, testInfo.getDisplayName(),
                 namespace,
                 ((operatorDeployment == OperatorDeployment.remote) ? "remote" : "local"),
@@ -248,11 +237,17 @@ public abstract class ITBase {
 
     private static List<HasMetadata> loadTestResources() throws IOException {
         var installFilePath = Path
-                .of(ConfigProvider.getConfig().getValue(REMOTE_TESTS_INSTALL_FILE, String.class));
-        var installFileRaw = Files.readString(installFilePath);
-        // We're not editing the deserialized resources to replicate the user experience
-        installFileRaw = installFileRaw.replace("PLACEHOLDER_NAMESPACE", namespace);
-        return Serialization.unmarshal(installFileRaw);
+                .of(getConfig().getValue(REMOTE_TESTS_INSTALL_FILE, String.class));
+        try {
+            var installFileRaw = Files.readString(installFilePath);
+            // We're not editing the deserialized resources to replicate the user experience
+            installFileRaw = installFileRaw.replace("PLACEHOLDER_NAMESPACE", namespace);
+            return Serialization.unmarshal(installFileRaw);
+        } catch (NoSuchFileException ex) {
+            throw new OperatorException("Remote tests require an install file to be generated. " +
+                    "Please run `make INSTALL_FILE=controller/target/test-install.yaml dist-install-file` first, " +
+                    "or see the README for more information.", ex);
+        }
     }
 
     private static void createTestResources() throws Exception {
@@ -306,18 +301,11 @@ public abstract class ITBase {
         }
     }
 
-    private static void registerReconcilers() {
-        log.info("Registering reconcilers for operator : {} [{}]", operator, operatorDeployment);
-
-        for (Reconciler<?> reconciler : reconcilers) {
-            log.info("Register and apply : {}", reconciler.getClass().getName());
-            operator.register(reconciler);
-        }
-    }
-
-    private static void createOperator() {
-        operator = new Operator(configurationServiceOverrider -> {
-            configurationServiceOverrider.withKubernetesClient(client);
+    private static void startOperator() {
+        app = CDI.current().select(App.class).get();
+        app.start(configOverride -> {
+            configOverride.withKubernetesClient(client);
+            configOverride.withUseSSAToPatchPrimaryResource(false);
         });
     }
 
@@ -390,9 +378,7 @@ public abstract class ITBase {
     public static void after() throws Exception {
         portForwardManager.stop();
         if (operatorDeployment == OperatorDeployment.local) {
-            log.info("Stopping Operator");
-            operator.stop();
-
+            app.stop();
             log.info("Creating new K8s Client");
             // create a new client bc operator has closed the old one
             client = createK8sClient(namespace);

@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.status.ReadyConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.utils.Utils;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -17,15 +18,15 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedHashMap;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.UIDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceKey.*;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
+import static io.apicurio.registry.operator.utils.Mapper.copy;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Optional.ofNullable;
 
-@KubernetesDependent(resourceDiscriminator = UIDeploymentDiscriminator.class)
+@KubernetesDependent
 public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(UIDeploymentResource.class);
@@ -35,7 +36,8 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
     }
 
     @Override
-    protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+    protected Deployment desired(ApicurioRegistry3 _primary, Context<ApicurioRegistry3> context) {
+        var primary = copy(_primary);
         StatusManager.get(primary).getConditionManager(ReadyConditionManager.class).recordIsActive(UI_DEPLOYMENT_KEY);
         var d = UI_DEPLOYMENT_KEY.getFactory().apply(primary);
 
@@ -43,11 +45,9 @@ public class UIDeploymentResource extends CRUDKubernetesDependentResource<Deploy
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi).map(UiSpec::getEnv)
                 .ifPresent(env -> env.forEach(e -> envVars.put(e.getName(), e)));
 
-        var sOpt = context.getSecondaryResource(APP_SERVICE_KEY.getKlass(),
-                APP_SERVICE_KEY.getDiscriminator());
+        var sOpt = Utils.getSecondaryResource(context, primary, APP_SERVICE_KEY);
         sOpt.ifPresent(s -> {
-            var iOpt = context.getSecondaryResource(APP_INGRESS_KEY.getKlass(),
-                    APP_INGRESS_KEY.getDiscriminator());
+            var iOpt = Utils.getSecondaryResource(context, primary, APP_INGRESS_KEY);
             iOpt.ifPresent(i -> withIngressRule(s, i, rule -> {
                 addEnvVar(envVars, new EnvVarBuilder().withName("REGISTRY_API_URL").withValue("http://%s/apis/registry/v3".formatted(rule.getHost())).build());
             }));

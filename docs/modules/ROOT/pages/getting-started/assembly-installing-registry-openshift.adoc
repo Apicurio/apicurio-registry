@@ -8,8 +8,6 @@ This chapter explains how to install {registry} on OpenShift Container Platform:
 
 * xref:installing-registry-operatorhub_{context}[]
 
-.Prerequisites
-* {registry-overview}
 
 [role="_additional-resources"]
 .Additional resources

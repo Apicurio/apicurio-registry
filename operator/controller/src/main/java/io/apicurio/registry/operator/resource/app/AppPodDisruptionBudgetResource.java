@@ -1,21 +1,20 @@
 package io.apicurio.registry.operator.resource.app;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.resource.LabelDiscriminators;
+import io.apicurio.registry.operator.resource.ResourceKey;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
+import io.javaoperatorsdk.operator.api.config.informer.Informer;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDependent;
 
-import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_POD_DISRUPTION_BUDGET_KEY;
 
-// spotless:off
 @KubernetesDependent(
-        labelSelector = "app.kubernetes.io/name=apicurio-registry,app.kubernetes.io/component=" + COMPONENT_APP,
-        resourceDiscriminator = LabelDiscriminators.AppPodDisruptionBudgetDiscriminator.class
+        informer = @Informer(
+                name = ResourceKey.APP_POD_DISRUPTION_BUDGET_ID
+        )
 )
-// spotless:on
 public class AppPodDisruptionBudgetResource
         extends CRUDKubernetesDependentResource<PodDisruptionBudget, ApicurioRegistry3> {
 

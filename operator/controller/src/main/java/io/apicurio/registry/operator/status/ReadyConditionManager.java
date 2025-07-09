@@ -49,7 +49,7 @@ public class ReadyConditionManager extends AbstractConditionManager {
         var ready = true;
         List<String> unavailable = new ArrayList<>();
         for (ResourceKey<Deployment> deploymentResourceKey : isActive) {
-            var r = context.getSecondaryResource(deploymentResourceKey.getKlass(), deploymentResourceKey.getDiscriminator())
+            var r = context.getSecondaryResource(deploymentResourceKey.getKlass(), deploymentResourceKey.getId())
                     .map(d -> {
                         return d.getStatus() != null && d.getStatus().getConditions().stream()
                                 .anyMatch(condition -> "Available".equals(condition.getType())

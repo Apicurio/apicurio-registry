@@ -1,21 +1,10 @@
 package io.apicurio.registry.operator.api.v1;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.operator.api.v1.status.Condition;
-import io.javaoperatorsdk.operator.api.ObservedGenerationAwareStatus;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +23,16 @@ import static lombok.AccessLevel.PRIVATE;
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @ToString
-public class ApicurioRegistry3Status extends ObservedGenerationAwareStatus {
+public class ApicurioRegistry3Status {
+
+    /**
+     * The latest generation of the ApicurioRegistry3 resource that this status has been updated for.
+     */
+    @JsonProperty("observedGeneration")
+    @JsonPropertyDescription("""
+            The latest generation of the ApicurioRegistry3 resource that this status has been updated for.""")
+    @JsonSetter(nulls = SKIP)
+    private Long observedGeneration;
 
     /**
      * Apicurio Registry operator and operand conditions.

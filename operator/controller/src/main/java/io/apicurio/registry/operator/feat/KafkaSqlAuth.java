@@ -23,7 +23,6 @@ public class KafkaSqlAuth {
      */
     public static boolean configureKafkaSQLOauth(ApicurioRegistry3 primary, Map<String, EnvVar> env) {
 
-        // spotless:off
         var clientSecret = new SecretKeyRefTool(getKafkaSqlAuthSpec(primary)
                 .map(KafkaSqlAuthSpec::getClientSecretRef)
                 .orElse(null), "clientSecret");
@@ -52,13 +51,11 @@ public class KafkaSqlAuth {
     }
 
     private static Optional<KafkaSqlAuthSpec> getKafkaSqlAuthSpec(ApicurioRegistry3 primary) {
-        // spotless:off
         return ofNullable(primary)
                 .map(ApicurioRegistry3::getSpec)
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getStorage)
                 .map(StorageSpec::getKafkasql)
                 .map(KafkaSqlSpec::getAuth);
-        // spotless:on
     }
 }

@@ -13,6 +13,7 @@ import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.PostgresSql;
 import io.apicurio.registry.operator.feat.TLS;
 import io.apicurio.registry.operator.feat.security.Auth;
+import io.apicurio.registry.operator.resource.ResourceKey;
 import io.apicurio.registry.operator.status.ReadyConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
 import io.apicurio.registry.operator.utils.JavaOptsAppend;
@@ -21,6 +22,7 @@ import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.PodTemplateSpec;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.javaoperatorsdk.operator.api.config.informer.Informer;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDependent;
@@ -33,13 +35,16 @@ import java.util.Map;
 import java.util.Optional;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 
-@KubernetesDependent(resourceDiscriminator = AppDeploymentDiscriminator.class)
+@KubernetesDependent(
+        informer = @Informer(
+                name = ResourceKey.APP_DEPLOYMENT_ID
+        )
+)
 public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(AppDeploymentResource.class);

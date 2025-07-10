@@ -28,6 +28,7 @@ import io.apicurio.registry.maven.refs.ReferenceIndex;
 import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.beans.IfExists;
+import io.apicurio.registry.rest.v2.beans.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -137,9 +138,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     else if (artifact.getAnalyzeDirectory() != null
                             && artifact.getAnalyzeDirectory()) { //Auto register selected, we must figure out if the artifact has reference using the directory structure
                         registerDirectory(artifact);
-                    }
-                    else {
-
+                    } else {
                         List<ArtifactReference> references = new ArrayList<>();
                         //First, we check if the artifact being processed has references defined
                         if (hasReferences(artifact)) {
@@ -243,8 +242,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             FileNotFoundException {
         if (artifact.getFile() != null) {
             return registerArtifact(artifact, new FileInputStream(artifact.getFile()), references);
-        }
-        else {
+        } else {
             return getArtifactMetadata(artifact);
         }
     }
@@ -253,10 +251,34 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
 
-        ArtifactMetaData amd = this.getClient().getArtifactMetaData(groupId, artifactId);
-        getLog().info(String.format("Successfully processed artifact [%s] / [%s].  GlobalId is [%d]", groupId, artifactId, amd.getGlobalId()));
-
-        return amd;
+        if (artifact.getVersion() != null) {
+            String version = artifact.getVersion();
+            VersionMetaData vmd = this.getClient().getArtifactVersionMetaData(groupId, artifactId, version);
+            getLog().info(String.format("Successfully processed artifact [%s] / [%s] / [%s].  GlobalId is [%d]",
+                    groupId, artifactId, version, vmd.getGlobalId()));
+            ArtifactMetaData amd = new ArtifactMetaData();
+            amd.setGlobalId(vmd.getGlobalId());
+            amd.setContentId(vmd.getContentId());
+            amd.setGroupId(vmd.getGroupId());
+            amd.setId(vmd.getId());
+            amd.setVersion(vmd.getVersion());
+            amd.setName(vmd.getName());
+            amd.setDescription(vmd.getDescription());
+            amd.setType(vmd.getType());
+            amd.setCreatedBy(vmd.getCreatedBy());
+            amd.setCreatedOn(vmd.getCreatedOn());
+            amd.setModifiedBy(vmd.getCreatedBy());
+            amd.setModifiedOn(vmd.getCreatedOn());
+            amd.setProperties(vmd.getProperties());
+            amd.setLabels(vmd.getLabels());
+            amd.setState(vmd.getState());
+            return amd;
+        } else {
+            ArtifactMetaData amd = this.getClient().getArtifactMetaData(groupId, artifactId);
+            getLog().info(String.format("Successfully processed artifact [%s] / [%s].  GlobalId is [%d]",
+                    groupId, artifactId, amd.getGlobalId()));
+            return amd;
+        }
     }
 
     private ArtifactMetaData registerArtifact(RegisterArtifact artifact, InputStream artifactContent, List<ArtifactReference> references) {

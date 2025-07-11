@@ -54,14 +54,27 @@ public class StatusManager {
             conditionManager.updateCondition(primary, context);
             if (conditionManager.show()) {
                 var condition = conditionManager.getCondition();
-                //condition.setObservedGeneration(
-                //        primary.getMetadata() == null ? null : primary.getMetadata().getGeneration()); // TODO: Not needed?
                 conditions.add(condition);
             }
         }
-        primary.setStatus(ApicurioRegistry3Status.builder()
+
+        // Get the previous status's observedGeneration (if exists), or set it to the current generation
+        Long observedGeneration = null;
+        if (primary.getStatus() != null) {
+            observedGeneration = primary.getStatus().getObservedGeneration();
+        }
+        // Update observedGeneration only if it is not set yet (null) or if the resource's generation has changed,
+        // ensuring the status reflects the latest resource version.
+        if (primary.getMetadata() != null && (observedGeneration == null || !observedGeneration.equals(primary.getMetadata().getGeneration()))) {
+            observedGeneration = primary.getMetadata().getGeneration();
+        }
+
+        var status = ApicurioRegistry3Status.builder()
                 .conditions(conditions)
-                .build());
+                .build();
+        status.setObservedGeneration(observedGeneration);
+
+        primary.setStatus(status);
         return primary;
     }
 }

@@ -47,8 +47,8 @@ public class ExtJsonConverter extends BaseSerde<JsonNode, Object>
         this(null);
     }
 
-    public ExtJsonConverter(RegistryClientFacade sdk) {
-        super(sdk);
+    public ExtJsonConverter(RegistryClientFacade clientFacade) {
+        super(clientFacade);
         this.jsonConverter = new JsonConverter();
         this.deserializingConverter = new JsonConverter();
         this.mapper = new ObjectMapper();

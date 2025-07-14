@@ -20,21 +20,21 @@ public class AvroKafkaSerializer<U> extends KafkaSerializer<Schema, U> {
         super(new AvroSerializer<>());
     }
 
-    public AvroKafkaSerializer(RegistryClientFacade sdk) {
-        super(new AvroSerializer<>(sdk));
+    public AvroKafkaSerializer(RegistryClientFacade clientFacade) {
+        super(new AvroSerializer<>(clientFacade));
     }
 
     public AvroKafkaSerializer(SchemaResolver<Schema, U> schemaResolver) {
         super(new AvroSerializer<>(schemaResolver));
     }
 
-    public AvroKafkaSerializer(RegistryClientFacade sdk, SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroSerializer<>(sdk, schemaResolver));
+    public AvroKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
+        super(new AvroSerializer<>(clientFacade, schemaResolver));
     }
 
-    public AvroKafkaSerializer(RegistryClientFacade sdk, ArtifactReferenceResolverStrategy<Schema, U> strategy,
+    public AvroKafkaSerializer(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<Schema, U> strategy,
                                SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroSerializer<>(sdk, strategy, schemaResolver));
+        super(new AvroSerializer<>(clientFacade, strategy, schemaResolver));
     }
 
     @Override

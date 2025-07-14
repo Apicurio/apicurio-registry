@@ -20,22 +20,22 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
         super(new JsonSchemaDeserializer<>());
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClientFacade sdk) {
-        super(new JsonSchemaDeserializer<>(sdk));
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade) {
+        super(new JsonSchemaDeserializer<>(clientFacade));
     }
 
     public JsonSchemaKafkaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaDeserializer<>(schemaResolver));
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClientFacade sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaDeserializer<>(sdk, schemaResolver));
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(new JsonSchemaDeserializer<>(clientFacade, schemaResolver));
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClientFacade sdk,
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade,
                                        ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
                                        SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaDeserializer<>(sdk, schemaResolver, strategy));
+        super(new JsonSchemaDeserializer<>(clientFacade, schemaResolver, strategy));
     }
 
     @SuppressWarnings("unchecked")

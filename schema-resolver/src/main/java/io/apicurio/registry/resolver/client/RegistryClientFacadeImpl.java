@@ -145,6 +145,10 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     @Override
     public RegistryVersionCoordinates getVersionCoordinatesByGAV(String groupId, String artifactId, String version) {
+        if (version == null) {
+            version = "branch=latest";
+        }
+
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
     }

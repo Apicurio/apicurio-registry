@@ -3,10 +3,8 @@ package io.apicurio.registry.noprofile.serde;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.api.sample.TableNotification;
-import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
@@ -15,14 +13,13 @@ import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.support.TestCmmn;
-import io.apicurio.registry.utils.tests.TestUtils;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -32,31 +29,25 @@ import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
-public class ProtobufSerdeTest extends AbstractResourceTestBase {
+public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
 
-    private RegistryClient restClient;
-    private RegistryClientFacade sdk;
     private String groupId = "protobuf-serde-test";
 
     @BeforeEach
     public void createIsolatedClient() {
-        var adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
-        restClient = new RegistryClient(adapter);
-
         CreateRule rule = new CreateRule();
         rule.setConfig("SYNTAX_ONLY");
         rule.setRuleType(RuleType.VALIDITY);
-        restClient.admin().rules().post(rule);
-
-        sdk = new RegistryClientFacadeImpl(restClient);
+        isolatedClientV3.admin().rules().post(rule);
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    @Test
-    public void testProto() throws Exception {
-        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(sdk);
-                Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(sdk)) {
+    @ParameterizedTest(name = "testProto [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testProto(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(clientFacade);
+                Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
@@ -74,9 +65,9 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
 
             waitForSchema(contentId -> {
                 try {
-                    if (restClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                    if (isolatedClientV3.ids().contentIds().byContentId(contentId.longValue()).get()
                             .readAllBytes().length > 0) {
-                        VersionMetaData artifactMetadata = restClient.groups().byGroupId(groupId).artifacts()
+                        VersionMetaData artifactMetadata = isolatedClientV3.groups().byGroupId(groupId).artifacts()
                                 .byArtifactId(topic).versions().byVersionExpression("branch=latest").get();
                         assertEquals(contentId.longValue(), artifactMetadata.getContentId());
                         return true;
@@ -94,10 +85,13 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    @Test
-    public void testProtobufSchemaWithReferences() {
-        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(sdk);
-                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(sdk)) {
+    @ParameterizedTest(name = "testProtobufSchemaWithReferences [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testProtobufSchemaWithReferences(ClientFacadeSupplier clientFacadeSupplier) {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(clientFacade);
+                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
@@ -114,10 +108,13 @@ public class ProtobufSerdeTest extends AbstractResourceTestBase {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    @Test
-    public void testProtobufSchemaWithReferencesDereferenced() {
-        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(sdk);
-                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(sdk)) {
+    @ParameterizedTest(name = "testProtobufSchemaWithReferencesDereferenced [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testProtobufSchemaWithReferencesDereferenced(ClientFacadeSupplier clientFacadeSupplier) {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(clientFacade);
+                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);

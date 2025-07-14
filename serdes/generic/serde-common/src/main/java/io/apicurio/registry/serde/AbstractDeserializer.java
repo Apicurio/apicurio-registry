@@ -26,21 +26,21 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         this.baseSerde = new BaseSerde<>();
     }
 
-    public AbstractDeserializer(RegistryClientFacade sdk) {
-        this.baseSerde = new BaseSerde<>(sdk);
+    public AbstractDeserializer(RegistryClientFacade clientFacade) {
+        this.baseSerde = new BaseSerde<>(clientFacade);
     }
 
     public AbstractDeserializer(SchemaResolver<T, U> schemaResolver) {
         this.baseSerde = new BaseSerde<>(schemaResolver);
     }
 
-    public AbstractDeserializer(RegistryClientFacade sdk, SchemaResolver<T, U> schemaResolver) {
-        this.baseSerde = new BaseSerde<>(sdk, schemaResolver);
+    public AbstractDeserializer(RegistryClientFacade clientFacade, SchemaResolver<T, U> schemaResolver) {
+        this.baseSerde = new BaseSerde<>(clientFacade, schemaResolver);
     }
 
-    public AbstractDeserializer(RegistryClientFacade sdk, ArtifactReferenceResolverStrategy<T, U> strategy,
+    public AbstractDeserializer(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<T, U> strategy,
                                 SchemaResolver<T, U> schemaResolver) {
-        this.baseSerde = new BaseSerde<>(sdk, strategy, schemaResolver);
+        this.baseSerde = new BaseSerde<>(clientFacade, strategy, schemaResolver);
     }
 
     public BaseSerde<T, U> getSerdeConfigurer() {

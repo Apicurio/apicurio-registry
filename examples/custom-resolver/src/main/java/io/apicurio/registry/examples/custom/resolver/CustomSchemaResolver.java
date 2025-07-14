@@ -73,7 +73,7 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
             createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(schemaContent));
             createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-            RegistryClient client = (RegistryClient) this.sdk.getClient();
+            RegistryClient client = (RegistryClient) this.clientFacade.getClient();
 
             final VersionMetaData metaData = client.groups().byGroupId("default").artifacts()
                     .post(createArtifact, config -> {

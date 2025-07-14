@@ -24,7 +24,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
     protected SchemaResolverConfig config;
     protected SchemaParser<S, T> schemaParser;
-    protected RegistryClientFacade sdk;
+    protected RegistryClientFacade clientFacade;
     protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
 
     protected String explicitArtifactGroupId;
@@ -38,8 +38,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         this.schemaParser = schemaParser;
 
         this.config = new SchemaResolverConfig(configs);
-        if (sdk == null) {
-            sdk = RegistryClientFacadeFactory.createSDK(config);
+        if (clientFacade == null) {
+            clientFacade = RegistryClientFacadeFactory.create(config);
         }
 
         Object ais = config.getArtifactResolverStrategy();
@@ -76,8 +76,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     @Override
-    public void setSDK(RegistryClientFacade sdk) {
-        this.sdk = sdk;
+    public void setClientFacade(RegistryClientFacade clientFacade) {
+        this.clientFacade = clientFacade;
     }
 
     /**
@@ -141,7 +141,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     private SchemaLookupResult<S> resolveSchemaDereferenced(long globalId) {
-        String rawSchema = this.sdk.getSchemaByGlobalId(globalId, true);
+        String rawSchema = this.clientFacade.getSchemaByGlobalId(globalId, true);
 
         byte[] schema = rawSchema.getBytes(StandardCharsets.UTF_8);
         S parsed = schemaParser.parseSchema(schema, Collections.emptyMap());
@@ -154,10 +154,10 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     private SchemaLookupResult<S> resolveSchemaWithReferences(long globalId) {
-        String rawSchema = this.sdk.getSchemaByGlobalId(globalId, false);
+        String rawSchema = this.clientFacade.getSchemaByGlobalId(globalId, false);
 
         // Get the artifact references
-        final List<RegistryArtifactReference> artifactReferences = this.sdk.getReferencesByGlobalId(globalId);
+        final List<RegistryArtifactReference> artifactReferences = this.clientFacade.getReferencesByGlobalId(globalId);
         // If there are any references for the schema being parsed, resolve them before parsing the schema
         final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 
@@ -180,9 +180,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             String artifactId = reference.getArtifactId();
             String version = reference.getVersion();
 
-            final String referenceContent = this.sdk.getSchemaByGAV(groupId, artifactId, version);
+            final String referenceContent = this.clientFacade.getSchemaByGAV(groupId, artifactId, version);
             final List<RegistryArtifactReference> referenceReferences =
-                    this.sdk.getReferencesByGAV(groupId, artifactId, version);
+                    this.clientFacade.getReferencesByGAV(groupId, artifactId, version);
 
             if (!referenceReferences.isEmpty()) {
                 final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
@@ -220,7 +220,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     @Override
     public void close() throws IOException {
         try {
-            this.sdk.close();
+            this.clientFacade.close();
         } catch (Exception e) {
             throw new IOException(e);
         }

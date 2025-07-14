@@ -17,7 +17,7 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
     default void configure(Map<String, ?> configs, SchemaParser<SCHEMA, DATA> schemaMapper) {
     }
 
-    public void setSDK(RegistryClientFacade sdk);
+    public void setClientFacade(RegistryClientFacade clientFacade);
 
     public void setArtifactResolverStrategy(
             ArtifactReferenceResolverStrategy<SCHEMA, DATA> artifactResolverStrategy);

@@ -29,22 +29,22 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
         super();
     }
 
-    public AvroSerializer(RegistryClientFacade sdk) {
-        super(sdk);
+    public AvroSerializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public AvroSerializer(SchemaResolver<Schema, U> schemaResolver) {
         super(schemaResolver);
     }
 
-    public AvroSerializer(RegistryClientFacade sdk, SchemaResolver<Schema, U> schemaResolver) {
-        super(sdk, schemaResolver);
+    public AvroSerializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public AvroSerializer(RegistryClientFacade sdk,
+    public AvroSerializer(RegistryClientFacade clientFacade,
                           ArtifactReferenceResolverStrategy<Schema, U> artifactResolverStrategy,
                           SchemaResolver<Schema, U> schemaResolver) {
-        super(sdk, artifactResolverStrategy, schemaResolver);
+        super(clientFacade, artifactResolverStrategy, schemaResolver);
     }
 
     private AvroSerializer<U> setAvroDatumProvider(AvroDatumProvider<U> avroDatumProvider) {

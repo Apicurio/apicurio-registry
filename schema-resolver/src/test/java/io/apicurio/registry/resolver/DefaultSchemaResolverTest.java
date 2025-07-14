@@ -20,7 +20,7 @@ public class DefaultSchemaResolverTest {
         String schemaContent = "schema content";
         RequestAdapter mockRequestAdapter = new MockRequestAdapter(schemaContent);
         RegistryClient client = new RegistryClient(mockRequestAdapter);
-        resolver.setSDK(new RegistryClientFacadeImpl(client));
+        resolver.setClientFacade(new RegistryClientFacadeImpl(client));
         Map<String, String> configs = new HashMap<>();
         SchemaParser<String, String> schemaParser = new MockSchemaParser();
         resolver.configure(configs, schemaParser);
@@ -40,7 +40,7 @@ public class DefaultSchemaResolverTest {
         String schemaContent = "more schema content";
         MockRequestAdapter adapter = new MockRequestAdapter(schemaContent);
         RegistryClient client = new RegistryClient(adapter);
-        resolver.setSDK(new RegistryClientFacadeImpl(client));
+        resolver.setClientFacade(new RegistryClientFacadeImpl(client));
         Map<String, String> configs = new HashMap<>();
         SchemaParser<String, String> schemaParser = new MockSchemaParser();
         resolver.configure(configs, schemaParser);

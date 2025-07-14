@@ -22,22 +22,22 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
         super(new ProtobufSerializer<>());
     }
 
-    public ProtobufKafkaSerializer(RegistryClientFacade sdk) {
-        super(new ProtobufSerializer<>(sdk));
+    public ProtobufKafkaSerializer(RegistryClientFacade clientFacade) {
+        super(new ProtobufSerializer<>(clientFacade));
     }
 
     public ProtobufKafkaSerializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(new ProtobufSerializer<>(schemaResolver));
     }
 
-    public ProtobufKafkaSerializer(RegistryClientFacade sdk, SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufSerializer<>(sdk, schemaResolver));
+    public ProtobufKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(new ProtobufSerializer<>(clientFacade, schemaResolver));
     }
 
-    public ProtobufKafkaSerializer(RegistryClientFacade sdk,
+    public ProtobufKafkaSerializer(RegistryClientFacade clientFacade,
                                    ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
                                    SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufSerializer<>(sdk, schemaResolver, strategy));
+        super(new ProtobufSerializer<>(clientFacade, schemaResolver, strategy));
     }
 
     @Override

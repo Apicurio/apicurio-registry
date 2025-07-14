@@ -325,8 +325,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     private void testJson(RegistryClient restClient, FormatStrategy formatStrategy,
             Function<byte[], Integer> fn) throws Exception {
-        RegistryClientFacade sdk = new RegistryClientFacadeImpl(restClient);
-        try (ExtJsonConverter converter = new ExtJsonConverter(sdk)) {
+        RegistryClientFacade clientFacade = new RegistryClientFacadeImpl(restClient);
+        try (ExtJsonConverter converter = new ExtJsonConverter(clientFacade)) {
             converter.setFormatStrategy(formatStrategy);
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
@@ -357,8 +357,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testJsonConverterNullPayload() throws Exception {
-        RegistryClientFacade sdk = new RegistryClientFacadeImpl(registryClient);
-        try (ExtJsonConverter converter = new ExtJsonConverter(sdk)) {
+        RegistryClientFacade clientFacade = new RegistryClientFacadeImpl(registryClient);
+        try (ExtJsonConverter converter = new ExtJsonConverter(clientFacade)) {
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
             converter.configure(config, false);

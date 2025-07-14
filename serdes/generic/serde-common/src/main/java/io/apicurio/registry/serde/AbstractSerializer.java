@@ -25,21 +25,21 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
         this.baseSerde = new BaseSerde<>();
     }
 
-    public AbstractSerializer(RegistryClientFacade sdk) {
-        this.baseSerde = new BaseSerde<>(sdk);
+    public AbstractSerializer(RegistryClientFacade clientFacade) {
+        this.baseSerde = new BaseSerde<>(clientFacade);
     }
 
     public AbstractSerializer(SchemaResolver<T, U> schemaResolver) {
         this.baseSerde = new BaseSerde<>(schemaResolver);
     }
 
-    public AbstractSerializer(RegistryClientFacade sdk, SchemaResolver<T, U> schemaResolver) {
-        this.baseSerde = new BaseSerde<>(sdk, schemaResolver);
+    public AbstractSerializer(RegistryClientFacade clientFacade, SchemaResolver<T, U> schemaResolver) {
+        this.baseSerde = new BaseSerde<>(clientFacade, schemaResolver);
     }
 
-    public AbstractSerializer(RegistryClientFacade sdk, ArtifactReferenceResolverStrategy<T, U> strategy,
+    public AbstractSerializer(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<T, U> strategy,
                               SchemaResolver<T, U> schemaResolver) {
-        this.baseSerde = new BaseSerde<>(sdk, strategy, schemaResolver);
+        this.baseSerde = new BaseSerde<>(clientFacade, strategy, schemaResolver);
     }
 
     public abstract SchemaParser<T, U> schemaParser();

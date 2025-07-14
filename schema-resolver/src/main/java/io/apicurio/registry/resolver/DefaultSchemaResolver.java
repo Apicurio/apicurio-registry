@@ -27,8 +27,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         super();
     }
 
-    public DefaultSchemaResolver(RegistryClientFacade sdk) {
-        this.sdk = sdk;
+    public DefaultSchemaResolver(RegistryClientFacade clientFacade) {
+        this.clientFacade = clientFacade;
     }
 
     /**
@@ -198,10 +198,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             // it's impossible to retrieve more info about the artifact with only the contentId, and that's ok
             // for this case
             ParsedSchemaImpl<S> ps = null;
-            String rawSchema = this.sdk.getSchemaByContentId(contentIdKey);
+            String rawSchema = this.clientFacade.getSchemaByContentId(contentIdKey);
 
             // Get the artifact references
-            final List<RegistryArtifactReference> artifactReferences = this.sdk.getReferencesByContentId(contentId);
+            final List<RegistryArtifactReference> artifactReferences = this.clientFacade.getReferencesByContentId(contentId);
             // If there are any references for the schema being parsed, resolve them before parsing the
             // schema
             final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
@@ -222,10 +222,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             // ok for this case
             ParsedSchemaImpl<S> ps = null;
 
-            String rawSchema = this.sdk.getSchemaByContentHash(contentHashKey);
+            String rawSchema = this.clientFacade.getSchemaByContentHash(contentHashKey);
 
             // Get the artifact references
-            final List<RegistryArtifactReference> artifactReferences = this.sdk.getReferencesByContentHash(contentHashKey);
+            final List<RegistryArtifactReference> artifactReferences = this.clientFacade.getReferencesByContentHash(contentHashKey);
             // If there are any references for the schema being parsed, resolve them before parsing the schema
             final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 
@@ -254,10 +254,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             String artifactType = schemaParser.artifactType();
 
-            List<RegistryVersionCoordinates> versions = this.sdk.searchVersionsByContent(rawSchemaString,
+            List<RegistryVersionCoordinates> versions = this.clientFacade.searchVersionsByContent(rawSchemaString,
                     artifactType, artifactReference, true);
             if (versions.isEmpty()) {
-                versions = this.sdk.searchVersionsByContent(rawSchemaString, artifactType, artifactReference, false);
+                versions = this.clientFacade.searchVersionsByContent(rawSchemaString, artifactType, artifactReference, false);
 
                 if (versions.isEmpty()) {
                     throw new RuntimeException(
@@ -287,7 +287,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             String version = artifactReference.getVersion();
             String autoCreate = this.autoCreateBehavior;
             boolean canonical = false;
-            RegistryVersionCoordinates versionCoordinates = this.sdk.createSchema(artifactType, groupId, artifactId,
+            RegistryVersionCoordinates versionCoordinates = this.clientFacade.createSchema(artifactType, groupId, artifactId,
                     version, autoCreate, canonical, rawSchemaString, List.of());
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
@@ -314,7 +314,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             boolean canonical = false;
             List<RegistryArtifactReference> artifactReferences = referenceLookups.stream().map(
                     RegistryArtifactReference::fromSchemaLookupResult).toList();
-            RegistryVersionCoordinates versionCoordinates = this.sdk.createSchema(artifactType, groupId, artifactId,
+            RegistryVersionCoordinates versionCoordinates = this.clientFacade.createSchema(artifactType, groupId, artifactId,
                     version, autoCreate, canonical, rawSchemaString, artifactReferences);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
@@ -356,23 +356,19 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         // TODO if getArtifactVersion returns the artifact version and globalid in the headers we can reduce
         // this to only one http call
 
-        if (version == null) {
-            version = "branch=latest";
-        }
-
         SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
         // Get the version metadata (globalId, contentId, etc)
-        RegistryVersionCoordinates versionCoordinates = this.sdk.getVersionCoordinatesByGAV(groupId, artifactId, version);
+        RegistryVersionCoordinates versionCoordinates = this.clientFacade.getVersionCoordinatesByGAV(groupId, artifactId, version);
 
         loadFromVersionCoordinates(versionCoordinates, result);
 
         // Get the schema string (either dereferenced or not based on config)
-        String schemaString = this.sdk.getSchemaByGlobalId(versionCoordinates.getGlobalId(), resolveDereferenced);
+        String schemaString = this.clientFacade.getSchemaByGlobalId(versionCoordinates.getGlobalId(), resolveDereferenced);
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
         // If resolving dereference, we need to also fetch and resolve the references
         if (!resolveDereferenced) {
-            List<RegistryArtifactReference> artifactReferences = this.sdk.getReferencesByGlobalId(versionCoordinates.getGlobalId());
+            List<RegistryArtifactReference> artifactReferences = this.clientFacade.getReferencesByGlobalId(versionCoordinates.getGlobalId());
             // If there are any references for the schema being parsed, resolve them before parsing the schema
             resolvedReferences = resolveReferences(artifactReferences);
         }

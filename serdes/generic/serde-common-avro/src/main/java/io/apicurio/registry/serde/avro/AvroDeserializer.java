@@ -30,21 +30,21 @@ public class AvroDeserializer<U> extends AbstractDeserializer<Schema, U> {
         super();
     }
 
-    public AvroDeserializer(RegistryClientFacade sdk) {
-        super(sdk);
+    public AvroDeserializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public AvroDeserializer(SchemaResolver<Schema, U> schemaResolver) {
         super(schemaResolver);
     }
 
-    public AvroDeserializer(RegistryClientFacade sdk, SchemaResolver<Schema, U> schemaResolver) {
-        super(sdk, schemaResolver);
+    public AvroDeserializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public AvroDeserializer(RegistryClientFacade sdk, ArtifactReferenceResolverStrategy<Schema, U> strategy,
+    public AvroDeserializer(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<Schema, U> strategy,
                             SchemaResolver<Schema, U> schemaResolver) {
-        super(sdk, strategy, schemaResolver);
+        super(clientFacade, strategy, schemaResolver);
     }
 
     @SuppressWarnings("rawtypes")

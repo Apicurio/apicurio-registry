@@ -21,56 +21,15 @@ import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.RestConfig;
-import io.apicurio.registry.rest.v2.beans.ArtifactContent;
-import io.apicurio.registry.rest.v2.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v2.beans.ArtifactOwner;
-import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v2.beans.Comment;
-import io.apicurio.registry.rest.v2.beans.CreateGroupMetaData;
-import io.apicurio.registry.rest.v2.beans.EditableMetaData;
-import io.apicurio.registry.rest.v2.beans.GroupMetaData;
-import io.apicurio.registry.rest.v2.beans.GroupSearchResults;
-import io.apicurio.registry.rest.v2.beans.IfExists;
-import io.apicurio.registry.rest.v2.beans.NewComment;
-import io.apicurio.registry.rest.v2.beans.Rule;
-import io.apicurio.registry.rest.v2.beans.SortBy;
-import io.apicurio.registry.rest.v2.beans.SortOrder;
-import io.apicurio.registry.rest.v2.beans.UpdateState;
-import io.apicurio.registry.rest.v2.beans.VersionMetaData;
-import io.apicurio.registry.rest.v2.beans.VersionSearchResults;
+import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
-import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
-import io.apicurio.registry.storage.error.ArtifactNotFoundException;
-import io.apicurio.registry.storage.error.InvalidArtifactIdException;
-import io.apicurio.registry.storage.error.InvalidGroupIdException;
-import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.error.*;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
-import io.apicurio.registry.types.ArtifactState;
-import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.types.Current;
-import io.apicurio.registry.types.ReferenceType;
-import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.*;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
@@ -102,12 +61,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -1120,8 +1074,13 @@ public class GroupsResourceImpl implements GroupsResource {
             }
 
             TypedContent typedContent = TypedContent.create(content, ct);
-            String artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, xRegistryArtifactType,
-                    factory);
+            String artifactType = ArtifactType.AVRO;
+            try {
+                artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, xRegistryArtifactType,
+                        factory);
+            } catch (InvalidArtifactTypeException e) {
+                // Ignore this exception and default to AVRO.  This is what v2 did.
+            }
 
             final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 

@@ -29,27 +29,27 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
         super();
     }
 
-    public ProtobufSerializer(RegistryClientFacade sdk,
+    public ProtobufSerializer(RegistryClientFacade clientFacade,
                               ArtifactReferenceResolverStrategy<ProtobufSchema, U> artifactResolverStrategy,
                               SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(sdk, artifactResolverStrategy, schemaResolver);
+        super(clientFacade, artifactResolverStrategy, schemaResolver);
     }
 
-    public ProtobufSerializer(RegistryClientFacade sdk) {
-        super(sdk);
+    public ProtobufSerializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public ProtobufSerializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(schemaResolver);
     }
 
-    public ProtobufSerializer(RegistryClientFacade sdk, SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(sdk, schemaResolver);
+    public ProtobufSerializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public ProtobufSerializer(RegistryClientFacade sdk, SchemaResolver<ProtobufSchema, U> schemaResolver,
+    public ProtobufSerializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver,
                               ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
-        super(sdk, strategy, schemaResolver);
+        super(clientFacade, strategy, schemaResolver);
     }
 
     @Override

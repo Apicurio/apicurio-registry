@@ -27,22 +27,22 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
         super(new JsonSchemaSerializer<>());
     }
 
-    public JsonSchemaKafkaSerializer(RegistryClientFacade sdk) {
-        super(new JsonSchemaSerializer<>(sdk));
+    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade) {
+        super(new JsonSchemaSerializer<>(clientFacade));
     }
 
     public JsonSchemaKafkaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaSerializer<>(schemaResolver));
     }
 
-    public JsonSchemaKafkaSerializer(RegistryClientFacade sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaSerializer<>(sdk, schemaResolver));
+    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(new JsonSchemaSerializer<>(clientFacade, schemaResolver));
     }
 
-    public JsonSchemaKafkaSerializer(RegistryClientFacade sdk,
+    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade,
                                      ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
                                      SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaSerializer<>(sdk, strategy, schemaResolver));
+        super(new JsonSchemaSerializer<>(clientFacade, strategy, schemaResolver));
     }
 
     /**

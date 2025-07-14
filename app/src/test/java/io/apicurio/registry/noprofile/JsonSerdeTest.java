@@ -1,8 +1,7 @@
 package io.apicurio.registry.noprofile;
 
-import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
@@ -10,11 +9,13 @@ import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -22,11 +23,12 @@ import java.util.Map;
 import static io.apicurio.registry.utils.tests.TestUtils.retry;
 
 @QuarkusTest
-public class JsonSerdeTest extends AbstractResourceTestBase {
+public class JsonSerdeTest extends AbstractClientFacadeTestBase {
 
-    @Test
-    public void testSchema() throws Exception {
-        String groupId = "JsonSerdeTest_testSchema";
+    @ParameterizedTest(name = "testSchema [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testSchema(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        String groupId = TestUtils.generateGroupId("JsonSerdeTest_testSchema");
         String jsonSchema = new String(
                 getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json").readAllBytes(),
                 StandardCharsets.UTF_8);
@@ -42,9 +44,9 @@ public class JsonSerdeTest extends AbstractResourceTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        RegistryClientFacade sdk = new RegistryClientFacadeImpl(clientV3);
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(sdk);
-            JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(sdk)) {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
 
             Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId,
                     KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.VALIDATION_ENABLED, "true");

@@ -23,7 +23,7 @@ public class RegistryClientFacadeFactory {
     private static final Logger logger = Logger.getLogger(RegistryClientFacadeFactory.class.getSimpleName());
     public static Vertx vertx;
 
-    public static RegistryClientFacade createSDK(SchemaResolverConfig config) {
+    public static RegistryClientFacade create(SchemaResolverConfig config) {
         String baseUrl = config.getRegistryUrl();
         if (baseUrl == null) {
             throw new IllegalArgumentException(
@@ -34,25 +34,25 @@ public class RegistryClientFacadeFactory {
         boolean shouldCloseVertx = vertx == null;
 
         if (baseUrl.contains("/apis/v2/")) {
-            return createSDK_v2(config, ivertx, shouldCloseVertx);
+            return create_v2(config, ivertx, shouldCloseVertx);
         } else {
-            return createSDK_v3(config, ivertx, shouldCloseVertx);
+            return create_v3(config, ivertx, shouldCloseVertx);
         }
     }
 
-    private static RegistryClientFacade createSDK_v3(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
+    private static RegistryClientFacade create_v3(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
         String baseUrl = config.getRegistryUrl();
         String tokenEndpoint = config.getTokenEndpoint();
 
         RegistryClient client;
         try {
             if (tokenEndpoint != null) {
-                client = configureClientWithBearerAuthentication(config, vertx, baseUrl, tokenEndpoint);
+                client = configureClientWithBearerAuthentication_v3(config, vertx, baseUrl, tokenEndpoint);
             } else {
                 String username = config.getAuthUsername();
 
                 if (username != null) {
-                    client = configureClientWithBasicAuth(config, vertx, baseUrl, username);
+                    client = configureClientWithBasicAuth_V3(config, vertx, baseUrl, username);
                 } else {
                     var adapter = new VertXRequestAdapter(vertx);
                     adapter.setBaseUrl(baseUrl);
@@ -66,19 +66,45 @@ public class RegistryClientFacadeFactory {
         return new RegistryClientFacadeImpl(client, shouldCloseVertx ? vertx : null);
     }
 
-    private static RegistryClientFacade createSDK_v2(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
+    private static RegistryClientFacade create_v2(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
         logger.warning("Using a deprecated version (2.x) of Apicurio Registry.  It is recommended to upgrade your Apicurio Registry.");
         String baseUrl = config.getRegistryUrl();
-        // TODO implement a v2 sdk!
-        return null;
+        String tokenEndpoint = config.getTokenEndpoint();
+
+        io.apicurio.registry.rest.client.v2.RegistryClient client;
+        try {
+            if (tokenEndpoint != null) {
+                client = configureClientWithBearerAuthentication_v2(config, vertx, baseUrl, tokenEndpoint);
+            } else {
+                String username = config.getAuthUsername();
+
+                if (username != null) {
+                    client = configureClientWithBasicAuth_V2(config, vertx, baseUrl, username);
+                } else {
+                    var adapter = new VertXRequestAdapter(vertx);
+                    adapter.setBaseUrl(baseUrl);
+                    client = new io.apicurio.registry.rest.client.v2.RegistryClient(adapter);
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+
+        return new RegistryClientFacadeImpl_v2(client, shouldCloseVertx ? vertx : null);
     }
 
-
-    private static RegistryClient configureClientWithBearerAuthentication(SchemaResolverConfig config, Vertx vertx,
-                                                                          String registryUrl, String tokenEndpoint) {
+    private static RegistryClient configureClientWithBearerAuthentication_v3(SchemaResolverConfig config, Vertx vertx,
+                                                                             String registryUrl, String tokenEndpoint) {
         RequestAdapter auth = configureAuthWithUrl(config, vertx, tokenEndpoint);
         auth.setBaseUrl(registryUrl);
         return new RegistryClient(auth);
+    }
+
+    private static io.apicurio.registry.rest.client.v2.RegistryClient configureClientWithBearerAuthentication_v2(SchemaResolverConfig config, Vertx vertx,
+                                                                                                                 String registryUrl, String tokenEndpoint) {
+        RequestAdapter auth = configureAuthWithUrl(config, vertx, tokenEndpoint);
+        auth.setBaseUrl(registryUrl);
+        return new io.apicurio.registry.rest.client.v2.RegistryClient(auth);
     }
 
     private static RequestAdapter configureAuthWithUrl(SchemaResolverConfig config, Vertx vertx, String tokenEndpoint) {
@@ -101,8 +127,8 @@ public class RegistryClientFacadeFactory {
                 buildOIDCWebClient(vertx, tokenEndpoint, clientId, clientSecret, clientScope));
     }
 
-    private static RegistryClient configureClientWithBasicAuth(SchemaResolverConfig config, Vertx vertx, String registryUrl,
-                                                               String username) {
+    private static RegistryClient configureClientWithBasicAuth_V3(SchemaResolverConfig config, Vertx vertx, String registryUrl,
+                                                                  String username) {
 
         final String password = config.getAuthPassword();
 
@@ -116,6 +142,23 @@ public class RegistryClientFacadeFactory {
 
         adapter.setBaseUrl(registryUrl);
         return new RegistryClient(adapter);
+    }
+
+    private static io.apicurio.registry.rest.client.v2.RegistryClient configureClientWithBasicAuth_V2(SchemaResolverConfig config, Vertx vertx, String registryUrl,
+                                                                                                      String username) {
+
+        final String password = config.getAuthPassword();
+
+        if (password == null) {
+            throw new IllegalArgumentException(
+                    "Missing registry auth password, set " + SchemaResolverConfig.AUTH_PASSWORD);
+        }
+
+        var adapter = new VertXRequestAdapter(
+                buildSimpleAuthWebClient(vertx, username, password));
+
+        adapter.setBaseUrl(registryUrl);
+        return new io.apicurio.registry.rest.client.v2.RegistryClient(adapter);
     }
 
 }

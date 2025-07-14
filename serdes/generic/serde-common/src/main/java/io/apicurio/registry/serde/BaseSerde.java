@@ -32,24 +32,24 @@ public class BaseSerde<T, U> implements AutoCloseable {
         super();
     }
 
-    public BaseSerde(RegistryClientFacade sdk) {
+    public BaseSerde(RegistryClientFacade clientFacade) {
         this.schemaResolver = new DefaultSchemaResolver<>();
-        this.schemaResolver.setSDK(sdk);
+        this.schemaResolver.setClientFacade(clientFacade);
     }
 
     public BaseSerde(SchemaResolver<T, U> schemaResolver) {
         this.schemaResolver = schemaResolver;
     }
 
-    public BaseSerde(RegistryClientFacade sdk, SchemaResolver<T, U> schemaResolver) {
+    public BaseSerde(RegistryClientFacade clientFacade, SchemaResolver<T, U> schemaResolver) {
         this.schemaResolver = schemaResolver;
-        this.schemaResolver.setSDK(sdk);
+        this.schemaResolver.setClientFacade(clientFacade);
     }
 
-    public BaseSerde(RegistryClientFacade sdk, ArtifactReferenceResolverStrategy<T, U> strategy,
+    public BaseSerde(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<T, U> strategy,
                      SchemaResolver<T, U> schemaResolver) {
         this.schemaResolver = schemaResolver;
-        this.schemaResolver.setSDK(sdk);
+        this.schemaResolver.setClientFacade(clientFacade);
         this.schemaResolver.setArtifactResolverStrategy(strategy);
     }
 

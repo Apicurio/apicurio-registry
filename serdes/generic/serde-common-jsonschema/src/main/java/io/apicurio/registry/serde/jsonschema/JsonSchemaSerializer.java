@@ -31,26 +31,26 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         super();
     }
 
-    public JsonSchemaSerializer(RegistryClientFacade sdk,
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade,
                                 ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
                                 SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(sdk, artifactResolverStrategy, schemaResolver);
+        super(clientFacade, artifactResolverStrategy, schemaResolver);
     }
 
-    public JsonSchemaSerializer(RegistryClientFacade sdk) {
-        super(sdk);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
-    public JsonSchemaSerializer(RegistryClientFacade sdk, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(sdk, schemaResolver);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
     public JsonSchemaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
     }
 
-    public JsonSchemaSerializer(RegistryClientFacade sdk, Boolean validationEnabled) {
-        this(sdk);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade, Boolean validationEnabled) {
+        this(clientFacade);
         this.validationEnabled = validationEnabled;
     }
 

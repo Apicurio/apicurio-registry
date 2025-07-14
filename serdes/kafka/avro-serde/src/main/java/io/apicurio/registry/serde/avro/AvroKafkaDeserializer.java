@@ -17,21 +17,21 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
         super(new AvroDeserializer<>());
     }
 
-    public AvroKafkaDeserializer(RegistryClientFacade sdk) {
-        super(new AvroDeserializer<>(sdk));
+    public AvroKafkaDeserializer(RegistryClientFacade clientFacade) {
+        super(new AvroDeserializer<>(clientFacade));
     }
 
     public AvroKafkaDeserializer(SchemaResolver<Schema, U> schemaResolver) {
         super(new AvroDeserializer<>(schemaResolver));
     }
 
-    public AvroKafkaDeserializer(RegistryClientFacade sdk, SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroDeserializer<>(sdk, schemaResolver));
+    public AvroKafkaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
+        super(new AvroDeserializer<>(clientFacade, schemaResolver));
     }
 
-    public AvroKafkaDeserializer(RegistryClientFacade sdk, ArtifactReferenceResolverStrategy<Schema, U> strategy,
+    public AvroKafkaDeserializer(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<Schema, U> strategy,
                                  SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroDeserializer<>(sdk, strategy, schemaResolver));
+        super(new AvroDeserializer<>(clientFacade, strategy, schemaResolver));
     }
 
     @SuppressWarnings("rawtypes")

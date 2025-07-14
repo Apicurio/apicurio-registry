@@ -134,6 +134,15 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
                 .artifacts().post(content, config -> {
                     config.queryParameters.ifExists = ifExists;
                     config.queryParameters.canonical = canonical;
+                    if (version != null) {
+                        config.headers.add("X-Registry-Version", version);
+                    }
+                    if (artifactId != null) {
+                        config.headers.add("X-Registry-ArtifactId", artifactId);
+                    }
+                    if (artifactType != null) {
+                        config.headers.add("X-Registry-ArtifactType", artifactType);
+                    }
                 });
 
         return RegistryVersionCoordinates.create(amd.getGlobalId(), amd.getContentId(), amd.getGroupId(),
@@ -142,6 +151,10 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
 
     @Override
     public RegistryVersionCoordinates getVersionCoordinatesByGAV(String groupId, String artifactId, String version) {
+        if (version == null) {
+            version = "latest";
+        }
+
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(version).meta().get();
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getId(), vmd.getVersion());
     }

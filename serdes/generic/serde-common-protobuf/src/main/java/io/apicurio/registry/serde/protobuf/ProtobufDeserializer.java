@@ -43,17 +43,17 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         super();
     }
 
-    public ProtobufDeserializer(RegistryClientFacade sdk, SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(sdk, schemaResolver);
+    public ProtobufDeserializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public ProtobufDeserializer(RegistryClientFacade sdk, SchemaResolver<ProtobufSchema, U> schemaResolver,
+    public ProtobufDeserializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver,
                                 ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
-        super(sdk, strategy, schemaResolver);
+        super(clientFacade, strategy, schemaResolver);
     }
 
-    public ProtobufDeserializer(RegistryClientFacade sdk) {
-        super(sdk);
+    public ProtobufDeserializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public ProtobufDeserializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {

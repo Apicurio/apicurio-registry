@@ -19,23 +19,23 @@ public class ProtobufKafkaDeserializer<U extends Message> extends KafkaDeseriali
         super(new ProtobufDeserializer<>());
     }
 
-    public ProtobufKafkaDeserializer(RegistryClientFacade sdk) {
-        super(new ProtobufDeserializer<>(sdk));
+    public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade) {
+        super(new ProtobufDeserializer<>(clientFacade));
     }
 
     public ProtobufKafkaDeserializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(new ProtobufDeserializer<>(schemaResolver));
     }
 
-    public ProtobufKafkaDeserializer(RegistryClientFacade sdk,
+    public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade,
                                      SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufDeserializer<>(sdk, schemaResolver));
+        super(new ProtobufDeserializer<>(clientFacade, schemaResolver));
     }
 
-    public ProtobufKafkaDeserializer(RegistryClientFacade sdk,
+    public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade,
                                      ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
                                      SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufDeserializer<>(sdk, schemaResolver, strategy));
+        super(new ProtobufDeserializer<>(clientFacade, schemaResolver, strategy));
     }
 
     @Override

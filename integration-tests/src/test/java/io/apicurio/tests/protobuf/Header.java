@@ -123,7 +123,6 @@ public final class Header extends com.google.protobuf.GeneratedMessageV3 impleme
                 sourceUuids_ = sourceUuids_.getUnmodifiableView();
             }
             this.unknownFields = unknownFields.build();
-            makeExtensionsImmutable();
         }
     }
 

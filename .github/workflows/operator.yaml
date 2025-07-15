@@ -25,15 +25,20 @@ jobs:
 
       - name: Configure env. variables 1
         run: |
-          echo "UUID=$(uuidgen)" >> $GITHUB_ENV
+          # echo "UUID=$(uuidgen)" >> $GITHUB_ENV
+          echo "UUID=${{ github.sha }}" >> $GITHUB_ENV
 
       # We need tho push the bundle image because opm always pulls; the catalog image because OLM
       # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
       - name: Configure env. variables 2
         run: |
-          echo "IMAGE=ttl.sh/apicurio-registry-3-operator-$UUID:8h" >> $GITHUB_ENV
-          echo "BUNDLE_IMAGE=ttl.sh/apicurio-registry-3-operator-bundle-$UUID:8h" >> $GITHUB_ENV
-          echo "CATALOG_IMAGE=ttl.sh/apicurio-registry-3-operator-catalog-$UUID:8h" >> $GITHUB_ENV
+          echo "IMAGE=ghcr.io/apicurio/apicurio-registry-3-operator:$UUID" >> $GITHUB_ENV
+          echo "BUNDLE_IMAGE=ghcr.io/apicurio/apicurio-registry-3-operator-bundle:$UUID" >> $GITHUB_ENV
+          echo "CATALOG_IMAGE=ghcr.io/apicurio/apicurio-registry-3-operator-catalog:$UUID" >> $GITHUB_ENV
+
+      - name: Log in to ghcr.io
+        run: |
+          echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
 
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@v4

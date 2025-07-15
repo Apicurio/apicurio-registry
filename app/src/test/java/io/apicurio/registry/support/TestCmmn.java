@@ -96,7 +96,6 @@ public final class TestCmmn {
                 throw new com.google.protobuf.InvalidProtocolBufferException(e).setUnfinishedMessage(this);
             } finally {
                 this.unknownFields = unknownFields.build();
-                makeExtensionsImmutable();
             }
         }
 

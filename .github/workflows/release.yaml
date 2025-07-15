@@ -143,7 +143,7 @@ jobs:
           target_commitish: ${{ github.event.inputs.branch }}
           prerelease: ${{ env.IS_PRE_RELEASE }}
           files: |
-            registry/distro/docker/target/docker/app-files/apicurio-registry-app-${{ github.event.inputs.release-version }}-all.tar.gz
+            registry/distro/docker/target/docker/app-files/apicurio-registry-app-${{ github.event.inputs.release-version }}-all.*
 
       - name: Generate Release Notes
         run: |

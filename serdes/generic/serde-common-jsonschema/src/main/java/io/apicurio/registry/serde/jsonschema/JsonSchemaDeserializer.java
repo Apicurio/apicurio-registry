@@ -9,9 +9,9 @@ import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 
@@ -34,25 +34,25 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         super();
     }
 
-    public JsonSchemaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(client, schemaResolver);
+    public JsonSchemaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public JsonSchemaDeserializer(RegistryClient client) {
-        super(client);
+    public JsonSchemaDeserializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public JsonSchemaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
     }
 
-    public JsonSchemaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
-        super(client, strategy, schemaResolver);
+    public JsonSchemaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver,
+                                  ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
+        super(clientFacade, strategy, schemaResolver);
     }
 
-    public JsonSchemaDeserializer(RegistryClient client, Boolean validationEnabled) {
-        this(client);
+    public JsonSchemaDeserializer(RegistryClientFacade clientFacade, Boolean validationEnabled) {
+        this(clientFacade);
         this.validationEnabled = validationEnabled;
     }
 

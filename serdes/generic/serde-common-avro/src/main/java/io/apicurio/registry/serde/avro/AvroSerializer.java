@@ -3,9 +3,9 @@ package io.apicurio.registry.serde.avro;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import org.apache.avro.Schema;
@@ -29,22 +29,22 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
         super();
     }
 
-    public AvroSerializer(RegistryClient client) {
-        super(client);
+    public AvroSerializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public AvroSerializer(SchemaResolver<Schema, U> schemaResolver) {
         super(schemaResolver);
     }
 
-    public AvroSerializer(RegistryClient client, SchemaResolver<Schema, U> schemaResolver) {
-        super(client, schemaResolver);
+    public AvroSerializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public AvroSerializer(RegistryClient client,
-            ArtifactReferenceResolverStrategy<Schema, U> artifactResolverStrategy,
-            SchemaResolver<Schema, U> schemaResolver) {
-        super(client, artifactResolverStrategy, schemaResolver);
+    public AvroSerializer(RegistryClientFacade clientFacade,
+                          ArtifactReferenceResolverStrategy<Schema, U> artifactResolverStrategy,
+                          SchemaResolver<Schema, U> schemaResolver) {
+        super(clientFacade, artifactResolverStrategy, schemaResolver);
     }
 
     private AvroSerializer<U> setAvroDatumProvider(AvroDatumProvider<U> avroDatumProvider) {

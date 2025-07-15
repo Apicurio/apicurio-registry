@@ -7,8 +7,8 @@ import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 
@@ -31,26 +31,26 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         super();
     }
 
-    public JsonSchemaSerializer(RegistryClient client,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
-            SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(client, artifactResolverStrategy, schemaResolver);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade,
+                                ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
+                                SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(clientFacade, artifactResolverStrategy, schemaResolver);
     }
 
-    public JsonSchemaSerializer(RegistryClient client) {
-        super(client);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
-    public JsonSchemaSerializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(client, schemaResolver);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
     public JsonSchemaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
     }
 
-    public JsonSchemaSerializer(RegistryClient client, Boolean validationEnabled) {
-        this(client);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade, Boolean validationEnabled) {
+        this(clientFacade);
         this.validationEnabled = validationEnabled;
     }
 

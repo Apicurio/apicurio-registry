@@ -57,7 +57,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static final String CT_XML = "application/xml";
 
     public String registryApiBaseUrl;
+    protected String registryV2ApiUrl;
     protected String registryV3ApiUrl;
+    protected io.apicurio.registry.rest.client.v2.RegistryClient clientV2;
     protected RegistryClient clientV3;
     protected RestService confluentClient;
 
@@ -68,9 +70,19 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         vertx = Vertx.vertx();
         String serverUrl = "http://localhost:%s/apis";
         registryApiBaseUrl = String.format(serverUrl, testPort);
+        registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
         registryV3ApiUrl = registryApiBaseUrl + "/registry/v3";
+        clientV2 = createRestClientV2(vertx);
         clientV3 = createRestClientV3(vertx);
         confluentClient = buildConfluentClient();
+    }
+
+    public io.apicurio.registry.rest.client.v2.RegistryClient getClientV2() {
+        return clientV2;
+    }
+
+    public RegistryClient getClientV3() {
+        return clientV3;
     }
 
     @AfterAll
@@ -80,6 +92,13 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
 
     protected RestService buildConfluentClient() {
         return new RestService("http://localhost:" + testPort + "/apis/ccompat/v7");
+    }
+
+    protected io.apicurio.registry.rest.client.v2.RegistryClient createRestClientV2(Vertx vertx) {
+        RequestAdapter anonymousAdapter = new VertXRequestAdapter(vertx);
+        anonymousAdapter.setBaseUrl(registryV2ApiUrl);
+        var client = new io.apicurio.registry.rest.client.v2.RegistryClient(anonymousAdapter);
+        return client;
     }
 
     protected RegistryClient createRestClientV3(Vertx vertx) {

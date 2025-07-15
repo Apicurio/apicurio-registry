@@ -111,10 +111,19 @@ public class Condition {
     @JsonSetter(nulls = Nulls.SKIP)
     private String type;
 
+    /**
+     * Check that the conditions are semantically equivalent (i.e. ignoring timestamps, etc.).
+     */
     public static boolean isEquivalent(Condition left, Condition right) {
+        if (left == null && right == null) {
+            return true;
+        }
+        if (left == null || right == null) {
+            return false;
+        }
         return Objects.equals(left.type, right.type) &&
-               Objects.equals(left.status, right.status) &&
-               Objects.equals(left.reason, right.reason) &&
-               Objects.equals(left.message, right.message);
+                Objects.equals(left.status, right.status) &&
+                Objects.equals(left.reason, right.reason) &&
+                Objects.equals(left.message, right.message);
     }
 }

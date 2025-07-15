@@ -8,11 +8,10 @@ import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDep
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.UIServiceDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
-@KubernetesDependent(resourceDiscriminator = UIServiceDiscriminator.class)
+@KubernetesDependent
 public class UIServiceResource extends CRUDKubernetesDependentResource<Service, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(UIServiceResource.class);

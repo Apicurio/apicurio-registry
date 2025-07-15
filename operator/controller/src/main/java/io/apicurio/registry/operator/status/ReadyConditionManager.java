@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 import static io.apicurio.registry.operator.api.v1.status.ConditionConstants.TYPE_READY;
+import static io.apicurio.registry.operator.utils.Utils.getSecondaryResource;
 
 /**
  * Manages the condition that reports operand readiness.
@@ -49,12 +50,12 @@ public class ReadyConditionManager extends AbstractConditionManager {
         var ready = true;
         List<String> unavailable = new ArrayList<>();
         for (ResourceKey<Deployment> deploymentResourceKey : isActive) {
-            var r = context.getSecondaryResource(deploymentResourceKey.getKlass(), deploymentResourceKey.getDiscriminator())
-                    .map(d -> {
-                        return d.getStatus() != null && d.getStatus().getConditions().stream()
-                                .anyMatch(condition -> "Available".equals(condition.getType())
-                                                       && condition.getStatus().equalsIgnoreCase(ConditionStatus.TRUE.getValue()));
-                    }).orElse(false);
+            var r = getSecondaryResource(context, primary, deploymentResourceKey)
+                    // @formatter:off
+                    .map(d -> d.getStatus() != null && d.getStatus().getConditions().stream()
+                            .anyMatch(condition -> "Available".equals(condition.getType()) && condition.getStatus().equalsIgnoreCase(ConditionStatus.TRUE.getValue()))
+                    ).orElse(false);
+                    // @formatter:on
             if (!r) {
                 unavailable.add(deploymentResourceKey.getId());
             }

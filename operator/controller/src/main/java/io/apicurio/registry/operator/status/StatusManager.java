@@ -2,11 +2,9 @@ package io.apicurio.registry.operator.status;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Status;
-import io.apicurio.registry.operator.api.v1.status.Condition;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,19 +47,19 @@ public class StatusManager {
     }
 
     public ApicurioRegistry3 applyStatus(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-        var conditions = new ArrayList<Condition>();
+
+        var status = new ApicurioRegistry3Status();
+
         for (AbstractConditionManager conditionManager : conditionManagers) {
             conditionManager.updateCondition(primary, context);
             if (conditionManager.show()) {
-                var condition = conditionManager.getCondition();
-                //condition.setObservedGeneration(
-                //        primary.getMetadata() == null ? null : primary.getMetadata().getGeneration()); // TODO: Not needed?
-                conditions.add(condition);
+                status.getConditions().add(conditionManager.getCondition());
             }
         }
-        primary.setStatus(ApicurioRegistry3Status.builder()
-                .conditions(conditions)
-                .build());
+
+        status.setObservedGeneration(primary.getMetadata().getGeneration());
+
+        primary.setStatus(status);
         return primary;
     }
 }

@@ -101,7 +101,7 @@ public class TlsITTest extends ITBase {
         });
 
         int appServicePort = portForwardManager
-                .startPortForward(registry.getMetadata().getName() + "-app-service", 8443);
+                .startServicePortForward(registry.getMetadata().getName() + "-app-service", 8443);
 
         await().ignoreExceptions().until(() -> {
             given().relaxedHTTPSValidation("TLS").get(new URI("https://localhost:" + appServicePort + "/apis/registry/v3/system/info"))
@@ -174,7 +174,7 @@ public class TlsITTest extends ITBase {
         });
 
         int appServicePortInsecure = portForwardManager
-                .startPortForward(registry.getMetadata().getName() + "-app-service", 8080);
+                .startServicePortForward(registry.getMetadata().getName() + "-app-service", 8080);
 
         await().ignoreExceptions().until(() -> {
             given().get(new URI("http://localhost:" + appServicePortInsecure + "/apis/registry/v3/system/info"))
@@ -182,10 +182,10 @@ public class TlsITTest extends ITBase {
             return true;
         });
 
-        portForwardManager.stop();
+        portForwardManager.stop(appServicePortInsecure);
 
         int appServicePort = portForwardManager
-                .startPortForward(registry.getMetadata().getName() + "-app-service", 8443);
+                .startServicePortForward(registry.getMetadata().getName() + "-app-service", 8443);
 
         await().ignoreExceptions().until(() -> {
             given().relaxedHTTPSValidation("TLS").get(new URI("https://localhost:" + appServicePort + "/apis/registry/v3/system/info"))

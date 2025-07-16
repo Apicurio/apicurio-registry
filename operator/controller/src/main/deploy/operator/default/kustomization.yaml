@@ -11,6 +11,7 @@ labels:
       app.kubernetes.io/version: ${PLACEHOLDER_VERSION}
       app.kubernetes.io/component: operator
       app.kubernetes.io/part-of: apicurio-registry
+      app.kubernetes.io/instance: apicurio-registry-operator
     includeSelectors: true
     includeTemplates: true
 

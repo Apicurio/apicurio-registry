@@ -245,7 +245,7 @@ ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
 else
 	cp $(REMOTE_TESTS_ALL_INSTALL_FILE) controller/target/test-install.yaml
 endif
-	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
+	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment-type=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
 
 .PHONY: image-build
@@ -275,19 +275,24 @@ image: image-build image-push ## TODO
 .PHONY: deploy
 deploy: ## Deploy the Operator to a cluster using kubectl
 	kubectl create namespace $(NAMESPACE) || true
-	kubectl kustomize controller/src/main/deploy/install | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	kubectl kustomize controller/src/main/deploy/install/default | envsubst | kubectl -n $(NAMESPACE) apply -f -
 
 
 .PHONY: undeploy
 undeploy: ## TODO
-	kubectl kustomize controller/src/main/deploy/install | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	kubectl kustomize controller/src/main/deploy/install/default | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
 
 
 .PHONY: dist-install-file
 dist-install-file: ## TODO
 	mkdir -p $(dir $(INSTALL_FILE))
+ifeq ($(DEBUG),true)
 	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
-	kubectl kustomize controller/src/main/deploy/install | envsubst >$(INSTALL_FILE)
+	kubectl kustomize controller/src/main/deploy/install/debug | envsubst >$(INSTALL_FILE)
+else
+	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
+	kubectl kustomize controller/src/main/deploy/install/default | envsubst >$(INSTALL_FILE)
+endif
 
 
 .PHONY: dist

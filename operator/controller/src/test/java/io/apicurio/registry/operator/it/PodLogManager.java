@@ -33,6 +33,7 @@ public class PodLogManager {
         return id.getNamespace().orElse("default");
     }
 
+    // TODO: Support pod restarts.
     public void startPodLog(ResourceID podID) {
         k8sClient.pods().inNamespace(getNamespace(podID)).withName(podID.getName()).waitUntilReady(60,
                 SECONDS);

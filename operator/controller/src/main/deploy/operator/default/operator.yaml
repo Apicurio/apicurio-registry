@@ -5,11 +5,7 @@ metadata:
   namespace: ${PLACEHOLDER_NAMESPACE}
 spec:
   replicas: 1
-  selector:
-    matchLabels: { }
   template:
-    metadata:
-      labels: { }
     spec:
       containers:
         - name: apicurio-registry-operator

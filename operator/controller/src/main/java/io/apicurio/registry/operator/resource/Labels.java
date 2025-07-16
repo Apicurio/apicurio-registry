@@ -15,8 +15,8 @@ public final class Labels {
                 "app", primary.getMetadata().getName(),
                 "app.kubernetes.io/name", "apicurio-registry",
                 "app.kubernetes.io/component", component,
-                "app.kubernetes.io/instance", primary.getMetadata().getName(),
-                "app.kubernetes.io/part-of", "apicurio-registry"
+                "app.kubernetes.io/part-of", "apicurio-registry",
+                "app.kubernetes.io/instance", primary.getMetadata().getName()
         );
     }
 
@@ -25,8 +25,8 @@ public final class Labels {
                 "app", "apicurio-registry-operator",
                 "app.kubernetes.io/name", "apicurio-registry-operator",
                 "app.kubernetes.io/component", "operator",
-                "app.kubernetes.io/instance", "apicurio-registry-operator",
-                "app.kubernetes.io/part-of", "apicurio-registry"
+                "app.kubernetes.io/part-of", "apicurio-registry",
+                "app.kubernetes.io/instance", "apicurio-registry-operator"
         );
     }
 

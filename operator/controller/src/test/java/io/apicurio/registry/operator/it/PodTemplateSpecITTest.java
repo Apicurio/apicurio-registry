@@ -54,7 +54,7 @@ public class PodTemplateSpecITTest extends ITBase {
         });
 
         int appServicePort = portForwardManager
-                .startPortForward(registry.getMetadata().getName() + "-app-service", 8080);
+                .startServicePortForward(registry.getMetadata().getName() + "-app-service", 8080);
 
         await().ignoreExceptions().until(() -> {
             given().get(new URI("http://localhost:" + appServicePort

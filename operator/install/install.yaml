@@ -4,6 +4,7 @@ metadata:
   labels:
     app: apicurio-registry-operator
     app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
     app.kubernetes.io/version: 3.0.12-SNAPSHOT
@@ -6697,6 +6698,7 @@ metadata:
   labels:
     app: apicurio-registry-operator
     app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
     app.kubernetes.io/version: 3.0.12-SNAPSHOT
@@ -6708,6 +6710,7 @@ metadata:
   labels:
     app: apicurio-registry-operator
     app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
     app.kubernetes.io/version: 3.0.12-SNAPSHOT
@@ -6774,6 +6777,7 @@ metadata:
   labels:
     app: apicurio-registry-operator
     app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
     app.kubernetes.io/version: 3.0.12-SNAPSHOT
@@ -6793,6 +6797,7 @@ metadata:
   labels:
     app: apicurio-registry-operator
     app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
     app.kubernetes.io/version: 3.0.12-SNAPSHOT
@@ -6804,6 +6809,7 @@ spec:
     matchLabels:
       app: apicurio-registry-operator
       app.kubernetes.io/component: operator
+      app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
       app.kubernetes.io/version: 3.0.12-SNAPSHOT
@@ -6812,6 +6818,7 @@ spec:
       labels:
         app: apicurio-registry-operator
         app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
         app.kubernetes.io/version: 3.0.12-SNAPSHOT

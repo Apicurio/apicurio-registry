@@ -144,7 +144,9 @@ jobs:
           name: apicurio-registry-${{ github.sha }}.tar
 
       - name: Load temporary Docker image
-        run: docker load -i apicurio-registry-${{ github.sha }}.tar
+        run: |
+          docker load -i apicurio-registry-${{ github.sha }}.tar
+          docker images apicurio/*
 
       - name: Load temporary Docker image into Minikube
         run: minikube image load apicurio/apicurio-registry:${{ github.sha }}

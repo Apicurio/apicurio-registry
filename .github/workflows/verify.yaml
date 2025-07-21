@@ -239,6 +239,7 @@ jobs:
       - name: Build Temporary image for testing
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.native -t apicurio/apicurio-registry-native:${{ github.sha }} app/
+          docker save apicurio/apicurio-registry-native:${{ github.sha }} -o apicurio-registry-native-${{ github.sha }}.tar
 
       - name: Setup Minikube
         uses: manusa/actions-setup-minikube@v2.13.0
@@ -252,7 +253,7 @@ jobs:
         run: minikube tunnel &> /dev/null &
 
       - name: Load temporary Docker image into Minikube
-        run: minikube image load apicurio/apicurio-registry-native:${{ github.sha }}
+        run: minikube image load apicurio-registry-native-${{ github.sha }}.tar
 
       - name: Run Integration Tests - Native
         run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=apicurio/apicurio-registry-native:${{ github.sha }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true

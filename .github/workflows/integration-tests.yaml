@@ -148,7 +148,10 @@ jobs:
           docker load -i apicurio-registry-${{ github.sha }}.tar
 
       - name: Load temporary Docker image into Minikube
-        run: minikube image load apicurio-registry-${{ github.sha }}.tar
+        run: |
+          minikube image load apicurio-registry-${{ github.sha }}.tar
+          echo "Verifying image in minikube..."
+          minikube image ls | grep apicurio-registry || echo "Image not found in minikube!"
 
       - name: Run Integration Tests - H2
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
@@ -204,7 +207,10 @@ jobs:
         run: docker load -i apicurio-registry-${{ github.sha }}.tar
 
       - name: Load temporary Docker image into Minikube
-        run: minikube image load apicurio-registry-${{ github.sha }}.tar
+        run: |
+          minikube image load apicurio-registry-${{ github.sha }}.tar
+          echo "Verifying image in minikube..."
+          minikube image ls | grep apicurio-registry || echo "Image not found in minikube!"
 
       - name: Run Integration Tests - Postgresql
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
@@ -261,7 +267,10 @@ jobs:
         run: docker load -i apicurio-registry-${{ github.sha }}.tar
 
       - name: Load temporary Docker image into Minikube
-        run: minikube image load apicurio-registry-${{ github.sha }}.tar
+        run: |
+          minikube image load apicurio-registry-${{ github.sha }}.tar
+          echo "Verifying image in minikube..."
+          minikube image ls | grep apicurio-registry || echo "Image not found in minikube!"
 
       - name: Run Integration Tests - Kafkasql
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true

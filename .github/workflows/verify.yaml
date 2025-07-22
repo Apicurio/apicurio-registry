@@ -238,7 +238,7 @@ jobs:
 
       - name: Build Temporary image for testing
         run: |
-          docker build -f ./distro/docker/target/docker/Dockerfile.native -t ghcr.io/apicurio/apicurio-registry-native:${{ github.sha }} app/
+          docker build -f ./distro/docker/target/docker/Dockerfile.native -t quay.io/apicurio-ci/apicurio-registry-native:$(date --rfc-3339=date)_${{ github.sha }} app/
 
       - name: Push Temporary image for testing
         uses: nick-fields/retry@v3
@@ -248,8 +248,8 @@ jobs:
           retry_on: error
           retry_wait_seconds: 60
           command: |
-            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u apicurio-ci --password-stdin
-            docker push ghcr.io/apicurio/apicurio-registry-native:${{ github.sha }}
+            echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
+            docker push quay.io/apicurio-ci/apicurio-registry-native:$(date --rfc-3339=date)_${{ github.sha }}
 
       - name: Setup Minikube
         uses: manusa/actions-setup-minikube@v2.13.0
@@ -263,10 +263,10 @@ jobs:
         run: minikube tunnel &> /dev/null &
 
       - name: Run Integration Tests - Native
-        run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=ghcr.io/apicurio/apicurio-registry-native:${{ github.sha }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=quay.io/apicurio-ci/apicurio-registry-native:$(date --rfc-3339=date)_${{ github.sha }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Run Integration Tests - Native - Auth
-        run: ./mvnw verify -am -Pauth --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=ghcr.io/apicurio/apicurio-registry-native:${{ github.sha }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+        run: ./mvnw verify -am -Pauth --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=quay.io/apicurio-ci/apicurio-registry-native:$(date --rfc-3339=date)_${{ github.sha }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()

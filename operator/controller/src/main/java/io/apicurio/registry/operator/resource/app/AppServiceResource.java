@@ -16,11 +16,10 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Optional;
 
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppServiceDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_KEY;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
-@KubernetesDependent(resourceDiscriminator = AppServiceDiscriminator.class)
+@KubernetesDependent
 public class AppServiceResource extends CRUDKubernetesDependentResource<Service, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(AppServiceResource.class);
@@ -51,8 +50,7 @@ public class AppServiceResource extends CRUDKubernetesDependentResource<Service,
 
                     if (TLS.insecureRequestsEnabled(tls)) {
                         s.getSpec().setPorts(List.of(httpsPort, httpPort));
-                    }
-                    else {
+                    } else {
                         s.getSpec().setPorts(List.of(httpsPort));
                     }
                 });

@@ -1,0 +1,45 @@
+name: Clean quay.io/apicurio-ci
+on:
+  schedule:
+    - cron: "0 2 * * *"
+
+jobs:
+
+  quay-clean:
+    name: Clean quay.io/apicurio-ci
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Install crane
+        uses: imjasonh/setup-crane@v0.4
+
+      - name: Clean
+        run: |
+          crane auth login -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} -p ${{ vars.QUAY_TMP_ONLY_PASSWORD }} quay.io
+          for REGISTRY in apicurio-registry apicurio-registry-native apicurio-registry-ui apicurio-registry-3-operator apicurio-registry-3-operator-bundle apicurio-registry-3-operator-catalog; do
+            crane ls quay.io/apicurio-ci/$REGISTRY | grep -v "^$(date --rfc-3339=date)_.*" | grep -v "^$(date --rfc-3339=date -d '1 day ago')_.*" | xargs -I{} crane delete quay.io/apicurio-ci/$REGISTRY:{}
+          done
+
+      - name: Slack Notification (Always)
+        if: always()
+        run: |
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}"
+
+      - name: Slack Notification (Error)
+        if: failure()
+        run: |
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.SLACK_ERROR_WEBHOOK }}"

@@ -23,17 +23,16 @@ jobs:
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
 
-      - name: Configure env. variables 1
-        run: |
-          echo "UUID=$(uuidgen)" >> $GITHUB_ENV
+      - name: Login to quay.io TMP ONLY
+        run: echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
 
       # We need tho push the bundle image because opm always pulls; the catalog image because OLM
       # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
-      - name: Configure env. variables 2
+      - name: Configure env. variables
         run: |
-          echo "IMAGE=ttl.sh/apicurio-registry-3-operator-$UUID:8h" >> $GITHUB_ENV
-          echo "BUNDLE_IMAGE=ttl.sh/apicurio-registry-3-operator-bundle-$UUID:8h" >> $GITHUB_ENV
-          echo "CATALOG_IMAGE=ttl.sh/apicurio-registry-3-operator-catalog-$UUID:8h" >> $GITHUB_ENV
+          echo "IMAGE=quay.io/apicurio-ci/apicurio-registry-3-operator:$(date --rfc-3339=date)_${{ github.sha }}" >> $GITHUB_ENV
+          echo "BUNDLE_IMAGE=quay.io/apicurio-ci/apicurio-registry-3-operator-bundle:$(date --rfc-3339=date)_${{ github.sha }}" >> $GITHUB_ENV
+          echo "CATALOG_IMAGE=quay.io/apicurio-ci/apicurio-registry-3-operator-catalog:$(date --rfc-3339=date)_${{ github.sha }}" >> $GITHUB_ENV
 
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@v4
@@ -106,24 +105,24 @@ jobs:
 
       # Uncomment if you need to debug the tests:
 
-#      - name: Install debug tools on failure
-#        if: failure()
-#        run: |
-#          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-#          echo >> /home/runner/.bashrc
-#          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
-#          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-#          brew install derailed/k9s/k9s
-#          . ~/.bashrc
-#          # Run tests e.g.:
-#          # make BUILD_OPTS=--no-transfer-progress test-remote-all &> 1.log &
-#          # tail -f 1.log
-#
-#      - name: Setup tmate session on failure
-#        if: failure()
-#        uses: mxschmitt/action-tmate@v3
-#        with:
-#          limit-access-to-actor: true
+  #      - name: Install debug tools on failure
+  #        if: failure()
+  #        run: |
+  #          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  #          echo >> /home/runner/.bashrc
+  #          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
+  #          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  #          brew install derailed/k9s/k9s
+  #          . ~/.bashrc
+  #          # Run tests e.g.:
+  #          # make BUILD_OPTS=--no-transfer-progress test-remote-all &> 1.log &
+  #          # tail -f 1.log
+  #
+  #      - name: Setup tmate session on failure
+  #        if: failure()
+  #        uses: mxschmitt/action-tmate@v3
+  #        with:
+  #          limit-access-to-actor: true
 
   operator-publish:
     name: Publish Operator

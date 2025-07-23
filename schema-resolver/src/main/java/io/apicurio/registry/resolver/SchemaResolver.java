@@ -1,10 +1,10 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
 
 import java.io.Closeable;
 import java.util.Map;
@@ -13,14 +13,11 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
 
     /**
      * Configure, if supported.
-     *
-     * @param configs the configs
-     * @param isKey are we handling key or value
      */
     default void configure(Map<String, ?> configs, SchemaParser<SCHEMA, DATA> schemaMapper) {
     }
 
-    public void setClient(RegistryClient client);
+    public void setClientFacade(RegistryClientFacade clientFacade);
 
     public void setArtifactResolverStrategy(
             ArtifactReferenceResolverStrategy<SCHEMA, DATA> artifactResolverStrategy);

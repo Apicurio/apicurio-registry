@@ -2,8 +2,8 @@ package io.apicurio.registry.serde.protobuf;
 
 import com.google.protobuf.Message;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.KafkaDeserializer;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import org.apache.kafka.common.header.Headers;
@@ -19,23 +19,23 @@ public class ProtobufKafkaDeserializer<U extends Message> extends KafkaDeseriali
         super(new ProtobufDeserializer<>());
     }
 
-    public ProtobufKafkaDeserializer(RegistryClient client) {
-        super(new ProtobufDeserializer<>(client));
+    public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade) {
+        super(new ProtobufDeserializer<>(clientFacade));
     }
 
     public ProtobufKafkaDeserializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(new ProtobufDeserializer<>(schemaResolver));
     }
 
-    public ProtobufKafkaDeserializer(RegistryClient client,
-            SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufDeserializer<>(client, schemaResolver));
+    public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade,
+                                     SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(new ProtobufDeserializer<>(clientFacade, schemaResolver));
     }
 
-    public ProtobufKafkaDeserializer(RegistryClient client,
-            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
-            SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufDeserializer<>(client, schemaResolver, strategy));
+    public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade,
+                                     ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
+                                     SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(new ProtobufDeserializer<>(clientFacade, schemaResolver, strategy));
     }
 
     @Override

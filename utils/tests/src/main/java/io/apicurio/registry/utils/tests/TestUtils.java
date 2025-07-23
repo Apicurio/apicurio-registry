@@ -266,8 +266,16 @@ public class TestUtils {
         return UUID.randomUUID().toString();
     }
 
+    public static String generateArtifactId(String prefix) {
+        return prefix + "-" + generateArtifactId();
+    }
+
     public static String generateGroupId() {
         return UUID.randomUUID().toString();
+    }
+
+    public static String generateGroupId(String prefix) {
+        return prefix + "-" + generateGroupId();
     }
 
     public static String generateAvroName() {

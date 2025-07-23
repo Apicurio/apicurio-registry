@@ -20,6 +20,7 @@ import io.apicurio.registry.resolver.AbstractSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
@@ -71,6 +72,8 @@ public class CustomSchemaResolver<D> extends AbstractSchemaResolver<Schema, D> {
             createArtifact.getFirstVersion().setContent(new VersionContent());
             createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(schemaContent));
             createArtifact.getFirstVersion().getContent().setContentType("application/json");
+
+            RegistryClient client = (RegistryClient) this.clientFacade.getClient();
 
             final VersionMetaData metaData = client.groups().byGroupId("default").artifacts()
                     .post(createArtifact, config -> {

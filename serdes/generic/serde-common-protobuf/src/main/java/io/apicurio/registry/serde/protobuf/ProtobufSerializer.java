@@ -5,8 +5,8 @@ import io.apicurio.registry.protobuf.ProtobufDifference;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
@@ -29,27 +29,27 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
         super();
     }
 
-    public ProtobufSerializer(RegistryClient client,
-            ArtifactReferenceResolverStrategy<ProtobufSchema, U> artifactResolverStrategy,
-            SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(client, artifactResolverStrategy, schemaResolver);
+    public ProtobufSerializer(RegistryClientFacade clientFacade,
+                              ArtifactReferenceResolverStrategy<ProtobufSchema, U> artifactResolverStrategy,
+                              SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(clientFacade, artifactResolverStrategy, schemaResolver);
     }
 
-    public ProtobufSerializer(RegistryClient client) {
-        super(client);
+    public ProtobufSerializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public ProtobufSerializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(schemaResolver);
     }
 
-    public ProtobufSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(client, schemaResolver);
+    public ProtobufSerializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public ProtobufSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver,
-            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
-        super(client, strategy, schemaResolver);
+    public ProtobufSerializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver,
+                              ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
+        super(clientFacade, strategy, schemaResolver);
     }
 
     @Override

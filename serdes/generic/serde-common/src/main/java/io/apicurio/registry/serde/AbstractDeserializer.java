@@ -4,10 +4,10 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.config.SerdeDeserializerConfig;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
@@ -26,21 +26,21 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         this.baseSerde = new BaseSerde<>();
     }
 
-    public AbstractDeserializer(RegistryClient client) {
-        this.baseSerde = new BaseSerde<>(client);
+    public AbstractDeserializer(RegistryClientFacade clientFacade) {
+        this.baseSerde = new BaseSerde<>(clientFacade);
     }
 
     public AbstractDeserializer(SchemaResolver<T, U> schemaResolver) {
         this.baseSerde = new BaseSerde<>(schemaResolver);
     }
 
-    public AbstractDeserializer(RegistryClient client, SchemaResolver<T, U> schemaResolver) {
-        this.baseSerde = new BaseSerde<>(client, schemaResolver);
+    public AbstractDeserializer(RegistryClientFacade clientFacade, SchemaResolver<T, U> schemaResolver) {
+        this.baseSerde = new BaseSerde<>(clientFacade, schemaResolver);
     }
 
-    public AbstractDeserializer(RegistryClient client, ArtifactReferenceResolverStrategy<T, U> strategy,
-            SchemaResolver<T, U> schemaResolver) {
-        this.baseSerde = new BaseSerde<>(client, strategy, schemaResolver);
+    public AbstractDeserializer(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<T, U> strategy,
+                                SchemaResolver<T, U> schemaResolver) {
+        this.baseSerde = new BaseSerde<>(clientFacade, strategy, schemaResolver);
     }
 
     public BaseSerde<T, U> getSerdeConfigurer() {

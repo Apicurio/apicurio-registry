@@ -3027,7 +3027,7 @@
                 }
             ]
         },
-        "/ids/contentIds/{contentId}/": {
+        "/ids/contentIds/{contentId}": {
             "summary": "Access artifact content utilizing the unique content identifier for that content.",
             "get": {
                 "tags": [
@@ -3061,7 +3061,7 @@
                 }
             ]
         },
-        "/ids/contentHashes/{contentHash}/": {
+        "/ids/contentHashes/{contentHash}": {
             "summary": "Access artifact content utilizing the SHA-256 hash of the content.",
             "get": {
                 "tags": [

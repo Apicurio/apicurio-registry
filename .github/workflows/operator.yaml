@@ -23,8 +23,7 @@ jobs:
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
 
-      - name: Login to quay.io TMP ONLY
-        run: echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
+      - uses: ./.github/workflows/composite/quay-apicurio-ci
 
       # We need tho push the bundle image because opm always pulls; the catalog image because OLM
       # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
@@ -47,6 +46,8 @@ jobs:
       - uses: ./.github/workflows/composite/setup-minikube
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          ingress_enable: 'true'
+          olm_enable: 'true'
 
       - name: Build only
         if: github.event_name != 'push'

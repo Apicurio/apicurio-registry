@@ -50,20 +50,12 @@ jobs:
       - name: Build Application
         run: ./mvnw clean package -am --no-transfer-progress -Pprod -DskipTests=true -Dmaven.javadoc.skip=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
+      - uses: ./.github/workflows/composite/quay-apicurio-ci
+
       - name: Build temporary Application image
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t quay.io/apicurio-ci/apicurio-registry:$(date --rfc-3339=date)_${{ github.sha }} ./distro/docker/target/docker
-
-      - name: Push Temporary image for testing
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_on: error
-          retry_wait_seconds: 60
-          command: |
-            echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
-            docker push quay.io/apicurio-ci/apicurio-registry:$(date --rfc-3339=date)_${{ github.sha }}
+          docker push quay.io/apicurio-ci/apicurio-registry:$(date --rfc-3339=date)_${{ github.sha }}
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests
@@ -99,22 +91,13 @@ jobs:
         working-directory: ui
         run: npm run package
 
+      - uses: ./.github/workflows/composite/quay-apicurio-ci
+
       - name: Build UI container image
         working-directory: ui
         run: |
           docker build -t quay.io/apicurio-ci/apicurio-registry-ui:$(date --rfc-3339=date)_${{ github.sha }} .
-
-      - name: Push Temporary UI image for testing
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_on: error
-          retry_wait_seconds: 60
-          command: |
-            cd ui
-            echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
-            docker push quay.io/apicurio-ci/apicurio-registry-ui:$(date --rfc-3339=date)_${{ github.sha }}
+          docker push quay.io/apicurio-ci/apicurio-registry-ui:$(date --rfc-3339=date)_${{ github.sha }}      
 
   integration-tests-h2:
     name: Integration Tests H2
@@ -130,19 +113,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.13.0
+      - uses: ./.github/workflows/composite/setup-minikube
         with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Login to quay.io TMP ONLY
-        run: echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Integration Tests - H2
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-in-memory-image=quay.io/apicurio-ci/apicurio-registry:$(date --rfc-3339=date)_${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
@@ -178,19 +151,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.13.0
+      - uses: ./.github/workflows/composite/setup-minikube
         with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
-
-      - name: Login to quay.io TMP ONLY
-        run: echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Integration Tests - Postgresql
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=quay.io/apicurio-ci/apicurio-registry:$(date --rfc-3339=date)_${{ github.sha }}  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
@@ -227,19 +190,12 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.13.0
+      - uses: ./.github/workflows/composite/setup-minikube
         with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare minikube tunnel
         run: minikube tunnel &> /dev/null &
-
-      - name: Login to quay.io TMP ONLY
-        run: echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
 
       - name: Run Integration Tests - Kafkasql
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=quay.io/apicurio-ci/apicurio-registry:$(date --rfc-3339=date)_${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
@@ -267,7 +223,7 @@ jobs:
   integration-tests-ui:
     name: Integration Tests UI
     runs-on: ubuntu-22.04
-    needs: [prepare-ui-tests, prepare-integration-tests]
+    needs: [ prepare-ui-tests, prepare-integration-tests ]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -278,9 +234,6 @@ jobs:
           node-version: 18
           cache: 'npm'
           cache-dependency-path: 'ui/tests/package-lock.json'
-
-      - name: Login to quay.io TMP ONLY
-        run: echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
 
       - name: Run UI tests
         run: |
@@ -347,9 +300,6 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Login to quay.io TMP ONLY
-        run: echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
-
       - name: Run Legacy Integration Tests (Core API v2)
         run: |
           echo "Starting Registry App (In Memory)"
@@ -375,11 +325,9 @@ jobs:
     runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
+
       - name: Checkout Code
         uses: actions/checkout@v3
-
-      - name: Login to quay.io TMP ONLY
-        run: echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
 
       - name: Run SDK tests
         run: |
@@ -407,9 +355,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
-
-      - name: Login to quay.io TMP ONLY
-        run: echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
 
       - name: Run Apicurio Registry application
         run: docker run -d -p 8080:8080 -it quay.io/apicurio-ci/apicurio-registry:$(date --rfc-3339=date)_${{ github.sha }}

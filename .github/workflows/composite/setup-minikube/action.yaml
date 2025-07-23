@@ -4,6 +4,12 @@ inputs:
   github_token:
     description: GitHub token
     required: true
+  ingress_enable:
+    description: Install an Ingress controller
+    default: 'false'
+  olm_enable:
+    description: Install OLM
+    default: 'false'
   olm_version:
     description: OLM version to install
     default: 0.32.0 # See https://github.com/operator-framework/operator-lifecycle-manager/releases
@@ -20,12 +26,14 @@ runs:
     - name: Setup Minikube
       uses: manusa/actions-setup-minikube@v2.13.0
       with:
-        'minikube version': v1.33.1
-        'kubernetes version': v1.25.0
-        'github token': ${{ inputs.github_token }}
-        'start args': --force
+        driver: docker
+        minikube version: v1.36.0 # As of 2025-07-23
+        kubernetes version: v1.33.3 # ^
+        github token: ${{ inputs.github_token }}
+        start args: --force
 
     - name: Enable Ingress
+      if: inputs.ingress_enable == 'true'
       shell: bash
       run: |
         minikube addons enable ingress
@@ -57,6 +65,7 @@ runs:
       # Normal   BackOff         3m45s (x21 over 8m44s)  kubelet            Back-off pulling image "quay.io/operatorhubio/catalog@sha256:e08a1cd21fe72dd1be92be738b4bf1515298206dac5479c17a4b3ed119e30bd4"
       #
       # and the OLM smoke test was failing.
+      if: inputs.olm_enabled == 'true'
       shell: bash
       run: |
         curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v${{ inputs.olm_version }}/install.sh -o install-olm.sh

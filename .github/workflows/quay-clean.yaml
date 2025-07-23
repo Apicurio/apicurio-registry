@@ -19,9 +19,11 @@ jobs:
       - name: Install crane
         uses: imjasonh/setup-crane@v0.4
 
+      - uses: ./.github/workflows/composite/quay-apicurio-ci
+
       - name: Clean
         run: |
-          crane auth login -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} -p ${{ vars.QUAY_TMP_ONLY_PASSWORD }} quay.io
+          crane auth login -u $QUAY_TMP_ONLY_USERNAME -p $QUAY_TMP_ONLY_PASSWORD quay.io
           for REGISTRY in apicurio-registry apicurio-registry-native apicurio-registry-ui apicurio-registry-3-operator apicurio-registry-3-operator-bundle apicurio-registry-3-operator-catalog; do
             crane ls quay.io/apicurio-ci/$REGISTRY | grep -v "^$(date --rfc-3339=date)_.*" | grep -v "^$(date --rfc-3339=date -d '1 day ago')_.*" | xargs -I{} crane delete quay.io/apicurio-ci/$REGISTRY:{}
           done

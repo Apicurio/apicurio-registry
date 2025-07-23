@@ -236,31 +236,16 @@ jobs:
         run: |
           ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
 
+      - uses: ./.github/workflows/composite/quay-apicurio-ci
+
       - name: Build Temporary image for testing
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.native -t quay.io/apicurio-ci/apicurio-registry-native:$(date --rfc-3339=date)_${{ github.sha }} app/
+          docker push quay.io/apicurio-ci/apicurio-registry-native:$(date --rfc-3339=date)_${{ github.sha }}
 
-      - name: Push Temporary image for testing
-        uses: nick-fields/retry@v3
+      - uses: ./.github/workflows/composite/setup-minikube
         with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_on: error
-          retry_wait_seconds: 60
-          command: |
-            echo ${{ vars.QUAY_TMP_ONLY_PASSWORD }} | docker login quay.io -u ${{ vars.QUAY_TMP_ONLY_USERNAME }} --password-stdin
-            docker push quay.io/apicurio-ci/apicurio-registry-native:$(date --rfc-3339=date)_${{ github.sha }}
-
-      - name: Setup Minikube
-        uses: manusa/actions-setup-minikube@v2.13.0
-        with:
-          minikube version: 'v1.31.1'
-          kubernetes version: 'v1.26.3'
-          github token: ${{ secrets.GITHUB_TOKEN }}
-          driver: docker
-
-      - name: Prepare minikube tunnel
-        run: minikube tunnel &> /dev/null &
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Integration Tests - Native
         run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=quay.io/apicurio-ci/apicurio-registry-native:$(date --rfc-3339=date)_${{ github.sha }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true

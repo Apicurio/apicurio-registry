@@ -24,7 +24,7 @@ spec:
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: kafka-service:9092
           image: quay.io/apicurio/apicurio-registry-kafkasql:2.1.2.Final
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3
             httpGet:

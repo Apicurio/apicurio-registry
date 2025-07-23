@@ -1,0 +1,42 @@
+name: Load temporary docker image
+
+inputs:
+  image:
+    description: Image to load
+    required: true
+  download:
+    description: Download the image artifact
+    default: 'true'
+  minikube:
+    description: Load the image into Minikube
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+
+    - name: Compute artifact name
+      shell: bash
+      run: |
+        export ARTIFACT_NAME=$(echo ${{ inputs.image }} | sed 's|/|__slash__|' | sed 's|:|__tag__|')
+        echo "ARTIFACT_NAME=$ARTIFACT_NAME.tar" >> $GITHUB_ENV         
+
+    - name: Download the image artifact
+      uses: actions/download-artifact@v4
+      if: inputs.download == 'true'
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+
+    - name: Load temporary image
+      if: inputs.download == 'true'
+      shell: bash
+      run: |
+        docker load -i $ARTIFACT_NAME
+
+    - name: Load temporary image into Minikube
+      if: inputs.minikube == 'true'
+      shell: bash
+      run: |
+        minikube image load $ARTIFACT_NAME
+        echo "Verifying image in Minikube..."
+        minikube image ls | grep ${{ inputs.image }} || echo "Image ${{ inputs.image }} not found in Minikube!"

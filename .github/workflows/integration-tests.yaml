@@ -54,9 +54,12 @@ jobs:
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t apicurio/apicurio-registry:${{ github.sha }} ./distro/docker/target/docker
 
-      - uses: ./.github/workflows/composite/save-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/save-docker-image@v2
         with:
-          image: apicurio/apicurio-registry:${{ github.sha }}
+          image-name: apicurio/apicurio-registry
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
 
   prepare-ui-tests:
     name: Prepare for UI Integration Tests
@@ -97,9 +100,12 @@ jobs:
         run: |
           docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
 
-      - uses: ./.github/workflows/composite/save-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/save-docker-image@v2
         with:
-          image: apicurio/apicurio-registry-ui:${{ github.sha }}
+          image-name: apicurio/apicurio-registry-ui
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-ui-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-ui-${{ github.sha }}.tar'
 
   integration-tests-h2:
     name: Integration Tests H2
@@ -116,14 +122,15 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: ./.github/workflows/composite/setup-minikube
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
 
-      - uses: ./.github/workflows/composite/load-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
         with:
-          image: apicurio/apicurio-registry:${{ github.sha }}
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
           minikube: 'true'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
 
       - name: Run Integration Tests - H2
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
@@ -160,14 +167,15 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: ./.github/workflows/composite/setup-minikube
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
 
-      - uses: ./.github/workflows/composite/load-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
         with:
-          image: apicurio/apicurio-registry:${{ github.sha }}
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
           minikube: 'true'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
 
       - name: Run Integration Tests - Postgresql
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
@@ -205,14 +213,15 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: ./.github/workflows/composite/setup-minikube
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
 
-      - uses: ./.github/workflows/composite/load-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
         with:
-          image: apicurio/apicurio-registry:${{ github.sha }}
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
           minikube: 'true'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
 
       - name: Run Integration Tests - Kafkasql
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
@@ -252,13 +261,19 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/tests/package-lock.json'
 
-      - uses: ./.github/workflows/composite/load-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
         with:
-          image: apicurio/apicurio-registry:${{ github.sha }}
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
 
-      - uses: ./.github/workflows/composite/load-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
         with:
-          image: apicurio/apicurio-registry-ui:${{ github.sha }}
+          artifact-name: 'apicurio-registry-ui-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-ui-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry-ui'
+          tag: '${{ github.sha }}'
 
       - name: Run UI tests
         run: |
@@ -330,9 +345,12 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: ../apicurio-registry-main/.github/workflows/composite/load-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
         with:
-          image: apicurio/apicurio-registry:${{ github.sha }}
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
 
       - name: Run Legacy Integration Tests (Core API v2)
         run: |
@@ -361,9 +379,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - uses: ./.github/workflows/composite/load-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
         with:
-          image: apicurio/apicurio-registry:${{ github.sha }}
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
 
       - name: Run SDK tests
         run: |
@@ -390,9 +411,12 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: ./.github/workflows/composite/load-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
         with:
-          image: apicurio/apicurio-registry:${{ github.sha }}
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
 
       - name: Run Apicurio Registry application
         run: |

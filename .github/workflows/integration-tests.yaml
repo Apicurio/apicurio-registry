@@ -332,12 +332,6 @@ jobs:
         with:
           ref: 2.6.x
 
-      - name: Checkout Registry 3
-        # To be able to use the composite action
-        uses: actions/checkout@v4
-        with:
-          path: ../apicurio-registry-main
-
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:

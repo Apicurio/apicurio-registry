@@ -240,18 +240,20 @@ jobs:
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.native -t apicurio/apicurio-registry-native:${{ github.sha }} app/
 
-      - uses: ./.github/workflows/composite/save-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/save-docker-image@v2
         with:
-          image: apicurio/apicurio-registry-native:${{ github.sha }}
+          image-name: apicurio/apicurio-registry-native
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-native-${{ github.sha }}.tar'
           upload: 'false'
 
-      - uses: ./.github/workflows/composite/setup-minikube
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
 
-      - uses: ./.github/workflows/composite/load-tmp-docker-image
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
         with:
-          image: apicurio/apicurio-registry-native:${{ github.sha }}
+          image-file: '/tmp/apicurio-registry-native-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry-native'
+          tag: '${{ github.sha }}'
           download: 'false'
           minikube: 'true'
 

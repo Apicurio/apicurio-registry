@@ -41,11 +41,10 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - uses: ./.github/workflows/composite/setup-minikube
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          ingress_enable: 'true'
-          olm_enable: 'true'
+          ingress-enable: 'true'
+          olm-enable: 'true'
 
       - name: Build only
         if: github.event_name != 'push'

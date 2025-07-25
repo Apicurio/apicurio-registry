@@ -24,11 +24,16 @@ runs:
         sudo apt-get -y install socat
 
     - name: Setup Minikube
-      uses: manusa/actions-setup-minikube@v2.13.0
+      # NOTE: Check for [supported](https://github.com/manusa/actions-setup-minikube/blob/master/.github/workflows/runner.yml#L15)
+      # and [unsupported](https://github.com/manusa/actions-setup-minikube/blob/master/.github/workflows/runner.yml#L129) versions
+      # if the tests are failing.
+      uses: manusa/actions-setup-minikube@v2.14.0
       with:
-        driver: docker
-        minikube version: v1.36.0 # As of 2025-07-23
-        kubernetes version: v1.33.3 # ^
+        # driver: docker
+        # minikube version: v1.36.0 # As of 2025-07-23
+        # kubernetes version: v1.33.3 # ^
+        minikube version: v1.35.0
+        kubernetes version: v1.33.0
         github token: ${{ inputs.github_token }}
         start args: --force
 

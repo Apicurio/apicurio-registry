@@ -77,6 +77,36 @@ jobs:
         run: |
           make catalog
 
+      # === debug ===
+
+      - name: setup
+        working-directory: operator
+        run: |
+          make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
+
+      - name: Install debug tools
+        run: |
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo >> /home/runner/.bashrc
+          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew install derailed/k9s/k9s
+          . ~/.bashrc
+          # Run tests e.g.:
+          # make BUILD_OPTS=--no-transfer-progress test-remote-all &> 1.log &
+          # tail -f 1.log
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+
+      - name: stop
+        run: |
+          exit 1
+
+      # ===
+
       - name: Run remote and OLM tests on Minikube
         working-directory: operator
         run: |

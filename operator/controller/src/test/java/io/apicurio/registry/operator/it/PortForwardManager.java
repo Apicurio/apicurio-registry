@@ -1,6 +1,9 @@
 package io.apicurio.registry.operator.it;
 
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,25 +24,49 @@ public class PortForwardManager {
 
     private final Map<Integer, LocalPortForward> portForwardMap = new HashMap<>();
 
-    public PortForwardManager(KubernetesClient k8sClient, String namespace) {
-        this.k8sClient = k8sClient;
+    public PortForwardManager(String namespace) {
+        // We need higher timeouts for remote debugging. Since the default client is shared with the local operator,
+        // we will rather create another client instance than change the defaults.
+        this.k8sClient = new KubernetesClientBuilder()
+                .withConfig(new ConfigBuilder(Config.autoConfigure(null))
+                        .withNamespace(namespace)
+                        .withRequestTimeout(100*1000)
+                        .withConnectionTimeout(100*1000)
+                        .build())
+                .build();
         this.namespace = namespace;
     }
 
-    public int startPortForward(String targetService, int targetPort) {
-        int localPort = nextLocalPort++;
-        var pf = k8sClient.services().inNamespace(namespace).withName(targetService).portForward(targetPort,
-                localPort);
+    public synchronized int startPodPortForward(String targetPod, int targetPort, int localPort) {
+        check(localPort);
+        var pf = k8sClient.pods().inNamespace(namespace).withName(targetPod).portForward(targetPort, localPort);
         portForwardMap.put(localPort, pf);
         return localPort;
     }
 
-    public void stop() {
+    public synchronized int startServicePortForward(String targetService, int targetPort, int localPort) {
+        check(localPort);
+        var pf = k8sClient.services().inNamespace(namespace).withName(targetService).portForward(targetPort, localPort);
+        portForwardMap.put(localPort, pf);
+        return localPort;
+    }
+
+    private void check(int localPort) {
+        if (portForwardMap.containsKey(localPort)) {
+            throw new IllegalArgumentException("Port " + localPort + " is already in use.");
+        }
+    }
+
+    public int startServicePortForward(String targetService, int targetPort) {
+        return startServicePortForward(targetService, targetPort, nextLocalPort++);
+    }
+
+    public synchronized void stop() {
         portForwardMap.values().forEach(pf -> {
             try {
                 pf.close();
             } catch (IOException ex) {
-                log.error("Could not close port forward " + pf, ex);
+                log.error("Could not close port forward: {}", pf, ex);
             }
         });
     }

@@ -21,8 +21,16 @@ import org.apache.avro.util.internal.JacksonUtils;
 import org.apache.kafka.common.cache.Cache;
 import org.apache.kafka.common.cache.LRUCache;
 import org.apache.kafka.common.cache.SynchronizedCache;
-import org.apache.kafka.connect.data.*;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Date;
+import org.apache.kafka.connect.data.Decimal;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
+import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +41,18 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -569,8 +588,7 @@ public class AvroData {
                                 underlyingAvroSchema);
                         for (Field field : schema.fields()) {
                             String fieldName = scrubName(field.name(), scrubInvalidNames);
-                            org.apache.avro.Schema.Field theField = underlyingAvroSchema.getField(fieldName);
-                            org.apache.avro.Schema fieldAvroSchema = theField.schema();
+                            org.apache.avro.Schema fieldAvroSchema = underlyingAvroSchema.getField(fieldName).schema();
                             Object fieldValue = ignoreDefaultForNullables
                                 ? struct.getWithoutDefault(field.name()) : struct.get(field);
                             convertedBuilder.set(fieldName, fromConnectData(field.schema(), fieldAvroSchema,

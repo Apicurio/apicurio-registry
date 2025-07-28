@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.cache.ContentWithReferences;
 import io.apicurio.registry.resolver.client.RegistryArtifactReference;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
@@ -9,8 +10,14 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
 
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Default implementation of {@link SchemaResolver}
@@ -41,7 +48,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
     /**
      * @see io.apicurio.registry.resolver.AbstractSchemaResolver#configure(java.util.Map,
-     *      io.apicurio.registry.resolver.SchemaParser)
+     * io.apicurio.registry.resolver.SchemaParser)
      */
     @Override
     public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
@@ -72,7 +79,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false, null);
-
         return getSchemaFromCache(artifactReference)
                 .orElseGet(() -> getSchemaFromRegistry(parsedSchema, data, artifactReference));
     }
@@ -96,8 +102,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> getSchemaFromRegistry(ParsedSchema<S> parsedSchema, Record<T> data,
-            ArtifactReference artifactReference) {
-
+                                                        ArtifactReference artifactReference) {
         if (autoCreateArtifact) {
 
             if (schemaParser.supportsExtractSchemaFromData()) {
@@ -138,7 +143,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private List<SchemaLookupResult<S>> handleArtifactReferences(Record<T> data,
-            ParsedSchema<S> parsedSchema) {
+                                                                 ParsedSchema<S> parsedSchema) {
         final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
 
         for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
@@ -158,7 +163,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
     /**
      * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference
-     *      (io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
+     * (io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
@@ -181,7 +186,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> resolveSchemaByCoordinates(String groupId, String artifactId,
-            String version) {
+                                                             String version) {
         if (artifactId == null) {
             throw new IllegalStateException("artifactId cannot be null");
         }
@@ -245,11 +250,11 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
      * schema uploaded in the registry.
      */
     private SchemaLookupResult<S> handleResolveSchemaByContent(ParsedSchema<S> parsedSchema,
-            final ArtifactReference artifactReference) {
+                                                               final ArtifactReference artifactReference) {
 
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
+        return schemaCache.getByContent(ContentWithReferences.builder().content(rawSchemaString).build(), contentKey -> {
             logger.info(String.format("Retrieving schema content using string: %s", rawSchemaString));
 
             String artifactType = schemaParser.artifactType();
@@ -277,10 +282,10 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> handleAutoCreateArtifact(ParsedSchema<S> parsedSchema,
-            final ArtifactReference artifactReference) {
+                                                           final ArtifactReference artifactReference) {
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
+        return schemaCache.getByContent(ContentWithReferences.builder().content(rawSchemaString).build(), contentKey -> {
             String artifactType = schemaParser.artifactType();
             String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
             String artifactId = artifactReference.getArtifactId();
@@ -301,11 +306,18 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> handleAutoCreateArtifact(ParsedSchema<S> parsedSchema,
-            final ArtifactReference artifactReference, List<SchemaLookupResult<S>> referenceLookups) {
+                                                           final ArtifactReference artifactReference, List<SchemaLookupResult<S>> referenceLookups) {
 
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
+        var key = ContentWithReferences.builder()
+                .content(rawSchemaString)
+                .references(referenceLookups.stream()
+                        .map(SchemaLookupResult::toArtifactReference)
+                        .collect(Collectors.toSet())
+                ).build();
+
+        return schemaCache.getByContent(key, contentKey -> {
             String artifactType = schemaParser.artifactType();
             String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
             String artifactId = artifactReference.getArtifactId();

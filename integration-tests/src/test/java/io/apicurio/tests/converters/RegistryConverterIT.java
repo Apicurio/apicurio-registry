@@ -29,7 +29,6 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -42,6 +41,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+
+import static org.apache.kafka.connect.data.Schema.INT32_SCHEMA;
+import static org.apache.kafka.connect.data.SchemaBuilder.OPTIONAL_INT64_SCHEMA;
+import static org.apache.kafka.connect.data.SchemaBuilder.STRING_SCHEMA;
+import static org.apache.kafka.connect.data.SchemaBuilder.bytes;
+import static org.apache.kafka.connect.data.SchemaBuilder.int16;
+import static org.apache.kafka.connect.data.SchemaBuilder.string;
+import static org.apache.kafka.connect.data.SchemaBuilder.struct;
 
 @Tag(Constants.SERDES)
 @Tag(Constants.ACCEPTANCE)
@@ -98,8 +105,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
-            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct().field("int16Test",
-                    SchemaBuilder.int16().optional().defaultValue((short) 2).doc("int16test field").build());
+            org.apache.kafka.connect.data.Schema sc = struct().field("int16Test",
+                    int16().optional().defaultValue((short) 2).doc("int16test field").build());
             Struct struct = new Struct(sc);
             struct.put("int16Test", (short) 3);
 
@@ -141,8 +148,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
-            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct().field("bytesTest",
-                    SchemaBuilder.bytes().optional().parameters(Map.of("lenght", "10"))
+            org.apache.kafka.connect.data.Schema sc = struct().field("bytesTest",
+                    bytes().optional().parameters(Map.of("lenght", "10"))
                             .defaultValue("test".getBytes()).build());
             Struct struct = new Struct(sc);
 
@@ -177,7 +184,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
-            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
+            org.apache.kafka.connect.data.Schema sc = struct()
                     .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA).build();
             Struct struct = new Struct(sc);
             struct.put("bar", "somebar");
@@ -258,17 +265,17 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     private static org.apache.kafka.connect.data.Schema buildEnvelopeSchema() {
         // Define the Envelope schema
-        return SchemaBuilder.struct().name("dbserver1.public.aviation.Envelope").version(1)
+        return struct().name("dbserver1.public.aviation.Envelope").version(1)
                 .field("before", buildValueSchema()).field("after", buildValueSchema())
-                .field("source", buildSourceSchema()).field("op", SchemaBuilder.STRING_SCHEMA)
-                .field("ts_ms", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+                .field("source", buildSourceSchema()).field("op", STRING_SCHEMA)
+                .field("ts_ms", OPTIONAL_INT64_SCHEMA)
                 .field("transaction", buildTransactionSchema()).build();
     }
 
     private static org.apache.kafka.connect.data.Schema buildValueSchema() {
         // Define the Value schema
-        return SchemaBuilder.struct().name("dbserver1.public.aviation.Value").version(1)
-                .field("id", SchemaBuilder.INT32_SCHEMA).build();
+        return struct().name("dbserver1.public.aviation.Value").version(1)
+                .field("id", INT32_SCHEMA).build();
     }
 
     private static Struct buildValueStruct() {
@@ -283,8 +290,8 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     private static org.apache.kafka.connect.data.Schema buildSourceSchema() {
         // Define the Source schema
-        return SchemaBuilder.struct().name("io.debezium.connector.postgresql.Source").version(1)
-                .field("id", SchemaBuilder.STRING_SCHEMA).field("version", SchemaBuilder.STRING_SCHEMA)
+        return struct().name("io.debezium.connector.postgresql.Source").version(1)
+                .field("id", STRING_SCHEMA).field("version", STRING_SCHEMA)
                 .build();
     }
 
@@ -301,7 +308,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 
     private static org.apache.kafka.connect.data.Schema buildTransactionSchema() {
         // Define the Transaction schema
-        return SchemaBuilder.struct().name("event.block").version(1).field("id", SchemaBuilder.STRING_SCHEMA)
+        return struct().name("event.block").version(1).field("id", STRING_SCHEMA)
                 .build();
     }
 
@@ -332,7 +339,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             converter.configure(config, false);
 
-            org.apache.kafka.connect.data.Schema sc = SchemaBuilder.struct()
+            org.apache.kafka.connect.data.Schema sc = struct()
                     .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA).build();
             Struct struct = new Struct(sc);
             struct.put("bar", "somebar");
@@ -373,6 +380,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
     @Test
     @SuppressWarnings({"rawtypes", "unchecked", "resource"})
     public void testDebeziumEventSerialization() {
+
         final Map<String, Object> properties = new HashMap<>();
         properties.put("schemas.enable", true);
         properties.put("schemas.cache.size", 100);
@@ -387,57 +395,72 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         AvroConverter valueConverter = new AvroConverter();
         valueConverter.configure(properties, false);
 
-        org.apache.kafka.connect.data.Schema keySchema = SchemaBuilder.struct()
+        var keySchema = struct()
                 .name("CUSTOMERS.Key")
                 .required()
-                .field("id", SchemaBuilder.INT32_SCHEMA)
+                .field("id", INT32_SCHEMA)
                 .build();
 
-        org.apache.kafka.connect.data.Schema recordSchema = SchemaBuilder.struct()
+        var valueSchema = struct()
                 .name("CUSTOMERS.Value")
                 .optional()
-                .field("id", SchemaBuilder.INT32_SCHEMA)
-                .field("CUSTOMER_TYPE", SchemaBuilder.string()
-                        .name("io.debezium.data.Enum")
-                        .version(1)
-                        .required()
-                        .defaultValue("b2c")
-                        .build());
+                .field("id", INT32_SCHEMA)
+                .field("CUSTOMER_TYPE",
+                        string()
+                                .name("io.debezium.data.Enum")
+                                .version(1)
+                                .required()
+                                .defaultValue("b2c")
+                                .build()
+                )
+                .build();
 
-        org.apache.kafka.connect.data.Schema envelopeSchema = SchemaBuilder.struct()
+        var envelopeSchema = struct()
                 .name("CUSTOMERS.Envelope")
                 .version(2)
                 .required()
-                .field("before", recordSchema)
-                .field("after", recordSchema)
+                .field("before", valueSchema)
+                .field("after", valueSchema)
                 .build();
 
-        // Initial snapshot data
         Struct key = new Struct(keySchema).put("id", 1);
-        Struct before = null;
-        Struct after = new Struct(recordSchema).put("id", 1).put("CUSTOMER_TYPE", "b2b");
-        Struct value = new Struct(envelopeSchema).put("before", before).put("after", after);
-        keyConverter.fromConnectData("CUSTOMERS", key.schema(), key);
-        valueConverter.fromConnectData("CUSTOMERS", value.schema(), value);
 
-        recordSchema = SchemaBuilder.struct()
+        Struct afterValue = new Struct(valueSchema)
+                .put("id", 1)
+                .put("CUSTOMER_TYPE", "b2b");
+
+        Struct envelopeValue = new Struct(envelopeSchema)
+                .put("before", null)
+                .put("after", afterValue);
+
+        keyConverter.fromConnectData("CUSTOMERS", key.schema(), key);
+        valueConverter.fromConnectData("CUSTOMERS", envelopeValue.schema(), envelopeValue);
+
+        // ---
+
+        valueSchema = struct()
                 .name("CUSTOMERS.Value")
                 .optional()
-                .field("id", SchemaBuilder.INT32_SCHEMA)
-                .field("customer_type", SchemaBuilder.INT32_SCHEMA);
+                .field("id", INT32_SCHEMA)
+                .field("CUSTOMER_TYPE", INT32_SCHEMA); // Is now an integer and should result in a new schema version.
 
-        envelopeSchema = SchemaBuilder.struct()
+        envelopeSchema = struct()
                 .name("CUSTOMERS.Envelope")
                 .version(2)
                 .required()
-                .field("before", recordSchema)
-                .field("after", recordSchema)
+                .field("before", valueSchema)
+                .field("after", valueSchema)
                 .build();
 
-        // Streaming data
-        after = new Struct(recordSchema).put("id", 1).put("customer_type", 456);
-        value = new Struct(envelopeSchema).put("before", null).put("after", after);
+        afterValue = new Struct(valueSchema)
+                .put("id", 1)
+                .put("CUSTOMER_TYPE", 456);
+
+        envelopeValue = new Struct(envelopeSchema)
+                .put("before", null)
+                .put("after", afterValue);
+
         keyConverter.fromConnectData("CUSTOMERS", key.schema(), key);
-        valueConverter.fromConnectData("CUSTOMERS", value.schema(), value);
+        valueConverter.fromConnectData("CUSTOMERS", envelopeValue.schema(), envelopeValue);
     }
 }

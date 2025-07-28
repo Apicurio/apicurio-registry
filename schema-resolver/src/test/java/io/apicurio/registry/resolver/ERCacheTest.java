@@ -1,5 +1,7 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.cache.ContentWithReferences;
+import io.apicurio.registry.resolver.cache.ERCache;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import org.junit.jupiter.api.Test;
 
@@ -25,27 +27,18 @@ public class ERCacheTest {
     @Test
     void testCheckInitializedFailsWithoutContentHashKeyExtractor() {
         ERCache<Object> cache = new ERCache<>();
-        Function<Object, Long> globalIdKeyExtractor = (o) -> {
-            return 1L;
-        };
-        Function<Object, Long> contentIdKeyExtractor = (o) -> {
-            return 2L;
-        };
-        Function<Object, ArtifactCoordinates> artifactKeyExtractor = (o) -> {
-            return ArtifactCoordinates.builder().artifactId("artifact id").build();
-        };
-        Function<Object, String> contentKeyExtractor = (o) -> {
-            return "content";
-        };
+
+        Function<Object, Long> globalIdKeyExtractor = o -> 1L;
+        Function<Object, Long> contentIdKeyExtractor = o -> 2L;
+        Function<Object, ArtifactCoordinates> artifactKeyExtractor = o -> ArtifactCoordinates.builder().artifactId("artifact id").build();
+        Function<Object, ContentWithReferences> contentKeyExtractor = o -> ContentWithReferences.builder().content("content").build();
 
         cache.configureGlobalIdKeyExtractor(globalIdKeyExtractor);
         cache.configureContentIdKeyExtractor(contentIdKeyExtractor);
         cache.configureArtifactCoordinatesKeyExtractor(artifactKeyExtractor);
         cache.configureContentKeyExtractor(contentKeyExtractor);
 
-        assertThrows(IllegalStateException.class, () -> {
-            cache.checkInitialized();
-        });
+        assertThrows(IllegalStateException.class, cache::checkInitialized);
     }
 
     @Test
@@ -198,21 +191,12 @@ public class ERCacheTest {
     private ERCache<String> newCache(String contentHashKey) {
         ERCache<String> cache = new ERCache<>();
         cache.configureLifetime(Duration.ofDays(30));
-        Function<String, Long> globalIdKeyExtractor = (o) -> {
-            return 1L;
-        };
-        Function<String, Long> contentIdKeyExtractor = (o) -> {
-            return 2L;
-        };
-        Function<String, String> contentHashKeyExtractor = (o) -> {
-            return contentHashKey;
-        };
-        Function<String, ArtifactCoordinates> artifactKeyExtractor = (o) -> {
-            return ArtifactCoordinates.builder().artifactId("artifact id").build();
-        };
-        Function<String, String> contentKeyExtractor = (o) -> {
-            return "content";
-        };
+
+        Function<String, Long> globalIdKeyExtractor = o -> 1L;
+        Function<String, Long> contentIdKeyExtractor = o -> 2L;
+        Function<String, String> contentHashKeyExtractor = o -> contentHashKey;
+        Function<String, ArtifactCoordinates> artifactKeyExtractor = o -> ArtifactCoordinates.builder().artifactId("artifact id").build();
+        Function<String, ContentWithReferences> contentKeyExtractor = o -> ContentWithReferences.builder().content("content").build();
 
         cache.configureGlobalIdKeyExtractor(globalIdKeyExtractor);
         cache.configureContentIdKeyExtractor(contentIdKeyExtractor);

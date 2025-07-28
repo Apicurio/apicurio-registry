@@ -1,4 +1,4 @@
-package io.apicurio.registry.resolver;
+package io.apicurio.registry.resolver.cache;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
@@ -13,28 +13,21 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Expiration + Retry Cache
- *
- * @type V SchemaLookupResult
+ * Expiration and Retry Cache
  */
 public class ERCache<V> {
 
-    /** Global ID index */
-    private final Map<Long, WrappedValue<V>> index1 = new ConcurrentHashMap<>();
-    /** Data content index */
-    private final Map<String, WrappedValue<V>> index2 = new ConcurrentHashMap<>();
-    /** Artifact Content ID index */
-    private final Map<Long, WrappedValue<V>> index3 = new ConcurrentHashMap<>();
-    /** ArtifactCoordinates index */
-    private final Map<ArtifactCoordinates, WrappedValue<V>> index4 = new ConcurrentHashMap<>();
-    /** Artifact content hash index */
-    private final Map<String, WrappedValue<V>> index5 = new ConcurrentHashMap<>();
+    private final Map<Long, WrappedValue<V>> globalIdIndex = new ConcurrentHashMap<>();
+    private final Map<ContentWithReferences, WrappedValue<V>> contentIndex = new ConcurrentHashMap<>();
+    private final Map<Long, WrappedValue<V>> contentIdIndex = new ConcurrentHashMap<>();
+    private final Map<ArtifactCoordinates, WrappedValue<V>> gavIndex = new ConcurrentHashMap<>();
+    private final Map<String, WrappedValue<V>> contentHashIndex = new ConcurrentHashMap<>();
 
-    private Function<V, Long> keyExtractor1;
-    private Function<V, String> keyExtractor2;
-    private Function<V, Long> keyExtractor3;
-    private Function<V, ArtifactCoordinates> keyExtractor4;
-    private Function<V, String> keyExtractor5;
+    private Function<V, Long> globalIdExtractor;
+    private Function<V, ContentWithReferences> contentExtractor;
+    private Function<V, Long> contentIdExtractor;
+    private Function<V, ArtifactCoordinates> gavExtractor;
+    private Function<V, String> contentHashExtractor;
 
     private Duration lifetime = Duration.ZERO;
     private Duration backoff = Duration.ofMillis(200);
@@ -77,23 +70,23 @@ public class ERCache<V> {
     }
 
     public void configureGlobalIdKeyExtractor(Function<V, Long> keyExtractor) {
-        this.keyExtractor1 = keyExtractor;
+        this.globalIdExtractor = keyExtractor;
     }
 
-    public void configureContentKeyExtractor(Function<V, String> keyExtractor) {
-        this.keyExtractor2 = keyExtractor;
+    public void configureContentKeyExtractor(Function<V, ContentWithReferences> keyExtractor) {
+        this.contentExtractor = keyExtractor;
     }
 
     public void configureContentIdKeyExtractor(Function<V, Long> keyExtractor) {
-        this.keyExtractor3 = keyExtractor;
+        this.contentIdExtractor = keyExtractor;
     }
 
     public void configureArtifactCoordinatesKeyExtractor(Function<V, ArtifactCoordinates> keyExtractor) {
-        this.keyExtractor4 = keyExtractor;
+        this.gavExtractor = keyExtractor;
     }
 
     public void configureContentHashKeyExtractor(Function<V, String> keyExtractor) {
-        this.keyExtractor5 = keyExtractor;
+        this.contentHashExtractor = keyExtractor;
     }
 
     /**
@@ -117,56 +110,56 @@ public class ERCache<V> {
     }
 
     public void checkInitialized() {
-        boolean initialized = keyExtractor1 != null && keyExtractor2 != null && keyExtractor3 != null
-                && keyExtractor4 != null && keyExtractor5 != null;
+        boolean initialized = globalIdExtractor != null && contentExtractor != null && contentIdExtractor != null
+                && gavExtractor != null && contentHashExtractor != null;
         initialized = initialized && lifetime != null && backoff != null && retries >= 0;
         if (!initialized)
             throw new IllegalStateException("Not properly initialized!");
     }
 
     public boolean containsByGlobalId(Long key) {
-        WrappedValue<V> value = this.index1.get(key);
+        WrappedValue<V> value = this.globalIdIndex.get(key);
         return value != null && !value.isExpired();
     }
 
     public boolean containsByContentId(Long key) {
-        WrappedValue<V> value = this.index3.get(key);
+        WrappedValue<V> value = this.contentIdIndex.get(key);
         return value != null && !value.isExpired();
     }
 
     public boolean containsByArtifactCoordinates(ArtifactCoordinates key) {
-        WrappedValue<V> value = this.index4.get(key);
+        WrappedValue<V> value = this.gavIndex.get(key);
         return value != null && !value.isExpired();
     }
 
     public boolean containsByContentHash(String key) {
-        WrappedValue<V> value = this.index5.get(key);
+        WrappedValue<V> value = this.contentHashIndex.get(key);
         return value != null && !value.isExpired();
     }
 
     public V getByGlobalId(Long key, Function<Long, V> loaderFunction) {
-        WrappedValue<V> value = this.index1.get(key);
+        WrappedValue<V> value = this.globalIdIndex.get(key);
         return getValue(value, key, loaderFunction);
     }
 
-    public V getByContent(String key, Function<String, V> loaderFunction) {
-        WrappedValue<V> value = this.index2.get(key);
+    public V getByContent(ContentWithReferences key, Function<ContentWithReferences, V> loaderFunction) {
+        WrappedValue<V> value = this.contentIndex.get(key);
         return getValue(value, key, loaderFunction);
     }
 
     public V getByContentId(Long key, Function<Long, V> loaderFunction) {
-        WrappedValue<V> value = this.index3.get(key);
+        WrappedValue<V> value = this.contentIdIndex.get(key);
         return getValue(value, key, loaderFunction);
     }
 
     public V getByArtifactCoordinates(ArtifactCoordinates key,
-            Function<ArtifactCoordinates, V> loaderFunction) {
-        WrappedValue<V> value = this.index4.get(key);
+                                      Function<ArtifactCoordinates, V> loaderFunction) {
+        WrappedValue<V> value = this.gavIndex.get(key);
         return getValue(value, key, loaderFunction);
     }
 
     public V getByContentHash(String key, Function<String, V> loaderFunction) {
-        WrappedValue<V> value = this.index5.get(key);
+        WrappedValue<V> value = this.contentHashIndex.get(key);
         return getValue(value, key, loaderFunction);
     }
 
@@ -197,33 +190,33 @@ public class ERCache<V> {
     }
 
     private <T> void reindex(WrappedValue<V> newValue, T lookupKey) {
-        Optional.ofNullable(keyExtractor1.apply(newValue.value)).ifPresent(k -> index1.put(k, newValue));
-        Optional.ofNullable(keyExtractor2.apply(newValue.value)).ifPresent(k -> index2.put(k, newValue));
-        Optional.ofNullable(keyExtractor3.apply(newValue.value)).ifPresent(k -> index3.put(k, newValue));
-        Optional.ofNullable(keyExtractor4.apply(newValue.value)).ifPresent(k -> {
-            index4.put(k, newValue);
+        Optional.ofNullable(globalIdExtractor.apply(newValue.value)).ifPresent(k -> globalIdIndex.put(k, newValue));
+        Optional.ofNullable(contentExtractor.apply(newValue.value)).ifPresent(k -> contentIndex.put(k, newValue));
+        Optional.ofNullable(contentIdExtractor.apply(newValue.value)).ifPresent(k -> contentIdIndex.put(k, newValue));
+        Optional.ofNullable(gavExtractor.apply(newValue.value)).ifPresent(k -> {
+            gavIndex.put(k, newValue);
             // By storing the lookup key, we ensure that a null/latest lookup gets cached, as the key
             // extractor will
             // automatically add the version to the new key
             if (this.cacheLatest && k.getClass().equals(lookupKey.getClass())) {
-                index4.put((ArtifactCoordinates) lookupKey, newValue);
+                gavIndex.put((ArtifactCoordinates) lookupKey, newValue);
             }
         });
-        Optional.ofNullable(keyExtractor5.apply(newValue.value)).ifPresent(k -> index5.put(k, newValue));
+        Optional.ofNullable(contentHashExtractor.apply(newValue.value)).ifPresent(k -> contentHashIndex.put(k, newValue));
     }
 
     public void clear() {
-        index1.clear();
-        index2.clear();
-        index3.clear();
-        index4.clear();
-        index5.clear();
+        globalIdIndex.clear();
+        contentIndex.clear();
+        contentIdIndex.clear();
+        gavIndex.clear();
+        contentHashIndex.clear();
     }
 
     // === Util & Other
 
     private static <T> Result<T, RuntimeException> retry(Duration backoff, long retries,
-            Supplier<T> supplier) {
+                                                         Supplier<T> supplier) {
         if (retries < 0)
             throw new IllegalArgumentException();
         Objects.requireNonNull(supplier);

@@ -2,6 +2,7 @@ package io.apicurio.registry.resolver.strategy;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl.ArtifactReferenceBuilder;
 
+// TODO: "Artifact reference" term has a specific meaning in Apicurio Registry. Use a different name. Also, why the interface?
 /**
  * This class holds the information that reference one Artifact in Apicurio Registry. It will always make
  * reference to an artifact in a group. Optionally it can reference to a specific version.

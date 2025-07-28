@@ -255,6 +255,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
+        System.out.println("**** Registry Base URL: " + baseUrl);
         return baseUrl;
     }
 

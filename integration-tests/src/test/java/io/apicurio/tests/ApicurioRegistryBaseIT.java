@@ -33,27 +33,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
 import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeoutException;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -213,22 +206,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }
     }
 
-    public static String getRegistryHost() {
-        if (REGISTRY_URL != null) {
-            return REGISTRY_URL.getHost();
-        } else {
-            return System.getProperty("quarkus.http.test-host");
-        }
-    }
-
-    public static int getRegistryPort() {
-        return Integer.parseInt(System.getProperty("quarkus.http.test-port"));
-    }
-
-    public static String getRegistryUIUrl() {
-        return getRegistryBaseUrl().concat("/ui");
-    }
-
     public static String getRegistryApiUrl() {
         return getRegistryBaseUrl().concat("/apis");
     }
@@ -246,129 +223,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }
     }
 
-    public static String getRegistryBaseUrl(int port) {
-        if (REGISTRY_URL != null) {
-            return String.format("http://%s:%s", REGISTRY_URL.getHost(), port);
-        } else {
-            return String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"), port);
-        }
-    }
-
-    public static String getKeycloakBaseUrl() {
-        if (System.getProperty("keycloak.external.endpoint") != null) {
-            return String.format("http://%s:%s", System.getProperty("keycloak.external.endpoint"), 8090);
-        }
-
-        return "http://localhost:8090";
-    }
-
-    /**
-     * Method which try connection to registries. It's used as a initial check for registries availability.
-     *
-     * @return true if registries are ready for use, false in other cases
-     */
-    public boolean isReachable() {
-        try (Socket socket = new Socket()) {
-            String host = REGISTRY_URL.getHost();
-            int port = REGISTRY_URL.getPort();
-            log.info("Trying to connect to {}:{}", host, port);
-            socket.connect(new InetSocketAddress(host, port), 5_000);
-            log.info("Client is able to connect to Registry instance");
-            return true;
-        } catch (IOException ex) {
-            log.warn("Cannot connect to Registry instance: {}", ex.getMessage());
-            return false; // Either timeout or unreachable or failed DNS lookup.
-        }
-    }
-    // ---
-
-    /**
-     * Poll the given {@code ready} function every {@code pollIntervalMs} milliseconds until it returns true,
-     * or throw a TimeoutException if it doesn't returns true within {@code timeoutMs} milliseconds. (helpful
-     * if you have several calls which need to share a common timeout)
-     *
-     * @return The remaining time left until timeout occurs
-     */
-    public long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready)
-            throws TimeoutException {
-        return waitFor(description, pollIntervalMs, timeoutMs, ready, () -> {
-        });
-    }
-
-    public long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready,
-            Runnable onTimeout) throws TimeoutException {
-        log.debug("Waiting for {}", description);
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (true) {
-            boolean result;
-            try {
-                result = ready.getAsBoolean();
-            } catch (Throwable e) {
-                result = false;
-            }
-            long timeLeft = deadline - System.currentTimeMillis();
-            if (result) {
-                return timeLeft;
-            }
-            if (timeLeft <= 0) {
-                onTimeout.run();
-                TimeoutException exception = new TimeoutException(
-                        "Timeout after " + timeoutMs + " ms waiting for " + description);
-                exception.printStackTrace();
-                throw exception;
-            }
-            long sleepTime = Math.min(pollIntervalMs, timeLeft);
-            if (log.isTraceEnabled()) {
-                log.trace("{} not ready, will try again in {} ms ({}ms till timeout)", description, sleepTime,
-                        timeLeft);
-            }
-            try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {
-                return deadline - System.currentTimeMillis();
-            }
-        }
-    }
-
-    /**
-     * Method to create and write String content file.
-     *
-     * @param filePath path to file
-     * @param text content
-     */
-    public void writeFile(String filePath, String text) {
-        try {
-            Files.write(new File(filePath).toPath(), text.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            log.info("Exception during writing text in file");
-        }
-    }
-
-    public void writeFile(Path filePath, String text) {
-        try {
-            Files.write(filePath, text.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            log.info("Exception during writing text in file");
-        }
-    }
-
-    public String generateTopic() {
-        return generateTopic("topic-");
-    }
-
-    public String generateTopic(String prefix) {
-        return prefix + UUID.randomUUID().toString();
-    }
-
-    public String generateSubject() {
-        return "s" + generateArtifactId().replace("-", "x");
-    }
-
     public String generateArtifactId() {
-        return UUID.randomUUID().toString();
-    }
-
-    public String generateGroupId() {
         return UUID.randomUUID().toString();
     }
 

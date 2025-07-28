@@ -2,19 +2,26 @@ package io.apicurio.tests.auth;
 
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.*;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.UserInfo;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.Constants;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import org.junit.jupiter.api.Assertions;
@@ -28,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag(Constants.AUTH)
-@TestProfile(AuthTestProfile.class)
 @QuarkusIntegrationTest
 public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 

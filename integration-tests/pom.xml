@@ -11,6 +11,7 @@
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
     <skipTests>true</skipTests>
+    <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
     <quarkus.http.test-host>localhost</quarkus.http.test-host>
     <quarkus.http.test-port>0</quarkus.http.test-port>
     <groups/>
@@ -278,6 +279,10 @@
                 <configuration>
                   <properties>
                     <property>
+                      <name>quarkus.http.test-scheme</name>
+                      <value>${quarkus.http.test-scheme}</value>
+                    </property>
+                    <property>
                       <name>quarkus.http.test-host</name>
                       <value>${quarkus.http.test-host}</value>
                     </property>
@@ -314,6 +319,7 @@
                     <registry-in-memory-image>quay.io/apicurio/apicurio-registry:latest-snapshot</registry-in-memory-image>
                     <deployInMemory>true</deployInMemory>
                     <cluster.tests>true</cluster.tests>
+                    <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
                     <quarkus.http.test-host>localhost</quarkus.http.test-host>
                     <quarkus.http.test-port>8080</quarkus.http.test-port>
                   </systemPropertyVariables>
@@ -344,6 +350,7 @@
                     <registry-kafkasql-image>quay.io/apicurio/apicurio-registry:latest-snapshot</registry-kafkasql-image>
                     <cluster.tests>true</cluster.tests>
                     <deployKafka>true</deployKafka>
+                    <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
                     <quarkus.http.test-host>localhost</quarkus.http.test-host>
                     <quarkus.http.test-port>8080</quarkus.http.test-port>
                   </systemPropertyVariables>
@@ -374,6 +381,7 @@
                     <registry-sql-image>quay.io/apicurio/apicurio-registry:latest-snapshot</registry-sql-image>
                     <cluster.tests>true</cluster.tests>
                     <deploySql>true</deploySql>
+                    <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
                     <quarkus.http.test-host>localhost</quarkus.http.test-host>
                     <quarkus.http.test-port>8080</quarkus.http.test-port>
                   </systemPropertyVariables>

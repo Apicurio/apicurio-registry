@@ -215,12 +215,11 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     public static String getRegistryBaseUrl() {
-        if (REGISTRY_URL != null) {
-            return String.format("http://%s:%s", REGISTRY_URL.getHost(), REGISTRY_URL.getPort());
-        } else {
-            return String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"),
-                    System.getProperty("quarkus.http.test-port"));
+        String baseUrl = REGISTRY_URL.toString();
+        if (System.getProperty("quarkus.http.test-port", "").endsWith("443")) {
+            baseUrl = baseUrl.replace("http://", "https://");
         }
+        return baseUrl;
     }
 
     public String generateArtifactId() {

@@ -176,9 +176,9 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                         .load(RegistryDeploymentManager.class.getResourceAsStream(REGISTRY_OPENSHIFT_ROUTE))
                         .serverSideApply();
 
+                System.setProperty("quarkus.http.test-scheme", "http");
                 System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
                 System.setProperty("quarkus.http.test-port", "80");
-
             } catch (Exception ex) {
                 LOGGER.warn("The registry route already exists: ", ex);
             }
@@ -188,9 +188,11 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             // the load balancer.
             if (System.getProperty("quarkus.http.test-host").equals("localhost")
                     && !System.getProperty("os.name").contains("Mac OS")) {
+                System.setProperty("quarkus.http.test-scheme", "http");
                 System.setProperty("quarkus.http.test-host",
                         kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE)
                                 .get().getSpec().getClusterIP());
+                System.setProperty("quarkus.http.test-port", "80");
             }
         }
     }

@@ -29,6 +29,9 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,6 +105,36 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     void closeVertx() {
         vertx.close();
     }
+
+    // Custom TestWatcher implementation
+    static class RegistryApiErrorWatcher implements TestWatcher {
+
+        public static Throwable getRootCause(Throwable throwable) {
+            Throwable cause = throwable;
+            while (cause.getCause() != null) {
+                cause = cause.getCause();
+            }
+            return cause;
+        }
+
+        @Override
+        public void testFailed(ExtensionContext context, Throwable cause) {
+            System.err.println("=== TEST FAILED ===");
+            System.err.println("Test: " + context.getDisplayName());
+            System.err.println("Error: " + cause.getClass().getSimpleName() + " - " + cause.getMessage());
+            // Optional: print stack trace or log somewhere else
+            getRootCause(cause).printStackTrace(System.err);
+            System.err.println("=== =========== ===");
+        }
+
+        @Override
+        public void testSuccessful(ExtensionContext context) {
+            System.out.println("Test passed: " + context.getDisplayName());
+        }
+    }
+
+    @RegisterExtension
+    RegistryApiErrorWatcher watcher = new RegistryApiErrorWatcher();
 
     private static String normalizeGroupId(String groupId) {
         return groupId != null ? groupId : "default"; // TODO
@@ -218,6 +251,9 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         String baseUrl = REGISTRY_URL.toString();
         if (System.getProperty("quarkus.http.test-port", "").endsWith("443")) {
             baseUrl = baseUrl.replace("http://", "https://");
+        }
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
         return baseUrl;
     }

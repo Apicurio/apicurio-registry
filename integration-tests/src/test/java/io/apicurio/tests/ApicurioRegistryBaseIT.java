@@ -239,8 +239,11 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     public static String getRegistryBaseUrl() {
         if (REGISTRY_URL != null) {
+            System.out.println("***** REGISTRY URL 1: " + String.format("http://%s:%s", REGISTRY_URL.getHost(), REGISTRY_URL.getPort()));
             return String.format("http://%s:%s", REGISTRY_URL.getHost(), REGISTRY_URL.getPort());
         } else {
+            System.out.println("***** REGISTRY URL 2: " + String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"),
+                    System.getProperty("quarkus.http.test-port")));
             return String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"),
                     System.getProperty("quarkus.http.test-port"));
         }

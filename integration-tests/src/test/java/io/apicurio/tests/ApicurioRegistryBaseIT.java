@@ -248,15 +248,22 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     public static String getRegistryBaseUrl() {
-        String baseUrl = REGISTRY_URL.toString();
-        if (System.getProperty("quarkus.http.test-port", "").endsWith("443")) {
-            baseUrl = baseUrl.replace("http://", "https://");
+        if (REGISTRY_URL != null) {
+            String baseUrl = REGISTRY_URL.toString();
+            if (System.getProperty("quarkus.http.test-port", "").endsWith("443")) {
+                baseUrl = baseUrl.replace("http://", "https://");
+            }
+            if (baseUrl.endsWith("/")) {
+                baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+            }
+            System.out.println("**** Registry Base URL: " + baseUrl);
+            return baseUrl;
+        } else {
+            return String.format("%s://%s:%s",
+                    System.getProperty("quarkus.http.test-scheme", "http"),
+                    System.getProperty("quarkus.http.test-host", "localhost"),
+                    System.getProperty("quarkus.http.test-port", "8080"));
         }
-        if (baseUrl.endsWith("/")) {
-            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
-        }
-        System.out.println("**** Registry Base URL: " + baseUrl);
-        return baseUrl;
     }
 
     public String generateArtifactId() {

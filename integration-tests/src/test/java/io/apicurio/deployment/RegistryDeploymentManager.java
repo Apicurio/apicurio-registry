@@ -178,7 +178,6 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
                 System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
                 System.setProperty("quarkus.http.test-port", "80");
-
             } catch (Exception ex) {
                 LOGGER.warn("The registry route already exists: ", ex);
             }

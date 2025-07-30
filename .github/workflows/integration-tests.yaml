@@ -124,7 +124,7 @@ jobs:
 
       - uses: apicurio/apicurio-github-actions/setup-minikube@v2
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
           image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
@@ -169,7 +169,7 @@ jobs:
 
       - uses: apicurio/apicurio-github-actions/setup-minikube@v2
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
           image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
@@ -215,7 +215,7 @@ jobs:
 
       - uses: apicurio/apicurio-github-actions/setup-minikube@v2
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
           image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
@@ -261,14 +261,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/tests/package-lock.json'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
           image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ github.sha }}'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
           artifact-name: 'apicurio-registry-ui-${{ github.sha }}.tar'
           image-file: '/tmp/apicurio-registry-ui-${{ github.sha }}.tar'
@@ -339,7 +339,7 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
           image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
@@ -373,7 +373,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
           image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
@@ -405,7 +405,7 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
           image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'

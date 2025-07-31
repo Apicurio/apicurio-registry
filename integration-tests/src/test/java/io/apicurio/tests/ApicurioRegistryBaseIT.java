@@ -129,10 +129,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             log.error("ID:    {}", context.getUniqueId());
             log.error("Error: {} - {}", cause.getClass().getSimpleName(), cause.getMessage());
             if (cause instanceof RuleViolationProblemDetails) {
-                log.error("Rule Violation Problem Details");
                 logProblemDetails((RuleViolationProblemDetails) cause);
             } else if (cause instanceof ProblemDetails) {
-                log.error("Problem Details");
                 logProblemDetails((ProblemDetails) cause);
             }
             // Optional: print stack trace or log somewhere else
@@ -141,6 +139,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }
 
         private void logProblemDetails(ProblemDetails cause) {
+            log.error("Problem Details");
             log.error("    Name:     {}", cause.getName());
             log.error("    Title:    {}", cause.getTitle());
             log.error("    Detail:   {}", cause.getDetail());
@@ -151,7 +150,14 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }
 
         private void logProblemDetails(RuleViolationProblemDetails cause) {
-            logProblemDetails(cause);
+            log.error("Rule Violation Problem Details");
+            log.error("    Name:     {}", cause.getName());
+            log.error("    Title:    {}", cause.getTitle());
+            log.error("    Detail:   {}", cause.getDetail());
+            log.error("    Instance: {}", cause.getInstance());
+            log.error("    Type:     {}", cause.getType());
+            log.error("    Message:  {}", cause.getMessage());
+            log.error("    Status:   {}", cause.getStatus());
             log.error("    Causes:");
             cause.getCauses().forEach((cause1) -> {
                 log.error("        Context:     {}", cause1.getContext());

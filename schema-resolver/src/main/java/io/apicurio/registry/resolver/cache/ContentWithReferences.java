@@ -4,9 +4,10 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NonNull;
 import lombok.ToString;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -17,12 +18,14 @@ import java.util.Set;
  */
 @Builder
 @Getter
-@Setter
 @EqualsAndHashCode
 @ToString
 public class ContentWithReferences {
 
+    @NonNull
     String content;
 
-    Set<ArtifactReference> references;
+    @NonNull
+    @Builder.Default // Avoid potential problems with equality where null and empty set are not equal.
+    Set<ArtifactReference> references = new HashSet<>();
 }

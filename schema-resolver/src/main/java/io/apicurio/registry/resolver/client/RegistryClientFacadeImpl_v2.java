@@ -12,6 +12,7 @@ import io.vertx.core.Vertx;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Set;
 
 /**
  * An implementation of @{@link RegistryClientFacade} that uses version 2 of the
@@ -118,7 +119,7 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
     @Override
     public RegistryVersionCoordinates createSchema(String artifactType, String groupId, String artifactId, String version,
                                                    String autoCreateBehavior, boolean canonical, String schemaString,
-                                                   List<RegistryArtifactReference> references) {
+                                                   Set<RegistryArtifactReference> references) {
         ArtifactContent content = new ArtifactContent();
         content.setContent(schemaString);
         content.setReferences(toClientReferences(references));
@@ -167,7 +168,7 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
         }
     }
 
-    private static List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> toClientReferences(List<RegistryArtifactReference> references) {
+    private static List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {
         return references.stream().map(ref -> {
             io.apicurio.registry.rest.client.v2.models.ArtifactReference ar = new io.apicurio.registry.rest.client.v2.models.ArtifactReference();
             ar.setName(ref.getName());

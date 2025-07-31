@@ -25,6 +25,7 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
@@ -789,19 +790,24 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private void ensureContent(TypedContent content, String contentHash, String canonicalContentHash,
             List<ArtifactReferenceDto> references, String referencesSerialized) {
+
         handles.withHandleNoException(handle -> {
-            byte[] contentBytes = content.getContent().bytes();
 
             // Insert the content into the content table.
-            String sql = sqlStatements.insertContent();
             long contentId = nextContentIdRaw(handle);
 
             try {
-                handle.createUpdate(sql).bind(0, contentId).bind(1, canonicalContentHash).bind(2, contentHash)
-                        .bind(3, content.getContentType()).bind(4, contentBytes).bind(5, referencesSerialized)
+                handle.createUpdate(sqlStatements.insertContent())
+                        .bind(0, contentId)
+                        .bind(1, canonicalContentHash)
+                        .bind(2, contentHash)
+                        .bind(3, content.getContentType())
+                        .bind(4, content.getContent().bytes())
+                        .bind(5, referencesSerialized)
                         .execute();
             } catch (Exception e) {
                 if (sqlStatements.isPrimaryKeyViolation(e)) {
+                    log.debug("Content with content hash {} already exists: {}", contentHash, content);
                     return;
                 } else {
                     throw e;
@@ -809,25 +815,31 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
 
             // If we get here, then the content was inserted and we need to insert the references.
-            insertReferencesRaw(handle, contentId, references);
+            insertReferencesRaw(contentId, references);
         });
     }
 
-    private void insertReferencesRaw(Handle handle, Long contentId, List<ArtifactReferenceDto> references) {
+    private void insertReferencesRaw(Long contentId, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
-            references.forEach(reference -> {
-                try {
-                    handle.createUpdate(sqlStatements.insertContentReference()).bind(0, contentId)
-                            .bind(1, normalizeGroupId(reference.getGroupId()))
-                            .bind(2, reference.getArtifactId()).bind(3, reference.getVersion())
-                            .bind(4, reference.getName()).execute();
-                } catch (Exception e) {
-                    if (sqlStatements.isPrimaryKeyViolation(e)) {
-                        // Do nothing, the reference already exist, only needed for H2
-                    } else {
-                        throw e;
+            handles.withHandleNoException(handle -> {
+                references.forEach(reference -> {
+                    try {
+                        handle.createUpdate(sqlStatements.insertContentReference())
+                                .bind(0, contentId)
+                                .bind(1, normalizeGroupId(reference.getGroupId()))
+                                .bind(2, reference.getArtifactId())
+                                .bind(3, reference.getVersion())
+                                .bind(4, reference.getName())
+                                .execute();
+                    } catch (Exception e) {
+                        if (sqlStatements.isPrimaryKeyViolation(e)) {
+                            // We have to fail the transaction because the content hash would otherwise be invalid (duplicate references).
+                            throw new ConflictException("Duplicate reference found: " + reference);
+                        } else {
+                            throw e;
+                        }
                     }
-                }
+                });
             });
         }
     }
@@ -3170,8 +3182,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(1, entity.canonicalHash).bind(2, entity.contentHash).bind(3, entity.contentType)
                         .bind(4, entity.contentBytes).bind(5, entity.serializedReferences).execute();
 
-                insertReferencesRaw(handle, entity.contentId,
-                        RegistryContentUtils.deserializeReferences(entity.serializedReferences));
+                insertReferencesRaw(entity.contentId, RegistryContentUtils.deserializeReferences(entity.serializedReferences));
             } else {
                 throw new ContentAlreadyExistsException(entity.contentId);
             }

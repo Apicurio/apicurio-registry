@@ -7,6 +7,8 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
@@ -119,12 +121,43 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
         @Override
         public void testFailed(ExtensionContext context, Throwable cause) {
-            System.err.println("=== TEST FAILED ===");
-            System.err.println("Test: " + context.getDisplayName());
-            System.err.println("Error: " + cause.getClass().getSimpleName() + " - " + cause.getMessage());
+            log.error("=== TEST FAILED ===");
+            if (context.getTestClass().isPresent()) {
+                log.error("Class: {}", context.getTestClass().get());
+            }
+            log.error("Test:  {}", context.getDisplayName());
+            log.error("ID:    {}", context.getUniqueId());
+            log.error("Error: {} - {}", cause.getClass().getSimpleName(), cause.getMessage());
+            if (cause instanceof RuleViolationProblemDetails) {
+                log.error("Rule Violation Problem Details");
+                logProblemDetails((RuleViolationProblemDetails) cause);
+            } else if (cause instanceof ProblemDetails) {
+                log.error("Problem Details");
+                logProblemDetails((ProblemDetails) cause);
+            }
             // Optional: print stack trace or log somewhere else
             getRootCause(cause).printStackTrace(System.err);
-            System.err.println("=== =========== ===");
+            log.error("=== =========== ===");
+        }
+
+        private void logProblemDetails(ProblemDetails cause) {
+            log.error("    Name:     {}", cause.getName());
+            log.error("    Title:    {}", cause.getTitle());
+            log.error("    Detail:   {}", cause.getDetail());
+            log.error("    Instance: {}", cause.getInstance());
+            log.error("    Type:     {}", cause.getType());
+            log.error("    Message:  {}", cause.getMessage());
+            log.error("    Status:   {}", cause.getStatus());
+        }
+
+        private void logProblemDetails(RuleViolationProblemDetails cause) {
+            logProblemDetails(cause);
+            log.error("    Causes:");
+            cause.getCauses().forEach((cause1) -> {
+                log.error("        Context:     {}", cause1.getContext());
+                log.error("        Description: {}", cause1.getDescription());
+                log.error("        ---");
+            });
         }
 
         @Override

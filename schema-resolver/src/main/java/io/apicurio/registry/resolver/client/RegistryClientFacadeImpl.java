@@ -111,8 +111,10 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
             config.queryParameters.artifactType = artifactType;
             config.queryParameters.orderby = VersionSortBy.GlobalId;
             config.queryParameters.order = SortOrder.Desc;
+            config.queryParameters.limit = 100;
         });
 
+        // FIXME consider moving the "filter by state" logic to the server as another query parameter
         return results.getVersions().stream()
                 .filter(version -> DISABLED != version.getState())
                 .map(v ->

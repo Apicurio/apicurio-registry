@@ -114,7 +114,7 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
                     config.queryParameters.canonical = canonical;
                 });
 
-        if(DISABLED == vmd.getState()) {
+        if (DISABLED == vmd.getState()) {
             return List.of();
         }
         return List.of(RegistryVersionCoordinates.create(

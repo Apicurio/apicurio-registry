@@ -1,5 +1,5 @@
-import { createTestClient } from "./test.utils.ts";
-import { SystemInfo } from "../lib/generated-client/models";
+import { createTestClient } from "./test.utils.js";
+import { SystemInfo } from "../lib/generated-client/models/index.js";
 import { expect, test } from "vitest";
 
 test("System Info", async () => {

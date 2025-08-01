@@ -1,5 +1,5 @@
-import { createTestClient, generateArtifactId, generateGroupId } from "./test.utils.ts";
-import { ArtifactMetaData, CreateArtifact, VersionMetaData } from "../lib/generated-client/models";
+import { createTestClient, generateArtifactId, generateGroupId } from "./test.utils.js";
+import { ArtifactMetaData, CreateArtifact, VersionMetaData } from "../lib/generated-client/models/index.js";
 import { expect, test } from "vitest";
 
 const AVRO_CONTENT: string = `

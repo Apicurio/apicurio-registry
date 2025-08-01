@@ -511,6 +511,7 @@
             <configuration>
               <projectSettings>
                 <javaPackage>io.apicurio.registry.ccompat.rest.v7</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/ccompat/v7/openapi.json</inputSpec>
             </configuration>

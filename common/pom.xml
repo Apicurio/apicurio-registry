@@ -99,6 +99,7 @@
             <configuration>
               <projectSettings>
                 <javaPackage>io.apicurio.registry.rest.v3</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi.json</inputSpec>
             </configuration>
@@ -112,6 +113,7 @@
             <configuration>
               <projectSettings>
                 <javaPackage>io.apicurio.registry.rest.v2</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi-v2.json</inputSpec>
             </configuration>

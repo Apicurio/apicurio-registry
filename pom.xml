@@ -158,7 +158,7 @@
 
     <!-- Schema types -->
     <avro.version>1.12.0</avro.version>
-    <json-schema-validator.version>1.5.5</json-schema-validator.version>
+    <json-schema-validator.version>1.5.8</json-schema-validator.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio-jvm.version>3.10.2</okio-jvm.version>
@@ -166,7 +166,7 @@
     <okio-fake-file-system.version>3.10.2</okio-fake-file-system.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.31.1</protobuf.version>
-    <xmlsec.version>4.0.3</xmlsec.version>
+    <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.52.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.4</google.truth.extension.version>
@@ -190,7 +190,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.2.1</apicurio-data-models.version>
+    <apicurio-data-models.version>2.2.2</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.4</graphql.version>
@@ -206,24 +206,24 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.2</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.30</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.31</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.38</lombok.version>
-    <commons-codec.version>1.18.0</commons-codec.version>
+    <commons-codec.version>1.19.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.9.1</kafka-clients.version>
     <debezium.version>2.6.2.Final</debezium.version>
-    <pulsar-clients.version>3.3.4</pulsar-clients.version>
+    <pulsar-clients.version>3.3.8</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
-    <nats.version>2.20.5</nats.version>
-    <snakeyaml.version>2.3</snakeyaml.version>
-    <woodstox-core.version>7.1.0</woodstox-core.version>
+    <nats.version>2.21.4</nats.version>
+    <snakeyaml.version>2.4</snakeyaml.version>
+    <woodstox-core.version>7.1.1</woodstox-core.version>
     <jgit.version>7.1.1.202505221757-r</jgit.version>
-    <awaitility.version>4.2.2</awaitility.version>
+    <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.3</assertj.core.version>
-    <semver4j.version>5.6.0</semver4j.version>
+    <semver4j.version>5.8.0</semver4j.version>
 
     <!-- Kafka Connect -->
     <connect.version>3.9.1</connect.version>

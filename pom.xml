@@ -209,7 +209,7 @@
     <swagger-parser-v3.version>2.1.30</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
-    <lombok.version>1.18.36</lombok.version>
+    <lombok.version>1.18.38</lombok.version>
     <commons-codec.version>1.18.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.9.1</kafka-clients.version>

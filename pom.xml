@@ -213,13 +213,8 @@
     <commons-codec.version>1.19.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.9.1</kafka-clients.version>
-<<<<<<< Updated upstream
-    <debezium.version>2.6.2.Final</debezium.version>
-    <pulsar-clients.version>3.3.8</pulsar-clients.version>
-=======
     <debezium.version>2.7.4.Final</debezium.version>
-    <pulsar-clients.version>3.3.4</pulsar-clients.version>
->>>>>>> Stashed changes
+    <pulsar-clients.version>3.3.8</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
     <nats.version>2.21.4</nats.version>

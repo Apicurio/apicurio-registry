@@ -154,7 +154,7 @@
     <!-- /WARNING -->
 
     <!-- Jandex -->
-    <jandex.version>3.1.8</jandex.version>
+    <jandex.version>3.3.0</jandex.version>
 
     <!-- Schema types -->
     <avro.version>1.12.0</avro.version>
@@ -252,7 +252,7 @@
     <version.clean.plugin>3.4.0</version.clean.plugin>
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
     <version.license-maven-plugin>2.5.0</version.license-maven-plugin>
-    <version.exec-maven-plugin>3.5.0</version.exec-maven-plugin>
+    <version.exec-maven-plugin>3.5.1</version.exec-maven-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->
     <version.org.sonatype.central-publishing-maven-plugin>0.7.0</version.org.sonatype.central-publishing-maven-plugin>

@@ -2,19 +2,26 @@ package io.apicurio.tests.auth;
 
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.*;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.UserInfo;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.Constants;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import org.junit.jupiter.api.Assertions;
@@ -28,20 +35,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag(Constants.AUTH)
-@TestProfile(AuthTestProfile.class)
 @QuarkusIntegrationTest
 public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     final String groupId = "authTestGroupId";
 
-    private static final CreateArtifact createArtifact = new CreateArtifact();
-
-    static {
+    private static CreateArtifact createArtifact() {
+        CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactType(ArtifactType.JSON);
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().getContent().setContent("{}");
+        return createArtifact;
     }
 
     @Override
@@ -84,6 +90,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             client.groups().byGroupId("abc").artifacts().byArtifactId(artifactId).get();
         });
         assertArtifactNotFound(exception2);
+        CreateArtifact createArtifact = createArtifact();
         createArtifact.setArtifactId(artifactId);
         var exception3 = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId("testReadOnly").artifacts().post(createArtifact);
@@ -121,6 +128,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         try {
             client.groups().byGroupId(groupId).artifacts().get();
 
+            CreateArtifact createArtifact = createArtifact();
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
             TestUtils.retry(
@@ -147,7 +155,11 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             Assertions.assertTrue(userInfo.getDeveloper());
             Assertions.assertFalse(userInfo.getViewer());
         } finally {
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
+            try {
+                client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
@@ -161,6 +173,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         try {
             client.groups().byGroupId(groupId).artifacts().get();
 
+            CreateArtifact createArtifact = createArtifact();
             createArtifact.setArtifactId(artifactId);
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
             TestUtils.retry(
@@ -184,7 +197,11 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             Assertions.assertFalse(userInfo.getDeveloper());
             Assertions.assertFalse(userInfo.getViewer());
         } finally {
-            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
+            try {
+                client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
@@ -202,6 +219,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
         // Admin user will create an artifact
         String artifactId = TestUtils.generateArtifactId();
+        CreateArtifact createArtifact = createArtifact();
         createArtifact.setArtifactId(artifactId);
         clientAdmin.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
@@ -218,6 +236,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
         // Now the Dev user will create an artifact
         String artifactId2 = TestUtils.generateArtifactId();
+        createArtifact = createArtifact();
         createArtifact.setArtifactId(artifactId2);
         clientDev.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
@@ -230,12 +249,14 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
         // Admin user will create an artifact
         String artifactId1 = TestUtils.generateArtifactId();
+        createArtifact = createArtifact();
         createArtifact.setArtifactId(artifactId1);
         clientAdmin.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // Dev user cannot update with ifExists the same artifact because Dev user is not the owner
+        CreateArtifact createArtifact_final = createArtifact;
         Assertions.assertThrows(Exception.class, () -> {
-            clientDev.groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
+            clientDev.groups().byGroupId(groupId).artifacts().post(createArtifact_final, config -> {
                 config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
             });
         });
@@ -254,6 +275,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         final String version = "1";
 
         // Execution
+        CreateArtifact createArtifact = createArtifact();
         createArtifact.setArtifactId(artifactId);
         final VersionMetaData created = client.groups().byGroupId(groupId).artifacts().post(createArtifact)
                 .getVersion();
@@ -286,6 +308,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         final String description = "testUpdateArtifactOwnerDescription";
 
         // Execution
+        CreateArtifact createArtifact = createArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.getFirstVersion().setVersion(version);
         createArtifact.getFirstVersion().setName(name);
@@ -334,6 +357,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         final String description = "testUpdateArtifactOwnerOnlyByOwnerDescription";
 
         // Execution
+        CreateArtifact createArtifact = createArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.getFirstVersion().setVersion(version);
         createArtifact.getFirstVersion().setName(name);

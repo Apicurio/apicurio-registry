@@ -50,6 +50,7 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         } catch (SQLException e) {
             // If a SQL exception is thrown, set the handle to rollback.
             if (state.handle != null) {
+                log.debug("Transaction will rollback.", e);
                 state.handle.setRollback(true);
             }
             // Wrap the SQL exception.
@@ -57,6 +58,7 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         } catch (Exception e) {
             // If any other exception is thrown, also set the handle to rollback.
             if (state.handle != null) {
+                log.debug("Transaction will rollback.", e);
                 state.handle.setRollback(true);
             }
             throw e;

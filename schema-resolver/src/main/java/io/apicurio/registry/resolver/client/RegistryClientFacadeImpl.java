@@ -10,6 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 
 /**
  * An implementation of @{@link RegistryClientFacade} that uses version 3 of the
@@ -116,7 +117,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     @Override
     public RegistryVersionCoordinates createSchema(String artifactType, String groupId, String artifactId, String version,
-                                                   String autoCreateBehavior, boolean canonical, String schemaString, List<RegistryArtifactReference> references) {
+                                                   String autoCreateBehavior, boolean canonical, String schemaString, Set<RegistryArtifactReference> references) {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(artifactType);
@@ -153,7 +154,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
     }
 
-    private static List<ArtifactReference> toClientReferences(List<RegistryArtifactReference> references) {
+    private static List<ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {
         return references.stream().map(ref -> {
             ArtifactReference ar = new ArtifactReference();
             ar.setName(ref.getName());

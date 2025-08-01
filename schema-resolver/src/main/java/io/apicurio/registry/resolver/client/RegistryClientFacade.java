@@ -3,6 +3,7 @@ package io.apicurio.registry.resolver.client;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * This interface represents a layer of abstraction between Registry clients and the
@@ -43,10 +44,12 @@ public interface RegistryClientFacade extends AutoCloseable {
 
     /**
      * Create a new schema.
+     * <p>
+     * NOTE: References must not be repeated, so we require a set instead of a list to protect against that.
      */
     RegistryVersionCoordinates createSchema(String artifactType, String groupId, String artifactId, String version,
                                             String autoCreateBehavior, boolean canonical, String schemaString,
-                                            List<RegistryArtifactReference> references);
+                                            Set<RegistryArtifactReference> references);
 
     /**
      * Gets "full" coordinates (includes all IDs) of a schema version given its GAV coordinates.

@@ -20,15 +20,19 @@ abstract class AbstractContentHandle implements ContentHandle {
     public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (!(o instanceof ContentHandle))
+        if (!(o instanceof ContentHandle other))
             return false;
-        ContentHandle that = (ContentHandle) o;
-        return Arrays.equals(bytes(), that.bytes());
+        return Arrays.equals(bytes(), other.bytes());
     }
 
     @Override
     public int hashCode() {
         return Arrays.hashCode(bytes());
+    }
+
+    @Override
+    public String toString() {
+        return "ContentHandle{content='" + content() + "'}";
     }
 
     @Override

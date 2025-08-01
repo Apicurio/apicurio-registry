@@ -7,6 +7,8 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
@@ -29,31 +31,27 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
 import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeoutException;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -109,6 +107,73 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     void closeVertx() {
         vertx.close();
     }
+
+    // Custom TestWatcher implementation
+    static class RegistryApiErrorWatcher implements TestWatcher {
+
+        public static Throwable getRootCause(Throwable throwable) {
+            Throwable cause = throwable;
+            while (cause.getCause() != null) {
+                cause = cause.getCause();
+            }
+            return cause;
+        }
+
+        @Override
+        public void testFailed(ExtensionContext context, Throwable cause) {
+            log.error("=== TEST FAILED ===");
+            if (context.getTestClass().isPresent()) {
+                log.error("Class: {}", context.getTestClass().get());
+            }
+            log.error("Test:  {}", context.getDisplayName());
+            log.error("ID:    {}", context.getUniqueId());
+            log.error("Error: {} - {}", cause.getClass().getSimpleName(), cause.getMessage());
+            if (cause instanceof RuleViolationProblemDetails) {
+                logProblemDetails((RuleViolationProblemDetails) cause);
+            } else if (cause instanceof ProblemDetails) {
+                logProblemDetails((ProblemDetails) cause);
+            }
+            // Optional: print stack trace or log somewhere else
+            getRootCause(cause).printStackTrace(System.err);
+            log.error("=== =========== ===");
+        }
+
+        private void logProblemDetails(ProblemDetails cause) {
+            log.error("Problem Details");
+            log.error("    Name:     {}", cause.getName());
+            log.error("    Title:    {}", cause.getTitle());
+            log.error("    Detail:   {}", cause.getDetail());
+            log.error("    Instance: {}", cause.getInstance());
+            log.error("    Type:     {}", cause.getType());
+            log.error("    Message:  {}", cause.getMessage());
+            log.error("    Status:   {}", cause.getStatus());
+        }
+
+        private void logProblemDetails(RuleViolationProblemDetails cause) {
+            log.error("Rule Violation Problem Details");
+            log.error("    Name:     {}", cause.getName());
+            log.error("    Title:    {}", cause.getTitle());
+            log.error("    Detail:   {}", cause.getDetail());
+            log.error("    Instance: {}", cause.getInstance());
+            log.error("    Type:     {}", cause.getType());
+            log.error("    Message:  {}", cause.getMessage());
+            log.error("    Status:   {}", cause.getStatus());
+            log.error("    Causes:");
+            cause.getCauses().forEach((cause1) -> {
+                log.error("        Context:     {}", cause1.getContext());
+                log.error("        Description: {}", cause1.getDescription());
+                log.error("        ---");
+            });
+        }
+
+        @Override
+        public void testSuccessful(ExtensionContext context) {
+            System.out.println("Test passed: " + context.getDisplayName());
+        }
+    }
+
+    @RegisterExtension
+    RegistryApiErrorWatcher watcher = new RegistryApiErrorWatcher();
 
     private static String normalizeGroupId(String groupId) {
         return groupId != null ? groupId : "default"; // TODO
@@ -213,22 +278,6 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         }
     }
 
-    public static String getRegistryHost() {
-        if (REGISTRY_URL != null) {
-            return REGISTRY_URL.getHost();
-        } else {
-            return System.getProperty("quarkus.http.test-host");
-        }
-    }
-
-    public static int getRegistryPort() {
-        return Integer.parseInt(System.getProperty("quarkus.http.test-port"));
-    }
-
-    public static String getRegistryUIUrl() {
-        return getRegistryBaseUrl().concat("/ui");
-    }
-
     public static String getRegistryApiUrl() {
         return getRegistryBaseUrl().concat("/apis");
     }
@@ -239,136 +288,24 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     public static String getRegistryBaseUrl() {
         if (REGISTRY_URL != null) {
-            return String.format("http://%s:%s", REGISTRY_URL.getHost(), REGISTRY_URL.getPort());
+            String baseUrl = REGISTRY_URL.toString();
+            if (System.getProperty("quarkus.http.test-port", "").endsWith("443")) {
+                baseUrl = baseUrl.replace("http://", "https://");
+            }
+            if (baseUrl.endsWith("/")) {
+                baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+            }
+            System.out.println("**** Registry Base URL: " + baseUrl);
+            return baseUrl;
         } else {
-            return String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"),
-                    System.getProperty("quarkus.http.test-port"));
+            return String.format("%s://%s:%s",
+                    System.getProperty("quarkus.http.test-scheme", "http"),
+                    System.getProperty("quarkus.http.test-host", "localhost"),
+                    System.getProperty("quarkus.http.test-port", "8080"));
         }
-    }
-
-    public static String getRegistryBaseUrl(int port) {
-        if (REGISTRY_URL != null) {
-            return String.format("http://%s:%s", REGISTRY_URL.getHost(), port);
-        } else {
-            return String.format("http://%s:%s", System.getProperty("quarkus.http.test-host"), port);
-        }
-    }
-
-    public static String getKeycloakBaseUrl() {
-        if (System.getProperty("keycloak.external.endpoint") != null) {
-            return String.format("http://%s:%s", System.getProperty("keycloak.external.endpoint"), 8090);
-        }
-
-        return "http://localhost:8090";
-    }
-
-    /**
-     * Method which try connection to registries. It's used as a initial check for registries availability.
-     *
-     * @return true if registries are ready for use, false in other cases
-     */
-    public boolean isReachable() {
-        try (Socket socket = new Socket()) {
-            String host = REGISTRY_URL.getHost();
-            int port = REGISTRY_URL.getPort();
-            log.info("Trying to connect to {}:{}", host, port);
-            socket.connect(new InetSocketAddress(host, port), 5_000);
-            log.info("Client is able to connect to Registry instance");
-            return true;
-        } catch (IOException ex) {
-            log.warn("Cannot connect to Registry instance: {}", ex.getMessage());
-            return false; // Either timeout or unreachable or failed DNS lookup.
-        }
-    }
-    // ---
-
-    /**
-     * Poll the given {@code ready} function every {@code pollIntervalMs} milliseconds until it returns true,
-     * or throw a TimeoutException if it doesn't returns true within {@code timeoutMs} milliseconds. (helpful
-     * if you have several calls which need to share a common timeout)
-     *
-     * @return The remaining time left until timeout occurs
-     */
-    public long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready)
-            throws TimeoutException {
-        return waitFor(description, pollIntervalMs, timeoutMs, ready, () -> {
-        });
-    }
-
-    public long waitFor(String description, long pollIntervalMs, long timeoutMs, BooleanSupplier ready,
-            Runnable onTimeout) throws TimeoutException {
-        log.debug("Waiting for {}", description);
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (true) {
-            boolean result;
-            try {
-                result = ready.getAsBoolean();
-            } catch (Throwable e) {
-                result = false;
-            }
-            long timeLeft = deadline - System.currentTimeMillis();
-            if (result) {
-                return timeLeft;
-            }
-            if (timeLeft <= 0) {
-                onTimeout.run();
-                TimeoutException exception = new TimeoutException(
-                        "Timeout after " + timeoutMs + " ms waiting for " + description);
-                exception.printStackTrace();
-                throw exception;
-            }
-            long sleepTime = Math.min(pollIntervalMs, timeLeft);
-            if (log.isTraceEnabled()) {
-                log.trace("{} not ready, will try again in {} ms ({}ms till timeout)", description, sleepTime,
-                        timeLeft);
-            }
-            try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {
-                return deadline - System.currentTimeMillis();
-            }
-        }
-    }
-
-    /**
-     * Method to create and write String content file.
-     *
-     * @param filePath path to file
-     * @param text content
-     */
-    public void writeFile(String filePath, String text) {
-        try {
-            Files.write(new File(filePath).toPath(), text.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            log.info("Exception during writing text in file");
-        }
-    }
-
-    public void writeFile(Path filePath, String text) {
-        try {
-            Files.write(filePath, text.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            log.info("Exception during writing text in file");
-        }
-    }
-
-    public String generateTopic() {
-        return generateTopic("topic-");
-    }
-
-    public String generateTopic(String prefix) {
-        return prefix + UUID.randomUUID().toString();
-    }
-
-    public String generateSubject() {
-        return "s" + generateArtifactId().replace("-", "x");
     }
 
     public String generateArtifactId() {
-        return UUID.randomUUID().toString();
-    }
-
-    public String generateGroupId() {
         return UUID.randomUUID().toString();
     }
 

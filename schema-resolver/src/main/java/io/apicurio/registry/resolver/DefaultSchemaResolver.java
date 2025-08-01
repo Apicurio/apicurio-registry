@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.cache.ContentWithReferences;
 import io.apicurio.registry.resolver.client.RegistryArtifactReference;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
@@ -9,8 +10,15 @@ import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.utils.IoUtil;
 
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of {@link SchemaResolver}
@@ -41,7 +49,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
     /**
      * @see io.apicurio.registry.resolver.AbstractSchemaResolver#configure(java.util.Map,
-     *      io.apicurio.registry.resolver.SchemaParser)
+     * io.apicurio.registry.resolver.SchemaParser)
      */
     @Override
     public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
@@ -61,8 +69,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
      */
     @Override
     public SchemaLookupResult<S> resolveSchema(Record<T> data) {
-        Objects.requireNonNull(data);
-        Objects.requireNonNull(data.payload());
+        requireNonNull(data);
+        requireNonNull(data.payload());
 
         ParsedSchema<S> parsedSchema;
         if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
@@ -72,7 +80,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false, null);
-
         return getSchemaFromCache(artifactReference)
                 .orElseGet(() -> getSchemaFromRegistry(parsedSchema, data, artifactReference));
     }
@@ -96,8 +103,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> getSchemaFromRegistry(ParsedSchema<S> parsedSchema, Record<T> data,
-            ArtifactReference artifactReference) {
-
+                                                        ArtifactReference artifactReference) {
         if (autoCreateArtifact) {
 
             if (schemaParser.supportsExtractSchemaFromData()) {
@@ -106,18 +112,17 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                     parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
                 }
 
+                List<SchemaLookupResult<S>> schemaLookupResults = List.of();
                 if (parsedSchema.hasReferences()) {
                     // List of references lookup, to be used to create the references for the artifact
-                    final List<SchemaLookupResult<S>> schemaLookupResults = handleArtifactReferences(data,
-                            parsedSchema);
-                    return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
-                } else {
-                    return handleAutoCreateArtifact(parsedSchema, artifactReference);
+                    schemaLookupResults = handleArtifactReferences(data, parsedSchema);
                 }
+                return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
+
             } else if (config.getExplicitSchemaLocation() != null
                     && schemaParser.supportsGetSchemaFromLocation()) {
                 parsedSchema = schemaParser.getSchemaFromLocation(config.getExplicitSchemaLocation());
-                return handleAutoCreateArtifact(parsedSchema, artifactReference);
+                return handleAutoCreateArtifact(parsedSchema, artifactReference, List.of());
             }
         }
 
@@ -138,27 +143,23 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private List<SchemaLookupResult<S>> handleArtifactReferences(Record<T> data,
-            ParsedSchema<S> parsedSchema) {
+                                                                 ParsedSchema<S> parsedSchema) {
         final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
 
         for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
 
             List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema);
 
-            if (nestedReferences.isEmpty()) {
-                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data,
-                        referencedSchema, true, referencedSchema.referenceName())));
-            } else {
-                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data,
-                        referencedSchema, true, referencedSchema.referenceName()), nestedReferences));
-            }
+            referencesLookup.add(handleAutoCreateArtifact(referencedSchema,
+                    resolveArtifactReference(data, referencedSchema, true, referencedSchema.referenceName()),
+                    nestedReferences));
         }
         return referencesLookup;
     }
 
     /**
      * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference
-     *      (io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
+     * (io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
@@ -181,7 +182,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> resolveSchemaByCoordinates(String groupId, String artifactId,
-            String version) {
+                                                             String version) {
         if (artifactId == null) {
             throw new IllegalStateException("artifactId cannot be null");
         }
@@ -245,11 +246,11 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
      * schema uploaded in the registry.
      */
     private SchemaLookupResult<S> handleResolveSchemaByContent(ParsedSchema<S> parsedSchema,
-            final ArtifactReference artifactReference) {
+                                                               final ArtifactReference artifactReference) {
 
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
+        return schemaCache.getByContent(ContentWithReferences.builder().content(rawSchemaString).build(), contentKey -> {
             logger.info(String.format("Retrieving schema content using string: %s", rawSchemaString));
 
             String artifactType = schemaParser.artifactType();
@@ -277,45 +278,34 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> handleAutoCreateArtifact(ParsedSchema<S> parsedSchema,
-            final ArtifactReference artifactReference) {
+                                                           final ArtifactReference artifactReference, List<SchemaLookupResult<S>> referenceLookups) {
+        requireNonNull(referenceLookups);
+
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
+        var references = referenceLookups.stream()
+                .map(SchemaLookupResult::toArtifactReference)
+                .collect(Collectors.toSet());
+
+        var key = ContentWithReferences.builder()
+                .content(rawSchemaString)
+                .references(references)
+                .build();
+
+        return schemaCache.getByContent(key, contentKey -> {
             String artifactType = schemaParser.artifactType();
             String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
             String artifactId = artifactReference.getArtifactId();
             String version = artifactReference.getVersion();
             String autoCreate = this.autoCreateBehavior;
             boolean canonical = false;
+
+            var clientReferences = referenceLookups.stream()
+                    .map(RegistryArtifactReference::fromSchemaLookupResult)
+                    .collect(Collectors.toSet());
+
             RegistryVersionCoordinates versionCoordinates = this.clientFacade.createSchema(artifactType, groupId, artifactId,
-                    version, autoCreate, canonical, rawSchemaString, List.of());
-
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            loadFromVersionCoordinates(versionCoordinates, result);
-
-            result.parsedSchema(parsedSchema);
-
-            return result.build();
-        });
-    }
-
-    private SchemaLookupResult<S> handleAutoCreateArtifact(ParsedSchema<S> parsedSchema,
-            final ArtifactReference artifactReference, List<SchemaLookupResult<S>> referenceLookups) {
-
-        String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
-
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
-            String artifactType = schemaParser.artifactType();
-            String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
-            String artifactId = artifactReference.getArtifactId();
-            String version = artifactReference.getVersion();
-            String autoCreate = this.autoCreateBehavior;
-            boolean canonical = false;
-            List<RegistryArtifactReference> artifactReferences = referenceLookups.stream().map(
-                    RegistryArtifactReference::fromSchemaLookupResult).toList();
-            RegistryVersionCoordinates versionCoordinates = this.clientFacade.createSchema(artifactType, groupId, artifactId,
-                    version, autoCreate, canonical, rawSchemaString, artifactReferences);
+                    version, autoCreate, canonical, rawSchemaString, clientReferences);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 

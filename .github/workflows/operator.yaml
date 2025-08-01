@@ -23,15 +23,13 @@ jobs:
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
 
-      - uses: ./.github/workflows/composite/quay-apicurio-ci
-
       # We need tho push the bundle image because opm always pulls; the catalog image because OLM
       # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
       - name: Configure env. variables
         run: |
-          echo "IMAGE=quay.io/apicurio-ci/apicurio-registry-3-operator:$(date --rfc-3339=date)_${{ github.sha }}" >> $GITHUB_ENV
-          echo "BUNDLE_IMAGE=quay.io/apicurio-ci/apicurio-registry-3-operator-bundle:$(date --rfc-3339=date)_${{ github.sha }}" >> $GITHUB_ENV
-          echo "CATALOG_IMAGE=quay.io/apicurio-ci/apicurio-registry-3-operator-catalog:$(date --rfc-3339=date)_${{ github.sha }}" >> $GITHUB_ENV
+          echo "IMAGE=ttl.sh/apicurio-registry-3-operator-${{ github.sha }}:8h" >> $GITHUB_ENV
+          echo "BUNDLE_IMAGE=ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h" >> $GITHUB_ENV
+          echo "CATALOG_IMAGE=ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h" >> $GITHUB_ENV
 
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@v4
@@ -43,11 +41,10 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - uses: ./.github/workflows/composite/setup-minikube
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          ingress_enable: 'true'
-          olm_enable: 'true'
+          ingress-enable: 'true'
+          olm-enable: 'true'
 
       - name: Build only
         if: github.event_name != 'push'

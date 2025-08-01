@@ -161,9 +161,7 @@
     <json-schema-validator.version>1.5.5</json-schema-validator.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio-jvm.version>3.10.2</okio-jvm.version>
-    <okio.version>3.10.2</okio.version>
-    <okio-fake-file-system.version>3.10.2</okio-fake-file-system.version>
+    <okio.version>3.16.0</okio.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.31.1</protobuf.version>
     <xmlsec.version>4.0.3</xmlsec.version>
@@ -608,17 +606,17 @@
       <dependency>
         <groupId>com.squareup.okio</groupId>
         <artifactId>okio-jvm</artifactId>
-        <version>${okio-jvm.version}</version>
+        <version>${okio.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okio</groupId>
+        <artifactId>okio-fakefilesystem</artifactId>
+        <version>${okio.version}</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.okio</groupId>
         <artifactId>okhttp</artifactId>
         <version>${okhttp.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okio</groupId>
-        <artifactId>okio-fakefilesystem</artifactId>
-        <version>${okio-fake-file-system.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>

@@ -14,6 +14,8 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 
+import static io.apicurio.registry.rest.client.v2.models.ArtifactState.DISABLED;
+
 /**
  * An implementation of @{@link RegistryClientFacade} that uses version 2 of the
  * Apicurio Registry Core API.
@@ -112,6 +114,9 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
                     config.queryParameters.canonical = canonical;
                 });
 
+        if(DISABLED == vmd.getState()) {
+            return List.of();
+        }
         return List.of(RegistryVersionCoordinates.create(
                 vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getId(), vmd.getVersion()));
     }

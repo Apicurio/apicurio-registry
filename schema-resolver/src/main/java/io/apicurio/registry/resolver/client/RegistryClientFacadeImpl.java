@@ -12,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
+import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
+
 /**
  * An implementation of @{@link RegistryClientFacade} that uses version 3 of the
  * Apicurio Registry Core API.
@@ -111,7 +113,9 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
             config.queryParameters.order = SortOrder.Desc;
         });
 
-        return results.getVersions().stream().map(v ->
+        return results.getVersions().stream()
+                .filter(version -> DISABLED != version.getState())
+                .map(v ->
                 RegistryVersionCoordinates.create(v.getGlobalId(), v.getContentId(), v.getGroupId(), v.getArtifactId(), v.getVersion())).toList();
     }
 

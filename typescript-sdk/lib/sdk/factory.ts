@@ -7,10 +7,8 @@ import {
 } from "@microsoft/kiota-abstractions";
 import { FetchRequestAdapter, HeadersInspectionHandler, KiotaClientFactory, ParametersNameDecodingHandler, RedirectHandler, RetryHandler, UserAgentHandler } from "@microsoft/kiota-http-fetchlibrary";
 import { JsonParseNodeFactory, JsonSerializationWriterFactory } from "@microsoft/kiota-serialization-json";
-import { ApicurioRegistryClient, createApicurioRegistryClient } from "../generated-client/apicurioRegistryClient.ts";
-import {
-    SerializationWriterFactoryRegistry
-} from "@microsoft/kiota-abstractions/dist/es/src/serialization/serializationWriterFactoryRegistry";
+import { ApicurioRegistryClient, createApicurioRegistryClient } from "../generated-client/apicurioRegistryClient.js";
+import { SerializationWriterFactoryRegistry } from "@microsoft/kiota-abstractions";
 
 // Locally defined parse node factory (for parsing responses)
 const localParseNodeFactory: ParseNodeFactoryRegistry = new ParseNodeFactoryRegistry();

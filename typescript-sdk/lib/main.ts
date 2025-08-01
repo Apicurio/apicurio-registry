@@ -1,2 +1,2 @@
-export * from "./sdk";
-export * from "./generated-client/apicurioRegistryClient";
+export * from "./sdk/index.js";
+export * from "./generated-client/apicurioRegistryClient.js";

@@ -1,6 +1,6 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //DEPS org.reflections:reflections:0.10.2
-//DEPS io.apicurio:apicurio-data-models:2.0.0-SNAPSHOT
+//DEPS io.apicurio:apicurio-data-models:2.2.2
 
 import java.util.Set;
 import org.reflections.Reflections;
@@ -17,7 +17,7 @@ public class extractRegisterForReflection {
 
         subTypes
             .stream()
-            .map(t -> t.getCanonicalName() + ".class")
+            .map(t -> t.getCanonicalName() + ".class,")
             .sorted()
             .forEach(s -> System.out.println(s));
     }

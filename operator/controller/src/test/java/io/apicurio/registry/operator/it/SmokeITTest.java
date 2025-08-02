@@ -140,7 +140,7 @@ public class SmokeITTest extends ITBase {
         });
 
         int appServicePort = portForwardManager
-                .startPortForward(registry.getMetadata().getName() + "-app-service", 8080);
+                .startServicePortForward(registry.getMetadata().getName() + "-app-service", 8080);
 
         await().ignoreExceptions().until(() -> {
             given().get(new URI("http://localhost:" + appServicePort + "/apis/registry/v3/system/info"))
@@ -149,7 +149,7 @@ public class SmokeITTest extends ITBase {
         });
 
         int uiServicePort = portForwardManager
-                .startPortForward(registry.getMetadata().getName() + "-ui-service", 8080);
+                .startServicePortForward(registry.getMetadata().getName() + "-ui-service", 8080);
 
         await().ignoreExceptions().until(() -> {
             given().get(new URI("http://localhost:" + uiServicePort + "/config.js")).then().statusCode(200);

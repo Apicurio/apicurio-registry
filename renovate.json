@@ -239,7 +239,9 @@
       "groupName": "Dependencies: Typescript Version (Temporary)",
       "matchFileNames": [
         "ui/ui-app/**",
-        "ui/ui-editors/**"
+        "ui/ui-editors/**",
+        "ui/ui-docs/**",
+        "typescript-sdk/**"
       ],
       "enabled": false,
       "matchPackageNames": [

@@ -182,7 +182,7 @@ public class TlsITTest extends ITBase {
             return true;
         });
 
-        portForwardManager.stop();
+        portForwardManager.stop(appServicePortInsecure);
 
         int appServicePort = portForwardManager
                 .startServicePortForward(registry.getMetadata().getName() + "-app-service", 8443);

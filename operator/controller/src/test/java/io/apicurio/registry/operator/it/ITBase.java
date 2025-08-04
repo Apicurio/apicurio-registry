@@ -384,7 +384,7 @@ public abstract class ITBase {
 
     @AfterAll
     public static void after() throws Exception {
-        portForwardManager.stop();
+        portForwardManager.close();
         if (operatorDeployment == OperatorDeployment.local) {
             app.stop();
             log.info("Creating new K8s Client");

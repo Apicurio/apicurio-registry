@@ -262,11 +262,10 @@
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
         <!-- Test containers version, should be aligned with version used in Quarkus -->
-        <test-containers.version>1.19.7</test-containers.version>
         <embedded-postgres.version>2.0.7</embedded-postgres.version>
         <strimzi.version>0.105.0</strimzi.version>
         <wiremock.version>3.9.1</wiremock.version>
-        <strimzi-test-container.version>0.110.0</strimzi-test-container.version>
+        <strimzi-test-container.version>0.111.0</strimzi-test-container.version>
         <protoc-artifact-common>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protoc-artifact-common>
     </properties>
 

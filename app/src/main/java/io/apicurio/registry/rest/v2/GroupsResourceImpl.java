@@ -365,7 +365,8 @@ public class GroupsResourceImpl implements GroupsResource {
             limit = BigInteger.valueOf(20);
         }
 
-        final OrderBy oBy = OrderBy.valueOf(orderby.name());
+        // note: need to convert from "name" to "groupId" for the sort param (v2 vs. v3 language).
+        final OrderBy oBy = orderby == SortBy.name ? OrderBy.groupId : OrderBy.valueOf(orderby.name());
         final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc
             : OrderDirection.desc;
 

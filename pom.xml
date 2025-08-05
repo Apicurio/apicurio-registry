@@ -269,7 +269,7 @@
         <strimzi-test-container.version>0.110.0</strimzi-test-container.version>
         <protoc-artifact-common>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protoc-artifact-common>
     </properties>
-
+ 
     <dependencyManagement>
         <dependencies>
             <!-- This project -->

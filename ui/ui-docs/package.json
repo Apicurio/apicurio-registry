@@ -15,8 +15,8 @@
     "@apicurio/eslint-config": "0.3.0",
     "@types/react": "18.3.23",
     "@types/react-dom": "18.3.7",
-    "@typescript-eslint/eslint-plugin": "8.38.0",
-    "@typescript-eslint/parser": "8.38.0",
+    "@typescript-eslint/eslint-plugin": "8.39.0",
+    "@typescript-eslint/parser": "8.39.0",
     "@vitejs/plugin-react-swc": "3.11.0",
     "eslint": "8.57.1",
     "eslint-plugin-react-hooks": "5.2.0",
@@ -31,7 +31,7 @@
     "react-dom": "18.3.1",
     "mobx": "6.13.7",
     "styled-components": "6.1.19",
-    "core-js": "3.44.0",
+    "core-js": "3.45.0",
     "redoc": "2.5.0"
   }
 }

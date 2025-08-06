@@ -131,14 +131,22 @@ jobs:
           driver: 'none'
           ingress-enable: 'true'
           olm-enable: 'true'
+          olm-v1-enable: 'true'
           start-args: '--alsologtostderr --v=2' # Debug
 
-      - name: Run tests
+      - name: Run remote and OLM v1 tests on Minikube
         if: env.RUN_TESTS == 'true'
         working-directory: registry/operator
         run: |
           source "$CUSTOM_ENV"
-          make REMOTE_TESTS_ALL_INSTALL_FILE=install/install.yaml BUILD_OPTS=--no-transfer-progress test-remote-all
+          make REMOTE_TESTS_ALL_INSTALL_FILE=install/install.yaml BUILD_OPTS="--no-transfer-progress -Dtest.operator.olm-version=1" test-remote-all
+
+      - name: Run OLM v0 smoke tests on Minikube
+        if: env.RUN_TESTS == 'true'
+        working-directory: registry/operator
+        run: |
+          source "$CUSTOM_ENV"
+          make REMOTE_TESTS_ALL_INSTALL_FILE=install/install.yaml BUILD_OPTS="--no-transfer-progress -Dgroups=OLM" test-remote-all
 
       - name: Build dist archive and attach to the release
         working-directory: registry/operator

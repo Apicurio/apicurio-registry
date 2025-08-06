@@ -128,13 +128,14 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             log.error("Test:  {}", context.getDisplayName());
             log.error("ID:    {}", context.getUniqueId());
             log.error("Error: {} - {}", cause.getClass().getSimpleName(), cause.getMessage());
-            if (cause instanceof RuleViolationProblemDetails) {
+            Throwable rootCause = getRootCause(cause);
+            if (rootCause instanceof RuleViolationProblemDetails) {
                 logProblemDetails((RuleViolationProblemDetails) cause);
-            } else if (cause instanceof ProblemDetails) {
+            } else if (rootCause instanceof ProblemDetails) {
                 logProblemDetails((ProblemDetails) cause);
             }
             // Optional: print stack trace or log somewhere else
-            getRootCause(cause).printStackTrace(System.err);
+            log.error("Root Cause", rootCause);
             log.error("=== =========== ===");
         }
 

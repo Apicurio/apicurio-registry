@@ -1,0 +1,8 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: apicurio-registry-operator-installer-role
+  namespace: ${PLACEHOLDER_NAMESPACE}
+rules:
+
+  [] # TODO: Unnecessary?

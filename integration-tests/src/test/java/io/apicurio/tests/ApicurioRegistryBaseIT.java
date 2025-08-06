@@ -130,9 +130,9 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             log.error("Error: {} - {}", cause.getClass().getSimpleName(), cause.getMessage());
             Throwable rootCause = getRootCause(cause);
             if (rootCause instanceof RuleViolationProblemDetails) {
-                logProblemDetails((RuleViolationProblemDetails) cause);
+                logProblemDetails((RuleViolationProblemDetails) rootCause);
             } else if (rootCause instanceof ProblemDetails) {
-                logProblemDetails((ProblemDetails) cause);
+                logProblemDetails((ProblemDetails) rootCause);
             }
             // Optional: print stack trace or log somewhere else
             log.error("Root Cause", rootCause);

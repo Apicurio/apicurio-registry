@@ -35,4 +35,11 @@ public final class Labels {
                 "app", "apicurio-registry-operator"
         );
     }
+
+    public static Map<String, String> getOperatorManagedLabels() {
+        return Map.of(
+                "app.kubernetes.io/managed-by", "apicurio-registry-operator",
+                "app.apicurio-registry-operator.io/managed", "true"
+        );
+    }
 }

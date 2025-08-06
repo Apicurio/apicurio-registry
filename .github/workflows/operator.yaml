@@ -48,6 +48,7 @@ jobs:
           driver: 'none'
           ingress-enable: 'true'
           olm-enable: 'true'
+          olm-v1-enable: 'true'
           start-args: '--alsologtostderr --v=2' # Debug
 
       - name: Build only
@@ -80,10 +81,15 @@ jobs:
         run: |
           make catalog
 
-      - name: Run remote and OLM tests on Minikube
+      - name: Run remote and OLM v1 tests on Minikube
         working-directory: operator
         run: |
-          make BUILD_OPTS=--no-transfer-progress test-remote-all
+          make BUILD_OPTS="--no-transfer-progress -Dtest.operator.olm-version=1" test-remote-all
+
+      - name: Run OLM v0 smoke tests on Minikube
+        working-directory: operator
+        run: |
+          make BUILD_OPTS="--no-transfer-progress -Dgroups=OLM" test-remote-all
 
       - name: Update install file
         working-directory: operator

@@ -1,7 +1,6 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.App;
-import io.apicurio.registry.operator.Constants;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.Labels;
@@ -46,6 +45,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import static io.apicurio.registry.operator.resource.Labels.getOperatorManagedLabels;
 import static io.apicurio.registry.utils.Cell.cell;
 import static java.time.Duration.ofSeconds;
 import static java.util.Optional.ofNullable;
@@ -396,8 +396,9 @@ public abstract class ITBase {
             log.info("Deleting CRs");
             client.resources(ApicurioRegistry3.class).delete();
             await().untilAsserted(() -> {
+                // TODO: Check if this is even used?
                 var registryDeployments = client.apps().deployments().inNamespace(namespace)
-                        .withLabels(Constants.BASIC_LABELS).list().getItems();
+                        .withLabels(getOperatorManagedLabels()).list().getItems();
                 assertThat(registryDeployments.size()).isZero();
             });
         }

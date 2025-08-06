@@ -101,6 +101,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         logger.info("RestAssured configured with {}", RestAssured.baseURI);
         RestAssured.defaultParser = Parser.JSON;
         RestAssured.urlEncodingEnabled = false;
+
+        // Make sure all global rules are deleted, anything else should be isolated
+        // within a group or artifact on a per-test basis.
+        registryClient.admin().rules().delete();
     }
 
     @AfterAll

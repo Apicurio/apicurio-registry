@@ -36,10 +36,6 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
     @BeforeAll
     void setupEnvironment() {
         kafkaCluster.startIfNeeded();
-
-        // Make sure all global rules are deleted, because the .proto used in
-        // this test has an unmapped reference.
-        registryClient.admin().rules().delete();
     }
 
     @AfterAll

@@ -4,6 +4,7 @@ import io.apicurio.registry.operator.App;
 import io.apicurio.registry.operator.Constants;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.resource.Labels;
 import io.apicurio.registry.utils.Cell;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -40,7 +41,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -55,10 +55,11 @@ public abstract class ITBase {
     private static final Logger log = LoggerFactory.getLogger(ITBase.class);
 
     public static final String DEPLOYMENT_TARGET = "test.operator.deployment-target";
-    public static final String OPERATOR_DEPLOYMENT_PROP = "test.operator.deployment";
+    public static final String OPERATOR_DEPLOYMENT_PROP = "test.operator.deployment-type";
     public static final String INGRESS_HOST_PROP = "test.operator.ingress-host";
     public static final String INGRESS_SKIP_PROP = "test.operator.ingress-skip";
-    public static final String CLEANUP = "test.operator.cleanup";
+    public static final String REMOTE_DEBUG_PROP = "test.operator.remote-debug-enabled";
+    public static final String CLEANUP = "test.operator.cleanup-enabled";
     public static final String CRD_FILE = "../model/target/classes/META-INF/fabric8/apicurioregistries3.registry.apicur.io-v1.yml";
     public static final String REMOTE_TESTS_INSTALL_FILE = "test.operator.install-file";
 
@@ -99,7 +100,7 @@ public abstract class ITBase {
         createCRDs();
         createNamespace(client, namespace);
 
-        portForwardManager = new PortForwardManager(client, namespace);
+        portForwardManager = new PortForwardManager(namespace);
         ingressManager = new IngressManager(client, namespace);
         podLogManager = new PodLogManager(client);
         hostAliasManager = new HostAliasManager(client);
@@ -107,9 +108,17 @@ public abstract class ITBase {
 
         if (operatorDeployment == OperatorDeployment.remote) {
             createTestResources();
-            startOperatorLogs();
+            var operatorPod = waitOnOperatorPod();
+            if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class)) {
+                portForwardManager.startPodPortForward(operatorPod.getMetadata().getName(), 5005, 15005);
+                log.info("Remote debugging enabled. Attach your debugger to port 15005.");
+            }
+            podLogManager.startPodLog(ResourceID.fromResource(operatorPod));
         } else {
             startOperator();
+            if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class)) {
+                log.warn("Property {} has no effect on local deployment.", REMOTE_DEBUG_PROP);
+            }
         }
     }
 
@@ -262,19 +271,18 @@ public abstract class ITBase {
         });
     }
 
-    private static void startOperatorLogs() {
+    private static Pod waitOnOperatorPod() {
         List<Pod> operatorPods = new ArrayList<>();
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             operatorPods.clear();
-            operatorPods.addAll(client.pods()
-                    .withLabels(Map.of(
-                            "app.kubernetes.io/name", "apicurio-registry-operator",
-                            "app.kubernetes.io/component", "operator",
-                            "app.kubernetes.io/part-of", "apicurio-registry"))
-                    .list().getItems());
+            operatorPods.addAll(
+                    client.pods()
+                            .withLabels(Labels.getOperatorSelectorLabels())
+                            .list().getItems()
+            );
             assertThat(operatorPods).hasSize(1);
         });
-        podLogManager.startPodLog(ResourceID.fromResource(operatorPods.get(0)));
+        return operatorPods.get(0);
     }
 
     private static void cleanTestResources() throws Exception {
@@ -376,7 +384,7 @@ public abstract class ITBase {
 
     @AfterAll
     public static void after() throws Exception {
-        portForwardManager.stop();
+        portForwardManager.close();
         if (operatorDeployment == OperatorDeployment.local) {
             app.stop();
             log.info("Creating new K8s Client");

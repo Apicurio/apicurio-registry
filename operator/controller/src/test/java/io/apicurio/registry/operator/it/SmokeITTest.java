@@ -147,7 +147,7 @@ public class SmokeITTest extends ITBase {
                     .then().statusCode(200);
             return true;
         });
-        /*
+
         int uiServicePort = portForwardManager
                 .startPortForward(registry.getMetadata().getName() + "-ui-service", 8080);
 
@@ -155,7 +155,6 @@ public class SmokeITTest extends ITBase {
             given().get(new URI("http://localhost:" + uiServicePort + "/config.js")).then().statusCode(200);
             return true;
         });
-        */
     }
 
     @Test

@@ -125,6 +125,11 @@ jobs:
 
       - uses: apicurio/apicurio-github-actions/setup-minikube@v2
         if: env.RUN_TESTS == 'true'
+        with:
+          driver: 'none' # Do not use the "docker" driver, it is causing port-forwarding errors. I have no clue why :(
+          ingress-enable: 'true'
+          olm-enable: 'true'
+          start-args: '--alsologtostderr --v=2' # Debug
 
       - name: Run tests
         if: env.RUN_TESTS == 'true'

@@ -101,9 +101,13 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     String auditLogPrefix;
 
-    @ConfigProperty(name = "quarkus.oidc.token-path", defaultValue = "")
-    @Info(category = CATEGORY_AUTH, description = "Authentication server token endpoint.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
+    @Info(category = CATEGORY_AUTH, description = "Authentication server endpoint.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
     String authServerUrl;
+
+    @ConfigProperty(name = "quarkus.oidc.token-path", defaultValue = "/protocol/openid-connect/token/")
+    @Info(category = CATEGORY_AUTH, description = "Authentication server token endpoint.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    String oidcTokenPath;
 
     @ConfigProperty(name = "quarkus.oidc.client-secret")
     @Info(category = CATEGORY_AUTH, description = "Client secret used by the server for authentication.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
@@ -141,7 +145,14 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         if (oidcAuthEnabled) {
             cachedAccessTokens = new ConcurrentHashMap<>();
             cachedAuthFailures = new ConcurrentHashMap<>();
-            httpClient = new VertxHttpClientProvider(vertx).create(authServerUrl, Collections.emptyMap(),
+            String oidcTokenUrl;
+            if (oidcTokenPath.startsWith("http")) {
+                oidcTokenUrl = oidcTokenPath;
+            } else {
+                oidcTokenUrl = authServerUrl + oidcTokenPath;
+            }
+
+            httpClient = new VertxHttpClientProvider(vertx).create(oidcTokenUrl, Collections.emptyMap(),
                     null, new AuthErrorHandler());
         }
     }
@@ -158,7 +169,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context,
-            IdentityProviderManager identityProviderManager) {
+                                              IdentityProviderManager identityProviderManager) {
         if (basicAuthEnabled) {
             return basicAuthenticationMechanism.authenticate(context, identityProviderManager);
         } else if (oidcAuthEnabled) {
@@ -189,7 +200,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     }
 
     public Uni<SecurityIdentity> customAuthentication(RoutingContext context,
-            IdentityProviderManager identityProviderManager) {
+                                                      IdentityProviderManager identityProviderManager) {
         if (clientSecret.isEmpty()) {
             // if no secret is present, try to authenticate with oidc provider
             return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
@@ -281,7 +292,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     }
 
     private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials,
-            RoutingContext context, IdentityProviderManager identityProviderManager) {
+                                                                    RoutingContext context, IdentityProviderManager identityProviderManager) {
         String jwtToken;
         String credentialsHash = getCredentialsHash(
                 clientCredentials.getLeft() + clientCredentials.getRight());
@@ -312,8 +323,8 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                 clientCredentials.getRight(), Duration.ofSeconds(1), scope.orElse(null));
         try {
             String jwtToken = oidcAuth.authenticate();// If we manage to get a token from basic credentials,
-                                                      // try to authenticate it using the fetched token using
-                                                      // the identity provider manager
+            // try to authenticate it using the fetched token using
+            // the identity provider manager
             cachedAccessTokens.put(credentialsHash,
                     new WrappedValue<>(getAccessTokenExpiration(jwtToken), Instant.now(), jwtToken));
             return jwtToken;
@@ -321,6 +332,8 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             cachedAuthFailures.put(credentialsHash,
                     new WrappedValue<>(getAccessTokenExpiration(null), Instant.now(), ex));
             throw ex;
+        } catch (RuntimeException e) {
+            throw e;
         }
     }
 

@@ -19,7 +19,7 @@ public class UserInterfaceConfigProperties {
     @Info(category = CATEGORY_UI, description = "URL of the Documentation component", availableSince = "3.0.0")
     public String docsUrl;
 
-    @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "")
+    @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
     public String authOidcUrl;
     @ConfigProperty(name = "apicurio.ui.auth.oidc.redirect-uri", defaultValue = "/")
     @Info(category = CATEGORY_UI, description = "The OIDC redirectUri", availableSince = "3.0.0")

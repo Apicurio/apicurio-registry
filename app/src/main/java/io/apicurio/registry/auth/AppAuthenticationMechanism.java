@@ -101,7 +101,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     String auditLogPrefix;
 
-    @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "")
+    @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
     @Info(category = CATEGORY_AUTH, description = "Authentication server endpoint.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
     String authServerUrl;
 

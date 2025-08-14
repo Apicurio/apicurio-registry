@@ -1,5 +1,7 @@
 package io.apicurio.registry;
 
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl_v2;
@@ -18,7 +20,7 @@ import java.util.stream.Stream;
  */
 public abstract class AbstractClientFacadeTestBase extends AbstractResourceTestBase {
 
-    public static interface ClientFacadeSupplier {
+    public interface ClientFacadeSupplier {
         RegistryClientFacade getFacade(AbstractClientFacadeTestBase test);
     }
 
@@ -31,9 +33,9 @@ public abstract class AbstractClientFacadeTestBase extends AbstractResourceTestB
         adapterv2.setBaseUrl(TestUtils.getRegistryV2ApiUrl(testPort));
         isolatedClientV2 = new io.apicurio.registry.rest.client.v2.RegistryClient(adapterv2);
 
-        var adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
-        isolatedClientV3 = new RegistryClient(adapter);
+        isolatedClientV3 = RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(TestUtils.getRegistryV3ApiUrl(testPort))
+                .vertx(vertx));
     }
 
     public static Stream<Arguments> isolatedClientFacadeProvider() {

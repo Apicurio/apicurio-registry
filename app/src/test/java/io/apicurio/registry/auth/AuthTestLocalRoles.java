@@ -1,7 +1,8 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -17,7 +18,6 @@ import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithLocalRoles;
 import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;
@@ -27,8 +27,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
-
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 
 /**
  * Tests local role mappings (managed in the database via the role-mapping API).
@@ -47,10 +45,10 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
-                KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        return new RegistryClient(adapter);
+        return RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
     }
 
     private static final CreateRule createRule = new CreateRule();
@@ -65,15 +63,15 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     @Test
     public void testLocalRoles() throws Exception {
-        var adapterAdmin = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
-        adapterAdmin.setBaseUrl(registryV3ApiUrl);
-        RegistryClient clientAdmin = new RegistryClient(adapterAdmin);
+        RegistryClient clientAdmin = RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
 
-        var adapterAuth = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
-        adapterAuth.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapterAuth);
+        RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
 
         // User is authenticated but no roles assigned yet - operations should fail.
         var exception1 = Assertions.assertThrows(Exception.class, () -> {

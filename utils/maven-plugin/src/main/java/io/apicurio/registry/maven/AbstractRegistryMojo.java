@@ -1,16 +1,15 @@
 package io.apicurio.registry.maven;
 
 import com.microsoft.kiota.ApiException;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.types.ContentTypes;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.file.FileSystemOptions;
-import io.vertx.ext.web.client.WebClient;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -76,19 +75,13 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     }
 
     protected RegistryClient createClient(Vertx vertx) {
-        WebClient provider = null;
+        RegistryClientOptions clientOptions = RegistryClientOptions.create(registryUrl, vertx);
         if (authServerUrl != null && clientId != null && clientSecret != null) {
-            provider = VertXAuthFactory.buildOIDCWebClient(vertx, authServerUrl, clientId, clientSecret,
-                    clientScope);
+            clientOptions.oauth2(authServerUrl, clientId, clientSecret);
         } else if (username != null && password != null) {
-            provider = VertXAuthFactory.buildSimpleAuthWebClient(vertx, username, password);
-        } else {
-            provider = WebClient.create(vertx);
+            clientOptions.basicAuth(username, password);
         }
-
-        var adapter = new VertXRequestAdapter(provider);
-        adapter.setBaseUrl(registryUrl);
-        return new RegistryClient(adapter);
+        return RegistryClientFactory.create(clientOptions);
     }
 
     @Override

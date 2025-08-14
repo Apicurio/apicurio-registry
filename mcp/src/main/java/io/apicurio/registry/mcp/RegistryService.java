@@ -1,5 +1,7 @@
 package io.apicurio.registry.mcp;
 
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
@@ -24,9 +26,7 @@ import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSortBy;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.models.WrappedVersionState;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkiverse.mcp.server.ToolCallException;
-import io.vertx.core.Vertx;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -66,9 +66,6 @@ public class RegistryService {
 
     @PostConstruct
     void init() {
-        Vertx vertx = Vertx.vertx();
-        var requestAdapter = new VertXRequestAdapter(vertx);
-
         if (!Pattern.compile("^https?://.*").matcher(rawBaseUrl).matches()) {
             rawBaseUrl = "http://" + rawBaseUrl;
         }
@@ -82,8 +79,7 @@ public class RegistryService {
             throw new IllegalArgumentException(ex);
         }
 
-        requestAdapter.setBaseUrl(rawBaseUrl);
-        client = new RegistryClient(requestAdapter);
+        client = RegistryClientFactory.create(RegistryClientOptions.create(rawBaseUrl));
 
         // Test the connection
         var info = client.system().info().get();

@@ -38,8 +38,8 @@ public class DefaultSchemaResolverTest {
         DefaultSchemaResolver<String, String> resolver = new DefaultSchemaResolver<>();
         String contentHash = "another content hash value";
         String schemaContent = "more schema content";
-        MockRequestAdapter adapter = new MockRequestAdapter(schemaContent);
-        RegistryClient client = new RegistryClient(adapter);
+        MockRequestAdapter mockAdapter = new MockRequestAdapter(schemaContent);
+        RegistryClient client = new RegistryClient(mockAdapter);
         resolver.setClientFacade(new RegistryClientFacadeImpl(client));
         Map<String, String> configs = new HashMap<>();
         SchemaParser<String, String> schemaParser = new MockSchemaParser();
@@ -55,7 +55,7 @@ public class DefaultSchemaResolverTest {
         assertEquals(contentHash, result2.getContentHash());
         assertEquals(schemaContent,
                 new String(result2.getParsedSchema().getRawSchema(), StandardCharsets.UTF_8));
-        assertEquals(1, adapter.timesGetContentByHashCalled);
+        assertEquals(1, mockAdapter.timesGetContentByHashCalled);
     }
 
 }

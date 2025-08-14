@@ -2,6 +2,8 @@ package io.apicurio.registry.auth;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.types.ArtifactType;
@@ -10,7 +12,6 @@ import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileAnonymousCredentials;
 import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -19,7 +20,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
@@ -39,10 +39,10 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrl,
-                KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test55"));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx)
+                .oauth2(authServerUrl, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test55"));
 
         var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
@@ -53,9 +53,9 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
 
     @Test
     public void testNoCredentials() throws Exception {
-        var adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx));
         // Read-only operation should work without any credentials.
         var results = client.search().artifacts().get(config -> config.queryParameters.groupId = groupId);
         Assertions.assertTrue(results.getCount() >= 0);

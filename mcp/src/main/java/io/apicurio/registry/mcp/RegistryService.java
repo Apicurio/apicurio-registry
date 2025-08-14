@@ -79,7 +79,7 @@ public class RegistryService {
             throw new IllegalArgumentException(ex);
         }
 
-        client = RegistryClientFactory.create(RegistryClientOptions.create(rawBaseUrl));
+        client = RegistryClientFactory.create(RegistryClientOptions.create(rawBaseUrl).retry());
 
         // Test the connection
         var info = client.system().info().get();

@@ -86,7 +86,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     protected String authServerUrlConfigured;
 
     protected RegistryClient createRegistryClient(Vertx vertx) {
-        return RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx));
+        return RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx).retry());
     }
 
     @BeforeAll

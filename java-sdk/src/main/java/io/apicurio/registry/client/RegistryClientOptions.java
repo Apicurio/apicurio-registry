@@ -51,6 +51,12 @@ public class RegistryClientOptions {
     private String clientSecret;
     private String scope;
     private WebClient webClient;
+    // Retry config
+    private boolean retryEnabled = false;
+    private int maxRetryAttempts = 3;
+    private long retryDelayMs = 1000;
+    private double backoffMultiplier = 2.0;
+    private long maxRetryDelayMs = 10000; // 10 seconds max delay
     
     private RegistryClientOptions() {
     }
@@ -93,6 +99,26 @@ public class RegistryClientOptions {
     
     public WebClient getWebClient() {
         return webClient;
+    }
+
+    public boolean isRetryEnabled() {
+        return retryEnabled;
+    }
+
+    public int getMaxRetryAttempts() {
+        return maxRetryAttempts;
+    }
+
+    public long getRetryDelayMs() {
+        return retryDelayMs;
+    }
+
+    public double getBackoffMultiplier() {
+        return backoffMultiplier;
+    }
+
+    public long getMaxRetryDelayMs() {
+        return maxRetryDelayMs;
     }
 
     /**
@@ -175,6 +201,68 @@ public class RegistryClientOptions {
         this.clientSecret = null;
         this.scope = null;
         this.webClient = null;
+    }
+
+    /**
+     * Configures retry functionality for HTTP requests.
+     *
+     * @param enabled whether retry functionality is enabled
+     * @param maxAttempts the maximum number of retry attempts (must be > 0 if enabled)
+     * @param delayMs the delay between retry attempts in milliseconds (must be > 0 if enabled)
+     * @return this builder
+     */
+    public RegistryClientOptions retry(boolean enabled, int maxAttempts, long delayMs) {
+        return retry(enabled, maxAttempts, delayMs, 2, 10000);
+    }
+
+    /**
+     * Configures retry functionality with exponential backoff for HTTP requests.
+     *
+     * @param enabled whether retry functionality is enabled
+     * @param maxAttempts the maximum number of retry attempts (must be > 0 if enabled)
+     * @param initialDelayMs the initial delay between retry attempts in milliseconds (must be > 0 if enabled)
+     * @param backoffMultiplier the multiplier for exponential backoff (must be > 1.0 if enabled)
+     * @param maxDelayMs the maximum delay between retries in milliseconds (must be > 0 if enabled)
+     * @return this builder
+     */
+    public RegistryClientOptions retry(boolean enabled, int maxAttempts, long initialDelayMs,
+                                       double backoffMultiplier, long maxDelayMs) {
+        if (enabled && maxAttempts <= 0) {
+            throw new IllegalArgumentException("maxAttempts must be greater than 0 when retry is enabled");
+        }
+        if (enabled && initialDelayMs <= 0) {
+            throw new IllegalArgumentException("initialDelayMs must be greater than 0 when retry is enabled");
+        }
+        if (enabled && backoffMultiplier <= 1.0) {
+            throw new IllegalArgumentException("backoffMultiplier must be greater than 1.0 when retry is enabled");
+        }
+        if (enabled && maxDelayMs <= 0) {
+            throw new IllegalArgumentException("maxDelayMs must be greater than 0 when retry is enabled");
+        }
+        this.retryEnabled = enabled;
+        this.maxRetryAttempts = maxAttempts;
+        this.retryDelayMs = initialDelayMs;
+        this.backoffMultiplier = backoffMultiplier;
+        this.maxRetryDelayMs = maxDelayMs;
+        return this;
+    }
+
+    /**
+     * Enables retry functionality with default settings (3 attempts, 1000ms initial delay, exponential backoff).
+     *
+     * @return this builder
+     */
+    public RegistryClientOptions retry() {
+        return retry(true, 3, 250, 2, 10000);
+    }
+
+    /**
+     * Disables retry functionality.
+     *
+     * @return this builder
+     */
+    public RegistryClientOptions disableRetry() {
+        return retry(false, 0, 0, 1.0, 0);
     }
 
     /**

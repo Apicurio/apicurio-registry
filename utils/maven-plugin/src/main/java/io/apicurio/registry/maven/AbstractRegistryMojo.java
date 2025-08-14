@@ -81,7 +81,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         } else if (username != null && password != null) {
             clientOptions.basicAuth(username, password);
         }
-        return RegistryClientFactory.create(clientOptions);
+        return RegistryClientFactory.create(clientOptions.retry());
     }
 
     @Override

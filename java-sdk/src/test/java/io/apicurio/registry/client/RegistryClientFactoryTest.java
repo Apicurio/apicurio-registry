@@ -31,14 +31,14 @@ public class RegistryClientFactoryTest {
     }
 
     @Test
-    void testCreateAnonymousClient() {
+    void testCreateAnonymous() {
         RegistryClientOptions options = RegistryClientOptions.create().registryUrl(TEST_REGISTRY_URL);
         RegistryClient client = RegistryClientFactory.create(options);
         assertNotNull(client);
     }
 
     @Test
-    void testCreateAnonymousClientWithVertx() {
+    void testCreateAnonymousWithVertx() {
         RegistryClientOptions options = RegistryClientOptions.create().registryUrl(TEST_REGISTRY_URL).vertx(vertx);
         RegistryClient client = RegistryClientFactory.create(options);
         assertNotNull(client);

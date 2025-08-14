@@ -28,7 +28,7 @@ public class ExportLoader {
     public static void main(String[] args) throws Exception {
         String registryV3ApiUrl = "http://localhost:8080/apis/registry/v3";
         Vertx vertx = Vertx.vertx();
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx));
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx).retry());
         try {
             for (int idx = 0; idx < 1000; idx++) {
                 System.out.println("Iteration: " + idx);

@@ -68,7 +68,7 @@ public class KafkaSqlDeploymentManager {
         String simpleAvro = resourceToString("artifactTypes/avro/multi-field_v1.json");
 
         Vertx vertx = Vertx.vertx();
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryBaseUrl, vertx));
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryBaseUrl, vertx).retry());
 
         LOGGER.info("Creating 1000 artifacts that will be packed into a snapshot..");
         for (int idx = 0; idx < 1000; idx++) {

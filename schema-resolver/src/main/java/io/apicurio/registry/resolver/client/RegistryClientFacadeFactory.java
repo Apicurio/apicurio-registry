@@ -78,6 +78,11 @@ public class RegistryClientFacadeFactory {
             throw new IllegalStateException(e);
         }
 
+        // FIXME push retry options into the SchemaResolverConfig
+        if (Boolean.TRUE) {
+            clientOptions.retry();
+        }
+
         var client = RegistryClientFactory.create(clientOptions);
         return new RegistryClientFacadeImpl(client, shouldCloseVertx ? vertx : null);
     }

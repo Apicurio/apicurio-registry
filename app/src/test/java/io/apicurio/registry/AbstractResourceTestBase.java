@@ -2,6 +2,8 @@ package io.apicurio.registry;
 
 import com.microsoft.kiota.ApiException;
 import com.microsoft.kiota.RequestAdapter;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -102,10 +104,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        RequestAdapter anonymousAdapter = new VertXRequestAdapter(vertx);
-        anonymousAdapter.setBaseUrl(registryV3ApiUrl);
-        var client = new RegistryClient(anonymousAdapter);
-        return client;
+        return RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx));
     }
 
     @BeforeEach

@@ -2,6 +2,8 @@ package io.apicurio.tests;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.deployment.PortForwardManager;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
@@ -17,7 +19,6 @@ import io.apicurio.tests.utils.Constants;
 import io.apicurio.tests.utils.RegistryWaitUtils;
 import io.apicurio.tests.utils.RestConstants;
 import io.apicurio.tests.utils.TestSeparator;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
@@ -85,9 +86,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     protected String authServerUrlConfigured;
 
     protected RegistryClient createRegistryClient(Vertx vertx) {
-        var adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl(getRegistryV3ApiUrl());
-        return new RegistryClient(adapter);
+        return RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx));
     }
 
     @BeforeAll

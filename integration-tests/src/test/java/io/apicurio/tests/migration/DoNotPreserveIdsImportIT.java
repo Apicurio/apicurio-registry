@@ -45,6 +45,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
     @Test
     public void testDoNotPreserveIdsImport() throws Exception {
         Vertx vertx = Vertx.vertx();
+
         var adapter = new VertXRequestAdapter(vertx);
         adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
         RegistryClient dest = new RegistryClient(adapter);

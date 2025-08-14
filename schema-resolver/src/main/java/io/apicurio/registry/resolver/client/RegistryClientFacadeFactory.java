@@ -1,8 +1,9 @@
 package io.apicurio.registry.resolver.client;
 
 import com.microsoft.kiota.RequestAdapter;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 
@@ -41,28 +42,43 @@ public class RegistryClientFacadeFactory {
     }
 
     private static RegistryClientFacade create_v3(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
-        String baseUrl = config.getRegistryUrl();
-        String tokenEndpoint = config.getTokenEndpoint();
+        final String baseUrl = config.getRegistryUrl();
+        final String tokenEndpoint = config.getTokenEndpoint();
+        final String username = config.getAuthUsername();
 
-        RegistryClient client;
+        RegistryClientOptions clientOptions = RegistryClientOptions.create(baseUrl, vertx);
         try {
             if (tokenEndpoint != null) {
-                client = configureClientWithBearerAuthentication_v3(config, vertx, baseUrl, tokenEndpoint);
-            } else {
-                String username = config.getAuthUsername();
+                final String clientId = config.getAuthClientId();
+                final String clientSecret = config.getAuthClientSecret();
+                final String clientScope = config.getAuthClientScope();
 
-                if (username != null) {
-                    client = configureClientWithBasicAuth_V3(config, vertx, baseUrl, username);
-                } else {
-                    var adapter = new VertXRequestAdapter(vertx);
-                    adapter.setBaseUrl(baseUrl);
-                    client = new RegistryClient(adapter);
+                if (clientId == null) {
+                    throw new IllegalArgumentException(
+                            "Missing registry auth clientId, set " + SchemaResolverConfig.AUTH_CLIENT_ID);
                 }
+
+                if (clientSecret == null) {
+                    throw new IllegalArgumentException(
+                            "Missing registry auth secret, set " + SchemaResolverConfig.AUTH_CLIENT_SECRET);
+                }
+
+                clientOptions.oauth2(tokenEndpoint, clientId, clientSecret, clientScope);
+            } else if (username != null) {
+                final String password = config.getAuthPassword();
+
+                if (password == null) {
+                    throw new IllegalArgumentException(
+                            "Missing registry auth password, set " + SchemaResolverConfig.AUTH_PASSWORD);
+                }
+
+                clientOptions.basicAuth(username, password);
             }
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
 
+        var client = RegistryClientFactory.create(clientOptions);
         return new RegistryClientFacadeImpl(client, shouldCloseVertx ? vertx : null);
     }
 
@@ -93,13 +109,6 @@ public class RegistryClientFacadeFactory {
         return new RegistryClientFacadeImpl_v2(client, shouldCloseVertx ? vertx : null);
     }
 
-    private static RegistryClient configureClientWithBearerAuthentication_v3(SchemaResolverConfig config, Vertx vertx,
-                                                                             String registryUrl, String tokenEndpoint) {
-        RequestAdapter auth = configureAuthWithUrl(config, vertx, tokenEndpoint);
-        auth.setBaseUrl(registryUrl);
-        return new RegistryClient(auth);
-    }
-
     private static io.apicurio.registry.rest.client.v2.RegistryClient configureClientWithBearerAuthentication_v2(SchemaResolverConfig config, Vertx vertx,
                                                                                                                  String registryUrl, String tokenEndpoint) {
         RequestAdapter auth = configureAuthWithUrl(config, vertx, tokenEndpoint);
@@ -125,23 +134,6 @@ public class RegistryClientFacadeFactory {
 
         return new VertXRequestAdapter(
                 buildOIDCWebClient(vertx, tokenEndpoint, clientId, clientSecret, clientScope));
-    }
-
-    private static RegistryClient configureClientWithBasicAuth_V3(SchemaResolverConfig config, Vertx vertx, String registryUrl,
-                                                                  String username) {
-
-        final String password = config.getAuthPassword();
-
-        if (password == null) {
-            throw new IllegalArgumentException(
-                    "Missing registry auth password, set " + SchemaResolverConfig.AUTH_PASSWORD);
-        }
-
-        var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, username, password));
-
-        adapter.setBaseUrl(registryUrl);
-        return new RegistryClient(adapter);
     }
 
     private static io.apicurio.registry.rest.client.v2.RegistryClient configureClientWithBasicAuth_V2(SchemaResolverConfig config, Vertx vertx, String registryUrl,

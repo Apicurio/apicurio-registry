@@ -16,8 +16,9 @@
 
 package io.apicurio.registry.examples.simple.json;
 
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
@@ -48,9 +49,7 @@ public class MessageValidator {
         this.group = group;
         this.artifactId = artifactId;
 
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-        vertXRequestAdapter.setBaseUrl(registryUrl);
-        this.client = new RegistryClient(vertXRequestAdapter);
+        this.client = RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx));
     }
 
     /**

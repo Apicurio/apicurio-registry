@@ -1,7 +1,8 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -21,7 +22,6 @@ import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;
@@ -32,7 +32,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,12 +51,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured,
-                KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1");
-
-        var adapter = new VertXRequestAdapter(auth);
-        adapter.setBaseUrl(registryV3ApiUrl);
-        return new RegistryClient(adapter);
+        return RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
     }
 
     private static final CreateArtifact createArtifact = new CreateArtifact();
@@ -82,10 +77,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, "test55"));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, "test55"));
         var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
         });
@@ -94,9 +87,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testNoCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(Vertx.vertx());
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx));
         Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
         });
@@ -104,10 +95,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testReadOnly() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
         client.groups().byGroupId(groupId).artifacts().get();
         var exception1 = Assertions.assertThrows(Exception.class, () -> {
@@ -128,10 +117,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             config.queryParameters.dryRun = true;
         });
 
-        var devAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        devAdapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient devClient = new RegistryClient(devAdapter);
+        var devClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
 
         createArtifact.setArtifactId(artifactId);
         VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact)
@@ -152,10 +139,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testDevRole() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.groups().byGroupId(groupId).artifacts().get();
@@ -191,10 +176,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.groups().byGroupId(groupId).artifacts().get();
@@ -225,10 +208,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRoleBasicAuth() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildSimpleAuthWebClient(vertx,
-                KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.groups().byGroupId(groupId).artifacts().get();
@@ -254,10 +235,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRoleBasicAuthWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildSimpleAuthWebClient(vertx,
-                KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, UUID.randomUUID().toString()));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, UUID.randomUUID().toString()));
         String artifactId = TestUtils.generateArtifactId();
 
         var exception1 = Assertions.assertThrows(Exception.class, () -> {
@@ -273,15 +252,10 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
-        var devAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        devAdapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient clientDev = new RegistryClient(devAdapter);
-
-        var adminAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
-        adminAdapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient clientAdmin = new RegistryClient(adminAdapter);
+        var clientDev = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
+        var clientAdmin = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
 
         // Admin user will create an artifact
         String artifactId = TestUtils.generateArtifactId();
@@ -326,10 +300,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testGetArtifactOwner() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
 
         // Preparation
         final String groupId = "testGetArtifactOwner";
@@ -355,10 +327,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testUpdateArtifactOwner() throws Exception {
-        var adapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
 
         // Preparation
         final String groupId = "testUpdateArtifactOwner";
@@ -399,14 +369,10 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
-        var adapter_dev1 = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        adapter_dev1.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
-        var adapter_dev2 = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_2_CLIENT_ID, "test2"));
-        adapter_dev2.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
+        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
+        var client_dev2 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_2_CLIENT_ID, "test2"));
 
         // Preparation
         final String groupId = "testUpdateArtifactOwnerOnlyByOwner";

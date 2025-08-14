@@ -16,7 +16,8 @@
 
 package io.apicurio.registry.examples.simple.json;
 
-import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
@@ -28,7 +29,6 @@ import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -93,10 +93,7 @@ public class SimpleJsonSchemaExample {
                                                    // to map topic name to artifactId later on.
 
         Vertx vertx = Vertx.vertx();
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-        vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
-
-        RegistryClient client = new RegistryClient(vertXRequestAdapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(REGISTRY_URL, vertx));
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);

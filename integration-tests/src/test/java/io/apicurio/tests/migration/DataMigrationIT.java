@@ -1,6 +1,7 @@
 package io.apicurio.tests.migration;
 
-import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.types.RuleType;
@@ -51,9 +52,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
     @Test
     public void migrate() throws Exception {
         Vertx vertx = Vertx.vertx();
-        var adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
-        RegistryClient dest = new RegistryClient(adapter);
+        var dest = RegistryClientFactory.create(RegistryClientOptions.create(ApicurioRegistryBaseIT.getRegistryV3ApiUrl(), vertx));
 
         given().when().contentType("application/zip").body(migrateDataToImport)
                 .post("/apis/registry/v2/admin/import").then().statusCode(204).body(anything());

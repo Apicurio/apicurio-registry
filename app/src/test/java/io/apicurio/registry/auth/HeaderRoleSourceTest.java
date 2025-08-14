@@ -1,7 +1,8 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -12,7 +13,6 @@ import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfileWithHeaderRoles;
 import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;
@@ -22,8 +22,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
-
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 
 @QuarkusTest
 @TestProfile(AuthTestProfileWithHeaderRoles.class)
@@ -39,10 +37,8 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        var adapter = new VertXRequestAdapter(buildOIDCWebClient(vertx, authServerUrlConfigured,
-                KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        return new RegistryClient(adapter);
+        return RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
     }
 
     @Test
@@ -54,25 +50,14 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
         rule.setConfig(ValidityLevel.FULL.name());
         rule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.VALIDITY);
 
-        var noRoleAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
-        noRoleAdapter.setBaseUrl(registryV3ApiUrl);
-        var noRoleClient = new RegistryClient(noRoleAdapter);
-
-        var readAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
-        readAdapter.setBaseUrl(registryV3ApiUrl);
-        var readClient = new RegistryClient(readAdapter);
-
-        var devAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        devAdapter.setBaseUrl(registryV3ApiUrl);
-        var devClient = new RegistryClient(devAdapter);
-
-        var adminAdapter = new VertXRequestAdapter(VertXAuthFactory.buildOIDCWebClient(vertx,
-                authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
-        adminAdapter.setBaseUrl(registryV3ApiUrl);
-        var adminClient = new RegistryClient(adminAdapter);
+        var noRoleClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
+        var readClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
+        var devClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
+        var adminClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
 
         // User is authenticated but no roles assigned - operations should fail.
         var exception1 = Assertions.assertThrows(Exception.class, () -> {

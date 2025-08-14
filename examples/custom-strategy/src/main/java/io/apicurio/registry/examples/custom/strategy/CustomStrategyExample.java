@@ -16,7 +16,8 @@
 
 package io.apicurio.registry.examples.custom.strategy;
 
-import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
@@ -25,7 +26,6 @@ import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.types.ArtifactType;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -73,10 +73,7 @@ public class CustomStrategyExample {
         String subjectName = Config.SUBJECT_NAME;
 
         Vertx vertx = Vertx.vertx();
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-        vertXRequestAdapter.setBaseUrl(Config.REGISTRY_URL);
-
-        RegistryClient client = new RegistryClient(vertXRequestAdapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(Config.REGISTRY_URL, vertx));
 
         String artifactId = "my-artifact-" + topicName + "-value";
 

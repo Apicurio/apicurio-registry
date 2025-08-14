@@ -1,6 +1,7 @@
 package io.apicurio.deployment;
 
-import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
@@ -10,7 +11,6 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,9 +68,7 @@ public class KafkaSqlDeploymentManager {
         String simpleAvro = resourceToString("artifactTypes/avro/multi-field_v1.json");
 
         Vertx vertx = Vertx.vertx();
-        var adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl(registryBaseUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryBaseUrl, vertx));
 
         LOGGER.info("Creating 1000 artifacts that will be packed into a snapshot..");
         for (int idx = 0; idx < 1000; idx++) {

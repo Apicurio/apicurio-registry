@@ -1,13 +1,12 @@
 package io.apicurio.registry.examples;
 
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.examples.util.RegistryDemoUtil;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 
 import java.util.UUID;
-
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 
 /**
  * Simple demo app that shows how to use the client.
@@ -46,14 +45,10 @@ public class SimpleRegistryDemo {
         if (tokenEndpoint != null) {
             final String authClient = System.getenv("AUTH_CLIENT_ID");
             final String authSecret = System.getenv("AUTH_CLIENT_SECRET");
-            var adapter = new VertXRequestAdapter(
-                    buildOIDCWebClient(vertx, tokenEndpoint, authClient, authSecret));
-            adapter.setBaseUrl(registryUrl);
-            return new RegistryClient(adapter);
+            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx)
+                    .oauth2(tokenEndpoint, authClient, authSecret));
         } else {
-            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-            vertXRequestAdapter.setBaseUrl(registryUrl);
-            return new RegistryClient(vertXRequestAdapter);
+            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx));
         }
     }
 }

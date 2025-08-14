@@ -2,6 +2,8 @@ package io.apicurio.registry.auth;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -17,7 +19,6 @@ import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.BasicAuthWithPropertiesTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;
@@ -27,7 +28,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildSimpleAuthWebClient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,10 +53,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
-        var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, ADMIN_USERNAME, ADMIN_PASSWORD));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        return new RegistryClient(adapter);
+        return RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx)
+                .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
     }
 
     private static CreateArtifact clientCreateArtifact() {
@@ -75,10 +75,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testWrongCreds() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, UUID.randomUUID().toString(), UUID.randomUUID().toString()));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx)
+                .basicAuth(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
         var exception = Assertions.assertThrows(ApiException.class, () -> {
             client.groups().byGroupId(groupId).artifacts().get();
         });
@@ -87,10 +87,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testReadOnly() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, READONLY_USERNAME, READONLY_PASSWORD));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx)
+                .basicAuth(READONLY_USERNAME, READONLY_PASSWORD));
         String artifactId = TestUtils.generateArtifactId();
         client.groups().byGroupId(groupId).artifacts().get();
         var exception1 = Assertions.assertThrows(Exception.class, () -> {
@@ -109,10 +109,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         });
         assertForbidden(exception3);
 
-        var devAdapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        devAdapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient devClient = new RegistryClient(devAdapter);
+        var devClient = RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
 
         VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact)
                 .getVersion();
@@ -132,10 +132,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testDevRole() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.groups().byGroupId(groupId).artifacts().get();
@@ -172,10 +172,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     @Test
     public void testAdminRole() throws Exception {
-        var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, ADMIN_USERNAME, ADMIN_PASSWORD));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
         String artifactId = TestUtils.generateArtifactId();
         try {
             client.groups().byGroupId(groupId).artifacts().get();
@@ -211,15 +209,11 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testOwnerOnlyAuthorization() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var devAdapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        devAdapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient clientDev = new RegistryClient(devAdapter);
+        var clientDev = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
 
-        var adminAdapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, ADMIN_USERNAME, ADMIN_PASSWORD));
-        adminAdapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient clientAdmin = new RegistryClient(adminAdapter);
+        var clientAdmin = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
 
         // Admin user will create an artifact
         String artifactId = TestUtils.generateArtifactId();
@@ -254,10 +248,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testGetArtifactOwner() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
 
         // Preparation
         final String groupId = "testGetArtifactOwner";
@@ -285,10 +277,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testUpdateArtifactOwner() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var adapter = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        adapter.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
 
         // Preparation
         final String groupId = "testUpdateArtifactOwner";
@@ -333,14 +323,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var adapter_dev1 = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        adapter_dev1.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
-        var adapter_dev2 = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
-        adapter_dev2.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
+        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var client_dev2 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
 
         // Preparation
         final String groupId = "testUpdateArtifactOwnerOnlyByOwner";
@@ -389,14 +375,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testUpdateArtifactOwnerByAdmin() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var adapter_dev1 = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        adapter_dev1.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
-        var adapter_admin = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, ADMIN_USERNAME, ADMIN_PASSWORD));
-        adapter_admin.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client_admin = new RegistryClient(adapter_admin);
+        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var client_admin = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
 
         // Preparation
         final String groupId = "testUpdateArtifactOwnerByAdmin";
@@ -442,14 +424,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testDeleteArtifactOnlyIfOwner() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var adapter_dev1 = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        adapter_dev1.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
-        var adapter_dev2 = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
-        adapter_dev2.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client_dev2 = new RegistryClient(adapter_dev2);
+        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var client_dev2 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
 
         // Preparation
         final String groupId = "testDeleteArtifactOnlyIfOwner";
@@ -505,14 +483,10 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testDeleteArtifactIfAdmin() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var adapter_dev1 = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        adapter_dev1.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client_dev1 = new RegistryClient(adapter_dev1);
-        var adapter_admin = new VertXRequestAdapter(
-                buildSimpleAuthWebClient(vertx, ADMIN_USERNAME, ADMIN_PASSWORD));
-        adapter_admin.setBaseUrl(registryV3ApiUrl);
-        RegistryClient client_admin = new RegistryClient(adapter_admin);
+        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var client_admin = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
 
         // Preparation
         final String groupId = "testDeleteArtifactIfAdmin";

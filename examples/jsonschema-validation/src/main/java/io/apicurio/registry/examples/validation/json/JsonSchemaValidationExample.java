@@ -16,7 +16,8 @@
 
 package io.apicurio.registry.examples.validation.json;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -30,7 +31,6 @@ import io.apicurio.schema.validation.json.JsonMetadata;
 import io.apicurio.schema.validation.json.JsonRecord;
 import io.apicurio.schema.validation.json.JsonValidationResult;
 import io.apicurio.schema.validation.json.JsonValidator;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 
 import java.nio.charset.StandardCharsets;
@@ -148,14 +148,10 @@ public class JsonSchemaValidationExample {
         if (tokenEndpoint != null) {
             final String authClient = System.getenv(SchemaResolverConfig.AUTH_CLIENT_ID);
             final String authSecret = System.getenv(SchemaResolverConfig.AUTH_CLIENT_SECRET);
-            var adapter = new VertXRequestAdapter(
-                    VertXAuthFactory.buildOIDCWebClient(vertx, tokenEndpoint, authClient, authSecret));
-            adapter.setBaseUrl(registryUrl);
-            return new RegistryClient(adapter);
+            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx)
+                    .oauth2(tokenEndpoint, authClient, authSecret));
         } else {
-            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-            vertXRequestAdapter.setBaseUrl(registryUrl);
-            return new RegistryClient(vertXRequestAdapter);
+            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx));
         }
     }
 

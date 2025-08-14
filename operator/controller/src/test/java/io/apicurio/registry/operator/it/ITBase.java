@@ -21,6 +21,8 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
+import io.restassured.RestAssured;
+import io.restassured.config.HttpClientConfig;
 import jakarta.enterprise.inject.spi.CDI;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
@@ -46,6 +48,8 @@ import java.util.function.Consumer;
 
 import static io.apicurio.registry.utils.Cell.cell;
 import static java.time.Duration.ofSeconds;
+import static org.apache.http.params.CoreConnectionPNames.CONNECTION_TIMEOUT;
+import static org.apache.http.params.CoreConnectionPNames.SO_TIMEOUT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.eclipse.microprofile.config.ConfigProvider.getConfig;
@@ -95,6 +99,7 @@ public abstract class ITBase {
         cleanup = getConfig().getValue(CLEANUP, Boolean.class);
 
         setDefaultAwaitilityTimings();
+        configureRestAssured();
         namespace = calculateNamespace();
         client = createK8sClient(namespace);
         createCRDs();
@@ -236,6 +241,15 @@ public abstract class ITBase {
         });
 
         return rval.get();
+    }
+
+    private static void configureRestAssured() {
+        RestAssured.config = RestAssured.config()
+                .httpClient(HttpClientConfig.httpClientConfig()
+                        // Helps with port-forwarded connection issues.
+                        .setParam(CONNECTION_TIMEOUT, 10 * 1000)
+                        .setParam(SO_TIMEOUT, 5 * 1000)
+                );
     }
 
     static KubernetesClient createK8sClient(String namespace) {

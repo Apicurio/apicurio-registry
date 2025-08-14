@@ -58,7 +58,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     }
 
     private RegistryClient createClient(WebClient auth) {
-        return RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx));
+        return RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl()).customWebClient(auth));
     }
 
     @Test

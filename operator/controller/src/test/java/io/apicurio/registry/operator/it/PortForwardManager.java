@@ -58,6 +58,10 @@ public class PortForwardManager implements AutoCloseable {
         return startServicePortForward(targetService, targetPort, nextLocalPort++);
     }
 
+    public synchronized LocalPortForward getPortForward(int localPort) {
+        return portForwardMap.get(localPort);
+    }
+
     public synchronized void stop(int localPort) {
         if (portForwardMap.containsKey(localPort)) {
             var pf = portForwardMap.get(localPort);

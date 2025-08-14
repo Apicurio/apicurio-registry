@@ -58,7 +58,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     }
 
     private RegistryClient createClient(WebClient auth) {
-        return RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl()).customWebClient(auth));
+        return RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl()).customWebClient(auth).retry());
     }
 
     @Test
@@ -75,6 +75,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testReadOnly() throws Exception {
         var client = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
         client.groups().byGroupId(groupId).artifacts().get();
@@ -94,6 +95,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         assertForbidden(exception3);
 
         var devClient = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
 
         VersionMetaData meta = devClient.groups().byGroupId(groupId).artifacts().post(createArtifact)
@@ -115,6 +117,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testDevRole() throws Exception {
         var client = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -158,6 +161,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testAdminRole() throws Exception {
         var client = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
         try {
@@ -198,8 +202,10 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
         var clientDev = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         var clientAdmin = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
 
         // Admin user will create an artifact
@@ -250,6 +256,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testGetArtifactOwner() throws Exception {
         var client = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
 
         // Preparation
@@ -278,6 +285,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testUpdateArtifactOwner() throws Exception {
         var client = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
 
         // Preparation
@@ -321,8 +329,10 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     @Test
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
         var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         var client_dev2 = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_2_CLIENT_ID, "test2"));
 
         // Preparation

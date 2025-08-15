@@ -10,6 +10,7 @@ import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.limits.LimitExceededException;
+import io.apicurio.registry.rest.InvalidParameterValueException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
@@ -101,6 +102,7 @@ public class HttpStatusCodeMap {
         map.put(LimitExceededException.class, HTTP_CONFLICT);
         map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
+        map.put(InvalidParameterValueException.class, HTTP_BAD_REQUEST);
         map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the
         // latter for authx only.
         map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);

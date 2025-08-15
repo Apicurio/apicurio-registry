@@ -10,7 +10,6 @@ import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentCanonicalizerResponse;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
@@ -92,7 +91,7 @@ public class ConfiguredContentCanonicalizer extends AbstractConfiguredArtifactTy
 
     }
 
-    private static @NotNull ContentCanonicalizerRequest createRequest(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+    private static ContentCanonicalizerRequest createRequest(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         ContentCanonicalizerRequest requestBody = new ContentCanonicalizerRequest();
         requestBody.setContent(WebhookBeanUtil.typedContentToWebhookBean(content));
         requestBody.setResolvedReferences(WebhookBeanUtil.resolvedReferenceListToWebhookBean(resolvedReferences));

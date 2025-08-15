@@ -13,7 +13,6 @@ import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.CompatibilityCheckerRequest;
 import io.apicurio.registry.types.webhooks.beans.CompatibilityCheckerResponse;
 import io.apicurio.registry.types.webhooks.beans.IncompatibleDifference;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
@@ -112,7 +111,7 @@ public class ConfiguredCompatibilityChecker extends AbstractConfiguredArtifactTy
 
     }
 
-    private static @NotNull CompatibilityCheckerRequest createRequest(CompatibilityLevel compatibilityLevel, List<TypedContent> existingArtifacts, TypedContent proposedArtifact, Map<String, TypedContent> resolvedReferences) {
+    private static CompatibilityCheckerRequest createRequest(CompatibilityLevel compatibilityLevel, List<TypedContent> existingArtifacts, TypedContent proposedArtifact, Map<String, TypedContent> resolvedReferences) {
         CompatibilityCheckerRequest requestBody = new CompatibilityCheckerRequest();
         requestBody.setLevel(compatibilityLevel.name());
         requestBody.setExistingArtifacts(WebhookBeanUtil.typedContentListToWebhookBean(existingArtifacts));

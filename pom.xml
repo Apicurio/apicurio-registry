@@ -94,6 +94,7 @@
     <module>serdes/pulsar/avro-serde</module>
     <module>utils/converter</module>
     <module>utils/exportConfluent</module>
+    <module>utils/flink</module>
     <module>utils/importexport</module>
     <module>utils/kafka</module>
     <module>utils/maven-plugin</module>
@@ -267,10 +268,12 @@
     <proto-plugin.version>0.6.1</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
+    <!-- Flink -->
+    <flink.version>1.20.1</flink.version>
+
     <!-- Kiota -->
     <kiota.libs.version>1.8.9</kiota.libs.version>
     <kiota.community.version>0.0.29</kiota.community.version>
-
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout>
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>

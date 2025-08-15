@@ -144,6 +144,7 @@ public abstract class ITBase {
     protected static void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
         await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
+                    .inNamespace(primary.getMetadata().getNamespace())
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get()
                     .getStatus().getReadyReplicas()).isEqualTo(replicas);
         });
@@ -152,6 +153,7 @@ public abstract class ITBase {
     protected static void checkDeploymentDoesNotExist(ApicurioRegistry3 primary, String component) {
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
+                    .inNamespace(primary.getMetadata().getNamespace())
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get())
                     .isNull();
         });
@@ -160,6 +162,7 @@ public abstract class ITBase {
     protected static void checkServiceExists(ApicurioRegistry3 primary, String component) {
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.services()
+                    .inNamespace(primary.getMetadata().getNamespace())
                     .withName(primary.getMetadata().getName() + "-" + component + "-service").get())
                     .isNotNull();
         });
@@ -168,6 +171,7 @@ public abstract class ITBase {
     protected static void checkServiceDoesNotExist(ApicurioRegistry3 primary, String component) {
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.services()
+                    .inNamespace(primary.getMetadata().getNamespace())
                     .withName(primary.getMetadata().getName() + "-" + component + "-service").get()).isNull();
         });
     }
@@ -175,6 +179,7 @@ public abstract class ITBase {
     protected static void checkIngressExists(ApicurioRegistry3 primary, String component) {
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.network().v1().ingresses()
+                    .inNamespace(primary.getMetadata().getNamespace())
                     .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get())
                     .isNotNull();
         });
@@ -183,6 +188,7 @@ public abstract class ITBase {
     protected static void checkIngressDoesNotExist(ApicurioRegistry3 primary, String component) {
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.network().v1().ingresses()
+                    .inNamespace(primary.getMetadata().getNamespace())
                     .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get()).isNull();
         });
     }
@@ -384,7 +390,7 @@ public abstract class ITBase {
     }
 
     @AfterEach
-    public void cleanup() {
+    void afterEach() {
         if (cleanup) {
             log.info("Deleting CRs");
             client.resources(ApicurioRegistry3.class).delete();
@@ -397,7 +403,7 @@ public abstract class ITBase {
     }
 
     @AfterAll
-    public static void after() throws Exception {
+    static void afterAll() throws Exception {
         portForwardManager.close();
         if (operatorDeployment == OperatorDeployment.local) {
             app.stop();

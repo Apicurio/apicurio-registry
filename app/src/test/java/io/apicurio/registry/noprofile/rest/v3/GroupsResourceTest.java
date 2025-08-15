@@ -36,7 +36,6 @@ import org.hamcrest.Matchers;
 import org.jose4j.base64url.Base64;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
@@ -323,7 +322,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
     @DisabledOnOs(OS.WINDOWS)
     public void testCreateArtifactNoAscii() {
         String artifactContent = resourceToString("openapi-empty.json");
@@ -473,7 +471,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
     @DisabledOnOs(OS.WINDOWS)
     public void testUpdateArtifactNoAscii() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
@@ -797,7 +794,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @DisabledIfEnvironmentVariable(named = CURRENT_ENV, matches = CURRENT_ENV_MAS_REGEX)
     @DisabledOnOs(OS.WINDOWS)
     public void testCreateArtifactVersionNoAscii() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");

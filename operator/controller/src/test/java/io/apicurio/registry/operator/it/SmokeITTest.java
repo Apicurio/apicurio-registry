@@ -8,6 +8,7 @@ import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.quarkus.test.junit.QuarkusTest;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.awaitility.core.ConditionTimeoutException;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIf;
@@ -148,12 +149,24 @@ public class SmokeITTest extends ITBase {
             return true;
         });
 
-        int uiServicePort = portForwardManager
-                .startServicePortForward(registry.getMetadata().getName() + "-ui-service", 8080);
-
-        await().ignoreExceptions().until(() -> {
-            given().get(new URI("http://localhost:" + uiServicePort + "/config.js")).then().statusCode(200);
-            return true;
+        await().ignoreExceptions().timeout(MEDIUM_DURATION.multipliedBy(5).plusSeconds(10)).until(() -> {
+            int uiServicePort = portForwardManager.startServicePortForward(registry.getMetadata().getName() + "-ui-service", 8080);
+            try {
+                await().ignoreExceptions().timeout(MEDIUM_DURATION).until(() -> {
+                    var pf = portForwardManager.getPortForward(uiServicePort);
+                    log.warn("Port-forward status: {}->8080:\n    Is alive: {}\n    Client errors: {}\n    Server errors: {}",
+                            pf.getLocalPort(), pf.isAlive(), pf.getClientThrowables(), pf.getServerThrowables());
+                    given()
+                            .log().all()
+                            .when().get(new URI("http://localhost:" + uiServicePort + "/config.js"))
+                            .then().statusCode(200);
+                    return true;
+                });
+                return true;
+            } catch (ConditionTimeoutException ex) {
+                log.warn("Condition timed out.", ex);
+                return false;
+            }
         });
     }
 

@@ -50,17 +50,17 @@ jobs:
           olm-enable: 'true'
           start-args: '--alsologtostderr --v=2' # Debug
 
-      - name: Build only
-        if: github.event_name != 'push'
-        working-directory: operator
-        run: |
-          make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true build
+#      - name: Build only
+#        if: github.event_name != 'push'
+#        working-directory: operator
+#        run: |
+#          make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true build
 
       - name: Build and run local tests on Minikube
         # Speed up the PR check by running both local and remote tests on push to main,
         # and only run remote tests against a PR.
         # TODO: Is this ok?
-        if: github.event_name == 'push'
+        # if: github.event_name == 'push'
         working-directory: operator
         run: |
           make BUILD_OPTS=--no-transfer-progress build

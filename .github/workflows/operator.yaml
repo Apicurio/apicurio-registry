@@ -84,7 +84,7 @@ jobs:
       - name: Run remote and OLM v1 tests on Minikube
         working-directory: operator
         run: |
-          make BUILD_OPTS="--no-transfer-progress -Dtest.operator.olm-version=1" test-remote-all
+          make BUILD_OPTS="--no-transfer-progress -Dgroups=OLM -Dtest.operator.olm-version=1" test-remote-all
 
       - name: Run OLM v0 smoke tests on Minikube
         working-directory: operator
@@ -113,24 +113,24 @@ jobs:
 
       # Uncomment if you need to debug the tests:
 
-  #      - name: Install debug tools on failure
-  #        if: failure()
-  #        run: |
-  #          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  #          echo >> /home/runner/.bashrc
-  #          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
-  #          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-  #          brew install derailed/k9s/k9s
-  #          . ~/.bashrc
-  #          # Run tests e.g.:
-  #          # make BUILD_OPTS=--no-transfer-progress test-remote-all &> 1.log &
-  #          # tail -f 1.log
-  #
-  #      - name: Setup tmate session on failure
-  #        if: failure()
-  #        uses: mxschmitt/action-tmate@v3
-  #        with:
-  #          limit-access-to-actor: true
+      - name: Install debug tools on failure
+        if: failure()
+        run: |
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo >> /home/runner/.bashrc
+          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew install derailed/k9s/k9s
+          . ~/.bashrc
+          # Run tests e.g.:
+          # make BUILD_OPTS=--no-transfer-progress test-remote-all &> 1.log &
+          # tail -f 1.log
+
+      - name: Setup tmate session on failure
+        if: failure()
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
 
   operator-publish:
     name: Publish Operator

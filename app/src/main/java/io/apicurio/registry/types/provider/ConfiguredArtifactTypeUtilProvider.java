@@ -10,7 +10,9 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.NoopContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
+import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.NoOpReferenceFinder;
+import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -115,5 +117,11 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
             return NoOpReferenceFinder.INSTANCE;
         }
         return new ConfiguredReferenceFinder(this.httpClientService, this.scriptingService, this.artifactType);
+    }
+
+    @Override
+    protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
+        // TODO make ReferenceArtifactIdentifierExtractor functionality available via ArtifactTypeConfiguration
+        return new DefaultReferenceArtifactIdentifierExtractor();
     }
 }

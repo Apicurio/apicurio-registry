@@ -127,6 +127,7 @@
             <configuration>
               <projectSettings>
                 <javaPackage>io.apicurio.registry.types.webhooks</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources/META-INF/artifact-type-webhooks.json</inputSpec>
             </configuration>

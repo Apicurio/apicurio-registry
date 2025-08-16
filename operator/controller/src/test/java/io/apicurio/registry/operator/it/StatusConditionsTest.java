@@ -12,7 +12,9 @@ import org.junit.jupiter.api.Test;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
-import static io.apicurio.registry.operator.api.v1.status.ConditionConstants.*;
+import static io.apicurio.registry.operator.api.v1.status.ConditionConstants.TYPE_OPERATOR_ERROR;
+import static io.apicurio.registry.operator.api.v1.status.ConditionConstants.TYPE_READY;
+import static io.apicurio.registry.operator.api.v1.status.ConditionConstants.TYPE_VALIDATION_ERROR;
 import static io.apicurio.registry.operator.api.v1.status.ConditionStatus.FALSE;
 import static io.apicurio.registry.operator.api.v1.status.ConditionStatus.TRUE;
 import static io.apicurio.registry.operator.resource.Labels.getSelectorLabels;
@@ -58,40 +60,46 @@ public class StatusConditionsTest extends ITBase {
 
         // == ValidationError condition
 
-        // @formatter:off
-        registry1.getSpec().getApp().setPodTemplateSpec(new PodTemplateSpecBuilder()
-                .withNewSpec()
-                    .addNewContainer()
-                        .withName(REGISTRY_APP_CONTAINER_NAME)
-                        .addNewEnv()
-                            .withName("foo")
-                            .withValue("bar")
-                        .endEnv()
-                    .endContainer()
-                .endSpec()
-            .build());
-        // @formatter:on
-        client.resource(registry1).update();
+        updateWithRetries(registry1, r -> {
+            // @formatter:off
+            r.getSpec().getApp().setPodTemplateSpec(
+                new PodTemplateSpecBuilder()
+                    .withNewSpec()
+                        .addNewContainer()
+                            .withName(REGISTRY_APP_CONTAINER_NAME)
+                            .addNewEnv()
+                                .withName("foo")
+                                .withValue("bar")
+                            .endEnv()
+                        .endContainer()
+                    .endSpec()
+                .build()
+            );
+            // @formatter:on
+        });
 
         awaitConditionHasStatus(registry1, 2, TYPE_READY, TRUE);
         awaitConditionHasStatus(registry1, 2, TYPE_VALIDATION_ERROR, TRUE);
         awaitConditionHasStatus(registry2, 1, TYPE_READY, TRUE);
 
         // Check the transition and update times by causing another validation error
-        // @formatter:off
-        registry1.getSpec().getUi().setPodTemplateSpec(new PodTemplateSpecBuilder()
-                .withNewSpec()
-                    .addNewContainer()
-                        .withName(REGISTRY_UI_CONTAINER_NAME)
-                        .addNewEnv()
-                            .withName("foo")
-                            .withValue("bar")
-                        .endEnv()
-                    .endContainer()
-                .endSpec()
-            .build());
-        // @formatter:on
-        client.resource(registry1).update();
+        updateWithRetries(registry1, r -> {
+            // @formatter:off
+            r.getSpec().getUi().setPodTemplateSpec(
+                new PodTemplateSpecBuilder()
+                    .withNewSpec()
+                        .addNewContainer()
+                            .withName(REGISTRY_UI_CONTAINER_NAME)
+                            .addNewEnv()
+                                .withName("foo")
+                                .withValue("bar")
+                            .endEnv()
+                        .endContainer()
+                    .endSpec()
+                .build()
+            );
+            // @formatter:on
+        });
 
         await().ignoreExceptions().untilAsserted(() -> {
             var status = client.resource(registry1).get().getStatus();
@@ -108,9 +116,10 @@ public class StatusConditionsTest extends ITBase {
             assertThat(lastUpdateTime).isAfter(lastTransitionTime);
         });
 
-        registry1.getSpec().getApp().setPodTemplateSpec(new PodTemplateSpec());
-        registry1.getSpec().getUi().setPodTemplateSpec(new PodTemplateSpec());
-        client.resource(registry1).update();
+        updateWithRetries(registry1, r -> {
+            r.getSpec().getApp().setPodTemplateSpec(new PodTemplateSpec());
+            r.getSpec().getUi().setPodTemplateSpec(new PodTemplateSpec());
+        });
 
         awaitConditionHasStatus(registry1, 1, TYPE_READY, TRUE);
         awaitConditionHasStatus(registry2, 1, TYPE_READY, TRUE);
@@ -149,8 +158,9 @@ public class StatusConditionsTest extends ITBase {
                 .map(Condition::getReason)
                 .containsExactly("KubernetesClientException");
 
-        registry1.getSpec().getApp().setPodTemplateSpec(new PodTemplateSpec());
-        client.resource(registry1).update();
+        updateWithRetries(registry1, r -> {
+            r.getSpec().getApp().setPodTemplateSpec(new PodTemplateSpec());
+        });
 
         awaitConditionHasStatus(registry1, 1, TYPE_READY, TRUE);
         awaitConditionHasStatus(registry2, 1, TYPE_READY, TRUE);

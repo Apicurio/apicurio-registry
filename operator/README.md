@@ -278,11 +278,14 @@ OLM tests are similar to the remote tests in that the operator is deployed into 
    ```
    for convenience.
 
+*NOTE: Use `-pl olm-tests -am` or `BUILD_OPTS="-pl olm-tests -am"` to only run the OLM tests.*
+
 Configuration options for the remote + OLM tests are same as those for the remote tests, but the following options are additionally available:
 
-| Option                      | Type             | Default value | Description                                                             |
-|-----------------------------|------------------|---------------|-------------------------------------------------------------------------|
-| test.operator.catalog-image | string           | -             | Catalog image that is used to deploy the operator for testing with OLM. |
+| Option                      | Type       | Default value | Description                                                                                   |
+|-----------------------------|------------|---------------|-----------------------------------------------------------------------------------------------|
+| test.operator.catalog-image | string     | -             | Catalog image that is used to deploy the operator for testing with OLM.                       |
+| test.operator.olm-version   | `0` or `1` | `0`           | Use OLM v0 resources or OLM v1 resources to deploy the "subscription" (or cluster extension). |
 
 ## Distribution and Release
 
@@ -416,10 +419,11 @@ make catalog-subscription-deploy # Same here.
 
 Available options:
 
-| Option            | Type   | Default value | Description                                                                                                                       |
-|-------------------|--------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| NAMESPACE         | string | `default`     | Namespace to which the operator will be deployed.                                                                                 |
-| CATALOG_NAMESPACE | string | `olm`         | Namespace to which the catalog will be deployed. Usually `olm` for Minikube/Kubernetes and `openshift-marketplace` for OpenShift. |
+| Option            | Type       | Default value | Description                                                                                                                       |
+|-------------------|------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| OLM_VERSION       | `0` or `1` | `0`           | Use OLM v0 resources or OLM v1 resources to deploy the "subscription" (or cluster extension).                                     |
+| NAMESPACE         | string     | `default`     | Namespace to which the operator will be deployed.                                                                                 |
+| CATALOG_NAMESPACE | string     | `olm`         | Namespace to which the catalog will be deployed. Usually `olm` for Minikube/Kubernetes and `openshift-marketplace` for OpenShift. |
 
 ## Notes
 

@@ -410,7 +410,7 @@ The Avro and JSON Schema serializers and deserializers (SerDes) provided by {reg
 .Additional resources
 
 ifdef::rh-service-registry[]
-* link:https://access.redhat.com/documentation/en-us/red_hat_integration/2023.q2/html-single/debezium_user_guide/index#configuring-debezium-connectors-to-use-avro-serialization[Configuring Debezium to use Avro serialization and {registry}]
+* link:https://docs.redhat.com/en/documentation/red_hat_build_of_debezium/3.0.8/html/debezium_user_guide/configuring-debezium-connectors-for-your-application#configuring-debezium-connectors-to-use-avro-serialization[Configuring Debezium to use Avro serialization and {registry}]
 endif::[]
 ifdef::apicurio-registry[]
 * link:https://debezium.io/documentation/reference/stable/configuration/avro.html[Configuring Debezium to use Avro serialization and {registry}]

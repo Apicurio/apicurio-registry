@@ -117,18 +117,6 @@ When the client is created, you can use all of the operations available in the {
 
 * For details on how to use the {registry} Kafka client serializers/deserializers (SerDes) in producer and consumer applications, see {kafka-client-serdes}.
 
-=== Using the {registry} Typescript SDK
-
-TBD
-
-=== Using the {registry} Python SDK
-
-TBD
-
-=== Using the {registry} Golang SDK
-
-TBD
-
 
 
 // Metadata created by nebel

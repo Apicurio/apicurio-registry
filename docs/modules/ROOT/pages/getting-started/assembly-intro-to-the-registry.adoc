@@ -36,6 +36,10 @@ Using {registry} to decouple your data structure from your applications reduces 
 
 You can configure optional rules to govern the evolution of your {registry} content. These include rules to ensure that uploaded content is valid, or is compatible with other versions. Any configured rules must pass before new versions can be uploaded to {registry}, which ensures that time is not wasted on invalid or incompatible schemas or API designs.
 
+ifndef::apicurio-registry[]
+{registry-name-full} is based on the Apicurio Registry open source community project. For details, see https://github.com/apicurio/apicurio-registry. 
+endif::[]
+
 
 [discrete]
 === {registry} capabilities
@@ -301,6 +305,9 @@ Get the current {registry} user.
 * Confluent Schema Registry API v7
 
 Applications using Confluent client libraries can use {registry} as a drop-in replacement.
+ifdef::rh-service-registry[]
+For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry].
+endif::[]
 
 [role="_additional-resources"]
 .Additional resources
@@ -323,8 +330,10 @@ Applications using Confluent client libraries can use {registry} as a drop-in re
 |Storage option
 |Description
 
+ifdef::apicurio-registry[]
 |In-memory
 |The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The PostgreSQL or Kafka storage option is recommended for a production environment.
+endif::[]
 
 |PostgreSQL database
 |PostgreSQL is the recommended data storage option for performance, stability, and data management (backup/restore, and so on) in a production environment.
@@ -336,10 +345,14 @@ Applications using Confluent client libraries can use {registry} as a drop-in re
 
 [role="_additional-resources"]
 .Additional resources
+ifdef::apicurio-registry[]
 * {installing-the-registry-docker}
 * {installing-the-registry-openshift}
 * {installing-the-registry-storage-openshift}
-
+endif::[]
+ifdef::rh-service-registry[]
+* For more details on storage options, see link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
+endif::[]
 
 
 // Metadata created by nebel
@@ -396,7 +409,12 @@ The Avro and JSON Schema serializers and deserializers (SerDes) provided by {reg
 [role="_additional-resources"]
 .Additional resources
 
+ifdef::rh-service-registry[]
+* link:https://docs.redhat.com/en/documentation/red_hat_build_of_debezium/3.0.8/html/debezium_user_guide/configuring-debezium-connectors-for-your-application#configuring-debezium-connectors-to-use-avro-serialization[Configuring Debezium to use Avro serialization and {registry}]
+endif::[]
+ifdef::apicurio-registry[]
 * link:https://debezium.io/documentation/reference/stable/configuration/avro.html[Configuring Debezium to use Avro serialization and {registry}]
+endif::[]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/event-driven-architecture[Example of using Debezium to monitor the PostgreSQL database used by Apicurio Registry]
 * link:https://kafka.apache.org/documentation/#connect[Apache Kafka Connect documentation]
 
@@ -437,6 +455,7 @@ These applications demonstrate use cases such as the following examples:
 [role="_abstract"]
 {registry} provides the following components as part of its distribution.
 
+ifdef::apicurio-registry[]
 
 .{registry} images
 [%header,cols="2,4"]
@@ -455,6 +474,52 @@ These applications demonstrate use cases such as the following examples:
 * For details on building from source code and running Docker images, see link:https://github.com/Apicurio/apicurio-registry[]
 * For details on using the Operator to deploy, see link:https://github.com/Apicurio/apicurio-registry/tree/main/operator[]
 
+endif::[]
+
+ifdef::rh-service-registry[]
+
+.{registry} Operator and images
+[%header,cols="3,3,2"]
+|===
+|Distribution
+|Location
+|Release category
+|{registry} Operator
+|OpenShift web console under *Operators* → *OperatorHub*
+|General Availability
+|Container image for {registry} Operator
+|link:{download-url-registry-container-catalog}[{org-name} Ecosystem Catalog]
+|General Availability
+|Container image for Apicurio Registry (Back End)
+|link:{download-url-registry-container-catalog}[{org-name} Ecosystem Catalog]
+|General Availability
+|Container image for Apicurio Registry (User Interface)
+|link:{download-url-registry-container-catalog}[{org-name} Ecosystem Catalog]
+|General Availability
+|===
 
 
+.{registry} zip downloads
+[%header,cols="3,3,2"]
+|===
+|Distribution
+|Location
+|Release category
+|Example custom resource definitions for installation
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
+|General Availability
+|Maven repository
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
+|General Availability
+|Source code
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
+|General Availability
+|Kafka Connect converters
+|link:{download-url-registry-distribution}[{org-name} Software Downloads]
+|General Availability
+|===
 
+NOTE: You must have a subscription for {prodnamefull} and be logged into the {org-name} Customer Portal to access the available {registry} distributions.
+endif::[]
+
+:leveloffset!:

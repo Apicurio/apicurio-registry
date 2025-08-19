@@ -160,7 +160,9 @@ WARNING: You must configure the Kafka topic used by {registry} (named `kafkasql-
 [role="_additional-resources"]
 .Additional resources
 
+ifdef::apicurio-registry[]
 * For more details on installing Strimzi and on creating Kafka clusters and topics, see https://strimzi.io/docs/overview/latest/
+endif::[]
 
 
 // Metadata created by nebel

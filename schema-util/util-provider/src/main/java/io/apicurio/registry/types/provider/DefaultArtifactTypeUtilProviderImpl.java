@@ -49,22 +49,4 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
         return providers;
     }
 
-    @Override
-    public String getArtifactContentType(String type) {
-        // The content-type will be different for protobuf artifacts, graphql artifacts, and XML artifacts
-        String contentType = ContentTypes.APPLICATION_JSON;
-        if (type.equals(ArtifactType.PROTOBUF)) {
-            contentType = ContentTypes.APPLICATION_PROTOBUF;
-        }
-        if (type.equals(ArtifactType.GRAPHQL)) {
-            contentType = ContentTypes.APPLICATION_GRAPHQL;
-        }
-        if (type.equals(ArtifactType.WSDL) || type.equals(ArtifactType.XSD)
-                || type.equals(ArtifactType.XML)) {
-            contentType = ContentTypes.APPLICATION_XML;
-        }
-
-        return contentType;
-    }
-
 }

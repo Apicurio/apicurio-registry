@@ -1,6 +1,7 @@
 package io.apicurio.registry.types.provider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.common.apps.config.ConfigPropertyCategory;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.config.artifactTypes.ArtifactTypesConfiguration;
 import io.apicurio.registry.http.HttpClientService;
@@ -33,7 +34,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     ScriptingService scriptingService;
 
     @ConfigProperty(name = "apicurio.artifact-types.config-file", defaultValue = "/tmp/apicurio-registry-artifact-types.json")
-    @Info(category = "types", description = "Path to a configuration file containing a list of supported artifact types.", availableSince = "3.1.0")
+    @Info(category = ConfigPropertyCategory.CATEGORY_TYPES, description = "Path to a configuration file containing a list of supported artifact types.", availableSince = "3.1.0")
     @Getter
     private String configFile;
 

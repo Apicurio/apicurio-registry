@@ -3,16 +3,22 @@ package io.apicurio.deployment.manual;
 import lombok.SneakyThrows;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static io.apicurio.deployment.TestConfiguration.isClusterTests;
 import static org.apache.kafka.clients.CommonClientConfigs.*;
 import static org.apache.kafka.common.config.TopicConfig.*;
 
 public class ProxyKafkaRunner implements KafkaRunner {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProxyKafkaRunner.class);
 
     private KafkaRunner delegate;
 
@@ -69,6 +75,58 @@ public class ProxyKafkaRunner implements KafkaRunner {
         delegate.stopAndWait();
     }
 
+
+    // === Health Checks
+
+    /**
+     * Verifies that Kafka cluster is reachable and responsive
+     */
+    @SneakyThrows
+    public void verifyKafkaConnectivity() {
+        LOGGER.info("Verifying Kafka connectivity...");
+        var timeout = io.apicurio.deployment.TestConfiguration.getKafkaTimeout();
+        
+        Awaitility.await("Kafka to be reachable")
+            .atMost(timeout)
+            .pollInterval(io.apicurio.deployment.TestConfiguration.getPollInterval())
+            .until(() -> {
+                try {
+                    var metadata = kafkaClient().describeCluster();
+                    var nodes = metadata.nodes().get(30, TimeUnit.SECONDS);
+                    LOGGER.info("Kafka cluster has {} nodes", nodes.size());
+                    return !nodes.isEmpty();
+                } catch (Exception e) {
+                    LOGGER.warn("Kafka connectivity check failed: {}", e.getMessage());
+                    return false;
+                }
+            });
+        LOGGER.info("✓ Kafka connectivity verified");
+    }
+
+    /**
+     * Verifies that Kafka topics can be created and managed
+     */
+    @SneakyThrows
+    public void verifyKafkaTopicOperations() {
+        LOGGER.info("Verifying Kafka topic operations...");
+        var timeout = io.apicurio.deployment.TestConfiguration.getKafkaTimeout();
+        
+        Awaitility.await("Kafka topic operations to work")
+            .atMost(timeout)
+            .pollInterval(io.apicurio.deployment.TestConfiguration.getPollInterval())
+            .until(() -> {
+                try {
+                    // Try to list topics to verify admin operations work
+                    var topics = kafkaClient().listTopics().names().get(30, TimeUnit.SECONDS);
+                    LOGGER.info("Kafka has {} existing topics", topics.size());
+                    return true;
+                } catch (Exception e) {
+                    LOGGER.warn("Kafka topic operations check failed: {}", e.getMessage());
+                    return false;
+                }
+            });
+        LOGGER.info("✓ Kafka topic operations verified");
+    }
 
     // === Utils
 

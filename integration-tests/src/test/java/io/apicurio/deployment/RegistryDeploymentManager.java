@@ -17,6 +17,7 @@
 package io.apicurio.deployment;
 
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
@@ -27,11 +28,17 @@ import org.junit.platform.launcher.TestPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static io.apicurio.deployment.Constants.REGISTRY_IMAGE;
 import static io.apicurio.deployment.KubernetesTestResources.*;
@@ -221,5 +228,208 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         //Wait for all the external resources pods to be ready
         kubernetesClient().pods()
                 .inNamespace(TEST_NAMESPACE).waitUntilReady(180, TimeUnit.SECONDS);
+    }
+
+    // === Health Check Methods
+
+    /**
+     * Verifies that all pods in the test namespace are ready
+     */
+    public static void verifyPodsReady() {
+        LOGGER.info("Verifying all pods are ready...");
+        
+        var timeout = Duration.ofSeconds(300);
+        Awaitility.await("All pods to be ready")
+            .atMost(timeout)
+            .pollInterval(Duration.ofSeconds(5))
+            .until(() -> {
+                var pods = kubernetesClient().pods()
+                    .inNamespace(TEST_NAMESPACE)
+                    .list()
+                    .getItems();
+                    
+                var notReady = pods.stream()
+                    .filter(pod -> !isPodReady(pod))
+                    .toList();
+                    
+                if (!notReady.isEmpty()) {
+                    LOGGER.warn("Pods not ready: {}", 
+                        notReady.stream()
+                            .map(p -> p.getMetadata().getName() + " (phase: " + 
+                                     p.getStatus().getPhase() + ")")
+                            .collect(Collectors.joining(", ")));
+                    return false;
+                }
+                
+                LOGGER.info("✓ All {} pods are ready", pods.size());
+                return true;
+            });
+    }
+
+    /**
+     * Checks if a specific pod is ready
+     */
+    private static boolean isPodReady(Pod pod) {
+        if (pod.getStatus() == null || pod.getStatus().getConditions() == null) {
+            return false;
+        }
+        
+        var conditions = pod.getStatus().getConditions();
+        return conditions.stream()
+            .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()));
+    }
+
+    /**
+     * Verifies that all required services have endpoints
+     */
+    public static void verifyServiceEndpoints() {
+        LOGGER.info("Verifying service endpoints...");
+        
+        // Get all services in the test namespace
+        var services = kubernetesClient().services()
+            .inNamespace(TEST_NAMESPACE)
+            .list()
+            .getItems()
+            .stream()
+            .map(s -> s.getMetadata().getName())
+            .filter(name -> !name.equals("kubernetes")) // Skip default kubernetes service
+            .collect(Collectors.toList());
+        
+        for (var serviceName : services) {
+            Awaitility.await("Service " + serviceName + " to have endpoints")
+                .atMost(Duration.ofSeconds(120))
+                .pollInterval(Duration.ofSeconds(3))
+                .until(() -> {
+                    var endpoints = kubernetesClient().endpoints()
+                        .inNamespace(TEST_NAMESPACE)
+                        .withName(serviceName)
+                        .get();
+                        
+                    if (endpoints == null || endpoints.getSubsets() == null || endpoints.getSubsets().isEmpty()) {
+                        LOGGER.warn("Service {} has no endpoints", serviceName);
+                        return false;
+                    }
+                    
+                    var readyAddresses = endpoints.getSubsets().stream()
+                        .mapToInt(subset -> subset.getAddresses() != null ? subset.getAddresses().size() : 0)
+                        .sum();
+                        
+                    if (readyAddresses == 0) {
+                        LOGGER.warn("Service {} has no ready addresses", serviceName);
+                        return false;
+                    }
+                    
+                    LOGGER.info("✓ Service {} has {} ready endpoints", serviceName, readyAddresses);
+                    return true;
+                });
+        }
+    }
+
+    /**
+     * Verifies basic network connectivity to critical services
+     */
+    public static void verifyNetworkConnectivity() {
+        LOGGER.info("Verifying network connectivity...");
+        
+        var checks = List.of(
+            new NetworkCheck("Kafka", "localhost", 19092),
+            new NetworkCheck("Registry", "localhost", 8781)
+        );
+        
+        for (var check : checks) {
+            Awaitility.await(check.name + " port to be reachable")
+                .atMost(Duration.ofSeconds(60))
+                .pollInterval(Duration.ofSeconds(3))
+                .until(() -> {
+                    return testNetworkConnectivity(check.host, check.port, check.name);
+                });
+        }
+    }
+
+    /**
+     * Tests network connectivity to a specific host and port
+     */
+    public static boolean testNetworkConnectivity(String host, int port, String serviceName) {
+        try (var socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), 5000);
+            LOGGER.info("✓ {} is reachable at {}:{}", serviceName, host, port);
+            return true;
+        } catch (Exception e) {
+            LOGGER.warn("{} not reachable at {}:{}: {}", 
+                       serviceName, host, port, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Collects and logs diagnostic information when health checks fail
+     */
+    public static void collectDiagnosticInfo() {
+        LOGGER.error("=== Collecting Diagnostic Information ===");
+        
+        try {
+            // Log pod statuses
+            LOGGER.error("--- Pod Status Information ---");
+            kubernetesClient().pods()
+                .inNamespace(TEST_NAMESPACE)
+                .list()
+                .getItems()
+                .forEach(pod -> {
+                    var status = pod.getStatus();
+                    var phase = status != null ? status.getPhase() : "Unknown";
+                    var ready = isPodReady(pod);
+                    
+                    LOGGER.error("Pod {}: phase={}, ready={}", 
+                        pod.getMetadata().getName(), phase, ready);
+                        
+                    // Log pod conditions for more detail
+                    if (status != null && status.getConditions() != null) {
+                        status.getConditions().forEach(condition -> {
+                            LOGGER.error("  Condition {}: status={}, reason={}", 
+                                condition.getType(), condition.getStatus(), condition.getReason());
+                        });
+                    }
+                });
+                
+            // Log service endpoints
+            LOGGER.error("--- Service Endpoint Information ---");
+            kubernetesClient().endpoints()
+                .inNamespace(TEST_NAMESPACE)
+                .list()
+                .getItems()
+                .forEach(endpoint -> {
+                    var addresses = 0;
+                    if (endpoint.getSubsets() != null) {
+                        addresses = endpoint.getSubsets().stream()
+                            .mapToInt(subset -> subset.getAddresses() != null ? subset.getAddresses().size() : 0)
+                            .sum();
+                    }
+                    LOGGER.error("Service {}: {} ready addresses", 
+                        endpoint.getMetadata().getName(), addresses);
+                });
+                
+        } catch (Exception e) {
+            LOGGER.error("Error collecting diagnostic information", e);
+        }
+        
+        // Test basic network connectivity
+        LOGGER.error("--- Network Connectivity Tests ---");
+        testNetworkConnectivity("localhost", 19092, "Kafka");
+        testNetworkConnectivity("localhost", 8781, "Registry");
+    }
+
+    /**
+     * Class for network connectivity checks
+     */
+    public static class NetworkCheck {
+        public final String name;
+        public final String host;
+        public final int port;
+        
+        public NetworkCheck(String name, String host, int port) {
+            this.name = name;
+            this.host = host;
+            this.port = port;
+        }
     }
 }

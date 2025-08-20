@@ -28,9 +28,12 @@ import io.apicurio.registry.rest.v2.beans.Rule;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.tests.utils.Constants;
+import io.apicurio.tests.utils.HealthCheckUtils;
 import io.apicurio.tests.utils.TestSeparator;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.io.IOException;
@@ -49,6 +52,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Tag(Constants.KAFKASQL_MANUAL)
 public class KafkaSqlProtobufContentUpgradeIssueOldIT implements TestSeparator, Constants {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSqlProtobufContentUpgradeIssueOldIT.class);
+
     private long testTimeoutMultiplier = 1;
 
     private ProxyKafkaRunner kafka;
@@ -60,6 +65,9 @@ public class KafkaSqlProtobufContentUpgradeIssueOldIT implements TestSeparator, 
     protected void beforeAll() {
         if (TestConfiguration.isClusterTests()) {
             testTimeoutMultiplier = 3; // We need more time for Kubernetes
+            
+            // Add comprehensive health checks for cluster tests
+            HealthCheckUtils.performComprehensiveHealthChecks();
         }
     }
 
@@ -67,16 +75,33 @@ public class KafkaSqlProtobufContentUpgradeIssueOldIT implements TestSeparator, 
     @Test
     public void testOld() throws IOException {
         try {
+            LOGGER.info("=== Starting KafkaSQL Old Version Test Services ===");
+            
+            // Start Kafka
+            LOGGER.info("Starting Kafka...");
             kafka = new ProxyKafkaRunner();
             kafka.startAndWait();
+            
+            // Verify Kafka is ready
+            HealthCheckUtils.verifyKafkaServices(kafka);
 
             // Create the topic with aggressive log compaction
+            LOGGER.info("Creating kafkasql-journal topic...");
             createCompactingTopic(kafka, "kafkasql-journal", 1);
 
+            // Start Registry with old version
+            LOGGER.info("Starting Registry 2.5.8...");
             registry258 = createClusterOrDocker();
             registry258.start(1, null, "quay.io/apicurio/apicurio-registry-kafkasql:2.5.8.Final", kafka.getBootstrapServers(), null, null);
             registry258.waitUntilReady();
+            
+            // Verify Registry is ready
+            HealthCheckUtils.verifyRegistryServices(registry258);
+            
+            LOGGER.info("Creating Registry client...");
             client = RegistryClientFactory.create(registry258.getClientURL());
+            
+            LOGGER.info("=== All Services Ready - Starting Test Logic ===");
 
             // Create a protobuf artifact with reference
             var anyData = resourceToString("artifactTypes/protobuf/any.proto");

@@ -1,7 +1,7 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { getRegistryClient } from "@utils/rest.utils.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
-import { Paging } from "@models/paging.model.ts";
+import { Paging } from "@models/Paging.ts";
 import {
     AddVersionToBranch,
     ArtifactMetaData,

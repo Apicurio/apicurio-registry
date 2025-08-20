@@ -136,7 +136,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         groups.createArtifact(group?.groupId as string, data).then(response => {
             const groupId: string = response.artifact!.groupId || "default";
             const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact!.artifactId!) }`;
-            logger.info("[ExplorePage] Artifact successfully created.  Redirecting to details page: ", artifactLocation);
+            logger.info("[SearchPage] Artifact successfully created.  Redirecting to details page: ", artifactLocation);
             appNavigation.navigateTo(artifactLocation);
         }).catch( error => {
             pleaseWait(false);
@@ -187,7 +187,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     };
 
     const handleInvalidContentError = (error: any): void => {
-        logger.info("[ExplorePage] Invalid content error:", error);
+        logger.info("[SearchPage] Invalid content error:", error);
         setInvalidContentError(error);
         setInvalidContentModalOpen(true);
     };

@@ -2,7 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./BranchesTabContent.css";
 import "@app/styles/empty.css";
 import { ListWithToolbar } from "@apicurio/common-ui-components";
-import { Paging } from "@models/paging.model.ts";
+import { Paging } from "@models/Paging.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import {
     Button,

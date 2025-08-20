@@ -16,7 +16,7 @@ export const ArtifactName: FunctionComponent<ArtifactNameProps> = (props: Artifa
 
     const artifactLink = (): string => {
         const groupId: string = props.groupId == null ? "default" : props.groupId;
-        const link: string = `/explore/${ encodeURIComponent(groupId)}/${ encodeURIComponent(props.id) }`;
+        const link: string = `/search/${ encodeURIComponent(groupId)}/${ encodeURIComponent(props.id) }`;
         return appNav.createLink(link);
     };
 

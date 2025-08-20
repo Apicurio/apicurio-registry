@@ -7,7 +7,7 @@ import {
     PageErrorHandler,
     PageProperties,
     RoleList,
-    RoleMappingsEmptyState,
+    RoleMappingsEmptyState, ROLES_PAGE_IDX,
     RoleToolbar,
     RoleToolbarCriteria,
     toPageError
@@ -17,7 +17,7 @@ import { GrantAccessModal } from "@app/pages/roles/components/modals/GrantAccess
 import { If, PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { Principal } from "@services/useConfigService.ts";
-import { Paging } from "@models/paging.model.ts";
+import { Paging } from "@models/Paging.ts";
 import { RoleMapping } from "@sdk/lib/generated-client/models";
 
 
@@ -172,7 +172,7 @@ export const RolesPage: FunctionComponent<PageProperties> = () => {
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
                 <PageSection className="ps_roles-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
-                    <RootPageHeader tabKey={2} />
+                    <RootPageHeader tabKey={ROLES_PAGE_IDX} />
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true} className="ps_role-section">
                     <If condition={roles.length === 0}>

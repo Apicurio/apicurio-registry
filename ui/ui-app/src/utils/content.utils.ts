@@ -1,5 +1,5 @@
 import YAML from "yaml";
-import { ContentTypes } from "@models/contentTypes.model.ts";
+import { ContentTypes } from "@models/ContentTypes.ts";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
 
 /**

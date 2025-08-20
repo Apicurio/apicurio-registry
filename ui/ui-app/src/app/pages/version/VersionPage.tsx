@@ -14,7 +14,7 @@ import {
 } from "@app/pages";
 import { ReferencesTabContent } from "@app/pages/version/components/tabs/ReferencesTabContent.tsx";
 import { ConfirmDeleteModal, EditMetaDataModal, GenerateClientModal, IfFeature, MetaData } from "@app/components";
-import { ContentTypes } from "@models/contentTypes.model.ts";
+import { ContentTypes } from "@models/ContentTypes.ts";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";

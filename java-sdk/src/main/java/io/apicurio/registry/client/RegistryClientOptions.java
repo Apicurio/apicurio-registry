@@ -208,11 +208,11 @@ public class RegistryClientOptions {
      *
      * @param enabled whether retry functionality is enabled
      * @param maxAttempts the maximum number of retry attempts (must be > 0 if enabled)
-     * @param delayMs the delay between retry attempts in milliseconds (must be > 0 if enabled)
+     * @param initialDelayMs the initial delay between retry attempts in milliseconds (must be > 0 if enabled)
      * @return this builder
      */
-    public RegistryClientOptions retry(boolean enabled, int maxAttempts, long delayMs) {
-        return retry(enabled, maxAttempts, delayMs, 2, 10000);
+    public RegistryClientOptions retry(boolean enabled, int maxAttempts, long initialDelayMs) {
+        return retry(enabled, maxAttempts, initialDelayMs, 2, 10000);
     }
 
     /**

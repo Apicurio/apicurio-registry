@@ -2,7 +2,7 @@ import React, { FunctionComponent, useEffect, useState } from "react";
 import "./RulesPage.css";
 import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
 import { RootPageHeader, RuleList, RuleListType } from "@app/components";
-import { PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
+import {PageDataLoader, PageError, PageErrorHandler, PageProperties, RULES_PAGE_IDX, toPageError} from "@app/pages";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { Rule, RuleType } from "@sdk/lib/generated-client/models";
@@ -67,7 +67,7 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
                 <PageSection className="ps_rules-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
-                    <RootPageHeader tabKey={1} />
+                    <RootPageHeader tabKey={RULES_PAGE_IDX} />
                 </PageSection>
                 <PageSection className="ps_rules-description" variant={PageSectionVariants.light}>
                     <TextContent>

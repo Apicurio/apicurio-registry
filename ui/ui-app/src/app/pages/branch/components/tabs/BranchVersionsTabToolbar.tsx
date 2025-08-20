@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import "./BranchVersionsTabToolbar.css";
 import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
-import { Paging } from "@models/paging.model.ts";
+import { Paging } from "@models/Paging.ts";
 import { VersionSearchResults } from "@sdk/lib/generated-client/models";
 
 

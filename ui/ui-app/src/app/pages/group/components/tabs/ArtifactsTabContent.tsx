@@ -3,7 +3,7 @@ import "./ArtifactsTabContent.css";
 import "@app/styles/empty.css";
 import { ListWithToolbar } from "@apicurio/common-ui-components";
 import { ArtifactsTabToolbar } from "@app/pages/group/components/tabs/ArtifactsTabToolbar.tsx";
-import { Paging } from "@models/paging.model.ts";
+import { Paging } from "@models/Paging.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import {
     Button,

@@ -5,7 +5,7 @@ import YAML from "yaml";
 import useResizeObserver from "use-resize-observer";
 import Editor from "@monaco-editor/react";
 import { detectContentType } from "@utils/content.utils.ts";
-import { ContentTypes } from "@models/contentTypes.model.ts";
+import { ContentTypes } from "@models/ContentTypes.ts";
 
 const TYPE_MAP: any = {};
 TYPE_MAP[ContentTypes.APPLICATION_PROTOBUF] = "protobuf";

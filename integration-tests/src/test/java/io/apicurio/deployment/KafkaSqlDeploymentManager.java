@@ -171,5 +171,18 @@ public class KafkaSqlDeploymentManager {
         var registryClient = RegistryClientFactory.create(registryBaseUrl);
 
         UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(registryClient);
+        
+        // Ensure the test data is properly accessible after deployment
+        LOGGER.info("Verifying KafkaSQL references test data is properly set...");
+        if (io.apicurio.tests.dbupgrade.kafka.KafkaSqlReferencesUpgraderIT.artifactWithReferences != null) {
+            LOGGER.info("KafkaSqlReferencesUpgraderIT.artifactWithReferences is properly initialized");
+        } else {
+            LOGGER.error("KafkaSqlReferencesUpgraderIT.artifactWithReferences is NULL after initialization!");
+        }
+        if (io.apicurio.tests.dbupgrade.kafka.KafkaSqlReferencesUpgraderIT.artifactReferences != null) {
+            LOGGER.info("KafkaSqlReferencesUpgraderIT.artifactReferences is properly initialized");
+        } else {
+            LOGGER.error("KafkaSqlReferencesUpgraderIT.artifactReferences is NULL after initialization!");
+        }
     }
 }

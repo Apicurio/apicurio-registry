@@ -40,22 +40,45 @@ public class KafkaSqlDeploymentManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSqlDeploymentManager.class);
 
     static void deployKafkaApp(String registryImage) throws Exception {
+        LOGGER.info("=== KafkaSQL Deployment Manager ===");
+        LOGGER.info("Registry Image: {}", registryImage);
+        LOGGER.info("TEST_PROFILE: '{}' (from groups property: '{}')", Constants.TEST_PROFILE, System.getProperty("groups"));
+        
         switch (Constants.TEST_PROFILE) {
             case Constants.AUTH:
+                LOGGER.info("Deploying KafkaSQL with AUTH profile");
                 prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_SECURED_RESOURCES, true, registryImage, false);
                 break;
             case Constants.MULTITENANCY:
+                LOGGER.info("Deploying KafkaSQL with MULTITENANCY profile");
                 prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_MULTITENANT_RESOURCES, false, registryImage, true);
                 break;
             case Constants.KAFKA_SQL:
+                LOGGER.info("Deploying KafkaSQL with KAFKA_SQL profile (upgrade tests)");
                 prepareKafkaDbUpgradeTests(registryImage);
                 break;
             case Constants.KAFKASQL_MANUAL:
+                LOGGER.warn("=== KAFKASQL_MANUAL Profile Detected ===");
+                LOGGER.warn("The KAFKASQL_MANUAL profile does NOT deploy any infrastructure!");
+                LOGGER.warn("This profile expects manual setup, but tests are running in cluster mode.");
+                LOGGER.warn("This is likely the cause of the missing Kafka infrastructure.");
+                LOGGER.warn("=======================================");
+                
+                // For cluster tests, we should still deploy infrastructure even in manual mode
+                if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
+                    LOGGER.info("Cluster tests detected - deploying KafkaSQL infrastructure despite KAFKASQL_MANUAL profile");
+                    prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
+                } else {
+                    LOGGER.info("Local tests - skipping infrastructure deployment as expected for KAFKASQL_MANUAL profile");
+                }
                 break;
             default:
+                LOGGER.info("Deploying KafkaSQL with DEFAULT profile");
                 prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
                 break;
         }
+        
+        LOGGER.info("=== KafkaSQL Deployment Manager Complete ===");
     }
 
     private static void prepareKafkaDbUpgradeTests(String registryImage) throws Exception {

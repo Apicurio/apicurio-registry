@@ -97,16 +97,28 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     private void handleInfraDeployment() throws Exception {
+        LOGGER.info("=== Starting Infrastructure Deployment ===");
+        
+        // Add comprehensive property diagnostics
+        logDeploymentConfiguration();
+        
         //First, create the namespace used for the test.
+        LOGGER.info("Creating test namespace: {}", TEST_NAMESPACE);
         try {
             kubernetesClient().load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE))
                     .create();
+            LOGGER.info("✓ Test namespace created successfully");
         }
         catch (KubernetesClientException ex) {
-            LOGGER.warn("Could not create namespace (it may already exist).", ex);
+            LOGGER.warn("Could not create namespace (it may already exist): {}", ex.getMessage());
         }
 
+        // Verify namespace exists
+        verifyNamespaceExists();
+
         //Based on the configuration, deploy the appropriate variant
+        LOGGER.info("Determining deployment variant based on system properties...");
+        
         if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
             LOGGER.info("Deploying In Memory Registry Variant with image: {} ##################################################",
                     System.getProperty("registry-in-memory-image"));
@@ -120,11 +132,31 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             LOGGER.info("Deploying Kafka SQL Registry Variant with image: {} ##################################################",
                     System.getProperty("registry-kafkasql-image"));
             KafkaSqlDeploymentManager.deployKafkaApp(System.getProperty("registry-kafkasql-image"));
+            
+            // Verify KafkaSQL deployment was successful
+            verifyKafkaSqlDeployment();
+        } else {
+            LOGGER.error("=== NO DEPLOYMENT VARIANT SELECTED ===");
+            LOGGER.error("None of the deployment properties are set to true:");
+            LOGGER.error("- deployInMemory: {}", System.getProperty("deployInMemory"));
+            LOGGER.error("- deploySql: {}", System.getProperty("deploySql"));
+            LOGGER.error("- deployKafka: {}", System.getProperty("deployKafka"));
+            throw new IllegalStateException("No deployment variant selected - check system properties");
         }
+        
+        LOGGER.info("=== Infrastructure Deployment Complete ===");
     }
 
     static void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak, String
             registryImage, boolean startTenantManager) throws IOException {
+        LOGGER.info("=== Preparing Test Infrastructure ===");
+        LOGGER.info("Parameters:");
+        LOGGER.info("- externalResources: {}", externalResources);
+        LOGGER.info("- registryResources: {}", registryResources);
+        LOGGER.info("- startKeycloak: {}", startKeycloak);
+        LOGGER.info("- registryImage: {}", registryImage);
+        LOGGER.info("- startTenantManager: {}", startTenantManager);
+        
         if (startKeycloak) {
             LOGGER.info("Deploying Keycloak resources ##################################################");
             deployResource(KEYCLOAK_RESOURCES);
@@ -137,34 +169,72 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         }
 
         if (externalResources != null) {
-            LOGGER.info("Deploying external dependencies for Registry ##################################################");
+            LOGGER.info("Deploying external dependencies for Registry: {} ##################################################", externalResources);
             deployResource(externalResources);
+        } else {
+            LOGGER.info("No external resources to deploy");
         }
 
+        LOGGER.info("Deploying registry resources: {} ##################################################", registryResources);
         final InputStream resourceAsStream = RegistryDeploymentManager.class.getResourceAsStream(registryResources);
 
-        assert resourceAsStream != null;
+        if (resourceAsStream == null) {
+            LOGGER.error("✗ Registry resource file '{}' not found in classpath", registryResources);
+            throw new IllegalArgumentException("Registry resource file not found: " + registryResources);
+        }
 
         String registryLoadedResources = IOUtils.toString(resourceAsStream, StandardCharsets.UTF_8.name());
+        LOGGER.info("✓ Registry resource file loaded successfully, {} characters", registryLoadedResources.length());
 
         if (registryImage != null) {
+            LOGGER.info("Replacing placeholder '{}' with actual image '{}'", REGISTRY_IMAGE, registryImage);
+            String originalResources = registryLoadedResources;
             registryLoadedResources = registryLoadedResources.replace(REGISTRY_IMAGE, registryImage);
+            if (originalResources.equals(registryLoadedResources)) {
+                LOGGER.warn("⚠ No placeholder replacement occurred - image may not be set correctly");
+            } else {
+                LOGGER.info("✓ Image placeholder replacement completed");
+            }
+        } else {
+            LOGGER.warn("⚠ No registry image specified - using placeholder value");
         }
 
         try {
+            LOGGER.info("Creating Kubernetes resources...");
             //Deploy all the resources associated to the registry variant
-            kubernetesClient().load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
+            var resourceList = kubernetesClient().load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
                     .create();
+            LOGGER.info("✓ Successfully created {} Kubernetes resources", resourceList.size());
+            
+            // Log what was created
+            resourceList.forEach(resource -> {
+                LOGGER.info("  - Created: {} '{}'", 
+                    resource.getKind(), 
+                    resource.getMetadata().getName());
+            });
         }
         catch (Exception ex) {
-            LOGGER.warn("Error creating registry resources:", ex);
+            LOGGER.error("✗ Error creating registry resources", ex);
+            throw new RuntimeException("Failed to create registry resources", ex);
         }
 
-        //Wait for all the pods of the variant to be ready
-        kubernetesClient().pods()
-                .inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
+        LOGGER.info("Waiting for pods to be ready (timeout: 360 seconds)...");
+        try {
+            //Wait for all the pods of the variant to be ready
+            kubernetesClient().pods()
+                    .inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
+            LOGGER.info("✓ All pods are ready");
+        } catch (Exception ex) {
+            LOGGER.error("✗ Timeout waiting for pods to be ready", ex);
+            
+            // Collect diagnostic information
+            collectDetailedPodDiagnostics();
+            throw new RuntimeException("Pods failed to become ready within timeout", ex);
+        }
 
+        LOGGER.info("Setting up test networking...");
         setupTestNetworking(startTenantManager);
+        LOGGER.info("=== Test Infrastructure Preparation Complete ===");
     }
 
     private static void setupTestNetworking(boolean startTenantManager) {
@@ -221,13 +291,33 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     private static void deployResource(String resource) {
-        //Deploy all the resources associated to the external requirements
-        kubernetesClient().load(RegistryDeploymentManager.class.getResourceAsStream(resource))
-                .create();
+        LOGGER.info("Deploying resource: {}", resource);
+        
+        try {
+            var resourceStream = RegistryDeploymentManager.class.getResourceAsStream(resource);
+            if (resourceStream == null) {
+                LOGGER.error("✗ Resource file '{}' not found in classpath", resource);
+                throw new IllegalArgumentException("Resource file not found: " + resource);
+            }
+            
+            //Deploy all the resources associated to the external requirements
+            var resourceList = kubernetesClient().load(resourceStream).create();
+            LOGGER.info("✓ Successfully deployed {} resources from '{}'", resourceList.size(), resource);
+            
+            resourceList.forEach(res -> {
+                LOGGER.info("  - Deployed: {} '{}'", res.getKind(), res.getMetadata().getName());
+            });
 
-        //Wait for all the external resources pods to be ready
-        kubernetesClient().pods()
-                .inNamespace(TEST_NAMESPACE).waitUntilReady(180, TimeUnit.SECONDS);
+            LOGGER.info("Waiting for pods from '{}' to be ready (timeout: 180 seconds)...", resource);
+            //Wait for all the external resources pods to be ready
+            kubernetesClient().pods()
+                    .inNamespace(TEST_NAMESPACE).waitUntilReady(180, TimeUnit.SECONDS);
+            LOGGER.info("✓ All pods from '{}' are ready", resource);
+            
+        } catch (Exception ex) {
+            LOGGER.error("✗ Failed to deploy resource '{}': {}", resource, ex.getMessage(), ex);
+            throw new RuntimeException("Failed to deploy resource: " + resource, ex);
+        }
     }
 
     // === Health Check Methods
@@ -416,6 +506,184 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         LOGGER.error("--- Network Connectivity Tests ---");
         testNetworkConnectivity("localhost", 19092, "Kafka");
         testNetworkConnectivity("localhost", 8781, "Registry");
+    }
+
+    // === Deployment Diagnostic Methods
+
+    /**
+     * Logs comprehensive deployment configuration for debugging
+     */
+    private void logDeploymentConfiguration() {
+        LOGGER.info("=== Deployment Configuration Diagnostics ===");
+        LOGGER.info("System Properties:");
+        LOGGER.info("- deployInMemory: '{}'", System.getProperty("deployInMemory"));
+        LOGGER.info("- deploySql: '{}'", System.getProperty("deploySql"));
+        LOGGER.info("- deployKafka: '{}'", System.getProperty("deployKafka"));
+        LOGGER.info("- registry-kafkasql-image: '{}'", System.getProperty("registry-kafkasql-image"));
+        LOGGER.info("- registry-in-memory-image: '{}'", System.getProperty("registry-in-memory-image"));
+        LOGGER.info("- registry-sql-image: '{}'", System.getProperty("registry-sql-image"));
+        LOGGER.info("- groups (TEST_PROFILE): '{}'", System.getProperty("groups"));
+        LOGGER.info("- cluster.tests: '{}'", System.getProperty("cluster.tests"));
+        
+        LOGGER.info("Environment:");
+        LOGGER.info("- TEST_NAMESPACE: '{}'", TEST_NAMESPACE);
+        LOGGER.info("- TEST_PROFILE: '{}'", io.apicurio.deployment.Constants.TEST_PROFILE);
+        
+        // Boolean parsing diagnostics
+        LOGGER.info("Boolean Parsing Results:");
+        LOGGER.info("- Boolean.parseBoolean(deployInMemory): {}", Boolean.parseBoolean(System.getProperty("deployInMemory")));
+        LOGGER.info("- Boolean.parseBoolean(deploySql): {}", Boolean.parseBoolean(System.getProperty("deploySql")));
+        LOGGER.info("- Boolean.parseBoolean(deployKafka): {}", Boolean.parseBoolean(System.getProperty("deployKafka")));
+        LOGGER.info("=== End Configuration Diagnostics ===");
+    }
+
+    /**
+     * Verifies that the test namespace exists and is accessible
+     */
+    private void verifyNamespaceExists() {
+        try {
+            var namespace = kubernetesClient().namespaces().withName(TEST_NAMESPACE).get();
+            if (namespace != null) {
+                LOGGER.info("✓ Test namespace '{}' exists and is accessible", TEST_NAMESPACE);
+                LOGGER.info("  - Creation timestamp: {}", namespace.getMetadata().getCreationTimestamp());
+                LOGGER.info("  - Status: {}", namespace.getStatus().getPhase());
+            } else {
+                LOGGER.error("✗ Test namespace '{}' does not exist", TEST_NAMESPACE);
+            }
+        } catch (Exception e) {
+            LOGGER.error("✗ Error accessing test namespace '{}': {}", TEST_NAMESPACE, e.getMessage());
+        }
+    }
+
+    /**
+     * Verifies that KafkaSQL deployment was successful
+     */
+    private void verifyKafkaSqlDeployment() {
+        LOGGER.info("=== Verifying KafkaSQL Deployment ===");
+        
+        try {
+            // Check pods in namespace
+            var pods = kubernetesClient().pods().inNamespace(TEST_NAMESPACE).list();
+            LOGGER.info("Found {} pods in namespace '{}':", pods.getItems().size(), TEST_NAMESPACE);
+            
+            pods.getItems().forEach(pod -> {
+                var name = pod.getMetadata().getName();
+                var phase = pod.getStatus() != null ? pod.getStatus().getPhase() : "Unknown";
+                LOGGER.info("  - Pod '{}': phase={}", name, phase);
+            });
+            
+            // Check services in namespace
+            var services = kubernetesClient().services().inNamespace(TEST_NAMESPACE).list();
+            LOGGER.info("Found {} services in namespace '{}':", services.getItems().size(), TEST_NAMESPACE);
+            
+            services.getItems().forEach(service -> {
+                var name = service.getMetadata().getName();
+                var type = service.getSpec().getType();
+                LOGGER.info("  - Service '{}': type={}", name, type);
+            });
+            
+            // Check deployments in namespace
+            var deployments = kubernetesClient().apps().deployments().inNamespace(TEST_NAMESPACE).list();
+            LOGGER.info("Found {} deployments in namespace '{}':", deployments.getItems().size(), TEST_NAMESPACE);
+            
+            deployments.getItems().forEach(deployment -> {
+                var name = deployment.getMetadata().getName();
+                var replicas = deployment.getSpec().getReplicas();
+                var readyReplicas = deployment.getStatus() != null ? deployment.getStatus().getReadyReplicas() : 0;
+                LOGGER.info("  - Deployment '{}': replicas={}, ready={}", name, replicas, readyReplicas);
+            });
+            
+            if (pods.getItems().isEmpty() && services.getItems().isEmpty() && deployments.getItems().isEmpty()) {
+                LOGGER.error("✗ KafkaSQL deployment verification FAILED - no resources found in namespace");
+            } else {
+                LOGGER.info("✓ KafkaSQL deployment verification completed - resources found");
+            }
+            
+        } catch (Exception e) {
+            LOGGER.error("✗ Error verifying KafkaSQL deployment: {}", e.getMessage(), e);
+        }
+        
+        LOGGER.info("=== End KafkaSQL Deployment Verification ===");
+    }
+
+    /**
+     * Collects detailed diagnostics when pods fail to start
+     */
+    private static void collectDetailedPodDiagnostics() {
+        LOGGER.error("=== Detailed Pod Diagnostics ===");
+        
+        try {
+            var pods = kubernetesClient().pods().inNamespace(TEST_NAMESPACE).list();
+            LOGGER.error("Found {} pods in namespace '{}':", pods.getItems().size(), TEST_NAMESPACE);
+            
+            for (var pod : pods.getItems()) {
+                var name = pod.getMetadata().getName();
+                var phase = pod.getStatus() != null ? pod.getStatus().getPhase() : "Unknown";
+                
+                LOGGER.error("Pod '{}': phase={}", name, phase);
+                
+                // Log pod conditions
+                if (pod.getStatus() != null && pod.getStatus().getConditions() != null) {
+                    pod.getStatus().getConditions().forEach(condition -> {
+                        LOGGER.error("  - Condition {}: status={}, reason={}, message={}", 
+                            condition.getType(), 
+                            condition.getStatus(), 
+                            condition.getReason(),
+                            condition.getMessage());
+                    });
+                }
+                
+                // Log container statuses
+                if (pod.getStatus() != null && pod.getStatus().getContainerStatuses() != null) {
+                    pod.getStatus().getContainerStatuses().forEach(containerStatus -> {
+                        LOGGER.error("  - Container '{}': ready={}, restartCount={}", 
+                            containerStatus.getName(),
+                            containerStatus.getReady(),
+                            containerStatus.getRestartCount());
+                            
+                        if (containerStatus.getState() != null) {
+                            if (containerStatus.getState().getWaiting() != null) {
+                                LOGGER.error("    State: Waiting - reason='{}', message='{}'",
+                                    containerStatus.getState().getWaiting().getReason(),
+                                    containerStatus.getState().getWaiting().getMessage());
+                            } else if (containerStatus.getState().getTerminated() != null) {
+                                LOGGER.error("    State: Terminated - reason='{}', message='{}'",
+                                    containerStatus.getState().getTerminated().getReason(),
+                                    containerStatus.getState().getTerminated().getMessage());
+                            } else if (containerStatus.getState().getRunning() != null) {
+                                LOGGER.error("    State: Running since {}",
+                                    containerStatus.getState().getRunning().getStartedAt());
+                            }
+                        }
+                    });
+                }
+                
+                // Try to get pod events for more context
+                try {
+                    var events = kubernetesClient().v1().events()
+                        .inNamespace(TEST_NAMESPACE)
+                        .withField("involvedObject.name", name)
+                        .list();
+                        
+                    if (!events.getItems().isEmpty()) {
+                        LOGGER.error("  Events for pod '{}':", name);
+                        events.getItems().forEach(event -> {
+                            LOGGER.error("    - {}: {} ({})", 
+                                event.getType(),
+                                event.getMessage(),
+                                event.getReason());
+                        });
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("  Could not retrieve events for pod '{}': {}", name, e.getMessage());
+                }
+            }
+            
+        } catch (Exception e) {
+            LOGGER.error("Error collecting pod diagnostics: {}", e.getMessage(), e);
+        }
+        
+        LOGGER.error("=== End Detailed Pod Diagnostics ===");
     }
 
     /**

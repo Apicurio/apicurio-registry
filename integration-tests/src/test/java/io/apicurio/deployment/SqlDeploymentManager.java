@@ -53,20 +53,46 @@ public class SqlDeploymentManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlDeploymentManager.class);
 
     protected static void deploySqlApp(String registryImage) throws Exception {
+        LOGGER.info("=== SQL Deployment Manager ===");
+        LOGGER.info("Registry Image: {}", registryImage);
+        LOGGER.info("TEST_PROFILE: '{}' (from groups property: '{}')", Constants.TEST_PROFILE, System.getProperty("groups"));
+        
         switch (Constants.TEST_PROFILE) {
             case Constants.AUTH:
+                LOGGER.info("Deploying SQL with AUTH profile");
                 prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_SECURED_RESOURCES, true, registryImage, false);
                 break;
             case Constants.MULTITENANCY:
+                LOGGER.info("Deploying SQL with MULTITENANCY profile");
                 prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_MULTITENANT_RESOURCES, false, registryImage, true);
                 break;
             case Constants.SQL:
+                LOGGER.info("Deploying SQL with SQL profile (upgrade tests)");
                 prepareSqlDbUpgradeTests(registryImage);
                 break;
             default:
-                prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_RESOURCES, false, registryImage, false);
+                LOGGER.warn("=== Unknown SQL Profile: '{}' ===", Constants.TEST_PROFILE);
+                LOGGER.warn("Falling into default case - checking for upgrade tests");
+                
+                // For cluster tests or unknown profiles, check if this is an upgrade test
+                if (Boolean.parseBoolean(System.getProperty("cluster.tests")) || isUpgradeTest()) {
+                    LOGGER.info("Cluster tests or upgrade test pattern detected - checking test type");
+                    
+                    if (isUpgradeTest()) {
+                        LOGGER.info("SQL upgrade tests detected - running full upgrade preparation");
+                        prepareSqlDbUpgradeTests(registryImage);
+                    } else {
+                        LOGGER.info("Standard SQL tests detected - deploying basic infrastructure");
+                        prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_RESOURCES, false, registryImage, false);
+                    }
+                } else {
+                    LOGGER.info("Deploying SQL with DEFAULT profile");
+                    prepareTestsInfra(DATABASE_RESOURCES, APPLICATION_SQL_RESOURCES, false, registryImage, false);
+                }
                 break;
         }
+        
+        LOGGER.info("=== SQL Deployment Manager Complete ===");
     }
 
     private static void prepareSqlDbUpgradeTests(String registryImage) throws Exception {
@@ -135,5 +161,46 @@ public class SqlDeploymentManager {
 
     private static void prepareSqlReferencesMigrationData() throws Exception {
         UpgradeTestsDataInitializer.prepareReferencesUpgradeTest(SqlReferencesUpgraderIT.upgradeTenantClient);
+    }
+
+    /**
+     * Detects if this is an upgrade test by examining various sources
+     */
+    private static boolean isUpgradeTest() {
+        // Check various properties to detect upgrade tests
+        String testClasses = System.getProperty("test");
+        String testClassNames = System.getProperty("test.classNames");
+        String maven_test = System.getProperty("maven.test.pattern");
+        
+        LOGGER.info("SQL Test detection properties:");
+        LOGGER.info("- test: '{}'", testClasses);
+        LOGGER.info("- test.classNames: '{}'", testClassNames);
+        LOGGER.info("- maven.test.pattern: '{}'", maven_test);
+        
+        // Check if this is an upgrade test by examining the test patterns
+        boolean isUpgradeTest = false;
+        if (testClasses != null && (testClasses.contains("UpgraderIT") || testClasses.contains("dbupgrade"))) {
+            isUpgradeTest = true;
+        }
+        if (testClassNames != null && (testClassNames.contains("UpgraderIT") || testClassNames.contains("dbupgrade"))) {
+            isUpgradeTest = true;
+        }
+        if (maven_test != null && (maven_test.contains("UpgraderIT") || maven_test.contains("dbupgrade"))) {
+            isUpgradeTest = true;
+        }
+        
+        // Check stack trace to see if we're being called from an upgrade test
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement element : stackTrace) {
+            String className = element.getClassName();
+            if (className.contains("UpgraderIT") || className.contains("dbupgrade")) {
+                LOGGER.info("SQL upgrade test detected in stack trace: {}", className);
+                isUpgradeTest = true;
+                break;
+            }
+        }
+        
+        LOGGER.info("SQL upgrade test detection result: {}", isUpgradeTest);
+        return isUpgradeTest;
     }
 }

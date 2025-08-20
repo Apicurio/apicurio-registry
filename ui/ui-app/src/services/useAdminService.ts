@@ -1,7 +1,7 @@
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { createAuthOptions, createEndpoint, getRegistryClient, httpPost } from "@utils/rest.utils.ts";
-import { Paging } from "@models/paging.model.ts";
+import { Paging } from "@models/Paging.ts";
 import {
     ArtifactTypeInfo, ConfigurationProperty,
     CreateRule, DownloadRef,

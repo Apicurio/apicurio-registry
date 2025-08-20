@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from "react";
-import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { Link } from "react-router-dom";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 
 let testIdCounter: number = 1;
 

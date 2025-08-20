@@ -61,13 +61,52 @@ public class KafkaSqlDeploymentManager {
                 LOGGER.warn("=== KAFKASQL_MANUAL Profile Detected ===");
                 LOGGER.warn("The KAFKASQL_MANUAL profile does NOT deploy any infrastructure!");
                 LOGGER.warn("This profile expects manual setup, but tests are running in cluster mode.");
-                LOGGER.warn("This is likely the cause of the missing Kafka infrastructure.");
                 LOGGER.warn("=======================================");
                 
-                // For cluster tests, we should still deploy infrastructure even in manual mode
+                // For cluster tests, we need to determine what type of KafkaSQL test is running
                 if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-                    LOGGER.info("Cluster tests detected - deploying KafkaSQL infrastructure despite KAFKASQL_MANUAL profile");
-                    prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
+                    LOGGER.info("Cluster tests detected - determining appropriate deployment for KAFKASQL_MANUAL profile");
+                    
+                    // Check various properties to detect upgrade tests
+                    String testClasses = System.getProperty("test");
+                    String testClassNames = System.getProperty("test.classNames");
+                    String maven_test = System.getProperty("maven.test.pattern");
+                    
+                    LOGGER.info("Test detection properties:");
+                    LOGGER.info("- test: '{}'", testClasses);
+                    LOGGER.info("- test.classNames: '{}'", testClassNames);
+                    LOGGER.info("- maven.test.pattern: '{}'", maven_test);
+                    
+                    // Check if this is an upgrade test by examining the test patterns
+                    boolean isUpgradeTest = false;
+                    if (testClasses != null && (testClasses.contains("UpgraderIT") || testClasses.contains("dbupgrade"))) {
+                        isUpgradeTest = true;
+                    }
+                    if (testClassNames != null && (testClassNames.contains("UpgraderIT") || testClassNames.contains("dbupgrade"))) {
+                        isUpgradeTest = true;
+                    }
+                    if (maven_test != null && (maven_test.contains("UpgraderIT") || maven_test.contains("dbupgrade"))) {
+                        isUpgradeTest = true;
+                    }
+                    
+                    // Check stack trace to see if we're being called from an upgrade test
+                    StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+                    for (StackTraceElement element : stackTrace) {
+                        String className = element.getClassName();
+                        if (className.contains("UpgraderIT") || className.contains("dbupgrade")) {
+                            LOGGER.info("Upgrade test detected in stack trace: {}", className);
+                            isUpgradeTest = true;
+                            break;
+                        }
+                    }
+                    
+                    if (isUpgradeTest) {
+                        LOGGER.info("Database upgrade tests detected - running full upgrade preparation");
+                        prepareKafkaDbUpgradeTests(registryImage);
+                    } else {
+                        LOGGER.info("Standard KafkaSQL tests detected - deploying basic infrastructure");
+                        prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage, false);
+                    }
                 } else {
                     LOGGER.info("Local tests - skipping infrastructure deployment as expected for KAFKASQL_MANUAL profile");
                 }

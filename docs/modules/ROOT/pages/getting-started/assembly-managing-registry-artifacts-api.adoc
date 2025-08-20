@@ -244,7 +244,7 @@ host name on which {registry} is deployed. For example: `\http://localhost:8080`
 [source,bash]
 ----
 $ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
--H 'Content-Type: application/json' \
+-H 'Content-Type: application/create.extended+json' \
 -H "Authorization: Bearer $ACCESS_TOKEN" \
 --data-raw '{
 	"artifactId": "Item",

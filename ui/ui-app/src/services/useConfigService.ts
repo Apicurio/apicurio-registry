@@ -61,6 +61,7 @@ export interface FeaturesConfig {
     deleteGroup?: boolean;
     deleteArtifact?: boolean;
     deleteVersion?: boolean;
+    draftMutability?: boolean;
     settings?: boolean;
     alerts?: Alerts;
 }
@@ -227,6 +228,7 @@ export interface ConfigService {
     featureDeleteGroup(): boolean;
     featureDeleteArtifact(): boolean;
     featureDeleteVersion(): boolean;
+    featureDraftMutability(): boolean;
     authType(): string;
     authRbacEnabled(): boolean;
     authObacEnabled(): boolean;
@@ -334,6 +336,10 @@ export class ConfigServiceImpl implements ConfigService {
 
     public featureDeleteVersion(): boolean {
         return this.features().deleteVersion || false;
+    }
+
+    public featureDraftMutability(): boolean {
+        return this.features().draftMutability || false;
     }
 
     public authType(): string {

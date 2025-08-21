@@ -146,7 +146,7 @@ public class SqlDeploymentManager {
         MultitenancySupport mt = new MultitenancySupport(tenantManagerUrl, registryBaseUrl);
         TenantUser tenantUser = new TenantUser(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "storageUpgrade", UUID.randomUUID().toString());
         final TenantUserClient tenantUpgradeClient = mt.createTenant(tenantUser);
-        LOGGER.info("  -> Isolated upgrade tenant created: {}", tenantUser.getTenantId());
+        LOGGER.info("  -> Isolated upgrade tenant created: {}", tenantUser.tenantId);
 
         //Prepare the data for the content and canonical hash upgraders using an isolated tenant so we don't have data conflicts.
         LOGGER.info("  -> Preparing Protobuf hash upgrade test data...");

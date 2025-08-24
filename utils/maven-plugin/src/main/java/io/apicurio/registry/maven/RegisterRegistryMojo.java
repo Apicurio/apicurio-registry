@@ -312,6 +312,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         String version = artifact.getVersion();
         String type = artifact.getArtifactType();
         Boolean canonicalize = artifact.getCanonicalize();
+        Boolean isDraft = artifact.getIsDraft();
         String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON
                 : artifact.getContentType();
         String data = null;
@@ -333,6 +334,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
         CreateVersion createVersion = new CreateVersion();
         createVersion.setVersion(version);
+        createVersion.setIsDraft(isDraft);
         createArtifact.setFirstVersion(createVersion);
 
         VersionContent content = new VersionContent();

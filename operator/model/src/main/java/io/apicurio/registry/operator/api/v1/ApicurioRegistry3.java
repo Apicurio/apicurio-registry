@@ -14,6 +14,11 @@ import io.fabric8.kubernetes.model.annotation.Version;
 public class ApicurioRegistry3 extends CustomResource<ApicurioRegistry3Spec, ApicurioRegistry3Status>
         implements Namespaced {
 
+    /**
+     * MUST NOT modify this value.
+     */
+    public static final ApicurioRegistry3 EMPTY = new ApicurioRegistry3();
+
     public ApicurioRegistry3Spec withSpec() {
         if (spec == null) {
             spec = new ApicurioRegistry3Spec();

@@ -369,23 +369,26 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             return vmd.getVersion();
         } catch (RuleViolationProblemDetails | ProblemDetails e) {
 
-            // If this is a draft, and we got a 409, then we should try to update the draft instead.
-            if (! (artifact.getIsDraft() && e.getResponseStatusCode() == 409)) {
+            // If this is a draft, and we got a 409, then we should try to update the artifact content instead.
+            if (artifact.getIsDraft() && e.getResponseStatusCode() == 409)
+                try {
+                    registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                            .versions().byVersionExpression(version).content()
+                            .put(content, config -> {
+
+                    });
+                    getLog().info(String.format("Successfully updated artifact [%s] / [%s].",
+                            groupId, artifactId));
+                    // Return version metadata
+                    return registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
+                } catch (RuleViolationProblemDetails | ProblemDetails pd) {
+                    logAndThrow(pd);
+                    return null;
+                }
+            } else {
                 logAndThrow(e);
                 return null;
             }
-
-        }
-        try {
-            registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).content().put(content, config -> {
-
-            });
-            getLog().info(String.format("Successfully updated artifact [%s] / [%s].",
-                    groupId, artifactId));
-            return null;
-        } catch (RuleViolationProblemDetails | ProblemDetails e) {
-            logAndThrow(e);
-            return null;
         }
     }
 

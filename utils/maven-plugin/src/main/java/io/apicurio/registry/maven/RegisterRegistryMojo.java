@@ -365,7 +365,24 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             getLog().info(String.format("Successfully registered artifact [%s] / [%s].  GlobalId is [%d]",
                     groupId, artifactId, vmd.getVersion().getGlobalId()));
 
+
             return vmd.getVersion();
+        } catch (RuleViolationProblemDetails | ProblemDetails e) {
+
+            // If this is a draft, and we got a 409, then we should try to update the draft instead.
+            if (! (artifact.getIsDraft() && e.getResponseStatusCode() == 409)) {
+                logAndThrow(e);
+                return null;
+            }
+
+        }
+        try {
+            registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).content().put(content, config -> {
+
+            });
+            getLog().info(String.format("Successfully updated artifact [%s] / [%s].",
+                    groupId, artifactId));
+            return null;
         } catch (RuleViolationProblemDetails | ProblemDetails e) {
             logAndThrow(e);
             return null;

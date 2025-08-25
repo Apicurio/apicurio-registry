@@ -6745,6 +6745,8 @@ rules:
   - '*'
 - apiGroups:
   - apiextensions.k8s.io
+  resourceNames:
+  - apicurioregistries3.registry.apicur.io
   resources:
   - customresourcedefinitions
   verbs:
@@ -6767,9 +6769,9 @@ rules:
   resources:
   - secrets
   verbs:
-  - list
-  - get
   - create
+  - get
+  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

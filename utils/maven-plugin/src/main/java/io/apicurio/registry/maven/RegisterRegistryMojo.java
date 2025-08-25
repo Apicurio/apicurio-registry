@@ -370,7 +370,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         } catch (RuleViolationProblemDetails | ProblemDetails e) {
 
             // If this is a draft, and we got a 409, then we should try to update the artifact content instead.
-            if (artifact.getIsDraft() && e.getResponseStatusCode() == 409)
+            if (artifact.getIsDraft() && e.getResponseStatusCode() == 409) {
                 try {
                     registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                             .versions().byVersionExpression(version).content()

@@ -91,12 +91,14 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
     private void handleInfraDeployment() throws Exception {
         //First, create the namespace used for the test.
+        LOGGER.info("Creating test namespace: {} ##################################################", TEST_NAMESPACE);
         try {
             kubernetesClient().load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE))
                     .create();
+            LOGGER.info("Successfully created test namespace: {}", TEST_NAMESPACE);
         }
         catch (KubernetesClientException ex) {
-            LOGGER.warn("Could not create namespace (it may already exist).", ex);
+            LOGGER.warn("Could not create namespace {} (it may already exist).", TEST_NAMESPACE, ex);
         }
 
         //Based on the configuration, deploy the appropriate variant
@@ -118,22 +120,35 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
     static void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak, String
             registryImage, boolean startTenantManager) throws IOException {
+        LOGGER.info("Starting infrastructure deployment for integration tests ##################################################");
+        
         if (startKeycloak) {
-            LOGGER.info("Deploying Keycloak resources ##################################################");
+            LOGGER.info("Deploying Keycloak authentication services ##################################################");
+            LOGGER.info("  -> Deploying Keycloak from resource: {}", KEYCLOAK_RESOURCES);
             deployResource(KEYCLOAK_RESOURCES);
+            LOGGER.info("  -> Keycloak deployment completed successfully");
         }
 
         if (startTenantManager) {
-            LOGGER.info("Deploying Tenant Manager resources ##################################################");
+            LOGGER.info("Deploying Tenant Manager services ##################################################");
+            LOGGER.info("  -> Deploying Tenant Manager database from resource: {}", TENANT_MANAGER_DATABASE);
             deployResource(TENANT_MANAGER_DATABASE);
+            LOGGER.info("  -> Deploying Tenant Manager application from resource: {}", TENANT_MANAGER_RESOURCES);
             deployResource(TENANT_MANAGER_RESOURCES);
+            LOGGER.info("  -> Tenant Manager deployment completed successfully");
         }
 
         if (externalResources != null) {
             LOGGER.info("Deploying external dependencies for Registry ##################################################");
+            LOGGER.info("  -> Deploying external resources from: {}", externalResources);
             deployResource(externalResources);
+            LOGGER.info("  -> External dependencies deployment completed successfully");
         }
 
+        LOGGER.info("Deploying Apicurio Registry application ##################################################");
+        LOGGER.info("  -> Registry resource file: {}", registryResources);
+        LOGGER.info("  -> Registry image: {}", registryImage != null ? registryImage : "[using default from resource file]");
+        
         final InputStream resourceAsStream = RegistryDeploymentManager.class.getResourceAsStream(registryResources);
 
         assert resourceAsStream != null;
@@ -142,22 +157,29 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         if (registryImage != null) {
             registryLoadedResources = registryLoadedResources.replace(REGISTRY_IMAGE, registryImage);
+            LOGGER.info("  -> Replaced default image with custom image: {}", registryImage);
         }
 
         try {
             //Deploy all the resources associated to the registry variant
+            LOGGER.info("  -> Creating registry Kubernetes resources...");
             kubernetesClient().load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
                     .create();
+            LOGGER.info("  -> Registry Kubernetes resources created successfully");
         }
         catch (Exception ex) {
             LOGGER.warn("Error creating registry resources:", ex);
         }
 
         //Wait for all the pods of the variant to be ready
+        LOGGER.info("Waiting for all pods in namespace {} to be ready (timeout: 360 seconds)...", TEST_NAMESPACE);
         kubernetesClient().pods()
                 .inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
+        LOGGER.info("All pods are now ready in namespace: {}", TEST_NAMESPACE);
 
+        LOGGER.info("Setting up test networking configuration ##################################################");
         setupTestNetworking(startTenantManager);
+        LOGGER.info("Infrastructure deployment completed successfully ##################################################");
     }
 
     private static void setupTestNetworking(boolean startTenantManager) {
@@ -214,12 +236,16 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     private static void deployResource(String resource) {
+        LOGGER.info("    -> Deploying resource: {} to namespace: {}", resource, TEST_NAMESPACE);
+        
         //Deploy all the resources associated to the external requirements
         kubernetesClient().load(RegistryDeploymentManager.class.getResourceAsStream(resource))
                 .create();
+        LOGGER.info("    -> Resource {} deployed, waiting for pods to be ready (timeout: 180 seconds)...", resource);
 
         //Wait for all the external resources pods to be ready
         kubernetesClient().pods()
                 .inNamespace(TEST_NAMESPACE).waitUntilReady(180, TimeUnit.SECONDS);
+        LOGGER.info("    -> All pods for resource {} are now ready", resource);
     }
 }

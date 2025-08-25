@@ -104,6 +104,12 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-elytron-security-properties-file</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.wildfly.security</groupId>
+          <artifactId>wildfly-elytron-realm</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

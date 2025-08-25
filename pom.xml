@@ -143,31 +143,31 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the corresponding Quarkus version.
     -->
-    <quarkus.version>3.20.2</quarkus.version>
+    <quarkus.version>3.25.4</quarkus.version>
     <!--
     Go to `io.quarkiverse.operatorsdk:quarkus-operator-sdk-bom` and then to the parent `io.quarkiverse.operatorsdk:quarkus-operator-sdk-parent`,
     e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/6.8.4/quarkus-operator-sdk-parent-6.8.4.pom
     to check that the versions match.
     -->
     <quarkus-operator-sdk.version>7.1.4</quarkus-operator-sdk.version>
-    <java-operator-sdk.version>5.0.4</java-operator-sdk.version>
+    <java-operator-sdk.version>5.1.2</java-operator-sdk.version>
     <!-- /WARNING -->
 
     <!-- Jandex -->
-    <jandex.version>3.3.0</jandex.version>
+    <jandex.version>3.4.0</jandex.version>
 
     <!-- Schema types -->
     <avro.version>1.12.0</avro.version>
     <json-schema-validator.version>1.5.8</json-schema-validator.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio-jvm.version>3.10.2</okio-jvm.version>
-    <okio.version>3.10.2</okio.version>
-    <okio-fake-file-system.version>3.10.2</okio-fake-file-system.version>
+    <okio-jvm.version>3.16.0</okio-jvm.version>
+    <okio.version>3.16.0</okio.version>
+    <okio-fake-file-system.version>3.16.0</okio-fake-file-system.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.32.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.52.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.61.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.4</google.truth.extension.version>
 
@@ -196,17 +196,17 @@
     <graphql.version>22.4</graphql.version>
 
     <!-- JSON Schema Validator -->
-    <org.everit.json.schema.version>1.14.5</org.everit.json.schema.version>
-    <json-sKema.version>0.20.0</json-sKema.version>
+    <org.everit.json.schema.version>1.14.6</org.everit.json.schema.version>
+    <json-sKema.version>0.25.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250107</org.json.version>
-    <jackson-datatype-json-org.version>2.18.2</jackson-datatype-json-org.version>
-    <jackson-dataformat-yaml.version>2.18.2</jackson-dataformat-yaml.version>
+    <jackson-datatype-json-org.version>2.19.2</jackson-datatype-json-org.version>
+    <jackson-dataformat-yaml.version>2.19.2</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.2</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.31</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.32</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.38</lombok.version>
@@ -217,12 +217,12 @@
     <pulsar-clients.version>3.3.8</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
-    <nats.version>2.21.4</nats.version>
+    <nats.version>2.21.5</nats.version>
     <snakeyaml.version>2.4</snakeyaml.version>
     <woodstox-core.version>7.1.1</woodstox-core.version>
-    <jgit.version>7.1.1.202505221757-r</jgit.version>
+    <jgit.version>7.3.0.202506031305-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
-    <assertj.core.version>3.27.3</assertj.core.version>
+    <assertj.core.version>3.27.4</assertj.core.version>
     <semver4j.version>5.8.0</semver4j.version>
 
     <!-- Kafka Connect -->
@@ -277,7 +277,7 @@
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>1.21.3</pulsar.testcontainers.version>
     <keycloak.testcontainers.version>3.8.0</keycloak.testcontainers.version>
-    <embedded-postgres.version>2.1.0</embedded-postgres.version>
+    <embedded-postgres.version>2.1.1</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock-jre8.version>3.0.1</wiremock-jre8.version>
     <strimzi-test-container.version>0.111.0</strimzi-test-container.version>

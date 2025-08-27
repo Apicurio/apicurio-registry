@@ -140,20 +140,17 @@ public class ProtobufSchemaLoader {
             okio.Path path = writeFile(schemaDefinition, fileName, dirPath, inMemoryFileSystem);
 
             for (Map.Entry<String, String> schema : deps.entrySet()) {
+                String depDirPath = "/";
                 final String depKey = schema.getKey();
                 final String depSchema = schema.getValue();
                 int beforeFileName = depKey.lastIndexOf('/');
                 if (beforeFileName != -1) {
                     final String packageNameDep = depKey.substring(0, beforeFileName);
-                    String depDirPath = dirPath;
-                    if (!packageName.isPresent() || !packageName.get().equals(packageNameDep)) {
-                        // apply the same logic used for dirs of the root one
-                        depDirPath = createDirectory(packageNameDep.split("\\."), inMemoryFileSystem);
-                    }
+                    depDirPath = createDirectory(packageNameDep.split("\\."), inMemoryFileSystem);
                     writeFile(depSchema, depKey.substring(beforeFileName + 1), depDirPath,
                             inMemoryFileSystem);
                 } else {
-                    writeFile(depSchema, depKey, dirPath, inMemoryFileSystem);
+                    writeFile(depSchema, depKey, depDirPath, inMemoryFileSystem);
                 }
             }
 

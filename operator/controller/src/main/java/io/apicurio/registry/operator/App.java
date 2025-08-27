@@ -45,7 +45,7 @@ public class App {
     public void start() {
         start(configOverride -> {
             configOverride.withKubernetesClient(client);
-            configOverride.withUseSSAToPatchPrimaryResource(false);
+            //configOverride.withUseSSAToPatchPrimaryResource(false);
         });
     }
 

@@ -334,7 +334,7 @@ public abstract class ITBase {
         app = CDI.current().select(App.class).get();
         app.start(configOverride -> {
             configOverride.withKubernetesClient(client);
-            configOverride.withUseSSAToPatchPrimaryResource(false);
+            //configOverride.withUseSSAToPatchPrimaryResource(false);
         });
     }
 

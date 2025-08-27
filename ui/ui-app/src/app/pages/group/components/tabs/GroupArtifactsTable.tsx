@@ -15,7 +15,7 @@ import {
 } from "@sdk/lib/generated-client/models";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
-export type ArtifactsTableProps = {
+export type GroupArtifactsTableProps = {
     artifacts: SearchedArtifact[];
     sortBy: ArtifactSortBy;
     sortOrder: SortOrder;
@@ -33,7 +33,7 @@ type ArtifactActionSeparator = {
     isSeparator: true;
 };
 
-export const ArtifactsTable: FunctionComponent<ArtifactsTableProps> = (props: ArtifactsTableProps) => {
+export const GroupArtifactsTable: FunctionComponent<GroupArtifactsTableProps> = (props: GroupArtifactsTableProps) => {
     const [sortByIndex, setSortByIndex] = useState<number>();
 
     const config: ConfigService = useConfigService();

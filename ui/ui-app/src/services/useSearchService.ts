@@ -50,7 +50,9 @@ const searchGroups = async (config: ConfigService, auth: AuthService, filters: S
         orderby: sortBy
     };
     filters.forEach(filter => {
-        queryParams[filter.by] = filter.value;
+        if (filter.value) {
+            queryParams[filter.by] = filter.value;
+        }
     });
 
     return getRegistryClient(config, auth).search.groups.get({

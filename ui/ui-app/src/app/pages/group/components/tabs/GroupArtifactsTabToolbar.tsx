@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import "./ArtifactsTabToolbar.css";
+import "./GroupArtifactsTabToolbar.css";
 import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Paging } from "@models/Paging.ts";
 import { IfAuth, IfFeature } from "@app/components";
@@ -20,7 +20,7 @@ export type ArtifactsToolbarProps = {
 /**
  * Models the toolbar for the Artifacts tab on the Group page.
  */
-export const ArtifactsTabToolbar: FunctionComponent<ArtifactsToolbarProps> = (props: ArtifactsToolbarProps) => {
+export const GroupArtifactsTabToolbar: FunctionComponent<ArtifactsToolbarProps> = (props: ArtifactsToolbarProps) => {
 
     const onSetPage = (_event: any, newPage: number, perPage?: number): void => {
         const newPaging: Paging = {

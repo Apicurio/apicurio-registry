@@ -40,9 +40,8 @@ export const ExploreGroupList: FunctionComponent<GroupListProps> = (props: Group
         <DataList aria-label="List of groups" className="group-list">
             <If condition={!props.isFiltered}>
                 <DataListItemRow
-                    className="group-list-item"
+                    className="group-list-item default-group"
                     key="default"
-                    style={{ marginTop: "3px", marginBottom: "4px", borderTop: "1px #ccc dashed", borderBottom: "1px #ccc dashed" }}
                 >
                     <DataListItemCells
                         dataListCells={[

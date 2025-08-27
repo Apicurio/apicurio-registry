@@ -10,13 +10,11 @@ import {
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { If } from "@apicurio/common-ui-components";
-import { ExploreType } from "@app/pages/explore/ExploreType.ts";
 
 /**
  * Properties
  */
 export type ExplorePageEmptyStateProps = {
-    exploreType: ExploreType;
     isFiltered: boolean;
 };
 
@@ -25,14 +23,8 @@ export type ExplorePageEmptyStateProps = {
  * Models the empty state for the Explore page (when there are no results).
  */
 export const ExplorePageEmptyState: FunctionComponent<ExplorePageEmptyStateProps> = (props: ExplorePageEmptyStateProps) => {
-    let entitySingular: string;
-    let entityPlural: string;
-    switch (props.exploreType) {
-        case ExploreType.GROUP:
-            entitySingular = "group";
-            entityPlural = "groups";
-            break;
-    }
+    const entitySingular: string = "group";
+    const entityPlural: string = "groups";
     return (
         <EmptyState variant={EmptyStateVariant.full}>
             <EmptyStateIcon icon={PlusCircleIcon}/>

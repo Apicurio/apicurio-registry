@@ -1,0 +1,20 @@
+
+.group-tab-content {
+    display: flex;
+    flex-direction: row;
+}
+
+.group-tab-content .group-basics {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    flex-basis: 30%;
+    margin-right: 15px;
+}
+
+.group-tab-content .group-artifacts {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    flex-basis: 70%;
+}

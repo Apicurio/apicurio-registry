@@ -3,8 +3,8 @@ import "./GroupPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
-    GroupInfoTabContent,
-    GroupPageHeader,
+    GroupOverviewTabContent,
+    GroupPageHeader, GroupRulesTabContent,
     PageDataLoader,
     PageError,
     PageErrorHandler,
@@ -24,7 +24,6 @@ import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { ArtifactsTabContent } from "@app/pages/group/components/tabs/ArtifactsTabContent.tsx";
 import {
     CreateArtifact,
     GroupMetaData,
@@ -64,6 +63,9 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     let activeTabKey: string = "overview";
     if (location.pathname.indexOf("/artifacts") !== -1) {
         activeTabKey = "artifacts";
+    }
+    if (location.pathname.indexOf("/rules") !== -1) {
+        activeTabKey = "rules";
     }
 
     const createLoaders = (): Promise<any>[] => {
@@ -246,25 +248,25 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     }, [groupId]);
 
     const tabs: any[] = [
-        <Tab data-testid="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
-            <GroupInfoTabContent
+        <Tab data-testid="overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
+            <GroupOverviewTabContent
                 group={group as GroupMetaData}
-                rules={rules}
-                onEnableRule={doEnableRule}
-                onDisableRule={doDisableRule}
-                onConfigureRule={doConfigureRule}
                 onEditMetaData={() => setIsEditModalOpen(true)}
                 onChangeOwner={() => {}}
-            />
-        </Tab>,
-        <Tab data-testid="artifacts-tab" eventKey="artifacts" title="Artifacts" key="artifacts" tabContentId="tab-artifacts">
-            <ArtifactsTabContent
-                group={group as GroupMetaData}
                 onCreateArtifact={onCreateArtifact}
                 onViewArtifact={onViewArtifact}
                 onDeleteArtifact={onDeleteArtifact}
             />
         </Tab>,
+        <Tab data-testid="rules-tab" eventKey="rules" title="Rules" key="rules" tabContentId="tab-rules">
+            <GroupRulesTabContent
+                group={group as GroupMetaData}
+                rules={rules}
+                onEnableRule={doEnableRule}
+                onDisableRule={doDisableRule}
+                onConfigureRule={doConfigureRule}
+            />
+        </Tab>
     ];
 
     const breadcrumbs = (
@@ -285,7 +287,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                         onDeleteGroup={onDeleteGroup}
                         groupId={groupId as string} />
                 </PageSection>
-                <PageSection variant={PageSectionVariants.light} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
+                <PageSection variant={PageSectionVariants.default} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"
                         id="artifact-page-tabs"
                         unmountOnExit={true}
@@ -293,6 +295,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                         activeKey={activeTabKey}
                         children={tabs}
                         onSelect={handleTabClick}
+                        style={{ backgroundColor: "white" }}
                     />
                 </PageSection>
             </PageDataLoader>

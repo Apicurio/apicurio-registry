@@ -15,6 +15,10 @@ public class ProtobufSerde<T extends Message> implements Serde<T> {
     final private Serializer<T> serializer;
     final private Deserializer<T> deserializer;
 
+    public ProtobufSerde() {
+        this(new ProtobufKafkaSerializer<>(), new ProtobufKafkaDeserializer<>());
+    }
+
     protected ProtobufSerde(Serializer<T> serializer, Deserializer<T> deserializer) {
         this.serializer = serializer;
         this.deserializer = deserializer;

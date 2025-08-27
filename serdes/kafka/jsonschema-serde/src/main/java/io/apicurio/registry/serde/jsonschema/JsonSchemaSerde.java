@@ -14,6 +14,10 @@ public class JsonSchemaSerde<T> implements Serde<T> {
     final private Serializer<T> serializer;
     final private Deserializer<T> deserializer;
 
+    public JsonSchemaSerde() {
+        this(new JsonSchemaKafkaSerializer<>(), new JsonSchemaKafkaDeserializer<>());
+    }
+
     protected JsonSchemaSerde(Serializer<T> serializer, Deserializer<T> deserializer) {
         this.serializer = serializer;
         this.deserializer = deserializer;

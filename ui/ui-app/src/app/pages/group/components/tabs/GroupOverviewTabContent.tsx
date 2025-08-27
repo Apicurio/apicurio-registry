@@ -1,7 +1,7 @@
-import { FunctionComponent } from "react";
-import "./GroupInfoTabContent.css";
+import { FunctionComponent, useEffect, useState } from "react";
+import "./GroupOverviewTabContent.css";
 import "@app/styles/empty.css";
-import { IfAuth, IfFeature, RuleList, RuleListType } from "@app/components";
+import { IfAuth, IfFeature } from "@app/components";
 import {
     Button,
     Card,
@@ -12,41 +12,127 @@ import {
     DescriptionListGroup,
     DescriptionListTerm,
     Divider,
+    EmptyState,
+    EmptyStateActions,
+    EmptyStateBody,
+    EmptyStateFooter,
+    EmptyStateIcon,
+    EmptyStateVariant,
     Flex,
     FlexItem,
     Icon,
     Label,
+    Title,
     Truncate
 } from "@patternfly/react-core";
-import { OutlinedFolderIcon, PencilAltIcon } from "@patternfly/react-icons";
-import { FromNow, If } from "@apicurio/common-ui-components";
+import { OutlinedFolderIcon, PencilAltIcon, PlusCircleIcon } from "@patternfly/react-icons";
+import { FromNow, If, ListWithToolbar } from "@apicurio/common-ui-components";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
-import { GroupMetaData, Rule } from "@sdk/lib/generated-client/models";
+import {
+    ArtifactSearchResults,
+    ArtifactSortBy,
+    ArtifactSortByObject,
+    GroupMetaData,
+    SearchedArtifact,
+    SortOrder,
+    SortOrderObject
+} from "@sdk/lib/generated-client/models";
 import { labelsToAny } from "@utils/rest.utils.ts";
+import { Paging } from "@models/Paging.ts";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { GroupArtifactsTabToolbar } from "@app/pages/group/components/tabs/GroupArtifactsTabToolbar.tsx";
+import { GroupArtifactsTable } from "@app/pages/group/components/tabs/GroupArtifactsTable.tsx";
 
 /**
  * Properties
  */
-export type GroupInfoTabContentProps = {
+export type GroupOverviewTabContentProps = {
     group: GroupMetaData;
-    rules: Rule[];
-    onEnableRule: (ruleType: string) => void;
-    onDisableRule: (ruleType: string) => void;
-    onConfigureRule: (ruleType: string, config: string) => void;
     onEditMetaData: () => void;
     onChangeOwner: () => void;
+    onCreateArtifact: () => void;
+    onDeleteArtifact: (artifact: SearchedArtifact, successCallback?: () => void) => void;
+    onViewArtifact: (artifact: SearchedArtifact) => void;
 };
 
 /**
- * Models the content of the Artifact Info tab.
+ * Models the content of the Group Overview tab.
  */
-export const GroupInfoTabContent: FunctionComponent<GroupInfoTabContentProps> = (props: GroupInfoTabContentProps) => {
+export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentProps> = (props: GroupOverviewTabContentProps) => {
+    const [isLoading, setLoading] = useState<boolean>(true);
+    const [isError, setError] = useState<boolean>(false);
+    const [paging, setPaging] = useState<Paging>({
+        page: 1,
+        pageSize: 20
+    });
+    const [sortBy, setSortBy] = useState<ArtifactSortBy>(ArtifactSortByObject.ArtifactId);
+    const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrderObject.Asc);
+    const [results, setResults] = useState<ArtifactSearchResults>({
+        count: 0,
+        artifacts: []
+    });
+
+    const groups: GroupsService = useGroupsService();
+    const logger: LoggerService = useLoggerService();
 
     const description = (): string => {
         return props.group.description || "No description";
     };
 
     const labels: any = labelsToAny(props.group.labels);
+
+    const refresh = (): void => {
+        setLoading(true);
+
+        groups.getGroupArtifacts(props.group.groupId!, sortBy, sortOrder, paging).then(sr => {
+            setResults(sr);
+            setLoading(false);
+        }).catch(error => {
+            logger.error(error);
+            setLoading(false);
+            setError(true);
+        });
+    };
+
+    const onDelete = (artifact: SearchedArtifact): void => {
+        props.onDeleteArtifact(artifact, () => {
+            setTimeout(refresh, 100);
+        });
+    };
+
+    useEffect(() => {
+        refresh();
+    }, [props.group, paging, sortBy, sortOrder]);
+
+    const onSort = (by: ArtifactSortBy, order: SortOrder): void => {
+        setSortBy(by);
+        setSortOrder(order);
+    };
+
+    const toolbar = (
+        <GroupArtifactsTabToolbar results={results} paging={paging} onPageChange={setPaging} onCreateArtifact={props.onCreateArtifact} />
+    );
+
+    const emptyState = (
+        <EmptyState variant={EmptyStateVariant.sm}>
+            <EmptyStateIcon icon={PlusCircleIcon}/>
+            <Title headingLevel="h5" size="lg">No artifacts found</Title>
+            <EmptyStateBody>
+                There are currently no artifacts in this group.  Create some artifacts in the group to view them here.
+            </EmptyStateBody>
+            <EmptyStateFooter>
+                <EmptyStateActions>
+                    <IfAuth isDeveloper={true}>
+                        <IfFeature feature="readOnly" isNot={true}>
+                            <Button className="empty-btn-create" variant="primary"
+                                data-testid="empty-btn-create" onClick={props.onCreateArtifact}>Create artifact</Button>
+                        </IfFeature>
+                    </IfAuth>
+                </EmptyStateActions>
+            </EmptyStateFooter>
+        </EmptyState>
+    );
 
     return (
         <div className="group-tab-content">
@@ -127,27 +213,24 @@ export const GroupInfoTabContent: FunctionComponent<GroupInfoTabContentProps> = 
                     </CardBody>
                 </Card>
             </div>
-            <div className="group-rules">
-                <Card>
-                    <CardTitle>
-                        <div className="rules-label">Group-specific rules</div>
-                    </CardTitle>
-                    <Divider />
-                    <CardBody>
-                        <p style={{ paddingBottom: "15px" }}>
-                            Manage the content rules for this group. Each group-specific rule can be
-                            individually enabled, configured, and disabled. Group-specific rules override
-                            the equivalent global rules.
-                        </p>
-                        <RuleList
-                            type={RuleListType.Group}
-                            rules={props.rules}
-                            onEnableRule={props.onEnableRule}
-                            onDisableRule={props.onDisableRule}
-                            onConfigureRule={props.onConfigureRule}
-                        />
-                    </CardBody>
-                </Card>
+            <div className="group-artifacts">
+                <ListWithToolbar toolbar={toolbar}
+                    emptyState={emptyState}
+                    filteredEmptyState={emptyState}
+                    isLoading={isLoading}
+                    isError={isError}
+                    isFiltered={false}
+                    isEmpty={results.count === 0}
+                >
+                    <GroupArtifactsTable
+                        artifacts={results.artifacts!}
+                        onSort={onSort}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onView={props.onViewArtifact}
+                        onDelete={onDelete}
+                    />
+                </ListWithToolbar>
             </div>
         </div>
     );

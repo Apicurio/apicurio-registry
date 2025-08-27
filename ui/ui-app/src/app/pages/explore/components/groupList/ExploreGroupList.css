@@ -6,6 +6,19 @@
     margin-bottom: 2px;
 }
 
+.group-list .group-list-item.default-group {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border-top: 2px #ccc dashed;
+    border-bottom: 2px #ccc dashed;
+}
+.group-list .group-list-item.default-group > div {
+    padding-bottom: 10px;
+}
+.group-list .group-list-item.default-group > div > div {
+    padding-top: 10px;
+}
+
 .group-list .group-list-item .type-icon-cell {
     flex: initial;
 }

@@ -1,8 +1,8 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import "./ArtifactsTabContent.css";
+import "./GroupArtifactsTabContent.css";
 import "@app/styles/empty.css";
 import { ListWithToolbar } from "@apicurio/common-ui-components";
-import { ArtifactsTabToolbar } from "@app/pages/group/components/tabs/ArtifactsTabToolbar.tsx";
+import { GroupArtifactsTabToolbar } from "@app/pages/group/components/tabs/GroupArtifactsTabToolbar.tsx";
 import { Paging } from "@models/Paging.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import {
@@ -17,7 +17,7 @@ import {
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { IfAuth, IfFeature } from "@app/components";
-import { ArtifactsTable } from "@app/pages/group/components/tabs/ArtifactsTable.tsx";
+import { GroupArtifactsTable } from "@app/pages/group/components/tabs/GroupArtifactsTable.tsx";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import {
     ArtifactSearchResults, ArtifactSortBy,
@@ -29,7 +29,7 @@ import {
 /**
  * Properties
  */
-export type ArtifactsTabContentProps = {
+export type GroupArtifactsTabContentProps = {
     group: GroupMetaData;
     onCreateArtifact: () => void;
     onDeleteArtifact: (artifact: SearchedArtifact, successCallback?: () => void) => void;
@@ -39,7 +39,7 @@ export type ArtifactsTabContentProps = {
 /**
  * Models the content of the Artifact Info tab.
  */
-export const ArtifactsTabContent: FunctionComponent<ArtifactsTabContentProps> = (props: ArtifactsTabContentProps) => {
+export const GroupArtifactsTabContent: FunctionComponent<GroupArtifactsTabContentProps> = (props: GroupArtifactsTabContentProps) => {
     const [isLoading, setLoading] = useState<boolean>(true);
     const [isError, setError] = useState<boolean>(false);
     const [paging, setPaging] = useState<Paging>({
@@ -85,7 +85,7 @@ export const ArtifactsTabContent: FunctionComponent<ArtifactsTabContentProps> = 
     };
 
     const toolbar = (
-        <ArtifactsTabToolbar results={results} paging={paging} onPageChange={setPaging} onCreateArtifact={props.onCreateArtifact} />
+        <GroupArtifactsTabToolbar results={results} paging={paging} onPageChange={setPaging} onCreateArtifact={props.onCreateArtifact} />
     );
 
     const emptyState = (
@@ -119,7 +119,7 @@ export const ArtifactsTabContent: FunctionComponent<ArtifactsTabContentProps> = 
                     isFiltered={false}
                     isEmpty={results.count === 0}
                 >
-                    <ArtifactsTable
+                    <GroupArtifactsTable
                         artifacts={results.artifacts!}
                         onSort={onSort}
                         sortBy={sortBy}

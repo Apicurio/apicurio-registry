@@ -78,7 +78,6 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
     const [groupFilterType, setGroupFilterType] = useState(GROUP_FILTER_TYPES[0]);
     const [filterValue, setFilterValue] = useState("");
     const [filterAscending, setFilterAscending] = useState(true);
-    const [kebabActions, setKebabActions] = useState<ActionType[]>([]);
 
     const logger = useLoggerService();
     const config = useConfigService();
@@ -133,15 +132,12 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
         props.onSearchTypeChange(newSearchType);
     };
 
-    useEffect(() => {
-        const adminActions: ActionType[] = config.featureReadOnly() ? [
-            { label: "Export all (as .ZIP)", callback: props.onExport }
-        ] : [
-            { label: "Import from .ZIP", callback: props.onImport },
-            { label: "Export all (as .ZIP)", callback: props.onExport }
-        ];
-        setKebabActions(adminActions);
-    }, [props.onExport, props.onImport]);
+    const adminActions: ActionType[] = config.featureReadOnly() ? [
+        { label: "Export all (as .ZIP)", callback: () => props.onExport() }
+    ] : [
+        { label: "Import from .ZIP", callback: () => props.onImport() },
+        { label: "Export all (as .ZIP)", callback: () => props.onExport() }
+    ];
 
     return (
         <Toolbar id="artifacts-toolbar-1" className="artifacts-toolbar">
@@ -224,7 +220,7 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
                     <IfAuth isAdmin={true}>
                         <ObjectDropdown
                             label="Admin actions"
-                            items={kebabActions}
+                            items={adminActions}
                             onSelect={(item) => item.callback()}
                             itemToString={(item) => item.label}
                             isKebab={true} />

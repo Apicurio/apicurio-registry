@@ -73,6 +73,10 @@ export const App: FunctionComponent<AppProps> = () => {
                                 element={ <GroupPage /> }
                             />
                             <Route
+                                path="/explore/:groupId/rules"
+                                element={ <GroupPage /> }
+                            />
+                            <Route
                                 path="/explore/:groupId/artifacts"
                                 element={ <GroupPage /> }
                             />

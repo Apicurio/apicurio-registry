@@ -1,4 +1,3 @@
-export * from "./BranchVersionsTabToolbar";
+export * from "./BranchVersionsToolbar.tsx";
 export * from "./BranchVersionsTable";
-export * from "./BranchVersionsTabContent";
-export * from "./BranchInfoTabContent";
+export * from "./BranchOverviewTabContent.tsx";

@@ -3,6 +3,7 @@ import "./GroupPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
+    EXPLORE_PAGE_IDX,
     GroupOverviewTabContent,
     GroupPageHeader, GroupRulesTabContent,
     PageDataLoader,
@@ -18,7 +19,7 @@ import {
     EditMetaDataModal,
     IfFeature,
     InvalidContentModal,
-    MetaData
+    MetaData, RootPageHeader
 } from "@app/components";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
@@ -279,6 +280,9 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
+                <PageSection className="ps_explore-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                    <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
+                </PageSection>
                 <IfFeature feature="breadcrumbs" is={true}>
                     <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
                 </IfFeature>
@@ -288,8 +292,9 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                         groupId={groupId as string} />
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
-                    <Tabs className="artifact-page-tabs"
-                        id="artifact-page-tabs"
+                    <Tabs className="group-page-tabs"
+                        variant="default"
+                        id="group-page-tabs"
                         unmountOnExit={true}
                         isFilled={false}
                         activeKey={activeTabKey}

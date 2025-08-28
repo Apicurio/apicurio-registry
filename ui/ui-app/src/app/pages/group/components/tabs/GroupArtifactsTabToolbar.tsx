@@ -1,8 +1,7 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 import "./GroupArtifactsTabToolbar.css";
-import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+import { Pagination, SearchInput, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Paging } from "@models/Paging.ts";
-import { IfAuth, IfFeature } from "@app/components";
 import { ArtifactSearchResults } from "@sdk/lib/generated-client/models";
 
 
@@ -12,8 +11,8 @@ import { ArtifactSearchResults } from "@sdk/lib/generated-client/models";
 export type ArtifactsToolbarProps = {
     results: ArtifactSearchResults;
     paging: Paging;
+    onFilterChange: (filterBy: string) => void;
     onPageChange: (paging: Paging) => void;
-    onCreateArtifact: () => void;
 };
 
 
@@ -21,6 +20,20 @@ export type ArtifactsToolbarProps = {
  * Models the toolbar for the Artifacts tab on the Group page.
  */
 export const GroupArtifactsTabToolbar: FunctionComponent<ArtifactsToolbarProps> = (props: ArtifactsToolbarProps) => {
+    const [filterValue, setFilterValue] = useState<string>("");
+
+    const onFilterChange = (_event: any, value: string): void => {
+        setFilterValue(value);
+    };
+
+    const onFilterSearch = (_event: any, value: string): void => {
+        props.onFilterChange(value);
+    };
+
+    const onFilterClear = (): void => {
+        setFilterValue("");
+        props.onFilterChange("");
+    };
 
     const onSetPage = (_event: any, newPage: number, perPage?: number): void => {
         const newPaging: Paging = {
@@ -39,15 +52,16 @@ export const GroupArtifactsTabToolbar: FunctionComponent<ArtifactsToolbarProps> 
     };
 
     return (
-        <Toolbar id="references-toolbar-1" className="references-toolbar">
+        <Toolbar id="group-artifacts-toolbar-1" className="group-artifacts-toolbar">
             <ToolbarContent>
-                <ToolbarItem className="create-artifact-item">
-                    <IfAuth isDeveloper={true}>
-                        <IfFeature feature="readOnly" isNot={true}>
-                            <Button className="btn-header-create-artifact" data-testid="btn-toolbar-create-artifact"
-                                variant="primary" onClick={props.onCreateArtifact}>Create artifact</Button>
-                        </IfFeature>
-                    </IfAuth>
+                <ToolbarItem>
+                    <SearchInput
+                        placeholder="Filter artifacts..."
+                        value={filterValue}
+                        onChange={onFilterChange}
+                        onSearch={onFilterSearch}
+                        onClear={onFilterClear}
+                    />
                 </ToolbarItem>
                 <ToolbarItem className="paging-item" align={{ default: "alignRight" }}>
                     <Pagination

@@ -1,10 +1,12 @@
 
-.group-tab-content {
+.group-overview-tab-content {
+    padding: 22px;
     display: flex;
     flex-direction: row;
+    background-color: rgb(240,240,240);
 }
 
-.group-tab-content .group-basics {
+.group-overview-tab-content .group-basics {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -12,9 +14,45 @@
     margin-right: 15px;
 }
 
-.group-tab-content .group-artifacts {
+.group-overview-tab-content .group-artifacts {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
     flex-basis: 70%;
+}
+
+.group-overview-tab-content .group-basics {
+    flex-grow: 1;
+    flex-basis: 40%;
+    margin-right: 15px;
+}
+
+.group-overview-tab-content .title-and-type {
+}
+
+.group-overview-tab-content .title-and-type .type {
+}
+
+.group-overview-tab-content .title-and-type .title {
+    color: #333;
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 24px;
+    display: inline-block;
+}
+
+.group-overview-tab-content .group-basics .metaData {
+    margin-bottom: 20px;
+}
+
+.group-overview-tab-content .group-basics .actions {
+}
+
+.group-overview-tab-content .btn-header-create-artifact {
+    margin-top: -6px;
+    margin-bottom: -6px;
+}
+
+#generate-client-action {
+    margin-left: 10px;
 }

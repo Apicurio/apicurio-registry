@@ -150,8 +150,8 @@ public final class RegistryClientFactory {
                         originalCause = cause;
                     }
                     
-                    // Only retry on HttpClosedException and if we haven't exceeded max attempts
-                    if (cause instanceof HttpClosedException && attempt < maxRetryAttempts) {
+                    // Only retry if the error is retryable and if we haven't exceeded max attempts
+                    if (isRetryable(cause) && attempt < maxRetryAttempts) {
                         attempt++;
                         long delayMs = calculateRetryDelay(attempt);
                         try {
@@ -166,6 +166,10 @@ public final class RegistryClientFactory {
                     }
                 }
             }
+        }
+
+        private static boolean isRetryable(Throwable cause) {
+            return cause instanceof HttpClosedException;
         }
 
         /**

@@ -17,6 +17,7 @@ public class RegisterArtifact {
     private Boolean minify;
     private Boolean analyzeDirectory;
     private Boolean autoRefs;
+    private Boolean isDraft;
     private String contentType;
     private List<RegisterArtifactReference> references;
     private List<ExistingReference> existingReferences;
@@ -181,6 +182,14 @@ public class RegisterArtifact {
 
     public void setAutoRefs(Boolean autoRefs) {
         this.autoRefs = autoRefs;
+    }
+
+    public Boolean getIsDraft() {
+        return isDraft;
+    }
+
+    public void setIsDraft(Boolean isDraft) {
+       this.isDraft = isDraft;
     }
 
     public List<ExistingReference> getExistingReferences() {

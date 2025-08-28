@@ -76,17 +76,13 @@ export const App: FunctionComponent<AppProps> = () => {
                                 path="/explore/:groupId/rules"
                                 element={ <GroupPage /> }
                             />
-                            <Route
-                                path="/explore/:groupId/artifacts"
-                                element={ <GroupPage /> }
-                            />
 
                             <Route
                                 path="/explore/:groupId/:artifactId"
                                 element={ <ArtifactPage /> }
                             />
                             <Route
-                                path="/explore/:groupId/:artifactId/versions"
+                                path="/explore/:groupId/:artifactId/rules"
                                 element={ <ArtifactPage /> }
                             />
                             <Route

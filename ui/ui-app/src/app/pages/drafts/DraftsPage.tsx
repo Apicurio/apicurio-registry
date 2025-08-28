@@ -8,7 +8,7 @@ import { DRAFTS_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PagePrope
  * The drafts page.
  */
 export const DraftsPage: FunctionComponent<PageProperties> = () => {
-    const [pageError, setPageError] = useState<PageError>();
+    const [pageError, /*setPageError*/] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
 
     const createLoaders = async (): Promise<any> => {

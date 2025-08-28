@@ -1,20 +1,21 @@
 import { FunctionComponent } from "react";
 import "./GroupRulesTabContent.css";
 import "@app/styles/empty.css";
-import {IfAuth, IfFeature, RuleList, RuleListType} from "@app/components";
+import { RuleList, RuleListType } from "@app/components";
 import {
-    Button,
     Card,
     CardBody,
     CardTitle,
     Divider,
-    EmptyState, EmptyStateActions, EmptyStateBody, EmptyStateFooter,
+    EmptyState,
+    EmptyStateBody,
     EmptyStateIcon,
-    EmptyStateVariant, Title
+    EmptyStateVariant,
+    Title
 } from "@patternfly/react-core";
 import { GroupMetaData, Rule } from "@sdk/lib/generated-client/models";
-import {WarningTriangleIcon} from "@patternfly/react-icons";
-import {If} from "@apicurio/common-ui-components";
+import { WarningTriangleIcon } from "@patternfly/react-icons";
+import { If } from "@apicurio/common-ui-components";
 
 /**
  * Properties

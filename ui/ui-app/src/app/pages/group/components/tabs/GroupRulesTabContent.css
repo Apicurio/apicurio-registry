@@ -1,0 +1,22 @@
+.group-rules-tab-content {
+    padding: 22px;
+    display: flex;
+    flex-direction: row;
+    background-color: rgb(240,240,240);
+}
+
+.group-tab-content .group-rules {
+    flex-grow: 1;
+    flex-basis: 60%;
+}
+
+.group-tab-content .group-rules .rules-label {
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 29px;
+    padding-bottom: 7px;
+}
+
+.label-truncate, .label-truncate, .label-truncate > span, .label-truncate > span {
+    min-width: unset;
+}

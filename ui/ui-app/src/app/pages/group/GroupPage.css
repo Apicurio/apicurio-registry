@@ -1,4 +1,4 @@
-div.artifact-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs__button::before {
+div.group-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs__button::before {
     border-bottom-color: transparent;
 }
 
@@ -13,7 +13,7 @@ div.artifact-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs
     flex-direction: column;
 }
 
-#artifact-page-tabs > ul > li:first-child {
+#group-page-tabs > ul > li:first-child {
     margin-left: 20px;
 }
 
@@ -25,7 +25,7 @@ div.artifact-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs
     color: #666;
 }
 
-#pf-tab-section-content-artifact-page-tabs {
+#pf-tab-section-content-group-page-tabs {
     display: flex;
     flex-grow: 1;
     position: relative;

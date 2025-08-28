@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ProtobufSchemaLoader {
 
@@ -111,7 +112,7 @@ public class ProtobufSchemaLoader {
             // Step 1: Convert all .proto files to ProtoContent instances
             ProtoContent protoContent = new ProtoContent(protoFileName, schemaDefinition);
             List<ProtoContent> allDepencencies = deps.entrySet().stream().map(entry ->
-                    new ProtoContent(entry.getKey(), entry.getValue())).toList();
+                    new ProtoContent(entry.getKey(), entry.getValue())).collect(Collectors.toUnmodifiableList());
 
             // Step 2: Fix up the import statements in all .proto files so they point to canonical locations
             allDepencencies.forEach(proto -> {

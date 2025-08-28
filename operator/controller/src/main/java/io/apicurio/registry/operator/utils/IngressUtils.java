@@ -11,9 +11,13 @@ import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPath;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRule;
+import io.fabric8.kubernetes.api.model.networking.v1.IngressTLS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
@@ -72,5 +76,43 @@ public final class IngressUtils {
                 }
             }
         }
+    }
+
+    /**
+     * Get the TLS hosts and secrets for an ingress. If not configured, an empty list is returned.
+     *
+     * @param component
+     * @param primary
+     */
+    public static List<IngressTLS> getTls(String component, ApicurioRegistry3 primary) {
+        Map<String, List<String>> tlsSecrets = switch (component) {
+            case COMPONENT_APP -> ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(AppSpec::getIngress).map(IngressSpec::getTlsSecrets).orElseGet(null);
+            case COMPONENT_UI -> ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(UiSpec::getIngress).map(IngressSpec::getTlsSecrets).orElseGet(null);
+            default -> throw new OperatorException("Unexpected value: " + component);
+        };
+
+        List<IngressTLS> tlsList = new ArrayList<>();
+
+        if (tlsSecrets != null && !tlsSecrets.isEmpty()) {
+            for (Map.Entry<String, List<String>> entry : tlsSecrets.entrySet()) {
+                String secretName = entry.getKey();
+                List<String> hosts = entry.getValue();
+                if (!Utils.isBlank(secretName) && hosts != null && !hosts.isEmpty()) {
+                    List<String> validHosts = hosts.stream()
+                            .filter(host -> !Utils.isBlank(host))
+                            .toList();
+                    if (!validHosts.isEmpty()) {
+                        IngressTLS tls = new IngressTLS();
+                        tls.setHosts(validHosts);
+                        tls.setSecretName(secretName);
+                        tlsList.add(tls);
+                    }
+                }
+            }
+        }
+        log.trace("TLS list for component {} is {}", component, tlsList);
+        return tlsList;
     }
 }

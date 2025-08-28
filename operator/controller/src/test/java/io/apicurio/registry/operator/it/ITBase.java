@@ -17,7 +17,6 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import io.restassured.RestAssured;
@@ -43,7 +42,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 import static io.apicurio.registry.operator.resource.Labels.getOperatorManagedLabels;
 import static io.apicurio.registry.utils.Cell.cell;
@@ -194,36 +192,6 @@ public abstract class ITBase {
         });
     }
 
-    /**
-     * Update the Kubernetes resource, and retry if the update fails because the object has been modified on the server.
-     * Use this method to make tests more resilient.
-     *
-     * @param resource Resource to be updated. The metadata must be set.
-     * @param updater  Reentrant function that updates the resource in-place.
-     * @return The resource after it has been updated.
-     */
-    protected static <T extends HasMetadata> T updateWithRetries(T resource, Consumer<T> updater) {
-        var rval = cell(resource);
-        await().atMost(SHORT_DURATION).until(() -> {
-            try {
-                var r = rval.get();
-                r = client.resource(r).get();
-                updater.accept(r);
-                r = client.resource(r).update();
-                rval.set(r);
-                return true;
-            } catch (KubernetesClientException ex) {
-                if (ex.getMessage().contains("the object has been modified")) {
-                    log.debug("Retrying:", ex);
-                    return false;
-                } else {
-                    throw ex;
-                }
-            }
-        });
-        return rval.get();
-    }
-
     protected static PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,
                                                                         String component) {
         final Cell<PodDisruptionBudget> rval = cell();
@@ -320,9 +288,8 @@ public abstract class ITBase {
         try {
             var crd = client.load(new FileInputStream(CRD_FILE));
             crd.createOrReplace();
-            await().ignoreExceptions().until(() -> {
+            await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
                 crd.resources().forEach(r -> assertThat(r.get()).isNotNull());
-                return true;
             });
         } catch (Exception e) {
             log.warn("Failed to create the CRD, retrying", e);

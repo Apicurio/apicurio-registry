@@ -45,6 +45,17 @@ const createGroup = async (config: ConfigService, auth: AuthService, data: Creat
 
 const getGroupMetaData = async (config: ConfigService, auth: AuthService, groupId: string): Promise<GroupMetaData> => {
     groupId = normalizeGroupId(groupId);
+    if (groupId === "default") {
+        return Promise.resolve({
+            groupId: "default",
+            description: "The default group (system generated).",
+            createdOn: null,
+            owner: null,
+            labels: null,
+            modifiedOn: null,
+            modifiedBy: null
+        });
+    }
     return getRegistryClient(config, auth).groups.byGroupId(groupId).get().then(v => v!);
 };
 
@@ -84,6 +95,9 @@ const deleteGroup = async (config: ConfigService, auth: AuthService, groupId: st
 
 const getGroupRules = async (config: ConfigService, auth: AuthService, groupId: string|null): Promise<Rule[]> => {
     groupId = normalizeGroupId(groupId);
+    if (groupId === "default") {
+        return Promise.resolve([]);
+    }
 
     console.info("[GroupsService] Getting the list of rules for group: ", groupId);
     return getRegistryClient(config, auth).groups.byGroupId(groupId).rules.get().then(ruleTypes => {

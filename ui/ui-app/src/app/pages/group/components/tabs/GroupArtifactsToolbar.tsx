@@ -1,5 +1,5 @@
 import { FunctionComponent, useState } from "react";
-import "./GroupArtifactsTabToolbar.css";
+import "./GroupArtifactsToolbar.css";
 import { Pagination, SearchInput, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Paging } from "@models/Paging.ts";
 import { ArtifactSearchResults } from "@sdk/lib/generated-client/models";
@@ -8,7 +8,7 @@ import { ArtifactSearchResults } from "@sdk/lib/generated-client/models";
 /**
  * Properties
  */
-export type ArtifactsToolbarProps = {
+export type GroupArtifactsToolbarProps = {
     results: ArtifactSearchResults;
     paging: Paging;
     onFilterChange: (filterBy: string) => void;
@@ -19,7 +19,7 @@ export type ArtifactsToolbarProps = {
 /**
  * Models the toolbar for the Artifacts tab on the Group page.
  */
-export const GroupArtifactsTabToolbar: FunctionComponent<ArtifactsToolbarProps> = (props: ArtifactsToolbarProps) => {
+export const GroupArtifactsToolbar: FunctionComponent<GroupArtifactsToolbarProps> = (props: GroupArtifactsToolbarProps) => {
     const [filterValue, setFilterValue] = useState<string>("");
 
     const onFilterChange = (_event: any, value: string): void => {

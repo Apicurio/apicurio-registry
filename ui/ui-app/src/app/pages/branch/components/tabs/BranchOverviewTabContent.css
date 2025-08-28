@@ -1,12 +1,12 @@
 
-.group-overview-tab-content {
+.branch-overview-tab-content {
     padding: 22px;
     display: flex;
     flex-direction: row;
     background-color: rgb(240,240,240);
 }
 
-.group-overview-tab-content .group-basics {
+.branch-overview-tab-content .branch-basics {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -14,26 +14,26 @@
     margin-right: 15px;
 }
 
-.group-overview-tab-content .group-artifacts {
+.branch-overview-tab-content .branch-versions {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
     flex-basis: 70%;
 }
 
-.group-overview-tab-content .group-basics {
+.branch-overview-tab-content .branch-basics {
     flex-grow: 1;
     flex-basis: 40%;
     margin-right: 15px;
 }
 
-.group-overview-tab-content .title-and-type {
+.branch-overview-tab-content .title-and-type {
 }
 
-.group-overview-tab-content .title-and-type .type {
+.branch-overview-tab-content .title-and-type .type {
 }
 
-.group-overview-tab-content .title-and-type .title {
+.branch-overview-tab-content .title-and-type .title {
     color: #333;
     font-size: 17px;
     font-weight: bold;
@@ -41,14 +41,14 @@
     display: inline-block;
 }
 
-.group-overview-tab-content .group-basics .metaData {
+.branch-overview-tab-content .branch-basics .metaData {
     margin-bottom: 20px;
 }
 
-.group-overview-tab-content .group-basics .actions {
+.branch-overview-tab-content .branch-basics .actions {
 }
 
-.group-overview-tab-content .btn-header-create-artifact {
+.branch-overview-tab-content .btn-header-create-artifact {
     margin-top: -6px;
     margin-bottom: -6px;
 }

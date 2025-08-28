@@ -1,0 +1,58 @@
+
+.artifact-overview-tab-content {
+    padding: 22px;
+    display: flex;
+    flex-direction: row;
+    background-color: rgb(240,240,240);
+}
+
+.artifact-overview-tab-content .artifact-basics {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    flex-basis: 30%;
+    margin-right: 15px;
+}
+
+.artifact-overview-tab-content .artifact-versions {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    flex-basis: 70%;
+}
+
+.artifact-overview-tab-content .artifact-basics {
+    flex-grow: 1;
+    flex-basis: 40%;
+    margin-right: 15px;
+}
+
+.artifact-overview-tab-content .title-and-type {
+}
+
+.artifact-overview-tab-content .title-and-type .type {
+}
+
+.artifact-overview-tab-content .title-and-type .title {
+    color: #333;
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 24px;
+    display: inline-block;
+}
+
+.artifact-overview-tab-content .artifact-basics .metaData {
+    margin-bottom: 20px;
+}
+
+.artifact-overview-tab-content .artifact-basics .actions {
+}
+
+.artifact-overview-tab-content .btn-header-create-artifact {
+    margin-top: -6px;
+    margin-bottom: -6px;
+}
+
+#generate-client-action {
+    margin-left: 10px;
+}

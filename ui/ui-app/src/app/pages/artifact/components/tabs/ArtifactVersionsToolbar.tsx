@@ -1,6 +1,6 @@
-import { FunctionComponent } from "react";
-import "./BranchVersionsTabToolbar.css";
-import { Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+import { FunctionComponent, useState } from "react";
+import "./ArtifactVersionsToolbar.css";
+import { Pagination, SearchInput, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
 import { Paging } from "@models/Paging.ts";
 import { VersionSearchResults } from "@sdk/lib/generated-client/models";
 
@@ -8,17 +8,32 @@ import { VersionSearchResults } from "@sdk/lib/generated-client/models";
 /**
  * Properties
  */
-export type BranchVersionsToolbarProps = {
+export type ArtifactVersionsToolbarProps = {
     results: VersionSearchResults;
     paging: Paging;
+    onFilterChange: (filterBy: string) => void;
     onPageChange: (paging: Paging) => void;
 };
 
 
 /**
- * Models the toolbar for the Versions tab on the Branch page.
+ * Models the toolbar for the Versions tab on the Artifact page.
  */
-export const BranchVersionsTabToolbar: FunctionComponent<BranchVersionsToolbarProps> = (props: BranchVersionsToolbarProps) => {
+export const ArtifactVersionsToolbar: FunctionComponent<ArtifactVersionsToolbarProps> = (props: ArtifactVersionsToolbarProps) => {
+    const [filterValue, setFilterValue] = useState<string>("");
+
+    const onFilterChange = (_event: any, value: string): void => {
+        setFilterValue(value);
+    };
+
+    const onFilterSearch = (_event: any, value: string): void => {
+        props.onFilterChange(value);
+    };
+
+    const onFilterClear = (): void => {
+        setFilterValue("");
+        props.onFilterChange("");
+    };
 
     const onSetPage = (_event: any, newPage: number, perPage?: number): void => {
         const newPaging: Paging = {
@@ -37,8 +52,17 @@ export const BranchVersionsTabToolbar: FunctionComponent<BranchVersionsToolbarPr
     };
 
     return (
-        <Toolbar id="branches-toolbar-1" className="branches-toolbar">
+        <Toolbar id="artifact-versions-toolbar-1" className="artifact-versions-toolbar">
             <ToolbarContent>
+                <ToolbarItem>
+                    <SearchInput
+                        placeholder="Filter versions..."
+                        value={filterValue}
+                        onChange={onFilterChange}
+                        onSearch={onFilterSearch}
+                        onClear={onFilterClear}
+                    />
+                </ToolbarItem>
                 <ToolbarItem className="paging-item" align={{ default: "alignRight" }}>
                     <Pagination
                         variant="top"

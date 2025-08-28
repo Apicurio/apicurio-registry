@@ -1,10 +1,11 @@
-import {FunctionComponent, useEffect, useState} from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import "./ExplorePageToolbar.css";
 import {
     Button,
     ButtonVariant,
     Form,
-    InputGroup, Pagination,
+    InputGroup,
+    Pagination,
     TextInput,
     Toolbar,
     ToolbarContent,
@@ -12,12 +13,12 @@ import {
 } from "@patternfly/react-core";
 import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
 import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
-import {ObjectDropdown, ObjectSelect} from "@apicurio/common-ui-components";
+import { ObjectDropdown, ObjectSelect } from "@apicurio/common-ui-components";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy } from "@services/useSearchService.ts";
 import { GroupSearchResults } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
 import { IfAuth, IfFeature } from "@app/components";
-import {useConfigService} from "@services/useConfigService.ts";
+import { useConfigService } from "@services/useConfigService.ts";
 
 export type ExplorePageToolbarFilterCriteria = {
     filterBy: FilterBy;

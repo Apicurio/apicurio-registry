@@ -3,6 +3,7 @@ import "./GroupOverviewTabContent.css";
 import "@app/styles/empty.css";
 import { IfAuth, IfFeature } from "@app/components";
 import {
+    Alert,
     Button,
     Card,
     CardBody,
@@ -41,7 +42,7 @@ import { labelsToAny } from "@utils/rest.utils.ts";
 import { Paging } from "@models/Paging.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { FilterBy, SearchFilter, SearchService, useSearchService } from "@services/useSearchService.ts";
-import { GroupArtifactsTabToolbar } from "@app/pages/group/components/tabs/GroupArtifactsTabToolbar.tsx";
+import { GroupArtifactsToolbar } from "@app/pages/group/components/tabs/GroupArtifactsToolbar.tsx";
 import { GroupArtifactsTable } from "@app/pages/group/components/tabs/GroupArtifactsTable.tsx";
 
 /**
@@ -120,7 +121,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
     };
 
     const toolbar = (
-        <GroupArtifactsTabToolbar
+        <GroupArtifactsToolbar
             results={results} paging={paging}
             onPageChange={setPaging}
             onFilterChange={setFilterValue} />
@@ -244,6 +245,9 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
                                 </DescriptionListGroup>
                             </If>
                         </DescriptionList>
+                        <If condition={props.group.groupId === "default"}>
+                            <Alert variant="info" title="Note: This default group was system generated" ouiaId="InfoAlert" />
+                        </If>
                     </CardBody>
                 </Card>
             </div>

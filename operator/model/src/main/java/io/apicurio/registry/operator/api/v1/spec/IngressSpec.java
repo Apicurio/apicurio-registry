@@ -96,14 +96,14 @@ public class IngressSpec {
      * Configure TLS configuration with secret-to-hosts mapping.
      * This allows multiple hosts to share the same TLS secret.
      * Format: { "secret-name": ["host1", "host2"], "another-secret": ["host3"] }
-     * If tlsSecrets is specified, it takes precedence over both secretName and tlsHosts.
+     * If tlsSecrets is specified, it will be used for TLS configuration.
      */
     @JsonProperty("tlsSecrets")
     @JsonPropertyDescription("""
             Configure TLS configuration with secret-to-hosts mapping. \
             This allows multiple hosts to share the same TLS secret. \
             Format: { "secret-name": ["host1", "host2"], "another-secret": ["host3"] } \
-            If tlsSecrets is specified, it takes precedence over both secretName and tlsHosts.""")
+            If tlsSecrets is specified, it will be used for TLS configuration.""")
     @JsonSetter(nulls = SKIP)
     @JsonInclude(NON_EMPTY)
     private Map<String, List<String>> tlsSecrets = new LinkedHashMap<>();

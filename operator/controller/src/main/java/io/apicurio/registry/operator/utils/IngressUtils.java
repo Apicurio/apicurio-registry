@@ -87,9 +87,9 @@ public final class IngressUtils {
     public static List<IngressTLS> getTls(String component, ApicurioRegistry3 primary) {
         Map<String, List<String>> tlsSecrets = switch (component) {
             case COMPONENT_APP -> ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
-                    .map(AppSpec::getIngress).map(IngressSpec::getTlsSecrets).orElseGet(null);
+                    .map(AppSpec::getIngress).map(IngressSpec::getTlsSecrets).orElse(null);
             case COMPONENT_UI -> ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
-                    .map(UiSpec::getIngress).map(IngressSpec::getTlsSecrets).orElseGet(null);
+                    .map(UiSpec::getIngress).map(IngressSpec::getTlsSecrets).orElse(null);
             default -> throw new OperatorException("Unexpected value: " + component);
         };
 

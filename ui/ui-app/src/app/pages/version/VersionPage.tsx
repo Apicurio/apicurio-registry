@@ -10,10 +10,17 @@ import {
     PageError,
     PageErrorHandler,
     toPageError,
-    VersionPageHeader, PageProperties
+    VersionPageHeader, PageProperties, EXPLORE_PAGE_IDX
 } from "@app/pages";
 import { ReferencesTabContent } from "@app/pages/version/components/tabs/ReferencesTabContent.tsx";
-import { ConfirmDeleteModal, EditMetaDataModal, GenerateClientModal, IfFeature, MetaData } from "@app/components";
+import {
+    ConfirmDeleteModal,
+    EditMetaDataModal,
+    GenerateClientModal,
+    IfFeature,
+    MetaData,
+    RootPageHeader
+} from "@app/components";
 import { ContentTypes } from "@models/ContentTypes.ts";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
@@ -240,31 +247,23 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     }
 
     const gid: string = groupId || "default";
-    const hasGroup: boolean = gid != "default";
-    let breadcrumbs = (
+    const breadcrumbs = (
         <Breadcrumb>
             <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/artifacts`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }`)}
                 data-testid="breadcrumb-lnk-group">{ gid }</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }/versions`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }`)}
                 data-testid="breadcrumb-lnk-artifact">{ artifactId }</Link></BreadcrumbItem>
             <BreadcrumbItem isActive={true}>{ version as string }</BreadcrumbItem>
         </Breadcrumb>
     );
-    if (!hasGroup) {
-        breadcrumbs = (
-            <Breadcrumb>
-                <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-                <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }/versions`)}
-                    data-testid="breadcrumb-lnk-artifact">{ artifactId }</Link></BreadcrumbItem>
-                <BreadcrumbItem isActive={true}>{ version as string }</BreadcrumbItem>
-            </Breadcrumb>
-        );
-    }
 
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
+                <PageSection className="ps_explore-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                    <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
+                </PageSection>
                 <IfFeature feature="breadcrumbs" is={true}>
                     <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
                 </IfFeature>

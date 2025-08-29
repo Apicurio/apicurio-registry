@@ -33,6 +33,19 @@
       <artifactId>quarkus-kubernetes-client</artifactId>
     </dependency>
 
+    <!-- NOTE: There are multiple JSON manipulation libraries available, but we're already using json.org,
+               so I'll use it here as well.
+    -->
+    <dependency>
+      <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-json-org</artifactId>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>io.quarkus</groupId>

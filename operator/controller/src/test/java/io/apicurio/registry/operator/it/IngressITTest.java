@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
-import static io.apicurio.registry.utils.AutoCell.acell;
-import static io.apicurio.registry.utils.AutoCell.acelli;
+import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
+import static io.apicurio.registry.operator.utils.K8sCell.k8sCellCreate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -22,7 +22,7 @@ public class IngressITTest extends ITBase {
     @Test
     void ingressAnnotations() {
 
-        final var primary = acelli(() -> {
+        final var primary = k8sCellCreate(client, () -> {
 
             var p = deserialize("/k8s/examples/ingress/ingress-annotations.apicurioregistry3.yaml", ApicurioRegistry3.class);
 
@@ -36,16 +36,11 @@ public class IngressITTest extends ITBase {
             a = p.getSpec().getUi().getIngress().getAnnotations();
             a.put("test---kubernetes.io/ingress.class", a.remove("kubernetes.io/ingress.class"));
 
-            client.resource(p).create();
-
             return p;
+        });
 
-        }, r -> client.resource(r).update());
-
-        final var appIngress = acell(() -> client.network().v1().ingresses().withName(primary.get().getMetadata().getName() + "-app-ingress").get(),
-                r -> client.resource(r).update());
-        final var uiIngress = acell(() -> client.network().v1().ingresses().withName(primary.get().getMetadata().getName() + "-ui-ingress").get(),
-                r -> client.resource(r).update());
+        final var appIngress = k8sCell(client, () -> client.network().v1().ingresses().withName(primary.getCached().getMetadata().getName() + "-app-ingress").get());
+        final var uiIngress = k8sCell(client, () -> client.network().v1().ingresses().withName(primary.getCached().getMetadata().getName() + "-ui-ingress").get());
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get()).isNotNull();
@@ -69,7 +64,7 @@ public class IngressITTest extends ITBase {
             ));
         });
 
-        appIngress.updateCached(i -> i.getMetadata().getAnnotations().put("animal", "cat"));
+        appIngress.update(i -> i.getMetadata().getAnnotations().put("animal", "cat"));
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getMetadata().getAnnotations()).containsAllEntriesOf(Map.of(
@@ -79,7 +74,7 @@ public class IngressITTest extends ITBase {
             ));
         });
 
-        primary.updateCached(p -> p.getSpec().getApp().getIngress().getAnnotations().put("color", "blue"));
+        primary.update(p -> p.getSpec().getApp().getIngress().getAnnotations().put("color", "blue"));
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getMetadata().getAnnotations()).containsAllEntriesOf(Map.of(
@@ -89,7 +84,7 @@ public class IngressITTest extends ITBase {
             ));
         });
 
-        appIngress.updateCached(i -> i.getMetadata().getAnnotations().remove("color"));
+        appIngress.update(i -> i.getMetadata().getAnnotations().remove("color"));
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getMetadata().getAnnotations()).containsAllEntriesOf(Map.of(
@@ -99,7 +94,7 @@ public class IngressITTest extends ITBase {
             ));
         });
 
-        primary.updateCached(p -> p.getSpec().getApp().getIngress().getAnnotations().remove("color"));
+        primary.update(p -> p.getSpec().getApp().getIngress().getAnnotations().remove("color"));
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getMetadata().getAnnotations()).containsAllEntriesOf(Map.of(
@@ -108,7 +103,7 @@ public class IngressITTest extends ITBase {
             ));
         });
 
-        primary.updateCached(p -> p.getSpec().getApp().getIngress().getAnnotations().put("animal", "dog"));
+        primary.update(p -> p.getSpec().getApp().getIngress().getAnnotations().put("animal", "dog"));
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getMetadata().getAnnotations()).containsAllEntriesOf(Map.of(
@@ -121,24 +116,18 @@ public class IngressITTest extends ITBase {
     @Test
     void ingressClassName() {
 
-        final var primary = acelli(() -> {
+        final var primary = k8sCellCreate(client, () -> {
 
             var p = deserialize("/k8s/examples/ingress/ingress-class-name.apicurioregistry3.yaml", ApicurioRegistry3.class);
 
             p.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
             p.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
 
-            client.resource(p).create();
-
             return p;
+        });
 
-        }, r -> client.resource(r).update());
-
-        final var appIngress = acell(() -> client.network().v1().ingresses().withName(primary.get().getMetadata().getName() + "-app-ingress").get(),
-                r -> client.resource(r).update());
-        final var uiIngress = acell(() -> client.network().v1().ingresses().withName(primary.get().getMetadata().getName() + "-ui-ingress").get(),
-                r -> client.resource(r).update());
-
+        final var appIngress = k8sCell(client, () -> client.network().v1().ingresses().withName(primary.getCached().getMetadata().getName() + "-app-ingress").get());
+        final var uiIngress = k8sCell(client, () -> client.network().v1().ingresses().withName(primary.getCached().getMetadata().getName() + "-ui-ingress").get());
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get()).isNotNull();

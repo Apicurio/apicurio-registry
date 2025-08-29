@@ -1,0 +1,143 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: apicurio-registry-operator-installer-clusterrole
+
+rules:
+
+  - apiGroups:
+      - ''
+    resources:
+      - serviceaccounts
+    verbs:
+      [ create, list, watch ]
+
+  - apiGroups:
+      - ''
+    resources:
+      - serviceaccounts
+    verbs:
+      [ get, update, patch, delete ]
+    resourceNames:
+      - apicurio-registry-operator
+
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+    verbs:
+      [ create, list, watch ]
+
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+    verbs:
+      [ get, update, patch, delete ]
+    resourceNames:
+      [ ]  # See note [1] below.
+    # - apicurio-registry--37z3ye11ga8b53ub26q89ai1gfsug2ywuf6vk7ggxtc6
+
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+    verbs:
+      [ create, list, watch ]
+
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+    verbs:
+      [ get, update, patch, delete ]
+    resourceNames:
+      [ ] # See note [1] below.
+    # - apicurio-registry--37z3ye11ga8b53ub26q89ai1gfsug2ywuf6vk7ggxtc6
+
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      [ create, list, watch ]
+
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      [ get, update, patch, delete ]
+    resourceNames:
+      [ ]
+    # TODO: Not sure why this is not enough:
+    # - apicurioregistries3.registry.apicur.io
+
+  - apiGroups:
+      - olm.operatorframework.io
+    resources:
+      - clusterextensions/finalizers
+    verbs:
+      - update
+    resourceNames:
+      - apicurio-registry-operator-ce
+
+    # Operator permissions (transitive):
+
+  - apiGroups:
+      - registry.apicur.io
+    resources:
+      - apicurioregistries3
+      - apicurioregistries3/status
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - ''
+    resources:
+      - configmaps
+      - pods
+      - services
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - ''
+    resources:
+      - secrets
+    verbs:
+      [ create, get, list ]
+
+# NOTES:
+# [1] We can't easily limit the permissions only to resources that are used to deploy the operator.
+#     OLM v1 adds hash-like suffixes to the resource names, but Kubernetes [does not support wildcards yet](https://github.com/kubernetes/kubernetes/issues/56582).
+#     We could try to figure out the hashes ahead of time, but it's complex and error-prone.

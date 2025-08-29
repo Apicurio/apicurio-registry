@@ -17,9 +17,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ProtobufSchemaLoader {
 
@@ -55,16 +56,16 @@ public class ProtobufSchemaLoader {
 
         final ClassLoader classLoader = ProtobufSchemaLoader.class.getClassLoader();
 
-        createDirectory(GOOGLE_API_PATH.split("/"), inMemoryFileSystem);
+        createDirectory(GOOGLE_API_PATH, inMemoryFileSystem);
         loadProtoFiles(inMemoryFileSystem, classLoader, GOOGLE_API_PROTOS, GOOGLE_API_PATH);
 
-        createDirectory(GOOGLE_WELLKNOWN_PATH.split("/"), inMemoryFileSystem);
+        createDirectory(GOOGLE_WELLKNOWN_PATH, inMemoryFileSystem);
         loadProtoFiles(inMemoryFileSystem, classLoader, GOOGLE_WELLKNOWN_PROTOS, GOOGLE_WELLKNOWN_PATH);
 
-        createDirectory(METADATA_PATH.split("/"), inMemoryFileSystem);
+        createDirectory(METADATA_PATH, inMemoryFileSystem);
         loadProtoFiles(inMemoryFileSystem, classLoader, Collections.singleton(METADATA_PROTO), METADATA_PATH);
 
-        createDirectory(DECIMAL_PATH.split("/"), inMemoryFileSystem);
+        createDirectory(DECIMAL_PATH, inMemoryFileSystem);
         loadProtoFiles(inMemoryFileSystem, classLoader, Collections.singleton(DECIMAL_PROTO), DECIMAL_PATH);
 
         return inMemoryFileSystem;
@@ -85,17 +86,11 @@ public class ProtobufSchemaLoader {
         }
     }
 
-    private static String createDirectory(String[] dirs, FileSystem fileSystem) throws IOException {
-        String dirPath = "";
-        for (String dir : dirs) {
-            dirPath = dirPath + "/" + dir;
-            final okio.Path path = okio.Path.get(dirPath);
-            if (!fileSystem.exists(path)) {
-                fileSystem.createDirectory(path);
-            }
+    private static void createDirectory(String directory, FileSystem fileSystem) throws IOException {
+        final okio.Path path = okio.Path.get(directory);
+        if (!fileSystem.exists(path)) {
+            fileSystem.createDirectories(path);
         }
-
-        return dirPath;
     }
 
     /**
@@ -103,63 +98,47 @@ public class ProtobufSchemaLoader {
      * and linker to load the types correctly. See https://github.com/square/wire/issues/2024# As of now this
      * only supports reading one .proto file but can be extended to support reading multiple files.
      * 
-     * @param packageName Package name for the .proto if present
-     * @param fileName Name of the .proto file.
-     * @param schemaDefinition Schema Definition to parse.
-     * @return Schema - parsed and properly linked Schema.
-     */
-    public static ProtobufSchemaLoaderContext loadSchema(Optional<String> packageName, String fileName,
-            String schemaDefinition) throws IOException {
-        return loadSchema(packageName, fileName, schemaDefinition, Collections.emptyMap());
-    }
-
-    /**
-     * Creates a schema loader using a in-memory file system. This is required for square wire schema parser
-     * and linker to load the types correctly. See https://github.com/square/wire/issues/2024# As of now this
-     * only supports reading one .proto file but can be extended to support reading multiple files.
-     * 
-     * @param packageName Package name for the .proto if present
      * @param fileName Name of the .proto file.
      * @param schemaDefinition Schema Definition to parse.
      * @param schemaDefinition Schema Definition to parse.
      * @return Schema - parsed and properly linked Schema.
      */
-    public static ProtobufSchemaLoaderContext loadSchema(Optional<String> packageName, String fileName,
-            String schemaDefinition, Map<String, String> deps) throws IOException {
+    public static ProtobufSchemaLoaderContext loadSchema(String fileName, String schemaDefinition, Map<String, String> deps) throws IOException {
         final FileSystem inMemoryFileSystem = getFileSystem();
-
-        String[] dirs = {};
-        if (packageName.isPresent()) {
-            dirs = packageName.get().split("\\.");
-        }
 
         String protoFileName = fileName.endsWith(".proto") ? fileName : fileName + ".proto";
 
         try {
-            String dirPath = createDirectory(dirs, inMemoryFileSystem);
-            okio.Path path = writeFile(schemaDefinition, fileName, dirPath, inMemoryFileSystem);
+            // Step 1: Convert all .proto files to ProtoContent instances
+            ProtoContent protoContent = new ProtoContent(protoFileName, schemaDefinition);
+            List<ProtoContent> allDepencencies = deps.entrySet().stream().map(entry ->
+                    new ProtoContent(entry.getKey(), entry.getValue())).collect(Collectors.toList());
 
-            for (Map.Entry<String, String> schema : deps.entrySet()) {
-                String depDirPath = "/";
-                final String depKey = schema.getKey();
-                final String depSchema = schema.getValue();
-                int beforeFileName = depKey.lastIndexOf('/');
-                if (beforeFileName != -1) {
-                    final String packageNameDep = depKey.substring(0, beforeFileName);
-                    depDirPath = createDirectory(packageNameDep.split("\\."), inMemoryFileSystem);
-                    writeFile(depSchema, depKey.substring(beforeFileName + 1), depDirPath,
-                            inMemoryFileSystem);
-                } else {
-                    writeFile(depSchema, depKey, depDirPath, inMemoryFileSystem);
+            // Step 2: Fix up the import statements in all .proto files so they point to canonical locations
+            allDepencencies.forEach(proto -> {
+                if (proto.isImportPathMismatched()) {
+                    protoContent.fixImport(proto.getImportPath(), proto.getExpectedImportPath());
+                    allDepencencies.forEach(proto2 -> {
+                        if (proto2 != proto) {
+                            proto2.fixImport(proto.getImportPath(), proto.getExpectedImportPath());
+                        }
+                    });
                 }
-            }
+            });
 
+            // Step 3: Write out all .proto files to their correct (package based) locations
+            for (ProtoContent proto : allDepencencies) {
+                proto.writeTo(inMemoryFileSystem);
+            }
+            okio.Path path = protoContent.writeTo(inMemoryFileSystem);
+
+            // Step 4: Load the .proto using SchemaLoader
             SchemaLoader schemaLoader = new SchemaLoader(inMemoryFileSystem);
             schemaLoader.initRoots(Lists.newArrayList(Location.get("/")),
                     Lists.newArrayList(Location.get("/")));
 
             Schema schema = schemaLoader.loadSchema();
-            ProtoFile protoFile = schema.protoFile(path.toString().replaceFirst("/", ""));
+            ProtoFile protoFile = schema.protoFile(path);
 
             if (protoFile == null) {
                 throw new RuntimeException("Error loading Protobuf File: " + protoFileName);
@@ -168,24 +147,6 @@ public class ProtobufSchemaLoader {
             return new ProtobufSchemaLoaderContext(schema, protoFile);
         } catch (Exception e) {
             throw e;
-        }
-    }
-
-    private static okio.Path writeFile(String schemaDefinition, String fileName, String dirPath,
-            FileSystem inMemoryFileSystem) throws IOException {
-        FileHandle fileHandle = null;
-        try {
-            String protoFileName = fileName.endsWith(".proto") ? fileName : fileName + ".proto";
-            okio.Path path = okio.Path.get((dirPath + "/" + protoFileName));
-            final byte[] schemaBytes = schemaDefinition.getBytes(StandardCharsets.UTF_8);
-            fileHandle = inMemoryFileSystem.openReadWrite(path);
-            fileHandle.write(0, schemaBytes, 0, schemaBytes.length);
-            fileHandle.close();
-            return path;
-        } finally {
-            if (fileHandle != null) {
-                fileHandle.close();
-            }
         }
     }
 

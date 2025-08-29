@@ -60,13 +60,6 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                                     artifactType={props.artifact.artifactType!}/></FlexItem>
                                 <FlexItem className="title">Version metadata</FlexItem>
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                    <If condition={(props.codegenEnabled && props.version.artifactType === "OPENAPI")}>
-                                        <Button id="generate-client-action"
-                                            data-testid="version-btn-gen-client"
-                                            title="Generate a client"
-                                            onClick={props.onGenerateClient}
-                                            variant="link">Generate client SDK</Button>
-                                    </If>
                                     <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                                         <IfFeature feature="readOnly" isNot={true}>
                                             <Button id="edit-action"
@@ -151,6 +144,15 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                                 }
                             </DescriptionListGroup>
                         </DescriptionList>
+                        <div style={{ width: "100%", textAlign: "right" }}>
+                            <If condition={(props.codegenEnabled && props.version.artifactType === "OPENAPI")}>
+                                <Button id="generate-client-action"
+                                    data-testid="version-btn-gen-client"
+                                    title="Generate a client"
+                                    onClick={props.onGenerateClient}
+                                    variant="secondary">Generate client SDK</Button>
+                            </If>
+                        </div>
                     </CardBody>
                 </Card>
             </div>

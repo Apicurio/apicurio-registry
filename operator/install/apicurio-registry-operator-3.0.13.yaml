@@ -295,17 +295,6 @@ spec:
 
                           See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class.
                         type: string
-                      tlsSecrets:
-                        additionalProperties:
-                          items:
-                            type: string
-                          type: array
-                        description: 'Configure TLS configuration with secret-to-hosts
-                          mapping. This allows multiple hosts to share the same TLS
-                          secret. Format: { "secret-name": ["host1", "host2"], "another-secret":
-                          ["host3"] } If tlsSecrets is specified, it will be used
-                          for TLS configuration.'
-                        type: object
                     type: object
                   kafkasql:
                     description: |-
@@ -3656,17 +3645,6 @@ spec:
 
                           See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class.
                         type: string
-                      tlsSecrets:
-                        additionalProperties:
-                          items:
-                            type: string
-                          type: array
-                        description: 'Configure TLS configuration with secret-to-hosts
-                          mapping. This allows multiple hosts to share the same TLS
-                          secret. Format: { "secret-name": ["host1", "host2"], "another-secret":
-                          ["host3"] } If tlsSecrets is specified, it will be used
-                          for TLS configuration.'
-                        type: object
                     type: object
                   networkPolicy:
                     description: |2

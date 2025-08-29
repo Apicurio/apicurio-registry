@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -48,21 +49,25 @@ public class K8sCell<T extends HasMetadata> {
         this.initialReader = initialReader;
     }
 
-    public T get() {
+    public Optional<T> getOptional() {
         if (cachedValue == null) {
             cachedValue = initialReader.get();
         } else {
             cachedValue = client.resource(cachedValue).get();
         }
-        if (cachedValue == null) {
-            throw new IllegalStateException("Kubernetes resource does not exist.");
-        }
-        return cachedValue;
+        return Optional.ofNullable(cachedValue);
+    }
+
+    public T get() {
+        return getOptional().orElseThrow(() -> new IllegalStateException("Kubernetes resource does not exist."));
     }
 
     public T getCached() {
         if (cachedValue == null) {
             cachedValue = initialReader.get();
+        }
+        if (cachedValue == null) {
+            throw new IllegalStateException("Kubernetes resource does not exist.");
         }
         return cachedValue;
     }

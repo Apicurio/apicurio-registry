@@ -2,12 +2,10 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.apicurio.registry.operator.api.v1.ApicurioRegistry3List;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.NamespaceableResource;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
-import org.assertj.core.api.Assertions;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -19,10 +17,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
+import static io.apicurio.registry.operator.it.ITBase.MEDIUM_DURATION;
+import static io.apicurio.registry.operator.it.ITBase.SHORT_DURATION;
 import static io.apicurio.registry.operator.it.ITBase.setDefaultAwaitilityTimings;
 import static io.apicurio.registry.operator.resource.Labels.getOperatorManagedLabels;
+import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 public abstract class OLMITBase {
@@ -73,14 +76,43 @@ public abstract class OLMITBase {
             }
 
             // CRD must only be installed by OLM v1, so we have to delete it (if it exists) before installing.
-            if (client.apiextensions().v1().customResourceDefinitions().withName(ApicurioRegistry3.EMPTY.getFullResourceName()).get() != null) {
+            var crd = k8sCell(client, () -> client.apiextensions().v1().customResourceDefinitions().withName(ApicurioRegistry3.EMPTY.getFullResourceName()).get());
+            if (crd.getOptional().isPresent()) {
                 log.warn("When using OLM v1, ApicurioRegistry3 CRD must be created when installing the bundle. Deleting the existing CRD before we can continue.");
-                client.resources(ApicurioRegistry3.class, ApicurioRegistry3List.class)
-                        .list().getItems().forEach(ar -> {
-                            log.warn("Deleting ApicurioRegistry3 CR: {}", ResourceID.fromResource(ar));
-                            client.resource(ar).delete();
+
+                await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+                    client.resources(ApicurioRegistry3.class).list().getItems().forEach(ar -> {
+                        log.warn("Deleting ApicurioRegistry3 CR: {}", ResourceID.fromResource(ar));
+                        client.resource(ar).delete();
+                    });
+                    assertThat(client.resources(ApicurioRegistry3.class).list().getItems()).isEmpty();
+                });
+
+                await().atMost(MEDIUM_DURATION).ignoreExceptions().until(() -> {
+                    log.debug("Deleting ApicurioRegistry3 CRD.");
+                    crd.getOptional().ifPresent(c -> {
+                        client.resource(c).delete();
+                    });
+                    try {
+                        await().atMost(SHORT_DURATION).ignoreExceptions().until(() -> {
+                            var c = crd.getOptional();
+                            if (c.isPresent()) {
+                                log.debug("Waiting on ApicurioRegistry3 CRD to be deleted. Terminating condition: {}", c.get().getStatus().getConditions().stream()
+                                        .filter(cond -> "Terminating".equals(cond.getType())).findFirst().orElse(null));
+                                return false;
+                            } else {
+                                return true;
+                            }
                         });
-                client.apiextensions().v1().customResourceDefinitions().withName(ApicurioRegistry3.EMPTY.getFullResourceName()).delete();
+                        return true;
+                    } catch (Exception ex) {
+                        log.debug("Could not delete ApicurioRegistry3 CRD. Trying to force the deletion by deleting the finalizer.");
+                        crd.update(r -> {
+                            r.getMetadata().setFinalizers(List.of());
+                        });
+                        return false;
+                    }
+                });
             }
 
             createResource("olmv1/cluster-catalog.yaml");
@@ -142,7 +174,7 @@ public abstract class OLMITBase {
                 // TODO: Check if this is even used?
                 var registryDeployments = client.apps().deployments().inNamespace(namespace)
                         .withLabels(getOperatorManagedLabels()).list().getItems();
-                Assertions.assertThat(registryDeployments.size()).isZero();
+                assertThat(registryDeployments.size()).isZero();
             });
         }
     }
@@ -165,7 +197,7 @@ public abstract class OLMITBase {
                 throw new IllegalStateException("Unreachable.");
             }
             log.info("Deleting namespace : {}", namespace);
-            Assertions.assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
+            assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
         }
         client.close();
     }

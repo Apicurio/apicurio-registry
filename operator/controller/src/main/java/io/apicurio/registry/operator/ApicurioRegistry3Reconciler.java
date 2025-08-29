@@ -109,8 +109,9 @@ import static io.apicurio.registry.operator.utils.Mapper.copy;
                 )
         }
 )
-@ControllerConfiguration
-// TODO: When renaming, do not forget to update application.properties (until we have a test for this).
+@ControllerConfiguration(
+        name = "apicurioregistry3reconciler"
+)
 public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(ApicurioRegistry3Reconciler.class);

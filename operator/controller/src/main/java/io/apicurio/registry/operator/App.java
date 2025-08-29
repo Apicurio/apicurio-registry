@@ -15,8 +15,11 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
+import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static io.quarkus.runtime.configuration.ConfigUtils.isProfileActive;
 import static org.eclipse.microprofile.config.ConfigProvider.getConfig;
 
@@ -50,9 +53,24 @@ public class App {
     }
 
     public void start(Consumer<ConfigurationServiceOverrider> configOverride) {
-        log.info("Starting the Apicurio Registry 3 Operator version {} .", getConfig().getValue("registry.version", String.class));
+        log.info("Starting the Apicurio Registry 3 Operator version {}", getConfig().getValue("registry.version", String.class));
         operator = new Operator(configOverride);
-        reconcilers.forEach(operator::register);
+
+        var watchedNamespacesRaw = getConfig().getOptionalValue("apicurio.operator.watched-namespaces", String.class).orElse("");
+        log.debug("apicurio.operator.watched-namespaces={}", watchedNamespacesRaw);
+
+        reconcilers.forEach(r -> {
+            operator.register(r, controllerConfigOverride -> {
+                if (isBlank(watchedNamespacesRaw)) {
+                    controllerConfigOverride.watchingAllNamespaces();
+                    log.info("Watching all namespaces.");
+                } else {
+                    var watchedNamespaces = Arrays.stream(watchedNamespacesRaw.split(",")).map(String::trim).collect(Collectors.toSet());
+                    controllerConfigOverride.settingNamespaces(watchedNamespaces);
+                    log.info("Watching namespace(s): {}", watchedNamespaces.stream().map(n -> "'" + n + "'").collect(Collectors.joining(", ")));
+                }
+            });
+        });
         operator.start();
         log.info("Operator started");
     }

@@ -7,9 +7,12 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 public class MultiNamespaceSmokeITTest extends ITBase {
@@ -68,10 +71,15 @@ public class MultiNamespaceSmokeITTest extends ITBase {
 
         } finally {
             if (cleanup) {
-                log.info("Deleting namespace : {}", namespace2);
-                assertThat(client.namespaces().withName(namespace2).delete()).isNotNull();
-                log.info("Deleting namespace : {}", namespace3);
-                assertThat(client.namespaces().withName(namespace3).delete()).isNotNull();
+                var namespaces = List.of(namespace2, namespace3);
+                namespaces.forEach(n -> {
+                    log.info("Deleting namespace: {}", n);
+                    client.namespaces().withName(n).delete();
+                });
+                // We need to wait until the finalizers run before undeploying the operator
+                await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+                    namespaces.forEach(n -> assertThat(client.namespaces().withName(n).get()).isNull());
+                });
             }
         }
     }

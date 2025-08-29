@@ -8,8 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -33,29 +31,17 @@ public class OperatorConfigITTest extends ITBase {
 
         // TODO: Use PodLogManager
         await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-            var operatorPods = client.pods()
-                    .withLabels(Map.of(
-                            "app.kubernetes.io/name", "apicurio-registry-operator",
-                            "app.kubernetes.io/component", "operator",
-                            "app.kubernetes.io/part-of", "apicurio-registry"))
-                    .list().getItems();
-            assertThat(operatorPods).hasSize(1);
-            String log = client.pods().withName(operatorPods.get(0).getMetadata().getName()).getLog();
+            var operatorPod = waitOnOperatorPod();
+            String log = client.pods().withName(operatorPod.getMetadata().getName()).getLog();
             assertThat(log).contains("No operator ConfigMap found.");
             // Create the ConfigMap and restart the pod
             client.resource(configMap).create();
-            client.resource(operatorPods.get(0)).delete();
+            client.resource(operatorPod).delete();
         });
 
         await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-            var operatorPods = client.pods()
-                    .withLabels(Map.of(
-                            "app.kubernetes.io/name", "apicurio-registry-operator",
-                            "app.kubernetes.io/component", "operator",
-                            "app.kubernetes.io/part-of", "apicurio-registry"))
-                    .list().getItems();
-            assertThat(operatorPods).hasSize(1);
-            String log = client.pods().withName(operatorPods.get(0).getMetadata().getName()).getLog();
+            var operatorPod = waitOnOperatorPod();
+            String log = client.pods().withName(operatorPod.getMetadata().getName()).getLog();
             assertThat(log).contains("Operator ConfigMap found, loaded 2 configuration options.");
         });
     }

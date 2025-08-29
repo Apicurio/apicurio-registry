@@ -70,8 +70,8 @@ public abstract class ITBase {
     public static final Duration SHORT_DURATION = ofSeconds(30);
     // NOTE: When running remote tests, some extra time might be needed to pull an image before the pod can be run.
     // TODO: Consider changing the duration based on test type or the situation.
-    public static final Duration MEDIUM_DURATION = ofSeconds(60);
-    public static final Duration LONG_DURATION = ofSeconds(5 * 60);
+    public static final Duration MEDIUM_DURATION = ofSeconds(75);
+    public static final Duration LONG_DURATION = ofSeconds(300);
 
     public enum OperatorDeployment {
         local, remote
@@ -112,18 +112,10 @@ public abstract class ITBase {
 
         if (operatorDeployment == OperatorDeployment.remote) {
             createTestResources();
-            var operatorPod = waitOnOperatorPod();
-            if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class)) {
-                portForwardManager.startPodPortForward(operatorPod.getMetadata().getName(), 5005, 15005);
-                log.info("Remote debugging enabled. Attach your debugger to port 15005.");
-            }
-            podLogManager.startPodLog(ResourceID.fromResource(operatorPod));
         } else {
             startOperator();
-            if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class)) {
-                log.warn("Property {} has no effect on local deployment.", REMOTE_DEBUG_PROP);
-            }
         }
+        startOperatorPodLog();
     }
 
     @BeforeEach
@@ -140,6 +132,21 @@ public abstract class ITBase {
                 deploymentTarget);
     }
 
+    protected static void startOperatorPodLog() {
+        if (operatorDeployment == OperatorDeployment.remote) {
+            var operatorPod = waitOnOperatorPod();
+            if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class)) {
+                portForwardManager.startPodPortForward(operatorPod.getMetadata().getName(), 5005, 15005);
+                log.info("Remote debugging enabled. Attach your debugger to port 15005.");
+            }
+            podLogManager.startPodLog(ResourceID.fromResource(operatorPod));
+        } else {
+            if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class)) {
+                log.warn("Property {} has no effect on local deployment.", REMOTE_DEBUG_PROP);
+            }
+        }
+    }
+
     protected static void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
         await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
@@ -150,12 +157,14 @@ public abstract class ITBase {
     }
 
     protected static void checkDeploymentDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+        Runnable check = () -> {
             assertThat(client.apps().deployments()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get())
                     .isNull();
-        });
+        };
+        await().during(SHORT_DURATION.dividedBy(2)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
+        check.run();
     }
 
     protected static void checkServiceExists(ApicurioRegistry3 primary, String component) {
@@ -168,11 +177,13 @@ public abstract class ITBase {
     }
 
     protected static void checkServiceDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+        Runnable check = () -> {
             assertThat(client.services()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-service").get()).isNull();
-        });
+        };
+        await().during(SHORT_DURATION.dividedBy(2)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
+        check.run();
     }
 
     protected static void checkIngressExists(ApicurioRegistry3 primary, String component) {
@@ -185,11 +196,13 @@ public abstract class ITBase {
     }
 
     protected static void checkIngressDoesNotExist(ApicurioRegistry3 primary, String component) {
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+        Runnable check = () -> {
             assertThat(client.network().v1().ingresses()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get()).isNull();
-        });
+        };
+        await().during(SHORT_DURATION.dividedBy(2)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
+        check.run();
     }
 
     protected static PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,
@@ -260,9 +273,23 @@ public abstract class ITBase {
         });
     }
 
-    private static Pod waitOnOperatorPod() {
-        List<Pod> operatorPods = new ArrayList<>();
+    protected static Deployment getOperatorDeployment() {
+        List<Deployment> operatorDeployments = new ArrayList<>();
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            operatorDeployments.clear();
+            operatorDeployments.addAll(
+                    client.apps().deployments()
+                            .withLabels(Labels.getOperatorSelectorLabels())
+                            .list().getItems()
+            );
+            assertThat(operatorDeployments).hasSize(1);
+        });
+        return operatorDeployments.get(0);
+    }
+
+    protected static Pod waitOnOperatorPod() {
+        List<Pod> operatorPods = new ArrayList<>();
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
             operatorPods.clear();
             operatorPods.addAll(
                     client.pods()

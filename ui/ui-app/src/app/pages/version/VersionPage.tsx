@@ -227,9 +227,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             <VersionInfoTabContent
                 artifact={artifact as ArtifactMetaData}
                 version={artifactVersion as VersionMetaData}
-                codegenEnabled={true}
                 onEditMetaData={openEditMetaDataModal}
-                onGenerateClient={() => setIsGenerateClientModalOpen(true)}
             />
         </Tab>,
         <Tab data-testid="documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab">
@@ -272,9 +270,10 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                         onDelete={onDeleteVersion}
                         onDownload={doDownloadVersion}
                         artifact={artifact}
-                        version={version as string}
-                        groupId={gid}
-                        artifactId={artifactId as string} />
+                        version={artifactVersion}
+                        codegenEnabled={true}
+                        onGenerateClient={() => setIsGenerateClientModalOpen(true)}
+                    />
                 </PageSection>
                 <PageSection variant={PageSectionVariants.light} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"

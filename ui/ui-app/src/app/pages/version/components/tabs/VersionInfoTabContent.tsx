@@ -29,9 +29,7 @@ import { VersionComments } from "@app/pages";
 export type VersionInfoTabContentProps = {
     artifact: ArtifactMetaData;
     version: VersionMetaData;
-    codegenEnabled: boolean;
     onEditMetaData: () => void;
-    onGenerateClient: () => void;
 };
 
 /**
@@ -144,15 +142,6 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                                 }
                             </DescriptionListGroup>
                         </DescriptionList>
-                        <div style={{ width: "100%", textAlign: "right" }}>
-                            <If condition={(props.codegenEnabled && props.version.artifactType === "OPENAPI")}>
-                                <Button id="generate-client-action"
-                                    data-testid="version-btn-gen-client"
-                                    title="Generate a client"
-                                    onClick={props.onGenerateClient}
-                                    variant="secondary">Generate client SDK</Button>
-                            </If>
-                        </div>
                     </CardBody>
                 </Card>
             </div>

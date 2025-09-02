@@ -51,6 +51,7 @@ export type ArtifactOverviewTabContentProps = {
     rules: Rule[];
     onCreateVersion: () => void;
     onViewVersion: (version: SearchedVersion) => void;
+    onEditDraft: (version: SearchedVersion) => void;
     onDeleteVersion: (version: SearchedVersion, deleteSuccessCallback: () => void) => void;
     onAddVersionToBranch: (version: SearchedVersion) => void;
     onEditMetaData: () => void;
@@ -277,6 +278,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                                 onDelete={onDeleteVersion}
                                 onView={props.onViewVersion}
                                 onAddToBranch={props.onAddVersionToBranch}
+                                onEditDraft={props.onEditDraft}
                             />
                         </ListWithToolbar>
                     </CardBody>

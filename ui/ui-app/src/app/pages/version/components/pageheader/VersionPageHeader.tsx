@@ -55,7 +55,10 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             testId: "action-edit-draft",
             onSelect: () => props.onEdit(),
             isVisible: () => {
-                return !config.featureReadOnly() && config.featureDraftMutability() && user.isUserDeveloper(props.artifact?.owner);
+                return !config.featureReadOnly() &&
+                    config.featureDraftMutability() &&
+                    props.version?.state === "DRAFT" &&
+                    user.isUserDeveloper(props.artifact?.owner);
             }
         },
         {

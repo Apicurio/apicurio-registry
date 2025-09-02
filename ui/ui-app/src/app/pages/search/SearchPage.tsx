@@ -316,7 +316,7 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
                             <ArtifactList artifacts={(results as ArtifactSearchResults).artifacts!} />
                         </If>
                         <If condition={searchType === SearchType.GROUP}>
-                            <ExploreGroupList groups={(results as GroupSearchResults).groups!} />
+                            <ExploreGroupList groups={(results as GroupSearchResults).groups!} isFiltered={isFiltered()} />
                         </If>
                     </ListWithToolbar>
                 </PageSection>

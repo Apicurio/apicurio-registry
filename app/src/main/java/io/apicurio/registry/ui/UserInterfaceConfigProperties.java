@@ -18,6 +18,9 @@ public class UserInterfaceConfigProperties {
     @ConfigProperty(name = "apicurio.ui.docsUrl", defaultValue = "/docs/")
     @Info(category = CATEGORY_UI, description = "URL of the Documentation component", availableSince = "3.0.0")
     public String docsUrl;
+    @ConfigProperty(name = "apicurio.ui.editorsUrl", defaultValue = "/editors/")
+    @Info(category = CATEGORY_UI, description = "URL of the Editors component", availableSince = "3.1.0")
+    public String editorsUrl;
 
     @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
     public String authOidcUrl;

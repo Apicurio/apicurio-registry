@@ -1,0 +1,48 @@
+{
+    "name": "@apicurio/apicurio-studio-editors",
+    "version": "1.1.0-Dev",
+    "scripts": {
+        "clean": "rimraf dist",
+        "dev": "ng serve --port 9011",
+        "lint": "",
+        "build": "ng build --configuration=production"
+    },
+    "private": true,
+    "dependencies": {
+        "@angular/animations": "18.2.13",
+        "@angular/common": "18.2.13",
+        "@angular/compiler": "18.2.13",
+        "@angular/core": "18.2.13",
+        "@angular/forms": "18.2.13",
+        "@angular/platform-browser": "18.2.13",
+        "@angular/platform-browser-dynamic": "18.2.13",
+        "@angular/router": "18.2.13",
+        "@patternfly/patternfly": "1.0.250",
+        "@apicurio/data-models": "1.1.31",
+        "@ngx-formly/bootstrap": "6.3.12",
+        "@ngx-formly/core": "6.3.12",
+        "apicurio-ts-core": "0.1.3",
+        "bootstrap": "5.3.3",
+        "brace": "0.11.1",
+        "core-js": "3.40.0",
+        "js-yaml": "4.1.0",
+        "marked": "12.0.2",
+        "ngx-bootstrap": "18.1.3",
+        "patternfly": "3.59.5",
+        "pluralize": "8.0.0",
+        "rxjs": "7.8.1",
+        "tslib": "2.8.1",
+        "zone.js": "0.14.10"
+    },
+    "devDependencies": {
+        "@angular-devkit/build-angular": "18.2.19",
+        "@angular/cli": "20.1.5",
+        "@angular/compiler-cli": "18.2.13",
+        "@types/node": "22.10.5",
+        "codelyzer": "6.0.2",
+        "rimraf": "6.0.1",
+        "ts-node": "10.9.2",
+        "tslint": "6.1.3",
+        "typescript": "5.5.4"
+    }
+}

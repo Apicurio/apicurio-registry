@@ -278,6 +278,13 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         setBranchDeleteSuccessCallback(() => successCallback);
     };
 
+    const onEditDraft = (version: SearchedVersion): void => {
+        const groupId: string = encodeURIComponent(artifact?.groupId || "default");
+        const artifactId: string = encodeURIComponent(artifact?.artifactId || "");
+        const ver: string = encodeURIComponent(version?.version || "");
+        appNavigation.navigateTo(`/explore/${groupId}/${artifactId}/versions/${ver}/editor`);
+    };
+
     const doDeleteBranch = (): void => {
         setIsDeleteBranchModalOpen(false);
         pleaseWait(true, "Deleting branch, please wait...");
@@ -360,6 +367,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 onDeleteVersion={onDeleteVersion}
                 onViewVersion={onViewVersion}
                 onEditMetaData={openEditMetaDataModal}
+                onEditDraft={onEditDraft}
                 onChangeOwner={openChangeOwnerModal}
             />
         </Tab>,

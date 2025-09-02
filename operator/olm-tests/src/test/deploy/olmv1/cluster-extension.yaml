@@ -1,0 +1,28 @@
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: apicurio-registry-operator-ce
+  # TODO:
+  # name: apicurio-registry-operator-clusterextension
+  #
+  # error for resolved bundle "apicurio-registry-3.v3.0.12-snapshot" with version "3.0.12-snapshot":
+  # create: failed to create index and chunk 1 of 1 secret "sh.helm.release.v1.apicurio-registry-operator-clusterextension.v1":
+  # Secret "sh.helm.release.v1.apicurio-registry-operator-clusterextension.v1" is invalid:
+  # metadata.labels: Invalid value: "sh.helm.release.v1.apicurio-registry-operator-clusterextension.v1": must be no more than 63 characters
+spec:
+  namespace: ${PLACEHOLDER_NAMESPACE}
+  serviceAccount:
+    name: apicurio-registry-operator-installer
+  source:
+    sourceType: Catalog
+    catalog:
+      selector:
+        matchLabels:
+          app: apicurio-registry-operator-catalog
+          app.kubernetes.io/name: apicurio-registry-operator-catalog
+          app.kubernetes.io/version: ${PLACEHOLDER_VERSION}
+          olm.operatorframework.io/metadata.name: apicurio-registry-operator-catalog # Intentional for development and testing.
+      packageName: ${PLACEHOLDER_PACKAGE_NAME}
+      channels:
+        - 3.x
+      version: ${PLACEHOLDER_LC_VERSION}

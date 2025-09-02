@@ -499,7 +499,7 @@ public class FileDescriptorUtils {
                                                             Optional<String> optionalPackageName, Map<String, String> deps) {
         final ProtobufSchemaLoader.ProtobufSchemaLoaderContext protobufSchemaLoaderContext;
         try {
-            protobufSchemaLoaderContext = ProtobufSchemaLoader.loadSchema(optionalPackageName, protoFileName,
+            protobufSchemaLoaderContext = ProtobufSchemaLoader.loadSchema(protoFileName,
                     schemaDefinition, deps);
         }
         catch (Exception e) {

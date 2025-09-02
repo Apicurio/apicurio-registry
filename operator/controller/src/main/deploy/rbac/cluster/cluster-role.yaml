@@ -1,10 +1,11 @@
-# Note: Do not forget to update deploy/rbac/single-namespace/kustomization.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: apicurio-registry-operator-clusterrole
 
 rules:
+
+  # IMPORTANT: When updating permissions, also update operator/olm-tests/src/test/deploy/olmv1/cluster-role.yaml
 
   - apiGroups:
       - registry.apicur.io
@@ -43,6 +44,8 @@ rules:
       - customresourcedefinitions
     verbs:
       - get
+    resourceNames:
+      - apicurioregistries3.registry.apicur.io
 
   - apiGroups:
       - networking.k8s.io
@@ -64,6 +67,4 @@ rules:
     resources:
       - secrets
     verbs:
-      - list
-      - get
-      - create
+      [ create, get, list ]

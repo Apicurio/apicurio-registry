@@ -62,8 +62,42 @@ message UserCreatedEvent {
 }
 """;
 
+    private static final String USER_CREATED_PROTO_INVALID = """
+syntax = "proto3";
+package demo;
+
+message UserCreated {
+  string user_id = 1;
+  string name = 2;
+  int32 age = 3;
+  string email = 4;
+}
+""";
+
+    private static final String USER_CREATED_EVENT_PROTO_INVALID = """
+syntax = "proto3";
+package demo;
+
+import "UserCreated.proto";
+
+message UserCreatedEvent {
+  UserCreated user = 1;
+  string source = 2;
+  int64 timestamp = 3;
+}
+""";
+
     @Test
     public void testIssue6530() throws Exception {
+        runTest(USER_CREATED_PROTO, USER_CREATED_EVENT_PROTO, "demo/UserCreated.proto");
+    }
+
+    @Test
+    public void testIssue6530_Invalid() throws Exception {
+        runTest(USER_CREATED_PROTO_INVALID, USER_CREATED_EVENT_PROTO_INVALID, "UserCreated.proto");
+    }
+
+    private void runTest(String userCreatedContent, String userCreatedEventContent, String refName) throws Exception {
         String groupId = TestUtils.generateGroupId();
         String referencedArtifactId = "UserCreated.proto";
         String referencingArtifactId = "UserCreatedEvent.proto";
@@ -86,9 +120,9 @@ message UserCreatedEvent {
         clientV3.groups().byGroupId(groupId).rules().post(createRule);
 
         // Create the first artifact (UserCreated.proto) - this should succeed
-        CreateArtifactResponse response1 = createArtifact(groupId, referencedArtifactId, 
-                ArtifactType.PROTOBUF, USER_CREATED_PROTO, ContentTypes.APPLICATION_PROTOBUF);
-        
+        CreateArtifactResponse response1 = createArtifact(groupId, referencedArtifactId,
+                ArtifactType.PROTOBUF, userCreatedContent, ContentTypes.APPLICATION_PROTOBUF);
+
         Assertions.assertNotNull(response1);
         Assertions.assertEquals(groupId, response1.getArtifact().getGroupId());
         Assertions.assertEquals(referencedArtifactId, response1.getArtifact().getArtifactId());
@@ -100,12 +134,12 @@ message UserCreatedEvent {
                 .groupId(groupId)
                 .artifactId(referencedArtifactId)
                 .version("1")
-                .name("demo/UserCreated.proto")
+                .name(refName)
                 .build();
 
         // Create the second artifact (UserCreatedEvent.proto) with reference
         CreateArtifactResponse response2 = createArtifactWithReferences(groupId, referencingArtifactId,
-                ArtifactType.PROTOBUF, USER_CREATED_EVENT_PROTO, ContentTypes.APPLICATION_PROTOBUF,
+                ArtifactType.PROTOBUF, userCreatedEventContent, ContentTypes.APPLICATION_PROTOBUF,
                 List.of(reference));
 
         Assertions.assertNotNull(response2);
@@ -119,7 +153,7 @@ message UserCreatedEvent {
                 .artifacts().byArtifactId(referencingArtifactId)
                 .versions().byVersionExpression("1")
                 .references().get();
-        
+
         Assertions.assertEquals(1, actualReferences.size());
         Assertions.assertEquals(reference.getName(), actualReferences.get(0).getName());
         Assertions.assertEquals(reference.getVersion(), actualReferences.get(0).getVersion());

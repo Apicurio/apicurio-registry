@@ -9,6 +9,8 @@ type UserInterfaceConfigUi struct {
 	additionalData map[string]any
 	// The contextPath property
 	contextPath *string
+	// The editorsUrl property
+	editorsUrl *string
 	// The navPrefixPath property
 	navPrefixPath *string
 	// The oaiDocsUrl property
@@ -40,6 +42,12 @@ func (m *UserInterfaceConfigUi) GetContextPath() *string {
 	return m.contextPath
 }
 
+// GetEditorsUrl gets the editorsUrl property value. The editorsUrl property
+// returns a *string when successful
+func (m *UserInterfaceConfigUi) GetEditorsUrl() *string {
+	return m.editorsUrl
+}
+
 // GetFieldDeserializers the deserialization information for the current model
 // returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *UserInterfaceConfigUi) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -51,6 +59,16 @@ func (m *UserInterfaceConfigUi) GetFieldDeserializers() map[string]func(i878a80d
 		}
 		if val != nil {
 			m.SetContextPath(val)
+		}
+		return nil
+	}
+	res["editorsUrl"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetEditorsUrl(val)
 		}
 		return nil
 	}
@@ -98,6 +116,12 @@ func (m *UserInterfaceConfigUi) Serialize(writer i878a80d2330e89d26896388a3f487e
 		}
 	}
 	{
+		err := writer.WriteStringValue("editorsUrl", m.GetEditorsUrl())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteStringValue("navPrefixPath", m.GetNavPrefixPath())
 		if err != nil {
 			return err
@@ -128,6 +152,11 @@ func (m *UserInterfaceConfigUi) SetContextPath(value *string) {
 	m.contextPath = value
 }
 
+// SetEditorsUrl sets the editorsUrl property value. The editorsUrl property
+func (m *UserInterfaceConfigUi) SetEditorsUrl(value *string) {
+	m.editorsUrl = value
+}
+
 // SetNavPrefixPath sets the navPrefixPath property value. The navPrefixPath property
 func (m *UserInterfaceConfigUi) SetNavPrefixPath(value *string) {
 	m.navPrefixPath = value
@@ -142,9 +171,11 @@ type UserInterfaceConfigUiable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetContextPath() *string
+	GetEditorsUrl() *string
 	GetNavPrefixPath() *string
 	GetOaiDocsUrl() *string
 	SetContextPath(value *string)
+	SetEditorsUrl(value *string)
 	SetNavPrefixPath(value *string)
 	SetOaiDocsUrl(value *string)
 }

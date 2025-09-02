@@ -1,6 +1,8 @@
 import YAML from "yaml";
 import { ContentTypes } from "@models/ContentTypes.ts";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
+import {Draft, DraftContent} from "@models/drafts";
+import {ArtifactTypes} from "@services/useArtifactTypesService.ts";
 
 /**
  * Returns true if the given content is JSON formatted.
@@ -125,4 +127,79 @@ export function detectContentType(artifactType: string | undefined | null, conte
     } else {
         return ContentTypes.APPLICATION_OCTET_STREAM;
     }
+}
+
+
+export function contentTypeForDraft(draft: Draft, content: DraftContent): string {
+    if (content.contentType) {
+        return content.contentType;
+    }
+
+    if (draft.type === ArtifactTypes.PROTOBUF) {
+        return ContentTypes.APPLICATION_PROTOBUF;
+    }
+
+    return ContentTypes.APPLICATION_JSON;
+}
+
+
+export const draftContentToString = (content: DraftContent): string => {
+    return contentToString(content.content);
+};
+
+
+export const draftContentToLanguage = (content: DraftContent): string => {
+    if (content.contentType === ContentTypes.APPLICATION_YAML) {
+        return "yaml";
+    } else if (content.contentType === ContentTypes.APPLICATION_XML) {
+        return "xml";
+    } else if (content.contentType === ContentTypes.TEXT_XML) {
+        return "xml";
+    } else if (content.contentType === ContentTypes.APPLICATION_WSDL) {
+        return "xml";
+    }
+    return "json";
+};
+
+export function fileExtensionForDraft(draft: Draft, content: DraftContent): string {
+    if (draft.type === ArtifactTypes.PROTOBUF) {
+        return "proto";
+    }
+
+    if (content.contentType && content.contentType === ContentTypes.APPLICATION_JSON) {
+        return "json";
+    }
+    if (content.contentType && content.contentType === ContentTypes.APPLICATION_YAML) {
+        return "yaml";
+    }
+    if (content.contentType && content.contentType === ContentTypes.APPLICATION_XML) {
+        return "xml";
+    }
+    if (content.contentType && content.contentType === ContentTypes.APPLICATION_WSDL) {
+        return "wsdl";
+    }
+    if (content.contentType && content.contentType === ContentTypes.APPLICATION_GRAPHQL) {
+        return "graphql";
+    }
+
+    return "txt";
+}
+
+/**
+ * Called to format (pretty print) the given content.  For example, if the content is JSON
+ * then the content will be parsed and then stringified with better whitespace.
+ * @param value
+ * @param contentType
+ */
+export function formatContent(value: string, contentType: string): string {
+    try {
+        if (contentType === ContentTypes.APPLICATION_JSON) {
+            const parsed: any = JSON.parse(value);
+            return JSON.stringify(parsed, null, 4);
+        }
+    } catch (e) {
+        console.error(e);
+        return value;
+    }
+    return value;
 }

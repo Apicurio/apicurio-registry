@@ -1,8 +1,8 @@
 import { FunctionComponent } from "react";
 import "./ArtifactList.css";
 import { DataList, DataListCell, DataListItemCells, DataListItemRow } from "@patternfly/react-core";
-import { ArtifactTypeIcon } from "@app/components";
-import { ArtifactGroup, ArtifactName } from "@app/pages";
+import { ArtifactGroup, ArtifactTypeIcon } from "@app/components";
+import { ArtifactName } from "@app/pages";
 import { SearchedArtifact } from "@sdk/lib/generated-client/models";
 
 /**

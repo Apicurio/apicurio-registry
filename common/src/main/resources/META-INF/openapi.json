@@ -4613,6 +4613,9 @@
               },
               "oaiDocsUrl": {
                 "type": "string"
+              },
+              "editorsUrl": {
+                "type": "string"
               }
             }
           },
@@ -4666,7 +4669,8 @@
           "ui": {
             "contextPath": "/",
             "navPrefixPath": "/",
-            "oaiDocsUrl": "https://registry.apicur.io/docs"
+            "oaiDocsUrl": "https://registry.apicur.io/docs",
+            "editorsUrl": "https://registry.apicur.io/editors"
           },
           "auth": {
             "type": "oidc",
@@ -4778,12 +4782,16 @@
           },
           "oaiDocsUrl": {
             "type": "string"
+          },
+          "editorsUrl": {
+            "type": "string"
           }
         },
         "example": {
           "contextPath": "/",
           "navPrefixPath": "/",
-          "oaiDocsUrl": "https://registry.apicur.io/docs"
+          "oaiDocsUrl": "https://registry.apicur.io/docs",
+          "editorsUrl": "https://registry.apicur.io/editors"
         }
       },
       "Labels": {

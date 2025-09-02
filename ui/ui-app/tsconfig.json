@@ -24,6 +24,7 @@
     "paths": {
       "@app/*": [ "./src/app/*" ],
       "@models/*": [ "./src/models/*" ],
+      "@editors/*": [ "./src/editors/*" ],
       "@utils/*": [ "./src/utils/*" ],
       "@services/*": [ "./src/services/*" ],
       "@sdk/*": [ "../../typescript-sdk/*" ]

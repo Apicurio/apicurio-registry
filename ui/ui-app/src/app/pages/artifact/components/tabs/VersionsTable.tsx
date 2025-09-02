@@ -26,6 +26,7 @@ export type VersionsTableProps = {
     onView: (version: SearchedVersion) => void;
     onAddToBranch: (version: SearchedVersion) => void;
     onDelete: (version: SearchedVersion) => void;
+    onEditDraft: (version: SearchedVersion) => void;
 }
 type VersionAction = {
     label: string;
@@ -116,6 +117,12 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
             { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` },
         ];
         if (!config.featureReadOnly() && user.isUserDeveloper(props.artifact.owner)) {
+            if (config.featureDraftMutability() && version.state === "DRAFT") {
+                actions.push(
+                    { label: "Edit draft", onClick: () => props.onEditDraft(version), testId: `edit-draft-${vhash}` },
+                );
+            }
+
             actions.push(
                 { label: "Add to branch", onClick: () => props.onAddToBranch(version), testId: `add-to-branch-version-${vhash}` },
             );

@@ -65,7 +65,10 @@ public class SystemResourceImpl implements SystemResource {
     public UserInterfaceConfig getUIConfig() {
         return UserInterfaceConfig.builder()
                 .ui(UserInterfaceConfigUi.builder().contextPath(uiConfig.contextPath)
-                        .navPrefixPath(uiConfig.navPrefixPath).oaiDocsUrl(uiConfig.docsUrl).build())
+                        .navPrefixPath(uiConfig.navPrefixPath)
+                        .oaiDocsUrl(uiConfig.docsUrl)
+                        .editorsUrl(uiConfig.editorsUrl)
+                        .build())
                 .auth(uiAuthConfig())
                 .features(UserInterfaceConfigFeatures.builder()
                         .readOnly("true".equals(uiConfig.featureReadOnly))

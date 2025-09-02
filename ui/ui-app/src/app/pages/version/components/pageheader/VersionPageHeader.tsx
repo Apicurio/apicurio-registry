@@ -1,9 +1,20 @@
 import { FunctionComponent } from "react";
 import "./VersionPageHeader.css";
-import { Button, Flex, FlexItem, Text, TextContent, TextVariants } from "@patternfly/react-core";
+import {
+    ActionList,
+    ActionListItem,
+    Button,
+    Flex,
+    FlexItem,
+    Text,
+    TextContent,
+    TextVariants
+} from "@patternfly/react-core";
 import { IfAuth, IfFeature } from "@app/components";
-import { If } from "@apicurio/common-ui-components";
+import {If, ObjectDropdown, useAuth} from "@apicurio/common-ui-components";
 import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
+import {useUserService} from "@services/useUserService.ts";
+import {useConfigService} from "@services/useConfigService.ts";
 
 
 /**
@@ -13,6 +24,7 @@ export type VersionPageHeaderProps = {
     artifact: ArtifactMetaData | undefined;
     version: VersionMetaData | undefined;
     codegenEnabled: boolean;
+    onEdit: () => void;
     onDelete: () => void;
     onDownload: () => void;
     onGenerateClient: () => void;
@@ -25,6 +37,36 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
     const groupId: string = props.artifact?.groupId || "default";
     const artifactId: string = props.artifact?.artifactId || "";
     const version: string = props.version?.version || "";
+
+    const user = useUserService();
+    const config = useConfigService();
+
+    const actions: any[] = [
+        {
+            label: "Generate client SDK",
+            testId: "action-generate-client-sdk",
+            onSelect: () => props.onGenerateClient(),
+            isVisible: () => {
+                return props.codegenEnabled && props.version?.artifactType === "OPENAPI";
+            }
+        },
+        {
+            label: "Edit draft",
+            testId: "action-edit-draft",
+            onSelect: () => props.onEdit(),
+            isVisible: () => {
+                return !config.featureReadOnly() && config.featureDraftMutability() && user.isUserDeveloper(props.artifact?.owner);
+            }
+        },
+        {
+            label: "Delete version",
+            testId: "action-delete-version",
+            onSelect: () => props.onDelete(),
+            isVisible: () => {
+                return !config.featureReadOnly() && config.featureDeleteVersion() && user.isUserDeveloper(props.artifact?.owner);
+            }
+        }
+    ];
 
     return (
         <Flex className="example-border">
@@ -42,23 +84,26 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                 </TextContent>
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
-                <Button id="download-artifact-button" variant="primary"
-                    data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
-                <If condition={(props.codegenEnabled && props.version?.artifactType === "OPENAPI")}>
-                    <Button id="generate-client-action"
-                        data-testid="version-btn-gen-client"
-                        title="Generate a client"
-                        onClick={props.onGenerateClient}
-                        variant="secondary">Generate client SDK</Button>
-                </If>
-                <IfAuth isDeveloper={true} owner={props.artifact?.owner}>
-                    <IfFeature feature="readOnly" isNot={true}>
-                        <IfFeature feature="deleteVersion" is={true}>
-                            <Button id="delete-artifact-button" variant="danger"
-                                data-testid="header-btn-delete" onClick={props.onDelete}>Delete version</Button>
-                        </IfFeature>
-                    </IfFeature>
-                </IfAuth>
+                <ActionList>
+                    <ActionListItem>
+                        <Button id="download-artifact-button" variant="secondary"
+                            data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
+                    </ActionListItem>
+                    <ActionListItem>
+                        <ObjectDropdown
+                            label=""
+                            items={actions}
+                            onSelect={item => item.onSelect()}
+                            itemToString={item => item.label}
+                            itemToTestId={item => item.testId}
+                            itemIsVisible={item => item.isVisible()}
+                            popperProps={{
+                                position: "right"
+                            }}
+                            isKebab={true}
+                        />
+                    </ActionListItem>
+                </ActionList>
             </FlexItem>
         </Flex>
     );

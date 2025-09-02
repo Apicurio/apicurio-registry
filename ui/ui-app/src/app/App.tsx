@@ -8,7 +8,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AppHeader } from "@app/components";
 import {
     ArtifactPage,
-    BranchPage, DraftsPage,
+    BranchPage, DraftsPage, EditorPage,
     ExplorePage,
     GroupPage,
     NotFoundPage,
@@ -93,6 +93,10 @@ export const App: FunctionComponent<AppProps> = () => {
                             <Route
                                 path="/explore/:groupId/:artifactId/versions/:version"
                                 element={ <VersionPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version/:editor"
+                                element={ <EditorPage /> }
                             />
                             <Route
                                 path="/explore/:groupId/:artifactId/versions/:version/content"

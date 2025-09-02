@@ -118,6 +118,13 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         }
     };
 
+    const onEditDraft = (): void => {
+        const gid: string = encodeURIComponent(groupId as string);
+        const aid: string = encodeURIComponent(artifactId as string);
+        const ver: string = encodeURIComponent(version as string);
+        appNavigation.navigateTo(`/explore/${gid}/${aid}/versions/${ver}/editor`);
+    };
+
     const onDeleteVersion = (): void => {
         setIsDeleteModalOpen(true);
     };
@@ -267,6 +274,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 </IfFeature>
                 <PageSection className="ps_artifact-version-header" variant={PageSectionVariants.light}>
                     <VersionPageHeader
+                        onEdit={onEditDraft}
                         onDelete={onDeleteVersion}
                         onDownload={doDownloadVersion}
                         artifact={artifact}

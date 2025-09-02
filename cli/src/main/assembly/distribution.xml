@@ -1,0 +1,30 @@
+<assembly>
+    <id>distribution</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <files>
+        <file>
+            <source>${project.build.directory}/acr.jar</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+        <file>
+            <source>${project.build.directory}/acr_bash_completions</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+        <file>
+            <source>${project.basedir}/README.md</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+    </files>
+    <fileSets>
+        <fileSet>
+            <directory>${project.basedir}/src/main/scripts</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+</assembly>

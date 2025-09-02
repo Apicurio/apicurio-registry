@@ -64,10 +64,21 @@ jobs:
           find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
           find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
 
+      - name: Load Docker Image
+        uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
+          image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
+          image-name: apicurio/apicurio-registry
+          tag: ${{ inputs.image-tag }}
+
       - name: Run Unit Tests
         run: |
-          ./mvnw verify --no-transfer-progress \
-            -Pprod -DskipCommitIdPlugin=false \
+          ./mvnw verify \
+            --no-transfer-progress \
+            -Pprod \
+            -DskipCommitIdPlugin=false \
             -Dkiota.system=true \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
-            -Dmaven.wagon.http.retryHandler.count=5
+            -Dmaven.wagon.http.retryHandler.count=5 \
+            -Dtest.app.image=apicurio/apicurio-registry:${{ inputs.image-tag }}

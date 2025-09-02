@@ -1,0 +1,355 @@
+import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+import { getRegistryClient, labelsToAny } from "@utils/rest.utils.ts";
+import { ApicurioRegistryClient } from "@apicurio/apicurio-registry-sdk";
+import {
+    CreateDraft,
+    Draft,
+    DraftContent,
+    DraftInfo,
+    DraftsSearchFilter,
+    DraftsSearchResults,
+    DraftsSortBy
+} from "@models/drafts";
+import { SortOrder } from "@models/SortOrder.ts";
+import { Paging } from "@models/Paging.ts";
+import {
+    Comment,
+    CreateArtifact,
+    EditableVersionMetaData,
+    NewComment,
+    SearchedVersion,
+    VersionContent,
+    VersionMetaData,
+    WrappedVersionState
+} from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
+import {
+    VersionsRequestBuilderGetQueryParameters
+} from "@apicurio/apicurio-registry-sdk/dist/generated-client/search/versions";
+import {
+    HeadersInspectionOptions
+} from "@microsoft/kiota-http-fetchlibrary/dist/es/src/middlewares/options/headersInspectionOptions";
+import { ContentTypes } from "@models/ContentTypes.ts";
+
+const arrayDecoder: TextDecoder = new TextDecoder("utf-8");
+
+const normalizeGroupId = (groupId: string|null): string => {
+    return groupId || "default";
+};
+
+const toDraft = (vmd: VersionMetaData | SearchedVersion | undefined): Draft => {
+    const draft: Draft = {
+        groupId: vmd!.groupId || "default",
+        draftId: vmd!.artifactId!,
+        version: vmd!.version!,
+        type: vmd!.artifactType!,
+        name: vmd!.name!,
+        description: vmd!.description!,
+        createdBy: vmd!.owner as string,
+        createdOn: vmd!.createdOn!,
+        modifiedBy: vmd!.modifiedBy as string | undefined,
+        modifiedOn: vmd!.modifiedOn as Date | undefined,
+        labels: labelsToAny(vmd?.labels),
+        contentId: vmd?.contentId as number | undefined,
+        isDraft: vmd!.state === "DRAFT"
+    };
+    return draft;
+};
+
+
+/**
+ * Search for drafts.
+ */
+async function searchDrafts(config: ConfigService, auth: AuthService, filters: DraftsSearchFilter[],
+                            sortBy: DraftsSortBy, sortOrder: SortOrder, paging: Paging): Promise<DraftsSearchResults> {
+    console.debug("[DraftsService] Searching for drafts: ", filters, paging, sortBy, sortOrder);
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    const start: number = (paging.page - 1) * paging.pageSize;
+    const end: number = start + paging.pageSize;
+    const queryParams: VersionsRequestBuilderGetQueryParameters = {
+        state: "DRAFT",
+        limit: end,
+        offset: start,
+        order: sortOrder,
+        orderby: sortBy as any
+    };
+
+    // Apply filters
+    filters.forEach(filter => {
+        (queryParams as any)[filter.by] = filter.value;
+    });
+
+    return client.search.versions.get({
+        queryParameters: queryParams
+    }).then(results => {
+        const rval: DraftsSearchResults = {
+            count: results?.count as number,
+            drafts: results?.versions?.map(toDraft) as Draft[]
+        };
+        return rval;
+    });
+}
+
+/**
+ * Create a draft.
+ */
+async function createDraft(config: ConfigService, auth: AuthService, data: CreateDraft): Promise<Draft> {
+    console.debug("[DraftsService] Creating a new draft: ", data);
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    const createArtifact: CreateArtifact = {
+        artifactId: data.draftId,
+        artifactType: data.type,
+        firstVersion: {
+            name: data.name,
+            description: data.description,
+            version: data.version,
+            isDraft: true,
+            labels: {
+                additionalData: data.labels
+            },
+            content: {
+                content: data.content,
+                contentType: data.contentType
+            }
+        }
+    };
+    if (data.draftId === "") {
+        delete createArtifact.artifactId;
+    }
+    if (data.version === "") {
+        delete createArtifact.firstVersion?.version;
+    }
+    if (data.name === "") {
+        delete createArtifact.firstVersion?.name;
+    }
+    if (data.description === "") {
+        delete createArtifact.firstVersion?.description;
+    }
+
+    return client.groups.byGroupId(data.groupId || "default").artifacts.post(createArtifact, {
+        queryParameters: {
+            ifExists: "CREATE_VERSION"
+        }
+    }).then(result => toDraft(result!.version!));
+}
+
+/**
+ * Get a draft.
+ */
+async function getDraft(config: ConfigService, auth: AuthService, groupId: string | null, draftId: string, version: string): Promise<Draft> {
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    groupId = normalizeGroupId(groupId);
+    console.info("[DraftsService] Getting a draft: ", groupId, draftId, version);
+
+    return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions
+        .byVersionExpression(version).get().then(toDraft);
+}
+
+/**
+ * Get draft comments.
+ */
+async function getDraftComments(config: ConfigService, auth: AuthService, groupId: string | null, draftId: string, version: string): Promise<Comment[]> {
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    groupId = normalizeGroupId(groupId);
+    console.info("[DraftsService] Getting the list of comments for draft: ", groupId, draftId, version);
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions
+        .byVersionExpression(version).comments.get();
+}
+
+/**
+ * Create a draft comment.
+ */
+async function createDraftComment(config: ConfigService, auth: AuthService, groupId: string | null, draftId: string, version: string, data: NewComment): Promise<Comment> {
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    groupId = normalizeGroupId(groupId);
+    console.info("[DraftsService] Creating a new comment for draft: ", groupId, draftId, version);
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions
+        .byVersionExpression(version).comments.post(data);
+}
+
+/**
+ * Update a draft comment.
+ */
+async function updateDraftComment(config: ConfigService, auth: AuthService, groupId: string | null, draftId: string, version: string, commentId: string, data: NewComment): Promise<void> {
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    groupId = normalizeGroupId(groupId);
+    console.info("[DraftsService] Updating a comment for draft: ", groupId, draftId, version);
+
+    return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions
+        .byVersionExpression(version).comments.byCommentId(commentId).put(data);
+}
+
+/**
+ * Delete a draft comment.
+ */
+async function deleteDraftComment(config: ConfigService, auth: AuthService, groupId: string | null, draftId: string, version: string, commentId: string): Promise<void> {
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    groupId = normalizeGroupId(groupId);
+    console.info("[DraftsService] Deleting a comment for draft: ", groupId, draftId, version);
+
+    return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions
+        .byVersionExpression(version).comments.byCommentId(commentId).delete();
+}
+
+/**
+ * Update the info (metadata) for a draft.
+ */
+function updateDraftInfo(config: ConfigService, auth: AuthService, groupId: string | null, draftId: string, version: string, draftInfo: DraftInfo): Promise<void> {
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    groupId = normalizeGroupId(groupId);
+    console.info("[DraftsService] Updating info for draft: ", groupId, draftId, version);
+
+    const metaData: EditableVersionMetaData = draftInfo as EditableVersionMetaData;
+    return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions.byVersionExpression(version).put(metaData);
+}
+
+/**
+ * Delete a draft.
+ */
+function deleteDraft(config: ConfigService, auth: AuthService, groupId: string | null, draftId: string, version: string): Promise<void> {
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    groupId = normalizeGroupId(groupId);
+    console.info("[DraftsService] Deleting a draft: ", groupId, draftId, version);
+
+    return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions.byVersionExpression(version).delete();
+}
+
+/**
+ * Finalize a draft.
+ */
+function finalizeDraft(config: ConfigService, auth: AuthService, groupId: string | null, draftId: string, version: string, dryRun: boolean): Promise<void> {
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    groupId = normalizeGroupId(groupId);
+    console.info("[DraftsService] Finalizing a draft: ", groupId, draftId, version);
+    if (dryRun) {
+        console.info("                Note: dry run only enabled");
+    }
+    const newState: WrappedVersionState = {
+        state: "ENABLED"
+    };
+
+    return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions.byVersionExpression(version).state.put(newState, {
+        queryParameters: {
+            dryRun
+        }
+    });
+}
+
+/**
+ * Get draft content.
+ */
+function getDraftContent(config: ConfigService, auth: AuthService, groupId: string | null, draftId: string, version: string): Promise<DraftContent> {
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    groupId = normalizeGroupId(groupId);
+    console.info("[DraftsService] Getting draft content: ", groupId, draftId, version);
+
+    // This allows us to fetch the Response headers, which we need to do because we
+    // need to know the Content-Type of the content.
+    const headerInspection: HeadersInspectionOptions = new HeadersInspectionOptions();
+    headerInspection.inspectResponseHeaders = true;
+
+    return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions.byVersionExpression(version).content.get({
+        headers: {
+            Accept: "*"
+        },
+        options: [headerInspection]
+    }).then(value => {
+        const textContent: string = arrayDecoder.decode(value!);
+        const contentType: string = headerInspection.getResponseHeaders().get("Content-Type")?.values().next().value || ContentTypes.APPLICATION_JSON;
+        return {
+            content: textContent,
+            contentType
+        };
+    });
+}
+
+/**
+ * Update content of a draft.
+ */
+function updateDraftContent(config: ConfigService, auth: AuthService, groupId: string | null, draftId: string, version: string, data: DraftContent): Promise<void> {
+    const client: ApicurioRegistryClient = getRegistryClient(config, auth);
+
+    groupId = normalizeGroupId(groupId);
+    console.info("[DraftsService] Updating a draft: ", groupId, draftId, version);
+
+    const versionContent: VersionContent = {
+        content: data.content,
+        contentType: data.contentType
+    };
+    return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions.byVersionExpression(version).content.put(versionContent);
+}
+
+
+/**
+ * The Drafts Service interface.
+ */
+export interface DraftsService {
+    searchDrafts(filters: DraftsSearchFilter[], sortBy: DraftsSortBy, sortOrder: SortOrder, paging: Paging): Promise<DraftsSearchResults>;
+    createDraft(data: CreateDraft): Promise<Draft>;
+    getDraft(groupId: string, draftId: string, version: string): Promise<Draft>;
+    updateDraftInfo(groupId: string|null, draftId: string, version: string, draftInfo: DraftInfo): Promise<void>;
+    deleteDraft(groupId: string|null, draftId: string, version: string): Promise<void>;
+    getDraftContent(groupId: string|null, draftId: string, version: string): Promise<DraftContent>;
+    updateDraftContent(groupId: string|null, draftId: string, version: string, data: DraftContent): Promise<void>;
+    finalizeDraft(groupId: string|null, draftId: string, version: string, dryRun: boolean): Promise<void>;
+
+    getDraftComments(groupId: string|null, draftId: string, version: string): Promise<Comment[]>;
+    createDraftComment(groupId: string|null, draftId: string, version: string, data: NewComment): Promise<Comment>;
+    updateDraftComment(groupId: string|null, draftId: string, version: string, commentId: string, data: NewComment): Promise<void>;
+    deleteDraftComment(groupId: string|null, draftId: string, version: string, commentId: string): Promise<void>;
+
+}
+
+
+/**
+ * React hook to get the Drafts service.
+ */
+export const useDraftsService: () => DraftsService = (): DraftsService => {
+    const config: ConfigService = useConfigService();
+    const auth: AuthService = useAuth();
+
+    return {
+        searchDrafts: (filters: DraftsSearchFilter[], sortBy: DraftsSortBy, sortOrder: SortOrder, paging: Paging) =>
+            searchDrafts(config, auth, filters, sortBy, sortOrder, paging),
+        createDraft: (data: CreateDraft) =>
+            createDraft(config, auth, data),
+        getDraft: (groupId: string, draftId: string, version: string) =>
+            getDraft(config, auth, groupId, draftId, version),
+        updateDraftInfo: (groupId: string|null, draftId: string, version: string, draftInfo: DraftInfo) =>
+            updateDraftInfo(config, auth, groupId, draftId, version, draftInfo),
+        deleteDraft: (groupId: string|null, draftId: string, version: string) =>
+            deleteDraft(config, auth, groupId, draftId, version),
+        getDraftContent: (groupId: string|null, draftId: string, version: string) =>
+            getDraftContent(config, auth, groupId, draftId, version),
+        updateDraftContent: (groupId: string|null, draftId: string, version: string, data: DraftContent) =>
+            updateDraftContent(config, auth, groupId, draftId, version, data),
+        finalizeDraft: (groupId: string|null, draftId: string, version: string, dryRun: boolean) =>
+            finalizeDraft(config, auth, groupId, draftId, version, dryRun),
+
+        getDraftComments: (groupId: string|null, draftId: string, version: string) =>
+            getDraftComments(config, auth, groupId, draftId, version),
+        createDraftComment: (groupId: string|null, draftId: string, version: string, data: NewComment) =>
+            createDraftComment(config, auth, groupId, draftId, version, data),
+        updateDraftComment: (groupId: string|null, draftId: string, version: string, commentId: string, data: NewComment) =>
+            updateDraftComment(config, auth, groupId, draftId, version, commentId, data),
+        deleteDraftComment: (groupId: string|null, draftId: string, version: string, commentId: string) =>
+            deleteDraftComment(config, auth, groupId, draftId, version, commentId),
+    };
+};

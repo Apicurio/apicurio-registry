@@ -3,6 +3,7 @@ export * from "./useAlertsService";
 export * from "./useAppNavigation";
 export * from "./useConfigService";
 export * from "./useDownloadService";
+export * from "./useDraftsService";
 export * from "./useGroupsService";
 export * from "./useLocalStorageService";
 export * from "./useLoggerService";

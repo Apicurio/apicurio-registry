@@ -1,4 +1,12 @@
-#upload-version-button {
+#generate-client-action {
+}
+
+#edit-version-button {
+    margin-left: 10px;
+}
+
+#download-artifact-button {
+    margin-left: 10px;
 }
 
 #delete-artifact-button {

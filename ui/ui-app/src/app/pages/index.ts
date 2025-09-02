@@ -2,6 +2,7 @@ export * from "./404";
 export * from "./artifact";
 export * from "./branch";
 export * from "./drafts";
+export * from "./editor";
 export * from "./explore";
 export * from "./search";
 export * from "./group";

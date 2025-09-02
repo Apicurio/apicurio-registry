@@ -18,7 +18,7 @@ import { If } from "@apicurio/common-ui-components";
 /**
  * Properties
  */
-export type GroupListProps = {
+export type ExploreGroupListProps = {
     isFiltered: boolean;
     groups: SearchedGroup[];
 };
@@ -27,7 +27,7 @@ export type GroupListProps = {
 /**
  * Models the list of groups.
  */
-export const ExploreGroupList: FunctionComponent<GroupListProps> = (props: GroupListProps) => {
+export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props: ExploreGroupListProps) => {
 
     const description = (group: SearchedGroup): string => {
         if (group.description) {

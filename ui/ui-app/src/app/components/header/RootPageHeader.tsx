@@ -64,8 +64,8 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
         <Tab data-testid="search-tab" key={SEARCH_PAGE_IDX} eventKey={SEARCH_PAGE_IDX} title={<TabTitleText>Search</TabTitleText>} />,
     ];
 
-    // Add Drafts tab if mutability is enabled
-    if (config.featureDraftMutability()) {
+    // Add Drafts tab if mutability is enabled and user is a developer or admin
+    if (config.featureDraftMutability() && user.isUserDeveloper()) {
         tabs.push(
             <Tab data-testid="drafts-tab" key={DRAFTS_PAGE_IDX} eventKey={DRAFTS_PAGE_IDX} title={<TabTitleText>Drafts</TabTitleText>} />,
         );

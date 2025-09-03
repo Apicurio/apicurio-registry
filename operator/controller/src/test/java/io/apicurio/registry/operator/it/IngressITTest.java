@@ -159,23 +159,19 @@ public class IngressITTest extends ITBase {
 
     @Test
     void multiHostsPerSecret() {
-        final var primary = acelli(() -> {
+        final var primary = k8sCellCreate(client, () -> {
             var p = deserialize("/k8s/examples/ingress/ingress-tls.apicurioregistry3.yaml", ApicurioRegistry3.class);
 
             p.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
             p.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
 
-            client.resource(p).create();
-
             return p;
-        }, r -> client.resource(r).update());
+        });
 
-        final var appIngress = acell(() -> client.network().v1().ingresses()
-                .withName(primary.get().getMetadata().getName() + "-app-ingress").get(),
-                r -> client.resource(r).update());
-        final var uiIngress = acell(() -> client.network().v1().ingresses()
-                .withName(primary.get().getMetadata().getName() + "-ui-ingress").get(),
-                r -> client.resource(r).update());
+        final var appIngress = k8sCell(client, () -> client.network().v1().ingresses()
+                .withName(primary.get().getMetadata().getName() + "-app-ingress").get());
+        final var uiIngress = k8sCell(client, () -> client.network().v1().ingresses()
+                .withName(primary.get().getMetadata().getName() + "-ui-ingress").get());
 
         // Verify the ingress is created with correct TLS configuration
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {

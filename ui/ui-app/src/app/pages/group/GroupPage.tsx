@@ -249,7 +249,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     }, [groupId]);
 
     const tabs: any[] = [
-        <Tab data-testid="overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
+        <Tab data-testid="group-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
             <GroupOverviewTabContent
                 group={group as GroupMetaData}
                 onEditMetaData={() => setIsEditModalOpen(true)}
@@ -259,7 +259,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 onDeleteArtifact={onDeleteArtifact}
             />
         </Tab>,
-        <Tab data-testid="rules-tab" eventKey="rules" title="Rules" key="rules" tabContentId="tab-rules">
+        <Tab data-testid="group-rules-tab" eventKey="rules" title="Rules" key="rules" tabContentId="tab-rules">
             <GroupRulesTabContent
                 group={group as GroupMetaData}
                 rules={rules}

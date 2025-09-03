@@ -358,7 +358,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     }, [groupId, artifactId]);
 
     const tabs: any[] = [
-        <Tab data-testid="overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
+        <Tab data-testid="artifact-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
             <ArtifactOverviewTabContent
                 artifact={artifact as ArtifactMetaData}
                 rules={rules}
@@ -371,7 +371,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 onChangeOwner={openChangeOwnerModal}
             />
         </Tab>,
-        <Tab data-testid="rules-tab" eventKey="rules" title="Rules" key="rules" tabContentId="tab-rules">
+        <Tab data-testid="artifact-rules-tab" eventKey="rules" title="Rules" key="rules" tabContentId="tab-rules">
             <ArtifactRulesTabContent
                 artifact={artifact as ArtifactMetaData}
                 rules={rules}
@@ -380,7 +380,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 onConfigureRule={doConfigureRule}
             />
         </Tab>,
-        <Tab data-testid="branches-tab" eventKey="branches" title="Branches" key="branches" tabContentId="tab-branches">
+        <Tab data-testid="artifact-branches-tab" eventKey="branches" title="Branches" key="branches" tabContentId="tab-branches">
             <ArtifactBranchesTabContent
                 artifact={artifact as ArtifactMetaData}
                 onCreateBranch={() => {setIsCreateBranchModalOpen(true);}}

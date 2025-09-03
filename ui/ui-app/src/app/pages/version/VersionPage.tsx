@@ -230,20 +230,20 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     }, [groupId, artifactId, version]);
 
     const tabs: any[] = [
-        <Tab data-testid="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
+        <Tab data-testid="version-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
             <VersionInfoTabContent
                 artifact={artifact as ArtifactMetaData}
                 version={artifactVersion as VersionMetaData}
                 onEditMetaData={openEditMetaDataModal}
             />
         </Tab>,
-        <Tab data-testid="documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab">
+        <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
             <DocumentationTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
         </Tab>,
-        <Tab data-testid="content-tab" eventKey="content" title="Content" key="content">
+        <Tab data-testid="version-content-tab" eventKey="content" title="Content" key="content" tabContentId="tab-content">
             <ContentTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
         </Tab>,
-        <Tab data-testid="references-tab" eventKey="references" title="References" key="references">
+        <Tab data-testid="version-references-tab" eventKey="references" title="References" key="references" tabContentId="tab-references">
             <ReferencesTabContent version={artifactVersion as VersionMetaData} />
         </Tab>,
     ];

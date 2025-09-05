@@ -1,17 +1,21 @@
-.artifacts-toolbar {
+.search-toolbar {
     padding-left: 8px;
     padding-right: 24px;
 }
 
-.artifacts-toolbar > div {
+.search-toolbar > div {
     width: 100%;
 }
 
-.artifacts-toolbar .filter-types-toggle span.pf-v5-c-menu-toggle__text {
+.search-toolbar .filter-types-toggle span.pf-v5-c-menu-toggle__text {
     width: 125px;
     text-align: left;
 }
 
-#artifacts-toolbar-1 .tbi-filter-type {
+#search-toolbar-1 .tbi-filter-type {
     margin-right: 0;
+}
+
+#search-toolbar-2 {
+    padding-top: 0;
 }

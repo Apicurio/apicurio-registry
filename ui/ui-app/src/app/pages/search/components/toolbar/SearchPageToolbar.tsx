@@ -1,56 +1,48 @@
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent } from "react";
 import "./SearchPageToolbar.css";
+import { Button, capitalize, Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+import { SyncAltIcon } from "@patternfly/react-icons";
+import { SortOrderToggle } from "@app/components";
 import {
-    Button,
-    ButtonVariant,
-    capitalize,
-    Form,
-    InputGroup,
-    Pagination,
-    TextInput,
-    Toolbar,
-    ToolbarContent,
-    ToolbarItem
-} from "@patternfly/react-core";
-import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
-import { IfAuth, IfFeature } from "@app/components";
-import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
-import { If, ObjectDropdown, ObjectSelect } from "@apicurio/common-ui-components";
-import { useLoggerService } from "@services/useLoggerService.ts";
+    ChipFilterCriteria,
+    ChipFilterInput,
+    ChipFilterType,
+    FilterChips,
+    ObjectSelect
+} from "@apicurio/common-ui-components";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { plural } from "pluralize";
 import { Paging } from "@models/Paging.ts";
-import { FilterBy } from "@services/useSearchService.ts";
-import { ArtifactSearchResults, GroupSearchResults } from "@sdk/lib/generated-client/models";
-import { useConfigService } from "@services/useConfigService.ts";
-
-export type SearchPageToolbarFilterCriteria = {
-    filterBy: FilterBy;
-    filterValue: string;
-    ascending: boolean;
-};
+import { FilterBy, SearchFilter } from "@services/useSearchService.ts";
+import {
+    ArtifactSearchResults,
+    ArtifactSortBy,
+    ArtifactSortByObject,
+    GroupSearchResults,
+    GroupSortBy,
+    GroupSortByObject,
+    VersionSearchResults,
+    VersionSortBy,
+    VersionSortByObject
+} from "@sdk/lib/generated-client/models";
+import { SortOrder } from "@models/SortOrder.ts";
 
 export type SearchPageToolbarProps = {
     searchType: SearchType;
-    results: ArtifactSearchResults | GroupSearchResults;
-    onSearchTypeChange: (searchType: SearchType) => void;
-    onCriteriaChange: (criteria: SearchPageToolbarFilterCriteria) => void;
-    criteria: SearchPageToolbarFilterCriteria;
+    results: ArtifactSearchResults | GroupSearchResults | VersionSearchResults;
+    filters: SearchFilter[];
     paging: Paging;
-    onPerPageSelect: OnPerPageSelect;
-    onSetPage: OnSetPage;
-    onCreateArtifact: () => void;
-    onCreateGroup: () => void;
-    onImport: () => void;
-    onExport: () => void;
+    sortBy: VersionSortBy | GroupSortBy | ArtifactSortBy;
+    sortOrder: SortOrder;
+
+    onSearchTypeChange: (searchType: SearchType) => void;
+    onFilterChange: (filters: SearchFilter[]) => void;
+    onPageChange: (paging: Paging) => void;
+    onSortChange: (sortBy: VersionSortBy | GroupSortBy | ArtifactSortBy, sortOrder: SortOrder) => void;
+    onRefresh: () => void;
 };
 
-type FilterType = {
-    value: FilterBy;
-    label: string;
-    testId: string;
-};
-const ARTIFACT_FILTER_TYPES: FilterType[] = [
+const ARTIFACT_FILTER_TYPES: ChipFilterType[] = [
     { value: FilterBy.name, label: "Name", testId: "artifact-filter-typename" },
     { value: FilterBy.groupId, label: "Group", testId: "artifact-filter-typegroup" },
     { value: FilterBy.description, label: "Description", testId: "artifact-filter-typedescription" },
@@ -58,189 +50,235 @@ const ARTIFACT_FILTER_TYPES: FilterType[] = [
     { value: FilterBy.globalId, label: "Global Id", testId: "artifact-filter-typeglobal-id" },
     { value: FilterBy.contentId, label: "Content Id", testId: "artifact-filter-typecontent-id" },
 ];
-const GROUP_FILTER_TYPES: FilterType[] = [
+const GROUP_FILTER_TYPES: ChipFilterType[] = [
     { value: FilterBy.groupId, label: "Group", testId: "group-filter-typegroup" },
     { value: FilterBy.description, label: "Description", testId: "group-filter-typedescription" },
     { value: FilterBy.labels, label: "Labels", testId: "group-filter-typelabels" },
 ];
-
-
-type ActionType = {
-    label: string;
-    callback: () => void;
-};
+const VERSION_FILTER_TYPES: ChipFilterType[] = [
+    { value: FilterBy.artifactId, label: "Artifact Id", testId: "artifact-id-filter-typegroup" },
+    { value: FilterBy.artifactType, label: "Type", testId: "type-filter-typegroup" },
+    { value: FilterBy.contentId, label: "Content Id", testId: "content-id-filter-typegroup" },
+    { value: FilterBy.description, label: "Description", testId: "description-filter-typegroup" },
+    { value: FilterBy.globalId, label: "Global  Id", testId: "global-id-filter-typegroup" },
+    { value: FilterBy.groupId, label: "Group", testId: "group-filter-typegroup" },
+    { value: FilterBy.labels, label: "Label", testId: "label-filter-typegroup" },
+    { value: FilterBy.name, label: "Name", testId: "name-filter-typegroup" },
+    { value: FilterBy.state, label: "State", testId: "state-filter-typegroup" },
+    { value: FilterBy.version, label: "Version", testId: "version-filter-typegroup" },
+];
+const FILTER_TYPE_LOOKUP: any = {};
+VERSION_FILTER_TYPES.forEach(filterType => {
+    FILTER_TYPE_LOOKUP[filterType.value] = filterType;
+});
 
 /**
  * Models the toolbar for the Search page.
  */
 export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (props: SearchPageToolbarProps) => {
-    const [artifactFilterType, setArtifactFilterType] = useState(ARTIFACT_FILTER_TYPES[0]);
-    const [groupFilterType, setGroupFilterType] = useState(GROUP_FILTER_TYPES[0]);
-    const [filterValue, setFilterValue] = useState("");
-    const [filterAscending, setFilterAscending] = useState(true);
+    const filterCriteria: ChipFilterCriteria[] = props.filters.map(c => {
+        return {
+            filterBy: FILTER_TYPE_LOOKUP[c.by],
+            filterValue: c.value
+        };
+    });
 
-    const logger = useLoggerService();
-    const config = useConfigService();
+    let filterTypes: ChipFilterType[];
+    let sortItems: (VersionSortBy | GroupSortBy | ArtifactSortBy)[];
+    switch (props.searchType) {
+        case SearchType.ARTIFACT:
+            filterTypes = ARTIFACT_FILTER_TYPES;
+            sortItems = [
+                ArtifactSortByObject.ArtifactId,
+                ArtifactSortByObject.GroupId,
+                ArtifactSortByObject.Name,
+                ArtifactSortByObject.ModifiedOn
+            ];
+            break;
+        case SearchType.GROUP:
+            filterTypes = GROUP_FILTER_TYPES;
+            sortItems = [
+                GroupSortByObject.GroupId,
+                GroupSortByObject.ModifiedOn,
+                GroupSortByObject.CreatedOn
+            ];
+            break;
+        case SearchType.VERSION:
+            filterTypes = VERSION_FILTER_TYPES;
+            sortItems = [
+                VersionSortByObject.GroupId,
+                VersionSortByObject.ArtifactId,
+                VersionSortByObject.Version,
+                VersionSortByObject.Name,
+                VersionSortByObject.CreatedOn,
+                VersionSortByObject.ModifiedOn,
+                VersionSortByObject.GlobalId,
+            ];
+            break;
+    }
 
-    const totalArtifactsCount = (): number => {
+    const totalCount = (): number => {
         return props.results.count!;
     };
 
-    const onFilterSubmit = (event: any|undefined): void => {
-        const filterTypeValue: FilterBy = (props.searchType === SearchType.ARTIFACT) ? artifactFilterType.value : groupFilterType.value;
-        fireChangeEvent(filterAscending, filterTypeValue, filterValue);
-        if (event) {
-            event.preventDefault();
-        }
-    };
-
-    const onArtifactFilterTypeChange = (newType: FilterType): void => {
-        setArtifactFilterType(newType);
-        fireChangeEvent(filterAscending, newType.value, filterValue);
-    };
-
-    const onGroupFilterTypeChange = (newType: FilterType): void => {
-        setGroupFilterType(newType);
-        fireChangeEvent(filterAscending, newType.value, filterValue);
-    };
-
-    const onToggleAscending = (): void => {
-        logger.debug("[SearchPageToolbar] Toggle the ascending flag.");
-        const filterTypeValue: FilterBy = (props.searchType === SearchType.ARTIFACT) ? artifactFilterType.value : groupFilterType.value;
-        const newAscending: boolean = !filterAscending;
-        setFilterAscending(newAscending);
-        fireChangeEvent(newAscending, filterTypeValue, filterValue);
-    };
-
-    const fireChangeEvent = (ascending: boolean, filterBy: FilterBy, filterValue: string): void => {
-        const criteria: SearchPageToolbarFilterCriteria = {
-            ascending,
-            filterBy,
-            filterValue
+    const onSetPage = (_event: any, newPage: number, perPage?: number): void => {
+        const newPaging: Paging = {
+            page: newPage,
+            pageSize: perPage ? perPage : props.paging.pageSize
         };
-        props.onCriteriaChange(criteria);
+        props.onPageChange(newPaging);
     };
 
-    const onSearchTypeChange = (newSearchType: SearchType): void => {
-        setFilterAscending(true);
-        setFilterValue("");
-        if (newSearchType === SearchType.ARTIFACT) {
-            setArtifactFilterType(ARTIFACT_FILTER_TYPES[0]);
-        } else if (newSearchType === SearchType.GROUP) {
-            setGroupFilterType(GROUP_FILTER_TYPES[0]);
+    const onPerPageSelect = (_event: any, newPerPage: number): void => {
+        const newPaging: Paging = {
+            page: props.paging.page,
+            pageSize: newPerPage
+        };
+        props.onPageChange(newPaging);
+    };
+
+    const fireFilterChange = (filters: SearchFilter[]): void => {
+        props.onFilterChange(filters);
+    };
+
+    const onAddFilterCriteria = (criteria: ChipFilterCriteria): void => {
+        if (criteria.filterValue === "") {
+            fireFilterChange(props.filters);
+        } else {
+            const dsf: SearchFilter = {
+                by: criteria.filterBy.value,
+                value: criteria.filterValue
+            };
+
+            let updated: boolean = false;
+            const newCriteria: SearchFilter[] = props.filters.map(filter => {
+                if (filter.by === criteria.filterBy.value) {
+                    updated = true;
+                    return dsf;
+                } else {
+                    return filter;
+                }
+            });
+            if (!updated) {
+                newCriteria.push(dsf);
+            }
+
+            fireFilterChange(newCriteria);
         }
-        props.onSearchTypeChange(newSearchType);
     };
 
-    const adminActions: ActionType[] = config.featureReadOnly() ? [
-        { label: "Export all (as .ZIP)", callback: () => props.onExport() }
-    ] : [
-        { label: "Import from .ZIP", callback: () => props.onImport() },
-        { label: "Export all (as .ZIP)", callback: () => props.onExport() }
-    ];
+    const onRemoveFilterCriteria = (criteria: ChipFilterCriteria): void => {
+        const newFilters: SearchFilter[] = props.filters.filter(c => c.by !== criteria.filterBy.value);
+        fireFilterChange(newFilters);
+    };
+
+    const onRemoveAllFilterCriteria = (): void => {
+        fireFilterChange([]);
+    };
+
+    const sortByLabel = (sortBy: VersionSortBy | ArtifactSortBy | GroupSortBy): string => {
+        switch (sortBy) {
+            case GroupSortByObject.GroupId:
+            case ArtifactSortByObject.GroupId:
+            case VersionSortByObject.GroupId:
+                return "Group Id";
+            case ArtifactSortByObject.ArtifactId:
+            case VersionSortByObject.ArtifactId:
+                return "Artifact Id";
+            case ArtifactSortByObject.Name:
+            case VersionSortByObject.Name:
+                return "Name";
+            case GroupSortByObject.ModifiedOn:
+            case ArtifactSortByObject.ModifiedOn:
+            case VersionSortByObject.ModifiedOn:
+                return "Modified On";
+            case GroupSortByObject.CreatedOn:
+            case ArtifactSortByObject.CreatedOn:
+            case VersionSortByObject.CreatedOn:
+                return "Created On";
+            case ArtifactSortByObject.ArtifactType:
+                return "Type";
+            case VersionSortByObject.Version:
+                return "Version";
+            case VersionSortByObject.GlobalId:
+                return "Global Id";
+        }
+        return "" + sortBy;
+    };
 
     return (
-        <Toolbar id="artifacts-toolbar-1" className="artifacts-toolbar">
-            <ToolbarContent>
-                <ToolbarItem variant="label">
-                    Search for
-                </ToolbarItem>
-                <ToolbarItem className="filter-item">
-                    <ObjectSelect
-                        value={props.searchType}
-                        items={[SearchType.ARTIFACT, SearchType.GROUP]}
-                        testId="search-type-select"
-                        toggleClassname="search-type-toggle"
-                        onSelect={onSearchTypeChange}
-                        itemToTestId={(item) => `search-type-${plural(item.toString().toLowerCase())}`}
-                        itemToString={(item) => capitalize(plural(item.toString().toLowerCase()))} />
-                </ToolbarItem>
-                <ToolbarItem variant="label">
-                    filter by
-                </ToolbarItem>
-                <ToolbarItem className="filter-item">
-                    <Form onSubmit={onFilterSubmit}>
-                        <InputGroup>
-                            <If condition={props.searchType === SearchType.ARTIFACT}>
-                                <ObjectSelect
-                                    value={artifactFilterType}
-                                    items={ARTIFACT_FILTER_TYPES}
-                                    testId="artifact-filter-type-select"
-                                    toggleClassname="artifact-filter-type-toggle"
-                                    onSelect={onArtifactFilterTypeChange}
-                                    itemToTestId={(item) => item.testId}
-                                    itemToString={(item) => item.label} />
-                            </If>
-                            <If condition={props.searchType === SearchType.GROUP}>
-                                <ObjectSelect
-                                    value={groupFilterType}
-                                    items={GROUP_FILTER_TYPES}
-                                    testId="group-filter-type-select"
-                                    toggleClassname="group-filter-type-toggle"
-                                    onSelect={onGroupFilterTypeChange}
-                                    itemToTestId={(item) => item.testId}
-                                    itemToString={(item) => item.label} />
-                            </If>
-                            <TextInput name="filterValue" id="filterValue" type="search"
-                                value={filterValue}
-                                onChange={(_evt, value) => setFilterValue(value)}
-                                data-testid="artifact-filter-value"
-                                aria-label="search input example"/>
-                            <Button variant={ButtonVariant.control}
-                                onClick={onFilterSubmit}
-                                data-testid="artifact-filter-search"
-                                aria-label="search button for search input">
-                                <SearchIcon/>
-                            </Button>
-                        </InputGroup>
-                    </Form>
-                </ToolbarItem>
-                <ToolbarItem className="sort-icon-item">
-                    <Button variant="plain" aria-label="edit" data-testid="artifact-filter-sort" onClick={onToggleAscending}>
-                        {
-                            filterAscending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
-                        }
-                    </Button>
-                </ToolbarItem>
-                <ToolbarItem className="create-artifact-item">
-                    <IfAuth isDeveloper={true}>
-                        <IfFeature feature="readOnly" isNot={true}>
-                            <If condition={props.searchType === SearchType.ARTIFACT}>
-                                <Button className="btn-header-create-artifact" data-testid="btn-toolbar-create-artifact"
-                                    variant="primary" onClick={props.onCreateArtifact}>Create artifact</Button>
-                            </If>
-                            <If condition={props.searchType === SearchType.GROUP}>
-                                <Button className="btn-header-create-group" data-testid="btn-toolbar-create-group"
-                                    variant="primary" onClick={props.onCreateGroup}>Create group</Button>
-                            </If>
-                        </IfFeature>
-                    </IfAuth>
-                </ToolbarItem>
-                <ToolbarItem className="admin-actions-item">
-                    <IfAuth isAdmin={true}>
-                        <ObjectDropdown
-                            label="Admin actions"
-                            items={adminActions}
-                            onSelect={(item) => item.callback()}
-                            itemToString={(item) => item.label}
-                            isKebab={true} />
-                    </IfAuth>
-                </ToolbarItem>
-                <ToolbarItem className="artifact-paging-item" align={{ default: "alignRight" }}>
-                    <Pagination
-                        variant="top"
-                        dropDirection="down"
-                        itemCount={totalArtifactsCount()}
-                        perPage={props.paging.pageSize}
-                        page={props.paging.page}
-                        onSetPage={props.onSetPage}
-                        onPerPageSelect={props.onPerPageSelect}
-                        widgetId="artifact-list-pagination"
-                        className="artifact-list-pagination"
-                    />
-                </ToolbarItem>
-            </ToolbarContent>
-        </Toolbar>
+        <div>
+            <Toolbar id="artifacts-toolbar-1" className="artifacts-toolbar">
+                <ToolbarContent>
+                    <ToolbarItem variant="label">
+                        Search for
+                    </ToolbarItem>
+                    <ToolbarItem className="filter-item">
+                        <ObjectSelect
+                            value={props.searchType}
+                            items={[SearchType.ARTIFACT, SearchType.GROUP, SearchType.VERSION]}
+                            testId="search-type-select"
+                            toggleClassname="search-type-toggle"
+                            onSelect={props.onSearchTypeChange}
+                            itemToTestId={(item) => `search-type-${plural(item.toString().toLowerCase())}`}
+                            itemToString={(item) => capitalize(plural(item.toString().toLowerCase()))} />
+                    </ToolbarItem>
+                    <ToolbarItem variant="label">
+                        filter by
+                    </ToolbarItem>
+                    <ToolbarItem className="filter-item">
+                        <ChipFilterInput
+                            filterTypes={filterTypes}
+                            onAddCriteria={onAddFilterCriteria} />
+                        <Button
+                            variant="control" aria-label="Refresh"
+                            className="btn-header-refresh" data-testid="btn-toolbar-refresh"
+                            icon={<SyncAltIcon title="Refresh" />}
+                            onClick={props.onRefresh}
+                        />
+                    </ToolbarItem>
+                    <ToolbarItem variant="label" id="order-by-label">
+                        Order by
+                    </ToolbarItem>
+                    <ToolbarItem className="ordering-item">
+                        <ObjectSelect
+                            value={props.sortBy}
+                            items={sortItems}
+                            onSelect={(newSortBy) => {
+                                props.onSortChange(newSortBy, props.sortOrder);
+                            }}
+                            itemToString={item => sortByLabel(item)}
+                        />
+                        <SortOrderToggle sortOrder={props.sortOrder} onChange={(newSortOrder => {
+                            props.onSortChange(props.sortBy, newSortOrder);
+                        })} />
+                    </ToolbarItem>
+                </ToolbarContent>
+            </Toolbar>
+            <Toolbar id="search-toolbar-2" className="search-toolbar">
+                <ToolbarContent>
+                    <ToolbarItem className="filter-chips">
+                        <FilterChips
+                            criteria={filterCriteria}
+                            onClearAllCriteria={onRemoveAllFilterCriteria}
+                            onRemoveCriteria={onRemoveFilterCriteria} />
+                    </ToolbarItem>
+                    <ToolbarItem className="draft-paging-item" align={{ default: "alignRight" }}>
+                        <Pagination
+                            variant="top"
+                            dropDirection="down"
+                            itemCount={totalCount()}
+                            perPage={props.paging.pageSize}
+                            page={props.paging.page}
+                            onSetPage={onSetPage}
+                            onPerPageSelect={onPerPageSelect}
+                            widgetId="draft-list-pagination"
+                            className="draft-list-pagination"
+                        />
+                    </ToolbarItem>
+                </ToolbarContent>
+            </Toolbar>
+        </div>
     );
 
 };

@@ -2,38 +2,34 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./SearchPage.css";
 import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
 import {
-    ArtifactList,
-    SearchPageEmptyState,
-    SearchPageToolbar,
-    SearchPageToolbarFilterCriteria,
-    ExploreGroupList,
-    ImportModal,
+    SearchArtifactList,
     PageDataLoader,
     PageError,
     PageErrorHandler,
     PageProperties,
-    toPageError, SEARCH_PAGE_IDX
+    SEARCH_PAGE_IDX,
+    SearchPageEmptyState,
+    SearchPageToolbar,
+    toPageError, SearchGroupList, SearchVersionList
 } from "@app/pages";
-import { CreateArtifactModal, CreateGroupModal, InvalidContentModal, RootPageHeader } from "@app/components";
-import { If, ListWithToolbar, PleaseWaitModal, ProgressModal } from "@apicurio/common-ui-components";
-import { useGroupsService } from "@services/useGroupsService.ts";
-import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
-import { useAdminService } from "@services/useAdminService.ts";
-import { useLoggerService } from "@services/useLoggerService.ts";
+import { RootPageHeader } from "@app/components";
+import { If, ListWithToolbar } from "@apicurio/common-ui-components";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { Paging } from "@models/Paging.ts";
-import { FilterBy, SearchFilter, useSearchService } from "@services/useSearchService.ts";
+import { SearchFilter, useSearchService } from "@services/useSearchService.ts";
 import {
     ArtifactSearchResults,
+    ArtifactSortBy,
     ArtifactSortByObject,
-    CreateArtifact,
-    CreateGroup,
     GroupSearchResults,
-    GroupSortByObject,
-    RuleViolationProblemDetails,
-    SortOrder,
-    SortOrderObject
+    GroupSortBy,
+    GroupSortByObject, SearchedGroup, SearchedVersion,
+    VersionSearchResults,
+    VersionSortBy,
+    VersionSortByObject
 } from "@sdk/lib/generated-client/models";
+import { SortOrder } from "@models/SortOrder.ts";
+import { useAppNavigation } from "@services/useAppNavigation.ts";
 
 const EMPTY_RESULTS: ArtifactSearchResults = {
     artifacts: [],
@@ -52,63 +48,18 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [searchType, setSearchType] = useState(SearchType.ARTIFACT);
-    const [criteria, setCriteria] = useState<SearchPageToolbarFilterCriteria>({
-        filterBy: FilterBy.name,
-        filterValue: "",
-        ascending: true
-    });
-    const [isCreateArtifactModalOpen, setCreateArtifactModalOpen] = useState<boolean>(false);
-    const [isCreateGroupModalOpen, setCreateGroupModalOpen] = useState<boolean>(false);
-    const [isImportModalOpen, setImportModalOpen] = useState<boolean>(false);
-    const [isInvalidContentModalOpen, setInvalidContentModalOpen] = useState<boolean>(false);
-    const [isPleaseWaitModalOpen, setPleaseWaitModalOpen] = useState<boolean>(false);
-    const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
+    const [filters, setFilters] = useState<SearchFilter[]>([]);
+    const [sortBy, setSortBy] = useState<GroupSortBy | ArtifactSortBy | VersionSortBy>(ArtifactSortByObject.ArtifactId);
+    const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.asc);
     const [isSearching, setSearching] = useState<boolean>(false);
-    const [isImporting, setImporting] = useState(false);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
-    const [results, setResults] = useState<ArtifactSearchResults | GroupSearchResults>(EMPTY_RESULTS);
-    const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
-    const [importProgress, setImportProgress] = useState(0);
+    const [results, setResults] = useState<ArtifactSearchResults | GroupSearchResults | VersionSearchResults>(EMPTY_RESULTS);
 
-    const appNavigation: AppNavigation = useAppNavigation();
-    const admin = useAdminService();
     const searchSvc = useSearchService();
-    const groups = useGroupsService();
-    const logger = useLoggerService();
+    const appNav = useAppNavigation();
 
     const createLoaders = (): Promise<any> => {
-        return search(searchType, criteria, paging);
-    };
-
-    const onCreateGroup = (): void => {
-        setCreateGroupModalOpen(true);
-    };
-
-    const onCreateArtifact = (): void => {
-        setCreateArtifactModalOpen(true);
-    };
-
-    const onImportArtifacts = (): void => {
-        setImportModalOpen(true);
-    };
-
-    const onExportArtifacts = (): void => {
-        admin.exportAs("all-artifacts.zip").then(dref => {
-            const link = document.createElement("a");
-            link.href = dref.href || "";
-            link.download = "all-artifacts.zip";
-            link.click();
-        }).catch(error => {
-            setPageError(toPageError(error, "Failed to export artifacts"));
-        });
-    };
-
-    const onCreateArtifactModalClose = (): void => {
-        setCreateArtifactModalOpen(false);
-    };
-
-    const onImportModalClose = (): void => {
-        setImportModalOpen(false);
+        return search(searchType, filters, sortBy, sortOrder, paging);
     };
 
     const onResultsLoaded = (results: ArtifactSearchResults | GroupSearchResults): void => {
@@ -116,151 +67,102 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
         setResults(results);
     };
 
-    const doImport = (file: File | undefined): void => {
-        setImporting(true);
-        setImportProgress(0);
-        setImportModalOpen(false);
 
-        if (file != null) {
-            admin.importFrom(file, (event: any) => {
-                let progress: number = 0;
-                if (event.lengthComputable) {
-                    progress = Math.round(100 * (event.loaded / event.total));
-                }
-                setImportProgress(progress);
-            }).then(() => {
-                setTimeout(() => {
-                    setImporting(false);
-                    setImportProgress(100);
-                    setImportModalOpen(false);
-                    search(searchType, criteria, paging);
-                }, 1500);
-            }).catch(error => {
-                setPageError(toPageError(error, "Error importing multiple artifacts"));
-            });
-        }
-    };
-
-    const doCreateArtifact = (groupId: string | undefined, data: CreateArtifact): void => {
-        onCreateArtifactModalClose();
-        pleaseWait(true);
-
-        if (data !== null) {
-            groups.createArtifact(groupId || "default", data).then(response => {
-                const groupId: string = response.artifact!.groupId || "default";
-                const artifactLocation: string = `/search/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact!.artifactId!) }`;
-                logger.info("[SearchPage] Artifact successfully created.  Redirecting to details: ", artifactLocation);
-                appNavigation.navigateTo(artifactLocation);
-            }).catch( error => {
-                pleaseWait(false);
-                if (error && (error.status === 400 || error.status === 409)) {
-                    handleInvalidContentError(error);
-                } else {
-                    setPageError(toPageError(error, "Error creating artifact."));
-                }
-            });
-        }
-    };
-
-    const doCreateGroup = (data: CreateGroup): void => {
-        setCreateGroupModalOpen(false);
-        pleaseWait(true);
-
-        groups.createGroup(data).then(response => {
-            const groupId: string = response.groupId!;
-            const groupLocation: string = `/search/${ encodeURIComponent(groupId) }`;
-            logger.info("[SearchPage] Group successfully created.  Redirecting to details page: ", groupLocation);
-            appNavigation.navigateTo(groupLocation);
-        }).catch( error => {
-            pleaseWait(false);
-            if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
-            } else {
-                setPageError(toPageError(error, "Error creating group."));
-            }
-        });
-    };
-
-    const onFilterCriteriaChange = (newCriteria: SearchPageToolbarFilterCriteria): void => {
-        setCriteria(newCriteria);
-        search(searchType, newCriteria, paging);
+    const onFilterChange = (filters: SearchFilter[]): void => {
+        setFilters(filters);
+        search(searchType, filters, sortBy, sortOrder, paging);
     };
 
     const isFiltered = (): boolean => {
-        return !!criteria.filterValue;
+        return filters.length > 0;
     };
 
-    const search = async (searchType: SearchType, criteria: SearchPageToolbarFilterCriteria, paging: Paging): Promise<any> => {
+    const search = async (searchType: SearchType, filters: SearchFilter[],
+        sortBy: GroupSortBy | ArtifactSortBy | VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<any> =>
+    {
         setSearching(true);
-        const filters: SearchFilter[] = [
-            {
-                by: criteria.filterBy,
-                value: criteria.filterValue
-            }
-        ];
 
-        const sortOrder: SortOrder = criteria.ascending ? SortOrderObject.Asc : SortOrderObject.Desc;
         if (searchType === SearchType.ARTIFACT) {
-            return searchSvc.searchArtifacts(filters, ArtifactSortByObject.Name, sortOrder, paging).then(results => {
+            return searchSvc.searchArtifacts(filters, sortBy as ArtifactSortBy, sortOrder, paging).then(results => {
                 onResultsLoaded(results);
             }).catch(error => {
                 setPageError(toPageError(error, "Error searching for artifacts."));
             });
         } else if (searchType === SearchType.GROUP) {
-            return searchSvc.searchGroups(filters, GroupSortByObject.GroupId, sortOrder, paging).then(results => {
+            return searchSvc.searchGroups(filters, sortBy as GroupSortBy, sortOrder, paging).then(results => {
                 onResultsLoaded(results);
             }).catch(error => {
                 setPageError(toPageError(error, "Error searching for groups."));
             });
+        } else if (searchType === SearchType.VERSION) {
+            return searchSvc.searchVersions(filters, sortBy as VersionSortBy, sortOrder, paging).then(results => {
+                onResultsLoaded(results);
+            }).catch(error => {
+                setPageError(toPageError(error, "Error searching for versions."));
+            });
         }
     };
 
-    const onSetPage = (_event: any, newPage: number, perPage?: number): void => {
-        const newPaging: Paging = {
-            page: newPage,
-            pageSize: perPage ? perPage : paging.pageSize
-        };
-        setPaging(newPaging);
-        search(searchType, criteria, newPaging);
-    };
-
-    const onPerPageSelect = (_event: any, newPerPage: number): void => {
-        const newPaging: Paging = {
-            page: paging.page,
-            pageSize: newPerPage
-        };
-        setPaging(newPaging);
-        search(searchType, criteria, newPaging);
+    const onSortChange = (sortBy: VersionSortBy | GroupSortBy | ArtifactSortBy, sortOrder: SortOrder): void => {
+        setSortBy(sortBy);
+        setSortOrder(sortOrder);
+        search(searchType, filters, sortBy, sortOrder, paging);
     };
 
     const onSearchTypeChange = (newSearchType: SearchType): void => {
-        const newCriteria: SearchPageToolbarFilterCriteria = {
-            filterBy: FilterBy.name,
-            filterValue: "",
-            ascending: true
-        };
+        const newFilters: SearchFilter[] = [];
         const newPaging: Paging = DEFAULT_PAGING;
+        let newSortBy: GroupSortBy | ArtifactSortBy | VersionSortBy;
+        const newSortOrder: SortOrder = SortOrder.asc;
+
+        switch (newSearchType) {
+            case SearchType.GROUP:
+                newSortBy = GroupSortByObject.GroupId;
+                break;
+            case SearchType.ARTIFACT:
+                newSortBy = ArtifactSortByObject.ArtifactId;
+                break;
+            case SearchType.VERSION:
+                newSortBy = VersionSortByObject.ArtifactId;
+                break;
+        }
 
         setPaging(newPaging);
-        setCriteria(newCriteria);
+        setFilters(newFilters);
         setSearchType(newSearchType);
+        setSortBy(newSortBy);
+        setSortOrder(newSortOrder);
 
-        search(newSearchType, newCriteria, newPaging);
+        search(newSearchType, newFilters, newSortBy, newSortOrder, newPaging);
     };
 
-    const closeInvalidContentModal = (): void => {
-        setInvalidContentModalOpen(false);
+    const onEditVersion = (version: SearchedVersion): void => {
+        const gid: string = encodeURIComponent(version.groupId || "default");
+        const aid: string = encodeURIComponent(version.artifactId!);
+        const ver: string = encodeURIComponent(version.version!);
+        const link: string = `/explore/${gid}/${aid}/versions/${ver}/edit`;
+        appNav.navigateTo(link);
     };
 
-    const pleaseWait = (isOpen: boolean, message: string = ""): void => {
-        setPleaseWaitModalOpen(isOpen);
-        setPleaseWaitMessage(message);
+    const onExploreGroup = (group: SearchedGroup): void => {
+        const gid: string = encodeURIComponent(group.groupId || "default");
+        const link: string = `/explore/${gid}`;
+        appNav.navigateTo(link);
     };
 
-    const handleInvalidContentError = (error: any): void => {
-        logger.info("[SearchPage] Invalid content error:", error);
-        setInvalidContentError(error);
-        setInvalidContentModalOpen(true);
+    const onExploreArtifact = (artifact: SearchedVersion): void => {
+        const gid: string = encodeURIComponent(artifact.groupId || "default");
+        const aid: string = encodeURIComponent(artifact.artifactId!);
+        const link: string = `/explore/${gid}/${aid}`;
+        appNav.navigateTo(link);
+    };
+
+    const onExploreVersion = (version: SearchedVersion): void => {
+        const gid: string = encodeURIComponent(version.groupId || "default");
+        const aid: string = encodeURIComponent(version.artifactId!);
+        const ver: string = encodeURIComponent(version.version!);
+        const link: string = `/explore/${gid}/${aid}/versions/${ver}`;
+        appNav.navigateTo(link);
     };
 
     useEffect(() => {
@@ -271,24 +173,25 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
         <SearchPageToolbar
             searchType={searchType}
             results={results}
-            criteria={criteria}
+            filters={filters}
             paging={paging}
-            onPerPageSelect={onPerPageSelect}
-            onSetPage={onSetPage}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onPageChange={(paging: Paging) => {
+                setPaging(paging);
+                search(searchType, filters, sortBy, sortOrder, paging);
+            }}
             onSearchTypeChange={onSearchTypeChange}
-            onCreateArtifact={onCreateArtifact}
-            onCreateGroup={onCreateGroup}
-            onExport={onExportArtifacts}
-            onImport={onImportArtifacts}
-            onCriteriaChange={onFilterCriteriaChange} />
+            onRefresh={() => {
+                search(searchType, filters, sortBy, sortOrder, paging);
+            }}
+            onSortChange={onSortChange}
+            onFilterChange={onFilterChange} />
     );
 
     const emptyState = (
         <SearchPageEmptyState
             searchType={searchType}
-            onCreateArtifact={onCreateArtifact}
-            onCreateGroup={onCreateGroup}
-            onImport={onImportArtifacts}
             isFiltered={isFiltered()}/>
     );
 
@@ -300,7 +203,7 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
                 </PageSection>
                 <PageSection className="ps_search-description" variant={PageSectionVariants.light}>
                     <TextContent>
-                        Search content in the registry by searching for groups or artifacts.
+                        Search content in the registry by searching for artifacts, versions, or groups.
                     </TextContent>
                 </PageSection>
                 <PageSection variant={PageSectionVariants.default} isFilled={true}>
@@ -313,39 +216,27 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
                         isFiltered={isFiltered()}
                         isEmpty={results.count === 0}>
                         <If condition={searchType === SearchType.ARTIFACT}>
-                            <ArtifactList artifacts={(results as ArtifactSearchResults).artifacts!} />
+                            <SearchArtifactList
+                                artifacts={(results as ArtifactSearchResults).artifacts!}
+                                onExplore={onExploreArtifact}
+                            />
                         </If>
                         <If condition={searchType === SearchType.GROUP}>
-                            <ExploreGroupList groups={(results as GroupSearchResults).groups!} isFiltered={isFiltered()} />
+                            <SearchGroupList
+                                groups={(results as GroupSearchResults).groups!}
+                                onExplore={onExploreGroup}
+                            />
+                        </If>
+                        <If condition={searchType === SearchType.VERSION}>
+                            <SearchVersionList
+                                versions={(results as VersionSearchResults).versions!}
+                                onEdit={onEditVersion}
+                                onExplore={onExploreVersion}
+                            />
                         </If>
                     </ListWithToolbar>
                 </PageSection>
             </PageDataLoader>
-            <CreateArtifactModal
-                isOpen={isCreateArtifactModalOpen}
-                onClose={onCreateArtifactModalClose}
-                onCreate={doCreateArtifact} />
-            <CreateGroupModal
-                isOpen={isCreateGroupModalOpen}
-                onClose={() => setCreateGroupModalOpen(false)}
-                onCreate={doCreateGroup} />
-            <InvalidContentModal
-                error={invalidContentError}
-                isOpen={isInvalidContentModalOpen}
-                onClose={closeInvalidContentModal} />
-            <ImportModal
-                isOpen={isImportModalOpen}
-                onClose={onImportModalClose}
-                onImport={doImport} />
-            <PleaseWaitModal
-                message={pleaseWaitMessage}
-                isOpen={isPleaseWaitModalOpen} />
-            <ProgressModal message="Importing"
-                title="Import from .ZIP"
-                isCloseable={true}
-                progress={importProgress}
-                onClose={() => setImporting(false)}
-                isOpen={isImporting} />
         </PageErrorHandler>
     );
 

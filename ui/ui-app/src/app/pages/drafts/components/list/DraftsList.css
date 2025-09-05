@@ -33,18 +33,33 @@
     font-size: 11px;
     padding: 0 5px 0 5px;
     line-height: 12px;
+    font-weight: normal;
 }
 
 .drafts-list .drafts-list-item .content-cell .draft-title .nogroup {
     display: none;
 }
 
-.drafts-list .drafts-list-item .content-cell .draft-title .id {
+.drafts-list .drafts-list-item .content-cell .draft-title .draft-id {
+    color: #2b9af3;
+    font-size: 18px;
+}
+.drafts-list .drafts-list-item .content-cell .draft-title .draft-id::after {
+    color: #9c9c9c;
+    content: "/";
+    font-size: 11px;
+    padding: 0 5px 0 5px;
+    line-height: 12px;
+    font-weight: normal;
+}
+
+.drafts-list .drafts-list-item .content-cell .draft-title .version {
     color: #2b9af3;
     font-weight: bold;
     font-size: 18px;
     margin-right: 10px;
 }
+
 .drafts-list .drafts-list-item .content-cell .draft-title .name::before {
     content: '(';
 }

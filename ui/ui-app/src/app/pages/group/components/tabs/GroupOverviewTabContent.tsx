@@ -34,7 +34,7 @@ import {
     ArtifactSortBy,
     ArtifactSortByObject,
     GroupMetaData,
-    SearchedArtifact,
+    SearchedVersion,
     SortOrder,
     SortOrderObject
 } from "@sdk/lib/generated-client/models";
@@ -53,8 +53,8 @@ export type GroupOverviewTabContentProps = {
     onEditMetaData: () => void;
     onChangeOwner: () => void;
     onCreateArtifact: () => void;
-    onDeleteArtifact: (artifact: SearchedArtifact, successCallback?: () => void) => void;
-    onViewArtifact: (artifact: SearchedArtifact) => void;
+    onDeleteArtifact: (artifact: SearchedVersion, successCallback?: () => void) => void;
+    onViewArtifact: (artifact: SearchedVersion) => void;
 };
 
 /**
@@ -105,7 +105,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
         });
     };
 
-    const onDelete = (artifact: SearchedArtifact): void => {
+    const onDelete = (artifact: SearchedVersion): void => {
         props.onDeleteArtifact(artifact, () => {
             setTimeout(refresh, 100);
         });

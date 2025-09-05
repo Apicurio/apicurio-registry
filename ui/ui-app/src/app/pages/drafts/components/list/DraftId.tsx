@@ -29,7 +29,7 @@ export const DraftId: FunctionComponent<DraftIdProps> = (props: DraftIdProps) =>
         <React.Fragment>
             <Link title={`Explore version ${props.version} of artifact ${props.draftId}`} className="id" data-testid={`${props.testId}-id`} to={draftLink()}>
                 <span className="draft-id">{props.draftId}</span>
-                <span className="version" style={{ marginLeft: "8px" }}>{props.version}</span>
+                <span className="version">{props.version}</span>
             </Link>
             <If condition={props.name !== null && props.name !== undefined && props.name !== ""}>
                 <span className="name">{props.name}</span>

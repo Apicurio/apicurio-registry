@@ -1,2 +1,2 @@
-export * from "./ArtifactList.tsx";
-export * from "./ArtifactName.tsx";
+export * from "./SearchArtifactList.tsx";
+export * from "./SearchArtifactName.tsx";

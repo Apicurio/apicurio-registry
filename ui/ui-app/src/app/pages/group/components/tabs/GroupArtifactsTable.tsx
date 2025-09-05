@@ -9,19 +9,19 @@ import { Truncate } from "@patternfly/react-core";
 import {
     ArtifactSortBy,
     ArtifactSortByObject,
-    SearchedArtifact,
+    SearchedVersion,
     SortOrder,
     SortOrderObject
 } from "@sdk/lib/generated-client/models";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 export type GroupArtifactsTableProps = {
-    artifacts: SearchedArtifact[];
+    artifacts: SearchedVersion[];
     sortBy: ArtifactSortBy;
     sortOrder: SortOrder;
     onSort: (by: ArtifactSortBy, order: SortOrder) => void;
-    onView: (artifact: SearchedArtifact) => void;
-    onDelete: (artifact: SearchedArtifact) => void;
+    onView: (artifact: SearchedVersion) => void;
+    onDelete: (artifact: SearchedVersion) => void;
 }
 type ArtifactAction = {
     label: string;
@@ -46,11 +46,11 @@ export const GroupArtifactsTable: FunctionComponent<GroupArtifactsTableProps> = 
         { index: 3, id: "modifiedOn", label: "Modified on", width: 15, sortable: true, sortBy: ArtifactSortByObject.ModifiedOn },
     ];
 
-    const idAndName = (artifact: SearchedArtifact): string => {
+    const idAndName = (artifact: SearchedVersion): string => {
         return artifact.artifactId + (artifact.name ? ` (${artifact.name})` : "");
     };
 
-    const renderColumnData = (column: SearchedArtifact, colIndex: number): React.ReactNode => {
+    const renderColumnData = (column: SearchedVersion, colIndex: number): React.ReactNode => {
         // Name.
         if (colIndex === 0) {
             return (
@@ -87,7 +87,7 @@ export const GroupArtifactsTable: FunctionComponent<GroupArtifactsTableProps> = 
         }
     };
 
-    const actionsFor = (artifact: SearchedArtifact): (ArtifactAction | ArtifactActionSeparator)[] => {
+    const actionsFor = (artifact: SearchedVersion): (ArtifactAction | ArtifactActionSeparator)[] => {
         const ahash: number = shash(artifact.artifactId!);
 
         return config.featureDeleteArtifact() ? [
@@ -148,7 +148,7 @@ export const GroupArtifactsTable: FunctionComponent<GroupArtifactsTableProps> = 
                 renderCell={({ row, colIndex, Td }) => (
                     <Td className="artifacts-table-cell" key={`cell-${colIndex}-${shash(row.artifactId!)}`}
                         style={{ maxWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                        children={renderColumnData(row as SearchedArtifact, colIndex) as any} />
+                        children={renderColumnData(row as SearchedVersion, colIndex) as any} />
                 )}
                 renderActions={({ row }) => (
                     <ObjectDropdown

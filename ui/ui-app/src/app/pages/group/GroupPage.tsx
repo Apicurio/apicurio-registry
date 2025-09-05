@@ -31,7 +31,7 @@ import {
     Rule,
     RuleType,
     RuleViolationProblemDetails,
-    SearchedArtifact
+    SearchedVersion
 } from "@sdk/lib/generated-client/models";
 
 
@@ -51,7 +51,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [isCreateArtifactModalOpen, setCreateArtifactModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isInvalidContentModalOpen, setInvalidContentModalOpen] = useState<boolean>(false);
-    const [artifactToDelete, setArtifactToDelete] = useState<SearchedArtifact>();
+    const [artifactToDelete, setArtifactToDelete] = useState<SearchedVersion>();
     const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
     const [rules, setRules] = useState<Rule[]>([]);
 
@@ -227,13 +227,13 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         onChangeOwnerModalClose();
     };
 
-    const onViewArtifact = (artifact: SearchedArtifact): void => {
+    const onViewArtifact = (artifact: SearchedVersion): void => {
         const groupId: string = encodeURIComponent(group?.groupId || "default");
         const artifactId: string = encodeURIComponent(artifact.artifactId!);
         appNavigation.navigateTo(`/explore/${groupId}/${artifactId}`);
     };
 
-    const onDeleteArtifact = (artifact: SearchedArtifact, deleteSuccessCallback?: () => void): void => {
+    const onDeleteArtifact = (artifact: SearchedVersion, deleteSuccessCallback?: () => void): void => {
         setArtifactToDelete(artifact);
         setIsDeleteArtifactModalOpen(true);
         setArtifactDeleteSuccessCallback(() => deleteSuccessCallback);

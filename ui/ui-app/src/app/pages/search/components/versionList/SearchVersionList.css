@@ -1,0 +1,89 @@
+.version-list {
+}
+
+.version-list .version-list-item {
+    background-color: white;
+    margin-bottom: 2px;
+}
+
+.version-list .version-list-item .type-icon-cell {
+    flex: initial;
+}
+
+.version-list .version-list-item .type-icon-cell > .type-icon {
+    margin-top: 5px;
+}
+
+.version-list .version-list-item .content-cell {
+}
+
+.version-list .version-list-item .content-cell .version-title {
+}
+
+.version-list .version-list-item .content-cell .version-title a, .version-list .version-list-item .content-cell .version-title a:hover {
+    text-decoration: none;
+}
+
+.version-list .version-list-item .content-cell .version-title .group {
+    color: #2b9af3;
+    font-weight: bold;
+}
+.version-list .version-list-item .content-cell .version-title .group::after {
+    color: #9c9c9c;
+    content: "/";
+    font-size: 11px;
+    padding: 0 5px 0 5px;
+    line-height: 12px;
+}
+
+.version-list .version-list-item .content-cell .version-title .nogroup {
+    display: none;
+}
+
+.version-list .version-list-item .content-cell .version-title .id {
+    color: #2b9af3;
+    font-weight: bold;
+    font-size: 18px;
+}
+.version-list .version-list-item .content-cell .version-title .id::after {
+    color: #9c9c9c;
+    content: "/";
+    font-size: 11px;
+    padding: 0 5px 0 5px;
+    line-height: 12px;
+}
+
+.version-list .version-list-item .content-cell .version-title .version {
+    color: #2b9af3;
+    font-weight: bold;
+    font-size: 18px;
+    margin-right: 10px;
+}
+
+.version-list .version-list-item .content-cell .version-title .name::before {
+    content: '(';
+}
+.version-list .version-list-item .content-cell .version-title .name {
+    color: #2b9af3;
+    font-weight: bold;
+    font-size: 16px;
+}
+.version-list .version-list-item .content-cell .version-title .name::after {
+    content: ')';
+}
+
+.version-list .version-list-item .content-cell .version-title .status-badge {
+    margin-left: 10px;
+    border: 1px solid #ccc;
+}
+
+.version-list .version-list-item .content-cell .version-description {
+    font-size: 13px;
+}
+
+.version-list .version-list-item .content-cell .version-tags {
+}
+
+.version-list .version-list-item .content-cell .version-tags > span {
+    margin-right: 5px;
+}

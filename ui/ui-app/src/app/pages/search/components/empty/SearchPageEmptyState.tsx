@@ -1,9 +1,7 @@
 import { FunctionComponent } from "react";
 import "./SearchPageEmptyState.css";
 import {
-    Button,
     EmptyState,
-    EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
     EmptyStateIcon,
@@ -11,7 +9,6 @@ import {
     Title
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
-import { IfAuth, IfFeature } from "@app/components";
 import { If } from "@apicurio/common-ui-components";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 
@@ -21,9 +18,6 @@ import { SearchType } from "@app/pages/search/SearchType.ts";
 export type SearchPageEmptyStateProps = {
     searchType: SearchType;
     isFiltered: boolean;
-    onCreateArtifact: () => void;
-    onCreateGroup: () => void;
-    onImport: () => void;
 };
 
 
@@ -62,28 +56,6 @@ export const SearchPageEmptyState: FunctionComponent<SearchPageEmptyStateProps> 
                 </EmptyStateBody>
             </If>
             <EmptyStateFooter>
-                <EmptyStateActions>
-                    <IfAuth isDeveloper={true}>
-                        <If condition={props.searchType === SearchType.ARTIFACT}>
-                            <IfFeature feature="readOnly" isNot={true}>
-                                <Button className="empty-btn-create" variant="primary"
-                                    data-testid="empty-btn-create" onClick={props.onCreateArtifact}>Create artifact</Button>
-                            </IfFeature>
-                        </If>
-                        <If condition={props.searchType === SearchType.GROUP}>
-                            <IfFeature feature="readOnly" isNot={true}>
-                                <Button className="empty-btn-create" variant="primary"
-                                    data-testid="empty-btn-create" onClick={props.onCreateGroup}>Create group</Button>
-                            </IfFeature>
-                        </If>
-                    </IfAuth>
-                    <IfAuth isAdmin={true}>
-                        <IfFeature feature="readOnly" isNot={true}>
-                            <Button className="empty-btn-import" variant="secondary"
-                                data-testid="empty-btn-import" onClick={props.onImport}>Import from zip</Button>
-                        </IfFeature>
-                    </IfAuth>
-                </EmptyStateActions>
             </EmptyStateFooter>
         </EmptyState>
     );

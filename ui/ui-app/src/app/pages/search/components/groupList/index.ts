@@ -1,1 +1,1 @@
-export * from "./GroupList.tsx";
+export * from "./SearchGroupList.tsx";

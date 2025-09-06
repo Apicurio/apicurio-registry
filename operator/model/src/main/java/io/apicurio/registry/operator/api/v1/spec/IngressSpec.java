@@ -16,6 +16,7 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
@@ -90,4 +91,20 @@ public class IngressSpec {
             See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class.""")
     @JsonSetter(nulls = SKIP)
     private String ingressClassName;
+
+    /**
+     * Configure TLS configuration with secret-to-hosts mapping.
+     * This allows multiple hosts to share the same TLS secret.
+     * Format: { "secret-name": ["host1", "host2"], "another-secret": ["host3"] }
+     * If tlsSecrets is specified, it will be used for TLS configuration.
+     */
+    @JsonProperty("tlsSecrets")
+    @JsonPropertyDescription("""
+            Configure TLS configuration with secret-to-hosts mapping. \
+            This allows multiple hosts to share the same TLS secret. \
+            Format: { "secret-name": ["host1", "host2"], "another-secret": ["host3"] } \
+            If tlsSecrets is specified, it will be used for TLS configuration.""")
+    @JsonSetter(nulls = SKIP)
+    @JsonInclude(NON_EMPTY)
+    private Map<String, List<String>> tlsSecrets = new LinkedHashMap<>();
 }

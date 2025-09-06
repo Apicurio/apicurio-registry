@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
@@ -153,6 +154,142 @@ public class IngressITTest extends ITBase {
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(appIngress.get().getSpec().getIngressClassName()).isNotEqualTo("test---nginx");
+        });
+    }
+
+    @Test
+    void multiHostsPerSecret() {
+        final var primary = k8sCellCreate(client, () -> {
+            var p = deserialize("/k8s/examples/ingress/ingress-tls.apicurioregistry3.yaml", ApicurioRegistry3.class);
+
+            p.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
+            p.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
+
+            return p;
+        });
+
+        final var appIngress = k8sCell(client, () -> client.network().v1().ingresses()
+                .withName(primary.get().getMetadata().getName() + "-app-ingress").get());
+        final var uiIngress = k8sCell(client, () -> client.network().v1().ingresses()
+                .withName(primary.get().getMetadata().getName() + "-ui-ingress").get());
+
+        // Verify the ingress is created with correct TLS configuration
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            assertThat(appIngress.get()).isNotNull();
+
+            var tlsConfig = appIngress.getCached().getSpec().getTls();
+            assertThat(tlsConfig).isNotNull();
+            assertThat(tlsConfig).hasSize(2);
+
+            // Verify first TLS entry (app-secret with multiple hosts)
+            var firstTls = tlsConfig.get(0);
+            assertThat(firstTls.getSecretName()).isEqualTo("app-secret");
+            assertThat(firstTls.getHosts()).hasSize(2);
+            assertThat(firstTls.getHosts()).contains(
+                "ingress-class-name-app.apps.cluster.example",
+                "another-host.example.com"
+            );
+
+            // Verify second TLS entry (wildcard-secret)
+            var secondTls = tlsConfig.get(1);
+            assertThat(secondTls.getSecretName()).isEqualTo("wildcard-secret");
+            assertThat(secondTls.getHosts()).hasSize(1);
+            assertThat(secondTls.getHosts()).contains("*.example.com");
+        });
+
+        // Get the configured app host for consistency in assertions
+        String expectedAppHost = primary.get().getSpec().getApp().getIngress().getHost();
+
+        // Test updating the TLS configuration
+        primary.update(p -> {
+            Map<String, List<String>> updatedTlsSecrets = Map.of(
+                "app-secret", List.of(expectedAppHost),
+                "new-secret", List.of("new-host.example.com", "another-new-host.example.com")
+            );
+            p.getSpec().getApp().getIngress().setTlsSecrets(updatedTlsSecrets);
+        });
+
+        // Verify the ingress is updated with new TLS configuration
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            var tlsConfig = appIngress.get().getSpec().getTls();
+            assertThat(tlsConfig).hasSize(2);
+
+            // Find the entries by secret name (order might vary)
+            var appSecretTls = tlsConfig.stream()
+                .filter(tls -> "app-secret".equals(tls.getSecretName()))
+                .findFirst().orElse(null);
+            var newSecretTls = tlsConfig.stream()
+                .filter(tls -> "new-secret".equals(tls.getSecretName()))
+                .findFirst().orElse(null);
+
+            assertThat(appSecretTls).isNotNull();
+            assertThat(appSecretTls.getHosts()).hasSize(1);
+            assertThat(appSecretTls.getHosts()).contains(expectedAppHost);
+
+            assertThat(newSecretTls).isNotNull();
+            assertThat(newSecretTls.getHosts()).hasSize(2);
+            assertThat(newSecretTls.getHosts()).contains("new-host.example.com", "another-new-host.example.com");
+        });
+
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            assertThat(uiIngress.get()).isNotNull();
+
+            var tlsConfig = uiIngress.getCached().getSpec().getTls();
+            assertThat(tlsConfig).isNotNull();
+            assertThat(tlsConfig).hasSize(2);
+
+            // Verify first TLS entry (app-secret with multiple hosts)
+            var firstTls = tlsConfig.get(0);
+            assertThat(firstTls.getSecretName()).isEqualTo("ui-secret");
+            assertThat(firstTls.getHosts()).hasSize(1);
+            assertThat(firstTls.getHosts()).contains(
+                "ingress-class-name-ui.apps.cluster.example"
+            );
+
+            // Verify second TLS entry (wildcard-secret)
+            var secondTls = tlsConfig.get(1);
+            assertThat(secondTls.getSecretName()).isEqualTo("wildcard-secret");
+            assertThat(secondTls.getHosts()).hasSize(2);
+            assertThat(secondTls.getHosts()).contains(
+                "*.example.com",
+                "another-host.example.com"
+            );
+        });
+
+        String expectedUiHost = primary.get().getSpec().getUi().getIngress().getHost();
+
+        // Test updating the TLS configuration
+        primary.update(p -> {
+            Map<String, List<String>> updatedTlsSecrets = Map.of(
+                    "new-ui-secret", List.of(expectedUiHost),
+                    "new-secret", List.of("new-host.example.com", "another-new-host.example.com")
+            );
+            p.getSpec().getUi().getIngress().setTlsSecrets(updatedTlsSecrets);
+        });
+
+        // Verify the ingress is updated with new TLS configuration
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            var tlsConfig = uiIngress.get().getSpec().getTls();
+            assertThat(tlsConfig).hasSize(2);
+
+            // Find the entries by secret name (order might vary)
+            var uiSecretTls = tlsConfig.stream()
+                .filter(tls -> "new-ui-secret".equals(tls.getSecretName()))
+                .findFirst().orElse(null);
+            var newSecretTls = tlsConfig.stream()
+                .filter(tls -> "new-secret".equals(tls.getSecretName()))
+                .findFirst().orElse(null);
+
+            assertThat(uiSecretTls).isNotNull();
+            assertThat(uiSecretTls.getHosts()).hasSize(1);
+            assertThat(uiSecretTls.getHosts()).contains(expectedUiHost);
+
+            assertThat(newSecretTls).isNotNull();
+            assertThat(newSecretTls.getHosts()).hasSize(2);
+            assertThat(newSecretTls.getHosts()).contains(
+                "new-host.example.com",
+                "another-new-host.example.com"
+            );
         });
     }
 }

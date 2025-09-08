@@ -33,12 +33,12 @@
     "eslint-plugin-react-refresh": "0.4.20",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
-    "vite": "6.3.5",
+    "vite": "6.3.6",
     "vite-tsconfig-paths": "5.1.4"
   },
   "dependencies": {
     "@apicurio/apicurio-registry-sdk": "3.0.15",
-    "@apicurio/common-ui-components": "2.0.11",
+    "@apicurio/common-ui-components": "2.0.13",
     "@apicurio/data-models": "1.1.33",
     "@microsoft/kiota-abstractions": "1.0.0-preview.82",
     "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.82",

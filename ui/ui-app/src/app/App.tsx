@@ -30,7 +30,8 @@ export const App: FunctionComponent<AppProps> = () => {
         options: config.authOptions()
     };
     if (authConfig.type === "oidc") {
-        if (window.location?.href) {
+        // Only set redirectUri as fallback if not already configured
+        if (!authConfig.options.redirectUri && window.location?.href) {
             authConfig.options.redirectUri = window.location.href;
         } else if (authConfig.options.redirectUri && authConfig.options.redirectUri.startsWith("/")) {
             authConfig.options.redirectUri = window.location.origin + authConfig.options.redirectUri;

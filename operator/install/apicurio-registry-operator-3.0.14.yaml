@@ -295,17 +295,6 @@ spec:
 
                           See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class.
                         type: string
-                      tlsSecrets:
-                        additionalProperties:
-                          items:
-                            type: string
-                          type: array
-                        description: 'Configure TLS configuration with secret-to-hosts
-                          mapping. This allows multiple hosts to share the same TLS
-                          secret. Format: { "secret-name": ["host1", "host2"], "another-secret":
-                          ["host3"] } If tlsSecrets is specified, it will be used
-                          for TLS configuration.'
-                        type: object
                     type: object
                   kafkasql:
                     description: |-
@@ -3656,17 +3645,6 @@ spec:
 
                           See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class.
                         type: string
-                      tlsSecrets:
-                        additionalProperties:
-                          items:
-                            type: string
-                          type: array
-                        description: 'Configure TLS configuration with secret-to-hosts
-                          mapping. This allows multiple hosts to share the same TLS
-                          secret. Format: { "secret-name": ["host1", "host2"], "another-secret":
-                          ["host3"] } If tlsSecrets is specified, it will be used
-                          for TLS configuration.'
-                        type: object
                     type: object
                   networkPolicy:
                     description: |2
@@ -6864,10 +6842,10 @@ spec:
         - name: QUARKUS_PROFILE
           value: prod
         - name: REGISTRY_APP_IMAGE
-          value: quay.io/apicurio/apicurio-registry:latest-snapshot
+          value: quay.io/apicurio/apicurio-registry:3.0.14
         - name: REGISTRY_UI_IMAGE
-          value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
-        image: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
+          value: quay.io/apicurio/apicurio-registry-ui:3.0.14
+        image: quay.io/apicurio/apicurio-registry-3-operator:3.0.14
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

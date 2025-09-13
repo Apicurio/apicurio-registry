@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.0.14-SNAPSHOT</version>
+  <version>3.0.15-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -267,7 +267,7 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.8.9</kiota.libs.version>
+    <kiota.libs.version>1.8.10</kiota.libs.version>
     <kiota.community.version>0.0.29</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
@@ -280,7 +280,7 @@
     <embedded-postgres.version>2.1.0</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock-jre8.version>3.0.1</wiremock-jre8.version>
-    <strimzi-test-container.version>0.111.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.112.0</strimzi-test-container.version>
   </properties>
 
   <dependencyManagement>

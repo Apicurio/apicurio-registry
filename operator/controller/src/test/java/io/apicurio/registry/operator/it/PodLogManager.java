@@ -73,6 +73,10 @@ public class PodLogManager {
         }).start();
     }
 
+    public boolean isActive(ResourceID podID) {
+        return activePodLogMap.containsKey(podID);
+    }
+
     public void stopAndWait() {
         activePodLogMap.values().forEach(stop -> stop.set(true));
         await().until(activePodLogMap::isEmpty);

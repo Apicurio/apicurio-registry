@@ -287,6 +287,21 @@ Configuration options for the remote + OLM tests are same as those for the remot
 | test.operator.catalog-image | string     | -             | Catalog image that is used to deploy the operator for testing with OLM.                       |
 | test.operator.olm-version   | `0` or `1` | `0`           | Use OLM v0 resources or OLM v1 resources to deploy the "subscription" (or cluster extension). |
 
+#### How To: Debug a remote test in Intellij Idea
+
+This quick guide will show you how to debug a single test in remote mode in Idea:
+
+1. (Optional) Build and push your operator image using the steps described earlier.
+2. Generate the test install file (also described above).
+   - If you want to use the snapshot operator image from upstream, pass `IMAGE_TAG=latest-snapshot` when generating the test install file.
+3. Run the test from the editor - click on the green "run" symbol, and then e.g. `Debug 'smoke()'`.
+4. Wait until the debug panel shows up, and then stop the test.
+5. Pin the test tab, so it is not removed.
+6. Open the run configuration by clicking on `⋮` and then `Modify run configuration...`.
+7. Enter the following after the `-ea`: `-Dtest.operator.deployment-type=remote -Dtest.operator.ingress-host=apps.cluster.example`.
+   - Modify the ingress host to point to your cluster.
+8. Re-run the test.
+
 ## Distribution and Release
 
 ### Install File

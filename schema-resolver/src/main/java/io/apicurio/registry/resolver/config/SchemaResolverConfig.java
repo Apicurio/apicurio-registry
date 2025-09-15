@@ -115,6 +115,15 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String REGISTRY_URL = "apicurio.registry.url";
 
     /**
+     * The API version implemented by the URL endpoint indicated by the 'apicurio.registry.url' property.
+     * This is typically not required because the Registry Client will auto-detect the endpoint version
+     * based on the URL itself.  However, in case the URL is non-standard or being rewritten by a proxy,
+     * or some other odd circumstance, set the property to the API version such as "2" or "3".  Use the
+     * major version only.
+     */
+    public static final String REGISTRY_URL_VERSION = "apicurio.registry.url.version";
+
+    /**
      * The URL of the Token Endpoint.
      */
     public static final String AUTH_TOKEN_ENDPOINT = "apicurio.registry.auth.service.token.endpoint";
@@ -197,6 +206,10 @@ public class SchemaResolverConfig extends AbstractConfig {
             }
         }
         return registryUrl;
+    }
+
+    public String getRegistryUrlVersion() {
+        return getString(REGISTRY_URL_VERSION);
     }
 
     public String getTokenEndpoint() {

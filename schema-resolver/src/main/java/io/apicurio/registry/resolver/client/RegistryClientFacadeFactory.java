@@ -34,10 +34,22 @@ public class RegistryClientFacadeFactory {
         Vertx ivertx = vertx == null ? Vertx.vertx() : vertx;
         boolean shouldCloseVertx = vertx == null;
 
-        if (baseUrl.contains("/apis/v2/")) {
-            return create_v2(config, ivertx, shouldCloseVertx);
+        String endpointVersion = null;
+        if (config.getRegistryUrlVersion() != null) {
+            endpointVersion = config.getRegistryUrlVersion();
+        }
+        if (endpointVersion == null && baseUrl.contains("/apis/registry/v2")) {
+            endpointVersion = "2";
         } else {
-            return create_v3(config, ivertx, shouldCloseVertx);
+            endpointVersion = "3";
+        }
+
+        switch  (endpointVersion) {
+            case "2":
+                return create_v2(config, ivertx, shouldCloseVertx);
+            case "3":
+            default:
+                return create_v3(config, ivertx, shouldCloseVertx);
         }
     }
 

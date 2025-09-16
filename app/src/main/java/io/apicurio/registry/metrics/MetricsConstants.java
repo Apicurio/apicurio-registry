@@ -14,14 +14,11 @@ public interface MetricsConstants {
     String REST_REQUESTS = REST_PREFIX + "requests";
     String REST_REQUESTS_DESCRIPTION = "Timing and results of REST endpoints calls";
 
-    String REST_REQUESTS_COUNTER = REST_REQUESTS + ".count";
-    String REST_REQUESTS_COUNTER_DESCRIPTION = "Count and results of REST endpoints calls";
-
     // REST tags/labels
 
     String REST_REQUESTS_TAG_PATH = "path";
     String REST_REQUESTS_TAG_METHOD = "method";
-    String REST_REQUESTS_TAG_STATUS_CODE_FAMILY = "status_code_group";
+    String REST_REQUESTS_TAG_STATUS_CODE_GROUP = "status.code.group";
 
     // Storage
 

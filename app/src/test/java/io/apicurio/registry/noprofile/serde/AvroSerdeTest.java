@@ -676,9 +676,11 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
         record.put("bar", "somebar");
 
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
-        try (KafkaAvroSerializer serializer1 = new KafkaAvroSerializer(schemaClient);
-            AvroKafkaDeserializer<GenericData.Record> deserializer1 = new AvroKafkaDeserializer<>(clientFacade)) {
-            byte[] bytes = serializer1.serialize(subject, record);
+        // Confluent serializer -> Apicurio deserializer
+        try (KafkaAvroSerializer serializer = new KafkaAvroSerializer(schemaClient);
+            AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(clientFacade)) {
+
+            byte[] bytes = serializer.serialize(subject, record);
 
             TestUtils.retry(() -> TestUtils.waitForSchema(contentId -> {
                 try {
@@ -689,25 +691,26 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
                 }
             }, bytes, ByteBuffer::getInt));
 
-            deserializer1.as4ByteId();
+            deserializer.as4ByteId();
             Map<String, String> config = new HashMap<>();
             config.put(SerdeConfig.USE_ID, IdOption.contentId.name());
-            deserializer1.configure(config, false);
-            GenericData.Record ir = deserializer1.deserialize(subject, bytes);
+            deserializer.configure(config, false);
+            GenericData.Record ir = deserializer.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
 
-        try (KafkaAvroDeserializer deserializer2 = new KafkaAvroDeserializer(schemaClient);
-            AvroKafkaSerializer<GenericData.Record> serializer2 = new AvroKafkaSerializer<>(clientFacade)) {
+        // Apicurio serializer -> Confluent deserializer
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(clientFacade);
+             KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(schemaClient)) {
 
             Map<String, String> config = new HashMap<>();
             config.put(SerdeConfig.USE_ID, IdOption.contentId.name());
 
-            serializer2.as4ByteId();
-            serializer2.configure(config, false);
-            byte[] bytes = serializer2.serialize(subject, record);
+            serializer.as4ByteId();
+            serializer.configure(config, false);
+            byte[] bytes = serializer.serialize(subject, record);
 
-            GenericData.Record ir = (GenericData.Record) deserializer2.deserialize(subject, bytes);
+            GenericData.Record ir = (GenericData.Record) deserializer.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());
         }
     }

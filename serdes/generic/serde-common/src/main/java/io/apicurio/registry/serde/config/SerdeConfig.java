@@ -89,6 +89,20 @@ public class SerdeConfig extends SchemaResolverConfig {
     public static final boolean VALIDATION_ENABLED_DEFAULT = true;
 
     /**
+     * Boolean used to enable or disable sending the type ref (either in message headers or payload)
+     * when serializing a Protobuf message.
+     */
+    public static final String SEND_TYPE_REF = "apicurio.registry.serde.send-type-ref";
+    public static final boolean SEND_TYPE_REF_DEFAULT = true;
+
+    /**
+     * Boolean used to enable or disable sending the protobuf schema message indexes when writing
+     * the proto message as a payload.
+     */
+    public static final String SEND_INDEXES = "apicurio.registry.serde.send-indexes";
+    public static final boolean SEND_INDEXES_DEFAULT = false;
+
+    /**
      * Only applicable for deserializers Optional, set explicitly the groupId used as fallback for resolving
      * the artifact used for deserialization.
      */

@@ -1,5 +1,6 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.rest.Headers;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -9,6 +10,8 @@ import io.apicurio.registry.types.Current;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.interceptor.InvocationContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Context;
 
 public abstract class AbstractAccessController implements IAccessController {
 
@@ -21,6 +24,10 @@ public abstract class AbstractAccessController implements IAccessController {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    @Context
+    HttpServletRequest request;
 
     protected boolean isOwner(InvocationContext context) {
         Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
@@ -35,14 +42,25 @@ public abstract class AbstractAccessController implements IAccessController {
             String groupId = getStringParam(context, 0);
             return verifyGroupOwner(groupId);
         } else if (style == AuthorizedStyle.ArtifactOnly) {
+            String groupId = getDefaultGroup();
             String artifactId = getStringParam(context, 0);
-            return verifyArtifactOwner(null, artifactId);
+            return verifyArtifactOwner(groupId, artifactId);
         } else if (style == AuthorizedStyle.GlobalId) {
             long globalId = getLongParam(context, 0);
             return verifyArtifactOwner(globalId);
         } else {
             return true;
         }
+    }
+
+    private String getDefaultGroup() {
+        if (request != null) {
+            String groupIdHeader = request.getHeader(Headers.GROUP_ID);
+            if (groupIdHeader != null && !groupIdHeader.isBlank()) {
+                return groupIdHeader;
+            }
+        }
+        return null;
     }
 
     private boolean verifyGroupOwner(String groupId) {

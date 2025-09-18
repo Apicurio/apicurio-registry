@@ -24,6 +24,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
@@ -369,13 +370,23 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected void assertNotFound(Exception exception) {
-        Assertions.assertEquals(ProblemDetails.class, exception.getClass());
-        Assertions.assertEquals(404, ((ApiException) exception).getResponseStatusCode());
+        if (exception.getClass().equals(ProblemDetails.class)) {
+            Assertions.assertEquals(404, ((ProblemDetails) exception).getResponseStatusCode());
+        } else if (exception.getClass().equals(RestClientException.class)) {
+            Assertions.assertEquals(404, ((RestClientException) exception).getStatus());
+        } else {
+            Assertions.fail("Unexpected exception type.", exception);
+        }
     }
 
     protected void assertForbidden(Exception exception) {
-        Assertions.assertEquals(ApiException.class, exception.getClass());
-        Assertions.assertEquals(403, ((ApiException) exception).getResponseStatusCode());
+        if (exception.getClass().equals(ApiException.class)) {
+            Assertions.assertEquals(403, ((ApiException) exception).getResponseStatusCode());
+        } else if (exception.getClass().equals(RestClientException.class)) {
+            Assertions.assertEquals(403, ((RestClientException) exception).getStatus());
+        } else {
+            Assertions.fail("Unexpected exception type.", exception);
+        }
     }
 
     protected void assertNotAuthorized(Exception exception) {

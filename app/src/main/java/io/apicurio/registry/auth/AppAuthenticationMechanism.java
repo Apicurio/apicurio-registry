@@ -322,7 +322,8 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(),
                 clientCredentials.getRight(), Duration.ofSeconds(1), scope.orElse(null));
         try {
-            String jwtToken = oidcAuth.authenticate();// If we manage to get a token from basic credentials,
+            String jwtToken = oidcAuth.authenticate();
+            // If we manage to get a token from basic credentials,
             // try to authenticate it using the fetched token using
             // the identity provider manager
             cachedAccessTokens.put(credentialsHash,

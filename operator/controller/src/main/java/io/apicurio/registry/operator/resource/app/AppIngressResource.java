@@ -3,12 +3,14 @@ package io.apicurio.registry.operator.resource.app;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.utils.Utils;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
+import io.fabric8.kubernetes.api.model.networking.v1.IngressTLS;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.CRUDKubernetesDependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.kubernetes.KubernetesDependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Objects;
 
 import static io.apicurio.registry.operator.AnnotationManager.updateResourceAnnotations;
@@ -16,8 +18,7 @@ import static io.apicurio.registry.operator.CRContext.getCRContext;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_INGRESS_KEY;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_KEY;
-import static io.apicurio.registry.operator.utils.IngressUtils.getHost;
-import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
+import static io.apicurio.registry.operator.utils.IngressUtils.*;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static io.apicurio.registry.operator.utils.Utils.updateResourceManually;
@@ -38,6 +39,12 @@ public class AppIngressResource extends CRUDKubernetesDependentResource<Ingress,
 
         var sOpt = Utils.getSecondaryResource(context, primary, APP_SERVICE_KEY);
         sOpt.ifPresent(s -> withIngressRule(s, i, rule -> rule.setHost(getHost(COMPONENT_APP, primary))));
+
+        List<IngressTLS> tlsList = getTls(COMPONENT_APP, primary);
+
+        if (!tlsList.isEmpty()) {
+            i.getSpec().setTls(tlsList);
+        }
 
         // Standard approach does not work properly :(
         updateResourceAnnotations(context, i, getCRContext(primary).getAppIngressAnnotations(), primary.withSpec().withApp().withIngress().getAnnotations());

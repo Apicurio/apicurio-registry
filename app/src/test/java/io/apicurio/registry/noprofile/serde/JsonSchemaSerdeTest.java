@@ -22,11 +22,24 @@ import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaParser;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
-import io.apicurio.registry.support.*;
+import io.apicurio.registry.support.Citizen;
+import io.apicurio.registry.support.CitizenIdentifier;
+import io.apicurio.registry.support.City;
+import io.apicurio.registry.support.CityQualification;
+import io.apicurio.registry.support.IdentifierQualification;
+import io.apicurio.registry.support.Person;
+import io.apicurio.registry.support.Qualification;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.confluent.kafka.schemaregistry.SchemaProvider;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
@@ -41,7 +54,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -854,4 +873,64 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
             System.out.println(e.getAllMessages());
         }
     }
+
+    private String getSchemaRegistryUrl() {
+        return "http://localhost:" + testPort + "/apis/ccompat/v7";
+    }
+
+    private SchemaRegistryClient buildSchemaRegistryClient() {
+        final List<SchemaProvider> schemaProviders = Arrays.asList(new JsonSchemaProvider(),
+                new AvroSchemaProvider(), new ProtobufSchemaProvider());
+        return new CachedSchemaRegistryClient(getSchemaRegistryUrl(), 3, schemaProviders, Map.of());
+    }
+
+    @ParameterizedTest(name = "complexObjectValidation [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeMixed(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+        SchemaRegistryClient confluentClient = buildSchemaRegistryClient();
+
+        // Load the schema
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        Assertions.assertNotNull(jsonSchema);
+
+        // Register the schema in the registry
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON);
+
+        // Create the payload to serialize/deserialize
+        Person person = new Person("Clark", "Kent", 31);
+
+        // Create the Apicurio serializer and the Confluent deserializer
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<Person>(clientFacade);
+             Deserializer<Person> deserializer = new KafkaJsonSchemaDeserializer<Person>(confluentClient)) {
+
+            // Configure the serializer
+            Map<String, Object> serializerConfig = new HashMap<>();
+            serializerConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            serializerConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            serializer.configure(serializerConfig, false);
+
+            // Configure the deserializer
+            Map<String, Object> deserializerConfig = new HashMap<>();
+            deserializerConfig.put("schema.registry.url", getSchemaRegistryUrl());
+            deserializerConfig.put("json.value.type", Person.class.getName());
+            deserializer.configure(deserializerConfig, false);
+
+            // Serialize the Person to bytes
+            byte[] bytes = serializer.serialize(artifactId, person);
+
+            // Deserialize the bytes back to a Person
+            Person deserializedPerson = deserializer.deserialize(artifactId, bytes);
+
+            // Assert that the deserialize worked
+            Assertions.assertEquals("Clark", deserializedPerson.getFirstName());
+            Assertions.assertEquals("Kent", deserializedPerson.getLastName());
+            Assertions.assertEquals(31, deserializedPerson.getAge());
+        }
+    }
+
 }

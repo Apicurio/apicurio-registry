@@ -24,6 +24,7 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
     private ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
     private boolean writeRef = true;
+    private boolean writeIndexes = false;
 
     public ProtobufSerializer() {
         super();
@@ -58,6 +59,8 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
         super.configure(config, isKey);
 
         validationEnabled = config.validationEnabled();
+        writeRef = config.sendTypeRef();
+        writeIndexes = config.sendIndexes();
     }
 
     /**
@@ -91,11 +94,23 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
 
         }
         if (writeRef) {
-            Ref ref = Ref.newBuilder().setName(data.getDescriptorForType().getName()).build();
-            ref.writeDelimitedTo(out);
+            writeRef(data, out);
+        }
+        if (writeIndexes) {
+            writeIndexes(schema, data, out);
         }
 
         data.writeTo(out);
+    }
+
+    private static <U extends Message> void writeRef(U data, OutputStream out) throws IOException {
+        Ref ref = Ref.newBuilder().setName(data.getDescriptorForType().getName()).build();
+        ref.writeDelimitedTo(out);
+    }
+
+    private static <U extends Message> void writeIndexes(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out) throws IOException {
+        List<Integer> indexes = MessageIndexesUtil.getMessageIndexes(schema, data);
+        MessageIndexesUtil.writeTo(indexes, out);
     }
 
     public void setWriteRef(boolean writeRef) {

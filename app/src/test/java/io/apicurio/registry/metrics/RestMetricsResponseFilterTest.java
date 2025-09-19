@@ -1,13 +1,13 @@
 package io.apicurio.registry.metrics;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
-import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_COUNTER;
-import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_STATUS_CODE_FAMILY;
+import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS;
+import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_STATUS_CODE_GROUP;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Thomas Thornton
@@ -21,15 +21,14 @@ public class RestMetricsResponseFilterTest {
         filter.registry = registry;
         filter.initializeCounters();
         String[] expectedStatusGroups = {"1xx", "2xx", "3xx", "4xx", "5xx"};
-        for (String statusGroup: expectedStatusGroups) {
-            Counter counter = registry.find(REST_REQUESTS_COUNTER)
-                    .tags(REST_REQUESTS_TAG_STATUS_CODE_FAMILY, statusGroup)
-                    .counter();
-            Assertions.assertNotNull(counter);
-            double value = counter.count();
-            Assertions.assertEquals(0, value);
+        for (String statusGroup : expectedStatusGroups) {
+            var timer = registry.find(REST_REQUESTS)
+                    .tags(REST_REQUESTS_TAG_STATUS_CODE_GROUP, statusGroup)
+                    .timer();
+            Assertions.assertNotNull(timer);
+            double value = timer.count();
+            assertEquals(0, value);
         }
-        Assertions.assertEquals(registry.find(REST_REQUESTS_COUNTER).counters().size(), expectedStatusGroups.length);
+        assertEquals(registry.find(REST_REQUESTS).timers().size(), expectedStatusGroups.length);
     }
-
 }

@@ -39,7 +39,7 @@ import { ProtoEditor } from "@editors/ProtoEditor.tsx";
 import { OpenApiEditor } from "@editors/OpenApiEditor.tsx";
 import { AsyncApiEditor } from "@editors/AsyncApiEditor.tsx";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
-import {useLoggerService} from "@services/useLoggerService.ts";
+import { useLoggerService } from "@services/useLoggerService.ts";
 
 const sectionContextStyle: CSSProperties = {
     borderBottom: "1px solid #ccc",

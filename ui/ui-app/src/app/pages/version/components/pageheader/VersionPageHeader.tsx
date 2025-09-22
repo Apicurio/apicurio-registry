@@ -10,11 +10,10 @@ import {
     TextContent,
     TextVariants
 } from "@patternfly/react-core";
-import { IfAuth, IfFeature } from "@app/components";
-import {If, ObjectDropdown, useAuth} from "@apicurio/common-ui-components";
+import { If, ObjectDropdown } from "@apicurio/common-ui-components";
 import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
-import {useUserService} from "@services/useUserService.ts";
-import {useConfigService} from "@services/useConfigService.ts";
+import { useUserService } from "@services/useUserService.ts";
+import { useConfigService } from "@services/useConfigService.ts";
 
 
 /**

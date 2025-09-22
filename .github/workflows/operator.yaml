@@ -2,12 +2,12 @@ name: Operator Test Workflow
 on:
   push:
     branches:
-      - main
+      - 3.0.x
     paths:
       - operator/**
   pull_request:
     branches:
-      - main
+      - 3.0.x
     paths:
       - operator/**
 

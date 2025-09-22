@@ -18,5 +18,5 @@ jobs:
         run: echo "<settings><servers><server><id>github</id><username>${{ github.repository_owner }}</username><password>${{ secrets.GITHUB_TOKEN }}</password></server></servers></settings>" > /home/runner/.m2/settings.xml
 
       - name: Maven Deploy
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/3.0.x'
         run: mvn deploy --batch-mode -Pprod -Psql -DskipTests -Pgithub --settings /home/runner/.m2/settings.xml

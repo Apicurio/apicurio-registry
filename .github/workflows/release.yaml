@@ -11,7 +11,7 @@ on:
       branch:
         description: Branch to release from
         required: true
-        default: main
+        default: 3.0.x
 jobs:
   release:
     runs-on: ubuntu-22.04

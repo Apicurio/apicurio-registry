@@ -5,7 +5,7 @@ on:
       branch:
         description: 'Branch to checkout'
         required: true
-        default: 'main'
+        default: '3.0.x'
       maven-profiles:
         description: 'Comma separated list of profiles to be activated'
         required: true

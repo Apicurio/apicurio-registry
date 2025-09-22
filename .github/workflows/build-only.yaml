@@ -3,11 +3,11 @@ on:
   push:
     paths:
       - 'docs/**'
-    branches: [ main ]
+    branches: [ 3.0.x ]
   pull_request:
     paths:
       - 'docs/**'
-    branches: [ main ]
+    branches: [ 3.0.x ]
 
 concurrency:
   # Only run once for latest commit per ref and cancel other (previous) runs.

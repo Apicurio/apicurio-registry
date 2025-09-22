@@ -164,21 +164,21 @@ jobs:
           git remote add origin https://github.com/k8s-operatorhub/community-operators.git
           git remote add source "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/community-operators.git"
           git fetch
-          git checkout --track origin/main
-          git push -f source main
+          git checkout --track origin/3.0.x
+          git push -f source 3.0.x
 
       - name: Create the Community Operators PR
         working-directory: community-operators
         run: |
           git checkout -b "$RELEASE_BRANCH"
           TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
-          BODY="$(curl -s https://raw.githubusercontent.com/k8s-operatorhub/community-operators/main/docs/pull_request_template.md)"          
+          BODY="$(curl -s https://raw.githubusercontent.com/k8s-operatorhub/community-operators/3.0.x/docs/pull_request_template.md)"          
           cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
           git add .
           git commit -s -m "$TITLE"
           git push -f source "$RELEASE_BRANCH"
           gh repo set-default k8s-operatorhub/community-operators
-          gh pr create --title "$TITLE" --body "$BODY" --base main --head "Apicurio:$RELEASE_BRANCH"
+          gh pr create --title "$TITLE" --body "$BODY" --base 3.0.x --head "Apicurio:$RELEASE_BRANCH"
 
       - name: Checkout the Openshift Community Operators repository
         run: |
@@ -188,21 +188,21 @@ jobs:
           git remote add origin https://github.com/redhat-openshift-ecosystem/community-operators-prod.git
           git remote add source "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/community-operators-prod.git"
           git fetch
-          git checkout --track origin/main
-          git push -f source main
+          git checkout --track origin/3.0.x
+          git push -f source 3.0.x
 
       - name: Create the Openshift Community Operators PR
         working-directory: openshift-community-operators
         run: |
           git checkout -b "$RELEASE_BRANCH"
           TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
-          BODY="$(curl -s https://raw.githubusercontent.com/redhat-openshift-ecosystem/community-operators-prod/main/docs/pull_request_template.md)"
+          BODY="$(curl -s https://raw.githubusercontent.com/redhat-openshift-ecosystem/community-operators-prod/3.0.x/docs/pull_request_template.md)"
           cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
           git add .
           git commit -s -m "$TITLE"
           git push -f source "$RELEASE_BRANCH"
           gh repo set-default redhat-openshift-ecosystem/community-operators-prod
-          gh pr create --title "$TITLE" --body "$BODY" --base main --head "Apicurio:$RELEASE_BRANCH"
+          gh pr create --title "$TITLE" --body "$BODY" --base 3.0.x --head "Apicurio:$RELEASE_BRANCH"
 
       - name: Configure custom env. variables 2
         run: |

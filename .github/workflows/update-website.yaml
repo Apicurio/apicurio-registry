@@ -19,8 +19,8 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio.github.io.git"
           git fetch
-          git checkout main
-          git branch --set-upstream-to=origin/main
+          git checkout 3.0.x
+          git branch --set-upstream-to=origin/3.0.x
           git pull
 
       - name: Fetch required Details
@@ -42,7 +42,7 @@ jobs:
           cd website
           git add .
           git commit -m "Automated Update For Apicurio Registry Release Version: ${{ env.RELEASE_VERSION }}"
-          git pull origin main
+          git pull origin 3.0.x
           git push
 
       - name: Slack Notification (Always)

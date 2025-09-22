@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
       - name: Install RHOAS Guidelines linter
         run: |
           npm i @rhoas/spectral-ruleset

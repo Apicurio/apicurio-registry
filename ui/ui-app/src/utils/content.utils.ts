@@ -1,8 +1,8 @@
 import YAML from "yaml";
 import { ContentTypes } from "@models/ContentTypes.ts";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
-import {Draft, DraftContent} from "@models/drafts";
-import {ArtifactTypes} from "@services/useArtifactTypesService.ts";
+import { Draft, DraftContent } from "@models/drafts";
+import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 
 /**
  * Returns true if the given content is JSON formatted.

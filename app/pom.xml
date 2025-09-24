@@ -174,6 +174,10 @@
       <artifactId>quickjs4j-processor</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.quarkiverse.quickjs4j</groupId>
+      <artifactId>quarkus-quickjs4j</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>kafka-oauth-client</artifactId>
     </dependency>
@@ -390,9 +394,9 @@
               <version>${lombok.version}</version>
             </path>
             <path>
-              <groupId>io.roastedroot</groupId>
-              <artifactId>quickjs4j-processor</artifactId>
-              <version>${quickjs4j.version}</version>
+              <groupId>io.quarkiverse.quickjs4j</groupId>
+              <artifactId>quarkus-quickjs4j</artifactId>
+              <version>${quarkus-quickjs4j.version}</version>
             </path>
           </annotationProcessorPaths>
         </configuration>

@@ -220,7 +220,7 @@
     <pulsar-clients.version>3.3.8</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <quarkus-quickjs4j.version>0.0.1</quarkus-quickjs4j.version>
-    <quickjs4j.version>0.0.6</quickjs4j.version>
+    <quickjs4j.version>0.0.9</quickjs4j.version>
 
     <nats.version>2.21.4</nats.version>
     <snakeyaml.version>2.5</snakeyaml.version>

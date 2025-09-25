@@ -13,8 +13,10 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static io.apicurio.registry.operator.it.ITBase.SHORT_DURATION;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
 
 public class PodLogManager {
@@ -35,8 +37,19 @@ public class PodLogManager {
 
     // TODO: Support pod restarts.
     public void startPodLog(ResourceID podID) {
-        k8sClient.pods().inNamespace(getNamespace(podID)).withName(podID.getName()).waitUntilReady(60,
-                SECONDS);
+        // We're occasionally having timeouts here.
+        // TODO: Handle pod restarts/redeployments.
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            // Debug
+            log.warn(">>> Expecting pod: {}", podID);
+            log.warn(">>> Found:\n{}", k8sClient.pods()
+                    .inNamespace(getNamespace(podID)).list().getItems()
+                    .stream().map(r -> "- " + ResourceID.fromResource(r))
+                    .collect(Collectors.joining("\n")));
+
+            assertThat(k8sClient.pods().inNamespace(getNamespace(podID)).withName(podID.getName()).isReady()).isTrue();
+        });
+
         new Thread(() -> {
             StringBuilder chunk = new StringBuilder();
             try (

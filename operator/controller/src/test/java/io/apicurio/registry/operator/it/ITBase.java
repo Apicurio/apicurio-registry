@@ -288,17 +288,20 @@ public abstract class ITBase {
     }
 
     protected static Pod waitOnOperatorPod() {
-        List<Pod> operatorPods = new ArrayList<>();
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-            operatorPods.clear();
-            operatorPods.addAll(
-                    client.pods()
-                            .withLabels(Labels.getOperatorSelectorLabels())
-                            .list().getItems()
-            );
+        Cell<Pod> pod = cell();
+        // Wait until the operator pod name remains stable, we're occasionally having timeout when trying to access pod logs.
+        // TODO: Handle pod restarts/redeployments.
+        await().atMost(MEDIUM_DURATION).during(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            var operatorPods = client.pods()
+                    .withLabels(Labels.getOperatorSelectorLabels())
+                    .list().getItems();
             assertThat(operatorPods).hasSize(1);
+            if (pod.get() != null) {
+                assertThat(ResourceID.fromResource(operatorPods.get(0))).isEqualTo(ResourceID.fromResource(pod.get()));
+            }
+            pod.set(operatorPods.get(0));
         });
-        return operatorPods.get(0);
+        return pod.get();
     }
 
     private static void cleanTestResources() throws Exception {

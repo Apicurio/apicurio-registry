@@ -1,5 +1,6 @@
 package io.apicurio.registry.script;
 
+import io.quarkiverse.quickjs4j.ScriptInterfaceFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -8,6 +9,9 @@ import java.util.Map;
 
 @ApplicationScoped
 public class ScriptingService {
+
+    @Inject
+    ScriptInterfaceFactory<ArtifactTypeScriptProvider, ArtifactTypeScriptProviderContext> scriptProviderFactory;
 
     @Inject
     ArtifactTypeScriptProviderContext context;
@@ -19,9 +23,9 @@ public class ScriptingService {
             return cache.get(scriptLocation);
         } else {
             String script = ScriptInterfaceUtils.loadScriptLibrary(scriptLocation);
-            ArtifactTypeScriptProvider_Proxy proxy = new ArtifactTypeScriptProvider_Proxy(script, context);
-            cache.put(scriptLocation, proxy);
-            return proxy;
+            ArtifactTypeScriptProvider provider = scriptProviderFactory.create(script, context);
+            cache.put(scriptLocation, provider);
+            return provider;
         }
     }
 

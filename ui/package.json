@@ -24,7 +24,7 @@
         "dev": "concurrently \"npm run dev --prefix ./ui-app\" \"npm run dev --prefix ./ui-docs\" \"npm run dev --prefix ./ui-editors\""
     },
     "devDependencies": {
-        "concurrently": "8.2.2",
+        "concurrently": "9.2.1",
         "rimraf": "6.0.1",
         "shelljs": "0.10.0"
     }

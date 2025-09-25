@@ -101,7 +101,6 @@ public abstract class ITBase {
         configureRestAssured();
         namespace = calculateNamespace();
         client = createK8sClient(namespace);
-        createCRDs();
         createNamespace(client, namespace);
 
         portForwardManager = new PortForwardManager(namespace);
@@ -113,6 +112,7 @@ public abstract class ITBase {
         if (operatorDeployment == OperatorDeployment.remote) {
             createTestResources();
         } else {
+            createCRDs();
             startOperator();
         }
         startOperatorPodLog();
@@ -256,7 +256,7 @@ public abstract class ITBase {
             return Serialization.unmarshal(installFileRaw);
         } catch (NoSuchFileException ex) {
             throw new OperatorException("Remote tests require an install file to be generated. " +
-                    "Please run `make INSTALL_FILE=controller/target/test-install.yaml dist-install-file` first, " +
+                    "Please run `make INSTALL_FILE=\"" + installFilePath + "\" dist-install-file` first, " +
                     "or see the README for more information.", ex);
         }
     }

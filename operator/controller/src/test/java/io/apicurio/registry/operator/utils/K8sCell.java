@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.utils;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,7 @@ public class K8sCell<T extends HasMetadata> {
                 return true;
             } catch (KubernetesClientException ex) {
                 if (ex.getMessage().contains("the object has been modified")) {
-                    log.debug("Retrying:", ex);
+                    log.info("Retrying update of {}", ResourceID.fromResource(cachedValue));
                     return false;
                 } else {
                     throw ex;

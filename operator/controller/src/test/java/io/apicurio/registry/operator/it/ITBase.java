@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static io.apicurio.registry.operator.resource.Labels.getOperatorManagedLabels;
+import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static io.apicurio.registry.utils.Cell.cell;
 import static java.time.Duration.ofSeconds;
 import static java.util.Optional.ofNullable;
@@ -101,7 +102,6 @@ public abstract class ITBase {
         configureRestAssured();
         namespace = calculateNamespace();
         client = createK8sClient(namespace);
-        createCRDs();
         createNamespace(client, namespace);
 
         portForwardManager = new PortForwardManager(namespace);
@@ -113,6 +113,7 @@ public abstract class ITBase {
         if (operatorDeployment == OperatorDeployment.remote) {
             createTestResources();
         } else {
+            createCRDs();
             startOperator();
         }
         startOperatorPodLog();
@@ -134,7 +135,7 @@ public abstract class ITBase {
 
     protected static void startOperatorPodLog() {
         if (operatorDeployment == OperatorDeployment.remote) {
-            var operatorPod = waitOnOperatorPod();
+            var operatorPod = waitOnOperatorPodReady();
             if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class)) {
                 portForwardManager.startPodPortForward(operatorPod.getMetadata().getName(), 5005, 15005);
                 log.info("Remote debugging enabled. Attach your debugger to port 15005.");
@@ -256,7 +257,7 @@ public abstract class ITBase {
             return Serialization.unmarshal(installFileRaw);
         } catch (NoSuchFileException ex) {
             throw new OperatorException("Remote tests require an install file to be generated. " +
-                    "Please run `make INSTALL_FILE=controller/target/test-install.yaml dist-install-file` first, " +
+                    "Please run `make INSTALL_FILE=\"" + installFilePath + "\" dist-install-file` first, " +
                     "or see the README for more information.", ex);
         }
     }
@@ -264,12 +265,16 @@ public abstract class ITBase {
     private static void createTestResources() throws Exception {
         log.info("Creating generated resources into Namespace {}", namespace);
         loadTestResources().forEach(r -> {
+            log.info("Creating resource kind {} with name {} in namespace {}", r.getKind(), r.getMetadata().getName(), namespace);
             if ("minikube".equals(deploymentTarget) && r instanceof Deployment d) {
                 // See https://stackoverflow.com/a/46101923
                 d.getSpec().getTemplate().getSpec().getContainers()
                         .forEach(c -> c.setImagePullPolicy("IfNotPresent"));
             }
-            client.resource(r).inNamespace(namespace).createOrReplace();
+            await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+                client.resource(r).inNamespace(namespace).createOrReplace();
+                assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
+            });
         });
     }
 
@@ -287,18 +292,29 @@ public abstract class ITBase {
         return operatorDeployments.get(0);
     }
 
-    protected static Pod waitOnOperatorPod() {
-        List<Pod> operatorPods = new ArrayList<>();
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-            operatorPods.clear();
-            operatorPods.addAll(
-                    client.pods()
-                            .withLabels(Labels.getOperatorSelectorLabels())
-                            .list().getItems()
-            );
-            assertThat(operatorPods).hasSize(1);
+    protected static Pod waitOnOperatorPodReady() {
+        Cell<Pod> pod = cell();
+        // Wait until the operator pod name remains stable, we're occasionally having timeout when trying to access pod logs.
+        // TODO: Handle pod restarts/redeployments.
+        // TODO: Allow configuring wait time dilatation.
+        await().atMost(MEDIUM_DURATION.multipliedBy(2)).during(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            var operatorPods = client.pods()
+                    .withLabels(Labels.getOperatorSelectorLabels())
+                    .list().getItems();
+            assertThat(operatorPods)
+                    .withFailMessage("Expected exactly one operator pod, but found: %s", operatorPods.stream().map(ResourceID::fromResource).toList())
+                    .hasSize(1);
+            if (pod.get() != null) {
+                assertThat(ResourceID.fromResource(operatorPods.get(0)))
+                        .withFailMessage("Operator pod changed: was %s, now %s", ResourceID.fromResource(pod.get()), ResourceID.fromResource(operatorPods.get(0)))
+                        .isEqualTo(ResourceID.fromResource(pod.get()));
+            }
+            pod.set(operatorPods.get(0));
+            assertThat(client.resource(pod.get()).isReady())
+                    .withFailMessage("Operator pod %s is not ready. Conditions:\n%s", ResourceID.fromResource(pod.get()), toYAML(pod.get().getStatus().getConditions()))
+                    .isTrue();
         });
-        return operatorPods.get(0);
+        return pod.get();
     }
 
     private static void cleanTestResources() throws Exception {

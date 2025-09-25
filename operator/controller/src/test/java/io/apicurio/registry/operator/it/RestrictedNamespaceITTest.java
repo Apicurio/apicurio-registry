@@ -68,11 +68,11 @@ public class RestrictedNamespaceITTest extends ITBase {
                 e.setValueFrom(null);
             });
 
-            await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> {
                 // We need to wait until the previous operator pod is completely gone,
                 // otherwise it can still reconcile in all namespaces.
                 // Therefore, we need to have a strong condition here and awaiting on e.g. deployment replicas is not sufficient.
-                assertThat(getWatchedNamespacesEnvVar(waitOnOperatorPod().getSpec()).getValue()).isEqualTo(namespace1 + "," + namespace2);
+                assertThat(getWatchedNamespacesEnvVar(waitOnOperatorPodReady().getSpec()).getValue()).isEqualTo(namespace1 + "," + namespace2);
             });
             startOperatorPodLog();
 
@@ -96,11 +96,11 @@ public class RestrictedNamespaceITTest extends ITBase {
                 e.setValueFrom(originalEnvVar.get().getValueFrom());
             });
 
-            await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> {
                 // We need to wait until the previous operator pod is completely gone,
                 // otherwise it can still reconcile in all namespaces.
                 // Therefore, we need to have a strong condition here and awaiting on e.g. deployment replicas is not sufficient.
-                assertThat(getWatchedNamespacesEnvVar(waitOnOperatorPod().getSpec()).getValue()).isEqualTo(originalEnvVar.get().getValue());
+                assertThat(getWatchedNamespacesEnvVar(waitOnOperatorPodReady().getSpec()).getValue()).isEqualTo(originalEnvVar.get().getValue());
             });
             originalEnvVar.set(null);
             startOperatorPodLog();
@@ -125,7 +125,7 @@ public class RestrictedNamespaceITTest extends ITBase {
                     e.setValueFrom(originalEnvVar.get().getValueFrom());
                 });
             }
-            var operatorPod = waitOnOperatorPod();
+            var operatorPod = waitOnOperatorPodReady();
             var operatorPodId = ResourceID.fromResource(operatorPod);
             if (!podLogManager.isActive(operatorPodId)) {
                 startOperatorPodLog();

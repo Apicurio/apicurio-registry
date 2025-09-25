@@ -61,6 +61,7 @@ export interface FeaturesConfig {
     deleteGroup?: boolean;
     deleteArtifact?: boolean;
     deleteVersion?: boolean;
+    draftMutability?: boolean;
     settings?: boolean;
     alerts?: Alerts;
 }
@@ -73,6 +74,7 @@ export interface UiConfig {
     contextPath?: string;
     navPrefixPath?: string;
     oaiDocsUrl?: string;
+    editorsUrl?: string;
 }
 
 export interface AuthConfig {
@@ -218,6 +220,7 @@ export interface ConfigService {
     artifactsUrl(): string;
     uiContextPath(): string|undefined;
     uiOaiDocsUrl(): string;
+    uiEditorsUrl(): string;
     uiNavPrefixPath(): string|undefined;
     features(): FeaturesConfig;
     featureReadOnly(): boolean;
@@ -227,6 +230,7 @@ export interface ConfigService {
     featureDeleteGroup(): boolean;
     featureDeleteArtifact(): boolean;
     featureDeleteVersion(): boolean;
+    featureDraftMutability(): boolean;
     authType(): string;
     authRbacEnabled(): boolean;
     authObacEnabled(): boolean;
@@ -284,6 +288,12 @@ export class ConfigServiceImpl implements ConfigService {
         return registryConfig.ui?.oaiDocsUrl || (this.uiContextPath() + "docs");
     }
 
+    public uiEditorsUrl(): string {
+        console.info("=====> Editors URL: ", registryConfig.ui?.editorsUrl);
+        console.info("=====> Context Path: ", this.uiContextPath());
+        return registryConfig.ui?.editorsUrl || (this.uiContextPath() + "editors");
+    }
+
     public uiNavPrefixPath(): string|undefined {
         if (!registryConfig.ui || !registryConfig.ui.navPrefixPath) {
             return "";
@@ -334,6 +344,10 @@ export class ConfigServiceImpl implements ConfigService {
 
     public featureDeleteVersion(): boolean {
         return this.features().deleteVersion || false;
+    }
+
+    public featureDraftMutability(): boolean {
+        return this.features().draftMutability || false;
     }
 
     public authType(): string {

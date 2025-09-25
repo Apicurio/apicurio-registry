@@ -15,6 +15,7 @@ public class RegisterArtifact {
     private IfArtifactExists ifExists;
     private Boolean canonicalize;
     private Boolean minify;
+    @Deprecated
     private Boolean analyzeDirectory;
     private Boolean autoRefs;
     private Boolean isDraft;
@@ -168,10 +169,12 @@ public class RegisterArtifact {
         this.references = references;
     }
 
+    @Deprecated
     public Boolean getAnalyzeDirectory() {
         return analyzeDirectory;
     }
 
+    @Deprecated
     public void setAnalyzeDirectory(Boolean analyzeDirectory) {
         this.analyzeDirectory = analyzeDirectory;
     }

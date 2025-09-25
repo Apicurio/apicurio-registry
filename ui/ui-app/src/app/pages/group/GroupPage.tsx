@@ -3,8 +3,9 @@ import "./GroupPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
-    GroupInfoTabContent,
-    GroupPageHeader,
+    EXPLORE_PAGE_IDX,
+    GroupOverviewTabContent,
+    GroupPageHeader, GroupRulesTabContent,
     PageDataLoader,
     PageError,
     PageErrorHandler,
@@ -18,20 +19,19 @@ import {
     EditMetaDataModal,
     IfFeature,
     InvalidContentModal,
-    MetaData
+    MetaData, RootPageHeader
 } from "@app/components";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { ArtifactsTabContent } from "@app/pages/group/components/tabs/ArtifactsTabContent.tsx";
 import {
     CreateArtifact,
     GroupMetaData,
     Rule,
     RuleType,
     RuleViolationProblemDetails,
-    SearchedArtifact
+    SearchedVersion
 } from "@sdk/lib/generated-client/models";
 
 
@@ -51,7 +51,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [isCreateArtifactModalOpen, setCreateArtifactModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isInvalidContentModalOpen, setInvalidContentModalOpen] = useState<boolean>(false);
-    const [artifactToDelete, setArtifactToDelete] = useState<SearchedArtifact>();
+    const [artifactToDelete, setArtifactToDelete] = useState<SearchedVersion>();
     const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
     const [rules, setRules] = useState<Rule[]>([]);
 
@@ -64,6 +64,9 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     let activeTabKey: string = "overview";
     if (location.pathname.indexOf("/artifacts") !== -1) {
         activeTabKey = "artifacts";
+    }
+    if (location.pathname.indexOf("/rules") !== -1) {
+        activeTabKey = "rules";
     }
 
     const createLoaders = (): Promise<any>[] => {
@@ -136,7 +139,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         groups.createArtifact(group?.groupId as string, data).then(response => {
             const groupId: string = response.artifact!.groupId || "default";
             const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact!.artifactId!) }`;
-            logger.info("[ExplorePage] Artifact successfully created.  Redirecting to details page: ", artifactLocation);
+            logger.info("[SearchPage] Artifact successfully created.  Redirecting to details page: ", artifactLocation);
             appNavigation.navigateTo(artifactLocation);
         }).catch( error => {
             pleaseWait(false);
@@ -187,7 +190,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     };
 
     const handleInvalidContentError = (error: any): void => {
-        logger.info("[ExplorePage] Invalid content error:", error);
+        logger.info("[SearchPage] Invalid content error:", error);
         setInvalidContentError(error);
         setInvalidContentModalOpen(true);
     };
@@ -224,13 +227,13 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         onChangeOwnerModalClose();
     };
 
-    const onViewArtifact = (artifact: SearchedArtifact): void => {
+    const onViewArtifact = (artifact: SearchedVersion): void => {
         const groupId: string = encodeURIComponent(group?.groupId || "default");
         const artifactId: string = encodeURIComponent(artifact.artifactId!);
         appNavigation.navigateTo(`/explore/${groupId}/${artifactId}`);
     };
 
-    const onDeleteArtifact = (artifact: SearchedArtifact, deleteSuccessCallback?: () => void): void => {
+    const onDeleteArtifact = (artifact: SearchedVersion, deleteSuccessCallback?: () => void): void => {
         setArtifactToDelete(artifact);
         setIsDeleteArtifactModalOpen(true);
         setArtifactDeleteSuccessCallback(() => deleteSuccessCallback);
@@ -246,25 +249,25 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     }, [groupId]);
 
     const tabs: any[] = [
-        <Tab data-testid="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
-            <GroupInfoTabContent
+        <Tab data-testid="group-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
+            <GroupOverviewTabContent
                 group={group as GroupMetaData}
-                rules={rules}
-                onEnableRule={doEnableRule}
-                onDisableRule={doDisableRule}
-                onConfigureRule={doConfigureRule}
                 onEditMetaData={() => setIsEditModalOpen(true)}
                 onChangeOwner={() => {}}
-            />
-        </Tab>,
-        <Tab data-testid="artifacts-tab" eventKey="artifacts" title="Artifacts" key="artifacts" tabContentId="tab-artifacts">
-            <ArtifactsTabContent
-                group={group as GroupMetaData}
                 onCreateArtifact={onCreateArtifact}
                 onViewArtifact={onViewArtifact}
                 onDeleteArtifact={onDeleteArtifact}
             />
         </Tab>,
+        <Tab data-testid="group-rules-tab" eventKey="rules" title="Rules" key="rules" tabContentId="tab-rules">
+            <GroupRulesTabContent
+                group={group as GroupMetaData}
+                rules={rules}
+                onEnableRule={doEnableRule}
+                onDisableRule={doDisableRule}
+                onConfigureRule={doConfigureRule}
+            />
+        </Tab>
     ];
 
     const breadcrumbs = (
@@ -277,6 +280,9 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
+                <PageSection className="ps_explore-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                    <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
+                </PageSection>
                 <IfFeature feature="breadcrumbs" is={true}>
                     <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
                 </IfFeature>
@@ -285,14 +291,16 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                         onDeleteGroup={onDeleteGroup}
                         groupId={groupId as string} />
                 </PageSection>
-                <PageSection variant={PageSectionVariants.light} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
-                    <Tabs className="artifact-page-tabs"
-                        id="artifact-page-tabs"
+                <PageSection variant={PageSectionVariants.default} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
+                    <Tabs className="group-page-tabs"
+                        variant="default"
+                        id="group-page-tabs"
                         unmountOnExit={true}
                         isFilled={false}
                         activeKey={activeTabKey}
                         children={tabs}
                         onSelect={handleTabClick}
+                        style={{ backgroundColor: "white" }}
                     />
                 </PageSection>
             </PageDataLoader>

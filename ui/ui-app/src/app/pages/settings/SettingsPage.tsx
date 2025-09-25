@@ -10,7 +10,15 @@ import {
     TextContent
 } from "@patternfly/react-core";
 import { RootPageHeader } from "@app/components";
-import { ConfigProperty, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
+import {
+    ConfigProperty,
+    PageDataLoader,
+    PageError,
+    PageErrorHandler,
+    PageProperties,
+    SETTINGS_PAGE_IDX,
+    toPageError
+} from "@app/pages";
 import { If, IfNotEmpty } from "@apicurio/common-ui-components";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { AlertsService, useAlertsService } from "@services/useAlertsService.tsx";
@@ -162,7 +170,7 @@ export const SettingsPage: FunctionComponent<PageProperties> = () => {
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
                 <PageSection className="ps_settings-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
-                    <RootPageHeader tabKey={3} />
+                    <RootPageHeader tabKey={SETTINGS_PAGE_IDX} />
                 </PageSection>
                 <PageSection className="ps_settings-description" variant={PageSectionVariants.light}>
                     <TextContent>

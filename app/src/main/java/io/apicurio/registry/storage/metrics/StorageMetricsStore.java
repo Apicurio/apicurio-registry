@@ -13,7 +13,6 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import lombok.EqualsAndHashCode;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import java.util.concurrent.TimeUnit;
@@ -77,7 +76,7 @@ public class StorageMetricsStore {
     private void createCountersCache() {
         totalSchemaCountersLoader = new CacheLoader<>() {
             @Override
-            public AtomicLong load(@NotNull String key) {
+            public AtomicLong load(String key) {
                 if (key.equals(TOTAL_SCHEMAS_KEY)) {
                     log.info("Initializing total schemas counter");
                     long count = storage.countTotalArtifactVersions();
@@ -97,7 +96,7 @@ public class StorageMetricsStore {
     private void createTotalArtifactVersionsCache() {
         artifactVersionsCountersLoader = new CacheLoader<>() {
             @Override
-            public AtomicLong load(@NotNull ArtifactVersionKey artifactVersionKey) {
+            public AtomicLong load(ArtifactVersionKey artifactVersionKey) {
                 log.info("Initializing total artifact versions counter for artifact gid {} ai {}",
                         artifactVersionKey.groupId, artifactVersionKey.artifactId);
                 long count = storage.countArtifactVersions(artifactVersionKey.groupId,

@@ -2,7 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
+import { EXPLORE_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import {
     ChangeOwnerModal,
     ConfirmDeleteModal,
@@ -11,17 +11,17 @@ import {
     EditMetaDataModal,
     IfFeature,
     InvalidContentModal,
-    MetaData
+    MetaData,
+    RootPageHeader
 } from "@app/components";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import {
-    ArtifactInfoTabContent,
+    ArtifactOverviewTabContent,
     ArtifactPageHeader,
-    BranchesTabContent,
-    VersionsTabContent
+    ArtifactBranchesTabContent
 } from "@app/pages/artifact/components";
 import {
     AddVersionToBranch,
@@ -35,6 +35,7 @@ import {
     SearchedVersion
 } from "@sdk/lib/generated-client/models";
 import { AddVersionToBranchModal } from "@app/components/modals/AddVersionToBranchModal.tsx";
+import { ArtifactRulesTabContent } from "@app/pages/artifact/components/tabs/ArtifactRulesTabContent.tsx";
 
 
 /**
@@ -70,8 +71,8 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const location = useLocation();
 
     let activeTabKey: string = "overview";
-    if (location.pathname.indexOf("/versions") !== -1) {
-        activeTabKey = "versions";
+    if (location.pathname.indexOf("/rules") !== -1) {
+        activeTabKey = "rules";
     } else if (location.pathname.indexOf("/branches") !== -1) {
         activeTabKey = "branches";
     }
@@ -277,6 +278,13 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         setBranchDeleteSuccessCallback(() => successCallback);
     };
 
+    const onEditDraft = (version: SearchedVersion): void => {
+        const groupId: string = encodeURIComponent(artifact?.groupId || "default");
+        const artifactId: string = encodeURIComponent(artifact?.artifactId || "");
+        const ver: string = encodeURIComponent(version?.version || "");
+        appNavigation.navigateTo(`/explore/${groupId}/${artifactId}/versions/${ver}/editor`);
+    };
+
     const doDeleteBranch = (): void => {
         setIsDeleteBranchModalOpen(false);
         pleaseWait(true, "Deleting branch, please wait...");
@@ -350,28 +358,30 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     }, [groupId, artifactId]);
 
     const tabs: any[] = [
-        <Tab data-testid="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
-            <ArtifactInfoTabContent
+        <Tab data-testid="artifact-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
+            <ArtifactOverviewTabContent
+                artifact={artifact as ArtifactMetaData}
+                rules={rules}
+                onCreateVersion={() => setIsCreateVersionModalOpen(true)}
+                onAddVersionToBranch={onAddVersionToBranch}
+                onDeleteVersion={onDeleteVersion}
+                onViewVersion={onViewVersion}
+                onEditMetaData={openEditMetaDataModal}
+                onEditDraft={onEditDraft}
+                onChangeOwner={openChangeOwnerModal}
+            />
+        </Tab>,
+        <Tab data-testid="artifact-rules-tab" eventKey="rules" title="Rules" key="rules" tabContentId="tab-rules">
+            <ArtifactRulesTabContent
                 artifact={artifact as ArtifactMetaData}
                 rules={rules}
                 onEnableRule={doEnableRule}
                 onDisableRule={doDisableRule}
                 onConfigureRule={doConfigureRule}
-                onEditMetaData={openEditMetaDataModal}
-                onChangeOwner={openChangeOwnerModal}
             />
         </Tab>,
-        <Tab data-testid="versions-tab" eventKey="versions" title="Versions" key="versions" tabContentId="tab-versions">
-            <VersionsTabContent
-                artifact={artifact as ArtifactMetaData}
-                onCreateVersion={() => {setIsCreateVersionModalOpen(true);}}
-                onViewVersion={onViewVersion}
-                onDeleteVersion={onDeleteVersion}
-                onAddVersionToBranch={onAddVersionToBranch}
-            />
-        </Tab>,
-        <Tab data-testid="branches-tab" eventKey="branches" title="Branches" key="branches" tabContentId="tab-branches">
-            <BranchesTabContent
+        <Tab data-testid="artifact-branches-tab" eventKey="branches" title="Branches" key="branches" tabContentId="tab-branches">
+            <ArtifactBranchesTabContent
                 artifact={artifact as ArtifactMetaData}
                 onCreateBranch={() => {setIsCreateBranchModalOpen(true);}}
                 onDeleteBranch={onDeleteBranch}
@@ -381,27 +391,21 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     ];
 
     const gid: string = groupId || "default";
-    const hasGroup: boolean = gid != "default";
-    let breadcrumbs = (
+    const breadcrumbs = (
         <Breadcrumb>
             <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/artifacts`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }`)}
                 data-testid="breadcrumb-lnk-group">{ gid }</Link></BreadcrumbItem>
             <BreadcrumbItem isActive={true}>{ artifactId as string }</BreadcrumbItem>
         </Breadcrumb>
     );
-    if (!hasGroup) {
-        breadcrumbs = (
-            <Breadcrumb>
-                <BreadcrumbItem><Link to="/explore" data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-                <BreadcrumbItem isActive={true}>{ artifactId as string }</BreadcrumbItem>
-            </Breadcrumb>
-        );
-    }
 
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
+                <PageSection className="ps_explore-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                    <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
+                </PageSection>
                 <IfFeature feature="breadcrumbs" is={true}>
                     <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
                 </IfFeature>

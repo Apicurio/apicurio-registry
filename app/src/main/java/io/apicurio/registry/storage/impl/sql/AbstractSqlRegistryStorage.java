@@ -176,9 +176,8 @@ import static java.util.stream.Collectors.toList;
  */
 public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
-    private static int DB_VERSION = Integer
-            .valueOf(IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version")))
-            .intValue();
+    private static final int DB_VERSION = Integer
+            .parseInt(IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version")));
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -243,6 +242,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
     @Info(category = CATEGORY_STORAGE, description = "Storage event topic")
     String eventsTopic;
+
+    @ConfigProperty(name = "apicurio.storage.enable-automatic-group-creation", defaultValue = "true")
+    @Info(category = CATEGORY_STORAGE, description = "Enable automatic creation of group when creating an artifact", availableSince = "3.0.15")
+    boolean enableAutomaticGroupCreation;
 
     @Inject
     Event<SqlStorageEvent> sqlStorageEvent;
@@ -536,9 +539,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         // Create the group if it doesn't exist yet.
         if (groupId != null && !isGroupExists(groupId)) {
-            // Only create group metadata for non-default groups.
-            ensureGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(createdOn.getTime())
-                    .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
+            if (enableAutomaticGroupCreation) {
+                // Only create group metadata for non-default groups.
+                ensureGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(createdOn.getTime())
+                        .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
+            } else {
+                throw new GroupNotFoundException(groupId);
+            }
         }
 
         // Ensure the content exists. If this is a dryRun, or if the create fails, this

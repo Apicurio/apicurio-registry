@@ -1,11 +1,11 @@
 package io.apicurio.registry.types.provider;
 
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
-import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.ContentAccepter;
+import io.apicurio.registry.content.GraphQLContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.GraphQLContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.dereference.NoopContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
 import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
@@ -17,31 +17,25 @@ import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.GraphQLContentValidator;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 
-import java.util.Map;
+import java.util.Set;
 
 public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     @Override
-    public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        try {
-            String contentType = content.getContentType();
-            if (contentType.toLowerCase().contains("graph")) {
-                TypeDefinitionRegistry typeRegistry = new SchemaParser()
-                        .parse(content.getContent().content());
-                if (typeRegistry != null) {
-                    return true;
-                }
-            }
-        } catch (Exception e) {
-            // Must not be a GraphQL file
-        }
-        return false;
+    public String getArtifactType() {
+        return ArtifactType.GRAPHQL;
     }
 
     @Override
-    public String getArtifactType() {
-        return ArtifactType.GRAPHQL;
+    public Set<String> getContentTypes() {
+        return Set.of(ContentTypes.APPLICATION_GRAPHQL);
+    }
+
+    @Override
+    public ContentAccepter createContentAccepter() {
+        return new GraphQLContentAccepter();
     }
 
     @Override
@@ -65,15 +59,12 @@ public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
-        return null;
+    public ContentDereferencer createContentDereferencer() {
+        return NoopContentDereferencer.INSTANCE;
     }
 
-    /**
-     * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
-     */
     @Override
-    public ReferenceFinder getReferenceFinder() {
+    public ReferenceFinder createReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
 

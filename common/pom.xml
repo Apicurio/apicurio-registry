@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.15-SNAPSHOT</version>
+    <version>3.1.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -116,6 +116,20 @@
                 <generatesOpenApi>false</generatesOpenApi>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi-v2.json</inputSpec>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-artifact-type-webhooks</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <projectSettings>
+                <javaPackage>io.apicurio.registry.types.webhooks</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+              </projectSettings>
+              <inputSpec>${project.basedir}/src/main/resources/META-INF/artifact-type-webhooks.json</inputSpec>
             </configuration>
           </execution>
         </executions>

@@ -1,26 +1,30 @@
 {
     "name": "@apicurio/registry-ui",
     "private": true,
-    "version": "3.0.15",
+    "version": "3.1.0",
     "type": "module",
     "scripts": {
-        "postinstall": "npm install --prefix ../typescript-sdk && npm install --prefix ./ui-app && npm install --prefix ./ui-docs",
+        "postinstall": "npm install --prefix ../typescript-sdk && npm install --prefix ./ui-app && npm install --prefix ./ui-docs && npm install --prefix ./ui-editors",
         "clean-sdk": "npm run clean --prefix ../typescript-sdk",
         "clean-app": "npm run clean --prefix ./ui-app",
         "clean-docs": "npm run clean --prefix ./ui-docs",
-        "clean": "rimraf dist && npm run clean-sdk && npm run clean-app && npm run clean-docs",
+        "clean-editors": "npm run clean --prefix ./ui-editors",
+        "clean": "rimraf dist && npm run clean-sdk && npm run clean-app && npm run clean-docs && npm run clean-editors",
         "lint-sdk": "npm run lint --prefix ../typescript-sdk",
         "lint-app": "npm run lint --prefix ./ui-app",
         "lint-docs": "npm run lint --prefix ./ui-docs",
-        "lint": "npm run lint-sdk && npm run lint-app && npm run lint-docs",
+        "lint-editors": "npm run lint --prefix ./ui-editors",
+        "lint": "npm run lint-sdk && npm run lint-app && npm run lint-docs && npm run lint-editors",
         "build-sdk": "npm run generate-sources --prefix ../typescript-sdk && npm run build --prefix ../typescript-sdk",
         "build-app": "npm run build --prefix ./ui-app",
         "build-docs": "npm run build --prefix ./ui-docs",
-        "build": "npm run build-sdk && npm run build-app && npm run build-docs && node .scripts/generate-version.cjs",
+        "build-editors": "npm run build --prefix ./ui-editors",
+        "build": "npm run build-sdk && npm run build-app && npm run build-docs && npm run build-editors && node .scripts/generate-version.cjs",
         "package": "node .scripts/package.cjs",
-        "dev": "npm run dev --prefix ./ui-app"
+        "dev": "concurrently \"npm run dev --prefix ./ui-app\" \"npm run dev --prefix ./ui-docs\" \"npm run dev --prefix ./ui-editors\""
     },
     "devDependencies": {
+        "concurrently": "8.2.2",
         "rimraf": "6.0.1",
         "shelljs": "0.10.0"
     }

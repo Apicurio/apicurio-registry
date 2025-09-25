@@ -2,6 +2,7 @@ import { FunctionComponent } from "react";
 import "./GroupPageHeader.css";
 import { Button, Flex, FlexItem, Text, TextContent, TextVariants } from "@patternfly/react-core";
 import { IfAuth, IfFeature } from "@app/components";
+import { If } from "@apicurio/common-ui-components";
 
 
 /**
@@ -25,14 +26,16 @@ export const GroupPageHeader: FunctionComponent<GroupPageHeaderProps> = (props: 
                 </TextContent>
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
-                <IfAuth isDeveloper={true}>
-                    <IfFeature feature="readOnly" isNot={true}>
-                        <IfFeature feature="deleteGroup" is={true}>
-                            <Button id="delete-artifact-button" variant="danger"
-                                data-testid="header-btn-delete" onClick={props.onDeleteGroup}>Delete group</Button>
+                <If condition={props.groupId !== "default"}>
+                    <IfAuth isDeveloper={true}>
+                        <IfFeature feature="readOnly" isNot={true}>
+                            <IfFeature feature="deleteGroup" is={true}>
+                                <Button id="delete-artifact-button" variant="danger"
+                                    data-testid="header-btn-delete" onClick={props.onDeleteGroup}>Delete group</Button>
+                            </IfFeature>
                         </IfFeature>
-                    </IfFeature>
-                </IfAuth>
+                    </IfAuth>
+                </If>
             </FlexItem>
         </Flex>
     );

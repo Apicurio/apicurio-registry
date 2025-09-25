@@ -29,9 +29,7 @@ import { VersionComments } from "@app/pages";
 export type VersionInfoTabContentProps = {
     artifact: ArtifactMetaData;
     version: VersionMetaData;
-    codegenEnabled: boolean;
     onEditMetaData: () => void;
-    onGenerateClient: () => void;
 };
 
 /**
@@ -56,17 +54,8 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                     <CardTitle>
                         <div className="title-and-type">
                             <Flex>
-                                <FlexItem className="type"><ArtifactTypeIcon
-                                    artifactType={props.artifact.artifactType!}/></FlexItem>
                                 <FlexItem className="title">Version metadata</FlexItem>
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                    <If condition={(props.codegenEnabled && props.version.artifactType === "OPENAPI")}>
-                                        <Button id="generate-client-action"
-                                            data-testid="version-btn-gen-client"
-                                            title="Generate a client"
-                                            onClick={props.onGenerateClient}
-                                            variant="link">Generate client SDK</Button>
-                                    </If>
                                     <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                                         <IfFeature feature="readOnly" isNot={true}>
                                             <Button id="edit-action"
@@ -101,6 +90,13 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
+                                <DescriptionListTerm>Type</DescriptionListTerm>
+                                <DescriptionListDescription data-testid="version-details-type">
+                                    <ArtifactTypeIcon artifactType={props.artifact.artifactType!} />
+                                    <span style={{ marginLeft: "3px" }}>{props.artifact.artifactType}</span>
+                                </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
                                 <DescriptionListTerm>Status</DescriptionListTerm>
                                 <DescriptionListDescription
                                     data-testid="version-details-state">{props.version.state}</DescriptionListDescription>
@@ -122,7 +118,7 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Modified</DescriptionListTerm>
                                 <DescriptionListDescription data-testid="version-details-modified-on">
-                                    <FromNow date={props.artifact.modifiedOn}/>
+                                    <FromNow date={props.version.modifiedOn}/>
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>

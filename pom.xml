@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.0.15-SNAPSHOT</version>
+  <version>3.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -94,11 +94,13 @@
     <module>serdes/pulsar/avro-serde</module>
     <module>utils/converter</module>
     <module>utils/exportConfluent</module>
+    <module>utils/flink</module>
     <module>utils/importexport</module>
     <module>utils/kafka</module>
     <module>utils/maven-plugin</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
+    <module>utils/raml-test-micro-service</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
     <module>schema-util/asyncapi</module>
@@ -135,6 +137,7 @@
 
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
@@ -216,6 +219,7 @@
     <debezium.version>2.7.4.Final</debezium.version>
     <pulsar-clients.version>3.3.8</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
+    <quickjs4j.version>0.0.6</quickjs4j.version>
 
     <nats.version>2.21.4</nats.version>
     <snakeyaml.version>2.4</snakeyaml.version>
@@ -265,6 +269,9 @@
     <!-- Protocol Buffers -->
     <proto-plugin.version>0.6.1</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
+
+    <!-- Flink -->
+    <flink.version>1.20.1</flink.version>
 
     <!-- Kiota -->
     <kiota.libs.version>1.8.10</kiota.libs.version>
@@ -725,6 +732,22 @@
       </dependency>
 
       <dependency>
+        <groupId>io.roastedroot</groupId>
+        <artifactId>quickjs4j</artifactId>
+        <version>${quickjs4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.roastedroot</groupId>
+        <artifactId>quickjs4j-annotations</artifactId>
+        <version>${quickjs4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.roastedroot</groupId>
+        <artifactId>quickjs4j-processor</artifactId>
+        <version>${quickjs4j.version}</version>
+      </dependency>
+
+      <dependency>
         <groupId>com.fasterxml.woodstox</groupId>
         <artifactId>woodstox-core</artifactId>
         <version>${woodstox-core.version}</version>
@@ -1023,6 +1046,7 @@
         <configuration>
           <source>${maven.compiler.source}</source>
           <target>${maven.compiler.target}</target>
+          <release>${maven.compiler.release}</release>
           <showDeprecation>false</showDeprecation>
           <showWarnings>false</showWarnings>
           <annotationProcessorPaths>

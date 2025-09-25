@@ -20,6 +20,7 @@ public enum ConfigPropertyCategory {
     CATEGORY_SEMVER("semver"),
     CATEGORY_STORAGE("storage"),
     CATEGORY_SYSTEM("system"),
+    CATEGORY_TYPES("types"),
     CATEGORY_UI("ui");
 
     private final String value;

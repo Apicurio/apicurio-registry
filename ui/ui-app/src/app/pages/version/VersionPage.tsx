@@ -10,11 +10,18 @@ import {
     PageError,
     PageErrorHandler,
     toPageError,
-    VersionPageHeader, PageProperties
+    VersionPageHeader, PageProperties, EXPLORE_PAGE_IDX
 } from "@app/pages";
 import { ReferencesTabContent } from "@app/pages/version/components/tabs/ReferencesTabContent.tsx";
-import { ConfirmDeleteModal, EditMetaDataModal, GenerateClientModal, IfFeature, MetaData } from "@app/components";
-import { ContentTypes } from "@models/contentTypes.model.ts";
+import {
+    ConfirmDeleteModal,
+    EditMetaDataModal,
+    GenerateClientModal,
+    IfFeature,
+    MetaData,
+    RootPageHeader
+} from "@app/components";
+import { ContentTypes } from "@models/ContentTypes.ts";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
@@ -109,6 +116,13 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         } else {
             appNavigation.navigateTo(`/explore/${gid}/${aid}/versions/${ver}/${tabIndex}`);
         }
+    };
+
+    const onEditDraft = (): void => {
+        const gid: string = encodeURIComponent(groupId as string);
+        const aid: string = encodeURIComponent(artifactId as string);
+        const ver: string = encodeURIComponent(version as string);
+        appNavigation.navigateTo(`/explore/${gid}/${aid}/versions/${ver}/editor`);
     };
 
     const onDeleteVersion = (): void => {
@@ -216,22 +230,20 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     }, [groupId, artifactId, version]);
 
     const tabs: any[] = [
-        <Tab data-testid="info-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-info">
+        <Tab data-testid="version-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
             <VersionInfoTabContent
                 artifact={artifact as ArtifactMetaData}
                 version={artifactVersion as VersionMetaData}
-                codegenEnabled={true}
                 onEditMetaData={openEditMetaDataModal}
-                onGenerateClient={() => setIsGenerateClientModalOpen(true)}
             />
         </Tab>,
-        <Tab data-testid="documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab">
+        <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
             <DocumentationTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
         </Tab>,
-        <Tab data-testid="content-tab" eventKey="content" title="Content" key="content">
+        <Tab data-testid="version-content-tab" eventKey="content" title="Content" key="content" tabContentId="tab-content">
             <ContentTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
         </Tab>,
-        <Tab data-testid="references-tab" eventKey="references" title="References" key="references">
+        <Tab data-testid="version-references-tab" eventKey="references" title="References" key="references" tabContentId="tab-references">
             <ReferencesTabContent version={artifactVersion as VersionMetaData} />
         </Tab>,
     ];
@@ -240,42 +252,36 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     }
 
     const gid: string = groupId || "default";
-    const hasGroup: boolean = gid != "default";
-    let breadcrumbs = (
+    const breadcrumbs = (
         <Breadcrumb>
             <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/artifacts`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }`)}
                 data-testid="breadcrumb-lnk-group">{ gid }</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }/versions`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }`)}
                 data-testid="breadcrumb-lnk-artifact">{ artifactId }</Link></BreadcrumbItem>
             <BreadcrumbItem isActive={true}>{ version as string }</BreadcrumbItem>
         </Breadcrumb>
     );
-    if (!hasGroup) {
-        breadcrumbs = (
-            <Breadcrumb>
-                <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-                <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }/versions`)}
-                    data-testid="breadcrumb-lnk-artifact">{ artifactId }</Link></BreadcrumbItem>
-                <BreadcrumbItem isActive={true}>{ version as string }</BreadcrumbItem>
-            </Breadcrumb>
-        );
-    }
 
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
+                <PageSection className="ps_explore-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                    <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
+                </PageSection>
                 <IfFeature feature="breadcrumbs" is={true}>
                     <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
                 </IfFeature>
                 <PageSection className="ps_artifact-version-header" variant={PageSectionVariants.light}>
                     <VersionPageHeader
+                        onEdit={onEditDraft}
                         onDelete={onDeleteVersion}
                         onDownload={doDownloadVersion}
                         artifact={artifact}
-                        version={version as string}
-                        groupId={gid}
-                        artifactId={artifactId as string} />
+                        version={artifactVersion}
+                        codegenEnabled={true}
+                        onGenerateClient={() => setIsGenerateClientModalOpen(true)}
+                    />
                 </PageSection>
                 <PageSection variant={PageSectionVariants.light} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"

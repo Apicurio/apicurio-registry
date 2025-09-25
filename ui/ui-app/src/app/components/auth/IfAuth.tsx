@@ -42,7 +42,6 @@ export const IfAuth: FunctionComponent<IfAuthProps> = (props: IfAuthProps) => {
             rval = rval && (user.isUserAdmin() === props.isAdmin);
         }
         if (props.isDeveloper !== undefined) {
-            console.info(">>> checking if user is developer: " + props.owner);
             rval = rval && (user.isUserDeveloper(props.owner) === props.isDeveloper);
         }
         if (props.isOwner !== undefined && props.owner) {

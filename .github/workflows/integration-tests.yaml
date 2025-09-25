@@ -75,7 +75,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
 
@@ -257,7 +257,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: 'ui/tests/package-lock.json'
 
@@ -278,7 +278,10 @@ jobs:
       - name: Run UI tests
         run: |
           echo "Starting Registry App (In Memory)"
-          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d apicurio/apicurio-registry:${{ github.sha }}
+          docker run -it -p 8080:8080 \
+              -e apicurio.rest.deletion.artifact.enabled=true \
+              -e apicurio.rest.deletion.group.enabled=true \
+              -d apicurio/apicurio-registry:${{ github.sha }}
           echo "Starting Registry UI"
           docker run -it -p 8888:8080 -d apicurio/apicurio-registry-ui:${{ github.sha }}
 

@@ -1,0 +1,21 @@
+.search-toolbar {
+    padding-left: 8px;
+    padding-right: 24px;
+}
+
+.search-toolbar > div {
+    width: 100%;
+}
+
+.search-toolbar .filter-types-toggle span.pf-v5-c-menu-toggle__text {
+    width: 125px;
+    text-align: left;
+}
+
+#search-toolbar-1 .tbi-filter-type {
+    margin-right: 0;
+}
+
+#search-toolbar-2 {
+    padding-top: 0;
+}

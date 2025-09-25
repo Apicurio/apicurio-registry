@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Apicurio Registry API [v3]",
-    "version": "3.0.x",
+    "version": "3.1.x",
     "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v3` by default. Therefore you must prefix all API operation paths with `/apis/registry/v3` in this case. For example: `/apis/registry/v3/ids/globalIds/{globalId}`.\n",
     "contact": {
       "name": "Apicurio",
@@ -1387,6 +1387,9 @@
             },
             "description": "On a successful response, returns a bounded set of artifacts."
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
@@ -1450,6 +1453,9 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "409": {
             "$ref": "#/components/responses/RuleViolationConflict"
           },
@@ -1462,7 +1468,7 @@
         },
         "operationId": "createArtifact",
         "summary": "Create artifact",
-        "description": "Creates a new artifact.  The body of the request should be a `CreateArtifact` \nobject, which includes the metadata of the new artifact and, optionally, the \nmetadata and content of the first version.\n\nIf the artifact type is not provided, the registry attempts to figure out what \nkind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAn artifact will be created using the unique artifact ID that can optionally be \nprovided in the request body.  If not provided in the request, the server will\ngenerate a unique ID for the artifact.  It is typically recommended that callers\nprovide the ID, because it is typically a meaningful identifier, and as such\nfor most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `CREATE_VERSION` - server creates a new version of the existing artifact and returns it\n* `FIND_OR_CREATE_VERSION` - server returns an existing **version** that matches the \nprovided content if such a version exists, otherwise a new version is created\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* Provided content (request body) was empty (HTTP error `400`)\n* An invalid version number was used for the optional included first version (HTTP error `400`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n\nNote that if the `dryRun` query parameter is set to `true`, then this operation\nwill not actually make any changes.  Instead it will succeed or fail based on \nwhether it **would have worked**.  Use this option to, for example, check if an\nartifact is valid or if a new version passes configured compatibility checks."
+        "description": "Creates a new artifact.  The body of the request should be a `CreateArtifact` \nobject, which includes the metadata of the new artifact and, optionally, the \nmetadata and content of the first version.\n\nIf the artifact type is not provided, the registry attempts to figure out what \nkind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAn artifact will be created using the unique artifact ID that can optionally be \nprovided in the request body.  If not provided in the request, the server will\ngenerate a unique ID for the artifact.  It is typically recommended that callers\nprovide the ID, because it is typically a meaningful identifier, and as such\nfor most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `CREATE_VERSION` - server creates a new version of the existing artifact and returns it\n* `FIND_OR_CREATE_VERSION` - server returns an existing **version** that matches the \nprovided content if such a version exists, otherwise a new version is created\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* Provided content (request body) was empty (HTTP error `400`)\n* An invalid version number was used for the optional included first version (HTTP error `400`)\n* The group does not exist and automatic-group-creation is not enabled (HTTP error `404`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n\nNote that if the `dryRun` query parameter is set to `true`, then this operation\nwill not actually make any changes.  Instead it will succeed or fail based on \nwhether it **would have worked**.  Use this option to, for example, check if an\nartifact is valid or if a new version passes configured compatibility checks."
       },
       "delete": {
         "tags": [
@@ -4607,6 +4613,9 @@
               },
               "oaiDocsUrl": {
                 "type": "string"
+              },
+              "editorsUrl": {
+                "type": "string"
               }
             }
           },
@@ -4660,7 +4669,8 @@
           "ui": {
             "contextPath": "/",
             "navPrefixPath": "/",
-            "oaiDocsUrl": "https://registry.apicur.io/docs"
+            "oaiDocsUrl": "https://registry.apicur.io/docs",
+            "editorsUrl": "https://registry.apicur.io/editors"
           },
           "auth": {
             "type": "oidc",
@@ -4772,12 +4782,16 @@
           },
           "oaiDocsUrl": {
             "type": "string"
+          },
+          "editorsUrl": {
+            "type": "string"
           }
         },
         "example": {
           "contextPath": "/",
           "navPrefixPath": "/",
-          "oaiDocsUrl": "https://registry.apicur.io/docs"
+          "oaiDocsUrl": "https://registry.apicur.io/docs",
+          "editorsUrl": "https://registry.apicur.io/editors"
         }
       },
       "Labels": {
@@ -5404,7 +5418,6 @@
         "description": "The content of one version of one artifact."
       },
       "UnprocessableEntity": {
-        "description": "The artifact content is not valid for one of the following reasons:\n* Schema validation failed\n* References could not be validated\n* Required references are missing",
         "content": {
           "application/json": {
             "schema": {
@@ -5420,7 +5433,8 @@
               }
             }
           }
-        }
+        },
+        "description": "The artifact content is not valid for one of the following reasons:\n* Schema validation failed\n* References could not be validated\n* Required references are missing"
       }
     }
   },

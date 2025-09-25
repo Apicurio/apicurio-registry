@@ -1,1 +1,2 @@
-export * from "./GroupInfoTabContent.tsx";
+export * from "./GroupOverviewTabContent";
+export * from "./GroupRulesTabContent.tsx";

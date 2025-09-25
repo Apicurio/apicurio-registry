@@ -95,7 +95,7 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.stream().map(prop -> {
+            labels.stream().filter(prop -> prop != null && !prop.isBlank()).map(prop -> {
                 int delimiterIndex = prop.indexOf(":");
                 String labelKey;
                 String labelValue;
@@ -103,12 +103,11 @@ public class SearchResourceImpl implements SearchResource {
                     throw new BadRequestException(
                             "label search filter wrong format, missing left side of ':' delimiter");
                 }
-                if (delimiterIndex == (prop.length() - 1)) {
-                    throw new BadRequestException(
-                            "label search filter wrong format, missing right side of ':' delimiter");
-                }
                 if (delimiterIndex < 0) {
                     labelKey = prop;
+                    labelValue = null;
+                } else if (delimiterIndex == (prop.length() - 1)) {
+                    labelKey = prop.substring(0, delimiterIndex);
                     labelValue = null;
                 } else {
                     labelKey = prop.substring(0, delimiterIndex);
@@ -205,20 +204,21 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.stream().map(prop -> {
+            labels.stream().filter(prop -> prop != null && !prop.isBlank()).map(prop -> {
                 int delimiterIndex = prop.indexOf(":");
                 String labelKey;
                 String labelValue;
                 if (delimiterIndex == 0) {
                     throw new BadRequestException(
-                            "label search filter wrong formatted, missing left side of ':' delimiter");
+                            "label search filter incorrectly formatted, missing left side of ':' delimiter");
                 }
-                if (delimiterIndex == (prop.length() - 1)) {
-                    throw new BadRequestException(
-                            "label search filter wrong formatted, missing right side of ':' delimiter");
-                }
-                if (delimiterIndex < 0) {
-                    labelKey = prop;
+                // If the delimiter is missing or simply exists at the end of the label filter with no value, then
+                // use null for the value (will match all groups containing a label with the key and *any* value).
+                if ((delimiterIndex == (prop.length() - 1)) || delimiterIndex < 0) {
+                    labelKey = prop.replace(":", "");
+                    labelValue = null;
+                } else if (delimiterIndex == (prop.length() - 1)) {
+                    labelKey = prop.substring(0, delimiterIndex);
                     labelValue = null;
                 } else {
                     labelKey = prop.substring(0, delimiterIndex);
@@ -273,20 +273,21 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofArtifactType(artifactType));
         }
         if (labels != null && !labels.isEmpty()) {
-            labels.stream().map(prop -> {
+            labels.stream().filter(prop -> prop != null && !prop.isBlank()).map(prop -> {
                 int delimiterIndex = prop.indexOf(":");
                 String labelKey;
                 String labelValue;
                 if (delimiterIndex == 0) {
                     throw new BadRequestException(
-                            "label search filter wrong formatted, missing left side of ':' delimiter");
+                            "label search filter incorrectly formatted, missing left side of ':' delimiter");
                 }
-                if (delimiterIndex == (prop.length() - 1)) {
-                    throw new BadRequestException(
-                            "label search filter wrong formatted, missing right side of ':' delimiter");
-                }
-                if (delimiterIndex < 0) {
-                    labelKey = prop;
+                // If the delimiter is missing or simply exists at the end of the label filter with no value, then
+                // use null for the value (will match all versions containing a label with the key and *any* value).
+                if ((delimiterIndex == (prop.length() - 1)) || delimiterIndex < 0) {
+                    labelKey = prop.replace(":", "");
+                    labelValue = null;
+                } else if (delimiterIndex == (prop.length() - 1)) {
+                    labelKey = prop.substring(0, delimiterIndex);
                     labelValue = null;
                 } else {
                     labelKey = prop.substring(0, delimiterIndex);

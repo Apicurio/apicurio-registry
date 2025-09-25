@@ -140,7 +140,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         given().when().queryParam("labels", "key-1:value-1:").get("/registry/v3/search/artifacts").then()
                 .statusCode(200).body("count", equalTo(0));
         given().when().queryParam("labels", "key-1:").get("/registry/v3/search/artifacts").then()
-                .statusCode(400);
+                .statusCode(200);
         given().when().queryParam("labels", ":value-1").get("/registry/v3/search/artifacts").then()
                 .statusCode(400);
         given().when().queryParam("labels", "all-key").get("/registry/v3/search/artifacts").then()
@@ -154,7 +154,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         given().when().queryParam("labels", ":all-key").get("/registry/v3/search/artifacts").then()
                 .statusCode(400);
         given().when().queryParam("labels", "all-key:").get("/registry/v3/search/artifacts").then()
-                .statusCode(400);
+                .statusCode(200);
 
         // Test that search results contain the labels
         ArtifactSearchResults results = clientV3.search().artifacts().get(conf -> {

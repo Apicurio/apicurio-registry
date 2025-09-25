@@ -64,7 +64,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     @Parameter(property = "dryRun", defaultValue = "false")
     boolean dryRun;
 
-    DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl();
+    DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl(true);
 
     /**
      * Validate the configuration.
@@ -141,21 +141,9 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
                         registerWithAutoRefs(registryClient, artifact, index, registrationStack);
                     } else if (artifact.getAnalyzeDirectory() != null && artifact.getAnalyzeDirectory()) { // Auto
-                        // register
-                        // selected,
-                        // we
-                        // must
-                        // figure
-                        // out
-                        // if
-                        // the
-                        // artifact
-                        // has
-                        // reference
-                        // using
-                        // the
-                        // directory
-                        // structure
+                        // register selected, we must figure out if the artifact has references using the
+                        // directory structure
+                        getLog().warn("Deprecated feature in use: 'analyzeDirectory' -- use 'autoRefs' instead.");
                         registerDirectory(registryClient, artifact);
                     } else {
 

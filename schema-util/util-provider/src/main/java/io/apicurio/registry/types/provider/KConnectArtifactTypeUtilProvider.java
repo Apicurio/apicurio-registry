@@ -1,9 +1,11 @@
 package io.apicurio.registry.types.provider;
 
-import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.ContentAccepter;
+import io.apicurio.registry.content.NoOpContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.canon.KafkaConnectContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.dereference.NoopContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
 import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
@@ -15,18 +17,25 @@ import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.KafkaConnectContentValidator;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 
-import java.util.Map;
+import java.util.Set;
 
 public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
-    @Override
-    public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        return false;
-    }
 
     @Override
     public String getArtifactType() {
         return ArtifactType.KCONNECT;
+    }
+
+    @Override
+    public Set<String> getContentTypes() {
+        return Set.of(ContentTypes.APPLICATION_JSON);
+    }
+
+    @Override
+    public ContentAccepter createContentAccepter() {
+        return NoOpContentAccepter.INSTANCE;
     }
 
     @Override
@@ -50,15 +59,12 @@ public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
-        return null;
+    public ContentDereferencer createContentDereferencer() {
+        return NoopContentDereferencer.INSTANCE;
     }
 
-    /**
-     * @see io.apicurio.registry.types.provider.ArtifactTypeUtilProvider#getReferenceFinder()
-     */
     @Override
-    public ReferenceFinder getReferenceFinder() {
+    public ReferenceFinder createReferenceFinder() {
         return NoOpReferenceFinder.INSTANCE;
     }
 

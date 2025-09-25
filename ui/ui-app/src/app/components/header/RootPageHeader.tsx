@@ -3,6 +3,14 @@ import { Tab, Tabs, TabTitleText } from "@patternfly/react-core";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { useConfigService } from "@services/useConfigService.ts";
 import { useUserService } from "@services/useUserService.ts";
+import {
+    DRAFTS_PAGE_IDX,
+    EXPLORE_PAGE_IDX,
+    ROLES_PAGE_IDX,
+    RULES_PAGE_IDX,
+    SEARCH_PAGE_IDX,
+    SETTINGS_PAGE_IDX
+} from "@app/pages";
 
 
 /**
@@ -12,7 +20,6 @@ export type RootPageHeaderProps = {
     tabKey: number;
 };
 
-
 export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: RootPageHeaderProps) => {
     const appNavigation: AppNavigation = useAppNavigation();
     const config = useConfigService();
@@ -20,37 +27,66 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
 
     const handleTabClick = (_event: React.MouseEvent<HTMLElement, MouseEvent>, eventKey: number | string): void => {
         if (eventKey !== props.tabKey) {
-            if (eventKey === 0) {
+            if (eventKey === EXPLORE_PAGE_IDX) {
                 // navigate to artifacts
                 appNavigation.navigateTo("/explore");
             }
-            if (eventKey === 1) {
+            if (eventKey === SEARCH_PAGE_IDX) {
+                // navigate to artifacts
+                appNavigation.navigateTo("/search");
+            }
+            if (eventKey === DRAFTS_PAGE_IDX) {
+                // navigate to artifacts
+                appNavigation.navigateTo("/drafts");
+            }
+            if (eventKey === DRAFTS_PAGE_IDX) {
+                // navigate to artifacts
+                appNavigation.navigateTo("/drafts");
+            }
+            if (eventKey === RULES_PAGE_IDX) {
                 // navigate to global rules
                 appNavigation.navigateTo("/rules");
             }
-            if (eventKey === 2) {
+            if (eventKey === ROLES_PAGE_IDX) {
                 // navigate to permissions page
                 appNavigation.navigateTo("/roles");
             }
-            if (eventKey === 3) {
+            if (eventKey === SETTINGS_PAGE_IDX) {
                 // navigate to settings page
                 appNavigation.navigateTo("/settings");
             }
         }
     };
 
+    // Always available:  Explore and Search tabs
     const tabs: any[] = [
-        <Tab data-testid="explore-tab" key={0} eventKey={0} title={<TabTitleText>Explore</TabTitleText>} />,
-        <Tab data-testid="rules-tab" key={1} eventKey={1} title={<TabTitleText>Global rules</TabTitleText>} />
+        <Tab data-testid="explore-tab" key={EXPLORE_PAGE_IDX} eventKey={EXPLORE_PAGE_IDX} title={<TabTitleText>Explore</TabTitleText>} />,
+        <Tab data-testid="search-tab" key={SEARCH_PAGE_IDX} eventKey={SEARCH_PAGE_IDX} title={<TabTitleText>Search</TabTitleText>} />,
     ];
-    if (config.featureRoleManagement() && user.isUserAdmin()) {
+
+    // Add Drafts tab if mutability is enabled and user is a developer or admin
+    if (config.featureDraftMutability() && user.isUserDeveloper()) {
         tabs.push(
-            <Tab data-testid="access-tab" key={2} eventKey={2} title={<TabTitleText>Access</TabTitleText>} />
+            <Tab data-testid="drafts-tab" key={DRAFTS_PAGE_IDX} eventKey={DRAFTS_PAGE_IDX} title={<TabTitleText>Drafts</TabTitleText>} />,
         );
     }
+
+    // Always show the Global Rules tab
+    tabs.push(
+        <Tab data-testid="rules-tab" key={RULES_PAGE_IDX} eventKey={RULES_PAGE_IDX} title={<TabTitleText>Global rules</TabTitleText>} />
+    );
+
+    // Show Roles tab if RBAC is enabled and the user is an admin
+    if (config.featureRoleManagement() && user.isUserAdmin()) {
+        tabs.push(
+            <Tab data-testid="access-tab" key={ROLES_PAGE_IDX} eventKey={ROLES_PAGE_IDX} title={<TabTitleText>Access</TabTitleText>} />
+        );
+    }
+
+    // Show Settings tab if feature is enabled and the user is an admin
     if (config.featureSettings() && user.isUserAdmin()) {
         tabs.push(
-            <Tab data-testid="settings-tab" key={3} eventKey={3} title={<TabTitleText>Settings</TabTitleText>} />
+            <Tab data-testid="settings-tab" key={SETTINGS_PAGE_IDX} eventKey={SETTINGS_PAGE_IDX} title={<TabTitleText>Settings</TabTitleText>} />
         );
     }
     return (

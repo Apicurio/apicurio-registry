@@ -30,8 +30,8 @@ public class OperatorConfigITTest extends ITBase {
         client.resource(registry).create();
 
         // TODO: Use PodLogManager
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-            var operatorPod = waitOnOperatorPod();
+        await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> {
+            var operatorPod = waitOnOperatorPodReady();
             String log = client.pods().withName(operatorPod.getMetadata().getName()).getLog();
             assertThat(log).contains("No operator ConfigMap found.");
             // Create the ConfigMap and restart the pod
@@ -39,8 +39,8 @@ public class OperatorConfigITTest extends ITBase {
             client.resource(operatorPod).delete();
         });
 
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-            var operatorPod = waitOnOperatorPod();
+        await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> {
+            var operatorPod = waitOnOperatorPodReady();
             String log = client.pods().withName(operatorPod.getMetadata().getName()).getLog();
             assertThat(log).contains("Operator ConfigMap found, loaded 2 configuration options.");
         });

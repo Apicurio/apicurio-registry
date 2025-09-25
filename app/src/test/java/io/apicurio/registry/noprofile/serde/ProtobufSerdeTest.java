@@ -246,6 +246,51 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
             assertEquals(record.getMsb(), deserializedUuid.getMsb());
             assertEquals(record.getLsb(), deserializedUuid.getLsb());
         }
+
+        // Apicurio serializer -> Apicurio deserializer (confluent interop enabled)
+        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(clientFacade);
+             Deserializer<TestCmmn.UUID> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+
+            serializer.configure(Map.of(
+                    SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class,
+                    SerdeConfig.AUTO_REGISTER_ARTIFACT, "true",
+                    SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, "default",
+                    SerdeConfig.SEND_TYPE_REF, "false",
+                    SerdeConfig.SEND_INDEXES, "true"
+            ), false);
+
+            deserializer.configure(Map.of(
+                    SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, TestCmmn.UUID.class.getName(),
+                    SerdeConfig.READ_TYPE_REF, "false",
+                    SerdeConfig.READ_INDEXES, "true"
+            ), false);
+
+            TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
+
+            String topic = generateArtifactId();
+
+            byte[] bytes = serializer.serialize(topic, record);
+
+            waitForSchema(contentId -> {
+                try {
+                    if (isolatedClientV3.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0) {
+                        VersionMetaData artifactMetadata = isolatedClientV3.groups().byGroupId("default").artifacts()
+                                .byArtifactId(topic).versions().byVersionExpression("branch=latest").get();
+                        assertEquals(contentId.longValue(), artifactMetadata.getContentId());
+                        return true;
+                    }
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return false;
+            }, bytes);
+
+            TestCmmn.UUID deserializedUuid = deserializer.deserialize(topic, bytes);
+            assertEquals(record.getMsb(), deserializedUuid.getMsb());
+            assertEquals(record.getLsb(), deserializedUuid.getLsb());
+        }
     }
 
     private void assertProtobufEquals(TestCmmn.UUID record, DynamicMessage dm) {

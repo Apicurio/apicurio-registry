@@ -96,11 +96,26 @@ public class SerdeConfig extends SchemaResolverConfig {
     public static final boolean SEND_TYPE_REF_DEFAULT = true;
 
     /**
+     * Boolean used to enable or disable reading the type ref (either in message headers or payload)
+     * when deserializing a Protobuf message.
+     */
+    public static final String READ_TYPE_REF = "apicurio.registry.serde.read-type-ref";
+    public static final boolean READ_TYPE_REF_DEFAULT = true;
+
+    /**
      * Boolean used to enable or disable sending the protobuf schema message indexes when writing
      * the proto message as a payload.
      */
     public static final String SEND_INDEXES = "apicurio.registry.serde.send-indexes";
     public static final boolean SEND_INDEXES_DEFAULT = false;
+
+    /**
+     * Boolean used to enable or disable reading the protobuf schema message indexes when reading
+     * the proto message as a payload.  When enabled, the deserializer will assume that the
+     * message indexes (array) is present in the payload buffer before the serialized message data.
+     */
+    public static final String READ_INDEXES = "apicurio.registry.serde.read-indexes";
+    public static final boolean READ_INDEXES_DEFAULT = false;
 
     /**
      * Only applicable for deserializers Optional, set explicitly the groupId used as fallback for resolving

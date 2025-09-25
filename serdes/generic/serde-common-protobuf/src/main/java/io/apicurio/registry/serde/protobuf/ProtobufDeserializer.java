@@ -36,6 +36,8 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
     private Method specificReturnClassParseMethod;
     private boolean deriveClass;
     private String messageTypeName;
+    private boolean readTypeRef = true;
+    private boolean readIndexes = false;
 
     private final Map<String, Method> parseMethodsCache = new ConcurrentHashMap<>();
 
@@ -84,7 +86,8 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         }
 
         deriveClass = config.deriveClass();
-
+        readTypeRef = config.readTypeRef();
+        readIndexes = config.readIndexes();
     }
 
     @Override
@@ -118,7 +121,13 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
             }
 
-            if (descriptor == null) {
+            if (readIndexes) {
+                // Read the message index list from the buffer.  Currently we do not use it for anything,
+                // but this may be necessary for interoperability with Confluent.
+                MessageIndexesUtil.readFrom(is);
+            }
+
+            if (readTypeRef && descriptor == null) {
                 try {
                     Ref ref = Ref.parseDelimitedFrom(is);
                     descriptor = schema.getParsedSchema().getFileDescriptor()

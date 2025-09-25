@@ -7,11 +7,17 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MessageIndexesUtil {
+
+    private static IllegalArgumentException illegalVarintException(int value) {
+        throw new IllegalArgumentException("Varint is too long, the most significant bit in the 5th byte is set, " +
+                "converted value: " + Integer.toHexString(value));
+    }
 
     private static byte[] bytes(byte value) {
         byte[] rval = { value };
@@ -52,6 +58,51 @@ public class MessageIndexesUtil {
         for (Integer index : indexes) {
             writeVarInt(index, out);
         }
+    }
+    static int readUnsignedVarInt(InputStream in) throws IOException {
+        byte tmp = (byte) in.read();
+        if (tmp >= 0) {
+            return tmp;
+        } else {
+            int result = tmp & 127;
+            if ((tmp = (byte) in.read()) >= 0) {
+                result |= tmp << 7;
+            } else {
+                result |= (tmp & 127) << 7;
+                if ((tmp = (byte) in.read()) >= 0) {
+                    result |= tmp << 14;
+                } else {
+                    result |= (tmp & 127) << 14;
+                    if ((tmp = (byte) in.read()) >= 0) {
+                        result |= tmp << 21;
+                    } else {
+                        result |= (tmp & 127) << 21;
+                        result |= (tmp = (byte) in.read()) << 28;
+                        if (tmp < 0) {
+                            throw illegalVarintException(result);
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+    }
+
+    public static int readVarInt(InputStream in) throws IOException {
+        int value = readUnsignedVarInt(in);
+        return (value >>> 1) ^ -(value & 1);
+    }
+
+    public static List<Integer> readFrom(InputStream in) throws IOException {
+        int size = readVarInt(in);
+        if (size == 0) {
+            return List.of(0);
+        }
+        List<Integer> indexes = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            indexes.add(readVarInt(in));
+        }
+        return indexes;
     }
 
     public static <T extends Message> List<Integer> getMessageIndexes(ParsedSchema<ProtobufSchema> schema, T object) {

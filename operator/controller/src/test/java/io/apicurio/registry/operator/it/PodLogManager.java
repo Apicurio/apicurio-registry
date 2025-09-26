@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.operator.it.ITBase.SHORT_DURATION;
+import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -46,6 +47,8 @@ public class PodLogManager {
                     .inNamespace(getNamespace(podID)).list().getItems()
                     .stream().map(r -> "- " + ResourceID.fromResource(r))
                     .collect(Collectors.joining("\n")));
+            log.warn(">>> Resource:\n{}", toYAML(k8sClient.pods().inNamespace(getNamespace(podID)).withName(podID.getName()).get()));
+            log.warn(">>> Logs:\n{}", k8sClient.pods().inNamespace(getNamespace(podID)).withName(podID.getName()).getLog());
 
             assertThat(k8sClient.pods().inNamespace(getNamespace(podID)).withName(podID.getName()).isReady()).isTrue();
         });

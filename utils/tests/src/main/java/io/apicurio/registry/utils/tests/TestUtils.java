@@ -432,8 +432,10 @@ public class TestUtils {
                         ((io.apicurio.registry.rest.client.models.ProblemDetails) ex).getName(),
                         () -> "ex: " + ex);
                 Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(ex));
-            } else {
+            } else if (ex instanceof ApiException) {
                 Assertions.assertEquals(expectedCode, ((ApiException) ex).getResponseStatusCode());
+            } else {
+                Assertions.fail("Unexpected exception type (expected a client exception)", ex);
             }
         }
     }

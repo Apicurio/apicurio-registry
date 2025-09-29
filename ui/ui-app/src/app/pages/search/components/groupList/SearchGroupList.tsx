@@ -49,7 +49,7 @@ export const SearchGroupList: FunctionComponent<SearchGroupListProps> = (props: 
                         />
                         <DataListAction
                             id={`group-actions-${idx}`}
-                            aria-label="Draft actions"
+                            aria-label="Group actions"
                             aria-labelledby={`group-actions-${idx}`}
                             isPlainButtonAction={true}
                         >

@@ -12,14 +12,14 @@ import {
     PageErrorHandler,
     toPageError
 } from "@app/pages";
-import { CreateGroupModal, InvalidContentModal, RootPageHeader } from "@app/components";
+import { ConfirmDeleteModal, CreateGroupModal, InvalidContentModal, RootPageHeader } from "@app/components";
 import { ListWithToolbar, PleaseWaitModal, ProgressModal } from "@apicurio/common-ui-components";
 import { FilterBy, SearchFilter, SearchService, useSearchService } from "@services/useSearchService.ts";
 import { GroupSearchResults } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
 import { Paging } from "@models/Paging.ts";
 import { GroupsSortBy } from "@models/GroupsSortBy.ts";
 import { SortOrder } from "@models/SortOrder.ts";
-import { CreateGroup, RuleViolationProblemDetails } from "@sdk/lib/generated-client/models";
+import { CreateGroup, RuleViolationProblemDetails, SearchedGroup } from "@sdk/lib/generated-client/models";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
@@ -62,8 +62,10 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
     const [isImportModalOpen, setImportModalOpen] = useState<boolean>(false);
     const [isImporting, setImporting] = useState(false);
     const [importProgress, setImportProgress] = useState(0);
+    const [groupToDelete, setGroupToDelete] = useState<SearchedGroup>();
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-    const appNavigation: AppNavigation = useAppNavigation();
+    const appNav: AppNavigation = useAppNavigation();
     const searchSvc: SearchService = useSearchService();
     const groups: GroupsService = useGroupsService();
     const logger: LoggerService = useLoggerService();
@@ -150,7 +152,7 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
             const groupId: string = response.groupId!;
             const groupLocation: string = `/explore/${ encodeURIComponent(groupId) }`;
             logger.info("[SearchPage] Group successfully created.  Redirecting to details page: ", groupLocation);
-            appNavigation.navigateTo(groupLocation);
+            appNav.navigateTo(groupLocation);
         }).catch( error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
@@ -205,6 +207,30 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         }
     };
 
+    const onExploreGroup = (group: SearchedGroup): void => {
+        const gid: string = encodeURIComponent(group.groupId || "default");
+        const link: string = `/explore/${gid}`;
+        appNav.navigateTo(link);
+    };
+
+    const onDeleteGroup = (group: SearchedGroup): void => {
+        setGroupToDelete(group);
+        setIsDeleteModalOpen(true);
+    };
+
+    const onDeleteModalClose = (): void => {
+        setIsDeleteModalOpen(false);
+    };
+
+    const doDeleteGroup = (): void => {
+        onDeleteModalClose();
+        pleaseWait(true, "Deleting group, please wait.");
+        groups.deleteGroup(groupToDelete?.groupId as string).then( () => {
+            pleaseWait(false);
+            search(criteria, paging);
+        });
+    };
+
     useEffect(() => {
         setLoaders(createLoaders());
     }, []);
@@ -249,7 +275,12 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
                         isFiltered={isFiltered()}
                         isEmpty={isFiltered() && results.count === 0}
                     >
-                        <ExploreGroupList isFiltered={isFiltered()} groups={(results as GroupSearchResults).groups!} />
+                        <ExploreGroupList
+                            isFiltered={isFiltered()}
+                            groups={(results as GroupSearchResults).groups!}
+                            onExplore={onExploreGroup}
+                            onDelete={onDeleteGroup}
+                        />
                     </ListWithToolbar>
                 </PageSection>
             </PageDataLoader>
@@ -274,6 +305,11 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
                 progress={importProgress}
                 onClose={() => setImporting(false)}
                 isOpen={isImporting} />
+            <ConfirmDeleteModal isOpen={isDeleteModalOpen}
+                title="Delete Group"
+                message="Do you want to delete this group and all artifacts contained within? This action cannot be undone."
+                onDelete={doDeleteGroup}
+                onClose={onDeleteModalClose} />
         </PageErrorHandler>
     );
 

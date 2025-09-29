@@ -1,9 +1,9 @@
 import React, { FunctionComponent } from "react";
 import { Link } from "react-router-dom";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
-import {Tooltip} from "@patternfly/react-core";
-import {DesktopIcon} from "@patternfly/react-icons";
-import {If} from "@apicurio/common-ui-components";
+import { Tooltip } from "@patternfly/react-core";
+import { DesktopIcon } from "@patternfly/react-icons";
+import { If } from "@apicurio/common-ui-components";
 
 let testIdCounter: number = 1;
 

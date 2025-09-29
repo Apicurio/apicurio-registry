@@ -2,18 +2,17 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ExplorePageToolbar.css";
 import {
     Button,
-    ButtonVariant,
     Form,
     InputGroup,
     Pagination,
-    TextInput,
+    SearchInput,
     Toolbar,
     ToolbarContent,
     ToolbarItem
 } from "@patternfly/react-core";
-import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
+import { SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
 import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
-import { ObjectDropdown, ObjectSelect } from "@apicurio/common-ui-components";
+import { ObjectDropdown } from "@apicurio/common-ui-components";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy } from "@services/useSearchService.ts";
 import { GroupSearchResults } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
@@ -58,12 +57,25 @@ type ActionType = {
  * Models the toolbar for the Explore page.
  */
 export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (props: ExplorePageToolbarProps) => {
-    const [groupFilterType, setGroupFilterType] = useState(GROUP_FILTER_TYPES[0]);
+    const [groupFilterType] = useState(GROUP_FILTER_TYPES[0]);
     const [filterValue, setFilterValue] = useState("");
     const [filterAscending, setFilterAscending] = useState(true);
     const [kebabActions, setKebabActions] = useState<ActionType[]>([]);
 
     const config = useConfigService();
+
+    const onFilterChange = (event: any | undefined, value: string): void => {
+        setFilterValue(value);
+    };
+
+    const onFilterClear = (event: any | undefined): void => {
+        setFilterValue("");
+        const filterTypeValue: FilterBy = groupFilterType.value;
+        fireChangeEvent(filterAscending, filterTypeValue, "");
+        if (event) {
+            event.preventDefault();
+        }
+    };
 
     const onFilterSubmit = (event: any | undefined): void => {
         const filterTypeValue: FilterBy = groupFilterType.value;
@@ -71,11 +83,6 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
         if (event) {
             event.preventDefault();
         }
-    };
-
-    const onGroupFilterTypeChange = (newType: FilterType): void => {
-        setGroupFilterType(newType);
-        fireChangeEvent(filterAscending, newType.value, filterValue);
     };
 
     const onToggleAscending = (): void => {
@@ -111,31 +118,16 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
     return (
         <Toolbar id="artifacts-toolbar-1" className="artifacts-toolbar">
             <ToolbarContent>
-                <ToolbarItem variant="label">
-                    Filter by
-                </ToolbarItem>
                 <ToolbarItem className="filter-item">
                     <Form onSubmit={onFilterSubmit}>
                         <InputGroup>
-                            <ObjectSelect
-                                value={groupFilterType}
-                                items={GROUP_FILTER_TYPES}
-                                testId="group-filter-type-select"
-                                toggleClassname="group-filter-type-toggle"
-                                onSelect={onGroupFilterTypeChange}
-                                itemToTestId={(item) => item.testId}
-                                itemToString={(item) => item.label}/>
-                            <TextInput name="filterValue" id="filterValue" type="search"
+                            <SearchInput
+                                placeholder="Filter artifacts..."
                                 value={filterValue}
-                                onChange={(_evt, value) => setFilterValue(value)}
-                                data-testid="artifact-filter-value"
-                                aria-label="search input example"/>
-                            <Button variant={ButtonVariant.control}
-                                onClick={onFilterSubmit}
-                                data-testid="artifact-filter-search"
-                                aria-label="search button for search input">
-                                <SearchIcon/>
-                            </Button>
+                                onChange={onFilterChange}
+                                onSearch={onFilterSubmit}
+                                onClear={onFilterClear}
+                            />
                         </InputGroup>
                     </Form>
                 </ToolbarItem>

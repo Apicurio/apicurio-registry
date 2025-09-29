@@ -26,6 +26,7 @@
         <groupId>org.apache.kafka</groupId>
         <artifactId>connect-json</artifactId>
         <version>${distro.version.kafka}</version>
+        <scope>provided</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import "./VersionInfoTabContent.css";
 import "@app/styles/empty.css";
-import { ArtifactTypeIcon, IfAuth, IfFeature } from "@app/components";
+import { ArtifactTypeIcon, IfAuth, IfFeature, VersionStateBadge } from "@app/components";
 import {
     Button,
     Card,
@@ -98,8 +98,9 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Status</DescriptionListTerm>
-                                <DescriptionListDescription
-                                    data-testid="version-details-state">{props.version.state}</DescriptionListDescription>
+                                <DescriptionListDescription data-testid="version-details-state">
+                                    <VersionStateBadge version={props.version} />
+                                </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Created</DescriptionListTerm>

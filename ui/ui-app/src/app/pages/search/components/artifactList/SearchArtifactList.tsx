@@ -1,7 +1,7 @@
 import React, { FunctionComponent } from "react";
 import "./SearchArtifactList.css";
 import { DataList, DataListAction, DataListCell, DataListItemCells, DataListItemRow } from "@patternfly/react-core";
-import { ArtifactGroup, ArtifactTypeIcon } from "@app/components";
+import { ArtifactGroup, ArtifactTypeIcon, ListedItemLabels } from "@app/components";
 import { SearchArtifactName } from "@app/pages";
 import { SearchedVersion } from "@sdk/lib/generated-client/models";
 import { shash } from "@utils/string.utils.ts";
@@ -42,20 +42,11 @@ export const SearchArtifactList: FunctionComponent<SearchArtifactListProps> = (p
                                     <div className="artifact-title">
                                         <ArtifactGroup groupId={artifact.groupId!} />
                                         <SearchArtifactName groupId={artifact.groupId!} artifactId={artifact.artifactId!} name={artifact.name!} />
-                                        {/*{*/}
-                                        {/*    statuses(artifact).map( status =>*/}
-                                        {/*        <Badge className="status-badge" key={status} isRead={true}>{status}</Badge>*/}
-                                        {/*    )*/}
-                                        {/*}*/}
                                     </div>
                                     <div className="artifact-description">{description(artifact)}</div>
-                                    {/*<div className="artifact-tags">*/}
-                                    {/*    {*/}
-                                    {/*        labels(artifact).map( label =>*/}
-                                    {/*            <Badge key={label} isRead={true}>{label}</Badge>*/}
-                                    {/*        )*/}
-                                    {/*    }*/}
-                                    {/*</div>*/}
+                                    <div className="artifact-labels">
+                                        <ListedItemLabels item={artifact} />
+                                    </div>
                                 </DataListCell>
                             ]}
                         />

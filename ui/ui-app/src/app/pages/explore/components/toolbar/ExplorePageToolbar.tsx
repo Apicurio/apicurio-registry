@@ -122,7 +122,7 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
                     <Form onSubmit={onFilterSubmit}>
                         <InputGroup>
                             <SearchInput
-                                placeholder="Filter artifacts..."
+                                placeholder="Filter groups..."
                                 value={filterValue}
                                 onChange={onFilterChange}
                                 onSearch={onFilterSubmit}

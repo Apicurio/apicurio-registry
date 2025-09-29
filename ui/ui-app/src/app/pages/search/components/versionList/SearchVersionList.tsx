@@ -1,18 +1,11 @@
 import React, { FunctionComponent } from "react";
 import "./SearchVersionList.css";
-import {
-    DataList,
-    DataListAction,
-    DataListCell,
-    DataListItemCells,
-    DataListItemRow,
-    Label
-} from "@patternfly/react-core";
-import { ArtifactGroup, ArtifactTypeIcon } from "@app/components";
+import { DataList, DataListAction, DataListCell, DataListItemCells, DataListItemRow } from "@patternfly/react-core";
+import { ArtifactGroup, ArtifactTypeIcon, ListedItemLabels, VersionStateBadge } from "@app/components";
 import { SearchVersionName } from "@app/pages";
 import { SearchedVersion } from "@sdk/lib/generated-client/models";
 import { shash } from "@utils/string.utils.ts";
-import { If, ObjectDropdown } from "@apicurio/common-ui-components";
+import { ObjectDropdown } from "@apicurio/common-ui-components";
 
 /**
  * Properties
@@ -54,17 +47,12 @@ export const SearchVersionList: FunctionComponent<SearchVersionListProps> = (pro
                                             artifactId={version.artifactId!}
                                             version={version.version!}
                                             name={version.name!} />
-                                        <If condition={version.state === "DRAFT"}>
-                                            <Label color="grey">Draft</Label>
-                                        </If>
-                                        <If condition={version.state === "DEPRECATED"}>
-                                            <Label color="orange">Deprecated</Label>
-                                        </If>
-                                        <If condition={version.state === "DISABLED"}>
-                                            <Label color="red">Disabled</Label>
-                                        </If>
+                                        <VersionStateBadge version={version} />
                                     </div>
                                     <div className="version-description">{description(version)}</div>
+                                    <div className="version-labels">
+                                        <ListedItemLabels item={version} />
+                                    </div>
                                 </DataListCell>
                             ]}
                         />

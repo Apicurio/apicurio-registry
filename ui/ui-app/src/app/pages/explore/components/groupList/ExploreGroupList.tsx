@@ -1,18 +1,9 @@
 import React, { FunctionComponent } from "react";
 import "./ExploreGroupList.css";
-import {
-    DataList, DataListAction,
-    DataListCell,
-    DataListItemCells,
-    DataListItemRow,
-    Icon,
-    Label,
-    Truncate
-} from "@patternfly/react-core";
+import { DataList, DataListAction, DataListCell, DataListItemCells, DataListItemRow, Icon } from "@patternfly/react-core";
 import { OutlinedFolderIcon } from "@patternfly/react-icons";
 import { SearchedGroup } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
 import { ArtifactGroup } from "@app/components";
-import { labelsToAny } from "@utils/rest.utils.ts";
 import { If, ObjectDropdown } from "@apicurio/common-ui-components";
 import { UserService, useUserService } from "@services/useUserService.ts";
 
@@ -98,21 +89,6 @@ export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props
                                         <ArtifactGroup groupId={group.groupId!} />
                                     </div>
                                     <div className="group-description">{description(group)}</div>
-                                    <div className="group-labels">
-                                        {
-                                            Object.entries(labelsToAny(group.labels)).map(([key, value]) =>
-                                                <Label
-                                                    key={`label-${key}`}
-                                                    color="purple"
-                                                    style={{ marginBottom: "2px", marginRight: "5px", marginTop: "5px" }}
-                                                >
-                                                    <Truncate
-                                                        className="label-truncate"
-                                                        content={`${key}=${value}`} />
-                                                </Label>
-                                            )
-                                        }
-                                    </div>
                                 </DataListCell>
                             ]}
                         />

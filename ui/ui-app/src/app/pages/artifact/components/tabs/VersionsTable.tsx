@@ -4,7 +4,7 @@ import { SortByDirection, ThProps } from "@patternfly/react-table";
 import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { shash } from "@utils/string.utils.ts";
-import { ArtifactDescription } from "@app/components";
+import {ArtifactDescription, VersionStateBadge} from "@app/components";
 import {
     ArtifactMetaData,
     SearchedVersion,
@@ -73,15 +73,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
                             </Link>
                         </FlexItem>
                         <FlexItem>
-                            <If condition={column.state === "DRAFT"}>
-                                <Label color="grey">Draft</Label>
-                            </If>
-                            <If condition={column.state === "DEPRECATED"}>
-                                <Label color="orange">Deprecated</Label>
-                            </If>
-                            <If condition={column.state === "DISABLED"}>
-                                <Label color="red">Disabled</Label>
-                            </If>
+                            <VersionStateBadge version={column} />
                         </FlexItem>
                     </Flex>
                     <ArtifactDescription className="version-description" style={{ overflow: "hidden", textOverflow: "hidden", whiteSpace: "nowrap", fontSize: "14px" }}

@@ -3,7 +3,7 @@ import "./GroupList.css";
 import { DataList, DataListAction, DataListCell, DataListItemCells, DataListItemRow, Icon } from "@patternfly/react-core";
 import { OutlinedFolderIcon } from "@patternfly/react-icons";
 import { SearchedGroup } from "@sdk/lib/generated-client/models";
-import { ArtifactGroup } from "@app/components";
+import { ArtifactGroup, ListedItemLabels } from "@app/components";
 import { ObjectDropdown } from "@apicurio/common-ui-components";
 
 /**
@@ -44,6 +44,9 @@ export const SearchGroupList: FunctionComponent<SearchGroupListProps> = (props: 
                                         <ArtifactGroup groupId={group.groupId!} />
                                     </div>
                                     <div className="group-description">{description(group)}</div>
+                                    <div className="group-labels">
+                                        <ListedItemLabels item={group} />
+                                    </div>
                                 </DataListCell>
                             ]}
                         />

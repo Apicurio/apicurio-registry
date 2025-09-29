@@ -48,7 +48,7 @@ const getGroupMetaData = async (config: ConfigService, auth: AuthService, groupI
     if (groupId === "default") {
         return Promise.resolve({
             groupId: "default",
-            description: "The default group (system generated).",
+            description: "The default group.",
             createdOn: null,
             owner: null,
             labels: null,

@@ -1,6 +1,9 @@
 import React, { FunctionComponent } from "react";
 import { Link } from "react-router-dom";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import {Tooltip} from "@patternfly/react-core";
+import {DesktopIcon} from "@patternfly/react-icons";
+import {If} from "@apicurio/common-ui-components";
 
 let testIdCounter: number = 1;
 
@@ -35,7 +38,14 @@ export const ArtifactGroup: FunctionComponent<ArtifactGroupProps> = (props: Arti
 
     return (
         <React.Fragment>
-            <Link className={style()} data-testid={testId("group-lnk-view")} to={groupLink()}>{props.groupId}</Link>
+            <Link className={style()} data-testid={testId("group-lnk-view")} to={groupLink()}>
+                <span>{ props.groupId }</span>
+                <If condition={props.groupId === "default"}>
+                    <Tooltip content="System defined">
+                        <DesktopIcon style={{ marginLeft: "8px" }} />
+                    </Tooltip>
+                </If>
+            </Link>
         </React.Fragment>
     );
 

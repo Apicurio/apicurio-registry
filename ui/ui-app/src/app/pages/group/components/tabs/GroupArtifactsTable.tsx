@@ -91,11 +91,11 @@ export const GroupArtifactsTable: FunctionComponent<GroupArtifactsTableProps> = 
         const ahash: number = shash(artifact.artifactId!);
 
         return config.featureDeleteArtifact() ? [
-            { label: "View artifact", onClick: () => props.onView(artifact), testId: `view-artifact-${ahash}` },
+            { label: "Explore artifact", onClick: () => props.onView(artifact), testId: `view-artifact-${ahash}` },
             { isSeparator: true },
             { label: "Delete artifact", onClick: () => props.onDelete(artifact), testId: `delete-artifact-${ahash}` }
         ] : [
-            { label: "View artifact", onClick: () => props.onView(artifact), testId: `view-artifact-${ahash}` },
+            { label: "Explore artifact", onClick: () => props.onView(artifact), testId: `view-artifact-${ahash}` },
         ];
     };
 

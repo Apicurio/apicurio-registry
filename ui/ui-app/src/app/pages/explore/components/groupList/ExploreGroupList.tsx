@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import React, { FunctionComponent } from "react";
 import "./ExploreGroupList.css";
 import {
     DataList,
@@ -54,7 +54,7 @@ export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props
                                 <div className="group-title">
                                     <ArtifactGroup groupId="default" />
                                 </div>
-                                <div className="group-description">The default group (system generated).</div>
+                                <div className="group-description">The default group.</div>
                             </DataListCell>
                         ]}
                     />

@@ -200,7 +200,7 @@
 
     <!-- JSON Schema Validator -->
     <org.everit.json.schema.version>1.14.6</org.everit.json.schema.version>
-    <json-sKema.version>0.25.0</json-sKema.version>
+    <json-sKema.version>0.26.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250107</org.json.version>
     <jackson-datatype-json-org.version>2.18.2</jackson-datatype-json-org.version>
@@ -217,12 +217,12 @@
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.9.1</kafka-clients.version>
     <debezium.version>2.7.4.Final</debezium.version>
-    <pulsar-clients.version>3.3.8</pulsar-clients.version>
+    <pulsar-clients.version>3.3.9</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <quarkus-quickjs4j.version>0.0.1</quarkus-quickjs4j.version>
     <quickjs4j.version>0.0.9</quickjs4j.version>
 
-    <nats.version>2.22.0</nats.version>
+    <nats.version>2.23.0</nats.version>
     <snakeyaml.version>2.5</snakeyaml.version>
     <woodstox-core.version>7.1.1</woodstox-core.version>
     <jgit.version>7.3.0.202506031305-r</jgit.version>
@@ -238,7 +238,7 @@
 
     <!-- Scala -->
     <version.scala-maven.plugin>4.9.6</version.scala-maven.plugin>
-    <scala.version>2.13.16</scala.version>
+    <scala.version>2.13.17</scala.version>
 
     <!-- Plugin Versions -->
     <version.build.helper.maven.plugin>3.6.1</version.build.helper.maven.plugin>
@@ -257,7 +257,7 @@
     <version.clean.plugin>3.4.0</version.clean.plugin>
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
     <version.license-maven-plugin>2.7.0</version.license-maven-plugin>
-    <version.exec-maven-plugin>3.5.1</version.exec-maven-plugin>
+    <version.exec-maven-plugin>3.5.0</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.6.Final</version.apicurio-codegen-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->

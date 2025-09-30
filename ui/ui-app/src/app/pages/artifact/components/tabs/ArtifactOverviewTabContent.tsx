@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import React, { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactOverviewTabContent.css";
 import "@app/styles/empty.css";
 import { ArtifactTypeIcon, IfAuth, IfFeature } from "@app/components";
@@ -6,12 +6,15 @@ import {
     Button,
     Card,
     CardBody,
-    CardTitle,
     DescriptionList,
     DescriptionListDescription,
     DescriptionListGroup,
     DescriptionListTerm,
-    Divider,
+    Drawer,
+    DrawerContent,
+    DrawerContentBody,
+    DrawerHead,
+    DrawerPanelContent,
     EmptyState,
     EmptyStateActions,
     EmptyStateBody,
@@ -75,6 +78,9 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
         count: 0,
         versions: []
     });
+    const [isExpanded] = useState(true);
+
+    const drawerRef: any = React.useRef<HTMLDivElement>();
 
     const search: SearchService = useSearchService();
     const logger: LoggerService = useLoggerService();
@@ -154,14 +160,13 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
         </EmptyState>
     );
 
-    return (
-        <div className="artifact-overview-tab-content">
-            <div className="artifact-basics">
-                <Card>
-                    <CardTitle>
+    const panelContent = (
+        <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
+            <DrawerHead hasNoPadding={true}>
+                <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
+                    <div className="artifact-basics">
                         <div className="title-and-type">
                             <Flex>
-                                <FlexItem className="type"><ArtifactTypeIcon artifactType={props.artifact.artifactType!} /></FlexItem>
                                 <FlexItem className="title">Artifact metadata</FlexItem>
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                                     <IfAuth isDeveloper={true} owner={props.artifact.owner}>
@@ -169,15 +174,13 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                                             <Button id="edit-action"
                                                 data-testid="artifact-btn-edit"
                                                 onClick={props.onEditMetaData}
+                                                style={{ padding: "0" }}
                                                 variant="link"><PencilAltIcon />{" "}Edit</Button>
                                         </IfFeature>
                                     </IfAuth>
                                 </FlexItem>
                             </Flex>
                         </div>
-                    </CardTitle>
-                    <Divider />
-                    <CardBody>
                         <DescriptionList className="metaData" isCompact={true}>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Name</DescriptionListTerm>
@@ -195,6 +198,13 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                                     className={!props.artifact.description ? "empty-state-text" : ""}
                                 >
                                     { description() }
+                                </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Type</DescriptionListTerm>
+                                <DescriptionListDescription data-testid="artifact-details-type">
+                                    <ArtifactTypeIcon artifactType={props.artifact.artifactType!} />
+                                    { props.artifact.artifactType }
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
@@ -239,51 +249,63 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                                 }
                             </DescriptionListGroup>
                         </DescriptionList>
-                    </CardBody>
-                </Card>
+                    </div>
+                </span>
+            </DrawerHead>
+        </DrawerPanelContent>
+    );
+
+    const drawerContent = (
+        <div className="artifact-versions">
+            <div className="title-and-type">
+                <Flex>
+                    <FlexItem className="title">Versions in artifact</FlexItem>
+                    <FlexItem className="actions" align={{ default: "alignRight" }}>
+                        <IfAuth isDeveloper={true}>
+                            <IfFeature feature="readOnly" isNot={true}>
+                                <Button className="btn-header-create-version" size="sm" data-testid="btn-create-version"
+                                    variant="primary" onClick={props.onCreateVersion}>Create version</Button>
+                            </IfFeature>
+                        </IfAuth>
+                    </FlexItem>
+                </Flex>
             </div>
-            <div className="artifact-versions">
-                <Card>
-                    <CardTitle>
-                        <div className="title-and-type">
-                            <Flex>
-                                <FlexItem className="title">Versions in artifact</FlexItem>
-                                <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                    <IfAuth isDeveloper={true}>
-                                        <IfFeature feature="readOnly" isNot={true}>
-                                            <Button className="btn-header-create-version" size="sm" data-testid="btn-create-version"
-                                                variant="primary" onClick={props.onCreateVersion}>Create version</Button>
-                                        </IfFeature>
-                                    </IfAuth>
-                                </FlexItem>
-                            </Flex>
-                        </div>
-                    </CardTitle>
-                    <Divider />
-                    <CardBody>
-                        <ListWithToolbar toolbar={toolbar}
-                            emptyState={emptyState}
-                            filteredEmptyState={emptyState}
-                            isLoading={isLoading}
-                            isError={isError}
-                            isFiltered={false}
-                            isEmpty={results.count === 0}
-                        >
-                            <VersionsTable
-                                artifact={props.artifact}
-                                versions={results.versions!}
-                                onSort={onSort}
-                                sortBy={sortBy}
-                                sortOrder={sortOrder}
-                                onDelete={onDeleteVersion}
-                                onView={props.onViewVersion}
-                                onAddToBranch={props.onAddVersionToBranch}
-                                onEditDraft={props.onEditDraft}
-                            />
-                        </ListWithToolbar>
-                    </CardBody>
-                </Card>
+            <div className="version-list">
+                <ListWithToolbar toolbar={toolbar}
+                    emptyState={emptyState}
+                    filteredEmptyState={emptyState}
+                    isLoading={isLoading}
+                    isError={isError}
+                    isFiltered={false}
+                    isEmpty={results.count === 0}
+                >
+                    <VersionsTable
+                        artifact={props.artifact}
+                        versions={results.versions!}
+                        onSort={onSort}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onDelete={onDeleteVersion}
+                        onView={props.onViewVersion}
+                        onAddToBranch={props.onAddVersionToBranch}
+                        onEditDraft={props.onEditDraft}
+                    />
+                </ListWithToolbar>
             </div>
+        </div>
+    );
+
+    return (
+        <div className="artifact-overview-tab-content">
+            <Card>
+                <CardBody style={{ padding: "0" }}>
+                    <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
+                        <DrawerContent panelContent={panelContent}>
+                            <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
+                        </DrawerContent>
+                    </Drawer>
+                </CardBody>
+            </Card>
         </div>
     );
 

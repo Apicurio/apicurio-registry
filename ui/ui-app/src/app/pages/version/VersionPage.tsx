@@ -1,16 +1,18 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import React, { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
     ContentTabContent,
     DocumentationTabContent,
-    VersionInfoTabContent,
+    EXPLORE_PAGE_IDX,
     PageDataLoader,
     PageError,
     PageErrorHandler,
+    PageProperties,
     toPageError,
-    VersionPageHeader, PageProperties, EXPLORE_PAGE_IDX
+    VersionOverviewTabContent,
+    VersionPageHeader
 } from "@app/pages";
 import { ReferencesTabContent } from "@app/pages/version/components/tabs/ReferencesTabContent.tsx";
 import {
@@ -231,7 +233,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
 
     const tabs: any[] = [
         <Tab data-testid="version-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
-            <VersionInfoTabContent
+            <VersionOverviewTabContent
                 artifact={artifact as ArtifactMetaData}
                 version={artifactVersion as VersionMetaData}
                 onEditMetaData={openEditMetaDataModal}

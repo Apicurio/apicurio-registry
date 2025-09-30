@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import React, { FunctionComponent, useEffect, useState } from "react";
 import "./GroupOverviewTabContent.css";
 import "@app/styles/empty.css";
 import { IfAuth, IfFeature } from "@app/components";
@@ -7,12 +7,15 @@ import {
     Button,
     Card,
     CardBody,
-    CardTitle,
     DescriptionList,
     DescriptionListDescription,
     DescriptionListGroup,
     DescriptionListTerm,
-    Divider,
+    Drawer,
+    DrawerContent,
+    DrawerContentBody,
+    DrawerHead,
+    DrawerPanelContent,
     EmptyState,
     EmptyStateActions,
     EmptyStateBody,
@@ -74,6 +77,9 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
         count: 0,
         artifacts: []
     });
+    const [isExpanded] = useState(true);
+
+    const drawerRef: any = React.useRef<HTMLDivElement>();
 
     const search: SearchService = useSearchService();
     const logger: LoggerService = useLoggerService();
@@ -158,11 +164,11 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
         </EmptyState>
     );
 
-    return (
-        <div className="group-overview-tab-content">
-            <div className="group-basics">
-                <Card>
-                    <CardTitle>
+    const panelContent = (
+        <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
+            <DrawerHead hasNoPadding={true}>
+                <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
+                    <div className="group-basics">
                         <div className="title-and-type">
                             <Flex>
                                 <FlexItem className="type"><Icon><OutlinedFolderIcon /></Icon></FlexItem>
@@ -182,9 +188,6 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
                                 </FlexItem>
                             </Flex>
                         </div>
-                    </CardTitle>
-                    <Divider />
-                    <CardBody>
                         <DescriptionList className="metaData" isCompact={true}>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Description</DescriptionListTerm>
@@ -246,50 +249,64 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
                             </If>
                         </DescriptionList>
                         <If condition={props.group.groupId === "default"}>
-                            <Alert variant="info" title="Note: This default group was system generated" ouiaId="InfoAlert" />
+                            <div style={{ padding: "10px" }}>
+                                <Alert variant="info" title="Note: This default group was system generated" ouiaId="InfoAlert" />
+                            </div>
                         </If>
-                    </CardBody>
-                </Card>
+                    </div>
+                </span>
+            </DrawerHead>
+        </DrawerPanelContent>
+    );
+
+    const drawerContent = (
+        <div className="group-artifacts">
+            <div className="title-and-type">
+                <Flex>
+                    <FlexItem className="title">Artifacts in group</FlexItem>
+                    <FlexItem className="actions" align={{ default: "alignRight" }}>
+                        <IfAuth isDeveloper={true}>
+                            <IfFeature feature="readOnly" isNot={true}>
+                                <Button className="btn-header-create-artifact" size="sm" data-testid="btn-create-artifact"
+                                    variant="primary" onClick={props.onCreateArtifact}>Create artifact</Button>
+                            </IfFeature>
+                        </IfAuth>
+                    </FlexItem>
+                </Flex>
             </div>
-            <div className="group-artifacts">
-                <Card>
-                    <CardTitle>
-                        <div className="title-and-type">
-                            <Flex>
-                                <FlexItem className="title">Artifacts in group</FlexItem>
-                                <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                    <IfAuth isDeveloper={true}>
-                                        <IfFeature feature="readOnly" isNot={true}>
-                                            <Button className="btn-header-create-artifact" size="sm" data-testid="btn-create-artifact"
-                                                variant="primary" onClick={props.onCreateArtifact}>Create artifact</Button>
-                                        </IfFeature>
-                                    </IfAuth>
-                                </FlexItem>
-                            </Flex>
-                        </div>
-                    </CardTitle>
-                    <Divider />
-                    <CardBody>
-                        <ListWithToolbar toolbar={toolbar}
-                            emptyState={emptyState}
-                            filteredEmptyState={filteredEmptyState}
-                            isLoading={isLoading}
-                            isError={isError}
-                            isFiltered={filterValue.trim() !== ""}
-                            isEmpty={results.count === 0}
-                        >
-                            <GroupArtifactsTable
-                                artifacts={results.artifacts!}
-                                onSort={onSort}
-                                sortBy={sortBy}
-                                sortOrder={sortOrder}
-                                onView={props.onViewArtifact}
-                                onDelete={onDelete}
-                            />
-                        </ListWithToolbar>
-                    </CardBody>
-                </Card>
+            <div className="artifact-list">
+                <ListWithToolbar toolbar={toolbar}
+                    emptyState={emptyState}
+                    filteredEmptyState={filteredEmptyState}
+                    isLoading={isLoading}
+                    isError={isError}
+                    isFiltered={filterValue.trim() !== ""}
+                    isEmpty={results.count === 0}
+                >
+                    <GroupArtifactsTable
+                        artifacts={results.artifacts!}
+                        onSort={onSort}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onView={props.onViewArtifact}
+                        onDelete={onDelete}
+                    />
+                </ListWithToolbar>
             </div>
+        </div>
+    );
+
+    return (
+        <div className="group-overview-tab-content">
+            <Card>
+                <CardBody style={{ padding: "0" }}>
+                    <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
+                        <DrawerContent panelContent={panelContent}>
+                            <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
+                        </DrawerContent>
+                    </Drawer>
+                </CardBody>
+            </Card>
         </div>
     );
 

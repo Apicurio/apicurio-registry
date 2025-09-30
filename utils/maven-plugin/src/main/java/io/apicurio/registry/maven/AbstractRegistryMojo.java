@@ -77,9 +77,18 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     protected RegistryClient createClient(Vertx vertx) {
         RegistryClientOptions clientOptions = RegistryClientOptions.create(registryUrl, vertx);
         if (authServerUrl != null && clientId != null && clientSecret != null) {
-            clientOptions.oauth2(authServerUrl, clientId, clientSecret);
+            if (clientScope != null && !clientScope.isEmpty()) {
+                getLog().info("Creating registry client with OAuth2 authentication with scope.");
+                clientOptions.oauth2(authServerUrl, clientId, clientSecret, clientScope);
+            } else {
+                getLog().info("Creating registry client with OAuth2 authentication.");
+                clientOptions.oauth2(authServerUrl, clientId, clientSecret);
+            }
         } else if (username != null && password != null) {
+            getLog().info("Creating registry client with Basic authentication.");
             clientOptions.basicAuth(username, password);
+        } else {
+            getLog().info("Creating registry client without authentication.");
         }
         return RegistryClientFactory.create(clientOptions.retry());
     }

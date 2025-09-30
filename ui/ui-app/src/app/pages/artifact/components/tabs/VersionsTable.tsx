@@ -4,7 +4,7 @@ import { SortByDirection, ThProps } from "@patternfly/react-table";
 import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { shash } from "@utils/string.utils.ts";
-import {ArtifactDescription, VersionStateBadge} from "@app/components";
+import { ArtifactDescription, VersionStateBadge } from "@app/components";
 import {
     ArtifactMetaData,
     SearchedVersion,
@@ -14,7 +14,7 @@ import {
     VersionSortByObject
 } from "@sdk/lib/generated-client/models";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import { Flex, FlexItem, Label } from "@patternfly/react-core";
+import { Flex, FlexItem } from "@patternfly/react-core";
 import { UserService, useUserService } from "@services/useUserService.ts";
 
 export type VersionsTableProps = {

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Apicurio Registry Sample Data Creator
+# Apicurio Registry Sample Data Creator (v3 API)
 # This script creates realistic groups, artifacts, and versions for testing and demonstration
 
 set -e
 
 # Configuration
 REGISTRY_URL="${REGISTRY_URL:-http://localhost:8080}"
-API_BASE="$REGISTRY_URL/apis/registry/v2"
+API_BASE="$REGISTRY_URL/apis/registry/v3"
 TEMP_DIR="/tmp/registry-schemas"
 
 # Colors for output
@@ -44,6 +44,33 @@ check_registry() {
     fi
 }
 
+create_group() {
+    local group="$1"
+    local description="$2"
+    local labels="$3"
+
+    log_info "Creating group $group..."
+
+    local group_data="{
+        \"groupId\": \"$group\",
+        \"description\": \"$description\",
+        \"labels\": $labels
+    }"
+
+    local response=$(curl -s -w "%{http_code}" \
+        -X POST "$API_BASE/groups" \
+        -H "Content-Type: application/json" \
+        -d "$group_data")
+
+    local http_code="${response: -3}"
+    if [[ "$http_code" =~ ^20[0-9]$ ]]; then
+        log_success "Created group $group ($description)"
+    else
+        log_warning "Failed to create group $group (HTTP $http_code) - may already exist"
+    fi
+}
+
+
 create_schema_file() {
     local filename="$1"
     local content="$2"
@@ -55,15 +82,37 @@ create_artifact() {
     local artifact_id="$2"
     local schema_file="$3"
     local description="$4"
+    local labels="$5"
 
     log_info "Creating artifact $artifact_id in group $group..."
+
+    # Read the schema content
+    local schema_content=$(cat "$TEMP_DIR/$schema_file")
+
+    # Create the v3 API compatible request body
+    local artifact_data=$(cat <<EOF
+{
+  "artifactId": "$artifact_id",
+  "artifactType": "JSON",
+  "description": "$description",
+  "labels": $labels,
+  "firstVersion": {
+    "content": {
+      "content": $(echo "$schema_content" | jq -R -s .),
+      "contentType": "application/json"
+    },
+    "name": "$artifact_id v1.0",
+    "description": "Initial version of $description",
+    "labels": $labels
+  }
+}
+EOF
+    )
 
     local response=$(curl -s -w "%{http_code}" \
         -X POST "$API_BASE/groups/$group/artifacts" \
         -H "Content-Type: application/json" \
-        -H "X-Registry-ArtifactId: $artifact_id" \
-        -H "X-Registry-ArtifactType: JSON" \
-        -d @"$TEMP_DIR/$schema_file")
+        -d "$artifact_data")
 
     local http_code="${response: -3}"
     if [[ "$http_code" =~ ^20[0-9]$ ]]; then
@@ -78,13 +127,31 @@ create_version() {
     local artifact_id="$2"
     local schema_file="$3"
     local version_info="$4"
+    local labels="$5"
 
     log_info "Creating new version for $artifact_id..."
+
+    # Read the schema content
+    local schema_content=$(cat "$TEMP_DIR/$schema_file")
+
+    # Create the v3 API compatible request body
+    local version_data=$(cat <<EOF
+{
+  "content": {
+    "content": $(echo "$schema_content" | jq -R -s .),
+    "contentType": "application/json"
+  },
+  "name": "$artifact_id v2.0",
+  "description": "$version_info",
+  "labels": $labels
+}
+EOF
+    )
 
     local response=$(curl -s -w "%{http_code}" \
         -X POST "$API_BASE/groups/$group/artifacts/$artifact_id/versions" \
         -H "Content-Type: application/json" \
-        -d @"$TEMP_DIR/$schema_file")
+        -d "$version_data")
 
     local http_code="${response: -3}"
     if [[ "$http_code" =~ ^20[0-9]$ ]]; then
@@ -98,6 +165,7 @@ create_version() {
 main() {
     echo "=========================================="
     echo "  Apicurio Registry Sample Data Creator"
+    echo "            (v3 API)"
     echo "=========================================="
     echo
 
@@ -963,37 +1031,157 @@ main() {
 
     log_success "Schema files created successfully"
 
+    # Create groups with labels
+    echo
+    log_info "Creating registry groups with labels..."
+
+    create_group "ecommerce" "E-commerce domain schemas for customer orders and profiles" '{
+        "domain": "ecommerce",
+        "environment": "demo",
+        "team": "customer-experience",
+        "criticality": "high",
+        "purpose": "order-processing"
+    }'
+
+    create_group "iot-sensors" "IoT sensor data schemas for telemetry and device management" '{
+        "domain": "iot",
+        "environment": "demo",
+        "team": "platform-engineering",
+        "criticality": "medium",
+        "purpose": "telemetry"
+    }'
+
+    create_group "financial-services" "Financial services schemas for transactions and accounts" '{
+        "domain": "finance",
+        "environment": "demo",
+        "team": "payments",
+        "criticality": "critical",
+        "purpose": "transaction-processing"
+    }'
+
+    create_group "user-management" "User management schemas for profiles and authentication" '{
+        "domain": "identity",
+        "environment": "demo",
+        "team": "security",
+        "criticality": "critical",
+        "purpose": "authentication"
+    }'
+
+    create_group "inventory-management" "Inventory management schemas for products and stock" '{
+        "domain": "inventory",
+        "environment": "demo",
+        "team": "supply-chain",
+        "criticality": "high",
+        "purpose": "stock-management"
+    }'
+
     # Create artifacts in registry
     echo
-    log_info "Creating registry artifacts..."
+    log_info "Creating registry artifacts with labels..."
 
     # E-commerce group
     echo "📦 E-commerce Group"
-    create_artifact "ecommerce" "customer-order-v1" "customer-order-v1.json" "Customer order processing schema"
-    create_artifact "ecommerce" "customer-profile-v1" "customer-profile-v1.json" "Customer profile information schema"
+    create_artifact "ecommerce" "customer-order-v1" "customer-order-v1.json" "Customer order processing schema" '{
+        "schema-type": "order",
+        "data-classification": "internal",
+        "version": "1.0",
+        "breaking-change": "false",
+        "owner": "customer-experience-team"
+    }'
+    create_artifact "ecommerce" "customer-profile-v1" "customer-profile-v1.json" "Customer profile information schema" '{
+        "schema-type": "profile",
+        "data-classification": "confidential",
+        "version": "1.0",
+        "breaking-change": "false",
+        "owner": "customer-experience-team"
+    }'
 
     # Create evolved version of customer order
-    create_version "ecommerce" "customer-order-v1" "customer-order-v2.json" "Enhanced with payment and tracking"
+    create_version "ecommerce" "customer-order-v1" "customer-order-v2.json" "Enhanced with payment and tracking" '{
+        "schema-type": "order",
+        "data-classification": "internal",
+        "version": "2.0",
+        "breaking-change": "false",
+        "enhancement": "payment-tracking",
+        "migration-guide": "available"
+    }'
 
     # IoT sensors group
     echo "🌡️  IoT Sensors Group"
-    create_artifact "iot-sensors" "sensor-telemetry-v1" "sensor-telemetry-v1.json" "IoT sensor telemetry data schema"
-    create_artifact "iot-sensors" "device-registration-v1" "device-registration-v1.json" "IoT device registration schema"
+    create_artifact "iot-sensors" "sensor-telemetry-v1" "sensor-telemetry-v1.json" "IoT sensor telemetry data schema" '{
+        "schema-type": "telemetry",
+        "data-classification": "internal",
+        "version": "1.0",
+        "breaking-change": "false",
+        "sensor-types": "temperature,humidity,pressure",
+        "owner": "platform-engineering-team"
+    }'
+    create_artifact "iot-sensors" "device-registration-v1" "device-registration-v1.json" "IoT device registration schema" '{
+        "schema-type": "registration",
+        "data-classification": "internal",
+        "version": "1.0",
+        "breaking-change": "false",
+        "device-types": "sensor,actuator,gateway",
+        "owner": "platform-engineering-team"
+    }'
 
     # Financial services group
     echo "💰 Financial Services Group"
-    create_artifact "financial-services" "financial-transaction-v1" "financial-transaction-v1.json" "Financial transaction processing schema"
-    create_artifact "financial-services" "account-info-v1" "account-info-v1.json" "Bank account information schema"
+    create_artifact "financial-services" "financial-transaction-v1" "financial-transaction-v1.json" "Financial transaction processing schema" '{
+        "schema-type": "transaction",
+        "data-classification": "restricted",
+        "version": "1.0",
+        "breaking-change": "false",
+        "compliance": "pci-dss",
+        "owner": "payments-team"
+    }'
+    create_artifact "financial-services" "account-info-v1" "account-info-v1.json" "Bank account information schema" '{
+        "schema-type": "account",
+        "data-classification": "restricted",
+        "version": "1.0",
+        "breaking-change": "false",
+        "compliance": "pci-dss,gdpr",
+        "owner": "payments-team"
+    }'
 
     # User management group
     echo "👤 User Management Group"
-    create_artifact "user-management" "user-profile-v1" "user-profile-v1.json" "User profile management schema"
-    create_artifact "user-management" "authentication-event-v1" "authentication-event-v1.json" "Authentication event logging schema"
+    create_artifact "user-management" "user-profile-v1" "user-profile-v1.json" "User profile management schema" '{
+        "schema-type": "profile",
+        "data-classification": "confidential",
+        "version": "1.0",
+        "breaking-change": "false",
+        "compliance": "gdpr",
+        "owner": "security-team"
+    }'
+    create_artifact "user-management" "authentication-event-v1" "authentication-event-v1.json" "Authentication event logging schema" '{
+        "schema-type": "event",
+        "data-classification": "confidential",
+        "version": "1.0",
+        "breaking-change": "false",
+        "compliance": "gdpr,sox",
+        "retention": "7-years",
+        "owner": "security-team"
+    }'
 
     # Inventory management group
     echo "📋 Inventory Management Group"
-    create_artifact "inventory-management" "product-catalog-v1" "product-catalog-v1.json" "Product catalog management schema"
-    create_artifact "inventory-management" "stock-movement-v1" "stock-movement-v1.json" "Stock movement tracking schema"
+    create_artifact "inventory-management" "product-catalog-v1" "product-catalog-v1.json" "Product catalog management schema" '{
+        "schema-type": "catalog",
+        "data-classification": "internal",
+        "version": "1.0",
+        "breaking-change": "false",
+        "business-function": "product-management",
+        "owner": "supply-chain-team"
+    }'
+    create_artifact "inventory-management" "stock-movement-v1" "stock-movement-v1.json" "Stock movement tracking schema" '{
+        "schema-type": "movement",
+        "data-classification": "internal",
+        "version": "1.0",
+        "breaking-change": "false",
+        "business-function": "inventory-tracking",
+        "owner": "supply-chain-team"
+    }'
 
     # Clean up temporary files
     rm -rf "$TEMP_DIR"
@@ -1004,19 +1192,21 @@ main() {
     echo "=========================================="
     echo
     echo "📊 Summary:"
-    echo "   • 5 Groups created"
-    echo "   • 10 Artifacts created"
-    echo "   • 1 Schema evolution demonstrated"
+    echo "   • 5 Groups created with comprehensive labels"
+    echo "   • 10 Artifacts created with contextual labels"
+    echo "   • 1 Schema evolution demonstrated with version labels"
+    echo "   • Labels include: domain, team, criticality, data classification, compliance, and ownership"
     echo
     echo "🌐 Access your registry at: $REGISTRY_URL"
     echo "📋 List groups: curl $API_BASE/groups"
+    echo "🏷️  View group metadata: curl $API_BASE/groups/{groupId}"
     echo
-    echo "Groups created:"
-    echo "   • ecommerce - Customer orders and profiles"
-    echo "   • iot-sensors - Device telemetry and registration"
-    echo "   • financial-services - Transactions and accounts"
-    echo "   • user-management - User profiles and authentication"
-    echo "   • inventory-management - Products and stock movements"
+    echo "Groups created with labels:"
+    echo "   • ecommerce - Customer orders and profiles (high criticality, customer-experience team)"
+    echo "   • iot-sensors - Device telemetry and registration (medium criticality, platform-engineering team)"
+    echo "   • financial-services - Transactions and accounts (critical, payments team, PCI-DSS compliant)"
+    echo "   • user-management - User profiles and authentication (critical, security team, GDPR compliant)"
+    echo "   • inventory-management - Products and stock movements (high criticality, supply-chain team)"
     echo
 }
 

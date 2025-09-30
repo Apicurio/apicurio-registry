@@ -1,33 +1,18 @@
 
 .group-overview-tab-content {
     padding: 22px;
-    display: flex;
-    flex-direction: row;
     background-color: rgb(240,240,240);
 }
 
 .group-overview-tab-content .group-basics {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    flex-basis: 30%;
-    margin-right: 15px;
 }
 
 .group-overview-tab-content .group-artifacts {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    flex-basis: 70%;
-}
-
-.group-overview-tab-content .group-basics {
-    flex-grow: 1;
-    flex-basis: 40%;
-    margin-right: 15px;
 }
 
 .group-overview-tab-content .title-and-type {
+    padding: 20px;
+    border-bottom: 1px solid #ccc;
 }
 
 .group-overview-tab-content .title-and-type .type {
@@ -38,14 +23,18 @@
     font-size: 17px;
     font-weight: bold;
     line-height: 24px;
-    display: inline-block;
 }
 
 .group-overview-tab-content .group-basics .metaData {
+    padding: 20px;
     margin-bottom: 20px;
 }
 
 .group-overview-tab-content .group-basics .actions {
+}
+
+.group-overview-tab-content .group-artifacts .artifact-list {
+    padding: 20px;
 }
 
 .group-overview-tab-content .btn-header-create-artifact {

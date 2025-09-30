@@ -1,0 +1,43 @@
+
+.version-overview-tab-content {
+    padding: 22px;
+    background-color: rgb(240,240,240);
+}
+
+.version-overview-tab-content .version-basics {
+}
+
+.version-overview-tab-content .version-comments {
+}
+
+.version-overview-tab-content .title-and-type {
+    padding: 20px;
+    border-bottom: 1px solid #ccc;
+}
+
+.version-overview-tab-content .title-and-type .type {
+}
+
+.version-overview-tab-content .title-and-type .title {
+    color: #333;
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 24px;
+}
+
+.version-overview-tab-content .version-basics .metaData {
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.version-overview-tab-content .version-basics .actions {
+}
+
+.version-overview-tab-content .version-comments .comment-list {
+    padding: 20px;
+}
+
+.version-overview-tab-content .btn-header-create-comment {
+    margin-top: -6px;
+    margin-bottom: -6px;
+}

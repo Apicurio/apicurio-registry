@@ -1,17 +1,20 @@
-import { FunctionComponent } from "react";
-import "./VersionInfoTabContent.css";
+import React, { FunctionComponent, useState } from "react";
+import "./VersionOverviewTabContent.css";
 import "@app/styles/empty.css";
 import { ArtifactTypeIcon, IfAuth, IfFeature, VersionStateBadge } from "@app/components";
 import {
     Button,
     Card,
     CardBody,
-    CardTitle,
     DescriptionList,
     DescriptionListDescription,
     DescriptionListGroup,
     DescriptionListTerm,
-    Divider,
+    Drawer,
+    DrawerContent,
+    DrawerContentBody,
+    DrawerHead,
+    DrawerPanelContent,
     Flex,
     FlexItem,
     Label,
@@ -26,7 +29,7 @@ import { VersionComments } from "@app/pages";
 /**
  * Properties
  */
-export type VersionInfoTabContentProps = {
+export type VersionOverviewTabContentProps = {
     artifact: ArtifactMetaData;
     version: VersionMetaData;
     onEditMetaData: () => void;
@@ -35,7 +38,10 @@ export type VersionInfoTabContentProps = {
 /**
  * Models the content of the Version Info (overview) tab.
  */
-export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps> = (props: VersionInfoTabContentProps) => {
+export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabContentProps> = (props: VersionOverviewTabContentProps) => {
+    const [isExpanded] = useState(true);
+
+    const drawerRef: any = React.useRef<HTMLDivElement>();
 
     const description = (): string => {
         return props.version.description || "No description";
@@ -47,11 +53,11 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
 
     const labels: any = labelsToAny(props.version.labels);
 
-    return (
-        <div className="overview-tab-content">
-            <div className="version-basics">
-                <Card>
-                    <CardTitle>
+    const panelContent = (
+        <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
+            <DrawerHead hasNoPadding={true}>
+                <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
+                    <div className="version-basics">
                         <div className="title-and-type">
                             <Flex>
                                 <FlexItem className="title">Version metadata</FlexItem>
@@ -61,15 +67,13 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                                             <Button id="edit-action"
                                                 data-testid="version-btn-edit"
                                                 onClick={props.onEditMetaData}
+                                                style={{ padding: "0" }}
                                                 variant="link"><PencilAltIcon/>{" "}Edit</Button>
                                         </IfFeature>
                                     </IfAuth>
                                 </FlexItem>
                             </Flex>
                         </div>
-                    </CardTitle>
-                    <Divider/>
-                    <CardBody>
                         <DescriptionList className="metaData" isCompact={true}>
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Name</DescriptionListTerm>
@@ -148,20 +152,34 @@ export const VersionInfoTabContent: FunctionComponent<VersionInfoTabContentProps
                                 }
                             </DescriptionListGroup>
                         </DescriptionList>
-                    </CardBody>
-                </Card>
+                    </div>
+                </span>
+            </DrawerHead>
+        </DrawerPanelContent>
+    );
+
+    const drawerContent = (
+        <div className="version-comments">
+            <div className="title-and-type">
+                <Flex>
+                    <FlexItem className="title">Comments</FlexItem>
+                </Flex>
             </div>
-            <div className="version-comments">
-                <Card>
-                    <CardTitle>
-                        <div className="comments-label">Comments</div>
-                    </CardTitle>
-                    <Divider/>
-                    <CardBody>
-                        <VersionComments version={props.version} />
-                    </CardBody>
-                </Card>
-            </div>
+            <VersionComments version={props.version} />
+        </div>
+    );
+
+    return (
+        <div className="version-overview-tab-content">
+            <Card>
+                <CardBody style={{ padding: "0" }}>
+                    <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
+                        <DrawerContent panelContent={panelContent}>
+                            <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
+                        </DrawerContent>
+                    </Drawer>
+                </CardBody>
+            </Card>
         </div>
     );
 

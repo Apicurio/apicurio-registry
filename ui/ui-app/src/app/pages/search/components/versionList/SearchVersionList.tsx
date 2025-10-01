@@ -14,6 +14,7 @@ export type SearchVersionListProps = {
     versions: SearchedVersion[];
     onEdit: (version: SearchedVersion) => void;
     onExplore: (version: SearchedVersion) => void;
+    onFilterByLabel: (key: string, value: string | undefined) => void;
 };
 
 
@@ -51,7 +52,7 @@ export const SearchVersionList: FunctionComponent<SearchVersionListProps> = (pro
                                     </div>
                                     <div className="version-description">{description(version)}</div>
                                     <div className="version-labels">
-                                        <ListedItemLabels item={version} />
+                                        <ListedItemLabels item={version} onClick={props.onFilterByLabel} />
                                     </div>
                                 </DataListCell>
                             ]}

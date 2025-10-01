@@ -13,6 +13,7 @@ import { ObjectDropdown } from "@apicurio/common-ui-components";
 export type SearchArtifactListProps = {
     artifacts: SearchedVersion[];
     onExplore: (artifact: SearchedVersion) => any;
+    onFilterByLabel: (key: string, value: string | undefined) => void;
 };
 
 
@@ -45,7 +46,7 @@ export const SearchArtifactList: FunctionComponent<SearchArtifactListProps> = (p
                                     </div>
                                     <div className="artifact-description">{description(artifact)}</div>
                                     <div className="artifact-labels">
-                                        <ListedItemLabels item={artifact} />
+                                        <ListedItemLabels item={artifact} onClick={props.onFilterByLabel} />
                                     </div>
                                 </DataListCell>
                             ]}

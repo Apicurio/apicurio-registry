@@ -16,7 +16,7 @@ import { RootPageHeader } from "@app/components";
 import { If, ListWithToolbar } from "@apicurio/common-ui-components";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { Paging } from "@models/Paging.ts";
-import { SearchFilter, useSearchService } from "@services/useSearchService.ts";
+import { FilterBy, SearchFilter, useSearchService } from "@services/useSearchService.ts";
 import {
     ArtifactSearchResults,
     ArtifactSortBy,
@@ -71,6 +71,32 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
     const onFilterChange = (filters: SearchFilter[]): void => {
         setFilters(filters);
         search(searchType, filters, sortBy, sortOrder, paging);
+    };
+
+    const onFilterByLabel = (key: string, value: string | undefined): void => {
+        let filterValue: string = key;
+        if (value) {
+            filterValue += ":" + value;
+        }
+        const dsf: SearchFilter = {
+            by: FilterBy.labels,
+            value: filterValue
+        };
+
+        let updated: boolean = false;
+        const newFilters: SearchFilter[] = filters.map(filter => {
+            if (filter.by === FilterBy.labels) {
+                updated = true;
+                return dsf;
+            } else {
+                return filter;
+            }
+        });
+        if (!updated) {
+            newFilters.push(dsf);
+        }
+        setFilters(newFilters);
+        search(searchType, newFilters, sortBy, sortOrder, paging);
     };
 
     const isFiltered = (): boolean => {
@@ -219,12 +245,14 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
                             <SearchArtifactList
                                 artifacts={(results as ArtifactSearchResults).artifacts!}
                                 onExplore={onExploreArtifact}
+                                onFilterByLabel={onFilterByLabel}
                             />
                         </If>
                         <If condition={searchType === SearchType.GROUP}>
                             <SearchGroupList
                                 groups={(results as GroupSearchResults).groups!}
                                 onExplore={onExploreGroup}
+                                onFilterByLabel={onFilterByLabel}
                             />
                         </If>
                         <If condition={searchType === SearchType.VERSION}>
@@ -232,6 +260,7 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
                                 versions={(results as VersionSearchResults).versions!}
                                 onEdit={onEditVersion}
                                 onExplore={onExploreVersion}
+                                onFilterByLabel={onFilterByLabel}
                             />
                         </If>
                     </ListWithToolbar>

@@ -12,6 +12,7 @@ import { ObjectDropdown } from "@apicurio/common-ui-components";
 export type SearchGroupListProps = {
     groups: SearchedGroup[];
     onExplore: (group: SearchedGroup) => void;
+    onFilterByLabel: (key: string, value: string | undefined) => void;
 };
 
 
@@ -45,7 +46,7 @@ export const SearchGroupList: FunctionComponent<SearchGroupListProps> = (props: 
                                     </div>
                                     <div className="group-description">{description(group)}</div>
                                     <div className="group-labels">
-                                        <ListedItemLabels item={group} />
+                                        <ListedItemLabels item={group} onClick={props.onFilterByLabel} />
                                     </div>
                                 </DataListCell>
                             ]}

@@ -20,6 +20,7 @@ import {
     EditMetaDataModal,
     GenerateClientModal,
     IfFeature,
+    InvalidContentModal,
     MetaData,
     RootPageHeader
 } from "@app/components";
@@ -30,7 +31,20 @@ import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
-import { ArtifactMetaData, Labels, VersionMetaData } from "@sdk/lib/generated-client/models";
+import {
+    ArtifactMetaData,
+    Labels,
+    RuleViolationProblemDetails,
+    SearchedVersion,
+    VersionMetaData
+} from "@sdk/lib/generated-client/models";
+import { DraftsService, useDraftsService } from "@services/useDraftsService.ts";
+import { CreateDraft, Draft } from "@models/drafts";
+import {
+    ConfirmFinalizeModal,
+    FinalizeDryRunSuccessModal,
+    NewDraftFromModal
+} from "@app/pages/drafts/components/modals";
 
 
 /**
@@ -41,16 +55,23 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [artifact, setArtifact] = useState<ArtifactMetaData>();
     const [artifactVersion, setArtifactVersion] = useState<VersionMetaData>();
+    const [draft, setDraft] = useState<Draft | undefined>();
     const [versionContent, setArtifactContent] = useState("");
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [isGenerateClientModalOpen, setIsGenerateClientModalOpen] = useState(false);
+    const [isConfirmFinalizeModalOpen, setIsConfirmFinalizeModalOpen] = useState(false);
+    const [isCreateDraftFromModalOpen, setIsCreateDraftFromModalOpen] = useState(false);
+    const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState<boolean>(false);
+    const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
+    const draftsService: DraftsService = useDraftsService();
     const download: DownloadService = useDownloadService();
     const { groupId, artifactId, version }= useParams();
     const location = useLocation();
@@ -121,9 +142,13 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     const onEditDraft = (): void => {
-        const gid: string = encodeURIComponent(groupId as string);
-        const aid: string = encodeURIComponent(artifactId as string);
-        const ver: string = encodeURIComponent(version as string);
+        goToDraft(groupId!, artifactId!, version!);
+    };
+
+    const goToDraft = (groupId: string, artifactId: string, version: string): void => {
+        const gid: string = encodeURIComponent(groupId);
+        const aid: string = encodeURIComponent(artifactId);
+        const ver: string = encodeURIComponent(version);
         appNavigation.navigateTo(`/explore/${gid}/${aid}/versions/${ver}/editor`);
     };
 
@@ -190,7 +215,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const doDeleteVersion = (): void => {
         onDeleteModalClose();
         pleaseWait(true, "Deleting version, please wait...");
-        groups.deleteArtifactVersion(groupId as string, artifactId as string, version as string).then( () => {
+        groups.deleteArtifactVersion(groupId!, artifactId!, version!).then( () => {
             pleaseWait(false);
             const gid: string = encodeURIComponent(groupId || "default");
             const aid: string = encodeURIComponent(artifactId as string);
@@ -222,6 +247,74 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         onEditModalClose();
     };
 
+    const handleInvalidContentError = (error: any): void => {
+        console.info("[DraftsPage] Invalid content error:", error);
+        setInvalidContentError(error);
+        setIsInvalidContentModalOpen(true);
+    };
+
+    const doFinalizeDraft = (draft: Draft, dryRun?: boolean): void => {
+        setIsConfirmFinalizeModalOpen(false);
+        pleaseWait(true, "Finalizing draft, please wait...");
+        draftsService.finalizeDraft(draft.groupId, draft.draftId, draft.version, dryRun || false).then(() => {
+            if (!dryRun) {
+                const groupId: string = encodeURIComponent(draft.groupId || "default");
+                const draftId: string = encodeURIComponent(draft.draftId!);
+                appNavigation.navigateTo(`/explore/${groupId}/${draftId}`);
+            } else {
+                pleaseWait(false);
+                setIsFinalizeDryRunSuccessModalOpen(true);
+            }
+        }).catch(error => {
+            pleaseWait(false);
+            if (error && (error.status === 400 || error.status === 409)) {
+                handleInvalidContentError(error);
+            } else {
+                setPageError(toPageError(error, "Error finalizing a draft."));
+            }
+        });
+    };
+
+    const doCreateDraft = (data: CreateDraft): void => {
+        pleaseWait(true, "Creating draft, please wait...");
+
+        draftsService.createDraft(data).then(draft => {
+            pleaseWait(false);
+            console.info("[DraftsPage] Draft successfully created.  Redirecting to editor.");
+            goToDraft(draft.groupId, draft.draftId, draft.version);
+        }).catch(error => {
+            pleaseWait(false);
+            setPageError(toPageError(error, "Error creating draft."));
+        });
+    };
+
+    const doCreateDraftFromVersion = (fromVersion: SearchedVersion, groupId: string, draftId: string, version: string): void => {
+        pleaseWait(true, "Creating draft, please wait...");
+        setIsCreateDraftFromModalOpen(false);
+
+        draftsService.getDraftContent(fromVersion.groupId || null, fromVersion.artifactId!, fromVersion.version!).then(draftContent => {
+            const createDraft: CreateDraft = {
+                groupId: groupId,
+                draftId: draftId,
+                version: version,
+                type: fromVersion.artifactType!,
+                name: "",
+                description: "",
+                labels: {
+                    basedOnGroupId: fromVersion.groupId,
+                    basedOnArtifactId: fromVersion.artifactId,
+                    basedOnVersion: fromVersion.version
+                },
+                content: draftContent.content,
+                contentType: draftContent.contentType
+            };
+            doCreateDraft(createDraft);
+        }).catch(error => {
+            pleaseWait(false);
+            setPageError(toPageError(error, "Error creating draft."));
+        });
+    };
+
     const pleaseWait = (isOpen: boolean, message: string = ""): void => {
         setIsPleaseWaitModalOpen(isOpen);
         setPleaseWaitMessage(message);
@@ -230,6 +323,29 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     useEffect(() => {
         setLoaders(createLoaders());
     }, [groupId, artifactId, version]);
+
+    useEffect(() => {
+        if (artifactVersion && artifactVersion.state === "DRAFT") {
+            const newDraft: Draft = {
+                groupId: artifactVersion.groupId || "default",
+                draftId: artifactVersion.artifactId!,
+                version: artifactVersion.version!,
+                type: artifactVersion.artifactType!,
+                isDraft: true,
+                contentId: artifactVersion.contentId!,
+                createdBy: artifactVersion.owner!,
+                createdOn: artifactVersion.createdOn!,
+                modifiedBy: artifactVersion.modifiedBy!,
+                modifiedOn: artifactVersion.modifiedOn!,
+                name: artifactVersion.name!,
+                description: artifactVersion.description!,
+                labels: artifactVersion.labels!
+            };
+            setDraft(newDraft);
+        } else {
+            setDraft(undefined);
+        }
+    }, [artifactVersion]);
 
     const tabs: any[] = [
         <Tab data-testid="version-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
@@ -279,6 +395,12 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                         onEdit={onEditDraft}
                         onDelete={onDeleteVersion}
                         onDownload={doDownloadVersion}
+                        onFinalizeDraft={() => {
+                            setIsConfirmFinalizeModalOpen(true);
+                        }}
+                        onCreateDraftFrom={() => {
+                            setIsCreateDraftFromModalOpen(true);
+                        }}
                         artifact={artifact}
                         version={artifactVersion}
                         codegenEnabled={true}
@@ -316,7 +438,28 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 onClose={() => setIsGenerateClientModalOpen(false)}
                 isOpen={isGenerateClientModalOpen}
             />
-            <PleaseWaitModal message={pleaseWaitMessage}
+            <ConfirmFinalizeModal
+                draft={draft}
+                onClose={() => setIsConfirmFinalizeModalOpen(false)}
+                onFinalize={doFinalizeDraft}
+                isOpen={isConfirmFinalizeModalOpen} />
+            <InvalidContentModal
+                error={invalidContentError}
+                isOpen={isInvalidContentModalOpen}
+                onClose={() => {
+                    setInvalidContentError(undefined);
+                    setIsInvalidContentModalOpen(false);
+                }} />
+            <NewDraftFromModal
+                isOpen={isCreateDraftFromModalOpen}
+                onClose={() => setIsCreateDraftFromModalOpen(false)}
+                onCreate={doCreateDraftFromVersion}
+                fromVersion={artifactVersion!} />
+            <FinalizeDryRunSuccessModal
+                isOpen={isFinalizeDryRunSuccessModalOpen}
+                onClose={() => setIsFinalizeDryRunSuccessModalOpen(false)} />
+            <PleaseWaitModal
+                message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen} />
         </PageErrorHandler>
     );

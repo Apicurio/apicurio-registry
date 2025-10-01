@@ -14,6 +14,7 @@ import { SearchedVersion } from "@apicurio/apicurio-registry-sdk/dist/generated-
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { If } from "@apicurio/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
+import { VersionMetaData } from "@sdk/lib/generated-client/models";
 
 type ValidType = "default" | "success" | "error";
 
@@ -56,7 +57,7 @@ const validateField = (value: string | undefined | null): ValidType => {
  * Properties
  */
 export type NewDraftFromModalProps = {
-    fromVersion: SearchedVersion;
+    fromVersion: SearchedVersion | VersionMetaData;
     isOpen: boolean;
     onClose: () => void;
     onCreate: (fromVersion: SearchedVersion, groupId: string, draftId: string, version: string) => void;

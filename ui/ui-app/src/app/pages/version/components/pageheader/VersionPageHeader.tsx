@@ -14,6 +14,7 @@ import { If, ObjectDropdown } from "@apicurio/common-ui-components";
 import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
 import { useUserService } from "@services/useUserService.ts";
 import { useConfigService } from "@services/useConfigService.ts";
+import { PencilAltIcon } from "@patternfly/react-icons";
 
 
 /**
@@ -26,6 +27,8 @@ export type VersionPageHeaderProps = {
     onEdit: () => void;
     onDelete: () => void;
     onDownload: () => void;
+    onFinalizeDraft: () => void;
+    onCreateDraftFrom: () => void;
     onGenerateClient: () => void;
 };
 
@@ -50,14 +53,29 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             }
         },
         {
-            label: "Edit draft",
-            testId: "action-edit-draft",
-            onSelect: () => props.onEdit(),
+            label: "Create draft from...",
+            testId: "action-create-draft",
+            onSelect: () => props.onCreateDraftFrom(),
+            isVisible: () => {
+                return !config.featureReadOnly() &&
+                    config.featureDraftMutability();
+            }
+        },
+        {
+            label: "Finalize draft",
+            testId: "action-finalize-draft",
+            onSelect: () => props.onFinalizeDraft(),
             isVisible: () => {
                 return !config.featureReadOnly() &&
                     config.featureDraftMutability() &&
                     props.version?.state === "DRAFT" &&
                     user.isUserDeveloper(props.artifact?.owner);
+            }
+        },
+        {
+            divider: true,
+            isVisible: () => {
+                return !config.featureReadOnly() && config.featureDeleteVersion() && user.isUserDeveloper(props.artifact?.owner);
             }
         },
         {
@@ -88,8 +106,10 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             <FlexItem align={{ default: "alignRight" }}>
                 <ActionList>
                     <ActionListItem>
-                        <Button id="download-artifact-button" variant="secondary"
+                        <Button id="download-version-button" variant="secondary"
                             data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
+                        <Button id="edit-version-button" variant="primary" icon={<PencilAltIcon />}
+                            data-testid="header-btn-edit" onClick={props.onEdit}>Edit draft</Button>
                     </ActionListItem>
                     <ActionListItem>
                         <ObjectDropdown
@@ -99,6 +119,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                             itemToString={item => item.label}
                             itemToTestId={item => item.testId}
                             itemIsVisible={item => item.isVisible()}
+                            itemIsDivider={item => item.divider}
                             popperProps={{
                                 position: "right"
                             }}

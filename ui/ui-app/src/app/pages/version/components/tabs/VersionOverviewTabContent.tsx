@@ -103,7 +103,7 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Status</DescriptionListTerm>
                                 <DescriptionListDescription data-testid="version-details-state">
-                                    <VersionStateBadge version={props.version} />
+                                    <VersionStateBadge version={props.version} showEnabled={true} />
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>

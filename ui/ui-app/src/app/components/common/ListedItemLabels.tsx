@@ -5,6 +5,7 @@ import { labelsToAny } from "@utils/rest.utils.ts";
 
 export type ListedItemLabelsProps = {
     item: SearchedVersion | SearchedArtifact | SearchedGroup | undefined;
+    onClick?: (key: string, value: string | undefined) => void;
 };
 
 
@@ -18,6 +19,11 @@ export const ListedItemLabels: FunctionComponent<ListedItemLabelsProps> = (props
                         key={`label-${key}`}
                         color="purple"
                         style={{ marginBottom: "2px", marginRight: "5px", marginTop: "5px" }}
+                        onClick={() => {
+                            if (props.onClick) {
+                                props.onClick(key, value as string | undefined);
+                            }
+                        }}
                     >
                         <Truncate
                             className="label-truncate"

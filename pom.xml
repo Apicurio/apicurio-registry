@@ -257,7 +257,7 @@
     <version.clean.plugin>3.4.0</version.clean.plugin>
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
     <version.license-maven-plugin>2.7.0</version.license-maven-plugin>
-    <version.exec-maven-plugin>3.5.0</version.exec-maven-plugin>
+    <version.exec-maven-plugin>3.6.0</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.6.Final</version.apicurio-codegen-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->

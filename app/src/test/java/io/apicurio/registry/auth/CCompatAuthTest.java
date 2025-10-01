@@ -163,4 +163,53 @@ public class CCompatAuthTest extends AbstractResourceTestBase {
         }
     }
 
+    @Test
+    public void testRegisterWithReadPermission() throws Exception {
+        String readOnlyToken = acquireAuthToken(KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1");
+        String adminToken = acquireAuthToken(KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1");
+        ParsedSchema avroSchema = new AvroSchemaProvider().parseSchema(AVRO_SCHEMA, null, false)
+                .orElseThrow(() -> new RuntimeException("Failed to parse Avro schema"));
+
+        try (var adminClient = buildClient(adminToken); var readOnlyClient = buildClient(readOnlyToken)) {
+            // Admin user creates a schema first
+            String subject = TestUtils.generateSubject();
+            int schemaId1 = adminClient.register(subject, avroSchema);
+
+            // Read-only user should be able to "register" the same schema (which just looks it up)
+            int schemaId2 = readOnlyClient.register(subject, avroSchema);
+
+            // Both IDs should be the same since it's the same schema
+            Assertions.assertEquals(schemaId1, schemaId2);
+
+            // Read-only user should still NOT be able to create a new schema
+            String newSubject = TestUtils.generateSubject();
+            Assertions.assertThrows(Exception.class, () -> {
+                readOnlyClient.register(newSubject, avroSchema);
+            });
+        }
+    }
+
+    @Test
+    public void testAutoRegisterWithReadOnlyUser() throws Exception {
+        String readOnlyToken = acquireAuthToken(KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1");
+        String adminToken = acquireAuthToken(KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1");
+        ParsedSchema avroSchema = new AvroSchemaProvider().parseSchema(AVRO_SCHEMA, null, false)
+                .orElseThrow(() -> new RuntimeException("Failed to parse Avro schema"));
+
+        try (var adminClient = buildClient(adminToken); var readOnlyClient = buildClient(readOnlyToken)) {
+            String subject = TestUtils.generateSubject();
+
+            // Admin creates the schema
+            adminClient.register(subject, avroSchema);
+
+            // Read-only user can retrieve the schema by content (simulating auto.register.schemas lookup)
+            int retrievedId = readOnlyClient.getId(subject, avroSchema);
+            Assertions.assertTrue(retrievedId > 0);
+
+            // Read-only user can also call register on existing schema (should succeed with READ permission)
+            int registeredId = readOnlyClient.register(subject, avroSchema);
+            Assertions.assertEquals(retrievedId, registeredId);
+        }
+    }
+
 }

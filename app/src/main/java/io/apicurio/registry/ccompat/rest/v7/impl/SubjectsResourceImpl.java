@@ -190,7 +190,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     @Audited(extractParameters = { "0", KEY_ARTIFACT_ID })
-    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public SchemaId registerSchemaUnderSubject(String subject, Boolean normalize, String format, String groupId, RegisterSchemaRequest request) {
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
         final GA ga = getGA(groupId, subject);
@@ -229,8 +229,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                 sid = cconfig.legacyIdModeEnabled.get() ? existingDto.getGlobalId() : existingDto.getContentId();
 
             } catch (ArtifactNotFoundException nfe) {
-                // Schema not found or the only matching version is disabled, proceed to create/update
-                ArtifactVersionMetaDataDto newOrUpdatedDto = registerNewSchemaVersion(ga, request, fnormalize, resolvedReferences);
+                ArtifactVersionMetaDataDto newOrUpdatedDto = registerNewSchemaVersion(subject, groupId, request, fnormalize, resolvedReferences);
                 sid = cconfig.legacyIdModeEnabled.get() ? newOrUpdatedDto.getGlobalId() : newOrUpdatedDto.getContentId();
             }
 
@@ -243,7 +242,9 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         }
     }
 
-    private ArtifactVersionMetaDataDto registerNewSchemaVersion(GA ga, RegisterSchemaRequest request, boolean fnormalize, Map<String, TypedContent> resolvedReferences) {
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public ArtifactVersionMetaDataDto registerNewSchemaVersion(String subject, String groupId, RegisterSchemaRequest request, boolean fnormalize, Map<String, TypedContent> resolvedReferences) {
+        final GA ga = getGA(groupId, subject);
         try {
             ContentHandle schemaContent = ContentHandle.create(request.getSchema());
             String contentType = ContentTypeUtil.determineContentType(schemaContent);

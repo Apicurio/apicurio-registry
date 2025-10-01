@@ -5,6 +5,7 @@ import { SearchedVersion, VersionMetaData } from "@sdk/lib/generated-client/mode
 
 export type VersionStateBadgeProps = {
     version: SearchedVersion | VersionMetaData | undefined;
+    showEnabled?: boolean;
 };
 
 
@@ -20,6 +21,9 @@ export const VersionStateBadge: FunctionComponent<VersionStateBadgeProps> = (pro
             </If>
             <If condition={props.version?.state === "DISABLED"}>
                 <Label color="red">Disabled</Label>
+            </If>
+            <If condition={props.showEnabled === true && props.version?.state === "ENABLED"}>
+                <Label color="green">Enabled</Label>
             </If>
         </React.Fragment>
     );

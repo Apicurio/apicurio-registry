@@ -32,7 +32,7 @@ export const DraftsPageEmptyState: FunctionComponent<DraftsPageEmptyStateProps> 
             <Title headingLevel="h5" size="lg">No drafts found</Title>
             <If condition={() => props.isFiltered}>
                 <EmptyStateBody>
-                    No drafts match your filter settings.  Change your filter or perhaps Create a new draft.
+                    No drafts match your filter settings.  Change your filter or perhaps create a new draft.
                 </EmptyStateBody>
             </If>
             <If condition={() => !props.isFiltered}>

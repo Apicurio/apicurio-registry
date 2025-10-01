@@ -121,7 +121,7 @@ export const DraftsList: FunctionComponent<DraftsListProps> = (props: DraftsList
                                     },
                                     {
                                         id: "create-new-draft",
-                                        label: "Create new draft",
+                                        label: "Create draft from...",
                                         testId: "create-new-draft-" + idx,
                                         action: () => props.onCreateDraftFrom(draft)
                                     },

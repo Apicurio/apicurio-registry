@@ -138,14 +138,14 @@ public class DryRunTest extends AbstractResourceTestBase {
         Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
         Assertions.assertEquals("2", car.getVersion().getVersion());
 
-        // Validate that there is only 1 artifact in the group still, but it has 2 versions
+        // Validate that there is only 1 artifact in the group still, and it still has only 1 version (dry run didn't persist)
         results = clientV3.groups().byGroupId(groupId).artifacts().get();
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertEquals(1, results.getArtifacts().size());
         VersionSearchResults vresults = clientV3.groups().byGroupId(groupId).artifacts()
                 .byArtifactId("actual-artifact").versions().get();
-        Assertions.assertEquals(2, vresults.getCount());
-        Assertions.assertEquals(2, vresults.getVersions().size());
+        Assertions.assertEquals(1, vresults.getCount()); // Should still only have 1 version after dry run
+        Assertions.assertEquals(1, vresults.getVersions().size());
     }
 
     @Test
@@ -200,6 +200,72 @@ public class DryRunTest extends AbstractResourceTestBase {
                 .byArtifactId(artifactId).versions().get();
         Assertions.assertEquals(1, vresults.getCount());
         Assertions.assertEquals(1, vresults.getVersions().size());
+    }
+
+    @Test
+    public void testCreateArtifactDryRunWithFindOrCreateVersion() throws Exception {
+        String groupId = "testCreateArtifactDryRunWithFindOrCreateVersion";
+        String artifactId = "existing-artifact";
+
+        // Create a group
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
+
+        // Create an initial artifact with version 1
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
+
+        // Verify the artifact exists with 1 version
+        ArtifactSearchResults results = clientV3.groups().byGroupId(groupId).artifacts().get();
+        Assertions.assertEquals(1, results.getCount());
+        VersionSearchResults vresults = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).versions().get();
+        Assertions.assertEquals(1, vresults.getCount());
+
+        // Step 1: DryRun with FIND_OR_CREATE_VERSION using original content should find existing version
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact,
+                config -> {
+                    config.queryParameters.dryRun = true;
+                    config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+                    config.queryParameters.canonical = true;
+                });
+        Assertions.assertNotNull(car);
+        Assertions.assertEquals("1", car.getVersion().getVersion()); // Response should have returned version 1
+        // Verify no new versions were actually persisted
+        vresults = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();
+        Assertions.assertEquals(1, vresults.getCount());
+
+        // Step 2: DryRun with FIND_OR_CREATE_VERSION and new rather than existing content
+        String newSchema = """
+                {
+                     "type": "record",
+                     "namespace": "com.example",
+                     "name": "FullName",
+                     "fields": [
+                       { "name": "first", "type": "string" },
+                       { "name": "last", "type": "string" },
+                       { "name": "middle", "type": "string", "default": "" }
+                     ]
+                }
+                """;
+        
+        CreateArtifact createArtifactNew = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                newSchema, ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse carNew = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifactNew,
+                config -> {
+                    config.queryParameters.dryRun = true;
+                    config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+                    config.queryParameters.canonical = true;
+                });
+        Assertions.assertNotNull(carNew);
+        // Because the content is new, the response should indicate version 2 would be created
+        Assertions.assertEquals("2", carNew.getVersion().getVersion());
+
+        // Verify no new versions were actually persisted
+        vresults = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();
+        Assertions.assertEquals(1, vresults.getCount());
     }
 
 }

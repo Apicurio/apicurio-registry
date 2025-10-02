@@ -1017,7 +1017,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             return rval;
         } catch (ArtifactAlreadyExistsException ex) {
-            return handleIfExists(groupId, artifactId, ifExists, data.getFirstVersion(), fcanonical);
+            return handleIfExists(groupId, artifactId, ifExists, data.getFirstVersion(), fcanonical, dryRun);
         }
     }
 
@@ -1308,23 +1308,23 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     private CreateArtifactResponse handleIfExists(String groupId, String artifactId,
-            IfArtifactExists ifExists, CreateVersion theVersion, boolean canonical) {
+            IfArtifactExists ifExists, CreateVersion theVersion, boolean canonical, Boolean dryRun) {
         if (ifExists == null || theVersion == null) {
             ifExists = IfArtifactExists.FAIL;
         }
 
         switch (ifExists) {
             case CREATE_VERSION:
-                return updateArtifactInternal(groupId, artifactId, theVersion);
+                return updateArtifactInternal(groupId, artifactId, theVersion, dryRun);
             case FIND_OR_CREATE_VERSION:
-                return handleIfExistsReturnOrUpdate(groupId, artifactId, theVersion, canonical);
+                return handleIfExistsReturnOrUpdate(groupId, artifactId, theVersion, canonical, dryRun);
             default:
                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
         }
     }
 
     private CreateArtifactResponse handleIfExistsReturnOrUpdate(String groupId, String artifactId,
-            CreateVersion theVersion, boolean canonical) {
+            CreateVersion theVersion, boolean canonical, Boolean dryRun) {
         try {
             // Find the version
             TypedContent content = TypedContent.create(
@@ -1345,12 +1345,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
         }
-        return updateArtifactInternal(groupId, artifactId, theVersion);
+        return updateArtifactInternal(groupId, artifactId, theVersion, dryRun);
     }
 
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     protected CreateArtifactResponse updateArtifactInternal(String groupId, String artifactId,
-            CreateVersion theVersion) {
+            CreateVersion theVersion, Boolean dryRun) {
         String version = theVersion.getVersion();
         String name = theVersion.getName();
         String description = theVersion.getDescription();
@@ -1383,7 +1383,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(contentType).content(content)
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(groupId, artifactId, version,
-                artifactType, contentDto, metaData, branches, isDraftVersion, false, owner);
+                artifactType, contentDto, metaData, branches, isDraftVersion, dryRun != null && dryRun, owner);
         VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
 
         // Need to also return the artifact metadata

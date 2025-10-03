@@ -38,7 +38,7 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |Supported versions
 |`ASYNCAPI`
 |AsyncAPI specification
-|`2.0.0` -> `2.0.6`, `3.0.0`
+|`2.0.0` -> `2.6.0`, `3.0.0`
 |`AVRO`
 |Apache Avro schema
 |`1.0` -> `1.12`,

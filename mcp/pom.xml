@@ -15,7 +15,7 @@
     <name>Apicurio Registry MCP Server</name>
 
     <properties>
-        <mcp.server.version>1.0.0</mcp.server.version>
+        <mcp.server.version>1.6.0</mcp.server.version>
         <projectRoot>${project.basedir}/..</projectRoot>
         <docker.app.file>app-files/apicurio-registry-mcp-server-${project.version}-runner.jar</docker.app.file>
     </properties>

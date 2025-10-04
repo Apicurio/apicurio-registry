@@ -15,175 +15,175 @@ import java.util.List;
 public class XsdCompatibilityCheckerTest {
 
     private static final String BASE_SCHEMA = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="person" type="PersonType"/>
-            <xs:complexType name="PersonType">
-                <xs:sequence>
-                    <xs:element name="name" type="xs:string"/>
-                    <xs:element name="age" type="xs:int" minOccurs="0"/>
-                </xs:sequence>
-                <xs:attribute name="id" type="xs:string" use="required"/>
-            </xs:complexType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="person" type="PersonType"/>
+    <xs:complexType name="PersonType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="age" type="xs:int" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:schema>
+""";
 
     private static final String BACKWARD_COMPATIBLE_SCHEMA = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="person" type="PersonType"/>
-            <xs:complexType name="PersonType">
-                <xs:sequence>
-                    <xs:element name="name" type="xs:string"/>
-                    <xs:element name="age" type="xs:int" minOccurs="0"/>
-                    <xs:element name="email" type="xs:string" minOccurs="0"/>
-                </xs:sequence>
-                <xs:attribute name="id" type="xs:string" use="required"/>
-                <xs:attribute name="status" type="xs:string" use="optional"/>
-            </xs:complexType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="person" type="PersonType"/>
+    <xs:complexType name="PersonType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="age" type="xs:int" minOccurs="0"/>
+            <xs:element name="email" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="status" type="xs:string" use="optional"/>
+    </xs:complexType>
+</xs:schema>
+""";
 
     private static final String BACKWARD_INCOMPATIBLE_SCHEMA_ADD_REQUIRED = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="person" type="PersonType"/>
-            <xs:complexType name="PersonType">
-                <xs:sequence>
-                    <xs:element name="name" type="xs:string"/>
-                    <xs:element name="age" type="xs:int" minOccurs="0"/>
-                    <xs:element name="email" type="xs:string" minOccurs="1"/>
-                </xs:sequence>
-                <xs:attribute name="id" type="xs:string" use="required"/>
-            </xs:complexType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="person" type="PersonType"/>
+    <xs:complexType name="PersonType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="age" type="xs:int" minOccurs="0"/>
+            <xs:element name="email" type="xs:string" minOccurs="1"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:schema>
+""";
 
     private static final String BACKWARD_INCOMPATIBLE_SCHEMA_REMOVE_ELEMENT = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="person" type="PersonType"/>
-            <xs:complexType name="PersonType">
-                <xs:sequence>
-                    <xs:element name="age" type="xs:int" minOccurs="0"/>
-                </xs:sequence>
-                <xs:attribute name="id" type="xs:string" use="required"/>
-            </xs:complexType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="person" type="PersonType"/>
+    <xs:complexType name="PersonType">
+        <xs:sequence>
+            <xs:element name="age" type="xs:int" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:schema>
+""";
 
     private static final String BACKWARD_INCOMPATIBLE_SCHEMA_INCREASE_MINOCCURS = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="person" type="PersonType"/>
-            <xs:complexType name="PersonType">
-                <xs:sequence>
-                    <xs:element name="name" type="xs:string"/>
-                    <xs:element name="age" type="xs:int" minOccurs="1"/>
-                </xs:sequence>
-                <xs:attribute name="id" type="xs:string" use="required"/>
-            </xs:complexType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="person" type="PersonType"/>
+    <xs:complexType name="PersonType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="age" type="xs:int" minOccurs="1"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:schema>
+""";
 
     private static final String SCHEMA_WITH_RESTRICTION = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="product" type="ProductType"/>
-            <xs:simpleType name="PriceType">
-                <xs:restriction base="xs:decimal">
-                    <xs:minInclusive value="0"/>
-                    <xs:maxInclusive value="1000"/>
-                </xs:restriction>
-            </xs:simpleType>
-            <xs:complexType name="ProductType">
-                <xs:sequence>
-                    <xs:element name="name" type="xs:string"/>
-                    <xs:element name="price" type="PriceType"/>
-                </xs:sequence>
-            </xs:complexType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="product" type="ProductType"/>
+    <xs:simpleType name="PriceType">
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="1000"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:complexType name="ProductType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="price" type="PriceType"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>
+""";
 
     private static final String SCHEMA_WITH_TIGHTER_RESTRICTION = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="product" type="ProductType"/>
-            <xs:simpleType name="PriceType">
-                <xs:restriction base="xs:decimal">
-                    <xs:minInclusive value="10"/>
-                    <xs:maxInclusive value="500"/>
-                </xs:restriction>
-            </xs:simpleType>
-            <xs:complexType name="ProductType">
-                <xs:sequence>
-                    <xs:element name="name" type="xs:string"/>
-                    <xs:element name="price" type="PriceType"/>
-                </xs:sequence>
-            </xs:complexType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="product" type="ProductType"/>
+    <xs:simpleType name="PriceType">
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="10"/>
+            <xs:maxInclusive value="500"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:complexType name="ProductType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="price" type="PriceType"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>
+""";
 
     private static final String SCHEMA_WITH_LOOSER_RESTRICTION = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="product" type="ProductType"/>
-            <xs:simpleType name="PriceType">
-                <xs:restriction base="xs:decimal">
-                    <xs:minInclusive value="0"/>
-                    <xs:maxInclusive value="2000"/>
-                </xs:restriction>
-            </xs:simpleType>
-            <xs:complexType name="ProductType">
-                <xs:sequence>
-                    <xs:element name="name" type="xs:string"/>
-                    <xs:element name="price" type="PriceType"/>
-                </xs:sequence>
-            </xs:complexType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="product" type="ProductType"/>
+    <xs:simpleType name="PriceType">
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="2000"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:complexType name="ProductType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="price" type="PriceType"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>
+""";
 
     private static final String SCHEMA_WITH_ENUM = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="status" type="StatusType"/>
-            <xs:simpleType name="StatusType">
-                <xs:restriction base="xs:string">
-                    <xs:enumeration value="ACTIVE"/>
-                    <xs:enumeration value="INACTIVE"/>
-                    <xs:enumeration value="PENDING"/>
-                </xs:restriction>
-            </xs:simpleType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="status" type="StatusType"/>
+    <xs:simpleType name="StatusType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ACTIVE"/>
+            <xs:enumeration value="INACTIVE"/>
+            <xs:enumeration value="PENDING"/>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>
+""";
 
     private static final String SCHEMA_WITH_ENUM_VALUE_REMOVED = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="status" type="StatusType"/>
-            <xs:simpleType name="StatusType">
-                <xs:restriction base="xs:string">
-                    <xs:enumeration value="ACTIVE"/>
-                    <xs:enumeration value="INACTIVE"/>
-                </xs:restriction>
-            </xs:simpleType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="status" type="StatusType"/>
+    <xs:simpleType name="StatusType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ACTIVE"/>
+            <xs:enumeration value="INACTIVE"/>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>
+""";
 
     private static final String SCHEMA_WITH_ENUM_VALUE_ADDED = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-            <xs:element name="status" type="StatusType"/>
-            <xs:simpleType name="StatusType">
-                <xs:restriction base="xs:string">
-                    <xs:enumeration value="ACTIVE"/>
-                    <xs:enumeration value="INACTIVE"/>
-                    <xs:enumeration value="PENDING"/>
-                    <xs:enumeration value="COMPLETED"/>
-                </xs:restriction>
-            </xs:simpleType>
-        </xs:schema>
-        """;
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="status" type="StatusType"/>
+    <xs:simpleType name="StatusType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ACTIVE"/>
+            <xs:enumeration value="INACTIVE"/>
+            <xs:enumeration value="PENDING"/>
+            <xs:enumeration value="COMPLETED"/>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>
+""";
 
     private TypedContent toTypedContent(String content) {
         return TypedContent.create(ContentHandle.create(content), ContentTypes.APPLICATION_XML);

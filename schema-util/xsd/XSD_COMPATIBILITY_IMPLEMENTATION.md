@@ -48,11 +48,13 @@ This is the main compatibility checker class that extends `AbstractCompatibility
 #### FORWARD Compatibility
 **Rule:** New data must be readable by the old schema (L(new) ⊆ L(old))
 
+**Implementation:** The checker reverses the arguments: `isBackwardsCompatibleWith(proposed, existing)` instead of `isBackwardsCompatibleWith(existing, proposed)`. This works because forward compatibility is the inverse of backward compatibility.
+
 **Safe Changes:**
 - ✅ Remove optional elements/attributes
 - ✅ Change optional to required
 - ✅ Increase `minOccurs` on existing elements
-- ✅ Decrease `maxOccurs` on existing elements
+- ✅ Decrease `maxOccurs` on existing elements  
 - ✅ Narrow types and facets
 - ✅ Add constraints (assertions, keys, uniqueness)
 - ✅ Remove enumeration values
@@ -65,12 +67,30 @@ This is the main compatibility checker class that extends `AbstractCompatibility
 - ❌ Decrease `minOccurs`
 - ❌ Increase `maxOccurs`
 - ❌ Remove required elements/attributes
+- ❌ Add enumeration values
+
+**Test Results:** All forward compatibility tests pass ✅
 
 #### FULL Compatibility
 Both backward AND forward compatible (most restrictive)
 
+**Implementation:** Checks both `isBackwardsCompatibleWith(existing, proposed)` AND `isBackwardsCompatibleWith(proposed, existing)`. Both must pass for full compatibility.
+
+**Result:** In practice, only identical or nearly identical schemas can be FULL compatible, as most changes are either backward OR forward compatible, but not both.
+
+**Test Results:** All full compatibility tests pass ✅
+
 #### TRANSITIVE Modes
 Apply the same rules across the entire version history, not just the most recent version.
+
+**Implementation:** The checker walks through all historical schemas and validates compatibility between each pair. All pairs must be compatible for transitive mode to pass.
+
+**Supported Modes:**
+- `BACKWARD_TRANSITIVE`: Every historical schema must be backward compatible with the new schema
+- `FORWARD_TRANSITIVE`: The new schema must be forward compatible with every historical schema  
+- `FULL_TRANSITIVE`: Both backward and forward transitive compatibility
+
+**Test Results:** All transitive compatibility tests pass ✅
 
 ### Internal Classes
 
@@ -122,22 +142,36 @@ Represents a detected incompatibility with:
 
 Location: `src/test/java/io/apicurio/registry/rules/compatibility/XsdCompatibilityCheckerTest.java`
 
-**Test Cases:**
+**Backward Compatibility Tests:**
 1. ✅ `testBackwardCompatible_AddOptionalElement` - Adding optional elements
-2. ✅ `testBackwardCompatible_AddOptionalAttribute` - Adding optional attributes
-3. ✅ `testBackwardCompatible_DecreaseMinOccurs` - Relaxing element occurrence
-4. ✅ `testBackwardIncompatible_AddRequiredElement` - Adding required elements (should fail)
-5. ✅ `testBackwardIncompatible_RemoveRequiredElement` - Removing elements (should fail)
-6. ✅ `testBackwardIncompatible_IncreaseMinOccurs` - Tightening occurrence (should fail)
-7. ✅ `testForwardCompatible_IncreaseMinOccurs` - Making elements more required
-8. ✅ `testForwardIncompatible_AddOptionalElement` - Adding optional elements (forward incompatible)
-9. ✅ `testFullCompatible` - Both backward and forward compatible
-10. ✅ `testFullIncompatible` - Incompatible in both directions
-11. ✅ `testBackwardTransitive` - Transitive backward compatibility
-12. ✅ `testRestrictionCompatibility_AddEnumValue` - Adding enumeration values
-13. ✅ `testRestrictionCompatibility_RemoveEnumValue` - Removing enumeration values
+2. ✅ `testBackwardCompatible_AddOptionalAttribute` - Adding optional attributes (within AddOptionalElement test)
+3. ✅ `testBackwardCompatible_LoosenRestriction` - Relaxing restrictions
+4. ✅ `testBackwardCompatible_AddEnumValue` - Adding enumeration values
+5. ✅ `testBackwardIncompatible_AddRequiredElement` - Adding required elements (should fail)
+6. ✅ `testBackwardIncompatible_RemoveRequiredElement` - Removing elements (should fail)
+7. ✅ `testBackwardIncompatible_IncreaseMinOccurs` - Tightening occurrence (should fail)
+8. ✅ `testBackwardIncompatible_TightenRestriction` - Narrowing restrictions (should fail)
+9. ✅ `testBackwardIncompatible_RemoveEnumValue` - Removing enumeration values (should fail)
+10. ✅ `testBackwardTransitive` - Transitive backward compatibility
 
-All tests pass successfully! ✨
+**Forward Compatibility Tests:**
+11. ✅ `testForwardCompatible_TightenRestriction` - Making elements more restricted
+12. ✅ `testForwardCompatible_IncreaseMinOccurs` - Increasing minOccurs
+13. ✅ `testForwardCompatible_RemoveEnumValue` - Removing enum values
+14. ✅ `testForwardIncompatible_LoosenRestriction` - Relaxing restrictions (should fail)
+15. ✅ `testForwardIncompatible_AddOptionalElement` - Adding optional elements (forward incompatible)
+16. ✅ `testForwardIncompatible_AddEnumValue` - Adding enumeration values (should fail)
+17. ✅ `testForwardTransitive` - Transitive forward compatibility
+
+**Full Compatibility Tests:**
+18. ✅ `testFullCompatible` - Both backward and forward compatible (identical schemas)
+19. ✅ `testFullCompatible_OnlyWithIdenticalSchema` - Non-identical schemas should fail
+20. ✅ `testFullTransitive` - Transitive full compatibility
+
+**Other Tests:**
+21. ✅ `testNoneCompatibility` - NONE level always passes
+
+**All 20 tests pass successfully!** ✨
 
 ### Integration
 

@@ -361,6 +361,74 @@ public class XsdCompatibilityCheckerTest {
     }
 
     @Test
+    void testForwardIncompatible_AddOptionalElement() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent existing = toTypedContent(BASE_SCHEMA);
+        TypedContent proposed = toTypedContent(BACKWARD_COMPATIBLE_SCHEMA);
+        
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.FORWARD,
+            Collections.singletonList(existing),
+            proposed,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertFalse(result.isCompatible(),
+            "Adding optional element should be forward incompatible (old schema won't accept new data with this element)");
+    }
+
+    @Test
+    void testForwardCompatible_IncreaseMinOccurs() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent existing = toTypedContent(BASE_SCHEMA);
+        TypedContent proposed = toTypedContent(BACKWARD_INCOMPATIBLE_SCHEMA_INCREASE_MINOCCURS);
+        
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.FORWARD,
+            Collections.singletonList(existing),
+            proposed,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertTrue(result.isCompatible(),
+            "Increasing minOccurs should be forward compatible (new data will always satisfy old constraints)");
+    }
+
+    @Test
+    void testForwardCompatible_RemoveEnumValue() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent existing = toTypedContent(SCHEMA_WITH_ENUM);
+        TypedContent proposed = toTypedContent(SCHEMA_WITH_ENUM_VALUE_REMOVED);
+        
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.FORWARD,
+            Collections.singletonList(existing),
+            proposed,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertTrue(result.isCompatible(),
+            "Removing enumeration values should be forward compatible (new data only uses remaining values)");
+    }
+
+    @Test
+    void testForwardIncompatible_AddEnumValue() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent existing = toTypedContent(SCHEMA_WITH_ENUM);
+        TypedContent proposed = toTypedContent(SCHEMA_WITH_ENUM_VALUE_ADDED);
+        
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.FORWARD,
+            Collections.singletonList(existing),
+            proposed,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertFalse(result.isCompatible(),
+            "Adding enumeration values should be forward incompatible (old schema won't accept new values)");
+    }
+
+    @Test
     void testFullCompatible() {
         XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
         TypedContent existing = toTypedContent(BASE_SCHEMA);
@@ -393,6 +461,59 @@ public class XsdCompatibilityCheckerTest {
 
         Assertions.assertFalse(result.isCompatible(),
             "Schema 3 should be incompatible with schema 1 in transitive check");
+    }
+
+    @Test
+    void testForwardTransitive() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent schema1 = toTypedContent(SCHEMA_WITH_RESTRICTION);
+        TypedContent schema2 = toTypedContent(SCHEMA_WITH_TIGHTER_RESTRICTION);
+        TypedContent schema3 = toTypedContent(SCHEMA_WITH_LOOSER_RESTRICTION);
+        
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.FORWARD_TRANSITIVE,
+            List.of(schema1, schema2),
+            schema3,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertFalse(result.isCompatible(),
+            "Schema 3 (looser) should be incompatible with schema 2 (tighter) in forward transitive check");
+    }
+
+    @Test
+    void testFullCompatible_OnlyWithIdenticalSchema() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent existing = toTypedContent(BASE_SCHEMA);
+        TypedContent proposed = toTypedContent(BACKWARD_COMPATIBLE_SCHEMA);
+        
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.FULL,
+            Collections.singletonList(existing),
+            proposed,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertFalse(result.isCompatible(),
+            "Adding optional element is backward compatible but not forward compatible, so not FULL compatible");
+    }
+
+    @Test
+    void testFullTransitive() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent schema1 = toTypedContent(BASE_SCHEMA);
+        TypedContent schema2 = toTypedContent(BASE_SCHEMA);
+        TypedContent schema3 = toTypedContent(BACKWARD_COMPATIBLE_SCHEMA);
+        
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.FULL_TRANSITIVE,
+            List.of(schema1, schema2),
+            schema3,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertFalse(result.isCompatible(),
+            "Adding optional element is not full compatible");
     }
 
     @Test

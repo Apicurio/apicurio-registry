@@ -116,7 +116,7 @@ a| None
 a| Mapping detection not supported
 |*XSD*
 a| Full
-a| None
+a| Full
 a| Mapping detection not supported
 |===
 

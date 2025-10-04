@@ -70,16 +70,26 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
             XsdElement proposedElement = proposed.getElement(existingElement.getName());
             
             if (proposedElement == null) {
-                // Element was removed
-                if (existingElement.isRequired()) {
-                    incompatibilities.add(new XsdIncompatibility(
-                        "Required element '" + existingElement.getName() + "' was removed",
-                        "/element[" + existingElement.getName() + "]"
-                    ));
-                }
+                // Element was removed - this is backward incompatible even if optional
+                // because old data may have this element
+                incompatibilities.add(new XsdIncompatibility(
+                    "Element '" + existingElement.getName() + "' was removed",
+                    "/element[" + existingElement.getName() + "]"
+                ));
             } else {
                 // Element exists in both schemas, check for incompatible changes
                 checkElementChanges(existingElement, proposedElement, incompatibilities);
+            }
+        }
+        
+        // Check for new required elements in proposed (backward incompatible)
+        for (XsdElement proposedElement : proposed.getElements()) {
+            XsdElement existingElement = existing.getElement(proposedElement.getName());
+            if (existingElement == null && proposedElement.isRequired()) {
+                incompatibilities.add(new XsdIncompatibility(
+                    "New required element '" + proposedElement.getName() + "' was added",
+                    "/element[" + proposedElement.getName() + "]"
+                ));
             }
         }
     }
@@ -140,15 +150,25 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
             XsdAttribute proposedAttr = proposed.getAttribute(existingAttr.getName());
             
             if (proposedAttr == null) {
-                // Attribute was removed
-                if (existingAttr.isRequired()) {
-                    incompatibilities.add(new XsdIncompatibility(
-                        "Required attribute '" + existingAttr.getName() + "' was removed",
-                        "/attribute[" + existingAttr.getName() + "]"
-                    ));
-                }
+                // Attribute was removed - backward incompatible even if optional
+                // because old data may have this attribute
+                incompatibilities.add(new XsdIncompatibility(
+                    "Attribute '" + existingAttr.getName() + "' was removed",
+                    "/attribute[" + existingAttr.getName() + "]"
+                ));
             } else {
                 checkAttributeChanges(existingAttr, proposedAttr, incompatibilities);
+            }
+        }
+        
+        // Check for new required attributes in proposed (backward incompatible)
+        for (XsdAttribute proposedAttr : proposed.getAttributes()) {
+            XsdAttribute existingAttr = existing.getAttribute(proposedAttr.getName());
+            if (existingAttr == null && proposedAttr.isRequired()) {
+                incompatibilities.add(new XsdIncompatibility(
+                    "New required attribute '" + proposedAttr.getName() + "' was added",
+                    "/attribute[" + proposedAttr.getName() + "]"
+                ));
             }
         }
     }
@@ -377,6 +397,56 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
                     XsdType xsdType = parseType(element);
                     if (xsdType.getName() != null) {
                         types.put(xsdType.getName(), xsdType);
+                    }
+                    // Also parse elements and attributes from within the complexType
+                    parseComplexTypeContent(element);
+                }
+            }
+        }
+        
+        private void parseComplexTypeContent(Element complexTypeElement) {
+            // Parse elements from sequence, choice, or all
+            NodeList sequences = complexTypeElement.getElementsByTagNameNS(XSD_NS, "sequence");
+            for (int i = 0; i < sequences.getLength(); i++) {
+                Element sequence = (Element) sequences.item(i);
+                parseElementsFromContainer(sequence);
+            }
+            
+            NodeList choices = complexTypeElement.getElementsByTagNameNS(XSD_NS, "choice");
+            for (int i = 0; i < choices.getLength(); i++) {
+                Element choice = (Element) choices.item(i);
+                parseElementsFromContainer(choice);
+            }
+            
+            NodeList alls = complexTypeElement.getElementsByTagNameNS(XSD_NS, "all");
+            for (int i = 0; i < alls.getLength(); i++) {
+                Element all = (Element) alls.item(i);
+                parseElementsFromContainer(all);
+            }
+            
+            // Parse attributes
+            NodeList attrs = complexTypeElement.getElementsByTagNameNS(XSD_NS, "attribute");
+            for (int i = 0; i < attrs.getLength(); i++) {
+                Element attrElement = (Element) attrs.item(i);
+                XsdAttribute xsdAttribute = parseAttribute(attrElement);
+                if (xsdAttribute.getName() != null) {
+                    attributes.put(xsdAttribute.getName(), xsdAttribute);
+                }
+            }
+        }
+        
+        private void parseElementsFromContainer(Element container) {
+            NodeList children = container.getChildNodes();
+            for (int i = 0; i < children.getLength(); i++) {
+                Node child = children.item(i);
+                if (child.getNodeType() != Node.ELEMENT_NODE) {
+                    continue;
+                }
+                Element element = (Element) child;
+                if ("element".equals(element.getLocalName())) {
+                    XsdElement xsdElement = parseElement(element);
+                    if (xsdElement.getName() != null) {
+                        elements.put(xsdElement.getName(), xsdElement);
                     }
                 }
             }

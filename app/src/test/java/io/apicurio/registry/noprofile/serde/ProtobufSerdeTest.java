@@ -314,12 +314,6 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
         String artifactId = topic + "-value"; // Following the pattern from GitHub discussion
 
         // Step 1: Pre-register the schema manually
-        UserEventProtos.UserEvent sampleUserEvent = UserEventProtos.UserEvent.newBuilder()
-                .setUserId("test-user")
-                .setEventType("login")
-                .setTimestamp(System.currentTimeMillis())
-                .build();
-
         String protoSchema;
         try (var inputStream = getClass().getClassLoader().getResourceAsStream("schema/user_event.proto")) {
             Assertions.assertNotNull(inputStream, "Could not find user_event.proto resource");

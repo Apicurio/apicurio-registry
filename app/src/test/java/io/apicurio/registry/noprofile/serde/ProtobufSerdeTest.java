@@ -305,8 +305,6 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
      * This test reproduces the scenario where:
      * 1. A Protobuf schema is pre-registered with artifact ID "-value"
      * 2. Auto-registration is disabled for production
-     * 3. Production should succeed using the pre-registered schema
-     * 4. Auto-registration should reuse existing schema instead of creating new versions
      */
     @ParameterizedTest(name = "testPreRegisteredSchemaReuse [{0}]")
     @MethodSource("isolatedClientFacadeProvider")

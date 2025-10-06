@@ -5,14 +5,20 @@ import com.google.protobuf.DynamicMessage;
 import io.api.sample.TableNotification;
 import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
+import io.apicurio.registry.serde.strategy.TopicIdStrategy;
 import io.apicurio.registry.support.TestCmmn;
+import io.apicurio.registry.test.UserEventProtos;
+import io.apicurio.registry.types.ContentTypes;
 import io.confluent.kafka.schemaregistry.SchemaProvider;
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
@@ -34,6 +40,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -291,6 +298,98 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
             assertEquals(record.getMsb(), deserializedUuid.getMsb());
             assertEquals(record.getLsb(), deserializedUuid.getLsb());
         }
+    }
+
+    /**
+     * Test case for GitHub issue #6672: Schema registration issue with pre-registered Protobuf schemas.
+     * This test reproduces the scenario where:
+     * 1. A Protobuf schema is pre-registered with artifact ID "-value"
+     * 2. Auto-registration is disabled for production
+     * 3. Production should succeed using the pre-registered schema
+     * 4. Auto-registration should reuse existing schema instead of creating new versions
+     */
+    @ParameterizedTest(name = "testPreRegisteredSchemaReuse [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testPreRegisteredSchemaReuse(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+        String topic = generateArtifactId();
+        String artifactId = topic + "-value"; // Following the pattern from GitHub discussion
+
+        // Step 1: Pre-register the schema manually
+        UserEventProtos.UserEvent sampleUserEvent = UserEventProtos.UserEvent.newBuilder()
+                .setUserId("test-user")
+                .setEventType("login")
+                .setTimestamp(System.currentTimeMillis())
+                .build();
+
+        String protoSchema;
+        try (var inputStream = getClass().getClassLoader().getResourceAsStream("schema/user_event.proto")) {
+            Assertions.assertNotNull(inputStream, "Could not find user_event.proto resource");
+            protoSchema = new String(inputStream.readAllBytes());
+        }
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType("PROTOBUF");
+
+        CreateVersion firstVersion = new CreateVersion();
+        VersionContent content = new VersionContent();
+        content.setContent(protoSchema);
+        content.setContentType(ContentTypes.APPLICATION_PROTOBUF);
+        firstVersion.setContent(content);
+        firstVersion.setName("Initial version");
+        firstVersion.setDescription("Pre-registered schema for testing");
+        createArtifact.setFirstVersion(firstVersion);
+
+        VersionMetaData preRegisteredVersion = isolatedClientV3.groups().byGroupId(groupId)
+                .artifacts().post(createArtifact).getVersion();
+
+        long preRegisteredContentId = preRegisteredVersion.getContentId();
+
+        int numVersions = isolatedClientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get().getCount();
+
+        // Step 2: Test production with auto-registration disabled - should use pre-registered schema
+        try (Serializer<UserEventProtos.UserEvent> serializer = new ProtobufKafkaSerializer<>(clientFacade);
+             Deserializer<UserEventProtos.UserEvent> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicIdStrategy.class);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "false"); // Disable auto-registration
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_ID, artifactId);
+            config.put(SerdeConfig.FIND_LATEST_ARTIFACT, "true");
+            config.put(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, UserEventProtos.UserEvent.class.getName());
+            serializer.configure(config, false);
+            deserializer.configure(config, false);
+
+            UserEventProtos.UserEvent record = UserEventProtos.UserEvent.newBuilder()
+                    .setUserId("user-123")
+                    .setEventType("purchase")
+                    .setTimestamp(System.currentTimeMillis())
+                    .build();
+
+            // This should succeed using the pre-registered schema
+            byte[] bytes = serializer.serialize(topic, record);
+
+            // Verify the same content ID is being used (schema was reused, not re-registered)
+            ByteBuffer actualBuffer = ByteBuffer.wrap(bytes);
+            actualBuffer.get(); // read magic byte
+            int actualContentId = actualBuffer.getInt(); // read the content Id
+            assertEquals(preRegisteredContentId, actualContentId);
+
+            UserEventProtos.UserEvent deserializedRecord = deserializer.deserialize(topic, bytes);
+            assertUserEventEquals(record, deserializedRecord);
+
+            // Assert we still only have 1 version of the artifact
+            int newNumVersions = isolatedClientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get().getCount();
+            assertEquals(numVersions, newNumVersions);
+        }
+    }
+
+    private void assertUserEventEquals(UserEventProtos.UserEvent expected, UserEventProtos.UserEvent actual) {
+        assertEquals(expected.getUserId(), actual.getUserId());
+        assertEquals(expected.getEventType(), actual.getEventType());
+        assertEquals(expected.getTimestamp(), actual.getTimestamp());
     }
 
     private void assertProtobufEquals(TestCmmn.UUID record, DynamicMessage dm) {

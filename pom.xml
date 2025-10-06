@@ -569,7 +569,7 @@
 
       <!-- Quarkus Dependencies -->
       <dependency>
-        <groupId>io.quarkus</groupId>
+        <groupId>io.quarkus.platform</groupId>
         <artifactId>quarkus-bom</artifactId>
         <version>${quarkus.version}</version>
         <type>pom</type>

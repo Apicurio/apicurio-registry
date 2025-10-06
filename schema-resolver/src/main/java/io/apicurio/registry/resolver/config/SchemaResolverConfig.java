@@ -185,6 +185,13 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String DEREFERENCE_SCHEMA = "apicurio.registry.dereference-schema";
     public static final boolean DEREFERENCE_DEFAULT = false;
 
+    /**
+     * Used to indicate whether the schema resolver should canonicalize content when using content
+     * to lookup/search for an artifact version in the registry by content.
+     */
+    public static final String CANONICALIZE = "apicurio.registry.canonicalize";
+    public static final boolean CANONICALIZE_DEFAULT = false;
+
     public String getRegistryUrl() {
         String registryUrl = getString(REGISTRY_URL);
         if (registryUrl != null) {
@@ -295,12 +302,17 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getBooleanOrFalse(DEREFERENCE_SCHEMA);
     }
 
+    public boolean isCanonicalize() {
+        return getBooleanOrFalse(CANONICALIZE);
+    }
+
     @Override
     protected Map<String, ?> getDefaults() {
         return DEFAULTS;
     }
 
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(
+            entry(CANONICALIZE, CANONICALIZE_DEFAULT),
             entry(ARTIFACT_RESOLVER_STRATEGY, ARTIFACT_RESOLVER_STRATEGY_DEFAULT),
             entry(AUTO_REGISTER_ARTIFACT, AUTO_REGISTER_ARTIFACT_DEFAULT),
             entry(AUTO_REGISTER_ARTIFACT_IF_EXISTS, AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT),

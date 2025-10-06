@@ -28,6 +28,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean autoCreateArtifact;
     private String autoCreateBehavior;
     private boolean findLatest;
+    private boolean canonicalize;
 
     private static final Logger logger = Logger.getLogger(DefaultSchemaResolver.class.getSimpleName());
 
@@ -62,6 +63,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         this.autoCreateArtifact = config.autoRegisterArtifact();
         this.autoCreateBehavior = config.autoRegisterArtifactIfExists();
         this.findLatest = config.findLatest();
+        this.canonicalize = config.isCanonicalize();
     }
 
     /**
@@ -256,15 +258,11 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             String artifactType = schemaParser.artifactType();
 
             List<RegistryVersionCoordinates> versions = this.clientFacade.searchVersionsByContent(rawSchemaString,
-                    artifactType, artifactReference, true);
+                    artifactType, artifactReference, canonicalize);
             if (versions.isEmpty()) {
-                versions = this.clientFacade.searchVersionsByContent(rawSchemaString, artifactType, artifactReference, false);
-
-                if (versions.isEmpty()) {
-                    throw new RuntimeException(
-                            String.format("Could not resolve artifact reference by content: %s",
-                                    rawSchemaString) + "&" + artifactReference);
-                }
+                throw new RuntimeException(
+                        String.format("Could not resolve artifact reference by content: %s",
+                                rawSchemaString) + "&" + artifactReference);
             }
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
@@ -298,14 +296,13 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             String artifactId = artifactReference.getArtifactId();
             String version = artifactReference.getVersion();
             String autoCreate = this.autoCreateBehavior;
-            boolean canonical = false;
 
             var clientReferences = referenceLookups.stream()
                     .map(RegistryArtifactReference::fromSchemaLookupResult)
                     .collect(Collectors.toSet());
 
             RegistryVersionCoordinates versionCoordinates = this.clientFacade.createSchema(artifactType, groupId, artifactId,
-                    version, autoCreate, canonical, rawSchemaString, clientReferences);
+                    version, autoCreate, canonicalize, rawSchemaString, clientReferences);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 

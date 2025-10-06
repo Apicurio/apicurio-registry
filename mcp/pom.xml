@@ -15,10 +15,21 @@
     <name>Apicurio Registry MCP Server</name>
 
     <properties>
-        <mcp.server.version>1.0.0</mcp.server.version>
         <projectRoot>${project.basedir}/..</projectRoot>
         <docker.app.file>app-files/apicurio-registry-mcp-server-${project.version}-runner.jar</docker.app.file>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.quarkiverse.mcp</groupId>
+                <artifactId>quarkus-mcp-server-bom</artifactId>
+                <version>${quarkus-mcp-server.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
 
@@ -30,7 +41,6 @@
         <dependency>
             <groupId>io.quarkiverse.mcp</groupId>
             <artifactId>quarkus-mcp-server-stdio</artifactId>
-            <version>${mcp.server.version}</version>
         </dependency>
 
         <dependency>

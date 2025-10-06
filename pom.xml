@@ -144,17 +144,37 @@
     <projectRoot>${project.basedir}</projectRoot>
 
     <!--
-    WARNING: The following group of dependencies has to be aligned with the corresponding Quarkus version.
+    WARNING: The following group of dependencies has to be aligned with the best corresponding Quarkus version.
     -->
-    <quarkus.version>3.20.2</quarkus.version>
+    <quarkus.version>3.20.2.2</quarkus.version>
     <!--
-    Go to `io.quarkiverse.operatorsdk:quarkus-operator-sdk-bom` and then to the parent `io.quarkiverse.operatorsdk:quarkus-operator-sdk-parent`,
-    e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/6.8.4/quarkus-operator-sdk-parent-6.8.4.pom
-    to check that the versions match.
+    # QOSDK
+
+    Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/7.1.4/quarkus-operator-sdk-parent-7.1.4.pom
+    to check that the versions match:
+
+    - QOSDK 7.2.1 -> Quarkus 3.27.0
+    - QOSDK 7.2.0 -> Quarkus 3.23.2
+    - QOSDK 7.1.4 -> Quarkus 3.20.1
+    - QOSDK 7.1.3 -> Quarkus 3.20.0
     -->
     <quarkus-operator-sdk.version>7.1.4</quarkus-operator-sdk.version>
     <java-operator-sdk.version>5.0.4</java-operator-sdk.version>
-    <!-- /WARNING -->
+    <!--
+    # Quarkus MCP Server
+
+    Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/mcp/quarkus-mcp-server-parent/1.6.0/quarkus-mcp-server-parent-1.6.0.pom
+    to check that the versions match:
+
+    - MCP Server 1.6.0 -> Quarkus 3.20.2.2
+    - MCP Server 1.5.1 ... 1.5.3 -> Quarkus 3.20.2.2
+    - MCP Server 1.5.0 -> Quarkus 3.20.2.1
+    - MCP Server 1.4.1 -> Quarkus 3.20.2
+    -->
+    <quarkus-mcp-server.version>1.6.0</quarkus-mcp-server.version>
+    <!--
+    /WARNING
+    -->
 
     <!-- Jandex -->
     <jandex.version>3.5.0</jandex.version>

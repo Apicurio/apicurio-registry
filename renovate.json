@@ -52,6 +52,7 @@
       ],
       "matchPackageNames": [
         "io.quarkus:*",
+        "io.quarkus.platform:*",
         "com.fasterxml.jackson.dataformat:*",
         "com.fasterxml.jackson.datatype:*",
         "org.slf4j:*"
@@ -71,7 +72,11 @@
         "**/pom.xml"
       ],
       "matchPackageNames": [
-        "io.quarkus:*"
+        "io.quarkus:*",
+        "io.quarkus.platform:*",
+        "com.fasterxml.jackson.dataformat:*",
+        "com.fasterxml.jackson.datatype:*",
+        "org.slf4j:*"
       ],
       "enabled": false,
       "matchUpdateTypes": [

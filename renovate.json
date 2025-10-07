@@ -53,6 +53,7 @@
       "matchPackageNames": [
         "io.quarkus:*",
         "io.quarkus.platform:*",
+        "io.javaoperatorsdk:*",
         "com.fasterxml.jackson.dataformat:*",
         "com.fasterxml.jackson.datatype:*",
         "org.slf4j:*"
@@ -74,6 +75,7 @@
       "matchPackageNames": [
         "io.quarkus:*",
         "io.quarkus.platform:*",
+        "io.javaoperatorsdk:*",
         "com.fasterxml.jackson.dataformat:*",
         "com.fasterxml.jackson.datatype:*",
         "org.slf4j:*"

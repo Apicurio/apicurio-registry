@@ -54,6 +54,7 @@
         "io.quarkus:*",
         "io.quarkus.platform:*",
         "io.javaoperatorsdk:*",
+        "io.quarkiverse.mcp:*",
         "com.fasterxml.jackson.dataformat:*",
         "com.fasterxml.jackson.datatype:*",
         "org.slf4j:*"
@@ -76,6 +77,7 @@
         "io.quarkus:*",
         "io.quarkus.platform:*",
         "io.javaoperatorsdk:*",
+        "io.quarkiverse.mcp:*",
         "com.fasterxml.jackson.dataformat:*",
         "com.fasterxml.jackson.datatype:*",
         "org.slf4j:*"

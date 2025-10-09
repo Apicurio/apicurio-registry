@@ -15,6 +15,7 @@ import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/mod
 import { useUserService } from "@services/useUserService.ts";
 import { useConfigService } from "@services/useConfigService.ts";
 import { PencilAltIcon } from "@patternfly/react-icons";
+import {IfFeature} from "@app/components";
 
 
 /**
@@ -108,8 +109,14 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                     <ActionListItem>
                         <Button id="download-version-button" variant="secondary"
                             data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
-                        <Button id="edit-version-button" variant="primary" icon={<PencilAltIcon />}
-                            data-testid="header-btn-edit" onClick={props.onEdit}>Edit draft</Button>
+                        <IfFeature feature="readOnly" isNot={true}>
+                            <IfFeature feature="draftMutability" is={true}>
+                                <If condition={props.version?.state === "DRAFT"}>
+                                    <Button id="edit-version-button" variant="primary" icon={<PencilAltIcon />}
+                                        data-testid="header-btn-edit" onClick={props.onEdit}>Edit draft</Button>
+                                </If>
+                            </IfFeature>
+                        </IfFeature>
                     </ActionListItem>
                     <ActionListItem>
                         <ObjectDropdown

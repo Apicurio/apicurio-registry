@@ -15,7 +15,7 @@ import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/mod
 import { useUserService } from "@services/useUserService.ts";
 import { useConfigService } from "@services/useConfigService.ts";
 import { PencilAltIcon } from "@patternfly/react-icons";
-import {IfFeature} from "@app/components";
+import { IfFeature } from "@app/components";
 
 
 /**

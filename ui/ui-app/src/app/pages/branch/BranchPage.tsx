@@ -124,7 +124,7 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
     const breadcrumbs = (
         <Breadcrumb>
             <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
-            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/artifacts`)}
+            <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }`)}
                 data-testid="breadcrumb-lnk-group">{ gid }</Link></BreadcrumbItem>
             <BreadcrumbItem><Link to={appNavigation.createLink(`/explore/${ encodeURIComponent(gid) }/${ encodeURIComponent(artifactId||"") }/branches`)}
                 data-testid="breadcrumb-lnk-artifact">{ artifactId }</Link></BreadcrumbItem>

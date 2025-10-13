@@ -17,7 +17,7 @@
       "name": "addresses",
       "type": {
         "type": "array",
-        "items": "Address",
+        "items": "io.example.api.dtos.Address",
         "java-class": "java.util.List"
       }
     },
@@ -36,7 +36,7 @@
       "name": "paymentMethods",
       "type": {
         "type": "array",
-        "items": "PaymentMethod",
+        "items": "io.example.api.dtos.PaymentMethod",
         "java-class": "java.util.List"
       }
     }

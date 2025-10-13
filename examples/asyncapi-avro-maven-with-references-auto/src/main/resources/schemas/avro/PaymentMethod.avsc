@@ -9,7 +9,7 @@
     },
     {
       "name": "type",
-      "type": "PaymentMethodType"
+      "type": "io.example.api.dtos.PaymentMethodType"
     },
     {
       "name": "cardNumber",

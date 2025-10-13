@@ -1,0 +1,19 @@
+{
+  "type": "record",
+  "name": "PaymentMethod",
+  "namespace": "io.example.api.dtos",
+  "fields": [
+    {
+      "name": "id",
+      "type": "long"
+    },
+    {
+      "name": "type",
+      "type": "PaymentMethodType"
+    },
+    {
+      "name": "cardNumber",
+      "type": "string"
+    }
+  ]
+}

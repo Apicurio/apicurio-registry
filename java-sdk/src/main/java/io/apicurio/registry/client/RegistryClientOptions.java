@@ -39,6 +39,15 @@ public class RegistryClientOptions {
         CUSTOM_WEBCLIENT
     }
 
+    /**
+     * Trust store type enumeration for SSL/TLS configuration.
+     */
+    public enum TrustStoreType {
+        JKS,    // Java KeyStore format
+        PEM,    // PEM certificate file(s)
+        NONE    // No custom trust store configured
+    }
+
     private String registryUrl;
     // Provided vertx
     private Vertx vertx;
@@ -57,6 +66,13 @@ public class RegistryClientOptions {
     private long retryDelayMs = 1000;
     private double backoffMultiplier = 2.0;
     private long maxRetryDelayMs = 10000; // 10 seconds max delay
+    // SSL/TLS config
+    private TrustStoreType trustStoreType = TrustStoreType.NONE;
+    private String trustStorePath;
+    private String trustStorePassword;
+    private String[] pemCertPaths;
+    private boolean trustAll = false;
+    private boolean verifyHost = true;
     
     private RegistryClientOptions() {
     }
@@ -119,6 +135,30 @@ public class RegistryClientOptions {
 
     public long getMaxRetryDelayMs() {
         return maxRetryDelayMs;
+    }
+
+    public TrustStoreType getTrustStoreType() {
+        return trustStoreType;
+    }
+
+    public String getTrustStorePath() {
+        return trustStorePath;
+    }
+
+    public String getTrustStorePassword() {
+        return trustStorePassword;
+    }
+
+    public String[] getPemCertPaths() {
+        return pemCertPaths;
+    }
+
+    public boolean isTrustAll() {
+        return trustAll;
+    }
+
+    public boolean isVerifyHost() {
+        return verifyHost;
     }
 
     /**
@@ -273,6 +313,95 @@ public class RegistryClientOptions {
      */
     public RegistryClientOptions vertx(Vertx vertx) {
         this.vertx = vertx;
+        return this;
+    }
+
+    /**
+     * Configures SSL/TLS with a JKS (Java KeyStore) trust store.
+     * This allows the client to trust certificates signed by custom certificate authorities
+     * or self-signed certificates.
+     *
+     * @param path the path to the JKS trust store file (can be a file system path or classpath resource prefixed with "classpath:")
+     * @param password the password for the trust store
+     * @return this builder
+     * @throws IllegalArgumentException if path is null or empty
+     */
+    public RegistryClientOptions trustStoreJks(String path, String password) {
+        if (path == null || path.trim().isEmpty()) {
+            throw new IllegalArgumentException("Trust store path cannot be null or empty");
+        }
+        clearTrustStore();
+        this.trustStoreType = TrustStoreType.JKS;
+        this.trustStorePath = path;
+        this.trustStorePassword = password;
+        return this;
+    }
+
+    /**
+     * Configures SSL/TLS with PEM certificate file(s).
+     * This allows the client to trust certificates signed by custom certificate authorities
+     * or self-signed certificates.
+     *
+     * @param certPaths one or more paths to PEM certificate files (can be file system paths or classpath resources prefixed with "classpath:")
+     * @return this builder
+     * @throws IllegalArgumentException if no certificate paths are provided
+     */
+    public RegistryClientOptions trustStorePem(String... certPaths) {
+        if (certPaths == null || certPaths.length == 0) {
+            throw new IllegalArgumentException("At least one PEM certificate path must be provided");
+        }
+        for (String path : certPaths) {
+            if (path == null || path.trim().isEmpty()) {
+                throw new IllegalArgumentException("Certificate path cannot be null or empty");
+            }
+        }
+        clearTrustStore();
+        this.trustStoreType = TrustStoreType.PEM;
+        this.pemCertPaths = certPaths;
+        return this;
+    }
+
+    /**
+     * Configures the client to trust all SSL/TLS certificates without validation.
+     *
+     * <p><strong>WARNING:</strong> This option should ONLY be used in development or testing environments.
+     * Using this in production environments creates a serious security vulnerability as it disables
+     * certificate validation, making the connection susceptible to man-in-the-middle attacks.</p>
+     *
+     * @param trustAll if true, all certificates will be trusted without validation
+     * @return this builder
+     */
+    public RegistryClientOptions trustAll(boolean trustAll) {
+        this.trustAll = trustAll;
+        return this;
+    }
+
+    /**
+     * Configures whether to verify the hostname in the server's certificate matches the hostname
+     * being connected to. By default, hostname verification is enabled.
+     *
+     * <p><strong>WARNING:</strong> Disabling hostname verification reduces security and should only
+     * be done in development or testing environments.</p>
+     *
+     * @param verifyHost if true, hostname verification will be performed (default); if false, it will be disabled
+     * @return this builder
+     */
+    public RegistryClientOptions verifyHost(boolean verifyHost) {
+        this.verifyHost = verifyHost;
+        return this;
+    }
+
+    /**
+     * Clears any configured trust store settings, reverting to default JVM trust store.
+     *
+     * @return this builder
+     */
+    public RegistryClientOptions clearTrustStore() {
+        this.trustStoreType = TrustStoreType.NONE;
+        this.trustStorePath = null;
+        this.trustStorePassword = null;
+        this.pemCertPaths = null;
+        this.trustAll = false;
         return this;
     }
 }

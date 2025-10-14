@@ -6,7 +6,10 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClosedException;
+import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.PemTrustOptions;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -39,17 +42,20 @@ public final class RegistryClientFactory {
 
         Vertx vertxToUse = options.getVertx() != null ? options.getVertx() : vertx;
 
+        // Build WebClientOptions with SSL configuration if needed
+        WebClientOptions webClientOptions = buildWebClientOptions(options);
+
         RequestAdapter adapter;
         switch (options.getAuthType()) {
             case ANONYMOUS:
-                adapter = createAnonymous(vertxToUse);
+                adapter = createAnonymous(vertxToUse, webClientOptions);
                 break;
             case BASIC:
-                adapter = createBasicAuth(options.getUsername(), options.getPassword(), vertxToUse);
+                adapter = createBasicAuth(options.getUsername(), options.getPassword(), vertxToUse, webClientOptions);
                 break;
             case OAUTH2:
                 adapter = createOAuth2(options.getTokenEndpoint(), options.getClientId(),
-                        options.getClientSecret(), options.getScope(), vertxToUse);
+                        options.getClientSecret(), options.getScope(), vertxToUse, webClientOptions);
                 break;
             case CUSTOM_WEBCLIENT:
                 adapter = createCustomWebClient(options.getWebClient());
@@ -68,21 +74,22 @@ public final class RegistryClientFactory {
     }
 
     // Private implementation methods
-    
-    private static RequestAdapter createAnonymous(Vertx vertx) {
-        RequestAdapter adapter = new VertXRequestAdapter(vertx);
-        return adapter;
-    }
-    
-    private static RequestAdapter createBasicAuth(String username, String password, Vertx vertx) {
-        WebClient webClient = VertXAuthFactory.buildSimpleAuthWebClient(vertx, username, password);
+
+    private static RequestAdapter createAnonymous(Vertx vertx, WebClientOptions webClientOptions) {
+        WebClient webClient = WebClient.create(vertx, webClientOptions);
         RequestAdapter adapter = new VertXRequestAdapter(webClient);
         return adapter;
     }
-    
+
+    private static RequestAdapter createBasicAuth(String username, String password, Vertx vertx, WebClientOptions webClientOptions) {
+        WebClient webClient = VertXAuthFactory.buildSimpleAuthWebClient(vertx, webClientOptions, username, password);
+        RequestAdapter adapter = new VertXRequestAdapter(webClient);
+        return adapter;
+    }
+
     private static RequestAdapter createOAuth2(String tokenEndpoint,
-                                               String clientId, String clientSecret, String scope, Vertx vertx) {
-        WebClient webClient = VertXAuthFactory.buildOIDCWebClient(vertx, tokenEndpoint, clientId, clientSecret, scope);
+                                               String clientId, String clientSecret, String scope, Vertx vertx, WebClientOptions webClientOptions) {
+        WebClient webClient = VertXAuthFactory.buildOIDCWebClient(vertx, webClientOptions, tokenEndpoint, clientId, clientSecret, scope);
         RequestAdapter adapter = new VertXRequestAdapter(webClient);
         return adapter;
     }
@@ -187,8 +194,59 @@ public final class RegistryClientFactory {
         }
     }
 
+    /**
+     * Builds WebClientOptions with SSL/TLS configuration from RegistryClientOptions.
+     * Returns null if no SSL/TLS configuration is specified.
+     *
+     * @param options the RegistryClientOptions containing SSL/TLS configuration
+     * @return WebClientOptions with SSL/TLS settings, or null if no SSL configuration is needed
+     */
+    private static WebClientOptions buildWebClientOptions(RegistryClientOptions options) {
+        // Check if any SSL/TLS configuration is present
+        boolean hasSslConfig = options.getTrustStoreType() != RegistryClientOptions.TrustStoreType.NONE
+                || options.isTrustAll()
+                || !options.isVerifyHost();
+
+        if (!hasSslConfig) {
+            return null;
+        }
+
+        WebClientOptions webClientOptions = new WebClientOptions();
+        webClientOptions.setSsl(true);
+
+        // Configure trust-all if enabled
+        if (options.isTrustAll()) {
+            webClientOptions.setTrustAll(true);
+        }
+
+        // Configure hostname verification
+        webClientOptions.setVerifyHost(options.isVerifyHost());
+
+        // Configure trust store based on type
+        switch (options.getTrustStoreType()) {
+            case JKS:
+                JksOptions jksOptions = new JksOptions()
+                        .setPath(options.getTrustStorePath())
+                        .setPassword(options.getTrustStorePassword());
+                webClientOptions.setTrustOptions(jksOptions);
+                break;
+            case PEM:
+                PemTrustOptions pemOptions = new PemTrustOptions();
+                for (String certPath : options.getPemCertPaths()) {
+                    pemOptions.addCertPath(certPath);
+                }
+                webClientOptions.setTrustOptions(pemOptions);
+                break;
+            case NONE:
+                // No custom trust store configured
+                break;
+        }
+
+        return webClientOptions;
+    }
+
     // Private validation methods
-    
+
     private static void validateRegistryUrl(RegistryClientOptions options) {
         String registryUrl = options.getRegistryUrl();
         if (registryUrl == null || registryUrl.trim().isEmpty()) {

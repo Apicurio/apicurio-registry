@@ -58,7 +58,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     }
 
     private RegistryClient createClient(WebClient auth) {
-        return RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl()).customWebClient(auth).retry());
+        return RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl()).customWebClient(auth).retry());
     }
 
     @Test
@@ -74,7 +75,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testReadOnly() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+        var client = RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
                 .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
@@ -94,7 +96,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
         });
         assertForbidden(exception3);
 
-        var devClient = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+        var devClient = RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
                 .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
 
@@ -116,7 +119,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testDevRole() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+        var client = RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
                 .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
@@ -160,7 +164,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testAdminRole() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+        var client = RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
                 .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
         String artifactId = TestUtils.generateArtifactId();
@@ -201,10 +206,12 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testOwnerOnlyAuthorization() throws Exception {
-        var clientDev = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+        var clientDev = RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
                 .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        var clientAdmin = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+        var clientAdmin = RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
                 .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
 
@@ -255,7 +262,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testGetArtifactOwner() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+        var client = RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
                 .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
 
@@ -284,7 +292,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testUpdateArtifactOwner() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+        var client = RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
                 .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
 
@@ -328,10 +337,12 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Test
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
-        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+        var client_dev1 = RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
                 .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        var client_dev2 = RegistryClientFactory.create(RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+        var client_dev2 = RegistryClientFactory.create(
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
                 .retry()
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_2_CLIENT_ID, "test2"));
 

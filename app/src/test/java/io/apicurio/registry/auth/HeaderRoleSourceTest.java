@@ -50,13 +50,15 @@ public class HeaderRoleSourceTest extends AbstractResourceTestBase {
         rule.setConfig(ValidityLevel.FULL.name());
         rule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.VALIDITY);
 
-        var noRoleClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var noRoleClient = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
         var readClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
         var devClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        var adminClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var adminClient = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
 
         // User is authenticated but no roles assigned - operations should fail.

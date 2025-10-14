@@ -75,7 +75,7 @@ public class RegistryClientRequestAdapterFactory {
     // Private implementation methods
 
     private static RequestAdapter createAnonymous(Vertx vertx, WebClientOptions webClientOptions) {
-        WebClient webClient = WebClient.create(vertx, webClientOptions);
+        WebClient webClient = webClientOptions == null ? WebClient.create(vertx) : WebClient.create(vertx, webClientOptions);
         return new VertXRequestAdapter(webClient);
     }
 

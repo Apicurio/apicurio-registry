@@ -52,7 +52,8 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
     @Test
     public void migrate() throws Exception {
         Vertx vertx = Vertx.vertx();
-        var dest = RegistryClientFactory.create(RegistryClientOptions.create(ApicurioRegistryBaseIT.getRegistryV3ApiUrl(), vertx).retry());
+        var dest = RegistryClientFactory.create(
+                RegistryClientOptions.create(ApicurioRegistryBaseIT.getRegistryV3ApiUrl(), vertx).retry());
 
         given().when().contentType("application/zip").body(migrateDataToImport)
                 .post("/apis/registry/v2/admin/import").then().statusCode(204).body(anything());

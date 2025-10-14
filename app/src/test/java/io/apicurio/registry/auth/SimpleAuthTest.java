@@ -254,7 +254,8 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     public void testOwnerOnlyAuthorization() throws Exception {
         var clientDev = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        var clientAdmin = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var clientAdmin = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
 
         // Admin user will create an artifact
@@ -369,9 +370,11 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
-        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client_dev1 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-        var client_dev2 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client_dev2 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_2_CLIENT_ID, "test2"));
 
         // Preparation

@@ -1,7 +1,7 @@
 package io.apicurio.registry.client;
 
 import com.microsoft.kiota.RequestAdapter;
-import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.v2.RegistryClient;
 import io.vertx.core.Vertx;
 
 /**
@@ -9,7 +9,7 @@ import io.vertx.core.Vertx;
  * the creation logic and provides a unified method for creating clients with different
  * authentication configurations using {@link RegistryClientOptions}.
  */
-public final class RegistryClientFactory {
+public final class RegistryV2ClientFactory {
 
     private static final Vertx vertx = Vertx.vertx();
 

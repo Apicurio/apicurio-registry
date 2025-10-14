@@ -1,14 +1,30 @@
 package io.apicurio.registry.metrics;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 import static io.restassured.RestAssured.given;
 
 @QuarkusTest
+@TestProfile(RestMetricsDefaultsTest.DummyTestProfile.class)
 public class RestMetricsDefaultsTest extends AbstractRestMetricsTest {
+
+    // This is intentional to force a fresh restart of Registry and avoid sharing with other tests.
+    public static class DummyTestProfile implements QuarkusTestProfile {
+
+        @Override
+        public Map<String, String> getConfigOverrides() {
+            return Map.of(
+                    "e1078b5a-5936-461e-8e38-bee364c0e04f", "774d6062-0d8d-4646-835b-5643967f7675"
+            );
+        }
+    }
 
     private static final Logger log = LoggerFactory.getLogger(RestMetricsDefaultsTest.class);
 

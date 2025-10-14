@@ -91,6 +91,35 @@ public class RegistryClientFacadeFactory {
             clientOptions.retry();
         }
 
+        // Configure TLS/SSL
+        String truststoreLocation = config.getTlsTruststoreLocation();
+        String truststorePassword = config.getTlsTruststorePassword();
+        String truststoreType = config.getTlsTruststoreType();
+        String certificates = config.getTlsCertificates();
+        boolean trustAll = config.getTlsTrustAll();
+        boolean verifyHost = config.getTlsVerifyHost();
+
+        if (trustAll) {
+            clientOptions.trustAll(true);
+        } else if (truststoreLocation != null) {
+            if ("JKS".equalsIgnoreCase(truststoreType)) {
+                clientOptions.trustStoreJks(truststoreLocation, truststorePassword);
+            } else if ("PEM".equalsIgnoreCase(truststoreType)) {
+                clientOptions.trustStorePem(truststoreLocation);
+            }
+        } else if (certificates != null) {
+            // Support comma-separated list of PEM certificate paths
+            String[] certPaths = certificates.split(",");
+            for (int i = 0; i < certPaths.length; i++) {
+                certPaths[i] = certPaths[i].trim();
+            }
+            clientOptions.trustStorePem(certPaths);
+        }
+
+        if (!verifyHost) {
+            clientOptions.verifyHost(false);
+        }
+
         return clientOptions;
     }
 

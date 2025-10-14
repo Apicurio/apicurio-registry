@@ -192,6 +192,45 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String CANONICALIZE = "apicurio.registry.canonicalize";
     public static final boolean CANONICALIZE_DEFAULT = false;
 
+    /**
+     * The location of the trust store file for TLS/SSL connections. Can be a file path or a resource
+     * on the classpath. Used when connecting to a registry over HTTPS with custom certificates.
+     */
+    public static final String TLS_TRUSTSTORE_LOCATION = "apicurio.registry.tls.truststore.location";
+
+    /**
+     * The password for the trust store file specified by {@link #TLS_TRUSTSTORE_LOCATION}.
+     * Only required when using JKS trust stores.
+     */
+    public static final String TLS_TRUSTSTORE_PASSWORD = "apicurio.registry.tls.truststore.password";
+
+    /**
+     * The type of trust store. Valid values are "JKS" and "PEM". Defaults to "JKS".
+     */
+    public static final String TLS_TRUSTSTORE_TYPE = "apicurio.registry.tls.truststore.type";
+    public static final String TLS_TRUSTSTORE_TYPE_DEFAULT = "JKS";
+
+    /**
+     * Comma-separated list of PEM certificate file paths to trust. An alternative to using
+     * {@link #TLS_TRUSTSTORE_LOCATION} with a JKS file. When using this option, set
+     * {@link #TLS_TRUSTSTORE_TYPE} to "PEM".
+     */
+    public static final String TLS_CERTIFICATES = "apicurio.registry.tls.certificates";
+
+    /**
+     * If true, disables all SSL/TLS certificate verification. This is insecure and should only be used
+     * in development/testing environments. Defaults to false.
+     */
+    public static final String TLS_TRUST_ALL = "apicurio.registry.tls.trust-all";
+    public static final boolean TLS_TRUST_ALL_DEFAULT = false;
+
+    /**
+     * If true, verifies that the hostname in the server certificate matches the server hostname.
+     * Defaults to true. Set to false only when necessary (e.g., when using IP addresses instead of hostnames).
+     */
+    public static final String TLS_VERIFY_HOST = "apicurio.registry.tls.verify-host";
+    public static final boolean TLS_VERIFY_HOST_DEFAULT = true;
+
     public String getRegistryUrl() {
         String registryUrl = getString(REGISTRY_URL);
         if (registryUrl != null) {
@@ -306,6 +345,30 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getBooleanOrFalse(CANONICALIZE);
     }
 
+    public String getTlsTruststoreLocation() {
+        return getString(TLS_TRUSTSTORE_LOCATION);
+    }
+
+    public String getTlsTruststorePassword() {
+        return getString(TLS_TRUSTSTORE_PASSWORD);
+    }
+
+    public String getTlsTruststoreType() {
+        return getString(TLS_TRUSTSTORE_TYPE);
+    }
+
+    public String getTlsCertificates() {
+        return getString(TLS_CERTIFICATES);
+    }
+
+    public boolean getTlsTrustAll() {
+        return getBooleanOrFalse(TLS_TRUST_ALL);
+    }
+
+    public boolean getTlsVerifyHost() {
+        return getBoolean(TLS_VERIFY_HOST);
+    }
+
     @Override
     protected Map<String, ?> getDefaults() {
         return DEFAULTS;
@@ -321,5 +384,8 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
-            entry(DEREFERENCE_SCHEMA, DEREFERENCE_DEFAULT));
+            entry(DEREFERENCE_SCHEMA, DEREFERENCE_DEFAULT),
+            entry(TLS_TRUSTSTORE_TYPE, TLS_TRUSTSTORE_TYPE_DEFAULT),
+            entry(TLS_TRUST_ALL, TLS_TRUST_ALL_DEFAULT),
+            entry(TLS_VERIFY_HOST, TLS_VERIFY_HOST_DEFAULT));
 }

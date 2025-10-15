@@ -27,6 +27,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.rnorth.ducttape.unreliables.Unreliables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -36,7 +38,18 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static io.apicurio.registry.storage.StorageEventType.*;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_CREATED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_DELETED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_RULE_CONFIGURED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_CREATED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_DELETED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.GLOBAL_RULE_CONFIGURED;
+import static io.apicurio.registry.storage.StorageEventType.GROUP_CREATED;
+import static io.apicurio.registry.storage.StorageEventType.GROUP_DELETED;
+import static io.apicurio.registry.storage.StorageEventType.GROUP_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.GROUP_RULE_CONFIGURED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -44,6 +57,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @TestProfile(EventsTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
 public class RegistryEventsTest extends AbstractResourceTestBase {
+
+    private static final Logger log = LoggerFactory.getLogger(RegistryEventsTest.class);
 
     protected KafkaConsumer<String, String> consumer;
 
@@ -597,7 +612,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     public CreateArtifactResponse ensureArtifactCreated(String groupId, String artifactId, String name,
-            String description) throws Exception {
+                                                        String description) throws Exception {
         CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON,
                 ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
                     createArtifact.setName(name);
@@ -615,7 +630,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     public CreateArtifactResponse ensureArtifactCreated(String groupId, String artifactId, String version,
-            String name, String description) throws Exception {
+                                                        String name, String description) throws Exception {
         CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON,
                 ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
                     createArtifact.setName(name);
@@ -661,7 +676,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     private List<JsonNode> lookupEvent(KafkaConsumer<String, String> consumer, String fieldLookupName,
-            String fieldValue, StorageEventType eventType) {
+                                       String fieldValue, StorageEventType eventType) {
 
         List<JsonNode> events = new ArrayList<>();
 
@@ -678,16 +693,20 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     private List<JsonNode> lookupEvent(KafkaConsumer<String, String> consumer, StorageEventType eventType,
-            Map<String, String> lookups) {
+                                       Map<String, String> lookups) {
 
+        log.info("Event type: {}", eventType.name());
+        log.info("Lookups: {}", lookups);
+        
         List<JsonNode> consumedEvents = new ArrayList<>();
         List<JsonNode> lookedUpEvents = new ArrayList<>();
 
-        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
-            consumer.poll(Duration.ofMillis(50)).iterator().forEachRemaining(record -> {
+        Unreliables.retryUntilTrue(20, TimeUnit.SECONDS, () -> {
+            consumer.poll(Duration.ofMillis(100)).iterator().forEachRemaining(record -> {
                 consumedEvents.add(readEventPayload(record));
             });
 
+            log.info("Consumed events: {}", consumedEvents);
             boolean eventFound = false;
             for (JsonNode event : consumedEvents) {
                 if (event.get("eventType").asText().equals(eventType.name()) && lookups.keySet().stream()

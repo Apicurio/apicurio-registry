@@ -8,6 +8,7 @@ services:
       - apicurio.rest.deletion.artifact.enabled=true
       - apicurio.rest.deletion.artifact-version.enabled=true
       - apicurio.rest.mutability.artifact-version-content.enabled=true
+      - apicurio.app.context-path=/app/
       - QUARKUS_HTTP_CORS_ORIGINS=*
 
   # Define the Apicurio Registry UI service
@@ -16,6 +17,7 @@ services:
     container_name: apicurio-registry-getting-started-context-path_ui
     environment:
       - REGISTRY_CONTEXT_PATH=/ui/
+      - REGISTRY_API_URL=/app/apis/registry/v3
       - REGISTRY_DOCS_URL=/ui/docs/
       - REGISTRY_EDITORS_URL=/ui/editors/
     depends_on:

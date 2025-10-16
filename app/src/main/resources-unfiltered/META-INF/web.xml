@@ -49,17 +49,20 @@
     </filter-mapping>
 
     <filter>
-        <filter-name>SpecUrlFilter</filter-name>
-        <filter-class>io.apicurio.registry.ui.servlets.SpecUrlFilter</filter-class>
+        <filter-name>ApiDocsFilter</filter-name>
+        <filter-class>io.apicurio.registry.ui.servlets.ApiDocsFilter</filter-class>
     </filter>
     <filter-mapping>
-        <filter-name>SpecUrlFilter</filter-name>
+        <filter-name>ApiDocsFilter</filter-name>
+        <url-pattern>/apis</url-pattern>
+        <url-pattern>/apis/</url-pattern>
         <url-pattern>/apis/registry/v3</url-pattern>
         <url-pattern>/apis/registry/v3/</url-pattern>
         <url-pattern>/apis/registry/v2</url-pattern>
         <url-pattern>/apis/registry/v2/</url-pattern>
         <url-pattern>/apis/ccompat/v7</url-pattern>
         <url-pattern>/apis/ccompat/v7/</url-pattern>
+        <url-pattern>/resources/css/apidocs.css</url-pattern>
         <dispatcher>REQUEST</dispatcher>
         <dispatcher>FORWARD</dispatcher>
     </filter-mapping>

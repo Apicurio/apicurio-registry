@@ -18,6 +18,6 @@
     "@typescript-eslint/parser": "8.46.1",
     "eslint": "8.57.1",
     "eslint-plugin-react-hooks": "5.2.0",
-    "eslint-plugin-react-refresh": "0.4.23"
+    "eslint-plugin-react-refresh": "0.4.24"
   }
 }

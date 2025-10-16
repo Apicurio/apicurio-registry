@@ -23,7 +23,7 @@ public class ApiDocsServlet extends GenericServlet {
         rootPaths.add("/apis/");
     }
 
-    private static final boolean isRootPath(String servletPath) {
+    private static boolean isRootPath(String servletPath) {
         return rootPaths.contains(servletPath);
     }
 

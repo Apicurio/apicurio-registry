@@ -496,4 +496,22 @@ public class TestUtils {
         return builder.toString();
     }
 
+    /**
+     * Returns the root cause of a Throwable by traversing the exception chain.
+     * If the throwable has no cause, returns the throwable itself.
+     *
+     * @param throwable the throwable to find the root cause of
+     * @return the root cause throwable
+     */
+    public static Throwable getRootCause(Throwable throwable) {
+        if (throwable == null) {
+            return null;
+        }
+        Throwable rootCause = throwable;
+        while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
+            rootCause = rootCause.getCause();
+        }
+        return rootCause;
+    }
+
 }

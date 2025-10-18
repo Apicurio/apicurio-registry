@@ -77,8 +77,9 @@
     <module>distro</module>
     <module>docs</module>
     <module>go-sdk</module>
-    <module>java-sdk-v2</module>
+    <module>java-sdk-common</module>
     <module>java-sdk</module>
+    <module>java-sdk-v2</module>
     <module>mcp</module>
     <module>operator</module>
     <module>schema-resolver</module>
@@ -180,7 +181,7 @@
     <jandex.version>3.5.0</jandex.version>
 
     <!-- Schema types -->
-    <avro.version>1.12.0</avro.version>
+    <avro.version>1.12.1</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
@@ -227,9 +228,9 @@
     <jackson-dataformat-yaml.version>2.18.2</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
-    <openapi-diff.version>2.1.3</openapi-diff.version>
+    <openapi-diff.version>2.1.4</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.34</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.35</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.42</lombok.version>

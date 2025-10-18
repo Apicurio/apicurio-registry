@@ -2,12 +2,12 @@ package io.apicurio.registry;
 
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.RegistryV2ClientFactory;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl_v2;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.params.provider.Arguments;
@@ -29,10 +29,9 @@ public abstract class AbstractClientFacadeTestBase extends AbstractResourceTestB
 
     @BeforeEach
     public void createIsolatedClients() {
-        var adapterv2 = new VertXRequestAdapter(vertx);
-        adapterv2.setBaseUrl(TestUtils.getRegistryV2ApiUrl(testPort));
-        isolatedClientV2 = new io.apicurio.registry.rest.client.v2.RegistryClient(adapterv2);
-
+        isolatedClientV2 = RegistryV2ClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(TestUtils.getRegistryV2ApiUrl(testPort))
+                .vertx(vertx));
         isolatedClientV3 = RegistryClientFactory.create(RegistryClientOptions.create()
                 .registryUrl(TestUtils.getRegistryV3ApiUrl(testPort))
                 .vertx(vertx));

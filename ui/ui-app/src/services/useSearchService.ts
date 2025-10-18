@@ -22,6 +22,10 @@ export interface SearchFilter {
     value: string;
 }
 
+const VERSION_STATES: string[] = [
+    "ENABLED", "DISABLED", "DEPRECATED", "DRAFT"
+];
+
 const searchGroups = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: GroupSortBy, sortOrder: SortOrder, paging: Paging): Promise<GroupSearchResults> => {
     console.debug("[SearchService] Searching groups: ", filters, paging);
     const start: number = (paging.page - 1) * paging.pageSize;
@@ -72,9 +76,19 @@ const searchVersions = async (config: ConfigService, auth: AuthService, filters:
         order: sortOrder,
         orderby: sortBy
     };
+
+    // users can type whatever they want when filtering by state, but if they don't enter a valid
+    // state name, the REST call will fail.  So make sure to coerce the filter value to something valid.
     filters?.forEach(filter => {
-        queryParams[filter.by] = filter.value;
+        queryParams[filter.by] = filter.by === "state" ? filter.value.toUpperCase() : filter.value;
     });
+
+    if (queryParams["state"]) {
+        const value: string = queryParams["state"];
+        if (!VERSION_STATES.includes(value)) {
+            queryParams["state"] = "DISABLED";
+        }
+    }
 
     return getRegistryClient(config, auth).search.versions.get({
         queryParameters: queryParams

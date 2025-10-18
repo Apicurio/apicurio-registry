@@ -7,6 +7,7 @@ import io.vertx.ext.auth.oauth2.OAuth2Options;
 import io.vertx.ext.auth.oauth2.Oauth2Credentials;
 import io.vertx.ext.web.client.OAuth2WebClient;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.WebClientSession;
 
 import java.nio.charset.StandardCharsets;
@@ -25,7 +26,12 @@ public class VertXAuthFactory {
 
     public static WebClient buildOIDCWebClient(Vertx vertx, String tokenUrl, String clientId,
             String clientSecret, String scope) {
-        WebClient webClient = WebClient.create(vertx);
+        return buildOIDCWebClient(vertx, null, tokenUrl, clientId, clientSecret, scope);
+    }
+
+    public static WebClient buildOIDCWebClient(Vertx vertx, WebClientOptions options, String tokenUrl,
+            String clientId, String clientSecret, String scope) {
+        WebClient webClient = options != null ? WebClient.create(vertx, options) : WebClient.create(vertx);
 
         OAuth2Auth oAuth2Options = OAuth2Auth.create(vertx, new OAuth2Options().setFlow(OAuth2FlowType.CLIENT)
                 .setClientId(clientId).setClientSecret(clientSecret).setTokenPath(tokenUrl));
@@ -41,9 +47,15 @@ public class VertXAuthFactory {
     }
 
     public static WebClient buildSimpleAuthWebClient(Vertx vertx, String username, String password) {
+        return buildSimpleAuthWebClient(vertx, null, username, password);
+    }
+
+    public static WebClient buildSimpleAuthWebClient(Vertx vertx, WebClientOptions options, String username,
+            String password) {
+        WebClient webClient = options != null ? WebClient.create(vertx, options) : WebClient.create(vertx);
         String usernameAndPassword = Base64.getEncoder()
                 .encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
-        return WebClientSession.create(WebClient.create(vertx)).addHeader("Authorization",
+        return WebClientSession.create(webClient).addHeader("Authorization",
                 "Basic " + usernameAndPassword);
     }
 

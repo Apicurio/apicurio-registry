@@ -212,7 +212,8 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         var clientDev = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
 
-        var clientAdmin = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var clientAdmin = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
 
         // Admin user will create an artifact
@@ -323,9 +324,11 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testUpdateArtifactOwnerOnlyByOwner() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client_dev1 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        var client_dev2 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client_dev2 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
 
         // Preparation
@@ -375,9 +378,11 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testUpdateArtifactOwnerByAdmin() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client_dev1 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        var client_admin = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client_admin = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
 
         // Preparation
@@ -424,9 +429,11 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testDeleteArtifactOnlyIfOwner() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client_dev1 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        var client_dev2 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client_dev2 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
 
         // Preparation
@@ -483,9 +490,11 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     public void testDeleteArtifactIfAdmin() throws Exception {
         CreateArtifact createArtifact = clientCreateArtifact();
 
-        var client_dev1 = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client_dev1 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        var client_admin = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        var client_admin = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
                 .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
 
         // Preparation

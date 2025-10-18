@@ -204,9 +204,12 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
             // If the resource isn't already registered, then register it now.
             if (!iresource.isRegistered()) {
+                String groupId = artifact.getGroupId(); // same group as root artifact
                 // TODO: determine the artifactId better (type-specific logic here?)
                 String artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
-                String groupId = referenceArtifactIdentifierExtractor.extractGroupId(externalRef.getResource());
+                if(ArtifactType.AVRO.equals(iresource.getType())) {
+                    artifactId = iresource.getResourceName(); // fq name
+                }
                 File localFile = getLocalFile(iresource.getPath());
                 RegisterArtifact refArtifact = buildFromRoot(artifact, artifactId, groupId);
                 refArtifact.setArtifactType(iresource.getType());
@@ -358,7 +361,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         } catch (RuleViolationProblemDetails | ProblemDetails e) {
 
             // If this is a draft, and we got a 409, then we should try to update the artifact content instead.
-            if (artifact.getIsDraft() && e.getResponseStatusCode() == 409) {
+            if (Boolean.TRUE.equals(artifact.getIsDraft()) && e.getResponseStatusCode() == 409) {
                 try {
                     registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                             .versions().byVersionExpression(version).content()

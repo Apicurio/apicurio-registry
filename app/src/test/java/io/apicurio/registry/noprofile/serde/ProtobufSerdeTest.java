@@ -17,6 +17,7 @@ import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.serde.strategy.TopicIdStrategy;
 import io.apicurio.registry.support.TestCmmn;
+import io.apicurio.registry.test.PersonProtos;
 import io.apicurio.registry.test.UserEventProtos;
 import io.apicurio.registry.types.ContentTypes;
 import io.confluent.kafka.schemaregistry.SchemaProvider;
@@ -394,6 +395,84 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
         Descriptors.FieldDescriptor msb = descriptor.findFieldByName("msb");
         Assertions.assertNotNull(msb);
         Assertions.assertEquals(record.getMsb(), dm.getField(msb));
+    }
+
+    /**
+     * Test case for GitHub issue #6697: Protobuf schema validation fails when reserved fields are present.
+     *
+     * This test reproduces the scenario where:
+     * 1. A Protobuf schema contains reserved fields
+     * 2. The schema is registered in the registry (with reserved fields intact)
+     * 3. A compiled Java class is used for serialization (reserved fields stripped by protoc)
+     * 4. Validation is enabled on the serializer
+     *
+     * Without the fix, this would fail with:
+     * "The data to send is not compatible with the schema. [ProtobufDifference(message=X reserved fields were removed, message Person)]"
+     *
+     * With the fix (passing false to findDifferences), the serializer skips the reserved fields check
+     * since compiled protobuf classes never contain reserved field information.
+     */
+    @ParameterizedTest(name = "testProtobufWithReservedFields [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testProtobufWithReservedFields(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+        String topic = generateArtifactId();
+
+        // Step 1: Pre-register the schema with reserved fields
+        String protoSchemaWithReserved;
+        try (var inputStream = getClass().getClassLoader().getResourceAsStream("schema/person_with_reserved.proto")) {
+            Assertions.assertNotNull(inputStream, "Could not find person_with_reserved.proto resource");
+            protoSchemaWithReserved = new String(inputStream.readAllBytes());
+        }
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(topic);
+        createArtifact.setArtifactType("PROTOBUF");
+
+        CreateVersion firstVersion = new CreateVersion();
+        VersionContent content = new VersionContent();
+        content.setContent(protoSchemaWithReserved);
+        content.setContentType(ContentTypes.APPLICATION_PROTOBUF);
+        firstVersion.setContent(content);
+        firstVersion.setName("Schema with reserved fields");
+        firstVersion.setDescription("Testing GitHub issue #6697");
+        createArtifact.setFirstVersion(firstVersion);
+
+        isolatedClientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Step 2: Serialize with validation enabled using compiled Java class
+        // The compiled class does NOT have reserved field information (stripped by protoc)
+        try (Serializer<PersonProtos.Person> serializer = new ProtobufKafkaSerializer<>(clientFacade);
+             Deserializer<PersonProtos.Person> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "false"); // Use pre-registered schema
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.VALIDATION_ENABLED, "true"); // IMPORTANT: validation enabled
+            config.put(SerdeConfig.FIND_LATEST_ARTIFACT, "true");
+            config.put(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, PersonProtos.Person.class.getName());
+            serializer.configure(config, false);
+            deserializer.configure(config, false);
+
+            PersonProtos.Person person = PersonProtos.Person.newBuilder()
+                    .setName("John Doe")
+                    .setAge(30)
+                    .setEmail("john.doe@example.com")
+                    .build();
+
+            // This should succeed with the fix (serializer passes false to findDifferences)
+            // Without the fix, this would throw:
+            // IllegalStateException: The data to send is not compatible with the schema.
+            // [ProtobufDifference(message=X reserved fields were removed, message Person)]
+            byte[] bytes = serializer.serialize(topic, person);
+
+            // Verify deserialization works
+            PersonProtos.Person deserializedPerson = deserializer.deserialize(topic, bytes);
+            assertEquals(person.getName(), deserializedPerson.getName());
+            assertEquals(person.getAge(), deserializedPerson.getAge());
+            assertEquals(person.getEmail(), deserializedPerson.getEmail());
+        }
     }
 
 }

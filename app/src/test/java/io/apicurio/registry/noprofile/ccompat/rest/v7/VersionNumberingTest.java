@@ -91,5 +91,4 @@ public class VersionNumberingTest extends AbstractResourceTestBase {
         Assertions.assertTrue(rootCause.getMessage().contains("No version '0' found"));
     }
 
-
 }

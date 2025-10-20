@@ -2402,7 +2402,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * NOTE: Does not export the manifest file TODO
+     * Called to export all data in the Registry out to e.g. a .zip file.  Called by the
+     * DataExporter class when exporting all Registry data.
      */
     @Override
     public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {

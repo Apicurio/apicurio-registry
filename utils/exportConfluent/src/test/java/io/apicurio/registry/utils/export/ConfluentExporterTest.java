@@ -40,9 +40,9 @@ import java.util.Set;
  * Note: Set USE_EXTERNAL_APICURIO=true environment variable to use an external
  * Apicurio Registry instance instead of starting one with Testcontainers.
  */
-public class ConfluentExportIT {
+public class ConfluentExporterTest {
 
-    private static final Logger log = Logger.getLogger(ConfluentExportIT.class);
+    private static final Logger log = Logger.getLogger(ConfluentExporterTest.class);
 
     private static final String EXPORT_ZIP_FILE = "target/confluent-schema-registry-export.zip";
     private static final boolean USE_EXTERNAL_APICURIO = Boolean.parseBoolean(

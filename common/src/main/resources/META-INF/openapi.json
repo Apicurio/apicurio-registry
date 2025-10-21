@@ -4257,7 +4257,6 @@
       "SearchedGroup": {
         "description": "Models a single group from the result set returned when searching for groups.",
         "required": [
-          "description",
           "owner",
           "createdOn",
           "groupId",
@@ -4312,12 +4311,10 @@
         "description": "",
         "required": [
           "groupId",
-          "description",
           "owner",
           "createdOn",
           "modifiedBy",
-          "modifiedOn",
-          "labels"
+          "modifiedOn"
         ],
         "type": "object",
         "properties": {

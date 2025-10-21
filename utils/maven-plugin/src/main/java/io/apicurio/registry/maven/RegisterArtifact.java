@@ -1,11 +1,16 @@
 package io.apicurio.registry.maven;
 
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
+import io.apicurio.registry.types.ArtifactType;
 
 import java.io.File;
 import java.util.List;
 
 public class RegisterArtifact {
+
+    public enum AvroAutoRefsNamingStrategy {
+        INHERIT_PARENT_GROUP, USE_AVRO_NAMESPACE
+    }
 
     private String groupId;
     private String artifactId;
@@ -18,6 +23,7 @@ public class RegisterArtifact {
     @Deprecated
     private Boolean analyzeDirectory;
     private Boolean autoRefs;
+    private AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy;
     private Boolean isDraft;
     private String contentType;
     private List<RegisterArtifactReference> references;
@@ -185,6 +191,23 @@ public class RegisterArtifact {
 
     public void setAutoRefs(Boolean autoRefs) {
         this.autoRefs = autoRefs;
+    }
+
+    public AvroAutoRefsNamingStrategy getAvroAutoRefsNamingStrategy() {
+        if(Boolean.TRUE.equals(autoRefs) && avroAutoRefsNamingStrategy == null) {
+            if(ArtifactType.AVRO.equals(artifactType)) {
+                return AvroAutoRefsNamingStrategy.USE_AVRO_NAMESPACE;
+            }
+            if(ArtifactType.ASYNCAPI.equals(artifactType)) {
+                return AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP;
+            }
+            return AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP;
+        }
+        return avroAutoRefsNamingStrategy;
+    }
+
+    public void setAvroAutoRefsNamingStrategy(AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy) {
+        this.avroAutoRefsNamingStrategy = avroAutoRefsNamingStrategy;
     }
 
     public Boolean getIsDraft() {

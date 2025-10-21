@@ -95,7 +95,7 @@ public class RegisterAsyncApiAvroAutoRefsTest {
 
         // Create the artifact configuration
         RegisterArtifact artifact = new RegisterArtifact();
-        artifact.setGroupId("avro-maven-with-references-auto");
+        artifact.setGroupId("com.kubetrade.schema.trade");
         artifact.setArtifactId("TradeRaw");
         artifact.setVersion("2.0");
         artifact.setArtifactType(ArtifactType.AVRO);
@@ -108,13 +108,10 @@ public class RegisterAsyncApiAvroAutoRefsTest {
         mojo.execute();
 
         assertEquals(4, registeredArtifacts.size());
-        assertTrue(registeredArtifacts.contains("avro-maven-with-references-auto:TradeRaw"));
-        assertTrue(registeredArtifacts.contains(
-                "avro-maven-with-references-auto:com.kubetrade.schema.trade.TradeKey"));
-        assertTrue(registeredArtifacts.contains(
-                "avro-maven-with-references-auto:com.kubetrade.schema.trade.TradeValue"));
-        assertTrue(registeredArtifacts.contains(
-                "avro-maven-with-references-auto:com.kubetrade.schema.common.Exchange"));
+        assertTrue(registeredArtifacts.contains("com.kubetrade.schema.trade:TradeRaw"));
+        assertTrue(registeredArtifacts.contains("com.kubetrade.schema.trade:TradeKey"));
+        assertTrue(registeredArtifacts.contains("com.kubetrade.schema.trade:TradeValue"));
+        assertTrue(registeredArtifacts.contains("com.kubetrade.schema.common:Exchange"));
     }
 
     @Test public void testAvroAnalyzeDirectory() throws Exception {
@@ -164,14 +161,10 @@ public class RegisterAsyncApiAvroAutoRefsTest {
         }
 
         private String generateResponseBasedOnRequest(Request request) throws JsonProcessingException {
-            // SET BREAKPOINT HERE to customize response generation
             String url = request.getUrl();
             String body = request.getBodyAsString();
 
-            // Extract groupId from URL
             String groupId = extractGroupIdFromUrl(url);
-
-            // Extract artifactId from request body (assuming JSON)
             String artifactId = extractArtifactIdFromBody(body);
 
             registeredArtifacts.add(groupId + ":" + artifactId);

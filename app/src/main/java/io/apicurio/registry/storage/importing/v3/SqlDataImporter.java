@@ -27,6 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Class used when importing the contents of a v3 formatted .zip file into Apicurio Registry.
+ */
 public class SqlDataImporter extends AbstractDataImporter {
 
     protected RegistryStorageContentUtils utils;

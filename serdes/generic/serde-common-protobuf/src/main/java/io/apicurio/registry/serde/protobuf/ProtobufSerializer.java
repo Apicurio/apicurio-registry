@@ -118,11 +118,15 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
     }
 
     private List<ProtobufDifference> validate(ParsedSchema<ProtobufSchema> schemaFromRegistry, U data) {
+        // Schema from the registry
         ProtobufFile fileBefore = schemaFromRegistry.getParsedSchema().getProtobufFile();
+        // Schema from protobuf generated class
         ProtobufFile fileAfter = new ProtobufFile(
                 parser.toProtoFileElement(data.getDescriptorForType().getFile()));
+
+        // Check for differences
         ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
                 fileAfter);
-        return checker.findDifferences();
+        return checker.findDifferences(false);
     }
 }

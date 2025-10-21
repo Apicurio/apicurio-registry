@@ -14,6 +14,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
+/**
+ * Used to export all Registry data to a .zip file.
+ */
 @ApplicationScoped
 public class DataExporter {
 

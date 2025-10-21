@@ -64,6 +64,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     @Parameter(property = "dryRun", defaultValue = "false")
     boolean dryRun;
 
+    private RegisterArtifact.AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy;
+
     DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl(true);
 
     /**
@@ -139,6 +141,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         addExistingReferencesToIndex(registryClient, index, artifact.getExistingReferences());
                         Stack<RegisterArtifact> registrationStack = new Stack<>();
 
+                        this.avroAutoRefsNamingStrategy = artifact.getAvroAutoRefsNamingStrategy();
                         registerWithAutoRefs(registryClient, artifact, index, registrationStack);
                     } else if (artifact.getAnalyzeDirectory() != null && artifact.getAnalyzeDirectory()) { // Auto
                         // register selected, we must figure out if the artifact has references using the
@@ -204,11 +207,18 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
             // If the resource isn't already registered, then register it now.
             if (!iresource.isRegistered()) {
-                String groupId = artifact.getGroupId(); // same group as root artifact
+                String groupId = artifact.getGroupId(); // default is same group as root artifact
                 // TODO: determine the artifactId better (type-specific logic here?)
                 String artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
                 if(ArtifactType.AVRO.equals(iresource.getType())) {
-                    artifactId = iresource.getResourceName(); // fq name
+                    if (avroAutoRefsNamingStrategy == RegisterArtifact.AvroAutoRefsNamingStrategy.USE_AVRO_NAMESPACE) {
+                        groupId = referenceArtifactIdentifierExtractor.extractGroupId(externalRef.getResource());
+                        artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
+                    }
+                    if (avroAutoRefsNamingStrategy == RegisterArtifact.AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP) {
+                        groupId = artifact.getGroupId(); // same group as root artifact
+                        artifactId = iresource.getResourceName(); // fq name
+                    }
                 }
                 File localFile = getLocalFile(iresource.getPath());
                 RegisterArtifact refArtifact = buildFromRoot(artifact, artifactId, groupId);

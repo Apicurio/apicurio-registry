@@ -247,6 +247,11 @@ public interface SqlStatements {
     public String updateArtifactLabels();
 
     /**
+     * A statement to update a single artifact contentPath.
+     */
+    public String updateArtifactContentPath();
+
+    /**
      * A statement to delete a single artifact rule.
      */
     public String deleteArtifactRule();

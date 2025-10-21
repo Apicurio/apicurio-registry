@@ -3867,6 +3867,10 @@
           "artifactId": {
             "$ref": "#/components/schemas/ArtifactId",
             "description": ""
+          },
+          "contentPath": {
+            "type": "string",
+            "description": "Relative path from the root folder of the main artifact being uploaded."
           }
         },
         "example": {
@@ -3939,6 +3943,10 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "contentPath": {
+            "type": "string",
+            "description": "Relative path from the root folder of the main artifact being uploaded."
           }
         },
         "example": {
@@ -4818,6 +4826,10 @@
           "owner": {
             "description": "",
             "type": "string"
+          },
+          "contentPath": {
+            "type": "string",
+            "description": "Relative path from the root folder of the main artifact being uploaded."
           }
         },
         "example": {
@@ -4946,6 +4958,10 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "contentPath": {
+            "type": "string",
+            "description": "Relative path from the root folder of the main artifact being uploaded."
           },
           "firstVersion": {
             "$ref": "#/components/schemas/CreateVersion",

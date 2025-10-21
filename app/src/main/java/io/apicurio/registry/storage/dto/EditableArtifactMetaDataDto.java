@@ -30,4 +30,5 @@ public class EditableArtifactMetaDataDto {
     private String description;
     private String owner;
     private Map<String, String> labels;
+    private String contentPath;
 }

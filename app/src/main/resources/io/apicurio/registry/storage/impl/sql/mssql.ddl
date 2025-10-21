@@ -45,13 +45,15 @@ CREATE TABLE group_rules (groupId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT 
 ALTER TABLE group_rules ADD PRIMARY KEY (groupId, type);
 ALTER TABLE group_rules ADD CONSTRAINT FK_grules_1 FOREIGN KEY (groupId) REFERENCES groups(groupId) ON DELETE CASCADE;
 
-CREATE TABLE artifacts (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT NULL, owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6), name NVARCHAR(512), description NVARCHAR(1024), labels TEXT);
+CREATE TABLE artifacts (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT NULL, owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6), name NVARCHAR(512), description NVARCHAR(1024), labels TEXT, contentPath NVARCHAR(1024));
 ALTER TABLE artifacts ADD PRIMARY KEY (groupId, artifactId);
+ALTER TABLE artifacts ADD CONSTRAINT UQ_artifacts_1 UNIQUE (groupId, contentPath);
 CREATE INDEX IDX_artifacts_0 ON artifacts(type);
 CREATE INDEX IDX_artifacts_1 ON artifacts(owner);
 CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 CREATE INDEX IDX_artifacts_3 ON artifacts(name);
--- CREATE INDEX IDX_artifacts_4 ON artifacts(description);
+CREATE INDEX IDX_artifacts_4 ON artifacts(contentPath);
+-- CREATE INDEX IDX_artifacts_5 ON artifacts(description);
 
 CREATE TABLE artifact_labels (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, labelKey NVARCHAR(256) NOT NULL, labelValue NVARCHAR(512));
 ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;

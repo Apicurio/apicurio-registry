@@ -238,6 +238,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         dto.setDescription(data.getDescription());
         dto.setOwner(data.getOwner());
         dto.setLabels(data.getLabels());
+        dto.setContentPath(data.getContentPath());
         storage.updateArtifactMetaData(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, dto);
     }
 
@@ -970,7 +971,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             // Create the artifact (with optional first version)
             EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
-                    .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
+                    .description(data.getDescription()).name(data.getName()).labels(data.getLabels())
+                    .contentPath(data.getContentPath()).build();
             String firstVersion = null;
             ContentWrapperDto firstVersionContent = null;
             EditableVersionMetaDataDto firstVersionMetaData = null;

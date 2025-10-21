@@ -46,9 +46,21 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
         Schema schema = avroDatumProvider.toSchema(data.payload());
         final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(schema);
+
+        // Deduplicate references based on referenceName to handle cases where
+        // multiple fields reference the same nested schema (e.g., Debezium PostGIS Point geometry)
+        final List<ParsedSchema<Schema>> deduplicatedReferences = resolvedReferences.stream()
+                .collect(Collectors.toMap(
+                        ParsedSchema::referenceName,
+                        ref -> ref,
+                        (existing, replacement) -> existing))
+                .values()
+                .stream()
+                .collect(Collectors.toList());
+
         return new ParsedSchemaImpl<Schema>().setParsedSchema(schema).setReferenceName(schema.getFullName())
-                .setSchemaReferences(resolvedReferences)
-                .setRawSchema(IoUtil.toBytes(schema.toString(resolvedReferences.stream()
+                .setSchemaReferences(deduplicatedReferences)
+                .setRawSchema(IoUtil.toBytes(schema.toString(deduplicatedReferences.stream()
                         .map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false)));
     }
 

@@ -39,15 +39,17 @@ public class AvroSchemaParserDuplicateReferencesTest {
     @Test
     public void testDuplicateReferencesAreDeduplicated() {
         // Create a nested Point schema (similar to io.debezium.data.geometry.Point)
-        String pointSchemaJson = "{"
-            + "\"type\":\"record\","
-            + "\"name\":\"Point\","
-            + "\"namespace\":\"io.debezium.data.geometry\","
-            + "\"fields\":["
-            + "  {\"name\":\"x\",\"type\":\"double\"},"
-            + "  {\"name\":\"y\",\"type\":\"double\"}"
-            + "]"
-            + "}";
+        String pointSchemaJson = """
+            {
+              "type": "record",
+              "name": "Point",
+              "namespace": "io.debezium.data.geometry",
+              "fields": [
+                {"name": "x", "type": "double"},
+                {"name": "y", "type": "double"}
+              ]
+            }
+            """;
 
         // Use a single Schema.Parser instance to resolve references
         Schema.Parser schemaParser = new Schema.Parser();
@@ -55,16 +57,18 @@ public class AvroSchemaParserDuplicateReferencesTest {
 
         // Create a main schema with MULTIPLE fields referencing the same Point schema
         // This is what causes duplicate references
-        String mainSchemaJson = "{"
-            + "\"type\":\"record\","
-            + "\"name\":\"TableValue\","
-            + "\"namespace\":\"io.example\","
-            + "\"fields\":["
-            + "  {\"name\":\"id\",\"type\":\"int\"},"
-            + "  {\"name\":\"start_point\",\"type\":\"io.debezium.data.geometry.Point\"},"
-            + "  {\"name\":\"end_point\",\"type\":\"io.debezium.data.geometry.Point\"}"
-            + "]"
-            + "}";
+        String mainSchemaJson = """
+            {
+              "type": "record",
+              "name": "TableValue",
+              "namespace": "io.example",
+              "fields": [
+                {"name": "id", "type": "int"},
+                {"name": "start_point", "type": "io.debezium.data.geometry.Point"},
+                {"name": "end_point", "type": "io.debezium.data.geometry.Point"}
+              ]
+            }
+            """;
         Schema mainSchema = schemaParser.parse(mainSchemaJson);
 
         // Create sample data
@@ -140,40 +144,46 @@ public class AvroSchemaParserDuplicateReferencesTest {
         Schema.Parser schemaParser = new Schema.Parser();
 
         // Create a Coordinate schema
-        String coordinateSchemaJson = "{"
-            + "\"type\":\"record\","
-            + "\"name\":\"Coordinate\","
-            + "\"namespace\":\"io.example.geo\","
-            + "\"fields\":["
-            + "  {\"name\":\"lat\",\"type\":\"double\"},"
-            + "  {\"name\":\"lon\",\"type\":\"double\"}"
-            + "]"
-            + "}";
+        String coordinateSchemaJson = """
+            {
+              "type": "record",
+              "name": "Coordinate",
+              "namespace": "io.example.geo",
+              "fields": [
+                {"name": "lat", "type": "double"},
+                {"name": "lon", "type": "double"}
+              ]
+            }
+            """;
         Schema coordinateSchema = schemaParser.parse(coordinateSchemaJson);
 
         // Create a Location schema that references Coordinate
-        String locationSchemaJson = "{"
-            + "\"type\":\"record\","
-            + "\"name\":\"Location\","
-            + "\"namespace\":\"io.example.geo\","
-            + "\"fields\":["
-            + "  {\"name\":\"name\",\"type\":\"string\"},"
-            + "  {\"name\":\"position\",\"type\":\"io.example.geo.Coordinate\"}"
-            + "]"
-            + "}";
+        String locationSchemaJson = """
+            {
+              "type": "record",
+              "name": "Location",
+              "namespace": "io.example.geo",
+              "fields": [
+                {"name": "name", "type": "string"},
+                {"name": "position", "type": "io.example.geo.Coordinate"}
+              ]
+            }
+            """;
         Schema locationSchema = schemaParser.parse(locationSchemaJson);
 
         // Create a Journey schema with multiple Location fields (which themselves reference Coordinate)
-        String journeySchemaJson = "{"
-            + "\"type\":\"record\","
-            + "\"name\":\"Journey\","
-            + "\"namespace\":\"io.example\","
-            + "\"fields\":["
-            + "  {\"name\":\"id\",\"type\":\"int\"},"
-            + "  {\"name\":\"start\",\"type\":\"io.example.geo.Location\"},"
-            + "  {\"name\":\"end\",\"type\":\"io.example.geo.Location\"}"
-            + "]"
-            + "}";
+        String journeySchemaJson = """
+            {
+              "type": "record",
+              "name": "Journey",
+              "namespace": "io.example",
+              "fields": [
+                {"name": "id", "type": "int"},
+                {"name": "start", "type": "io.example.geo.Location"},
+                {"name": "end", "type": "io.example.geo.Location"}
+              ]
+            }
+            """;
         Schema journeySchema = schemaParser.parse(journeySchemaJson);
 
         // Create sample data
@@ -241,40 +251,46 @@ public class AvroSchemaParserDuplicateReferencesTest {
         Schema.Parser schemaParser = new Schema.Parser();
 
         // Create two different nested schemas
-        String pointSchemaJson = "{"
-            + "\"type\":\"record\","
-            + "\"name\":\"Point\","
-            + "\"namespace\":\"io.example\","
-            + "\"fields\":["
-            + "  {\"name\":\"x\",\"type\":\"double\"},"
-            + "  {\"name\":\"y\",\"type\":\"double\"}"
-            + "]"
-            + "}";
+        String pointSchemaJson = """
+            {
+              "type": "record",
+              "name": "Point",
+              "namespace": "io.example",
+              "fields": [
+                {"name": "x", "type": "double"},
+                {"name": "y", "type": "double"}
+              ]
+            }
+            """;
 
-        String addressSchemaJson = "{"
-            + "\"type\":\"record\","
-            + "\"name\":\"Address\","
-            + "\"namespace\":\"io.example\","
-            + "\"fields\":["
-            + "  {\"name\":\"street\",\"type\":\"string\"},"
-            + "  {\"name\":\"city\",\"type\":\"string\"}"
-            + "]"
-            + "}";
+        String addressSchemaJson = """
+            {
+              "type": "record",
+              "name": "Address",
+              "namespace": "io.example",
+              "fields": [
+                {"name": "street", "type": "string"},
+                {"name": "city", "type": "string"}
+              ]
+            }
+            """;
 
         Schema pointSchema = schemaParser.parse(pointSchemaJson);
         Schema addressSchema = schemaParser.parse(addressSchemaJson);
 
         // Create main schema referencing both different schemas
-        String mainSchemaJson = "{"
-            + "\"type\":\"record\","
-            + "\"name\":\"Location\","
-            + "\"namespace\":\"io.example\","
-            + "\"fields\":["
-            + "  {\"name\":\"id\",\"type\":\"int\"},"
-            + "  {\"name\":\"position\",\"type\":\"io.example.Point\"},"
-            + "  {\"name\":\"address\",\"type\":\"io.example.Address\"}"
-            + "]"
-            + "}";
+        String mainSchemaJson = """
+            {
+              "type": "record",
+              "name": "Location",
+              "namespace": "io.example",
+              "fields": [
+                {"name": "id", "type": "int"},
+                {"name": "position", "type": "io.example.Point"},
+                {"name": "address", "type": "io.example.Address"}
+              ]
+            }
+            """;
         Schema mainSchema = schemaParser.parse(mainSchemaJson);
 
         // Create sample data

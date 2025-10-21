@@ -2281,6 +2281,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws GroupAlreadyExistsException, RegistryStorageException {
         try {
             handles.withHandle(handle -> {
+                // Ensure modifiedBy is set (default to owner if not provided)
+                String modifiedBy = group.getModifiedBy();
+                if (modifiedBy == null || modifiedBy.isEmpty()) {
+                    modifiedBy = group.getOwner();
+                }
+
+                // Ensure modifiedOn is set (default to createdOn if not provided)
+                Date modifiedOn;
+                if (group.getModifiedOn() == 0) {
+                    modifiedOn = group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn());
+                } else {
+                    modifiedOn = new Date(group.getModifiedOn());
+                }
+
                 // Insert a row into the groups table
                 handle.createUpdate(sqlStatements.insertGroup()).bind(0, group.getGroupId())
                         .bind(1, group.getDescription()).bind(2, group.getArtifactsType())
@@ -2288,8 +2302,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric
                         // timestamps
                         .bind(4, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
-                        .bind(5, group.getModifiedBy())
-                        .bind(6, group.getModifiedOn() == 0 ? new Date() : new Date(group.getModifiedOn()))
+                        .bind(5, modifiedBy)
+                        .bind(6, modifiedOn)
                         .bind(7, RegistryContentUtils.serializeLabels(group.getLabels())).execute();
 
                 // Insert new labels into the "group_labels" table

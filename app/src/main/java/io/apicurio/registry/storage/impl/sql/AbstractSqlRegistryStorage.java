@@ -749,6 +749,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft) {
         List<ArtifactReferenceDto> references = contentDto.getReferences();
+
+        // Deduplicate references to handle cases where callers (like Avro converters)
+        // may send duplicate references for nested schemas. This must be done BEFORE
+        // calculating content hashes to ensure consistency.
+        if (references != null && !references.isEmpty()) {
+            references = references.stream()
+                    .distinct()
+                    .collect(Collectors.toList());
+        }
+
         TypedContent content = TypedContent.create(contentDto.getContent(), contentDto.getContentType());
         String contentHash;
         String canonicalContentHash;

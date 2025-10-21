@@ -40,6 +40,7 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.utils.VersionUtil;
+import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.InternalServerErrorException;
@@ -62,6 +63,9 @@ import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class SubjectsResourceImpl extends AbstractResource implements SubjectsResource {
+
+    @Inject
+    SchemaFormatService formatService;
 
     private final Cache<GA, Lock> subjectLocks = CacheBuilder.newBuilder()
             .expireAfterAccess(1, TimeUnit.HOURS) // Evict locks after 1 hour of inactivity
@@ -109,6 +113,23 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                 if (amd.getState() != VersionState.DISABLED || fdeleted) {
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
                             ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), amd.getVersion());
+
+                    // Apply format transformation if requested
+                    if (format != null && !format.trim().isEmpty()) {
+                        Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
+                                storedArtifact.getReferences());
+                        ContentHandle formattedContent = formatService.applyFormat(
+                                storedArtifact.getContent(), amd.getArtifactType(), format,
+                                resolvedReferences);
+
+                        StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()
+                                .globalId(storedArtifact.getGlobalId()).version(storedArtifact.getVersion())
+                                .versionOrder(storedArtifact.getVersionOrder())
+                                .contentId(storedArtifact.getContentId()).content(formattedContent)
+                                .references(storedArtifact.getReferences()).build();
+                        return converter.convert(ga.getRawArtifactId(), formattedArtifact);
+                    }
+
                     return converter.convert(ga.getRawArtifactId(), storedArtifact);
                 }
                 else {
@@ -272,7 +293,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     public Schema getSchemaVersion(String subject, String version, String format, String groupId, Boolean deleted) {
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
         final GA ga = getGA(groupId, subject);
-        return getSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version, fdeleted);
+        return getSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version, fdeleted, format);
     }
 
     @Override
@@ -339,7 +360,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     public String getSchemaVersionContent(String subject, String version, String format, String groupId, Boolean deleted) {
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
         final GA ga = getGA(groupId, subject);
-        return getSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version, fdeleted).getSchema();
+        return getSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version, fdeleted, format).getSchema();
     }
 
     @Override
@@ -364,6 +385,21 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     protected Schema getSchema(String groupId, String artifactId, String versionString, boolean deleted) {
+        return getSchema(groupId, artifactId, versionString, deleted, null);
+    }
+
+    /**
+     * Gets a schema with optional format transformation.
+     *
+     * @param groupId the group ID
+     * @param artifactId the artifact ID
+     * @param versionString the version string
+     * @param deleted whether to include deleted versions
+     * @param format the optional format transformation to apply
+     * @return the schema
+     */
+    protected Schema getSchema(String groupId, String artifactId, String versionString, boolean deleted,
+                               String format) {
         if (doesArtifactExist(artifactId, groupId) && isArtifactActive(artifactId, groupId)) {
             return parseVersionString(artifactId, versionString, groupId, version -> {
                 ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(groupId, artifactId,
@@ -371,14 +407,30 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                 if (amd.getState() != VersionState.DISABLED || deleted) {
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(groupId,
                             artifactId, amd.getVersion());
+
+                    // Apply format transformation if requested
+                    if (format != null && !format.trim().isEmpty()) {
+                        Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
+                                storedArtifact.getReferences());
+                        ContentHandle formattedContent = formatService.applyFormat(
+                                storedArtifact.getContent(), amd.getArtifactType(), format,
+                                resolvedReferences);
+
+                        // Create a new StoredArtifactVersionDto with the formatted content
+                        StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()
+                                .globalId(storedArtifact.getGlobalId()).version(storedArtifact.getVersion())
+                                .versionOrder(storedArtifact.getVersionOrder())
+                                .contentId(storedArtifact.getContentId()).content(formattedContent)
+                                .references(storedArtifact.getReferences()).build();
+                        return converter.convert(artifactId, formattedArtifact, amd.getArtifactType());
+                    }
+
                     return converter.convert(artifactId, storedArtifact, amd.getArtifactType());
-                }
-                else {
+                } else {
                     throw new VersionNotFoundException(groupId, artifactId, version);
                 }
             });
-        }
-        else {
+        } else {
             throw new ArtifactNotFoundException(groupId, artifactId);
         }
     }

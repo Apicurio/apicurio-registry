@@ -119,6 +119,9 @@ public class AdminResourceImpl implements AdminResource {
     @Inject
     ImportExportConfigProperties importExportProps;
 
+    @Inject
+    io.apicurio.registry.services.LogLevelValidator logLevelValidator;
+
     @Context
     HttpServletRequest request;
 
@@ -560,6 +563,16 @@ public class AdminResourceImpl implements AdminResource {
      * @param value the config property value
      */
     private void validateConfigPropertyValue(DynamicConfigPropertyDef propertyDef, String value) {
+        // Custom validation for log level property
+        if ("apicurio.log.level".equals(propertyDef.getName())) {
+            if (!logLevelValidator.isValidLogLevel(value)) {
+                throw new InvalidPropertyValueException(
+                        "Invalid log level value: " + value + ". Must be one of: TRACE, DEBUG, INFO, WARN, ERROR, OFF, ALL");
+            }
+            return;
+        }
+
+        // Default validation for other properties
         if (!propertyDef.isValidValue(value)) {
             throw new InvalidPropertyValueException(
                     "Invalid dynamic configuration property value for: " + propertyDef.getName());

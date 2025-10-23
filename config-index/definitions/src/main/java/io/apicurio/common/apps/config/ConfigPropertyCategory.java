@@ -15,6 +15,7 @@ public enum ConfigPropertyCategory {
     CATEGORY_HIDDEN("hidden"),
     CATEGORY_IMPORT("import"),
     CATEGORY_LIMITS("limits"),
+    CATEGORY_LOG("log"),
     CATEGORY_OBSERVABILITY("observability"),
     CATEGORY_REDIRECTS("redirects"),
     CATEGORY_REST("rest"),

@@ -31,7 +31,8 @@ public class AvroReferenceFinder implements ReferenceFinder {
         try {
             JsonNode tree = mapper.readTree(content.getContent().content());
             Set<String> externalTypes = new HashSet<>();
-            findExternalTypesIn(tree, externalTypes);
+            String rootNamespace = extractNamespace(tree);
+            findExternalTypesIn(tree, externalTypes, rootNamespace);
             return externalTypes.stream().map(type -> new ExternalReference(type))
                     .collect(Collectors.toSet());
         } catch (Exception e) {
@@ -40,7 +41,43 @@ public class AvroReferenceFinder implements ReferenceFinder {
         }
     }
 
-    private static void findExternalTypesIn(JsonNode schema, Set<String> externalTypes) {
+    /**
+     * Extracts the namespace from a schema node if present.
+     *
+     * @param schema The schema node
+     * @return The namespace or null if not present
+     */
+    private static String extractNamespace(JsonNode schema) {
+        if (schema != null && schema.isObject() && schema.has("namespace")
+                && !schema.get("namespace").isNull()) {
+            return schema.get("namespace").asText();
+        }
+        return null;
+    }
+
+    /**
+     * Qualifies a type name with the given namespace if it's a relative name.
+     * According to the Avro specification, a simple name (without dots) should be
+     * qualified with the enclosing namespace.
+     *
+     * @param typeName The type name to qualify
+     * @param namespace The current namespace context
+     * @return The fully qualified type name
+     */
+    private static String qualifyTypeName(String typeName, String namespace) {
+        // If the type name contains a dot, it's already fully qualified
+        if (typeName.contains(".")) {
+            return typeName;
+        }
+        // If we have a namespace, qualify the relative name
+        if (namespace != null && !namespace.isEmpty()) {
+            return namespace + "." + typeName;
+        }
+        // No namespace context, return as-is
+        return typeName;
+    }
+
+    private static void findExternalTypesIn(JsonNode schema, Set<String> externalTypes, String namespace) {
         // Null check
         if (schema == null || schema.isNull()) {
             return;
@@ -50,26 +87,33 @@ public class AvroReferenceFinder implements ReferenceFinder {
         if (schema.isTextual()) {
             String type = schema.asText();
             if (!PRIMITIVE_TYPES.contains(type)) {
-                externalTypes.add(type);
+                // Qualify the type name with the current namespace if it's a relative name
+                String qualifiedType = qualifyTypeName(type, namespace);
+                externalTypes.add(qualifiedType);
             }
         }
 
         // Handle unions
         if (schema.isArray()) {
             ArrayNode schemas = (ArrayNode) schema;
-            schemas.forEach(s -> findExternalTypesIn(s, externalTypes));
+            schemas.forEach(s -> findExternalTypesIn(s, externalTypes, namespace));
         }
 
         // Handle records
         if (schema.isObject() && schema.has("type") && !schema.get("type").isNull()
                 && schema.get("type").asText().equals("record")) {
+            // Records can define their own namespace, which becomes the enclosing namespace
+            // for nested types according to Avro specification
+            String recordNamespace = extractNamespace(schema);
+            String effectiveNamespace = recordNamespace != null ? recordNamespace : namespace;
+
             JsonNode fieldsNode = schema.get("fields");
             if (fieldsNode != null && fieldsNode.isArray()) {
                 ArrayNode fields = (ArrayNode) fieldsNode;
                 fields.forEach(fieldNode -> {
                     if (fieldNode.isObject()) {
                         JsonNode typeNode = fieldNode.get("type");
-                        findExternalTypesIn(typeNode, externalTypes);
+                        findExternalTypesIn(typeNode, externalTypes, effectiveNamespace);
                     }
                 });
             }
@@ -78,12 +122,12 @@ public class AvroReferenceFinder implements ReferenceFinder {
         if (schema.has("type") && !schema.get("type").isNull()
                 && schema.get("type").asText().equals("array")) {
             JsonNode items = schema.get("items");
-            findExternalTypesIn(items, externalTypes);
+            findExternalTypesIn(items, externalTypes, namespace);
         }
         // Handle maps
         if (schema.has("type") && !schema.get("type").isNull() && schema.get("type").asText().equals("map")) {
             JsonNode values = schema.get("values");
-            findExternalTypesIn(values, externalTypes);
+            findExternalTypesIn(values, externalTypes, namespace);
         }
     }
 

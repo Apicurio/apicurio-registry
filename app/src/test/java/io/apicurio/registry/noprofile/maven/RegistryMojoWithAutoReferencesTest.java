@@ -94,7 +94,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                         fis = new FileInputStream(file);
                     } catch (FileNotFoundException e) {
                     }
-                    return IoUtil.toString(fis).trim();
+                    return IoUtil.toString(fis);
                 }).collect(Collectors.toSet());
 
         RegisterArtifact tableNotification = new RegisterArtifact();
@@ -148,6 +148,62 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
 
         // Assertions
         validateStructure(groupId, artifactId, 3, 4, protoFiles);
+    }
+
+    /**
+     * Test that autoRefs works correctly with Avro schemas using relative type names.
+     * This test addresses issue #6710 - verifies that type references without fully
+     * qualified names (e.g., "Customer" instead of "com.example.trade.Customer")
+     * are properly resolved using the enclosing namespace.
+     */
+    @Test
+    public void autoRegisterAvroWithRelativeTypeNames() throws Exception {
+        String groupId = "autoRegisterAvroWithRelativeTypeNames";
+        String artifactId = "tradeOrder";
+
+        File tradeOrderFile = new File(getClass().getResource("autorefs-relative/TradeOrder.avsc").getFile());
+
+        Set<String> avroFiles = Arrays.stream(Objects.requireNonNull(
+                tradeOrderFile.getParentFile().listFiles((dir, name) -> name.endsWith(AVSC_SCHEMA_EXTENSION))))
+                .map(file -> {
+                    FileInputStream fis = null;
+                    try {
+                        fis = new FileInputStream(file);
+                    } catch (FileNotFoundException e) {
+                    }
+                    return IoUtil.toString(fis);
+                }).collect(Collectors.toSet());
+
+        RegisterArtifact tradeOrderArtifact = new RegisterArtifact();
+        tradeOrderArtifact.setGroupId(groupId);
+        tradeOrderArtifact.setArtifactId(artifactId);
+        tradeOrderArtifact.setArtifactType(ArtifactType.AVRO);
+        tradeOrderArtifact.setFile(tradeOrderFile);
+        tradeOrderArtifact.setAutoRefs(true);
+        tradeOrderArtifact.setAvroAutoRefsNamingStrategy(RegisterArtifact.AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP);
+        tradeOrderArtifact.setIfExists(IfArtifactExists.FAIL);
+
+        registerMojo.setArtifacts(Collections.singletonList(tradeOrderArtifact));
+        registerMojo.execute();
+
+        // Assertions
+        // TradeOrder references: Customer, Instrument (2 direct references)
+        // Customer references: Address (1 nested reference)
+        // Total artifacts: TradeOrder, Customer, Address, Instrument = 4
+        validateStructure(groupId, artifactId, 2, 4, avroFiles);
+
+        // Verify that the references are correctly registered
+        final VersionMetaData tradeOrderMetadata = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+        final List<ArtifactReference> tradeOrderReferences = clientV3.ids().globalIds()
+                .byGlobalId(tradeOrderMetadata.getGlobalId()).references().get();
+
+        // Verify the reference names are fully qualified
+        Set<String> referenceNames = tradeOrderReferences.stream()
+                .map(ArtifactReference::getName)
+                .collect(Collectors.toSet());
+        Assertions.assertTrue(referenceNames.contains("com.example.trade.Customer"));
+        Assertions.assertTrue(referenceNames.contains("com.example.trade.Instrument"));
     }
 
     @Test
@@ -241,7 +297,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
             VersionMetaData referenceMetadata = clientV3.groups().byGroupId(artifactReference.getGroupId())
                     .artifacts().byArtifactId(artifactReference.getArtifactId()).versions()
                     .byVersionExpression("branch=latest").get();
-            Assertions.assertTrue(loadedContents.contains(referenceContent.trim()));
+            Assertions.assertTrue(loadedContents.contains(referenceContent));
 
             List<ArtifactReference> nestedReferences = clientV3.ids().globalIds()
                     .byGlobalId(referenceMetadata.getGlobalId()).references().get();

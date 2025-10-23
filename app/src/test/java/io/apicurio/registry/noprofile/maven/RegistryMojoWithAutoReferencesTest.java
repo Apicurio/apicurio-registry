@@ -130,7 +130,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                         fis = new FileInputStream(file);
                     } catch (FileNotFoundException e) {
                     }
-                    return IoUtil.toString(fis).trim();
+                    return IoUtil.toString(fis);
                 }).collect(Collectors.toSet());
 
         RegisterArtifact citizen = new RegisterArtifact();
@@ -223,7 +223,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                         fis = new FileInputStream(file);
                     } catch (FileNotFoundException e) {
                     }
-                    return IoUtil.toString(fis).trim();
+                    return IoUtil.toString(fis);
                 }).collect(Collectors.toSet());
 
         RegisterArtifact stock = new RegisterArtifact();
@@ -259,7 +259,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         } catch (FileNotFoundException e) {
         }
 
-        Assertions.assertEquals(IoUtil.toString(fis).trim(), IoUtil.toString(contentByGlobalId));
+        Assertions.assertEquals(IoUtil.toString(fis), IoUtil.toString(contentByGlobalId));
     }
 
     private void validateStructure(String groupId, String artifactId, int expectedMainReferences,
@@ -297,7 +297,10 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
             VersionMetaData referenceMetadata = clientV3.groups().byGroupId(artifactReference.getGroupId())
                     .artifacts().byArtifactId(artifactReference.getArtifactId()).versions()
                     .byVersionExpression("branch=latest").get();
-            Assertions.assertTrue(loadedContents.contains(referenceContent));
+
+            Assertions.assertTrue(loadedContents.contains(referenceContent),
+                    String.format("Reference content not found in loaded contents. GroupId: %s, ArtifactId: %s, Version: %s",
+                            artifactReference.getGroupId(), artifactReference.getArtifactId(), artifactReference.getVersion()));
 
             List<ArtifactReference> nestedReferences = clientV3.ids().globalIds()
                     .byGlobalId(referenceMetadata.getGlobalId()).references().get();

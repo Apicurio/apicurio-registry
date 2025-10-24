@@ -309,7 +309,7 @@
     <embedded-postgres.version>2.1.1</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock-jre8.version>3.0.1</wiremock-jre8.version>
-    <strimzi-test-container.version>0.112.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.113.0</strimzi-test-container.version>
   </properties>
 
   <dependencyManagement>

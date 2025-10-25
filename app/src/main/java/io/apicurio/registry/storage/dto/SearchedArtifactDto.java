@@ -30,5 +30,6 @@ public class SearchedArtifactDto {
     private Date modifiedOn;
     private String modifiedBy;
     private Map<String, String> labels;
+    private String contentPath;
 
 }

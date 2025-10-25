@@ -1100,6 +1100,8 @@ public class GroupsResourceImpl implements GroupsResource {
             if (artifactDescription != null && artifactDescription.trim().isEmpty()) {
                 metaData.setDescription(artifactDescription);
             }
+            // V2 API does not support contentPath, so it remains null
+            metaData.setContentPath(null);
 
             ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(ct).content(content)
                     .references(referencesAsDtos).build();
@@ -1375,6 +1377,8 @@ public class GroupsResourceImpl implements GroupsResource {
         if (description != null && description.trim().isEmpty()) {
             artifactMD.setDescription(description);
         }
+        // V2 API does not support contentPath, so it remains null
+        artifactMD.setContentPath(null);
 
         final String owner = securityIdentity.getPrincipal().getName();
 
@@ -1436,7 +1440,7 @@ public class GroupsResourceImpl implements GroupsResource {
         EditableArtifactMetaDataDto metaData;
         if (emd != null) {
             metaData = new EditableArtifactMetaDataDto(emd.getName(), emd.getDescription(), null,
-                    emd.getLabels());
+                    emd.getLabels(), null);
         } else {
             metaData = new EditableArtifactMetaDataDto();
         }

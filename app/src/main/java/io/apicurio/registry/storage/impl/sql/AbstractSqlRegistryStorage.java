@@ -574,7 +574,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(5, owner) // modifiedBy
                         .bind(6, createdOn) // modifiedOn
                         .bind(7, limitStr(amd.getName(), 512))
-                        .bind(8, limitStr(amd.getDescription(), 1024, true)).bind(9, labelsStr).execute();
+                        .bind(8, limitStr(amd.getDescription(), 1024, true))
+                        .bind(9, labelsStr)
+                        .bind(10, limitStr(amd.getContentPath(), 1024)).execute();
 
                 // Insert labels into the "artifact_labels" table
                 if (labels != null && !labels.isEmpty()) {
@@ -590,7 +592,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 ArtifactMetaDataDto amdDto = ArtifactMetaDataDto.builder().groupId(groupId)
                         .artifactId(artifactId).name(amd.getName()).description(amd.getDescription())
                         .createdOn(createdOn.getTime()).owner(owner).modifiedOn(createdOn.getTime())
-                        .modifiedBy(owner).artifactType(artifactType).labels(labels).build();
+                        .modifiedBy(owner).artifactType(artifactType).labels(labels)
+                        .contentPath(amd.getContentPath()).build();
 
                 // The artifact was successfully created! Create the version as well, if one was included.
                 ImmutablePair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> pair;
@@ -1292,6 +1295,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                 .bind(2, limitStr(k.toLowerCase(), 256))
                                 .bind(3, limitStr(asLowerCase(v), 512)).execute();
                     });
+                }
+            }
+
+            // Update contentPath
+            if (metaData.getContentPath() != null) {
+                modified = true;
+
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactContentPath())
+                        .bind(0, limitStr(metaData.getContentPath(), 1024))
+                        .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).execute();
+                if (rowCount == 0) {
+                    throw new ArtifactNotFoundException(groupId, artifactId);
                 }
             }
 
@@ -3152,7 +3167,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(1, entity.artifactId).bind(2, entity.artifactType).bind(3, entity.owner)
                         .bind(4, new Date(entity.createdOn)).bind(5, entity.modifiedBy)
                         .bind(6, new Date(entity.modifiedOn)).bind(7, entity.name).bind(8, entity.description)
-                        .bind(9, labelsStr).execute();
+                        .bind(9, labelsStr).bind(10, entity.contentPath).execute();
 
                 // Insert labels into the "artifact_labels" table
                 if (entity.labels != null && !entity.labels.isEmpty()) {

@@ -33,6 +33,7 @@ public class SearchedArtifactMapper implements RowMapper<SearchedArtifactDto> {
         dto.setModifiedOn(rs.getTimestamp("modifiedOn"));
         dto.setArtifactType(rs.getString("type"));
         dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
+        dto.setContentPath(rs.getString("contentPath"));
         return dto;
     }
 

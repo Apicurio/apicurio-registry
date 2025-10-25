@@ -28,6 +28,7 @@ public class RegisterArtifact {
     private String contentType;
     private List<RegisterArtifactReference> references;
     private List<ExistingReference> existingReferences;
+    private String contentPath;
 
     /**
      * Constructor.
@@ -224,5 +225,21 @@ public class RegisterArtifact {
 
     public void setExistingReferences(List<ExistingReference> existingReferences) {
         this.existingReferences = existingReferences;
+    }
+
+    /**
+     * @return the contentPath
+     */
+    public String getContentPath() {
+        return contentPath;
+    }
+
+    /**
+     * Sets the contentPath (set automatically) is the path of this artifact relative to the root artifact.
+     *
+     * @param contentPath the contentPath to set
+     */
+    public void setContentPath(String contentPath) {
+        this.contentPath = contentPath;
     }
 }

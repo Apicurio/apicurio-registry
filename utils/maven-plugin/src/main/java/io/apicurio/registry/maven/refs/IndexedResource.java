@@ -14,6 +14,7 @@ public class IndexedResource {
     private final String resourceName;
     private final ContentHandle content;
     private VersionMetaData registration;
+    private String contentPath;
 
     /**
      * Constructor.
@@ -101,5 +102,19 @@ public class IndexedResource {
 
     public boolean isRegistered() {
         return this.registration != null;
+    }
+
+    /**
+     * @return the contentPath
+     */
+    public String getContentPath() {
+        return contentPath;
+    }
+
+    /**
+     * @param contentPath the contentPath to set
+     */
+    public void setContentPath(String contentPath) {
+        this.contentPath = contentPath;
     }
 }

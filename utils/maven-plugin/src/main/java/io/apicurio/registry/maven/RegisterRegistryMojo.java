@@ -132,6 +132,9 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             for (RegisterArtifact artifact : artifacts) {
                 String groupId = artifact.getGroupId();
                 String artifactId = artifact.getArtifactId();
+                if (artifact.getContentPath() == null && artifact.getFile() != null) {
+                    artifact.setContentPath(artifact.getFile().getName());
+                }
                 try {
                     if (artifact.getAutoRefs() != null && artifact.getAutoRefs()) {
                         // If we have references, then we'll need to create the local resource index and then
@@ -180,6 +183,12 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
         registrationStack.push(artifact);
 
+        // Calculate contentPath for the main artifact (if not already set and this is the root artifact)
+        if (artifact.getContentPath() == null && registrationStack.size() == 1 && artifact.getFile() != null) {
+            // For the main/root artifact, contentPath is just the filename
+            artifact.setContentPath(artifact.getFile().getName());
+        }
+
         // Read the artifact content.
         ContentHandle artifactContent = readContent(artifact.getFile());
         String artifactContentType = getContentTypeByExtension(artifact.getFile().getName());
@@ -226,6 +235,15 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 refArtifact.setVersion(null);
                 refArtifact.setFile(localFile);
                 refArtifact.setContentType(getContentTypeByExtension(localFile.getName()));
+
+                // Calculate contentPath relative to the root artifact
+                if (artifact.getFile() != null && artifact.getFile().getParentFile() != null) {
+                    java.nio.file.Path rootPath = artifact.getFile().getParentFile().toPath();
+                    java.nio.file.Path refPath = localFile.toPath();
+                    String contentPath = rootPath.relativize(refPath).toString().replace('\\', '/');
+                    refArtifact.setContentPath(contentPath);
+                    iresource.setContentPath(contentPath);
+                }
                 try {
                     var car = registerWithAutoRefs(registryClient, refArtifact, index, registrationStack);
                     iresource.setRegistration(car);
@@ -332,6 +350,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(type);
+        createArtifact.setContentPath(artifact.getContentPath());
 
         CreateVersion createVersion = new CreateVersion();
         createVersion.setVersion(version);

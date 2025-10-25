@@ -29,4 +29,5 @@ public class ArtifactMetaDataDto {
     private long modifiedOn;
     private String artifactType;
     private Map<String, String> labels;
+    private String contentPath;
 }

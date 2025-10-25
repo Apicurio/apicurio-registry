@@ -126,8 +126,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertArtifact() {
-        return "INSERT INTO artifacts (groupId, artifactId, type, owner, createdOn, modifiedBy, modifiedOn, name, description, labels) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO artifacts (groupId, artifactId, type, owner, createdOn, modifiedBy, modifiedOn, name, description, labels, contentPath) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -344,6 +344,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String updateArtifactLabels() {
         return "UPDATE artifacts SET labels = ? WHERE groupId = ? AND artifactId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactContentPath()
+     */
+    @Override
+    public String updateArtifactContentPath() {
+        return "UPDATE artifacts SET contentPath = ? WHERE groupId = ? AND artifactId = ?";
     }
 
     /**

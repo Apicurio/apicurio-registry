@@ -1,6 +1,5 @@
 package io.apicurio.registry.utils.export;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -68,12 +67,7 @@ public class Export implements QuarkusApplication {
     @Inject
     ArtifactReferenceMapper artifactReferenceMapper;
 
-    private final ObjectMapper objectMapper = new ObjectMapper()
-        .addMixIn(ArtifactEntity.class, ArtifactEntityMixin.class);
-
-    @JsonIgnoreProperties({"contentPath"})
-    private static class ArtifactEntityMixin {
-    }
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Main entry point for the export utility.

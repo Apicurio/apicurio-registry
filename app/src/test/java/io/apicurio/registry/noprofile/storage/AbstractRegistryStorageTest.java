@@ -145,12 +145,13 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     @Test
     public void testCreateArtifactWithMetaData() throws Exception {
         String artifactId = "testCreateArtifactWithMetaData-1";
+        String contentPath = "openapi.json";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name("NAME")
                 .description("DESCRIPTION").labels(Collections.singletonMap("KEY", "VALUE")).build();
 
         EditableArtifactMetaDataDto artifactMetaDataDto = new EditableArtifactMetaDataDto("NAME",
-                "DESCRIPTION", null, Collections.singletonMap("KEY", "VALUE"));
+                "DESCRIPTION", null, Collections.singletonMap("KEY", "VALUE"), contentPath);
 
         ArtifactVersionMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
                 artifactMetaDataDto, null, ContentWrapperDto.builder()
@@ -469,7 +470,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         newLabels.put("foo", "bar");
         newLabels.put("ting", "bin");
         EditableArtifactMetaDataDto emd = new EditableArtifactMetaDataDto(newName, newDescription, null,
-                newLabels);
+                newLabels, null);
         storage().updateArtifactMetaData(GROUP_ID, artifactId, emd);
 
         ArtifactMetaDataDto metaData = storage().getArtifactMetaData(GROUP_ID, artifactId);
@@ -930,7 +931,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
             Map<String, String> labels = Collections.singletonMap("key", "value-" + idx);
             EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(artifactId + "-name",
-                    artifactId + "-description", null, labels);
+                    artifactId + "-description", null, labels, null);
             storage().createArtifact(
                     GROUP_ID, artifactId, ArtifactType.OPENAPI, metaData, null, ContentWrapperDto.builder()
                             .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),

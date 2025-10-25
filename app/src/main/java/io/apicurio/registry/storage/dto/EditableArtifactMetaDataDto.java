@@ -31,4 +31,13 @@ public class EditableArtifactMetaDataDto {
     private String owner;
     private Map<String, String> labels;
     private String contentPath;
+
+    // added for backwards compatibility
+    public EditableArtifactMetaDataDto(String name, String description, String owner,
+            Map<String, String> labels) {
+        this.name = name;
+        this.description = description;
+        this.owner = owner;
+        this.labels = labels;
+    }
 }

@@ -110,7 +110,7 @@ CREATE TABLE artifacts (
     contentPath VARCHAR(1024)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE artifacts ADD PRIMARY KEY (groupId, artifactId);
-ALTER TABLE artifacts ADD CONSTRAINT UQ_artifacts_1 UNIQUE (groupId, contentPath);
+-- ALTER TABLE artifacts ADD CONSTRAINT UQ_artifacts_1 UNIQUE (groupId, contentPath);
 CREATE INDEX IDX_artifacts_0 ON artifacts (type);
 CREATE INDEX IDX_artifacts_1 ON artifacts (owner);
 CREATE INDEX IDX_artifacts_2 ON artifacts (createdOn);

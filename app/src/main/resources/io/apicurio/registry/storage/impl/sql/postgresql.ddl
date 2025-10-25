@@ -47,7 +47,7 @@ ALTER TABLE group_rules ADD CONSTRAINT FK_grules_1 FOREIGN KEY (groupId) REFEREN
 
 CREATE TABLE artifacts (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, owner VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP WITHOUT TIME ZONE, name VARCHAR(512), description VARCHAR(1024), labels TEXT, contentPath VARCHAR(1024));
 ALTER TABLE artifacts ADD PRIMARY KEY (groupId, artifactId);
-ALTER TABLE artifacts ADD CONSTRAINT UQ_artifacts_1 UNIQUE (groupId, contentPath);
+-- ALTER TABLE artifacts ADD CONSTRAINT UQ_artifacts_1 UNIQUE (groupId, contentPath);
 CREATE INDEX IDX_artifacts_0 ON artifacts USING HASH (type);
 CREATE INDEX IDX_artifacts_1 ON artifacts USING HASH (owner);
 CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);

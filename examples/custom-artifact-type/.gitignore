@@ -1,0 +1,15 @@
+# Node modules
+toml-artifact-type/node_modules/
+toml-artifact-type/package-lock.json
+
+# Build output
+toml-artifact-type/dist/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db

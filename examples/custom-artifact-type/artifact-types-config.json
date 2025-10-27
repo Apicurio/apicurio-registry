@@ -1,0 +1,32 @@
+{
+  "includeStandardArtifactTypes": true,
+  "artifactTypes": [
+    {
+      "artifactType": "TOML",
+      "name": "TOML",
+      "description": "Tom's Obvious, Minimal Language - A config file format that's easy to read and write",
+      "contentTypes": [
+        "application/toml"
+      ],
+      "scriptLocation": "/custom-artifact-types/dist/toml-artifact-type.js",
+      "contentAccepter": {
+        "type": "script"
+      },
+      "contentCanonicalizer": {
+        "type": "script"
+      },
+      "contentValidator": {
+        "type": "script"
+      },
+      "compatibilityChecker": {
+        "type": "script"
+      },
+      "contentDereferencer": {
+        "type": "script"
+      },
+      "referenceFinder": {
+        "type": "script"
+      }
+    }
+  ]
+}

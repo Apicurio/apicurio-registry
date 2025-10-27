@@ -1,0 +1,30 @@
+# Sample application configuration in TOML format
+# This file demonstrates a typical use case for the custom TOML artifact type
+
+[database]
+host = "localhost"
+port = 5432
+database = "myapp"
+username = "dbuser"
+max_connections = 100
+
+[server]
+host = "0.0.0.0"
+port = 8080
+debug = true
+workers = 4
+
+[logging]
+level = "INFO"
+format = "json"
+output = "/var/log/app.log"
+
+[cache]
+enabled = true
+ttl = 3600
+provider = "redis"
+
+[cache.redis]
+host = "localhost"
+port = 6379
+db = 0

@@ -121,6 +121,120 @@ public class TlsSerdeTest extends AbstractResourceTestBase {
     }
 
     /**
+     * Test JsonSchema SerDe with PKCS12 trust store
+     */
+    @Test
+    public void testJsonSchemaSerdeWithPkcs12TrustStore() throws Exception {
+        URL truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore.p12");
+        Assertions.assertNotNull(truststoreUrl, "PKCS12 truststore file not found");
+
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        Assertions.assertNotNull(jsonSchema);
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON);
+
+        Person person = new Person("David", "Miller", 28);
+
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>();
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>()) {
+
+            // Common SerDe configuration
+            Map<String, Object> commonConfig = new HashMap<>();
+            commonConfig.put(SerdeConfig.REGISTRY_URL, registryV3ApiUrl);
+            // TLS configuration with PKCS12 trust store
+            commonConfig.put(SchemaResolverConfig.TLS_TRUSTSTORE_LOCATION, truststoreUrl.getPath());
+            commonConfig.put(SchemaResolverConfig.TLS_TRUSTSTORE_PASSWORD, "registrytest");
+            commonConfig.put(SchemaResolverConfig.TLS_TRUSTSTORE_TYPE, "PKCS12");
+
+            // Configure the serializer
+            Map<String, Object> serializerConfig = new HashMap<>();
+            serializerConfig.putAll(commonConfig);
+            serializerConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            serializerConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            serializerConfig.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            serializerConfig.put(SerdeConfig.VALIDATION_ENABLED, "true");
+            serializer.configure(serializerConfig, false);
+
+            // Configure the deserializer
+            Map<String, Object> deserializerConfig = new HashMap<>();
+            deserializerConfig.putAll(commonConfig);
+            deserializerConfig.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            deserializer.configure(deserializerConfig, false);
+
+            // Serialize/deserialize the message
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, person);
+            person = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals("David", person.getFirstName());
+            Assertions.assertEquals("Miller", person.getLastName());
+            Assertions.assertEquals(28, person.getAge());
+        }
+    }
+
+    /**
+     * Test JsonSchema SerDe with P12 trust store (shorthand for PKCS12)
+     */
+    @Test
+    public void testJsonSchemaSerdeWithP12TrustStore() throws Exception {
+        URL truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore.p12");
+        Assertions.assertNotNull(truststoreUrl, "P12 truststore file not found");
+
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        Assertions.assertNotNull(jsonSchema);
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON);
+
+        Person person = new Person("Emma", "Wilson", 32);
+
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>();
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>()) {
+
+            // Common SerDe configuration
+            Map<String, Object> commonConfig = new HashMap<>();
+            commonConfig.put(SerdeConfig.REGISTRY_URL, registryV3ApiUrl);
+            // TLS configuration with P12 trust store (shorthand)
+            commonConfig.put(SchemaResolverConfig.TLS_TRUSTSTORE_LOCATION, truststoreUrl.getPath());
+            commonConfig.put(SchemaResolverConfig.TLS_TRUSTSTORE_PASSWORD, "registrytest");
+            commonConfig.put(SchemaResolverConfig.TLS_TRUSTSTORE_TYPE, "P12");
+
+            // Configure the serializer
+            Map<String, Object> serializerConfig = new HashMap<>();
+            serializerConfig.putAll(commonConfig);
+            serializerConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            serializerConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            serializerConfig.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            serializerConfig.put(SerdeConfig.VALIDATION_ENABLED, "true");
+            serializer.configure(serializerConfig, false);
+
+            // Configure the deserializer
+            Map<String, Object> deserializerConfig = new HashMap<>();
+            deserializerConfig.putAll(commonConfig);
+            deserializerConfig.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            deserializer.configure(deserializerConfig, false);
+
+            // Serialize/deserialize the message
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, person);
+            person = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals("Emma", person.getFirstName());
+            Assertions.assertEquals("Wilson", person.getLastName());
+            Assertions.assertEquals(32, person.getAge());
+        }
+    }
+
+    /**
      * Test JsonSchema SerDe with PEM certificate
      */
     @Test

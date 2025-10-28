@@ -200,19 +200,19 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     /**
      * The password for the trust store file specified by {@link #TLS_TRUSTSTORE_LOCATION}.
-     * Only required when using JKS trust stores.
+     * Required when using JKS or PKCS12 trust stores. Not required for PEM certificates.
      */
     public static final String TLS_TRUSTSTORE_PASSWORD = "apicurio.registry.tls.truststore.password";
 
     /**
-     * The type of trust store. Valid values are "JKS" and "PEM". Defaults to "JKS".
+     * The type of trust store. Valid values are "JKS", "PKCS12" (or "P12"), and "PEM". Defaults to "JKS".
      */
     public static final String TLS_TRUSTSTORE_TYPE = "apicurio.registry.tls.truststore.type";
     public static final String TLS_TRUSTSTORE_TYPE_DEFAULT = "JKS";
 
     /**
      * Comma-separated list of PEM certificate file paths to trust. An alternative to using
-     * {@link #TLS_TRUSTSTORE_LOCATION} with a JKS file. When using this option, set
+     * {@link #TLS_TRUSTSTORE_LOCATION} with a JKS or PKCS12 file. When using this option, set
      * {@link #TLS_TRUSTSTORE_TYPE} to "PEM".
      */
     public static final String TLS_CERTIFICATES = "apicurio.registry.tls.certificates";

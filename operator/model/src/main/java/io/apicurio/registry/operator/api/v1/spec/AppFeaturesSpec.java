@@ -21,7 +21,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "resourceDeleteEnabled" })
+@JsonPropertyOrder({ "resourceDeleteEnabled", "versionMutabilityEnabled" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -41,5 +41,15 @@ public class AppFeaturesSpec {
             option enables deletes for all three resource types.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private Boolean resourceDeleteEnabled;
+
+    @JsonProperty("versionMutabilityEnabled")
+    @JsonPropertyDescription("""
+            Apicurio Registry backend 'artifact version mutability' feature.
+            If the value is true, the application will be configured to allow Artifact Versions in
+            DRAFT state to be mutable, meaning their content can be changed. By default, artifact
+            version content is immutable and cannot be modified once created. Enabling this feature
+            also unlocks Studio functionality in the Apicurio Registry UI.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private Boolean versionMutabilityEnabled;
 
 }

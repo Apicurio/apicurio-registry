@@ -241,7 +241,7 @@
     <pulsar-clients.version>3.3.9</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
-    <quickjs4j.version>0.0.10</quickjs4j.version>
+    <quickjs4j.version>0.0.11</quickjs4j.version>
 
     <nats.version>2.23.0</nats.version>
     <snakeyaml.version>2.5</snakeyaml.version>

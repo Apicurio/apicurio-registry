@@ -72,6 +72,7 @@ public class RegistryClientOptions {
     private String trustStorePath;
     private String trustStorePassword;
     private String[] pemCertPaths;
+    private String pemCertContent; // PEM certificate content as string (alternative to file paths)
     private boolean trustAll = false;
     private boolean verifyHost = true;
     
@@ -152,6 +153,10 @@ public class RegistryClientOptions {
 
     public String[] getPemCertPaths() {
         return pemCertPaths;
+    }
+
+    public String getPemCertContent() {
+        return pemCertContent;
     }
 
     public boolean isTrustAll() {
@@ -384,6 +389,43 @@ public class RegistryClientOptions {
     }
 
     /**
+     * Configures SSL/TLS with PEM certificate content (as a string).
+     * This allows the client to trust certificates without requiring file system access,
+     * which is useful in containerized or cloud environments where certificates are
+     * provided via environment variables or configuration systems.
+     *
+     * <p>The content should be in standard PEM format with BEGIN/END markers.
+     * Multiple certificates can be provided in a single string, each delineated by
+     * the standard PEM markers (-----BEGIN CERTIFICATE----- and -----END CERTIFICATE-----).</p>
+     *
+     * <p>Example:</p>
+     * <pre>
+     * -----BEGIN CERTIFICATE-----
+     * MIIDXTCCAkWgAwIBAgIJAKJ0...
+     * -----END CERTIFICATE-----
+     * -----BEGIN CERTIFICATE-----
+     * MIIEYzCCA0ugAwIBAgIQAHmP...
+     * -----END CERTIFICATE-----
+     * </pre>
+     *
+     * @param pemContent the PEM certificate content as a string (may contain multiple certificates)
+     * @return this builder
+     * @throws IllegalArgumentException if pemContent is null or empty
+     */
+    public RegistryClientOptions trustStorePemContent(String pemContent) {
+        if (pemContent == null || pemContent.trim().isEmpty()) {
+            throw new IllegalArgumentException("PEM certificate content cannot be null or empty");
+        }
+        if (!pemContent.contains("-----BEGIN CERTIFICATE-----")) {
+            throw new IllegalArgumentException("PEM certificate content must contain at least one certificate with BEGIN CERTIFICATE marker");
+        }
+        clearTrustStore();
+        this.trustStoreType = TrustStoreType.PEM;
+        this.pemCertContent = pemContent;
+        return this;
+    }
+
+    /**
      * Configures the client to trust all SSL/TLS certificates without validation.
      *
      * <p><strong>WARNING:</strong> This option should ONLY be used in development or testing environments.
@@ -423,6 +465,7 @@ public class RegistryClientOptions {
         this.trustStorePath = null;
         this.trustStorePassword = null;
         this.pemCertPaths = null;
+        this.pemCertContent = null;
         this.trustAll = false;
         return this;
     }

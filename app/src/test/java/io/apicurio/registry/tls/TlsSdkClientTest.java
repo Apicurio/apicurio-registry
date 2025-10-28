@@ -123,6 +123,76 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
     }
 
     /**
+     * Test v3 SDK client with PEM certificate content (as string) - should successfully connect
+     */
+    @Test
+    public void testV3ClientWithPemContent() throws Exception {
+        // Read the PEM certificate file and pass it as content string
+        URL certUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
+        Assertions.assertNotNull(certUrl, "PEM certificate file not found");
+
+        String pemContent = new String(java.nio.file.Files.readAllBytes(
+                java.nio.file.Paths.get(certUrl.toURI())));
+
+        RegistryClient client = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                        .trustStorePemContent(pemContent));
+
+        SystemInfo systemInfo = client.system().info().get();
+        Assertions.assertNotNull(systemInfo);
+        Assertions.assertNotNull(systemInfo.getName());
+        Assertions.assertNotNull(systemInfo.getVersion());
+    }
+
+    /**
+     * Test v2 SDK client with PEM certificate content (as string) - should successfully connect
+     */
+    @Test
+    public void testV2ClientWithPemContent() throws Exception {
+        // Read the PEM certificate file and pass it as content string
+        URL certUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
+        Assertions.assertNotNull(certUrl, "PEM certificate file not found");
+
+        String pemContent = new String(java.nio.file.Files.readAllBytes(
+                java.nio.file.Paths.get(certUrl.toURI())));
+
+        io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
+                RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                        .trustStorePemContent(pemContent));
+
+        io.apicurio.registry.rest.client.v2.models.SystemInfo systemInfo = client.system().info().get();
+        Assertions.assertNotNull(systemInfo);
+        Assertions.assertNotNull(systemInfo.getName());
+        Assertions.assertNotNull(systemInfo.getVersion());
+    }
+
+    /**
+     * Test v3 SDK client with multiple PEM certificates in a single content string - should successfully connect
+     */
+    @Test
+    public void testV3ClientWithMultiplePemCertificatesInContent() throws Exception {
+        // Read the PEM certificate file
+        URL certUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
+        Assertions.assertNotNull(certUrl, "PEM certificate file not found");
+
+        String singleCert = new String(java.nio.file.Files.readAllBytes(
+                java.nio.file.Paths.get(certUrl.toURI())));
+
+        // Concatenate the same certificate twice to simulate multiple certificates
+        // In a real scenario, these would be different certificates from different CAs
+        String multipleCerts = singleCert + "\n" + singleCert;
+
+        RegistryClient client = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                        .trustStorePemContent(multipleCerts));
+
+        SystemInfo systemInfo = client.system().info().get();
+        Assertions.assertNotNull(systemInfo);
+        Assertions.assertNotNull(systemInfo.getName());
+        Assertions.assertNotNull(systemInfo.getVersion());
+    }
+
+    /**
      * Test v3 SDK client with trustAll enabled - should successfully connect
      */
     @Test

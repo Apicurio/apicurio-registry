@@ -110,12 +110,18 @@ public class RegistryClientFacadeFactory {
                 clientOptions.trustStorePem(truststoreLocation);
             }
         } else if (certificates != null) {
-            // Support comma-separated list of PEM certificate paths
-            String[] certPaths = certificates.split(",");
-            for (int i = 0; i < certPaths.length; i++) {
-                certPaths[i] = certPaths[i].trim();
+            // Detect if certificates contains PEM content or file paths
+            if (certificates.contains("-----BEGIN CERTIFICATE-----")) {
+                // It's PEM certificate content - pass as string
+                clientOptions.trustStorePemContent(certificates);
+            } else {
+                // It's a comma-separated list of PEM certificate file paths
+                String[] certPaths = certificates.split(",");
+                for (int i = 0; i < certPaths.length; i++) {
+                    certPaths[i] = certPaths[i].trim();
+                }
+                clientOptions.trustStorePem(certPaths);
             }
-            clientOptions.trustStorePem(certPaths);
         }
 
         if (!verifyHost) {

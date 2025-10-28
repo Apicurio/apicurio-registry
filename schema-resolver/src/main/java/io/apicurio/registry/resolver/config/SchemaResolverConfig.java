@@ -211,9 +211,17 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String TLS_TRUSTSTORE_TYPE_DEFAULT = "JKS";
 
     /**
-     * Comma-separated list of PEM certificate file paths to trust. An alternative to using
-     * {@link #TLS_TRUSTSTORE_LOCATION} with a JKS or PKCS12 file. When using this option, set
+     * PEM certificate configuration for TLS/SSL trust. This property accepts either:
+     * <ul>
+     *   <li>Comma-separated list of PEM certificate file paths (e.g., "/path/to/cert1.pem,/path/to/cert2.pem")</li>
+     *   <li>PEM certificate content as a string (one or more certificates with -----BEGIN CERTIFICATE----- markers)</li>
+     * </ul>
+     * An alternative to using {@link #TLS_TRUSTSTORE_LOCATION} with a JKS file. When using this option, set
      * {@link #TLS_TRUSTSTORE_TYPE} to "PEM".
+     * <p>
+     * The system automatically detects whether the value contains file paths or certificate content by
+     * checking for the presence of "-----BEGIN CERTIFICATE-----" markers.
+     * </p>
      */
     public static final String TLS_CERTIFICATES = "apicurio.registry.tls.certificates";
 

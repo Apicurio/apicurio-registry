@@ -4,6 +4,7 @@ import com.microsoft.kiota.RequestAdapter;
 import io.apicurio.registry.client.auth.VertXAuthFactory;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClosedException;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemTrustOptions;
@@ -234,9 +235,19 @@ public class RegistryClientRequestAdapterFactory {
                 break;
             case PEM:
                 PemTrustOptions pemOptions = new PemTrustOptions();
-                for (String certPath : options.getPemCertPaths()) {
-                    pemOptions.addCertPath(certPath);
+
+                // Check if we have PEM content (as string) or PEM file paths
+                if (options.getPemCertContent() != null) {
+                    // PEM content provided as string - add as value
+                    Buffer certBuffer = Buffer.buffer(options.getPemCertContent());
+                    pemOptions.addCertValue(certBuffer);
+                } else if (options.getPemCertPaths() != null) {
+                    // PEM file paths provided - add as paths
+                    for (String certPath : options.getPemCertPaths()) {
+                        pemOptions.addCertPath(certPath);
+                    }
                 }
+
                 webClientOptions.setTrustOptions(pemOptions);
                 break;
             case NONE:

@@ -8,6 +8,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClosedException;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemTrustOptions;
+import io.vertx.core.net.PfxOptions;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
@@ -225,6 +226,12 @@ public class RegistryClientRequestAdapterFactory {
                         .setPath(options.getTrustStorePath())
                         .setPassword(options.getTrustStorePassword());
                 webClientOptions.setTrustOptions(jksOptions);
+                break;
+            case PKCS12:
+                PfxOptions pfxOptions = new PfxOptions()
+                        .setPath(options.getTrustStorePath())
+                        .setPassword(options.getTrustStorePassword());
+                webClientOptions.setTrustOptions(pfxOptions);
                 break;
             case PEM:
                 PemTrustOptions pemOptions = new PemTrustOptions();

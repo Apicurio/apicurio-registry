@@ -43,9 +43,10 @@ public class RegistryClientOptions {
      * Trust store type enumeration for SSL/TLS configuration.
      */
     public enum TrustStoreType {
-        JKS,    // Java KeyStore format
-        PEM,    // PEM certificate file(s)
-        NONE    // No custom trust store configured
+        JKS,     // Java KeyStore format
+        PKCS12,  // PKCS#12 format
+        PEM,     // PEM certificate file(s)
+        NONE     // No custom trust store configured
     }
 
     private String registryUrl;
@@ -337,6 +338,27 @@ public class RegistryClientOptions {
         }
         clearTrustStore();
         this.trustStoreType = TrustStoreType.JKS;
+        this.trustStorePath = path;
+        this.trustStorePassword = password;
+        return this;
+    }
+
+    /**
+     * Configures SSL/TLS with a PKCS#12 trust store.
+     * This allows the client to trust certificates signed by custom certificate authorities
+     * or self-signed certificates.
+     *
+     * @param path the path to the PKCS#12 trust store file (can be a file system path or classpath resource prefixed with "classpath:")
+     * @param password the password for the trust store
+     * @return this builder
+     * @throws IllegalArgumentException if path is null or empty
+     */
+    public RegistryClientOptions trustStorePkcs12(String path, String password) {
+        if (path == null || path.trim().isEmpty()) {
+            throw new IllegalArgumentException("Trust store path cannot be null or empty");
+        }
+        clearTrustStore();
+        this.trustStoreType = TrustStoreType.PKCS12;
         this.trustStorePath = path;
         this.trustStorePassword = password;
         return this;

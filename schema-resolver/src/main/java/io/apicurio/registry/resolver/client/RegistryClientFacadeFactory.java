@@ -104,6 +104,8 @@ public class RegistryClientFacadeFactory {
         } else if (truststoreLocation != null) {
             if ("JKS".equalsIgnoreCase(truststoreType)) {
                 clientOptions.trustStoreJks(truststoreLocation, truststorePassword);
+            } else if ("PKCS12".equalsIgnoreCase(truststoreType) || "P12".equalsIgnoreCase(truststoreType)) {
+                clientOptions.trustStorePkcs12(truststoreLocation, truststorePassword);
             } else if ("PEM".equalsIgnoreCase(truststoreType)) {
                 clientOptions.trustStorePem(truststoreLocation);
             }

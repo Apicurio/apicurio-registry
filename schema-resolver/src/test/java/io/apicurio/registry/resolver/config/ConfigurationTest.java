@@ -152,4 +152,57 @@ class ConfigurationTest {
         // Verify that the returned URL does not include the credentials
         assertEquals("https://registry.example.com", config.getRegistryUrl());
     }
+
+    /**
+     * Test that getClass() method handles both Class objects and String class names.
+     * This is important for backward compatibility with 2.6.x clients.
+     */
+    @Test
+    void testGetClassWithBothClassAndString() {
+        var originals = new HashMap<String, Object>();
+        var testKey = "test.class.property";
+
+        // Test 1: Passing a Class object directly
+        originals.put(testKey, String.class);
+        var config = new SchemaResolverConfig(originals);
+        Class<?> result = config.getClass(testKey);
+        assertEquals(String.class, result);
+
+        // Test 2: Passing a String class name
+        originals.clear();
+        originals.put(testKey, "java.lang.String");
+        config = new SchemaResolverConfig(originals);
+        result = config.getClass(testKey);
+        assertEquals(String.class, result);
+
+        // Test 3: Passing null (property not set)
+        originals.clear();
+        config = new SchemaResolverConfig(originals);
+        result = config.getClass(testKey);
+        assertEquals(null, result);
+
+        // Test 4: Passing an invalid type should throw IllegalArgumentException
+        originals.clear();
+        originals.put(testKey, 123); // Integer instead of Class or String
+        config = new SchemaResolverConfig(originals);
+        try {
+            config.getClass(testKey);
+            Assertions.fail("Expected IllegalArgumentException for invalid type");
+        } catch (IllegalArgumentException ex) {
+            // Expected - should contain error message about expecting Class or String
+            Assertions.assertTrue(ex.getMessage().contains("Class or String"));
+        }
+
+        // Test 5: Passing an invalid class name should throw RuntimeException
+        originals.clear();
+        originals.put(testKey, "com.example.NonExistentClass");
+        config = new SchemaResolverConfig(originals);
+        try {
+            config.getClass(testKey);
+            Assertions.fail("Expected RuntimeException for invalid class name");
+        } catch (RuntimeException ex) {
+            // Expected - should be caused by ClassNotFoundException
+            Assertions.assertTrue(ex.getCause() instanceof ClassNotFoundException);
+        }
+    }
 }

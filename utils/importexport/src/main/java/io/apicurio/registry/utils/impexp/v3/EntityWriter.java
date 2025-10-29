@@ -1,5 +1,6 @@
 package io.apicurio.registry.utils.impexp.v3;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,10 +15,16 @@ import java.util.zip.ZipOutputStream;
 public class EntityWriter {
 
     private static final ObjectMapper mapper;
+
+    @JsonIgnoreProperties({"contentPath"})
+    private static class ArtifactEntityMixin {
+    }
+
     static {
         JsonFactory jsonFactory = new JsonFactory();
         jsonFactory.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
-        mapper = new ObjectMapper(jsonFactory);
+        mapper = new ObjectMapper(jsonFactory)
+                .addMixIn(ArtifactEntity.class, ArtifactEntityMixin.class);
     }
 
     private final transient ZipOutputStream zip;

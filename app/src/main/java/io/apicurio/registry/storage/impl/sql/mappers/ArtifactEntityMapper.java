@@ -33,6 +33,7 @@ public class ArtifactEntityMapper implements RowMapper<ArtifactEntity> {
         entity.createdOn = rs.getTimestamp("createdOn").getTime();
         entity.modifiedBy = rs.getString("modifiedBy");
         entity.modifiedOn = rs.getTimestamp("modifiedOn").getTime();
+        entity.contentPath = rs.getString("contentPath");
         return entity;
     }
 

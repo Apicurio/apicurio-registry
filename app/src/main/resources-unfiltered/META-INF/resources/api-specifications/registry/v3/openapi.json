@@ -3867,6 +3867,10 @@
           "artifactId": {
             "$ref": "#/components/schemas/ArtifactId",
             "description": ""
+          },
+          "contentPath": {
+            "type": "string",
+            "description": "Relative path from the root folder of the main artifact being uploaded."
           }
         },
         "example": {
@@ -3939,6 +3943,10 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "contentPath": {
+            "type": "string",
+            "description": "Relative path from the root folder of the main artifact being uploaded."
           }
         },
         "example": {
@@ -3950,7 +3958,8 @@
           "owner": "user1",
           "createdOn": "2019-03-22T12:51:19Z",
           "modifiedBy": "user2",
-          "modifiedOn": "2019-04-01T12:51:19Z"
+          "modifiedOn": "2019-04-01T12:51:19Z",
+          "contentPath": "schemas/invoice.avsc"
         }
       },
       "VersionMetaData": {
@@ -4818,6 +4827,10 @@
           "owner": {
             "description": "",
             "type": "string"
+          },
+          "contentPath": {
+            "type": "string",
+            "description": "Relative path from the root folder of the main artifact being uploaded."
           }
         },
         "example": {
@@ -4827,7 +4840,8 @@
           "labels": {
             "custom-1": "foo",
             "custom-2": "bar"
-          }
+          },
+          "contentPath": "schemas/common/types.proto"
         }
       },
       "EditableGroupMetaData": {
@@ -4947,6 +4961,10 @@
             "$ref": "#/components/schemas/Labels",
             "description": ""
           },
+          "contentPath": {
+            "type": "string",
+            "description": "Relative path from the root folder of the main artifact being uploaded."
+          },
           "firstVersion": {
             "$ref": "#/components/schemas/CreateVersion",
             "description": ""
@@ -4961,6 +4979,7 @@
             "label-1": "value-1",
             "label-2": "value-2"
           },
+          "contentPath": "schemas/invoice.avsc",
           "firstVersion": {
             "version": "1.0.0",
             "content": {

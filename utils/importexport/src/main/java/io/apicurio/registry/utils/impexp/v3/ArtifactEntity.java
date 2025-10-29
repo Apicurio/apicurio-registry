@@ -31,6 +31,7 @@ public class ArtifactEntity extends Entity {
     public long createdOn;
     public String modifiedBy;
     public long modifiedOn;
+    public String contentPath;
 
     /**
      * @see Entity#getEntityType()

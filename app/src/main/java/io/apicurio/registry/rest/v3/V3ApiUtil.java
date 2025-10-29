@@ -63,6 +63,7 @@ public final class V3ApiUtil {
         metaData.setName(dto.getName());
         metaData.setArtifactType(dto.getArtifactType());
         metaData.setLabels(dto.getLabels());
+        metaData.setContentPath(dto.getContentPath());
         return metaData;
     }
 
@@ -108,6 +109,9 @@ public final class V3ApiUtil {
         if (editableArtifactMetaData.getLabels() != null && !editableArtifactMetaData.getLabels().isEmpty()) {
             dto.setLabels(editableArtifactMetaData.getLabels());
         }
+        if (editableArtifactMetaData.getContentPath() != null) {
+            dto.setContentPath(editableArtifactMetaData.getContentPath());
+        }
         return dto;
     }
 
@@ -145,6 +149,7 @@ public final class V3ApiUtil {
             sa.setName(artifact.getName());
             sa.setArtifactType(artifact.getArtifactType());
             sa.setLabels(artifact.getLabels());
+            sa.setContentPath(artifact.getContentPath());
             results.getArtifacts().add(sa);
         });
         return results;

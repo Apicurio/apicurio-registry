@@ -114,11 +114,17 @@ public abstract class AbstractConfig {
 
     protected Class<?> getClass(String className) {
         try {
-            String originalsClassName = (String) this.originals.get(className);
-            if (originalsClassName != null) {
-                return this.getClass().getClassLoader().loadClass(originalsClassName);
-            } else {
+            Object value = this.originals.get(className);
+            if (value == null) {
                 return null;
+            }
+            if (value instanceof Class<?>) {
+                return (Class<?>) value;
+            } else if (value instanceof String) {
+                return this.getClass().getClassLoader().loadClass((String) value);
+            } else {
+                reportError(className, "a Class or String", value.getClass().getName());
+                throw new IllegalStateException("Unreachable");
             }
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);

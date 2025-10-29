@@ -9,6 +9,11 @@ on:
     types: [released, prereleased]
 
 
+permissions:
+  id-token: write
+  contents: read
+
+
 env:
   # The values are extracted from the github.event context,
   # which is only available when the workflow gets triggered by a release event.
@@ -81,6 +86,9 @@ jobs:
       - name: Check Node Version
         run: node --version
 
+      - name: Check npm Version
+        run: npm --version
+
       - name: Build Artifact Type Builtins Package
         working-directory: registry/artifact-type-builtins
         run: |
@@ -89,8 +97,6 @@ jobs:
 
       - name: Publish to npmjs.com
         working-directory: registry/artifact-type-builtins
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
 
       - name: Slack Notification (Always)

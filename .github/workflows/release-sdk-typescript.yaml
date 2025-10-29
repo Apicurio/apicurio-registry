@@ -9,6 +9,11 @@ on:
     types: [released, prereleased]
 
 
+permissions:
+  id-token: write
+  contents: read
+
+
 env:
   # The values are extracted from the github.event context,
   # which is only available when the workflow gets triggered by a release event.
@@ -58,6 +63,9 @@ jobs:
       - name: Check Node Version
         run: node --version
 
+      - name: Check npm Version
+        run: npm --version
+
       # Needs special tagging to use submodules: https://stackoverflow.com/a/64705638/7898052
       - name: Release Typescript SDK
         working-directory: registry/typescript-sdk
@@ -68,8 +76,6 @@ jobs:
 
       - name: Publish to npmjs.com
         working-directory: registry/typescript-sdk
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
 
       - name: Slack Notification (Always)

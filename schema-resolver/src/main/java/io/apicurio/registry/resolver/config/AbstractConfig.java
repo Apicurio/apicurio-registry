@@ -112,17 +112,20 @@ public abstract class AbstractConfig {
         return originals.get(key);
     }
 
-    protected Class<?> getClass(String className) {
-        try {
-            String originalsClassName = (String) this.originals.get(className);
-            if (originalsClassName != null) {
-                return this.getClass().getClassLoader().loadClass(originalsClassName);
-            } else {
-                return null;
+    protected Class<?> getClass(String key) {
+        Object originalValue = originals.get(key);
+
+        if (originalValue instanceof Class<?> cls) {
+            return cls;
+        } else if (originalValue instanceof String clsName) {
+            try {
+                return this.getClass().getClassLoader().loadClass(clsName);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
             }
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
+
+        throw new RuntimeException("Unexpected value for key '" + key + "': " + originalValue);
     }
 
     public Map<String, Object> originals() {

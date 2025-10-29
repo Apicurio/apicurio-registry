@@ -4,9 +4,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConfigurationTest {
 
@@ -151,5 +155,52 @@ class ConfigurationTest {
 
         // Verify that the returned URL does not include the credentials
         assertEquals("https://registry.example.com", config.getRegistryUrl());
+    }
+
+    static class SingletonConfig extends AbstractConfig {
+        SingletonConfig(String key, Object value) {
+            originals = Map.of(key, value);
+        }
+
+        @Override
+        protected Map<String, ?> getDefaults() {
+            return Collections.emptyMap();
+        }
+    }
+
+    @Test
+    void testClassTypedClassConfiguration() {
+        class TestType {
+        }
+        var config = new SingletonConfig("test-key", TestType.class);
+        var loadedValue = config.getClass("test-key");
+        assertEquals(TestType.class, loadedValue);
+    }
+
+    @Test
+    void testStringTypedClassConfiguration() {
+        class TestType {
+        }
+        var config = new SingletonConfig("test-key", TestType.class.getName());
+        var loadedValue = config.getClass("test-key");
+        assertEquals(TestType.class, loadedValue);
+    }
+
+    @Test
+    void testStringTypedNoSuchClassConfiguration() {
+        class TestType {
+        }
+        var config = new SingletonConfig("test-key", TestType.class.getName() + "X");
+        var thrown = assertThrows(RuntimeException.class, () -> config.getClass("test-key"));
+        assertTrue(thrown.getCause() instanceof ClassNotFoundException);
+    }
+
+    @Test
+    void testInvalidTypedClassConfiguration() {
+        class TestType {
+        }
+        var config = new SingletonConfig("test-key", new TestType());
+        var thrown = assertThrows(RuntimeException.class, () -> config.getClass("test-key"));
+        assertTrue(thrown.getMessage().startsWith("Unexpected value for key"));
     }
 }

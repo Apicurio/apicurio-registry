@@ -111,6 +111,8 @@ jobs:
           json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"${{ env.RELEASE_UI_VERSION }}\""
           cd ../ui-docs
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          cd ../ui-editors
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
           cd ../tests
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
           cd ../../typescript-sdk
@@ -192,6 +194,8 @@ jobs:
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
           json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"${{ env.SNAPSHOT_UI_VERSION }}\""
           cd ../ui-docs
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          cd ../ui-editors
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
           cd ../tests
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version

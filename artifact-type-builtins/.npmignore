@@ -1,0 +1,30 @@
+# Development files
+node_modules/
+*.log
+.DS_Store
+
+# Source files (we only ship the lib/ directory)
+src/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Test files
+test/
+tests/
+*.test.ts
+*.spec.ts
+
+# Build configuration
+tsconfig.json
+.eslintrc*
+.prettierrc*
+
+# Git files
+.git/
+.gitignore
+.gitattributes

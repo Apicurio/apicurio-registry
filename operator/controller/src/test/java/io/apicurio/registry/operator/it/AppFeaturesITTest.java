@@ -68,13 +68,17 @@ public class AppFeaturesITTest extends ITBase {
         // Wait for the deployment to exist
         checkDeploymentExists(registry, ResourceFactory.COMPONENT_APP, 1);
 
-        // Check that the mutability ENV var is set
+        // Check that the mutability ENV var is set with value "true"
         var appEnv = getContainerFromDeployment(
                 client.apps().deployments().inNamespace(namespace)
                         .withName(registry.getMetadata().getName() + "-app-deployment").get(),
                 REGISTRY_APP_CONTAINER_NAME).getEnv();
-        assertThat(appEnv).map(EnvVar::getName).contains(
-                EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED);
+        assertThat(appEnv)
+                .filteredOn(e -> e.getName().equals(EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED))
+                .hasSize(1)
+                .first()
+                .extracting(EnvVar::getValue)
+                .isEqualTo("true");
     }
 
     @Test

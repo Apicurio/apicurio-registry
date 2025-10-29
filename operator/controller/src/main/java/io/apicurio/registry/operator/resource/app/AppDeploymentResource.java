@@ -81,6 +81,16 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED).withValue("true").build());
         }
 
+        // Enable version mutability if configured in the CR
+        boolean versionMutabilityEnabled = Optional.ofNullable(primary.getSpec().getApp())
+                .map(AppSpec::getFeatures)
+                .map(AppFeaturesSpec::getVersionMutabilityEnabled)
+                .orElse(Boolean.FALSE);
+
+        if (versionMutabilityEnabled) {
+            addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED).withValue("true").build());
+        }
+
         boolean authEnabled = Optional.ofNullable(primary.getSpec())
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getAuth)

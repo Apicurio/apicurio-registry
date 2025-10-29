@@ -56,4 +56,46 @@ public class AppFeaturesITTest extends ITBase {
                 EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED,
                 EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED);
     }
+
+    @Test
+    void testVersionMutabilityEnabledTrue() {
+        ApicurioRegistry3 registry = ResourceFactory
+                .deserialize("/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);
+        // Set version mutability enabled = true
+        registry.getSpec().getApp().setFeatures(AppFeaturesSpec.builder().versionMutabilityEnabled(true).build());
+        client.resource(registry).create();
+
+        // Wait for the deployment to exist
+        checkDeploymentExists(registry, ResourceFactory.COMPONENT_APP, 1);
+
+        // Check that the mutability ENV var is set with value "true"
+        var appEnv = getContainerFromDeployment(
+                client.apps().deployments().inNamespace(namespace)
+                        .withName(registry.getMetadata().getName() + "-app-deployment").get(),
+                REGISTRY_APP_CONTAINER_NAME).getEnv();
+        assertThat(appEnv)
+                .filteredOn(e -> e.getName().equals(EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED))
+                .hasSize(1)
+                .first()
+                .extracting(EnvVar::getValue)
+                .isEqualTo("true");
+    }
+
+    @Test
+    void testVersionMutabilityEnabledDefault() {
+        ApicurioRegistry3 registry = ResourceFactory
+                .deserialize("/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);
+        client.resource(registry).create();
+
+        // Wait for the deployment to exist
+        checkDeploymentExists(registry, ResourceFactory.COMPONENT_APP, 1);
+
+        // Check that the mutability ENV var is NOT set
+        var appEnv = getContainerFromDeployment(
+                client.apps().deployments().inNamespace(namespace)
+                        .withName(registry.getMetadata().getName() + "-app-deployment").get(),
+                REGISTRY_APP_CONTAINER_NAME).getEnv();
+        assertThat(appEnv).map(EnvVar::getName).doesNotContain(
+                EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED);
+    }
 }

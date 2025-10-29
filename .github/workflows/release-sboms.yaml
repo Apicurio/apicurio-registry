@@ -81,6 +81,9 @@ jobs:
           cd ../ui-docs
           echo "Generating npm SBOM output to: $SBOM_OUTPUT_DIR/apicurio-registry-ui-docs-$RELEASE_VERSION.sbom.npm"
           npm list -prod -depth 10 --json > $SBOM_OUTPUT_DIR/apicurio-registry-ui-docs-$RELEASE_VERSION.sbom.npm
+          cd ../ui-editors
+          echo "Generating npm SBOM output to: $SBOM_OUTPUT_DIR/apicurio-registry-ui-editors-$RELEASE_VERSION.sbom.npm"
+          npm list -prod -depth 10 --json > $SBOM_OUTPUT_DIR/apicurio-registry-ui-editors-$RELEASE_VERSION.sbom.npm
 
       - name: Commit SBOMs to Repo
         run: |

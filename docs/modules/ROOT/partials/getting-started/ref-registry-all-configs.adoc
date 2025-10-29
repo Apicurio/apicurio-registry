@@ -170,7 +170,7 @@ The following {registry} configuration options are available for each component 
 |Enable auth
 |`quarkus.oidc.token-path`
 |`string`
-|
+|`/protocol/openid-connect/token/`
 |`2.1.0.Final`
 |Authentication server token endpoint.
 |===
@@ -487,6 +487,68 @@ The following {registry} configuration options are available for each component 
 |Storage metrics cache max size.
 |===
 
+== log
+.log configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.log.level`
+|`string [dynamic]`
+|`WARN`
+|`3.1.0`
+|Dynamic log level for Apicurio Registry
+|===
+
+== observability
+.observability configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.metrics.rest.enabled`
+|`boolean`
+|`true`
+|`3.1.1`
+|        Enable collecting metrics about REST API requests.
+
+|`apicurio.metrics.rest.explicit-status-codes-list`
+|`list<string>`
+|`401`
+|`3.1.1`
+|        Only the general category of the HTTP status code is added as a tag/label on REST API request metrics,
+        e.g. `1xx`, `2xx`, ...         If you are interested in metrics for a specific status code, e.g. 401 for authentication errors,
+        this property allows you to specify a list of such codes.         Each request will be counted only once, i.e. either as the specific status code or in the general category. 
+|`apicurio.metrics.rest.method-tag-enabled`
+|`boolean`
+|`true`
+|`3.1.1`
+|        Add the HTTP method tag/label on REST API request metrics.         You might disable this tag to reduce metrics cardinality.
+
+|`apicurio.metrics.rest.path-filter-pattern`
+|`string`
+|`/apis/.*`
+|`3.1.1`
+|        Only requests with a path matching this pattern (Java syntax) will be considered for metrics collection.         The pattern is applied to the request path only,
+        e.g. `curl 'http://localhost:8080/apis/registry/v3/groups/default/artifacts?offset=42&limit=10'`
+        will be matched against `/apis/registry/v3/groups/default/artifacts`.
+
+|`apicurio.metrics.rest.path-tag-enabled`
+|`boolean`
+|`true`
+|`3.1.1`
+|        Add the unsubstituted path tag/label on REST API request metrics,
+        e.g. `/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}`.         You might disable this tag to reduce metrics cardinality.         When an unsubstituted REST API resource path could not be determined,
+        the tag value will be `(unspecified)`.
+
+|===
+
 == redirects
 .redirects configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -794,6 +856,11 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.0.0.Final`
 |SQL init
+|`apicurio.storage.enable-automatic-group-creation`
+|`boolean`
+|`true`
+|`3.0.15`
+|Enable automatic creation of group when creating an artifact
 |`apicurio.storage.kind`
 |`string`
 |
@@ -802,7 +869,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.storage.read-only.enabled`
 |`boolean [dynamic]`
 |`false`
-|`2.5.0.Final`
+|`3.0.0`
 |Enable Registry storage read-only mode
 |`apicurio.storage.snapshot.location`
 |`string`
@@ -877,6 +944,11 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.app.context-path`
+|`string`
+|`/`
+|`3.1.0`
+|Context path for application (useful when behind a proxy)
 |`apicurio.ui.auth.oidc.client-id`
 |`string`
 |`apicurio-registry-ui`
@@ -907,6 +979,11 @@ The following {registry} configuration options are available for each component 
 |`/docs/`
 |`3.0.0`
 |URL of the Documentation component
+|`apicurio.ui.editorsUrl`
+|`string`
+|`/editors/`
+|`3.1.0`
+|URL of the Editors component
 |`apicurio.ui.features.breadcrumbs`
 |`string`
 |`true`
@@ -1056,6 +1133,11 @@ The following {registry} configuration options are available for each component 
 |`apicurio.limits.config.cache.check-period`
 |`unknown`
 |`30000`
+|
+|
+|`apicurio.log.level.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
 |
 |
 |`apicurio.logconfigjob.delayed`

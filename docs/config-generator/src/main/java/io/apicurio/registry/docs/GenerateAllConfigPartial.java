@@ -1,6 +1,4 @@
-///usr/bin/env jbang "$0" "$@" ; exit $?
-//DEPS org.jboss:jandex:3.1.7
-
+package io.apicurio.registry.docs;
 
 import io.apicurio.common.apps.config.ConfigPropertyCategory;
 import org.jboss.jandex.AnnotationInstance;
@@ -27,7 +25,31 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class generateAllConfigPartial {
+/**
+ * Generates AsciiDoc documentation for all Apicurio Registry configuration properties.
+ *
+ * This tool scans the compiled registry application JAR using Jandex to extract configuration
+ * properties annotated with @ConfigProperty and @Info annotations. It also reads the
+ * application.properties file to capture additional default values and Quarkus properties.
+ * The extracted configuration is then organized by category (e.g., api, auth, storage,
+ * observability) and written to an AsciiDoc file suitable for inclusion in the project
+ * documentation.
+ *
+ * The generated documentation includes:
+ * <ul>
+ *   <li>Property name</li>
+ *   <li>Property type (with support for parameterized types)</li>
+ *   <li>Default value</li>
+ *   <li>Version when the property became available</li>
+ *   <li>Description</li>
+ * </ul>
+ *
+ * Usage: java -jar config-generator.jar &lt;version&gt; &lt;baseDir&gt; &lt;commonComponentsVersion&gt;
+ *
+ * @see io.apicurio.common.apps.config.Info
+ * @see io.apicurio.common.apps.config.ConfigPropertyCategory
+ */
+public class GenerateAllConfigPartial {
 
     private static Map<String, Option> allConfiguration = new HashMap();
     private static Set<String> skipProperties = Set.of("quarkus.oidc.auth-server-url");
@@ -122,7 +144,7 @@ public class generateAllConfigPartial {
                 return prefix + t.asParameterizedType()
                         .arguments()
                         .stream()
-                        .map(p -> resolveTypeName(p))
+                        .map((Type arg) -> resolveTypeName(arg))
                         .collect(Collectors.joining(", ", "<", ">"));
             }
         } catch (IllegalArgumentException e) {
@@ -196,10 +218,10 @@ public class generateAllConfigPartial {
                     var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
 
                     var availableSince = Optional.ofNullable(info.get().value("registryAvailableSince"))
-                            .map(v -> v.value().toString()).
-                            orElse(Optional.ofNullable(info.get().value("availableSince"))
-                                    .map(v -> v.value().toString()).
-                                    orElse(""));
+                            .map(v -> v.value().toString())
+                            .orElse(Optional.ofNullable(info.get().value("availableSince"))
+                                    .map(v -> v.value().toString())
+                                    .orElse(""));
 
                     allConfiguration.put(configName, new Option(
                             configName,

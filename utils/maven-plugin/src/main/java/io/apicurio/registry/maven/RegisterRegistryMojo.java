@@ -2,7 +2,6 @@ package io.apicurio.registry.maven;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Descriptors.FileDescriptor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
@@ -11,13 +10,10 @@ import io.apicurio.registry.maven.refs.IndexedResource;
 import io.apicurio.registry.maven.refs.ReferenceIndex;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.*;
-import io.apicurio.registry.rules.ParsedJsonSchema;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import io.vertx.core.Vertx;
-import org.apache.avro.Schema;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -143,11 +139,6 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
                         this.avroAutoRefsNamingStrategy = artifact.getAvroAutoRefsNamingStrategy();
                         registerWithAutoRefs(registryClient, artifact, index, registrationStack);
-                    } else if (artifact.getAnalyzeDirectory() != null && artifact.getAnalyzeDirectory()) { // Auto
-                        // register selected, we must figure out if the artifact has references using the
-                        // directory structure
-                        getLog().warn("Deprecated feature in use: 'analyzeDirectory' -- use 'autoRefs' instead.");
-                        registerDirectory(registryClient, artifact);
                     } else {
 
                         List<ArtifactReference> references = new ArrayList<>();
@@ -245,39 +236,6 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
         registrationStack.pop();
         return registerArtifact(registryClient, artifact, registeredReferences);
-    }
-
-    private void registerDirectory(RegistryClient registryClient, RegisterArtifact artifact)
-            throws IOException, ExecutionException, InterruptedException, MojoExecutionException,
-            MojoFailureException {
-        switch (artifact.getArtifactType()) {
-            case ArtifactType.AVRO:
-                final AvroDirectoryParser avroDirectoryParser = new AvroDirectoryParser(registryClient);
-                final ParsedDirectoryWrapper<Schema> schema = avroDirectoryParser.parse(artifact.getFile());
-                registerArtifact(registryClient, artifact, avroDirectoryParser
-                        .handleSchemaReferences(artifact, schema.getSchema(), schema.getSchemaContents()));
-                break;
-            case ArtifactType.PROTOBUF:
-                final ProtobufDirectoryParser protobufDirectoryParser = new ProtobufDirectoryParser(
-                        registryClient);
-                final ParsedDirectoryWrapper<FileDescriptor> protoSchema = protobufDirectoryParser
-                        .parse(artifact.getFile());
-                registerArtifact(registryClient, artifact, protobufDirectoryParser.handleSchemaReferences(
-                        artifact, protoSchema.getSchema(), protoSchema.getSchemaContents()));
-                break;
-            case ArtifactType.JSON:
-                final JsonSchemaDirectoryParser jsonSchemaDirectoryParser = new JsonSchemaDirectoryParser(
-                        registryClient);
-                final ParsedDirectoryWrapper<ParsedJsonSchema> jsonSchema = jsonSchemaDirectoryParser
-                        .parse(artifact.getFile());
-                registerArtifact(registryClient, artifact, jsonSchemaDirectoryParser.handleSchemaReferences(
-                        artifact, jsonSchema.getSchema(), jsonSchema.getSchemaContents()));
-                break;
-            default:
-                throw new IllegalArgumentException(
-                        String.format("Artifact type not recognized for analyzing a directory structure %s",
-                                artifact.getArtifactType()));
-        }
     }
 
     private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,

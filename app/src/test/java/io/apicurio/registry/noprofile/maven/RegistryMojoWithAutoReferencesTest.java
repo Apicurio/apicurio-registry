@@ -69,7 +69,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tradeRawArtifact.setArtifactId(artifactId);
         tradeRawArtifact.setArtifactType(ArtifactType.AVRO);
         tradeRawArtifact.setFile(tradeRawFile);
-        tradeRawArtifact.setAnalyzeDirectory(true);
+        tradeRawArtifact.setAutoRefs(true);
         tradeRawArtifact.setIfExists(IfArtifactExists.FAIL);
 
         registerMojo.setArtifacts(Collections.singletonList(tradeRawArtifact));
@@ -102,7 +102,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tableNotification.setArtifactId(artifactId);
         tableNotification.setArtifactType(ArtifactType.PROTOBUF);
         tableNotification.setFile(tableNotificationFile);
-        tableNotification.setAnalyzeDirectory(true);
+        tableNotification.setAutoRefs(true);
         tableNotification.setIfExists(IfArtifactExists.FAIL);
 
         registerMojo.setArtifacts(Collections.singletonList(tableNotification));
@@ -138,7 +138,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         citizen.setArtifactId(artifactId);
         citizen.setArtifactType(ArtifactType.JSON);
         citizen.setFile(citizenFile);
-        citizen.setAnalyzeDirectory(true);
+        citizen.setAutoRefs(true);
         citizen.setIfExists(IfArtifactExists.FAIL);
 
         registerMojo.setArtifacts(Collections.singletonList(citizen));
@@ -204,6 +204,53 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                 .collect(Collectors.toSet());
         Assertions.assertTrue(referenceNames.contains("com.example.trade.Customer"));
         Assertions.assertTrue(referenceNames.contains("com.example.trade.Instrument"));
+    }
+
+    @Test
+    public void autoRegisterAvroWithOptionalReferences() throws Exception {
+        String groupId = "autoRegisterAvroWithOptionalReferences";
+        String artifactId = "trade";
+
+        File tradeFile = new File(getClass().getResource("Trade.avsc").getFile());
+
+        Set<String> avroFiles = Arrays.stream(Objects.requireNonNull(
+                tradeFile.getParentFile().listFiles((dir, name) -> name.endsWith(AVSC_SCHEMA_EXTENSION))))
+                .map(file -> {
+                    FileInputStream fis = null;
+                    try {
+                        fis = new FileInputStream(file);
+                    } catch (FileNotFoundException e) {
+                    }
+                    return IoUtil.toString(fis);
+                }).collect(Collectors.toSet());
+
+        RegisterArtifact tradeArtifact = new RegisterArtifact();
+        tradeArtifact.setGroupId(groupId);
+        tradeArtifact.setArtifactId(artifactId);
+        tradeArtifact.setArtifactType(ArtifactType.AVRO);
+        tradeArtifact.setFile(tradeFile);
+        tradeArtifact.setAutoRefs(true);
+        tradeArtifact.setIfExists(IfArtifactExists.FAIL);
+
+        registerMojo.setArtifacts(Collections.singletonList(tradeArtifact));
+        registerMojo.execute();
+
+        // Assertions - Trade schema has 2 optional references (Price and Quantity)
+        final VersionMetaData artifactWithReferences = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).versions().byVersionExpression("branch=latest").get();
+
+        final List<ArtifactReference> mainArtifactReferences = clientV3.ids().globalIds()
+                .byGlobalId(artifactWithReferences.getGlobalId()).references().get();
+
+        // The main artifact should have 2 references (Price and Quantity)
+        Assertions.assertEquals(2, mainArtifactReferences.size());
+
+        // Verify both references are present
+        Set<String> referenceNames = mainArtifactReferences.stream()
+                .map(ArtifactReference::getName)
+                .collect(Collectors.toSet());
+        Assertions.assertTrue(referenceNames.contains("io.apicurio.test.trade.Price"));
+        Assertions.assertTrue(referenceNames.contains("io.apicurio.test.trade.Quantity"));
     }
 
     @Test

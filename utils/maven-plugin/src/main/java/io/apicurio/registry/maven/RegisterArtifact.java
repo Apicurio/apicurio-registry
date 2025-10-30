@@ -20,8 +20,6 @@ public class RegisterArtifact {
     private IfArtifactExists ifExists;
     private Boolean canonicalize;
     private Boolean minify;
-    @Deprecated
-    private Boolean analyzeDirectory;
     private Boolean autoRefs;
     private AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy;
     private Boolean isDraft;
@@ -173,16 +171,6 @@ public class RegisterArtifact {
      */
     public void setReferences(List<RegisterArtifactReference> references) {
         this.references = references;
-    }
-
-    @Deprecated
-    public Boolean getAnalyzeDirectory() {
-        return analyzeDirectory;
-    }
-
-    @Deprecated
-    public void setAnalyzeDirectory(Boolean analyzeDirectory) {
-        this.analyzeDirectory = analyzeDirectory;
     }
 
     public Boolean getAutoRefs() {

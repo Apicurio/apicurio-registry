@@ -12,7 +12,7 @@ Apicurio Registry can be extended to support custom artifact types by:
 3. Deploying the registry with the custom configuration
 
 This example includes:
-- A TypeScript implementation of a TOML artifact type
+- A TypeScript implementation of a TOML artifact type using the `@apicurio/artifact-type-builtins` npm package
 - Configuration file for enabling the custom artifact type
 - Docker Compose setup for running the registry with the custom type
 - Demo script showing the custom artifact type in action
@@ -44,6 +44,20 @@ Identifies external references in TOML content.
 - Node.js 18+ and npm (for building the TypeScript implementation)
 - Docker and Docker Compose
 - curl and jq (for running the demo script)
+
+## TypeScript Types and Utilities
+
+This example uses the `@apicurio/artifact-type-builtins` npm package, which provides:
+- TypeScript type definitions for all artifact type function interfaces
+- Built-in utility functions like `info()` and `debug()` for logging
+- IDE autocomplete support for developing custom artifact types
+
+The package is published on npm and can be installed with:
+```bash
+npm install @apicurio/artifact-type-builtins
+```
+
+For more information, see: https://www.npmjs.com/package/@apicurio/artifact-type-builtins
 
 ## Quick Start
 

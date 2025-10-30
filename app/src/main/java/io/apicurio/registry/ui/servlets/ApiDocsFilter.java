@@ -118,7 +118,8 @@ public class ApiDocsFilter implements Filter {
     private String generateSpecUrl(HttpServletRequest request) {
         String servletPath = request.getServletPath();
         String contextPath = normalizeContextPath(config.contextPath);
-        String apiSpec = servletPath.replace("/apis/", contextPath + "/api-specifications/");
+        String apiSpecPath = contextPath.equals("/") ? "/api-specifications/" : contextPath + "/api-specifications/";
+        String apiSpec = servletPath.replace("/apis/", apiSpecPath);
         if (!apiSpec.endsWith("/")) {
             apiSpec += "/";
         }

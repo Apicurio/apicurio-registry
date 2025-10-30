@@ -14,6 +14,7 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -104,14 +105,22 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
     }
 
     private T internalReadData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
-        byte[] data = new byte[length];
-        System.arraycopy(buffer.array(), start, data, 0, length);
-
         try {
-            JsonParser parser = mapper.getFactory().createParser(data);
+            JsonParser parser;
 
             if (isValidationEnabled()) {
+                // When validation is enabled, we still need a byte array copy for the validation utility
+                // TODO: optimize this in a future PR to avoid double-parsing
+                byte[] data = new byte[length];
+                System.arraycopy(buffer.array(), start, data, 0, length);
+                parser = mapper.getFactory().createParser(data);
                 JsonSchemaValidationUtil.validateDataWithSchema(schema, data, mapper);
+            } else {
+                // When validation is disabled, use ByteBufferInputStream to avoid copying data
+                ByteBuffer slice = buffer.duplicate();
+                slice.position(start);
+                slice.limit(start + length);
+                parser = mapper.getFactory().createParser(new ByteBufferInputStream(slice));
             }
 
             Class<T> messageType = null;

@@ -10,6 +10,7 @@ import io.apicurio.registry.maven.refs.IndexedResource;
 import io.apicurio.registry.maven.refs.ReferenceIndex;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.*;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
@@ -201,7 +202,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 String groupId = artifact.getGroupId(); // default is same group as root artifact
                 // TODO: determine the artifactId better (type-specific logic here?)
                 String artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
-                if(ArtifactType.AVRO.equals(iresource.getType())) {
+                if (ArtifactType.AVRO.equals(iresource.getType())) {
                     if (avroAutoRefsNamingStrategy == RegisterArtifact.AvroAutoRefsNamingStrategy.USE_AVRO_NAMESPACE) {
                         groupId = referenceArtifactIdentifierExtractor.extractGroupId(externalRef.getResource());
                         artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());

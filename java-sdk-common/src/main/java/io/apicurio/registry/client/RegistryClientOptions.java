@@ -75,7 +75,12 @@ public class RegistryClientOptions {
     private String pemCertContent; // PEM certificate content as string (alternative to file paths)
     private boolean trustAll = false;
     private boolean verifyHost = true;
-    
+    // Proxy config
+    private String proxyHost;
+    private int proxyPort = -1;
+    private String proxyUsername;
+    private String proxyPassword;
+
     private RegistryClientOptions() {
     }
 
@@ -165,6 +170,22 @@ public class RegistryClientOptions {
 
     public boolean isVerifyHost() {
         return verifyHost;
+    }
+
+    public String getProxyHost() {
+        return proxyHost;
+    }
+
+    public int getProxyPort() {
+        return proxyPort;
+    }
+
+    public String getProxyUsername() {
+        return proxyUsername;
+    }
+
+    public String getProxyPassword() {
+        return proxyPassword;
     }
 
     /**
@@ -467,6 +488,66 @@ public class RegistryClientOptions {
         this.pemCertPaths = null;
         this.pemCertContent = null;
         this.trustAll = false;
+        return this;
+    }
+
+    /**
+     * Configures an HTTP/HTTPS proxy for registry connections.
+     * This is useful in environments where direct internet access is restricted
+     * and all outbound connections must go through a proxy server.
+     *
+     * <p>This proxy configuration will be used for both registry API calls and
+     * OAuth token endpoint calls (if OAuth authentication is configured).</p>
+     *
+     * @param host the proxy server hostname or IP address
+     * @param port the proxy server port number (typically 3128, 8080, or 8888)
+     * @return this builder
+     * @throws IllegalArgumentException if host is null/empty or port is invalid
+     */
+    public RegistryClientOptions proxy(String host, int port) {
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalArgumentException("Proxy host cannot be null or empty");
+        }
+        if (port <= 0 || port > 65535) {
+            throw new IllegalArgumentException("Proxy port must be between 1 and 65535");
+        }
+        this.proxyHost = host;
+        this.proxyPort = port;
+        return this;
+    }
+
+    /**
+     * Configures authentication credentials for the HTTP/HTTPS proxy.
+     * This should be called after {@link #proxy(String, int)} if the proxy server
+     * requires authentication.
+     *
+     * @param username the proxy authentication username
+     * @param password the proxy authentication password
+     * @return this builder
+     * @throws IllegalArgumentException if username or password is null/empty
+     */
+    public RegistryClientOptions proxyAuth(String username, String password) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Proxy username cannot be null or empty");
+        }
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Proxy password cannot be null or empty");
+        }
+        this.proxyUsername = username;
+        this.proxyPassword = password;
+        return this;
+    }
+
+    /**
+     * Clears any configured proxy settings.
+     *
+     * @return this builder
+     */
+    public RegistryClientOptions clearProxy() {
+        this.proxyHost = null;
+        this.proxyPort = -1;
+        this.proxyUsername = null;
+        this.proxyPassword = null;
         return this;
     }
 }

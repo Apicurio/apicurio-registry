@@ -33,23 +33,26 @@ public class DebeziumTestUtils {
      * Creates a Debezium envelope schema wrapping a value schema
      */
     public static Schema createDebeziumEnvelopeSchema(String name, Schema valueSchema) {
+        Schema sourceSchema = SchemaBuilder.record("Source")
+            .namespace("io.apicurio.test")
+            .fields()
+            .optionalString("version")
+            .optionalString("connector")
+            .optionalString("name")
+            .optionalLong("ts_ms")
+            .optionalString("db")
+            .optionalString("schema")
+            .optionalString("table")
+            .endRecord();
+
         return SchemaBuilder.record(name + ".Envelope")
             .namespace("io.apicurio.test")
             .fields()
-            .name("before").type().optional().type(valueSchema).noDefault()
-            .name("after").type().optional().type(valueSchema).noDefault()
+            .name("before").type().unionOf().nullType().and().type(valueSchema).endUnion().nullDefault()
+            .name("after").type().unionOf().nullType().and().type(valueSchema).endUnion().nullDefault()
             .requiredString("op")
             .optionalLong("ts_ms")
-            .name("source").type().optional().record("Source")
-                .fields()
-                .optionalString("version")
-                .optionalString("connector")
-                .optionalString("name")
-                .optionalLong("ts_ms")
-                .optionalString("db")
-                .optionalString("schema")
-                .optionalString("table")
-                .endRecord().noDefault()
+            .name("source").type().unionOf().nullType().and().type(sourceSchema).endUnion().nullDefault()
             .endRecord();
     }
 

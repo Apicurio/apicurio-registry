@@ -1,6 +1,6 @@
 package io.apicurio.tests.debezium;
 
-import io.apicurio.registry.serde.SerdeConfig;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;

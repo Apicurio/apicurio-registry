@@ -5,9 +5,6 @@ on:
       release-version:
         description: Version being released
         required: true
-      snapshot-version:
-        description: Next snapshot version
-        required: true
       branch:
         description: Branch to release from
         required: true
@@ -20,10 +17,44 @@ jobs:
       MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
     if: github.repository_owner == 'Apicurio'
     steps:
+      - name: Calculate Next Version
+        run: |
+          RELEASE_VERSION="${{ github.event.inputs.release-version }}"
+
+          # Extract major, minor, and patch from release version (handles versions like 3.0.1 or 3.0.1-RC1)
+          MAJOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $1}')
+          MINOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $2}')
+          PATCH=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $3}')
+
+          # Increment patch version
+          NEXT_PATCH=$((PATCH + 1))
+
+          # Create next version
+          NEXT_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+
+          # Create snapshot version
+          SNAPSHOT_VERSION="${NEXT_VERSION}-SNAPSHOT"
+
+          # Calculate derived versions for release
+          RELEASE_DOCS_VERSION="${MAJOR}.${MINOR}.x"
+          RELEASE_UI_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
+          # Calculate derived versions for snapshot (next development cycle)
+          SNAPSHOT_DOCS_VERSION="${MAJOR}.${MINOR}.x"
+          SNAPSHOT_UI_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}-Dev"
+
+          echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
+          echo "SNAPSHOT_VERSION=${SNAPSHOT_VERSION}" >> $GITHUB_ENV
+          echo "RELEASE_DOCS_VERSION=${RELEASE_DOCS_VERSION}" >> $GITHUB_ENV
+          echo "RELEASE_UI_VERSION=${RELEASE_UI_VERSION}" >> $GITHUB_ENV
+          echo "SNAPSHOT_DOCS_VERSION=${SNAPSHOT_DOCS_VERSION}" >> $GITHUB_ENV
+          echo "SNAPSHOT_UI_VERSION=${SNAPSHOT_UI_VERSION}" >> $GITHUB_ENV
+
       - name: Log Metadata
         run: |
           echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
-          echo "Next Snapshot version will be ${{ github.event.inputs.snapshot-version }}"
+          echo "Next version will be ${{ env.NEXT_VERSION }}"
+          echo "Next Snapshot version will be ${{ env.SNAPSHOT_VERSION }}"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -66,31 +97,26 @@ jobs:
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
 
-          # take only the major and minor versions from release-version and then append .x.
-          DOCS_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '[.-]' '{print $1"."$2".x"}')
-          
-          sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
+          sed -i  "s/version\:\s.*/version: \'${{ env.RELEASE_DOCS_VERSION }}\'/g" docs/antora.yml
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.RELEASE_DOCS_VERSION }}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
 
           # TODO: Operator docs
 
-          # take only the major, minor and patch
-          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
-          sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
+          sed -i "s/^version.*/version \= \"${{ env.RELEASE_UI_VERSION }}\"/" python-sdk/pyproject.toml
 
-          # take only the major, minor and patch
-          UI_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
           cd ui
-          npm version $UI_VERSION --allow-same-version
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
           cd ui-app
-          npm version $UI_VERSION --allow-same-version
-          json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"$UI_VERSION\""
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"${{ env.RELEASE_UI_VERSION }}\""
           cd ../ui-docs
-          npm version $UI_VERSION --allow-same-version
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          cd ../ui-editors
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
           cd ../tests
-          npm version $UI_VERSION --allow-same-version
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
           cd ../../typescript-sdk
-          npm version $UI_VERSION --allow-same-version
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
 
       - name: Build Registry (All Variants)
         run: |
@@ -150,42 +176,37 @@ jobs:
           cd registry
           gren release --token=${{ secrets.GITHUB_TOKEN }} --override
 
-      - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
+      - name: Update Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |
           cd registry
-          mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+          mvn versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
 
-          # take only the major and minor versions from snapshot-version and then append .x.
-          DOCS_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2".x"}')
-
-          sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
+          sed -i  "s/version\:\s.*/version: \'${{ env.SNAPSHOT_DOCS_VERSION }}\'/g" docs/antora.yml
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.SNAPSHOT_DOCS_VERSION }}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
 
           # TODO: Operator docs
 
-          # take only the major, minor and patch
-          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
-          sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
+          sed -i "s/^version.*/version \= \"${{ env.NEXT_VERSION }}\"/" python-sdk/pyproject.toml
 
-          # take only the major, minor and patch
-          UI_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}-Dev')
           cd ui
-          npm version $UI_VERSION --allow-same-version
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
           cd ui-app
-          npm version $UI_VERSION --allow-same-version
-          json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"$UI_VERSION\""
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"${{ env.SNAPSHOT_UI_VERSION }}\""
           cd ../ui-docs
-          npm version $UI_VERSION --allow-same-version
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          cd ../ui-editors
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
           cd ../tests
-          npm version $UI_VERSION --allow-same-version
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
           cd ../../typescript-sdk
-          npm version $UI_VERSION --allow-same-version
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
 
-      - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
+      - name: Commit Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |
           cd registry
           git add .
-          git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
+          git commit -m "Automated update to next Snapshot Version: ${{ env.SNAPSHOT_VERSION }}"
           git push
 
       - name: Slack Notification (Always)

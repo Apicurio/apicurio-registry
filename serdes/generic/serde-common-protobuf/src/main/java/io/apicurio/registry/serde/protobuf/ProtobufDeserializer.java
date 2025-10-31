@@ -14,9 +14,9 @@ import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
+import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -108,10 +108,12 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
     protected U internalReadData(ParsedSchema<ProtobufSchema> schema, ByteBuffer buff, int start,
             int length) {
         try {
-            byte[] bytes = new byte[length];
-            System.arraycopy(buff.array(), start, bytes, 0, length);
+            // Create a ByteBuffer slice to avoid copying data
+            ByteBuffer slice = buff.duplicate();
+            slice.position(start);
+            slice.limit(start + length);
 
-            ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+            InputStream is = new ByteBufferInputStream(slice);
 
             Descriptor descriptor = null;
 
@@ -133,7 +135,10 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
                     descriptor = schema.getParsedSchema().getFileDescriptor()
                             .findMessageTypeByName(ref.getName());
                 } catch (IOException e) {
-                    is = new ByteArrayInputStream(bytes);
+                    // Reset the stream by creating a new ByteBufferInputStream from a fresh slice
+                    slice.position(start);
+                    slice.limit(start + length);
+                    is = new ByteBufferInputStream(slice);
                     // use the first message type found
                     descriptor = schema.getParsedSchema().getFileDescriptor().getMessageTypes().get(0);
                 }

@@ -8,11 +8,11 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
@@ -82,11 +82,12 @@ public class AvroDeserializer<U> extends AbstractDeserializer<Schema, U> {
         try {
             DatumReader<U> reader = avroDatumProvider.createDatumReader(schema.getParsedSchema());
             if (encoding == AvroEncoding.JSON) {
-                // copy the data into a new byte[]
-                byte[] msgData = new byte[length];
-                System.arraycopy(buffer.array(), start, msgData, 0, length);
+                // Create a ByteBuffer slice to avoid copying data
+                ByteBuffer slice = buffer.duplicate();
+                slice.position(start);
+                slice.limit(start + length);
                 return reader.read(null, decoderFactory.jsonDecoder(schema.getParsedSchema(),
-                        new ByteArrayInputStream(msgData)));
+                        new ByteBufferInputStream(slice)));
             } else {
                 return reader.read(null, decoderFactory.binaryDecoder(buffer.array(), start, length, null));
             }

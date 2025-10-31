@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.apicurio.tests.debezium.DebeziumTestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**

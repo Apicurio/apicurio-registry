@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Custom TOML artifact type for Apicurio Registry",
+  "dependencies": {
+    "@apicurio/artifact-type-builtins": "^3.1.0"
+  },
   "devDependencies": {
     "cp": "0.2.0",
     "esbuild": "0.25.11",

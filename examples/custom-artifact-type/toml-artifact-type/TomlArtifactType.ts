@@ -1,3 +1,16 @@
+import type {
+    ContentAccepterRequest,
+    CompatibilityCheckerRequest,
+    CompatibilityCheckerResponse,
+    ContentCanonicalizerRequest,
+    ContentCanonicalizerResponse,
+    ContentDereferencerRequest,
+    ContentDereferencerResponse,
+    ContentValidatorRequest,
+    ContentValidatorResponse,
+    ReferenceFinderRequest,
+    ReferenceFinderResponse
+} from '@apicurio/artifact-type-builtins';
 
 type TypedContent = {
     contentType: string;
@@ -34,7 +47,7 @@ function isValidToml(content: string): boolean {
 /**
  * Check if the content is TOML format
  */
-export function acceptsContent(request: any): boolean {
+export function acceptsContent(request: ContentAccepterRequest): boolean {
     let accepted: boolean = false;
     if (request.typedContent.contentType === "application/toml") {
         const content: string = request.typedContent.content;
@@ -47,7 +60,7 @@ export function acceptsContent(request: any): boolean {
  * Test compatibility between existing and proposed artifacts
  * For this simple example, we just ensure section names haven't been removed
  */
-export function testCompatibility(request: any): any {
+export function testCompatibility(request: CompatibilityCheckerRequest): CompatibilityCheckerResponse {
     const existingArtifacts: TypedContent[] = request.existingArtifacts;
     const proposedArtifact: TypedContent = request.proposedArtifact;
 
@@ -106,7 +119,7 @@ function extractSections(content: string): string[] {
 /**
  * Canonicalize TOML content by normalizing whitespace and sorting sections
  */
-export function canonicalize(request: any): any {
+export function canonicalize(request: ContentCanonicalizerRequest): ContentCanonicalizerResponse {
     const originalContent: string = request.content.content;
 
     // Simple canonicalization: uppercase all keys
@@ -133,7 +146,7 @@ export function canonicalize(request: any): any {
 /**
  * Validate TOML content structure
  */
-export function validate(request: any): any {
+export function validate(request: ContentValidatorRequest): ContentValidatorResponse {
     const violations: any[] = [];
     const content: string = request.content.content;
     const contentType: string = request.content.contentType;
@@ -164,7 +177,7 @@ export function validate(request: any): any {
 /**
  * Dereference content by replacing references with actual content
  */
-export function dereference(request: any): any {
+export function dereference(request: ContentDereferencerRequest): ContentDereferencerResponse {
     const content: string = request.content.content;
     const indexedResolvedRefs: any = {};
 
@@ -201,7 +214,7 @@ export function dereference(request: any): any {
 /**
  * Rewrite references to use URLs instead of file paths
  */
-export function rewriteReferences(request: any): any {
+export function rewriteReferences(request: ContentDereferencerRequest): ContentDereferencerResponse {
     const content: string = request.content.content;
     const indexedResolvedReferenceUrls: any = {};
 
@@ -235,8 +248,8 @@ export function rewriteReferences(request: any): any {
 /**
  * Find external references in the content
  */
-export function findExternalReferences(request: any): any {
-    const content: string = request.content.content;
+export function findExternalReferences(request: ReferenceFinderRequest): ReferenceFinderResponse {
+    const content: string = request.typedContent.content;
     const references: string[] = [];
 
     const lines = content.split('\n');
@@ -255,10 +268,12 @@ export function findExternalReferences(request: any): any {
 /**
  * Validate that all references are properly mapped
  */
-export function validateReferences(request: any): any {
+export function validateReferences(request: ContentValidatorRequest): ContentValidatorResponse {
     const violations: any[] = [];
-    const mappedReferences: string[] = request.mappedReferences || [];
-    const foundReferences = findExternalReferences(request);
+    const mappedReferences: string[] = request.resolvedReferences || [];
+    const foundReferences = findExternalReferences({
+        typedContent: request.content
+    });
 
     for (const ref of foundReferences.externalReferences) {
         if (!mappedReferences.includes(ref)) {

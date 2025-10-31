@@ -94,40 +94,59 @@ public class AvroReferenceFinder implements ReferenceFinder {
         }
 
         // Handle unions
-        if (schema.isArray()) {
+        else if (schema.isArray()) {
             ArrayNode schemas = (ArrayNode) schema;
             schemas.forEach(s -> findExternalTypesIn(s, externalTypes, namespace));
         }
 
         // Handle records
-        if (schema.isObject() && schema.has("type") && !schema.get("type").isNull()
-                && schema.get("type").asText().equals("record")) {
-            // Records can define their own namespace, which becomes the enclosing namespace
-            // for nested types according to Avro specification
-            String recordNamespace = extractNamespace(schema);
-            String effectiveNamespace = recordNamespace != null ? recordNamespace : namespace;
+        else if (schema.isObject() && schema.has("type") && schema.get("type").isTextual()) {
+            String type = schema.get("type").asText();
+            switch (type) {
+                case "record":
+                {
+                    // Records can define their own namespace, which becomes the enclosing namespace
+                    // for nested types according to Avro specification
+                    String recordNamespace = extractNamespace(schema);
+                    String effectiveNamespace = recordNamespace != null ? recordNamespace : namespace;
 
-            JsonNode fieldsNode = schema.get("fields");
-            if (fieldsNode != null && fieldsNode.isArray()) {
-                ArrayNode fields = (ArrayNode) fieldsNode;
-                fields.forEach(fieldNode -> {
-                    if (fieldNode.isObject()) {
-                        JsonNode typeNode = fieldNode.get("type");
-                        findExternalTypesIn(typeNode, externalTypes, effectiveNamespace);
+                    JsonNode fieldsNode = schema.get("fields");
+                    if (fieldsNode != null && fieldsNode.isArray()) {
+                        ArrayNode fields = (ArrayNode) fieldsNode;
+                        fields.forEach(fieldNode -> {
+                            findExternalTypesIn(fieldNode, externalTypes, effectiveNamespace);
+                        });
                     }
-                });
+
+                    return;
+                }
+                case "array":
+                {
+                    JsonNode items = schema.get("items");
+                    findExternalTypesIn(items, externalTypes, namespace);
+                    return;
+                }
+                case "map":
+                {
+                    JsonNode values = schema.get("values");
+                    findExternalTypesIn(values, externalTypes, namespace);
+                    return;
+                }
+                case "enum":
+                {
+                    // Do nothing for enums
+                    return;
+                }
+                default:
+                {
+                    findExternalTypesIn(schema.get("type"), externalTypes, namespace);
+                }
             }
         }
-        // Handle arrays
-        if (schema.has("type") && !schema.get("type").isNull()
-                && schema.get("type").asText().equals("array")) {
-            JsonNode items = schema.get("items");
-            findExternalTypesIn(items, externalTypes, namespace);
-        }
-        // Handle maps
-        if (schema.has("type") && !schema.get("type").isNull() && schema.get("type").asText().equals("map")) {
-            JsonNode values = schema.get("values");
-            findExternalTypesIn(values, externalTypes, namespace);
+
+        // If the schema has a "type" property that is not textual, process the type (object or array)
+        else if (schema.isObject() && schema.has("type") && !schema.get("type").isTextual()) {
+            findExternalTypesIn(schema.get("type"), externalTypes, namespace);
         }
     }
 

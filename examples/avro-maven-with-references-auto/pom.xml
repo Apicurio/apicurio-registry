@@ -38,7 +38,7 @@
                   <file>${project.basedir}/src/main/resources/schemas/TradeRaw.avsc</file>
                   <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                   <canonicalize>true</canonicalize>
-                  <analyzeDirectory>true</analyzeDirectory>
+                  <autoRefs>true</autoRefs>
                 </artifact>
               </artifacts>
               <existingReferences/>

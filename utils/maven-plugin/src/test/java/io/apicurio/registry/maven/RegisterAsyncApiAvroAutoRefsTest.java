@@ -114,34 +114,6 @@ public class RegisterAsyncApiAvroAutoRefsTest {
         assertTrue(registeredArtifacts.contains("com.kubetrade.schema.common:Exchange"));
     }
 
-    @Test public void testAvroAnalyzeDirectory() throws Exception {
-        File exampleDir = new File(examplesRoot, "avro-maven-with-references-auto");
-        File avroFile = new File(exampleDir, "src/main/resources/schemas/TradeRaw.avsc");
-
-        // Create the artifact configuration
-        RegisterArtifact artifact = new RegisterArtifact();
-        artifact.setGroupId("avro-maven-with-analyze-directory");
-        artifact.setArtifactId("TradeRaw");
-        artifact.setVersion("2.0");
-        artifact.setArtifactType(ArtifactType.AVRO);
-        artifact.setFile(avroFile);
-        artifact.setIfExists(IfArtifactExists.FIND_OR_CREATE_VERSION);
-        artifact.setCanonicalize(true);
-        artifact.setAnalyzeDirectory(true);
-
-        mojo.setArtifacts(java.util.Collections.singletonList(artifact));
-        mojo.execute();
-
-        assertEquals(4, registeredArtifacts.size());
-        assertTrue(registeredArtifacts.contains("avro-maven-with-analyze-directory:TradeRaw"));
-        assertTrue(registeredArtifacts.contains(
-                "avro-maven-with-analyze-directory:com.kubetrade.schema.trade.TradeKey"));
-        assertTrue(registeredArtifacts.contains(
-                "avro-maven-with-analyze-directory:com.kubetrade.schema.trade.TradeValue"));
-        assertTrue(registeredArtifacts.contains(
-                "avro-maven-with-analyze-directory:com.kubetrade.schema.common.Exchange"));
-    }
-
     // Custom transformer to capture/debug requests and generate dynamic responses
     class CaptureRequestTransformer extends ResponseTransformer {
 

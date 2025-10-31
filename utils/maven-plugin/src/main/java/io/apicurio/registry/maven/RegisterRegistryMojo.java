@@ -133,7 +133,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     if (artifact.getAutoRefs() != null && artifact.getAutoRefs()) {
                         // If we have references, then we'll need to create the local resource index and then
                         // process all refs.
-                        ReferenceIndex index = createIndex(artifact.getFile());
+                        ReferenceIndex index = createIndex(artifact);
                         addExistingReferencesToIndex(registryClient, index, existingReferences);
                         addExistingReferencesToIndex(registryClient, index, artifact.getExistingReferences());
                         Stack<RegisterArtifact> registrationStack = new Stack<>();
@@ -141,7 +141,6 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         this.avroAutoRefsNamingStrategy = artifact.getAvroAutoRefsNamingStrategy();
                         registerWithAutoRefs(registryClient, artifact, index, registrationStack);
                     } else {
-
                         List<ArtifactReference> references = new ArrayList<>();
                         // First, we check if the artifact being processed has references defined
                         if (hasReferences(artifact)) {
@@ -167,7 +166,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                                                  ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException,
             ExecutionException, InterruptedException, MojoExecutionException, MojoFailureException {
         if (loopDetected(artifact, registrationStack)) {
-            throw new RuntimeException(
+            throw new MojoExecutionException(
                     "Artifact reference loop detected (not supported): " + printLoop(registrationStack));
         }
         registrationStack.push(artifact);
@@ -193,7 +192,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
             // TODO: need a way to resolve references that are not local (already registered in the registry)
             if (iresource == null) {
-                throw new RuntimeException("Reference could not be resolved.  From: "
+                throw new MojoExecutionException("Reference could not be resolved.  From: "
                         + artifact.getFile().getName() + "  To: " + externalRef.getFullReference());
             }
 
@@ -409,14 +408,30 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     /**
      * Create a local index relative to the given file location.
      *
-     * @param file
+     * @param artifact
      */
-    private static ReferenceIndex createIndex(File file) {
+    private static ReferenceIndex createIndex(RegisterArtifact artifact) {
+        File file = artifact.getFile();
         ReferenceIndex index = new ReferenceIndex(file.getParentFile().toPath());
-        Collection<File> allFiles = FileUtils.listFiles(file.getParentFile(), null, true);
-        allFiles.stream().filter(RegisterRegistryMojo::isFileAllowedInIndex).forEach(f -> {
-            index.index(f.toPath(), readContent(f));
-        });
+        if (artifact.getProtoPaths() != null) {
+            artifact.getProtoPaths().forEach(path -> index.addSchemaPath(path.toPath()));
+        }
+
+        HashSet<File> roots = new HashSet<>();
+        if (artifact.getProtoPaths() != null) {
+            roots.addAll(artifact.getProtoPaths());
+        } else {
+            roots.add(file.getParentFile());
+        }
+
+        Collection<File> allFiles = new HashSet<>();
+        for (File root : roots) {
+            allFiles.addAll(FileUtils.listFiles(root, null, true));
+            allFiles.stream().filter(RegisterRegistryMojo::isFileAllowedInIndex).forEach(f -> {
+                index.index(f.toPath(), readContent(f));
+            });
+        }
+
         return index;
     }
 

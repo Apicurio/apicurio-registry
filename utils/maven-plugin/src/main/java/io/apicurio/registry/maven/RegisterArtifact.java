@@ -8,6 +8,14 @@ import java.util.List;
 
 public class RegisterArtifact {
 
+    public List<File> getProtoPaths() {
+        return protoPaths;
+    }
+
+    public void setProtoPaths(List<File> protoPaths) {
+        this.protoPaths = protoPaths;
+    }
+
     public enum AvroAutoRefsNamingStrategy {
         INHERIT_PARENT_GROUP, USE_AVRO_NAMESPACE
     }
@@ -26,6 +34,7 @@ public class RegisterArtifact {
     private String contentType;
     private List<RegisterArtifactReference> references;
     private List<ExistingReference> existingReferences;
+    private List<File> protoPaths;
 
     /**
      * Constructor.

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -71,6 +72,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tradeRawArtifact.setFile(tradeRawFile);
         tradeRawArtifact.setAutoRefs(true);
         tradeRawArtifact.setIfExists(IfArtifactExists.FAIL);
+        tradeRawArtifact.setAvroAutoRefsNamingStrategy(RegisterArtifact.AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP);
 
         registerMojo.setArtifacts(Collections.singletonList(tradeRawArtifact));
         registerMojo.execute();
@@ -85,17 +87,14 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         String groupId = "autoRegisterProtoWithReferences";
         String artifactId = "tableNotification";
 
-        File tableNotificationFile = new File(getClass().getResource("table_notification.proto").getFile());
+        File tableNotificationFile = new File(getClass().getResource("sample/table_notification.proto").getFile());
 
-        Set<String> protoFiles = Arrays.stream(Objects.requireNonNull(tableNotificationFile.getParentFile()
-                .listFiles((dir, name) -> name.endsWith(PROTO_SCHEMA_EXTENSION)))).map(file -> {
-                    FileInputStream fis = null;
-                    try {
-                        fis = new FileInputStream(file);
-                    } catch (FileNotFoundException e) {
-                    }
-                    return IoUtil.toString(fis);
-                }).collect(Collectors.toSet());
+        Set<String> protoFiles = Set.of(
+                loadResource("sample/table_info.proto"),
+                loadResource("sample/table_notification.proto"),
+                loadResource("sample/table_notification_type.proto"),
+                loadResource("mode/mode.proto")
+        );
 
         RegisterArtifact tableNotification = new RegisterArtifact();
         tableNotification.setGroupId(groupId);
@@ -104,6 +103,9 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tableNotification.setFile(tableNotificationFile);
         tableNotification.setAutoRefs(true);
         tableNotification.setIfExists(IfArtifactExists.FAIL);
+        // Set the proto-path to be the parent of the "sample" directory, which in this case is
+        // our protobuf root directory for our test data.
+        tableNotification.setProtoPaths(List.of(tableNotificationFile.getParentFile().getParentFile()));
 
         registerMojo.setArtifacts(Collections.singletonList(tableNotification));
 
@@ -122,16 +124,12 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
 
         File citizenFile = new File(getClass().getResource("citizen.json").getFile());
 
-        Set<String> protoFiles = Arrays.stream(Objects.requireNonNull(
-                citizenFile.getParentFile().listFiles((dir, name) -> name.endsWith(JSON_SCHEMA_EXTENSION))))
-                .map(file -> {
-                    FileInputStream fis = null;
-                    try {
-                        fis = new FileInputStream(file);
-                    } catch (FileNotFoundException e) {
-                    }
-                    return IoUtil.toString(fis);
-                }).collect(Collectors.toSet());
+        Set<String> schemaFiles = Set.of(
+                loadResource("citizen.json"),
+                loadResource("city.json"),
+                loadResource("citizenIdentifier.json"),
+                loadResource("qualification/qualification.json")
+        );
 
         RegisterArtifact citizen = new RegisterArtifact();
         citizen.setGroupId(groupId);
@@ -147,7 +145,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         registerMojo.execute();
 
         // Assertions
-        validateStructure(groupId, artifactId, 3, 4, protoFiles);
+        validateStructure(groupId, artifactId, 3, 4, schemaFiles);
     }
 
     /**
@@ -231,6 +229,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         tradeArtifact.setFile(tradeFile);
         tradeArtifact.setAutoRefs(true);
         tradeArtifact.setIfExists(IfArtifactExists.FAIL);
+        tradeArtifact.setAvroAutoRefsNamingStrategy(RegisterArtifact.AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP);
 
         registerMojo.setArtifacts(Collections.singletonList(tradeArtifact));
         registerMojo.execute();
@@ -243,7 +242,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                 .byGlobalId(artifactWithReferences.getGlobalId()).references().get();
 
         // The main artifact should have 2 references (Price and Quantity)
-        Assertions.assertEquals(2, mainArtifactReferences.size());
+        Assertions.assertEquals(2, mainArtifactReferences.size(), "The main artifact should have 2 references");
 
         // Verify both references are present
         Set<String> referenceNames = mainArtifactReferences.stream()
@@ -317,21 +316,21 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
                 .byArtifactId(artifactId).versions().byVersionExpression(artifactWithReferences.getVersion())
                 .content().get().readAllBytes(), StandardCharsets.UTF_8);
 
-        Assertions.assertTrue(originalContents.contains(mainContent)); // The main content has been registered
-        // as-is.
+        Assertions.assertTrue(originalContents.contains(mainContent), "The main content should have been registered as-is"); // The main content has been registered as-is.
 
         final List<ArtifactReference> mainArtifactReferences = clientV3.ids().globalIds()
                 .byGlobalId(artifactWithReferences.getGlobalId()).references().get();
 
         // The main artifact has the expected number of references
-        Assertions.assertEquals(expectedMainReferences, mainArtifactReferences.size());
+        Assertions.assertEquals(expectedMainReferences, mainArtifactReferences.size(), "The main artifact does not have the expected number of references");
 
         // Validate all the contents are registered as they are in the file system.
         validateReferences(mainArtifactReferences, originalContents);
 
         // The total number of artifacts for the directory structure is the expected.
         Assertions.assertEquals(expectedTotalArtifacts,
-                clientV3.groups().byGroupId(groupId).artifacts().get().getCount().intValue());
+                clientV3.groups().byGroupId(groupId).artifacts().get().getCount().intValue(),
+                "The total number of artifacts for the directory structure is incorrect.");
     }
 
     private void validateReferences(List<ArtifactReference> artifactReferences, Set<String> loadedContents)
@@ -355,6 +354,14 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
             if (!nestedReferences.isEmpty()) {
                 validateReferences(nestedReferences, loadedContents);
             }
+        }
+    }
+
+    private String loadResource(String protoFilePath) {
+        try (InputStream resourceStream = getClass().getResourceAsStream(protoFilePath)) {
+            return IoUtil.toString(resourceStream);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

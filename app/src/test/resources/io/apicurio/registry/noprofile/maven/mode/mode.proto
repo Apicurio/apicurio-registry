@@ -1,6 +1,6 @@
 syntax = "proto3";
-package sample;
-option java_package = "io.api.sample";
+package mode;
+option java_package = "io.api.mode";
 option java_multiple_files = true;
 
 enum Mode {

@@ -128,6 +128,22 @@ public class RegistryClientFacadeFactory {
             clientOptions.verifyHost(false);
         }
 
+        // Configure proxy
+        String proxyHost = config.getProxyHost();
+        Integer proxyPort = config.getProxyPort();
+
+        if (proxyHost != null && proxyPort != null) {
+            clientOptions.proxy(proxyHost, proxyPort);
+
+            // Configure proxy authentication if credentials are provided
+            String proxyUsername = config.getProxyUsername();
+            String proxyPassword = config.getProxyPassword();
+
+            if (proxyUsername != null && proxyPassword != null) {
+                clientOptions.proxyAuth(proxyUsername, proxyPassword);
+            }
+        }
+
         return clientOptions;
     }
 

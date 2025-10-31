@@ -9,6 +9,7 @@ import io.vertx.core.http.HttpClosedException;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemTrustOptions;
 import io.vertx.core.net.PfxOptions;
+import io.vertx.core.net.ProxyOptions;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
@@ -192,11 +193,11 @@ public class RegistryClientRequestAdapterFactory {
     }
 
     /**
-     * Builds WebClientOptions with SSL/TLS configuration from RegistryClientOptions.
-     * Returns null if no SSL/TLS configuration is specified.
+     * Builds WebClientOptions with SSL/TLS and proxy configuration from RegistryClientOptions.
+     * Returns null if no SSL/TLS or proxy configuration is specified.
      *
-     * @param options the RegistryClientOptions containing SSL/TLS configuration
-     * @return WebClientOptions with SSL/TLS settings, or null if no SSL configuration is needed
+     * @param options the RegistryClientOptions containing SSL/TLS and proxy configuration
+     * @return WebClientOptions with SSL/TLS and proxy settings, or null if no configuration is needed
      */
     private static WebClientOptions buildWebClientOptions(RegistryClientOptions options) {
         // Check if any SSL/TLS configuration is present
@@ -204,12 +205,19 @@ public class RegistryClientRequestAdapterFactory {
                 || options.isTrustAll()
                 || !options.isVerifyHost();
 
-        if (!hasSslConfig) {
+        // Check if proxy configuration is present
+        boolean hasProxyConfig = options.getProxyHost() != null;
+
+        if (!hasSslConfig && !hasProxyConfig) {
             return null;
         }
 
         WebClientOptions webClientOptions = new WebClientOptions();
-        webClientOptions.setSsl(true);
+
+        // Configure SSL/TLS if present
+        if (hasSslConfig) {
+            webClientOptions.setSsl(true);
+        }
 
         // Configure trust-all if enabled
         if (options.isTrustAll()) {
@@ -253,6 +261,23 @@ public class RegistryClientRequestAdapterFactory {
             case NONE:
                 // No custom trust store configured
                 break;
+        }
+
+        // Configure proxy if present
+        if (hasProxyConfig) {
+            ProxyOptions proxyOptions = new ProxyOptions()
+                    .setHost(options.getProxyHost())
+                    .setPort(options.getProxyPort());
+
+            // Configure proxy authentication if credentials are provided
+            if (options.getProxyUsername() != null && !options.getProxyUsername().isEmpty()) {
+                proxyOptions.setUsername(options.getProxyUsername());
+                if (options.getProxyPassword() != null) {
+                    proxyOptions.setPassword(options.getProxyPassword());
+                }
+            }
+
+            webClientOptions.setProxyOptions(proxyOptions);
         }
 
         return webClientOptions;

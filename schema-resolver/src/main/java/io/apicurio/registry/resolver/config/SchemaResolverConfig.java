@@ -239,6 +239,29 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String TLS_VERIFY_HOST = "apicurio.registry.tls.verify-host";
     public static final boolean TLS_VERIFY_HOST_DEFAULT = true;
 
+    /**
+     * The HTTP/HTTPS proxy host for registry connections. Required when connecting through a proxy server.
+     * Can be a hostname or IP address.
+     */
+    public static final String PROXY_HOST = "apicurio.registry.proxy.host";
+
+    /**
+     * The HTTP/HTTPS proxy port for registry connections. Required when {@link #PROXY_HOST} is specified.
+     * Common proxy ports are 3128, 8080, or 8888.
+     */
+    public static final String PROXY_PORT = "apicurio.registry.proxy.port";
+
+    /**
+     * Optional username for proxy authentication. Only required if the proxy server requires authentication.
+     */
+    public static final String PROXY_USERNAME = "apicurio.registry.proxy.username";
+
+    /**
+     * Optional password for proxy authentication. Only required if the proxy server requires authentication
+     * and {@link #PROXY_USERNAME} is specified.
+     */
+    public static final String PROXY_PASSWORD = "apicurio.registry.proxy.password";
+
     public String getRegistryUrl() {
         String registryUrl = getString(REGISTRY_URL);
         if (registryUrl != null) {
@@ -375,6 +398,36 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     public boolean getTlsVerifyHost() {
         return getBoolean(TLS_VERIFY_HOST);
+    }
+
+    public String getProxyHost() {
+        return getString(PROXY_HOST);
+    }
+
+    public Integer getProxyPort() {
+        Object value = getObject(PROXY_PORT);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        } else if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid proxy port value: " + value, e);
+            }
+        } else {
+            throw new IllegalArgumentException("Proxy port must be a number, got: " + value.getClass().getName());
+        }
+    }
+
+    public String getProxyUsername() {
+        return getString(PROXY_USERNAME);
+    }
+
+    public String getProxyPassword() {
+        return getString(PROXY_PASSWORD);
     }
 
     @Override

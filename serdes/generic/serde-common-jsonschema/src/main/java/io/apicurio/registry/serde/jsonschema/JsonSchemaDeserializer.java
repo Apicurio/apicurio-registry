@@ -108,12 +108,15 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         System.arraycopy(buffer.array(), start, data, 0, length);
 
         try {
-            JsonParser parser = mapper.getFactory().createParser(data);
+            // Parse the data to JsonNode once
+            JsonNode jsonNode = mapper.readTree(data);
 
+            // Validate if needed (using the already-parsed JsonNode to avoid double-parsing)
             if (isValidationEnabled()) {
-                JsonSchemaValidationUtil.validateDataWithSchema(schema, data, mapper);
+                JsonSchemaValidationUtil.validateDataWithSchema(schema, jsonNode);
             }
 
+            // Determine the target message type
             Class<T> messageType = null;
 
             if (this.specificReturnClass != null) {
@@ -132,11 +135,12 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
                 messageType = javaType == null ? null : Utils.loadClass(javaType);
             }
 
+            // Return the result: either as JsonNode or converted to the target type
             if (messageType == null) {
                 // TODO maybe warn there is no message type and the deserializer will return a JsonNode
-                return mapper.readTree(parser);
+                return (T) jsonNode;
             } else {
-                return mapper.readValue(parser, messageType);
+                return mapper.treeToValue(jsonNode, messageType);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

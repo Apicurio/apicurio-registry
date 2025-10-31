@@ -4,6 +4,7 @@ import io.debezium.testing.testcontainers.ConnectorConfiguration;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.lifecycle.Startables;
@@ -24,16 +25,21 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
             .withDatabaseName("registry").withUsername("postgres").withPassword("postgres")
             .withNetwork(network).withNetworkAliases("postgres");
 
+    public static MySQLContainer<?> mysqlContainer = new MySQLContainer<>(
+            DockerImageName.parse("quay.io/debezium/example-mysql:2.6").asCompatibleSubstituteFor("mysql"))
+            .withDatabaseName("inventory").withUsername("debezium").withPassword("dbz")
+            .withNetwork(network).withNetworkAliases("mysql");
+
     public static DebeziumContainer debeziumContainer = new DebeziumContainer(
             "quay.io/debezium/connect:2.6.2.Final").withNetwork(network).withKafka(kafkaContainer)
             .dependsOn(kafkaContainer);
 
     @Override
     public Map<String, String> start() {
-        // Start the postgresql database, kafka, and debezium
-        Startables.deepStart(Stream.of(kafkaContainer, postgresContainer, debeziumContainer)).join();
+        // Start the postgresql database, mysql database, kafka, and debezium
+        Startables.deepStart(Stream.of(kafkaContainer, postgresContainer, mysqlContainer, debeziumContainer)).join();
 
-        // Register the postgresql connector
+        // Register the postgresql connector for outbox pattern
         ConnectorConfiguration connector = ConnectorConfiguration.forJdbcContainer(postgresContainer)
                 .with("topic.prefix", "registry").with("schema.include.list", "public")
                 .with("table.include.list", "public.outbox").with("transforms", "outbox")
@@ -47,10 +53,34 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
                 "apicurio.datasource.username", "postgres", "apicurio.datasource.password", "postgres");
     }
 
+    /**
+     * Helper method to register a PostgreSQL connector with custom configuration
+     */
+    public static void registerPostgresConnector(String connectorName, String topicPrefix, String tableIncludeList) {
+        ConnectorConfiguration connector = ConnectorConfiguration.forJdbcContainer(postgresContainer)
+                .with("topic.prefix", topicPrefix)
+                .with("table.include.list", tableIncludeList);
+
+        debeziumContainer.registerConnector(connectorName, connector);
+    }
+
+    /**
+     * Helper method to register a MySQL connector with custom configuration
+     */
+    public static void registerMySqlConnector(String connectorName, String topicPrefix, String tableIncludeList) {
+        ConnectorConfiguration connector = ConnectorConfiguration.forJdbcContainer(mysqlContainer)
+                .with("topic.prefix", topicPrefix)
+                .with("table.include.list", tableIncludeList)
+                .with("include.schema.changes", "false");
+
+        debeziumContainer.registerConnector(connectorName, connector);
+    }
+
     @Override
     public void stop() {
         debeziumContainer.stop();
         postgresContainer.stop();
+        mysqlContainer.stop();
         kafkaContainer.stop();
     }
 

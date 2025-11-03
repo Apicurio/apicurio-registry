@@ -66,6 +66,16 @@ public interface Constants {
      */
     String DB_UPGRADE = "dbupgrade";
 
+    /**
+     * Tag for Debezium integration tests
+     */
+    String DEBEZIUM = "debezium";
+
+    /**
+     * Tag for slow-running tests
+     */
+    String SLOW = "slow";
+
     Path LOGS_DIR = Paths.get("target/logs/");
 
     /**

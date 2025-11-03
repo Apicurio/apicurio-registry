@@ -38,7 +38,6 @@
                   <file>${project.basedir}/src/main/resources/schemas/FLIStockAdjustment.json</file>
                   <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                   <canonicalize>true</canonicalize>
-                  <analyzeDirectory>true</analyzeDirectory>
                   <autoRefs>true</autoRefs>
                 </artifact>
               </artifacts>

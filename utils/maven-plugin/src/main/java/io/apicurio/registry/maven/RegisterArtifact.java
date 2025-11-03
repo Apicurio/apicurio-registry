@@ -8,6 +8,14 @@ import java.util.List;
 
 public class RegisterArtifact {
 
+    public List<File> getProtoPaths() {
+        return protoPaths;
+    }
+
+    public void setProtoPaths(List<File> protoPaths) {
+        this.protoPaths = protoPaths;
+    }
+
     public enum AvroAutoRefsNamingStrategy {
         INHERIT_PARENT_GROUP, USE_AVRO_NAMESPACE
     }
@@ -20,14 +28,13 @@ public class RegisterArtifact {
     private IfArtifactExists ifExists;
     private Boolean canonicalize;
     private Boolean minify;
-    @Deprecated
-    private Boolean analyzeDirectory;
     private Boolean autoRefs;
     private AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy;
     private Boolean isDraft;
     private String contentType;
     private List<RegisterArtifactReference> references;
     private List<ExistingReference> existingReferences;
+    private List<File> protoPaths;
 
     /**
      * Constructor.
@@ -173,16 +180,6 @@ public class RegisterArtifact {
      */
     public void setReferences(List<RegisterArtifactReference> references) {
         this.references = references;
-    }
-
-    @Deprecated
-    public Boolean getAnalyzeDirectory() {
-        return analyzeDirectory;
-    }
-
-    @Deprecated
-    public void setAnalyzeDirectory(Boolean analyzeDirectory) {
-        this.analyzeDirectory = analyzeDirectory;
     }
 
     public Boolean getAutoRefs() {

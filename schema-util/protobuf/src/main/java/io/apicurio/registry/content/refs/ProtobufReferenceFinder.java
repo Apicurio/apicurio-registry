@@ -29,7 +29,9 @@ public class ProtobufReferenceFinder implements ReferenceFinder {
             Set<String> allImports = new HashSet<>();
             allImports.addAll(protoFileElement.getImports());
             allImports.addAll(protoFileElement.getPublicImports());
-            return allImports.stream().map(imprt -> new ExternalReference(imprt)).collect(Collectors.toSet());
+            return allImports.stream()
+                    .filter(imprt -> !imprt.startsWith("google/protobuf/"))
+                    .map(imprt -> new ExternalReference(imprt)).collect(Collectors.toSet());
         } catch (Exception e) {
             log.error("Error finding external references in a Protobuf file.", e);
             return Collections.emptySet();

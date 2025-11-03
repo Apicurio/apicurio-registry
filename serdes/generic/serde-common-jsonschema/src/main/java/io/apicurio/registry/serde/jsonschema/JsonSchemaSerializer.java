@@ -2,6 +2,7 @@ package io.apicurio.registry.serde.jsonschema;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
@@ -91,17 +92,24 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
     }
 
     /**
+     * Serializes the data to JSON format and optionally validates it against the schema.
+     * When validation is enabled, the data is converted to JsonNode once and validated
+     * before serialization, avoiding redundant parsing.
+     *
      * @see io.apicurio.registry.serde.AbstractSerializer#serializeData(io.apicurio.registry.resolver.ParsedSchema,
      *      java.lang.Object, java.io.OutputStream)
      */
     @Override
     public void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
-        final byte[] dataBytes = mapper.writeValueAsBytes(data);
-
         if (isValidationEnabled()) {
-            JsonSchemaValidationUtil.validateDataWithSchema(schema, dataBytes, mapper);
+            // Convert to JsonNode for validation to avoid serializing and then parsing back
+            JsonNode jsonNode = mapper.valueToTree(data);
+            JsonSchemaValidationUtil.validateDataWithSchema(schema, jsonNode);
+            // Serialize the validated JsonNode
+            mapper.writeValue(out, jsonNode);
+        } else {
+            // When validation is disabled, serialize directly
+            mapper.writeValue(out, data);
         }
-
-        out.write(dataBytes);
     }
 }

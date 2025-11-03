@@ -5,6 +5,7 @@ import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Set;
 
 public class IndexedResource {
@@ -101,5 +102,18 @@ public class IndexedResource {
 
     public boolean isRegistered() {
         return this.registration != null;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass())
+            return false;
+        IndexedResource that = (IndexedResource) o;
+        return Objects.equals(path, that.path) && Objects.equals(registration, that.registration);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(path, registration);
     }
 }

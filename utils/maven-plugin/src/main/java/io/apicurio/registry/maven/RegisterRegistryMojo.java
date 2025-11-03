@@ -2,7 +2,6 @@ package io.apicurio.registry.maven;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Descriptors.FileDescriptor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
@@ -11,13 +10,11 @@ import io.apicurio.registry.maven.refs.IndexedResource;
 import io.apicurio.registry.maven.refs.ReferenceIndex;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.*;
-import io.apicurio.registry.rules.ParsedJsonSchema;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import io.vertx.core.Vertx;
-import org.apache.avro.Schema;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -136,20 +133,14 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     if (artifact.getAutoRefs() != null && artifact.getAutoRefs()) {
                         // If we have references, then we'll need to create the local resource index and then
                         // process all refs.
-                        ReferenceIndex index = createIndex(artifact.getFile());
+                        ReferenceIndex index = createIndex(artifact);
                         addExistingReferencesToIndex(registryClient, index, existingReferences);
                         addExistingReferencesToIndex(registryClient, index, artifact.getExistingReferences());
                         Stack<RegisterArtifact> registrationStack = new Stack<>();
 
                         this.avroAutoRefsNamingStrategy = artifact.getAvroAutoRefsNamingStrategy();
                         registerWithAutoRefs(registryClient, artifact, index, registrationStack);
-                    } else if (artifact.getAnalyzeDirectory() != null && artifact.getAnalyzeDirectory()) { // Auto
-                        // register selected, we must figure out if the artifact has references using the
-                        // directory structure
-                        getLog().warn("Deprecated feature in use: 'analyzeDirectory' -- use 'autoRefs' instead.");
-                        registerDirectory(registryClient, artifact);
                     } else {
-
                         List<ArtifactReference> references = new ArrayList<>();
                         // First, we check if the artifact being processed has references defined
                         if (hasReferences(artifact)) {
@@ -175,7 +166,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                                                  ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException,
             ExecutionException, InterruptedException, MojoExecutionException, MojoFailureException {
         if (loopDetected(artifact, registrationStack)) {
-            throw new RuntimeException(
+            throw new MojoExecutionException(
                     "Artifact reference loop detected (not supported): " + printLoop(registrationStack));
         }
         registrationStack.push(artifact);
@@ -201,7 +192,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
             // TODO: need a way to resolve references that are not local (already registered in the registry)
             if (iresource == null) {
-                throw new RuntimeException("Reference could not be resolved.  From: "
+                throw new MojoExecutionException("Reference could not be resolved.  From: "
                         + artifact.getFile().getName() + "  To: " + externalRef.getFullReference());
             }
 
@@ -210,7 +201,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 String groupId = artifact.getGroupId(); // default is same group as root artifact
                 // TODO: determine the artifactId better (type-specific logic here?)
                 String artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
-                if(ArtifactType.AVRO.equals(iresource.getType())) {
+                if (ArtifactType.AVRO.equals(iresource.getType())) {
                     if (avroAutoRefsNamingStrategy == RegisterArtifact.AvroAutoRefsNamingStrategy.USE_AVRO_NAMESPACE) {
                         groupId = referenceArtifactIdentifierExtractor.extractGroupId(externalRef.getResource());
                         artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
@@ -245,39 +236,6 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
         registrationStack.pop();
         return registerArtifact(registryClient, artifact, registeredReferences);
-    }
-
-    private void registerDirectory(RegistryClient registryClient, RegisterArtifact artifact)
-            throws IOException, ExecutionException, InterruptedException, MojoExecutionException,
-            MojoFailureException {
-        switch (artifact.getArtifactType()) {
-            case ArtifactType.AVRO:
-                final AvroDirectoryParser avroDirectoryParser = new AvroDirectoryParser(registryClient);
-                final ParsedDirectoryWrapper<Schema> schema = avroDirectoryParser.parse(artifact.getFile());
-                registerArtifact(registryClient, artifact, avroDirectoryParser
-                        .handleSchemaReferences(artifact, schema.getSchema(), schema.getSchemaContents()));
-                break;
-            case ArtifactType.PROTOBUF:
-                final ProtobufDirectoryParser protobufDirectoryParser = new ProtobufDirectoryParser(
-                        registryClient);
-                final ParsedDirectoryWrapper<FileDescriptor> protoSchema = protobufDirectoryParser
-                        .parse(artifact.getFile());
-                registerArtifact(registryClient, artifact, protobufDirectoryParser.handleSchemaReferences(
-                        artifact, protoSchema.getSchema(), protoSchema.getSchemaContents()));
-                break;
-            case ArtifactType.JSON:
-                final JsonSchemaDirectoryParser jsonSchemaDirectoryParser = new JsonSchemaDirectoryParser(
-                        registryClient);
-                final ParsedDirectoryWrapper<ParsedJsonSchema> jsonSchema = jsonSchemaDirectoryParser
-                        .parse(artifact.getFile());
-                registerArtifact(registryClient, artifact, jsonSchemaDirectoryParser.handleSchemaReferences(
-                        artifact, jsonSchema.getSchema(), jsonSchema.getSchemaContents()));
-                break;
-            default:
-                throw new IllegalArgumentException(
-                        String.format("Artifact type not recognized for analyzing a directory structure %s",
-                                artifact.getArtifactType()));
-        }
     }
 
     private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,
@@ -450,14 +408,30 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     /**
      * Create a local index relative to the given file location.
      *
-     * @param file
+     * @param artifact
      */
-    private static ReferenceIndex createIndex(File file) {
+    private static ReferenceIndex createIndex(RegisterArtifact artifact) {
+        File file = artifact.getFile();
         ReferenceIndex index = new ReferenceIndex(file.getParentFile().toPath());
-        Collection<File> allFiles = FileUtils.listFiles(file.getParentFile(), null, true);
-        allFiles.stream().filter(RegisterRegistryMojo::isFileAllowedInIndex).forEach(f -> {
-            index.index(f.toPath(), readContent(f));
-        });
+        if (artifact.getProtoPaths() != null) {
+            artifact.getProtoPaths().forEach(path -> index.addSchemaPath(path.toPath()));
+        }
+
+        HashSet<File> roots = new HashSet<>();
+        if (artifact.getProtoPaths() != null) {
+            roots.addAll(artifact.getProtoPaths());
+        } else {
+            roots.add(file.getParentFile());
+        }
+
+        Collection<File> allFiles = new HashSet<>();
+        for (File root : roots) {
+            allFiles.addAll(FileUtils.listFiles(root, null, true));
+            allFiles.stream().filter(RegisterRegistryMojo::isFileAllowedInIndex).forEach(f -> {
+                index.index(f.toPath(), readContent(f));
+            });
+        }
+
         return index;
     }
 

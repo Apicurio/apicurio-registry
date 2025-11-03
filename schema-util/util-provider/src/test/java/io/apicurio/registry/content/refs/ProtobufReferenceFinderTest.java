@@ -19,8 +19,7 @@ public class ProtobufReferenceFinderTest extends ArtifactUtilProviderTestBase {
         ProtobufReferenceFinder finder = new ProtobufReferenceFinder();
         Set<ExternalReference> foundReferences = finder.findExternalReferences(content);
         Assertions.assertNotNull(foundReferences);
-        Assertions.assertEquals(3, foundReferences.size());
-        Assertions.assertEquals(Set.of(new ExternalReference("google/protobuf/timestamp.proto"),
+        Assertions.assertEquals(Set.of(
                 new ExternalReference("sample/table_info.proto"),
                 new ExternalReference("sample/table_notification_type.proto")), foundReferences);
     }

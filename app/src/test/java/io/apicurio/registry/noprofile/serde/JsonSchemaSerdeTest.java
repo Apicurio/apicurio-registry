@@ -933,4 +933,51 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         }
     }
 
+    /**
+     * Tests the specificReturnClass feature of JsonSchemaDeserializer.
+     * This allows specifying the Java class to deserialize to via configuration,
+     * which is useful when the schema doesn't have a javaType field.
+     */
+    @ParameterizedTest(name = "testJsonSchemaSerdeSpecificReturnClass [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeSpecificReturnClass(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        // Load a schema WITHOUT javaType field
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        Assertions.assertNotNull(jsonSchema);
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON);
+
+        Person person = new Person("Diana", "Prince", 28);
+
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            serializer.configure(config, false);
+
+            // Configure deserializer with specificReturnClass
+            Map<String, Object> deserializerConfig = new HashMap<>();
+            deserializerConfig.put(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, Person.class.getName());
+            deserializer.configure(deserializerConfig, false);
+
+            byte[] bytes = serializer.serialize(artifactId, person);
+
+            // Deserialize using the specificReturnClass configuration
+            person = deserializer.deserialize(artifactId, bytes);
+
+            Assertions.assertEquals("Diana", person.getFirstName());
+            Assertions.assertEquals("Prince", person.getLastName());
+            Assertions.assertEquals(28, person.getAge());
+        }
+    }
+
 }

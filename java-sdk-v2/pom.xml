@@ -62,6 +62,86 @@
   </dependencies>
   <build>
     <plugins>
+      <!-- Filter OpenAPI spec before Kiota code generation -->
+      <plugin>
+        <groupId>org.codehaus.gmaven</groupId>
+        <artifactId>groovy-maven-plugin</artifactId>
+        <version>2.1.1</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson-datatype-json-org.version}</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>filter-openapi-spec</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <source><![CDATA[
+                import com.fasterxml.jackson.databind.ObjectMapper
+                import com.fasterxml.jackson.databind.SerializationFeature
+
+                def inputFile = new File(project.basedir, '../common/src/main/resources/META-INF/openapi-v2.json')
+                def outputFile = new File(project.build.directory, 'openapi-v2-filtered.json')
+
+                // Paths to process
+                def pathsToFilter = [
+                    '/groups/{groupId}/artifacts',
+                    '/groups/{groupId}/artifacts/{artifactId}',
+                    '/groups/{groupId}/artifacts/{artifactId}/versions'
+                ] as Set
+
+                // Content types to remove
+                def contentTypesToRemove = ['*/*', 'application/create.extended+json'] as Set
+
+                log.info("Filtering OpenAPI spec from: ${inputFile}")
+                log.info("Output will be written to: ${outputFile}")
+
+                // Use Jackson to preserve order
+                def mapper = new ObjectMapper()
+                def json = mapper.readValue(inputFile, LinkedHashMap.class)
+
+                // Process only the specified paths
+                json.paths.each { pathKey, pathItem ->
+                    if (pathsToFilter.contains(pathKey)) {
+                        log.info("Processing path: ${pathKey}")
+
+                        // Check if POST operation exists
+                        if (pathItem.post?.requestBody?.content) {
+                            def content = pathItem.post.requestBody.content
+
+                            // Remove unwanted content types
+                            contentTypesToRemove.each { contentType ->
+                                if (content.containsKey(contentType)) {
+                                    content.remove(contentType)
+                                    log.info("  Removed content-type: ${contentType}")
+                                }
+                            }
+
+                            def remainingKeys = content.keySet() as List
+                            log.info("  Remaining content-types: ${remainingKeys}")
+                        }
+                    }
+                }
+
+                // Ensure output directory exists
+                outputFile.parentFile.mkdirs()
+
+                // Write with pretty printing while preserving order
+                mapper.enable(SerializationFeature.INDENT_OUTPUT)
+                mapper.writeValue(outputFile, json)
+
+                log.info("Filtered OpenAPI spec written successfully")
+              ]]></source>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>io.kiota</groupId>
         <artifactId>kiota-maven-plugin</artifactId>
@@ -76,7 +156,7 @@
               <kiotaVersion>${kiota.version}</kiotaVersion>
               <kiotaTimeout>${kiota.timeout}</kiotaTimeout>
               <baseURL>${kiota.base.url}</baseURL>
-              <file>../common/src/main/resources/META-INF/openapi-v2.json</file>
+              <file>${project.build.directory}/openapi-v2-filtered.json</file>
               <namespace>io.apicurio.registry.rest.client.v2</namespace>
               <clientClass>RegistryClient</clientClass>
             </configuration>

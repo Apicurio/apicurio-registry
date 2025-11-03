@@ -1094,10 +1094,10 @@ public class GroupsResourceImpl implements GroupsResource {
 
             // Extract metadata from content, then override extracted values with provided values.
             EditableArtifactMetaDataDto metaData = extractMetaData(artifactType, content);
-            if (artifactName != null && artifactName.trim().isEmpty()) {
+            if (artifactName != null && !artifactName.trim().isEmpty()) {
                 metaData.setName(artifactName);
             }
-            if (artifactDescription != null && artifactDescription.trim().isEmpty()) {
+            if (artifactDescription != null && !artifactDescription.trim().isEmpty()) {
                 metaData.setDescription(artifactDescription);
             }
 
@@ -1369,10 +1369,10 @@ public class GroupsResourceImpl implements GroupsResource {
 
         // Extract metadata from content, then override extracted values with provided values.
         EditableArtifactMetaDataDto artifactMD = extractMetaData(artifactType, content);
-        if (name != null && name.trim().isEmpty()) {
+        if (name != null && !name.trim().isEmpty()) {
             artifactMD.setName(name);
         }
-        if (description != null && description.trim().isEmpty()) {
+        if (description != null && !description.trim().isEmpty()) {
             artifactMD.setDescription(description);
         }
 

@@ -185,9 +185,8 @@
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio-jvm.version>3.10.2</okio-jvm.version>
-    <okio.version>3.10.2</okio.version>
-    <okio-fake-file-system.version>3.10.2</okio-fake-file-system.version>
+    <okio.version>3.16.2</okio.version>
+    <kotlin-stdlib.version>2.1.0</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.33.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
@@ -637,7 +636,7 @@
       <dependency>
         <groupId>com.squareup.okio</groupId>
         <artifactId>okio-jvm</artifactId>
-        <version>${okio-jvm.version}</version>
+        <version>${okio.version}</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.okio</groupId>
@@ -647,7 +646,12 @@
       <dependency>
         <groupId>com.squareup.okio</groupId>
         <artifactId>okio-fakefilesystem</artifactId>
-        <version>${okio-fake-file-system.version}</version>
+        <version>${okio.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib</artifactId>
+        <version>${kotlin-stdlib.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>

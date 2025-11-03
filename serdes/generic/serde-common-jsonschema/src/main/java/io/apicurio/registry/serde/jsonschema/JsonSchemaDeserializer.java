@@ -105,32 +105,14 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
 
     private T internalReadData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
         try {
-            JsonParser parser;
-
-            if (isValidationEnabled()) {
-                // When validation is enabled, we still need a byte array copy for the validation utility
-                // TODO: optimize this in a future PR to avoid double-parsing
-                byte[] data = new byte[length];
-                System.arraycopy(buffer.array(), start, data, 0, length);
-                parser = mapper.getFactory().createParser(data);
-                JsonSchemaValidationUtil.validateDataWithSchema(schema, data, mapper);
-            } else {
-                // When validation is disabled, use ByteBufferInputStream to avoid copying data
-                ByteBuffer slice = buffer.duplicate();
-                slice.position(start);
-                slice.limit(start + length);
-                parser = mapper.getFactory().createParser(new ByteBufferInputStream(slice));
-            }
-
-            Class<T> messageType = null;
-
+            // Figure out the Class to use (the message type) for deserialization.  This may end up
+            // being null, in which case a Jackson Node will be returned.
+            Class<T> messageType;
             if (this.specificReturnClass != null) {
                 messageType = this.specificReturnClass;
             } else {
-                JsonNode jsonSchema = mapper.readTree(schema.getRawSchema());
-
                 String javaType = null;
-                JsonNode javaTypeNode = jsonSchema.get("javaType");
+                JsonNode javaTypeNode = schema.getParsedSchema().getSchemaNode().get("javaType");
                 if (javaTypeNode != null && !javaTypeNode.isNull()) {
                     javaType = javaTypeNode.textValue();
                 }
@@ -140,11 +122,23 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
                 messageType = javaType == null ? null : Utils.loadClass(javaType);
             }
 
+            // Parse the data into a Node once
+            ByteBuffer slice = buffer.duplicate();
+            slice.position(start);
+            slice.limit(start + length);
+            JsonNode jsonNode = mapper.readTree(new ByteBufferInputStream(slice));
+
+            // Validate the data (if enabled)
+            if (isValidationEnabled()) {
+                JsonSchemaValidationUtil.validateDataWithSchema(schema, jsonNode);
+            }
+
+            // Convert to specific Java class (messageType) if we have one configured
             if (messageType == null) {
                 // TODO maybe warn there is no message type and the deserializer will return a JsonNode
-                return mapper.readTree(parser);
+                return (T) jsonNode;
             } else {
-                return mapper.readValue(parser, messageType);
+                return mapper.treeToValue(jsonNode, messageType);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

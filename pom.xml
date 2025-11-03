@@ -186,7 +186,6 @@
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.16.2</okio.version>
-    <kotlinx-coroutines-core.version>1.9.0</kotlinx-coroutines-core.version>
     <kotlin-stdlib.version>2.1.0</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.33.0</protobuf.version>
@@ -648,11 +647,6 @@
         <groupId>com.squareup.okio</groupId>
         <artifactId>okio-fakefilesystem</artifactId>
         <version>${okio.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jetbrains.kotlinx</groupId>
-        <artifactId>kotlinx-coroutines-core</artifactId>
-        <version>${kotlinx-coroutines-core.version}</version>
       </dependency>
       <dependency>
         <groupId>org.jetbrains.kotlin</groupId>

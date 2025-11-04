@@ -471,15 +471,11 @@ public class DebeziumPostgreSQLAvroLocalConvertersTest extends ApicurioRegistryB
                 .with("key.converter.apicurio.registry.auto-register", "true")
                 .with("key.converter.apicurio.registry.find-latest", "true")
                 .with("key.converter.apicurio.registry.headers.enabled", "false")
-                // Use dereferenced schemas to avoid v3 reference registration issues
-                .with("key.converter.apicurio.registry.dereference-schema", "true")
                 .with("value.converter", "io.apicurio.registry.utils.converter.AvroConverter")
                 .with("value.converter.apicurio.registry.url", registryUrl)
                 .with("value.converter.apicurio.registry.auto-register", "true")
                 .with("value.converter.apicurio.registry.find-latest", "true")
-                .with("value.converter.apicurio.registry.headers.enabled", "false")
-                // Use dereferenced schemas to avoid v3 reference registration issues
-                .with("value.converter.apicurio.registry.dereference-schema", "true");
+                .with("value.converter.apicurio.registry.headers.enabled", "false");
 
         DebeziumLocalConvertersResource.debeziumContainer.registerConnector(connectorName, config);
         currentConnectorName = connectorName; // Track for cleanup

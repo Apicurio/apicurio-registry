@@ -1,4 +1,4 @@
-package io.apicurio.tests.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium;
 
 import io.debezium.testing.testcontainers.ConnectorConfiguration;
 import io.debezium.testing.testcontainers.DebeziumContainer;
@@ -13,6 +13,7 @@ import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -93,18 +94,9 @@ public class DebeziumLocalConvertersResource implements QuarkusTestResourceLifec
         // Start the postgresql database, kafka, and debezium
         Startables.deepStart(Stream.of(kafkaContainer, postgresContainer, debeziumContainer)).join();
 
-        // Register the postgresql connector for outbox pattern
-        ConnectorConfiguration connector = ConnectorConfiguration.forJdbcContainer(postgresContainer)
-                .with("topic.prefix", "registry").with("schema.include.list", "public")
-                .with("table.include.list", "public.outbox").with("transforms", "outbox")
-                .with("transforms.outbox.type", "io.debezium.transforms.outbox.EventRouter");
-
-        debeziumContainer.registerConnector("my-connector", connector);
-
         System.setProperty("bootstrap.servers", kafkaContainer.getBootstrapServers());
 
-        return Map.of("apicurio.datasource.url", postgresContainer.getJdbcUrl(),
-                "apicurio.datasource.username", "postgres", "apicurio.datasource.password", "postgres");
+        return Collections.emptyMap();
     }
 
     /**

@@ -100,7 +100,7 @@ jobs:
 
       - name: Publish to npmjs.com
         working-directory: registry/artifact-type-builtins
-        run: NPM_CONFIG_PROVENANCE=false npm publish --access public
+        run: npm publish --access public
 
       - name: Slack Notification (Always)
         if: always()

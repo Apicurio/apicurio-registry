@@ -86,6 +86,9 @@ jobs:
       - name: Check Node Version
         run: node --version
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Check npm Version
         run: npm --version
 

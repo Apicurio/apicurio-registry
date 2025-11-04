@@ -17,7 +17,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/Apicurio/apicurio-registry.git",
+        "url": "https://github.com/Apicurio/apicurio-registry",
         "directory": "artifact-type-builtins"
     },
     "keywords": [

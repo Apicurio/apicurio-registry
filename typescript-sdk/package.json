@@ -8,6 +8,11 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Apicurio/apicurio-registry",
+    "directory": "typescript-sdk"
+  },
   "scripts": {
     "clean": "rimraf dist lib/generated-client .kiota",
     "kiota-info": "cross-env KIOTA_VERSION=v1.23.0 kiota info -l typescript",

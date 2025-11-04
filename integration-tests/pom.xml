@@ -195,6 +195,30 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>unpack-debezium-converters</id>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>io.apicurio</groupId>
+                  <artifactId>apicurio-registry-distro-connect-converter</artifactId>
+                  <version>${project.version}</version>
+                  <type>tar.gz</type>
+                  <outputDirectory>${project.build.directory}/debezium-converters</outputDirectory>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 

@@ -278,6 +278,7 @@
     <version.license-maven-plugin>2.7.0</version.license-maven-plugin>
     <version.exec-maven-plugin>3.6.2</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.6.Final</version.apicurio-codegen-plugin>
+    <version.gmavenplus-plugin>4.2.1</version.gmavenplus-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->
     <version.org.sonatype.central-publishing-maven-plugin>0.9.0</version.org.sonatype.central-publishing-maven-plugin>
@@ -300,6 +301,9 @@
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout>
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
+
+    <!-- Groovy scripting -->
+    <groovy.version>4.0.24</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>1.21.3</pulsar.testcontainers.version>

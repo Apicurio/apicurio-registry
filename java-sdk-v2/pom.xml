@@ -182,6 +182,58 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.gmaven</groupId>
+        <artifactId>groovy-maven-plugin</artifactId>
+        <version>2.1.1</version>
+        <executions>
+          <execution>
+            <id>post-process-kiota</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <source><![CDATA[
+                // Post-process Kiota-generated files to support legacy date formats
+                // See: https://github.com/Apicurio/apicurio-registry/issues/6799
+
+                def generatedDir = new File(project.build.directory, 'generated-sources/kiota')
+                if (!generatedDir.exists()) {
+                  log.info('Generated sources directory not found, skipping Kiota post-processing')
+                  return
+                }
+
+                log.info('Post-processing Kiota-generated files in ' + generatedDir)
+
+                def oldPattern = 'n.getOffsetDateTimeValue()'
+                def newPattern = 'io.apicurio.registry.client.util.DateTimeUtil.getOffsetDateTimeValue(n)'
+
+                def modifiedCount = 0
+
+                generatedDir.eachFileRecurse { file ->
+                  if (file.name.endsWith('.java')) {
+                    def content = file.text
+
+                    // Check if file contains the pattern to replace
+                    if (content.contains(oldPattern)) {
+                      // Replace the pattern with fully qualified method call
+                      content = content.replace(oldPattern, newPattern)
+
+                      // Write modified content back to file
+                      file.text = content
+                      modifiedCount++
+                      log.info('  Modified: ' + file.name)
+                    }
+                  }
+                }
+
+                log.info('Post-processing complete. Modified ' + modifiedCount + ' files.')
+              ]]></source>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>

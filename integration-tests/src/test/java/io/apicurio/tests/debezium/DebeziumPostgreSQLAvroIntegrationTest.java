@@ -20,8 +20,12 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,10 +54,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Integration tests for Debezium PostgreSQL CDC with Apicurio Registry Avro serialization.
  * Tests schema auto-registration, evolution, PostgreSQL data types, and CDC operations.
  */
-@Tag(Constants.DEBEZIUM)
-@Tag(Constants.SLOW)
+@Tag(Constants.SERDES)
+@Tag(Constants.ACCEPTANCE)
 @QuarkusIntegrationTest
 @TestProfile(DebeziumPostgreSQLTestProfile.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseIT {
 
     private static final Logger log = LoggerFactory.getLogger(DebeziumPostgreSQLAvroIntegrationTest.class);
@@ -61,13 +66,11 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
     private KafkaConsumer<byte[], byte[]> consumer;
     private Connection postgresConnection;
     private List<String> createdTables = new ArrayList<>();
+    private String currentConnectorName; // Track the connector for this test
     private static final AtomicInteger connectorCounter = new AtomicInteger(0);
 
     @BeforeAll
     public void setup() throws Exception {
-        // Initialize Kafka consumer with byte array deserializers
-        consumer = createKafkaConsumer();
-
         // Initialize PostgreSQL connection
         postgresConnection = createPostgreSQLConnection();
 
@@ -85,8 +88,68 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
         }
     }
 
+    @BeforeEach
+    public void beforeEachTest() throws InterruptedException {
+        // Reset connector name for this test
+        currentConnectorName = null;
+
+        // Create a fresh Kafka consumer for each test to avoid state pollution
+        if (consumer != null) {
+            try {
+                consumer.close();
+            } catch (Exception e) {
+                log.warn("Failed to close previous consumer: {}", e.getMessage());
+            }
+        }
+        consumer = createKafkaConsumer();
+        log.info("Created fresh Kafka consumer for test");
+    }
+
     @AfterEach
     public void cleanup() throws Exception {
+        Exception cleanupException = null;
+
+        // Delete Debezium connector to prevent state pollution
+        if (currentConnectorName != null) {
+            try {
+                log.info("Deleting Debezium connector: {}", currentConnectorName);
+                DebeziumContainerResource.debeziumContainer.deleteConnector(currentConnectorName);
+
+                // Wait for connector to be fully deleted (important for test isolation)
+                // Connector deletion is asynchronous, need to wait for:
+                // - Connector to fully stop
+                // - PostgreSQL replication slot to be dropped
+                // - Kafka Connect worker to release resources
+                Thread.sleep(5000);
+                log.info("Successfully deleted and confirmed cleanup of connector: {}", currentConnectorName);
+            } catch (Exception e) {
+                log.error("CRITICAL: Failed to delete connector {}: {}", currentConnectorName, e.getMessage(), e);
+                cleanupException = e;
+            }
+        }
+
+        // Clean up PostgreSQL: drop all replication slots and publications
+        if (postgresConnection != null) {
+            try {
+                cleanupPostgreSQLReplicationState();
+            } catch (Exception e) {
+                log.error("Failed to clean up PostgreSQL replication state: {}", e.getMessage(), e);
+                if (cleanupException == null) {
+                    cleanupException = e;
+                }
+            }
+        }
+
+        // Unsubscribe consumer from topics
+        if (consumer != null) {
+            try {
+                consumer.unsubscribe();
+                log.info("Unsubscribed consumer from all topics");
+            } catch (Exception e) {
+                log.warn("Failed to unsubscribe consumer: {}", e.getMessage());
+            }
+        }
+
         // Clean up created tables after each test
         if (postgresConnection != null) {
             for (String tableName : createdTables) {
@@ -100,9 +163,10 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
             createdTables.clear();
         }
 
-        // Drain Kafka topics
-        if (consumer != null) {
-            consumer.poll(Duration.ofSeconds(1));
+        // Re-throw cleanup exception if connector deletion failed
+        // This is critical for test isolation
+        if (cleanupException != null) {
+            throw new RuntimeException("Test cleanup failed - subsequent tests may be affected", cleanupException);
         }
     }
 
@@ -114,6 +178,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      * - Consumes and deserializes CDC events
      */
     @Test
+    @Order(1)
     public void testBasicCDCWithSchemaAutoRegistration() throws Exception {
         String tableName = "customers";
         String topicPrefix = "test1";
@@ -170,6 +235,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      * - Validates operation type (op field: c/u/d)
      */
     @Test
+    @Order(2)
     public void testUpdateAndDeleteOperations() throws Exception {
         String tableName = "products";
         String topicPrefix = "test2";
@@ -182,6 +248,12 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
                         "name VARCHAR(100) NOT NULL, " +
                         "price DECIMAL(10, 2)" +
                         ")");
+
+        // Set REPLICA IDENTITY FULL to capture full before/after state for UPDATE and DELETE
+        try (Statement stmt = postgresConnection.createStatement()) {
+            stmt.execute("ALTER TABLE " + tableName + " REPLICA IDENTITY FULL");
+            log.info("Set REPLICA IDENTITY FULL for table: {}", tableName);
+        }
 
         // Register connector
         registerDebeziumConnectorWithApicurioConverters(
@@ -235,8 +307,11 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
         GenericRecord afterUpdate = (GenericRecord) updateEvent.get("after");
         assertNotNull(beforeUpdate);
         assertNotNull(afterUpdate);
-        // Price changed from 19.99 to 24.99
-        assertTrue(afterUpdate.get("price").toString().contains("24.99"));
+        // Price changed from 19.99 to 24.99 (DECIMAL(10,2) has scale 2)
+        java.math.BigDecimal priceBefore = decodeAvroDecimal(beforeUpdate.get("price"), 2);
+        java.math.BigDecimal priceAfter = decodeAvroDecimal(afterUpdate.get("price"), 2);
+        assertEquals(new java.math.BigDecimal("19.99"), priceBefore);
+        assertEquals(new java.math.BigDecimal("24.99"), priceAfter);
 
         // Verify DELETE (op = 'd')
         GenericRecord deleteEvent = events.get(2);
@@ -255,6 +330,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      * - Tests schema naming strategy
      */
     @Test
+    @Order(3)
     public void testMultipleTableCapture() throws Exception {
         String table1 = "orders";
         String table2 = "order_items";
@@ -327,6 +403,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      * - Verifies successful schema registration and deserialization
      */
     @Test
+    @Order(4)
     public void testSchemaNameAdjustment() throws Exception {
         String tableName = "special_columns";
         String topicPrefix = "test4";
@@ -368,6 +445,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
                 .with("value.converter.apicurio.registry.headers.enabled", "false");
 
         DebeziumContainerResource.debeziumContainer.registerConnector(connectorName, config);
+        currentConnectorName = connectorName; // Track for cleanup
 
         Thread.sleep(5000);
         consumer.subscribe(List.of(topicName));
@@ -399,6 +477,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      * - Ensures old consumers can deserialize new events
      */
     @Test
+    @Order(5)
     public void testBackwardCompatibleEvolution() throws Exception {
         String tableName = "evolving_table";
         String topicPrefix = "test5";
@@ -464,6 +543,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      *   but we can verify the compatibility rule is enforced)
      */
     @Test
+    @Order(6)
     public void testSchemaCompatibilityRules() throws Exception {
         String tableName = "compat_test";
         String topicPrefix = "test6";
@@ -518,6 +598,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      * - Tests find-latest configuration
      */
     @Test
+    @Order(7)
     public void testSchemaVersioning() throws Exception {
         String tableName = "versioned_table";
         String topicPrefix = "test7";
@@ -576,6 +657,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      * - Verifies Debezium type mappings to Avro
      */
     @Test
+    @Order(8)
     public void testPostgreSQLSpecificTypes() throws Exception {
         String tableName = "pg_types_test";
         String topicPrefix = "test8";
@@ -642,6 +724,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      * - Verifies Avro decimal logical type encoding
      */
     @Test
+    @Order(9)
     public void testNumericAndDecimalPrecision() throws Exception {
         String tableName = "decimal_test";
         String topicPrefix = "test9";
@@ -699,6 +782,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      * - Tests schema caching effectiveness
      */
     @Test
+    @Order(10)
     public void testBulkOperations() throws Exception {
         String tableName = "bulk_test";
         String topicPrefix = "test10";
@@ -752,6 +836,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
      * - Ensures no event loss
      */
     @Test
+    @Order(11)
     public void testConnectorRecovery() throws Exception {
         String tableName = "recovery_test";
         String topicPrefix = "test11";
@@ -891,6 +976,7 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
 
 
         DebeziumContainerResource.debeziumContainer.registerConnector(connectorName, config);
+        currentConnectorName = connectorName; // Track for cleanup
         log.info("Registered Debezium connector: {} with slot: {} for tables: {}, registry: {}",
                 connectorName, slotName, tableIncludeList, dockerAccessibleRegistryUrl);
     }
@@ -923,6 +1009,12 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
         Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
             consumer.poll(Duration.ofMillis(500)).forEach(record -> {
                 try {
+                    // Skip tombstone messages (null or empty values sent for DELETE operations)
+                    if (record.value() == null || record.value().length < 5) {
+                        log.debug("Skipping tombstone message from {}", topic);
+                        return;
+                    }
+
                     GenericRecord avroRecord = deserializeAvroValue(record.value());
                     records.add(avroRecord);
                     log.debug("Consumed Avro event from {}: {}", topic, avroRecord);
@@ -996,6 +1088,78 @@ public class DebeziumPostgreSQLAvroIntegrationTest extends ApicurioRegistryBaseI
                 log.error("Could not list artifacts", listError);
             }
             throw e;
+        }
+    }
+
+    /**
+     * Converts Avro decimal logical type (ByteBuffer) to BigDecimal
+     */
+    private java.math.BigDecimal decodeAvroDecimal(Object decimalValue, int scale) {
+        if (decimalValue == null) {
+            return null;
+        }
+
+        // Avro decimal logical type is stored as bytes
+        ByteBuffer buffer;
+        if (decimalValue instanceof ByteBuffer) {
+            buffer = (ByteBuffer) decimalValue;
+        } else if (decimalValue instanceof byte[]) {
+            buffer = ByteBuffer.wrap((byte[]) decimalValue);
+        } else {
+            throw new IllegalArgumentException("Expected ByteBuffer or byte[], got: " + decimalValue.getClass());
+        }
+
+        // Convert bytes to BigInteger (big-endian)
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.duplicate().get(bytes);
+        java.math.BigInteger unscaled = new java.math.BigInteger(bytes);
+
+        // Create BigDecimal with the correct scale
+        return new java.math.BigDecimal(unscaled, scale);
+    }
+
+    /**
+     * Cleans up PostgreSQL replication slots and publications to ensure fresh state between tests
+     */
+    private void cleanupPostgreSQLReplicationState() throws SQLException {
+        try (Statement stmt = postgresConnection.createStatement()) {
+            // Drop all replication slots (Debezium creates these)
+            var rs = stmt.executeQuery("SELECT slot_name FROM pg_replication_slots WHERE database = 'registry'");
+            List<String> slotsToDelete = new ArrayList<>();
+            while (rs.next()) {
+                slotsToDelete.add(rs.getString("slot_name"));
+            }
+            rs.close();
+
+            for (String slotName : slotsToDelete) {
+                try {
+                    stmt.execute("SELECT pg_drop_replication_slot('" + slotName + "')");
+                    log.info("Dropped replication slot: {}", slotName);
+                } catch (SQLException e) {
+                    // Slot might be active, try to terminate connections first
+                    log.warn("Could not drop slot {} (might still be active): {}", slotName, e.getMessage());
+                }
+            }
+
+            // Drop all publications (Debezium creates these for pgoutput plugin)
+            var pubRs = stmt.executeQuery("SELECT pubname FROM pg_publication");
+            List<String> publicationsToDelete = new ArrayList<>();
+            while (pubRs.next()) {
+                publicationsToDelete.add(pubRs.getString("pubname"));
+            }
+            pubRs.close();
+
+            for (String pubName : publicationsToDelete) {
+                // Skip the default Debezium connector publication (created by DebeziumContainerResource)
+                if (!pubName.equals("pub_my_connector")) {
+                    try {
+                        stmt.execute("DROP PUBLICATION IF EXISTS " + pubName);
+                        log.info("Dropped publication: {}", pubName);
+                    } catch (SQLException e) {
+                        log.warn("Could not drop publication {}: {}", pubName, e.getMessage());
+                    }
+                }
+            }
         }
     }
 }

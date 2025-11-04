@@ -1,6 +1,5 @@
 package io.apicurio.tests.serdes.apicurio.debezium;
 
-import io.debezium.testing.testcontainers.ConnectorConfiguration;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
@@ -96,20 +95,8 @@ public class DebeziumLocalConvertersResource implements QuarkusTestResourceLifec
 
         System.setProperty("bootstrap.servers", kafkaContainer.getBootstrapServers());
 
-        return Collections.emptyMap();
+         return Collections.emptyMap();
     }
-
-    /**
-     * Helper method to register a PostgreSQL connector with custom configuration
-     */
-    public static void registerPostgresConnector(String connectorName, String topicPrefix, String tableIncludeList) {
-        ConnectorConfiguration connector = ConnectorConfiguration.forJdbcContainer(postgresContainer)
-                .with("topic.prefix", topicPrefix)
-                .with("table.include.list", tableIncludeList);
-
-        debeziumContainer.registerConnector(connectorName, connector);
-    }
-
 
     @Override
     public void stop() {

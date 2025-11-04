@@ -1024,26 +1024,26 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
         }
         log.info(hexDump.toString());
 
-        // Parse Apicurio wire format: [magic byte][long: schema ID][payload]
+        // Parse Apicurio v3 wire format: [magic byte][int: content ID][payload]
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
 
         // Skip magic byte (should be 0x0)
         byte magicByte = buffer.get();
         log.info("Magic byte: {} (0x{})", magicByte, String.format("%02X", magicByte));
 
-        // Read global ID (8 bytes, big-endian long)
-        long globalId = buffer.getInt();
-        log.info("Global ID from wire format (decimal): {}", globalId);
-        log.info("Global ID from wire format (hex): 0x{}", Long.toHexString(globalId));
+        // Read content ID (4 bytes, big-endian int) - v3 converters use content IDs
+        long contentId = buffer.getInt();
+        log.info("Content ID from wire format (decimal): {}", contentId);
+        log.info("Content ID from wire format (hex): 0x{}", Long.toHexString(contentId));
 
-        // Fetch schema from registry using global ID, with references resolved
+        // Fetch schema from registry using content ID, with references resolved
         try {
             // Fetch the schema content
-            InputStream schemaStream = registryClient.ids().globalIds().byGlobalId(globalId).get();
+            InputStream schemaStream = registryClient.ids().contentIds().byContentId(contentId).get();
             String schemaJson = new String(schemaStream.readAllBytes(), StandardCharsets.UTF_8);
 
             // Fetch references for this schema (v3 API)
-            var references = registryClient.ids().globalIds().byGlobalId(globalId).references().get();
+            var references = registryClient.ids().contentIds().byContentId(contentId).references().get();
 
             // Create a parser and add all referenced schemas first
             Schema.Parser parser = new Schema.Parser();
@@ -1094,7 +1094,7 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
 
             return reader.read(null, decoder);
         } catch (Exception e) {
-            log.error("Failed to fetch schema for globalId: {}. Error: {}", globalId, e.getMessage());
+            log.error("Failed to fetch schema for contentId: {}. Error: {}", contentId, e.getMessage());
             log.error("Trying to list recent artifacts to debug...");
             try {
                 var artifacts = registryClient.search().artifacts().get(config -> {

@@ -218,6 +218,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         // Subscribe to CDC topic
         consumer.subscribe(List.of(topicName));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert test data
         insertCustomer(tableName, "Alice Smith", "alice@example.com");
@@ -279,6 +280,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // INSERT
         try (PreparedStatement stmt = postgresConnection.prepareStatement(
@@ -306,7 +308,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         }
 
         // Consume all 3 events (INSERT, UPDATE, DELETE)
-        List<GenericRecord> events = consumeAvroEvents(topicName, 3, Duration.ofSeconds(20));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 3, Duration.ofSeconds(30));
         assertEquals(3, events.size());
 
         // Verify INSERT (op = 'c' for create)
@@ -390,6 +392,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         String topic3 = topicPrefix + ".public." + table3;
 
         consumer.subscribe(List.of(topic1, topic2, topic3));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert data into each table
         executeUpdate("INSERT INTO " + table1 + " (order_number, total) VALUES ('ORD-001', 99.99)");
@@ -470,6 +473,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert data
         executeUpdate("INSERT INTO " + tableName +
@@ -519,6 +523,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert initial data
         executeUpdate("INSERT INTO " + tableName + " (name) VALUES ('Original')");
@@ -585,6 +590,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert data to trigger schema registration
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('test')");
@@ -641,6 +647,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert to trigger initial schema
         executeUpdate("INSERT INTO " + tableName + " (field1) VALUES ('v1')");
@@ -707,6 +714,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert data with special types
         try (PreparedStatement stmt = postgresConnection.prepareStatement(
@@ -768,6 +776,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert data
         try (PreparedStatement stmt = postgresConnection.prepareStatement(
@@ -824,6 +833,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert 1000 rows in batches
         int totalRows = 1000;
@@ -881,6 +891,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
+        waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert data before "restart"
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('before')");
@@ -1062,6 +1073,36 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                 log.debug("Schema {} not yet in registry: {}", artifactId, e.getMessage());
                 return false;
             }
+        });
+    }
+
+    /**
+     * Waits for the Kafka consumer to complete partition assignment.
+     * This is critical to avoid race conditions where CDC events are published
+     * before the consumer is ready to receive them.
+     *
+     * When running multiple tests in sequence, the consumer subscription triggers
+     * an asynchronous partition rebalance. If database operations happen immediately
+     * after subscription, Debezium may publish CDC events before the consumer has
+     * completed partition assignment, causing the consumer to miss those events.
+     */
+    protected void waitForConsumerReady(Duration timeout) throws Exception {
+        log.info("Waiting for consumer to complete partition assignment...");
+
+        Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
+            // Poll to trigger partition assignment (rebalance)
+            consumer.poll(Duration.ofMillis(100));
+
+            // Check if partitions have been assigned
+            boolean hasAssignment = !consumer.assignment().isEmpty();
+
+            if (hasAssignment) {
+                log.info("Consumer partition assignment complete: {}", consumer.assignment());
+            } else {
+                log.debug("Consumer waiting for partition assignment...");
+            }
+
+            return hasAssignment;
         });
     }
 

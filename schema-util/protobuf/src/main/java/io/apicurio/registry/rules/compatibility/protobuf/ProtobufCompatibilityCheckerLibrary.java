@@ -264,8 +264,9 @@ public class ProtobufCompatibilityCheckerLibrary {
 
                     if (afterFE != null) {
 
-                        String beforeType = normalizeType(fileBefore, beforeKV.getValue().getType());
-                        String afterType = normalizeType(fileAfter, afterFE.getType());
+                        String beforeType = normalizeType(fileBefore, beforeKV.getValue().getType(),
+                                entry.getKey());
+                        String afterType = normalizeType(fileAfter, afterFE.getType(), entry.getKey());
 
                         if (afterFE != null && !beforeType.equals(afterType)) {
                             issues.add(ProtobufDifference.from(String.format(
@@ -287,27 +288,87 @@ public class ProtobufCompatibilityCheckerLibrary {
         return issues;
     }
 
-    private String normalizeType(ProtobufFile file, String type) {
-        if (type != null && type.startsWith(".")) {
-            // it's fully qualified
-            String nodot = type.substring(1);
-            if (file.getPackageName() != null && nodot.startsWith(file.getPackageName())) {
-                // it's fully qualified but it's a message in the same .proto file
-                return nodot.substring(file.getPackageName().length() + 1);
-            }
-            return nodot;
+    /**
+     * Normalizes a protobuf type to its fully qualified form to enable proper comparison
+     * between schemas that use different type reference styles (qualified vs unqualified).
+     *
+     * @param file           the protobuf file containing the type
+     * @param type           the type name to normalize
+     * @param messageContext the message in which the field is defined (e.g., "RootMessage")
+     * @return the normalized fully qualified type name with leading dot (e.g., ".test.RootMessage.NestedMessage")
+     */
+    private String normalizeType(ProtobufFile file, String type, String messageContext) {
+        if (type == null) {
+            return null;
         }
 
         // Handle Protobuf map types
-        if (type != null && type.endsWith("Entry")) {
-            // Check if the type corresponds to a map entry type
-            String mapType = file.getMapType(type);
-            if (mapType != null) {
-                return mapType;
-            }
+        if (type.startsWith("map<")) {
+            return type;
         }
 
-        return type;
+        // If already fully qualified (starts with .), return it as-is
+        if (type.startsWith(".")) {
+            return type;
+        }
+
+        // Handle built-in/primitive types - these don't get qualified
+        if (isBuiltInType(type)) {
+            return type;
+        }
+
+        // For non-qualified types, we need to resolve them to fully qualified form
+        // 1. Check if it's a nested type in the current message context
+        String nestedCandidate = messageContext + "." + type;
+        if (file.getFieldMap().containsKey(nestedCandidate)
+                || file.getEnumFieldMap().containsKey(nestedCandidate)) {
+            // It's a nested message/enum in the current message
+            return buildFullyQualifiedName(file, nestedCandidate);
+        }
+
+        // 2. Check if it's a top-level type in the same file
+        if (file.getFieldMap().containsKey(type) || file.getEnumFieldMap().containsKey(type)) {
+            // It's a top-level message/enum in the same file
+            return buildFullyQualifiedName(file, type);
+        }
+
+        // 3. For other cases (cross-file references or unknown types), prepend package if available
+        // This handles cases where the type might be from another file/package
+        return buildFullyQualifiedName(file, type);
+    }
+
+    /**
+     * Builds a fully qualified type name with leading dot and package prefix.
+     *
+     * @param file     the protobuf file
+     * @param typePath the type path (e.g., "RootMessage.NestedMessage" or "RootMessage")
+     * @return the fully qualified name (e.g., ".test.RootMessage.NestedMessage")
+     */
+    private String buildFullyQualifiedName(ProtobufFile file, String typePath) {
+        String packageName = file.getPackageName();
+        if (packageName != null && !packageName.isEmpty()) {
+            return "." + packageName + "." + typePath;
+        } else {
+            return "." + typePath;
+        }
+    }
+
+    /**
+     * Checks if a type is a built-in Protobuf primitive type.
+     *
+     * @param type the type name to check
+     * @return true if the type is a built-in primitive type
+     */
+    private boolean isBuiltInType(String type) {
+        if (type == null) {
+            return false;
+        }
+
+        // All protobuf primitive/scalar types
+        Set<String> builtInTypes = Set.of("double", "float", "int32", "int64", "uint32", "uint64", "sint32",
+                "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64", "bool", "string", "bytes");
+
+        return builtInTypes.contains(type);
     }
 
     /**

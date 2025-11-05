@@ -264,8 +264,8 @@ public class ProtobufCompatibilityCheckerLibrary {
 
                     if (afterFE != null) {
 
-                        String beforeType = normalizeType(fileBefore, beforeKV.getValue().getType());
-                        String afterType = normalizeType(fileAfter, afterFE.getType());
+                        String beforeType = normalizeType(fileBefore, entry.getKey(), beforeKV.getValue().getType());
+                        String afterType = normalizeType(fileAfter, entry.getKey(), afterFE.getType());
 
                         if (afterFE != null && !beforeType.equals(afterType)) {
                             issues.add(ProtobufDifference.from(String.format(
@@ -287,8 +287,10 @@ public class ProtobufCompatibilityCheckerLibrary {
         return issues;
     }
 
-    private String normalizeType(ProtobufFile file, String type) {
-        if (type != null && type.startsWith(".")) {
+    private String normalizeType(ProtobufFile file, String parentType, String type) {
+        if (type == null)
+            return null;
+        if (type.startsWith(".")) {
             // it's fully qualified
             String nodot = type.substring(1);
             if (file.getPackageName() != null && nodot.startsWith(file.getPackageName())) {
@@ -297,9 +299,20 @@ public class ProtobufCompatibilityCheckerLibrary {
             }
             return nodot;
         }
+        // Unqualified name, iterate over parent type to find possible types.
+        if (parentType != null && !type.startsWith(".")) {
+            Set<String> allDefinedTypes = file.getFieldMap().keySet();
+            String parentTypePrefix = parentType;
+            while (!parentTypePrefix.isEmpty()) {
+                if (allDefinedTypes.contains(parentTypePrefix + "." + type)) {
+                    return parentTypePrefix + "." + type;
+                }
+                parentTypePrefix = parentTypePrefix.substring(0, Integer.max(parentTypePrefix.lastIndexOf('.'), 0));
+            }
+        }
 
         // Handle Protobuf map types
-        if (type != null && type.endsWith("Entry")) {
+        if (type.endsWith("Entry")) {
             // Check if the type corresponds to a map entry type
             String mapType = file.getMapType(type);
             if (mapType != null) {

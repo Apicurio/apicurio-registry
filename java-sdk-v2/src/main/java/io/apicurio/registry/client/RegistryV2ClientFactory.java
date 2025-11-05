@@ -2,7 +2,6 @@ package io.apicurio.registry.client;
 
 import com.microsoft.kiota.RequestAdapter;
 import io.apicurio.registry.rest.client.v2.RegistryClient;
-import io.vertx.core.Vertx;
 
 /**
  * Factory for creating instances of {@link RegistryClient}. This factory centralizes
@@ -10,8 +9,6 @@ import io.vertx.core.Vertx;
  * authentication configurations using {@link RegistryClientOptions}.
  */
 public final class RegistryV2ClientFactory {
-
-    private static final Vertx vertx = Vertx.vertx();
 
     /**
      * Creates a RegistryClient using the provided options.
@@ -21,7 +18,7 @@ public final class RegistryV2ClientFactory {
      * @throws IllegalArgumentException if options are invalid
      */
     public static RegistryClient create(RegistryClientOptions options) {
-        RequestAdapter adapter = RegistryClientRequestAdapterFactory.createRequestAdapter(options, vertx);
+        RequestAdapter adapter = RegistryClientRequestAdapterFactory.createRequestAdapter(options);
         return new RegistryClient(adapter);
     }
 }

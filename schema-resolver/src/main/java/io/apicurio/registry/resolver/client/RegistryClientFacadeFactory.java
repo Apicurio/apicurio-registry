@@ -18,7 +18,6 @@ import java.util.logging.Logger;
 public class RegistryClientFacadeFactory {
 
     private static final Logger logger = Logger.getLogger(RegistryClientFacadeFactory.class.getSimpleName());
-    public static Vertx vertx;
 
     public static RegistryClientFacade create(SchemaResolverConfig config) {
         String baseUrl = config.getRegistryUrl();
@@ -27,8 +26,7 @@ public class RegistryClientFacadeFactory {
                     "Missing registry base url, set " + SchemaResolverConfig.REGISTRY_URL);
         }
 
-        Vertx ivertx = vertx == null ? Vertx.vertx() : vertx;
-        boolean shouldCloseVertx = vertx == null;
+        Vertx vertx = config.getVertx();
 
         String endpointVersion = null;
         if (config.getRegistryUrlVersion() != null) {
@@ -42,10 +40,10 @@ public class RegistryClientFacadeFactory {
 
         switch  (endpointVersion) {
             case "2":
-                return create_v2(config, ivertx, shouldCloseVertx);
+                return create_v2(config, vertx);
             case "3":
             default:
-                return create_v3(config, ivertx, shouldCloseVertx);
+                return create_v3(config, vertx);
         }
     }
 
@@ -147,17 +145,17 @@ public class RegistryClientFacadeFactory {
         return clientOptions;
     }
 
-    private static RegistryClientFacade create_v3(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
+    private static RegistryClientFacade create_v3(SchemaResolverConfig config, Vertx vertx) {
         RegistryClientOptions clientOptions = buildClientOptions(config, vertx);
         var client = RegistryClientFactory.create(clientOptions);
-        return new RegistryClientFacadeImpl(client, shouldCloseVertx ? vertx : null);
+        return new RegistryClientFacadeImpl(client, vertx);
     }
 
-    private static RegistryClientFacade create_v2(SchemaResolverConfig config, Vertx vertx, boolean shouldCloseVertx) {
+    private static RegistryClientFacade create_v2(SchemaResolverConfig config, Vertx vertx) {
         logger.warning("Using a deprecated version (2.x) of Apicurio Registry.  It is recommended to upgrade your Apicurio Registry.");
         RegistryClientOptions clientOptions = buildClientOptions(config, vertx);
         var client = RegistryV2ClientFactory.create(clientOptions);
-        return new RegistryClientFacadeImpl_v2(client, shouldCloseVertx ? vertx : null);
+        return new RegistryClientFacadeImpl_v2(client, vertx);
     }
 
 }

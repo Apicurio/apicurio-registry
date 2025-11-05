@@ -21,13 +21,9 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
 
     private static final Network network = Network.newNetwork();
 
-    private static final KafkaContainer kafkaContainer = DebeziumKafkaContainer
-            .defaultKRaftContainer(network);
+    private static final KafkaContainer kafkaContainer = createKafkaContainer();
 
-    public static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>(
-            DockerImageName.parse("quay.io/debezium/postgres:15").asCompatibleSubstituteFor("postgres"))
-            .withDatabaseName("registry").withUsername("postgres").withPassword("postgres")
-            .withNetwork(network).withNetworkAliases("postgres");
+    public static PostgreSQLContainer<?> postgresContainer = createPostgreSQLContainer();
 
     public static DebeziumContainer debeziumContainer = createDebeziumContainer();
 
@@ -39,6 +35,52 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
         boolean isCI = System.getenv("CI") != null || System.getenv("GITHUB_ACTIONS") != null;
         boolean isLinux = System.getProperty("os.name", "").toLowerCase().contains("linux");
         return isCI || isLinux;
+    }
+
+    /**
+     * Creates Kafka container with appropriate network configuration.
+     * CRITICAL: Must use the same network mode as Debezium container to ensure connectivity.
+     */
+    private static KafkaContainer createKafkaContainer() {
+        KafkaContainer container = DebeziumKafkaContainer.defaultKRaftContainer(network);
+
+        if (shouldUseHostNetwork()) {
+            log.info("Using host network mode for Kafka container (Linux/CI environment)");
+            container.withNetworkMode("host");
+        } else {
+            log.info("Using bridge network mode for Kafka container (Mac/Windows environment)");
+            // Already configured with network in defaultKRaftContainer
+        }
+
+        return container;
+    }
+
+    /**
+     * Creates PostgreSQL container with appropriate network configuration.
+     * CRITICAL: Must use the same network mode as Debezium container to ensure connectivity.
+     */
+    private static PostgreSQLContainer<?> createPostgreSQLContainer() {
+        PostgreSQLContainer<?> container = new PostgreSQLContainer<>(
+                DockerImageName.parse("quay.io/debezium/postgres:15").asCompatibleSubstituteFor("postgres"))
+                .withDatabaseName("registry")
+                .withUsername("postgres")
+                .withPassword("postgres");
+
+        if (shouldUseHostNetwork()) {
+            log.info("Using host network mode for PostgreSQL container (Linux/CI environment)");
+            container.withNetworkMode("host");
+            // In host network mode, PostgreSQL binds directly to localhost:5432
+            // Override the wait strategy to connect to localhost instead of using port mapping
+            container.waitingFor(new org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy()
+                    .withRegEx(".*database system is ready to accept connections.*\\s")
+                    .withTimes(2)
+                    .withStartupTimeout(java.time.Duration.ofSeconds(60)));
+        } else {
+            log.info("Using bridge network mode for PostgreSQL container (Mac/Windows environment)");
+            container.withNetwork(network).withNetworkAliases("postgres");
+        }
+
+        return container;
     }
 
     /**

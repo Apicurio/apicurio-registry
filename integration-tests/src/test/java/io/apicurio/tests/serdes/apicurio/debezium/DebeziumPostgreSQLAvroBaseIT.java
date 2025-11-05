@@ -24,6 +24,7 @@ import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import static io.restassured.RestAssured.given;
 
@@ -94,13 +95,57 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         log.info("Registry Base URL: {}", getRegistryBaseUrl());
         log.info("Kafka Bootstrap Servers: {}", System.getProperty("bootstrap.servers"));
 
-        // Debug: Test registry accessibility
+        // CRITICAL: Validate registry connectivity and URL transformation BEFORE running tests
+        // This ensures we fail fast if there are connectivity issues, rather than waiting 20+ minutes
+        String hostRegistryUrl = getRegistryUrl();
+        String containerRegistryUrl = getContainerAccessibleRegistryUrl();
+
+        log.info("=== Registry URL Validation ===");
+        log.info("Host registry URL: {}", hostRegistryUrl);
+        log.info("Container-accessible registry URL: {}", containerRegistryUrl);
+        log.info("Debezium container: {}:{}", getDebeziumContainer().getHost(),
+                 getDebeziumContainer().getMappedPort(8083));
+
+        // Validate host-side registry accessibility
         try {
             var info = registryClient.system().info().get();
-            log.info("Registry is accessible, version: {}", info.getVersion());
+            log.info("✓ Registry is accessible from test host, version: {}", info.getVersion());
         } catch (Exception e) {
-            log.error("ERROR: Registry not accessible from test!", e);
+            String errorMsg = String.format(
+                "FATAL: Registry not accessible from test host at %s. " +
+                "Tests will fail. Check if registry is running and port-forward is active. " +
+                "Error: %s",
+                hostRegistryUrl, e.getMessage());
+            log.error(errorMsg, e);
+            throw new RuntimeException(errorMsg, e);
         }
+
+        // Sanity check: Validate URL transformation logic
+        boolean isClusterIP = containerRegistryUrl.contains("://10.") ||
+                              containerRegistryUrl.contains("://172.") ||
+                              containerRegistryUrl.contains("://192.168.");
+
+        boolean isCI = System.getenv("CI") != null || System.getenv("GITHUB_ACTIONS") != null;
+        boolean isLinux = System.getProperty("os.name", "").toLowerCase().contains("linux");
+        boolean shouldUseHostNetwork = isCI || isLinux;
+
+        if (isClusterIP && !shouldUseHostNetwork) {
+            // ClusterIP is only acceptable in host network mode (Linux/CI with minikube tunnel)
+            String errorMsg = String.format(
+                "FATAL: Container registry URL contains ClusterIP %s but not in host network mode. " +
+                "ClusterIP requires minikube tunnel and host network mode. " +
+                "On macOS, use port-forward to localhost instead.", containerRegistryUrl);
+            log.error(errorMsg);
+            throw new RuntimeException(errorMsg);
+        }
+
+        log.info("✓ URL transformation validation passed");
+        log.info("=== End Registry URL Validation ===");
+
+        // Stream Debezium container logs to test logger for debugging
+        Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(log).withPrefix("DEBEZIUM");
+        getDebeziumContainer().followOutput(logConsumer);
+        log.info("✓ Debezium container logs streaming to test log");
     }
 
     @BeforeEach
@@ -239,8 +284,8 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         assertEquals("alice@example.com", afterFirstEvent.get("email").toString());
 
         // Verify schemas are registered in Apicurio Registry
-        waitForSchemaInRegistry(topicName + "-key", Duration.ofSeconds(20));
-        waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(20));
+        waitForSchemaInRegistry(topicName + "-key", Duration.ofSeconds(10));
+        waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(10));
 
         log.info("Successfully verified basic CDC with schema auto-registration");
     }
@@ -310,7 +355,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         }
 
         // Consume all 3 events (INSERT, UPDATE, DELETE)
-        List<GenericRecord> events = consumeAvroEvents(topicName, 3, Duration.ofSeconds(30));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 3, Duration.ofSeconds(15));
         assertEquals(3, events.size());
 
         // Verify INSERT (op = 'c' for create)
@@ -411,9 +456,9 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         assertEquals(3, allRecords.size());
 
         // Verify separate schemas are registered for each table
-        waitForSchemaInRegistry(topic1 + "-value", Duration.ofSeconds(20));
-        waitForSchemaInRegistry(topic2 + "-value", Duration.ofSeconds(20));
-        waitForSchemaInRegistry(topic3 + "-value", Duration.ofSeconds(20));
+        waitForSchemaInRegistry(topic1 + "-value", Duration.ofSeconds(10));
+        waitForSchemaInRegistry(topic2 + "-value", Duration.ofSeconds(10));
+        waitForSchemaInRegistry(topic3 + "-value", Duration.ofSeconds(10));
 
         log.info("Successfully verified multiple table capture");
     }
@@ -534,7 +579,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         assertEquals(1, events1.size());
 
         // Verify initial schema exists
-        waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(20));
+        waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(10));
 
         // Evolve schema - add nullable column
         try (Statement stmt = postgresConnection.createStatement()) {
@@ -597,7 +642,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('test')");
 
         // Wait for schema to be registered
-        waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(20));
+        waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(10));
 
         // Set BACKWARD compatibility rule on the artifact
         CreateRule rule = new CreateRule();
@@ -654,7 +699,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         executeUpdate("INSERT INTO " + tableName + " (field1) VALUES ('v1')");
         consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
 
-        waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(20));
+        waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(10));
 
         // Evolution 1: Add field2
         executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN field2 VARCHAR(100)");
@@ -979,63 +1024,85 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
      *
      * This method handles different deployment scenarios:
      *
-     * 1. Kubernetes with port-forward: Registry has a ClusterIP (e.g., 10.x.x.x) that's
-     *    port-forwarded to localhost. Containers running outside K8s cannot reach the ClusterIP,
-     *    so we convert it to localhost.
+     * 1. Kubernetes with minikube tunnel (Linux/CI):
+     *    - Registry has a ClusterIP (e.g., 10.x.x.x)
+     *    - minikube tunnel makes ClusterIP directly routable from host
+     *    - Containers in host network mode can access ClusterIP directly
+     *    - No transformation needed
      *
-     * 2. Network mode differences:
-     *    - Linux/CI (host network mode): Container shares host network, can access localhost directly
-     *    - macOS (bridge network mode): Container needs host.testcontainers.internal to reach host
+     * 2. Kubernetes with port-forward (macOS):
+     *    - Registry has a ClusterIP that's port-forwarded to localhost
+     *    - Containers in bridge mode need host.testcontainers.internal
+     *    - Transform ClusterIP to host.testcontainers.internal
+     *
+     * 3. localhost URLs:
+     *    - Host network mode: Use localhost directly
+     *    - Bridge network mode: Transform to host.testcontainers.internal
      *
      * This method uses the same environment detection logic as DebeziumContainerResource
      * to ensure URL transformation matches the container's network configuration.
      */
     protected String getContainerAccessibleRegistryUrl() {
         String registryUrl = getRegistryUrl();
-        String transformedUrl = registryUrl;
 
-        // Step 1: Detect and convert Kubernetes ClusterIP to localhost
-        // Kubernetes typically uses these IP ranges for cluster IPs
-        if (registryUrl.contains("://10.") ||
-            registryUrl.contains("://172.") ||
-            registryUrl.contains("://192.168.")) {
-
-            // Extract the port from the ClusterIP URL
-            java.net.URI uri;
-            try {
-                uri = new java.net.URI(registryUrl);
-                int port = uri.getPort();
-                if (port == -1) {
-                    port = 8080; // default
-                }
-                String path = uri.getPath() != null ? uri.getPath() : "";
-                transformedUrl = "http://localhost:" + port + path;
-                log.info("Detected Kubernetes ClusterIP URL, converting to localhost (port-forward target): {} -> {}",
-                        registryUrl, transformedUrl);
-            } catch (java.net.URISyntaxException e) {
-                log.warn("Failed to parse registry URL as URI: {}", registryUrl, e);
-                // Fall through to use original URL
-            }
-        }
-
-        // Step 2: Apply network-mode-specific transformation
-        // Same logic as DebeziumContainerResource.shouldUseHostNetwork()
         boolean isCI = System.getenv("CI") != null || System.getenv("GITHUB_ACTIONS") != null;
         boolean isLinux = System.getProperty("os.name", "").toLowerCase().contains("linux");
         boolean shouldUseHostNetwork = isCI || isLinux;
 
-        if (shouldUseHostNetwork) {
-            // Host network mode - container can access localhost directly
-            log.info("Using localhost for registry URL (host network mode): {}", transformedUrl);
-            return transformedUrl;
+        // Check if this is a Kubernetes ClusterIP
+        boolean isClusterIP = registryUrl.contains("://10.") ||
+                              registryUrl.contains("://172.") ||
+                              registryUrl.contains("://192.168.");
+
+        if (isClusterIP) {
+            // Kubernetes ClusterIP detected
+            if (shouldUseHostNetwork) {
+                // Host network mode (Linux/CI): Container shares host network
+                // With minikube tunnel, ClusterIP is directly routable from host
+                // No transformation needed - use ClusterIP directly
+                log.info("Using ClusterIP directly (minikube tunnel makes it routable): {}", registryUrl);
+                return registryUrl;
+            } else {
+                // Bridge network mode (macOS/Windows): Container cannot reach ClusterIP
+                // This scenario requires port-forward to localhost, then transform to host.testcontainers.internal
+                log.warn("ClusterIP detected with bridge network mode. This requires port-forward setup.");
+
+                // Extract port and path for localhost transformation
+                try {
+                    java.net.URI uri = new java.net.URI(registryUrl);
+                    int port = uri.getPort();
+                    if (port == -1) {
+                        port = 8080;
+                    }
+                    String path = uri.getPath() != null ? uri.getPath() : "";
+                    String transformedUrl = "http://host.testcontainers.internal:" + port + path;
+                    log.info("Transforming ClusterIP to host.testcontainers.internal: {} -> {}",
+                             registryUrl, transformedUrl);
+                    return transformedUrl;
+                } catch (java.net.URISyntaxException e) {
+                    log.warn("Failed to parse registry URL: {}", registryUrl, e);
+                    return registryUrl;
+                }
+            }
+        } else if (registryUrl.contains("localhost") || registryUrl.contains("127.0.0.1")) {
+            // localhost URL detected
+            if (shouldUseHostNetwork) {
+                // Host network mode - container can access localhost directly
+                log.info("Using localhost directly (host network mode): {}", registryUrl);
+                return registryUrl;
+            } else {
+                // Bridge network mode - transform localhost to host.testcontainers.internal
+                String transformedUrl = registryUrl
+                        .replace("localhost", "host.testcontainers.internal")
+                        .replace("127.0.0.1", "host.testcontainers.internal");
+                log.info("Transforming localhost to host.testcontainers.internal: {} -> {}",
+                         registryUrl, transformedUrl);
+                return transformedUrl;
+            }
         } else {
-            // Bridge network mode - container needs host.testcontainers.internal
-            String dockerAccessibleUrl = transformedUrl
-                    .replace("localhost", "host.testcontainers.internal")
-                    .replace("127.0.0.1", "host.testcontainers.internal");
-            log.info("Transforming registry URL from {} to {} (bridge network mode)",
-                    transformedUrl, dockerAccessibleUrl);
-            return dockerAccessibleUrl;
+            // Standard URL (e.g., http://registry.example.com) - use as-is
+            log.info("Using registry URL as-is: {}", registryUrl);
+            return registryUrl;
         }
     }
 
@@ -1073,8 +1140,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         getDebeziumContainer().registerConnector(connectorName, config);
         currentConnectorName = connectorName; // Track for cleanup
-        log.info("Registered Debezium connector: {} with slot: {} for tables: {}, registry: {}",
-                connectorName, slotName, tableIncludeList, dockerAccessibleRegistryUrl);
+
+        // Log the actual configuration being used for debugging
+        String jdbcUrl = getPostgresContainer().getJdbcUrl();
+        log.info("Registered Debezium connector: {} with slot: {}, tables: {}, registry: {}, postgres: {}",
+                connectorName, slotName, tableIncludeList, dockerAccessibleRegistryUrl, jdbcUrl);
     }
 
     /**
@@ -1104,12 +1174,23 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                     boolean isRunning = responseBody.contains("\"state\":\"RUNNING\"");
                     if (!isRunning) {
                         log.debug("Connector {} status: {}", connectorName, responseBody);
+
+                        // Check for FAILED state and fail fast with detailed error
+                        if (responseBody.contains("\"state\":\"FAILED\"")) {
+                            log.error("Connector {} is in FAILED state: {}", connectorName, responseBody);
+                            throw new RuntimeException(
+                                String.format("Connector %s failed to start. Check if Debezium can reach registry. Status: %s",
+                                    connectorName, responseBody));
+                        }
                     } else {
                         log.info("Connector {} is RUNNING", connectorName);
                     }
                     return isRunning;
                 }
                 return false;
+            } catch (RuntimeException e) {
+                // Re-throw RuntimeException (like the FAILED state check above)
+                throw e;
             } catch (Exception e) {
                 log.debug("Connector {} not ready yet: {}", connectorName, e.getMessage());
                 return false;
@@ -1121,19 +1202,29 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
      * Waits for a schema to be registered in Apicurio Registry
      */
     protected void waitForSchemaInRegistry(String artifactId, Duration timeout) throws Exception {
-        Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
-            try {
-                ArtifactMetaData metadata = registryClient.groups().byGroupId("default")
-                        .artifacts().byArtifactId(artifactId)
-                        .get();
-                log.info("Schema {} found in registry: type={}",
-                        artifactId, metadata.getArtifactType());
-                return true;
-            } catch (Exception e) {
-                log.debug("Schema {} not yet in registry: {}", artifactId, e.getMessage());
-                return false;
-            }
-        });
+        try {
+            Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
+                try {
+                    ArtifactMetaData metadata = registryClient.groups().byGroupId("default")
+                            .artifacts().byArtifactId(artifactId)
+                            .get();
+                    log.info("Schema {} found in registry: type={}",
+                            artifactId, metadata.getArtifactType());
+                    return true;
+                } catch (Exception e) {
+                    log.debug("Schema {} not yet in registry: {}", artifactId, e.getMessage());
+                    return false;
+                }
+            });
+        } catch (Exception e) {
+            String errorMsg = String.format(
+                "Schema %s was not registered within %d seconds. " +
+                "This likely means Debezium connector cannot reach the registry at %s. " +
+                "Check connectivity and URL transformation.",
+                artifactId, timeout.getSeconds(), getContainerAccessibleRegistryUrl());
+            log.error(errorMsg);
+            throw new RuntimeException(errorMsg, e);
+        }
     }
 
     /**

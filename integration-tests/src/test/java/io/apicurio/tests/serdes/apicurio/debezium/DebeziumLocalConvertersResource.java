@@ -45,6 +45,16 @@ public class DebeziumLocalConvertersResource implements QuarkusTestResourceLifec
     }
 
     /**
+     * Detects if running in a CI environment or on Linux.
+     * Host network mode works on Linux but not on Docker Desktop (Mac/Windows).
+     */
+    private static boolean shouldUseHostNetwork() {
+        boolean isCI = System.getenv("CI") != null || System.getenv("GITHUB_ACTIONS") != null;
+        boolean isLinux = System.getProperty("os.name", "").toLowerCase().contains("linux");
+        return isCI || isLinux;
+    }
+
+    /**
      * Creates a Debezium container configured to use locally built Apicurio
      * converters.
      * The converters are expected to be unpacked by the maven-dependency-plugin
@@ -60,9 +70,17 @@ public class DebeziumLocalConvertersResource implements QuarkusTestResourceLifec
         log.info("Looking for local Apicurio converters at: {}", convertersPath);
 
         DebeziumContainer container = new DebeziumContainer("quay.io/debezium/connect")
-                .withNetwork(network)
                 .withKafka(kafkaContainer)
                 .dependsOn(kafkaContainer);
+
+        // Configure network mode based on environment
+        if (shouldUseHostNetwork()) {
+            log.info("Using host network mode for Debezium container (Linux/CI environment)");
+            container.withNetworkMode("host");
+        } else {
+            log.info("Using bridge network mode for Debezium container (Mac/Windows environment)");
+            container.withNetwork(network);
+        }
 
         // Mount local converters if available
         if (convertersDir.exists() && convertersDir.isDirectory()) {

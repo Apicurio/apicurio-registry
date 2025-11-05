@@ -30,11 +30,10 @@ public class RegistryClientRequestAdapterFactory {
      * from the provided options.
      *
      * @param options the configuration options
-     * @param defaultVertx the default Vertx instance to use if none is provided in options
      * @return a fully configured RequestAdapter
      * @throws IllegalArgumentException if options are invalid
      */
-    protected static RequestAdapter createRequestAdapter(RegistryClientOptions options, Vertx defaultVertx) {
+    protected static RequestAdapter createRequestAdapter(RegistryClientOptions options) {
         if (options == null) {
             throw new IllegalArgumentException("RegistryClientOptions cannot be null");
         }
@@ -42,7 +41,7 @@ public class RegistryClientRequestAdapterFactory {
         validateRegistryUrl(options);
         validateAuth(options);
 
-        Vertx vertxToUse = options.getVertx() != null ? options.getVertx() : defaultVertx;
+        Vertx vertxToUse = options.getVertx() != null ? options.getVertx() : DefaultVertxInstance.get();
 
         // Build WebClientOptions with SSL configuration if needed
         WebClientOptions webClientOptions = buildWebClientOptions(options);

@@ -5,6 +5,7 @@ import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.strategy.DynamicArtifactReferenceResolverStrategy;
+import io.vertx.core.Vertx;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -262,6 +263,16 @@ public class SchemaResolverConfig extends AbstractConfig {
      */
     public static final String PROXY_PASSWORD = "apicurio.registry.proxy.password";
 
+    /**
+     * Internal property key for storing a Vertx instance. This is not typically set via string properties
+     * but rather programmatically when creating the configuration. When provided, this Vertx instance
+     * will be used for HTTP client connections instead of creating a new instance.
+     *
+     * <p><strong>Recommended:</strong> Provide your own managed Vertx instance to ensure proper
+     * lifecycle management and resource cleanup.</p>
+     */
+    public static final String VERTX_INSTANCE = "apicurio.registry.vertx.instance";
+
     public String getRegistryUrl() {
         String registryUrl = getString(REGISTRY_URL);
         if (registryUrl != null) {
@@ -428,6 +439,23 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     public String getProxyPassword() {
         return getString(PROXY_PASSWORD);
+    }
+
+    /**
+     * Returns the Vertx instance if one was provided in the configuration.
+     *
+     * <p>This allows callers to provide their own managed Vertx instance instead of
+     * relying on automatically created instances. This is the recommended approach
+     * for production environments to ensure proper lifecycle management.</p>
+     *
+     * @return the configured Vertx instance, or null if not provided
+     */
+    public Vertx getVertx() {
+        Object vertx = getObject(VERTX_INSTANCE);
+        if (vertx instanceof Vertx) {
+            return (Vertx) vertx;
+        }
+        return null;
     }
 
     @Override

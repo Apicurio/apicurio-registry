@@ -4,6 +4,7 @@ import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -64,6 +65,21 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
 
     @Override
     public Map<String, String> start() {
+        // Get the registry port from system properties (set by Quarkus test framework)
+        // In local tests: random port, in CI: 8080
+        String testPort = System.getProperty("quarkus.http.test-port", "8080");
+
+        try {
+            int port = Integer.parseInt(testPort);
+            if (port > 0) {
+                // Expose the registry port so containers can access it via host.testcontainers.internal
+                Testcontainers.exposeHostPorts(port);
+                log.info("Exposed registry port {} to containers (accessible at host.testcontainers.internal:{})", port, port);
+            }
+        } catch (NumberFormatException e) {
+            log.warn("Could not parse test port '{}', containers may not be able to access registry", testPort);
+        }
+
         // Start the postgresql database, kafka, and debezium
         Startables.deepStart(Stream.of(kafkaContainer, postgresContainer, debeziumContainer)).join();
         System.setProperty("bootstrap.servers", kafkaContainer.getBootstrapServers());

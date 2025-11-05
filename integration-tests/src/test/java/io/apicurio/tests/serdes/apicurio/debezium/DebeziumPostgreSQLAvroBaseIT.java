@@ -7,6 +7,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.debezium.testing.testcontainers.ConnectorConfiguration;
 import io.debezium.testing.testcontainers.DebeziumContainer;
+import io.restassured.response.Response;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -23,6 +24,8 @@ import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
+
+import static io.restassured.RestAssured.given;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
@@ -204,13 +207,14 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                         ")");
 
         // Register Debezium connector with Apicurio converters
+        String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
-                "connector-" + connectorCounter.incrementAndGet(),
+                connectorName,
                 topicPrefix,
                 "public." + tableName);
 
         // Wait for connector to be ready
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
 
         // Subscribe to CDC topic
         consumer.subscribe(List.of(topicName));
@@ -220,7 +224,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         insertCustomer(tableName, "Bob Jones", "bob@example.com");
 
         // Consume CDC events and verify
-        List<GenericRecord> events = consumeAvroEvents(topicName, 2, Duration.ofSeconds(30));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 2, Duration.ofSeconds(10));
 
         assertEquals(2, events.size(), "Expected 2 CDC events");
 
@@ -267,12 +271,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         }
 
         // Register connector
+        String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
-                "connector-" + connectorCounter.incrementAndGet(),
+                connectorName,
                 topicPrefix,
                 "public." + tableName);
 
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
 
         // INSERT
@@ -301,7 +306,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         }
 
         // Consume all 3 events (INSERT, UPDATE, DELETE)
-        List<GenericRecord> events = consumeAvroEvents(topicName, 3, Duration.ofSeconds(30));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 3, Duration.ofSeconds(20));
         assertEquals(3, events.size());
 
         // Verify INSERT (op = 'c' for create)
@@ -372,12 +377,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                         ")");
 
         // Register connector for all three tables
+        String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
-                "connector-" + connectorCounter.incrementAndGet(),
+                connectorName,
                 topicPrefix,
                 "public." + table1 + ",public." + table2 + ",public." + table3);
 
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
 
         String topic1 = topicPrefix + ".public." + table1;
         String topic2 = topicPrefix + ".public." + table2;
@@ -392,7 +398,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         // Consume events
         List<ConsumerRecord<byte[], byte[]>> allRecords = new ArrayList<>();
-        Unreliables.retryUntilTrue(30, TimeUnit.SECONDS, () -> {
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
             consumer.poll(Duration.ofMillis(500)).forEach(allRecords::add);
             return allRecords.size() >= 3;
         });
@@ -433,16 +439,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         String connectorName = "connector-" + connectorCounter.incrementAndGet();
         String slotName = "slot_" + connectorName.replace("-", "_");
 
-        // Configure registry URL based on network mode
+        // Configure registry URL for container access
         String rawRegistryUrl = getRegistryUrl();
-        String registryUrl;
-        if (shouldUseHostNetwork()) {
-            registryUrl = rawRegistryUrl;
-        } else {
-            registryUrl = rawRegistryUrl
-                    .replace("localhost", "host.docker.internal")
-                    .replace("127.0.0.1", "host.docker.internal");
-        }
+        String registryUrl = rawRegistryUrl
+                .replace("localhost", "host.testcontainers.internal")
+                .replace("127.0.0.1", "host.testcontainers.internal");
 
         ConnectorConfiguration config = ConnectorConfiguration
                 .forJdbcContainer(getPostgresContainer())
@@ -467,7 +468,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         getDebeziumContainer().registerConnector(connectorName, config);
         currentConnectorName = connectorName; // Track for cleanup
 
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
 
         // Insert data
@@ -476,7 +477,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                 "('John', 'Doe', 'john@example.com')");
 
         // Consume and verify
-        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
         assertEquals(1, events.size());
 
         GenericRecord event = events.get(0);
@@ -510,19 +511,20 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                         "name VARCHAR(100) NOT NULL" +
                         ")");
 
+        String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
-                "connector-" + connectorCounter.incrementAndGet(),
+                connectorName,
                 topicPrefix,
                 "public." + tableName);
 
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
 
         // Insert initial data
         executeUpdate("INSERT INTO " + tableName + " (name) VALUES ('Original')");
 
         // Consume first event
-        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
+        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
         assertEquals(1, events1.size());
 
         // Verify initial schema exists
@@ -537,7 +539,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         executeUpdate("INSERT INTO " + tableName + " (name, email) VALUES ('New Record', 'test@example.com')");
 
         // Consume new event
-        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
+        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
         assertEquals(1, events2.size());
 
         GenericRecord newEvent = events2.get(0);
@@ -547,7 +549,6 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         assertNotNull(after.get("email"));
 
         // Verify schema is still registered (Debezium may update the schema)
-        Thread.sleep(2000);
         ArtifactMetaData metadata = registryClient.groups().byGroupId("default")
                 .artifacts().byArtifactId(topicName + "-value")
                 .get();
@@ -576,12 +577,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                         "data VARCHAR(100)" +
                         ")");
 
+        String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
-                "connector-" + connectorCounter.incrementAndGet(),
+                connectorName,
                 topicPrefix,
                 "public." + tableName);
 
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
 
         // Insert data to trigger schema registration
@@ -631,33 +633,30 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                         "field1 VARCHAR(100)" +
                         ")");
 
+        String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
-                "connector-" + connectorCounter.incrementAndGet(),
+                connectorName,
                 topicPrefix,
                 "public." + tableName);
 
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
 
         // Insert to trigger initial schema
         executeUpdate("INSERT INTO " + tableName + " (field1) VALUES ('v1')");
-        consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
+        consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
 
         waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(20));
 
         // Evolution 1: Add field2
         executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN field2 VARCHAR(100)");
         executeUpdate("INSERT INTO " + tableName + " (field1, field2) VALUES ('v2', 'data2')");
-        consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
-
-        Thread.sleep(2000);
+        consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
 
         // Evolution 2: Add field3
         executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN field3 INT");
         executeUpdate("INSERT INTO " + tableName + " (field1, field2, field3) VALUES ('v3', 'data3', 123)");
-        consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
-
-        Thread.sleep(2000);
+        consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
 
         // Verify schema versions exist
         var versions = registryClient.groups().byGroupId("default")
@@ -700,12 +699,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                         "created_at TIMESTAMPTZ" +
                         ")");
 
+        String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
-                "connector-" + connectorCounter.incrementAndGet(),
+                connectorName,
                 topicPrefix,
                 "public." + tableName);
 
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
 
         // Insert data with special types
@@ -721,7 +721,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         }
 
         // Consume and verify
-        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
         assertEquals(1, events.size());
 
         GenericRecord event = events.get(0);
@@ -760,12 +760,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                         "quantity NUMERIC(10, 0)" +
                         ")");
 
+        String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
-                "connector-" + connectorCounter.incrementAndGet(),
+                connectorName,
                 topicPrefix,
                 "public." + tableName);
 
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
 
         // Insert data
@@ -779,7 +780,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         }
 
         // Consume and verify
-        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
         assertEquals(1, events.size());
 
         GenericRecord event = events.get(0);
@@ -815,12 +816,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                         "value VARCHAR(100)" +
                         ")");
 
+        String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
-                "connector-" + connectorCounter.incrementAndGet(),
+                connectorName,
                 topicPrefix,
                 "public." + tableName);
 
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
 
         // Insert 1000 rows in batches
@@ -877,13 +879,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
                 topicPrefix,
                 "public." + tableName);
 
-        Thread.sleep(5000);
+        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
 
         // Insert data before "restart"
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('before')");
 
-        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
+        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
         assertEquals(1, events1.size());
 
         // Simulate restart by deleting and re-registering connector
@@ -893,7 +895,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         // Insert more data
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('after')");
 
-        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
+        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
         assertEquals(1, events2.size());
 
         GenericRecord afterEvent = events2.get(0);
@@ -961,16 +963,6 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
     }
 
     /**
-     * Detects if running in a CI environment or on Linux.
-     * Host network mode works on Linux but not on Docker Desktop (Mac/Windows).
-     */
-    protected static boolean shouldUseHostNetwork() {
-        boolean isCI = System.getenv("CI") != null || System.getenv("GITHUB_ACTIONS") != null;
-        boolean isLinux = System.getProperty("os.name", "").toLowerCase().contains("linux");
-        return isCI || isLinux;
-    }
-
-    /**
      * Registers a Debezium connector with Apicurio Avro converters
      */
     protected void registerDebeziumConnectorWithApicurioConverters(String connectorName,
@@ -979,24 +971,16 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         // Each connector needs a unique replication slot name to avoid conflicts
         String slotName = "slot_" + connectorName.replace("-", "_");
 
-        // Configure registry URL based on network mode:
-        // - On Linux/CI: Use host network mode, containers can access localhost directly
-        // - On Mac/Windows: Use bridge network mode, need host.docker.internal
+        // Configure registry URL for container access:
+        // Containers access the host via host.testcontainers.internal
+        // (works in all environments: local dev, CI, Linux, Mac, Windows)
         String registryUrl = getRegistryUrl();
-        String dockerAccessibleRegistryUrl;
+        String dockerAccessibleRegistryUrl = registryUrl
+                .replace("localhost", "host.testcontainers.internal")
+                .replace("127.0.0.1", "host.testcontainers.internal");
 
-        if (shouldUseHostNetwork()) {
-            // Host network mode: containers share host's network, use localhost
-            dockerAccessibleRegistryUrl = registryUrl;
-            log.info("Using host network mode - registry URL: {}", dockerAccessibleRegistryUrl);
-        } else {
-            // Bridge network mode: need host.docker.internal to reach host from container
-            dockerAccessibleRegistryUrl = registryUrl
-                    .replace("localhost", "host.docker.internal")
-                    .replace("127.0.0.1", "host.docker.internal");
-            log.info("Using bridge network mode - original URL: {}, docker-accessible URL: {}",
-                    registryUrl, dockerAccessibleRegistryUrl);
-        }
+        log.info("Original registry URL: {}, container-accessible URL: {}",
+                registryUrl, dockerAccessibleRegistryUrl);
 
         ConnectorConfiguration config = ConnectorConfiguration
                 .forJdbcContainer(getPostgresContainer())
@@ -1020,6 +1004,46 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         currentConnectorName = connectorName; // Track for cleanup
         log.info("Registered Debezium connector: {} with slot: {} for tables: {}, registry: {}",
                 connectorName, slotName, tableIncludeList, dockerAccessibleRegistryUrl);
+    }
+
+    /**
+     * Waits for a Debezium connector to reach RUNNING state.
+     * This is much more reliable than arbitrary Thread.sleep() calls.
+     * Uses Kafka Connect REST API to check connector status.
+     */
+    protected void waitForConnectorReady(String connectorName, Duration timeout) throws Exception {
+        log.info("Waiting for connector {} to be ready...", connectorName);
+
+        String connectUrl = "http://" + getDebeziumContainer().getHost() + ":" +
+                            getDebeziumContainer().getMappedPort(8083);
+
+        Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
+            try {
+                // Query Kafka Connect REST API for connector status
+                String statusUrl = connectUrl + "/connectors/" + connectorName + "/status";
+                Response response = given()
+                    .when()
+                    .get(statusUrl)
+                    .then()
+                    .extract()
+                    .response();
+
+                if (response.getStatusCode() == 200) {
+                    String responseBody = response.getBody().asString();
+                    boolean isRunning = responseBody.contains("\"state\":\"RUNNING\"");
+                    if (!isRunning) {
+                        log.debug("Connector {} status: {}", connectorName, responseBody);
+                    } else {
+                        log.info("Connector {} is RUNNING", connectorName);
+                    }
+                    return isRunning;
+                }
+                return false;
+            } catch (Exception e) {
+                log.debug("Connector {} not ready yet: {}", connectorName, e.getMessage());
+                return false;
+            }
+        });
     }
 
     /**

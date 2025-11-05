@@ -51,11 +51,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Integration tests for Debezium PostgreSQL CDC with Apicurio Registry Avro serialization
- * using LOCALLY BUILT converters. This test validates integration with the current SNAPSHOT
- * version of the converter library rather than published versions from Maven Central.
+ * Integration tests for Debezium PostgreSQL CDC with Apicurio Registry Avro
+ * serialization
+ * using LOCALLY BUILT converters. This test validates integration with the
+ * current SNAPSHOT
+ * version of the converter library rather than published versions from Maven
+ * Central.
  *
- * Tests schema auto-registration, evolution, PostgreSQL data types, and CDC operations.
+ * Tests schema auto-registration, evolution, PostgreSQL data types, and CDC
+ * operations.
  */
 @Tag(Constants.SERDES)
 @Tag(Constants.ACCEPTANCE)
@@ -191,7 +195,8 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
 
         log.info("Debezium Connect REST API URL: {}", connectUrl);
 
-        // We can verify the plugins are loaded by checking the connector-plugins endpoint
+        // We can verify the plugins are loaded by checking the connector-plugins
+        // endpoint
         // This confirms the local converters were successfully mounted and loaded
         log.info("Local converters are expected to be mounted at /kafka/connect/apicurio-converter/");
         log.info("Converter class should be: io.apicurio.registry.utils.converter.AvroConverter");
@@ -200,7 +205,8 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
         // they should be present in the container's plugin path
         // The mere fact that subsequent tests can use the converter proves it's loaded
 
-        log.info("Local converters verification: Will be validated by successful schema registration in subsequent tests");
+        log.info(
+                "Local converters verification: Will be validated by successful schema registration in subsequent tests");
     }
 
     /**
@@ -282,7 +288,8 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
                         "price DECIMAL(10, 2)" +
                         ")");
 
-        // Set REPLICA IDENTITY FULL to capture full before/after state for UPDATE and DELETE
+        // Set REPLICA IDENTITY FULL to capture full before/after state for UPDATE and
+        // DELETE
         try (Statement stmt = postgresConnection.createStatement()) {
             stmt.execute("ALTER TABLE " + tableName + " REPLICA IDENTITY FULL");
             log.info("Set REPLICA IDENTITY FULL for table: {}", tableName);
@@ -458,7 +465,8 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
                 .replace("localhost", "host.docker.internal")
                 .replace("127.0.0.1", "host.docker.internal");
 
-        ConnectorConfiguration config = ConnectorConfiguration.forJdbcContainer(DebeziumLocalConvertersResource.postgresContainer)
+        ConnectorConfiguration config = ConnectorConfiguration
+                .forJdbcContainer(DebeziumLocalConvertersResource.postgresContainer)
                 .with("topic.prefix", topicPrefix)
                 .with("table.include.list", "public." + tableName)
                 .with("slot.name", slotName)
@@ -573,7 +581,7 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
      * Test 6: Schema Compatibility Rules
      * - Sets BACKWARD compatibility rule in Apicurio Registry
      * - Attempts incompatible schema change (not directly testable at DB level,
-     *   but we can verify the compatibility rule is enforced)
+     * but we can verify the compatibility rule is enforced)
      */
     @Test
     @Order(6)
@@ -727,7 +735,7 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
                         " (data_json, tags, user_mood, user_id, created_at) " +
                         "VALUES (?::jsonb, ?::text[], ?::mood, ?::uuid, NOW())")) {
             stmt.setString(1, "{\"key\": \"value\", \"number\": 42}");
-            stmt.setArray(2, postgresConnection.createArrayOf("text", new String[]{"tag1", "tag2", "tag3"}));
+            stmt.setArray(2, postgresConnection.createArrayOf("text", new String[] { "tag1", "tag2", "tag3" }));
             stmt.setObject(3, "happy", java.sql.Types.OTHER);
             stmt.setObject(4, UUID.randomUUID());
             stmt.executeUpdate();
@@ -843,7 +851,8 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
         for (int batch = 0; batch < totalRows / batchSize; batch++) {
             StringBuilder sql = new StringBuilder("INSERT INTO " + tableName + " (value) VALUES ");
             for (int i = 0; i < batchSize; i++) {
-                if (i > 0) sql.append(", ");
+                if (i > 0)
+                    sql.append(", ");
                 sql.append("('value-").append(batch * batchSize + i).append("')");
             }
             executeUpdate(sql.toString());
@@ -923,12 +932,13 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
      * Registers a Debezium connector with Apicurio Avro converters
      */
     private void registerDebeziumConnectorWithApicurioConverters(String connectorName,
-                                                                   String topicPrefix,
-                                                                   String tableIncludeList) {
+            String topicPrefix,
+            String tableIncludeList) {
         // Each connector needs a unique replication slot name to avoid conflicts
         String slotName = "slot_" + connectorName.replace("-", "_");
 
-        // IMPORTANT: Convert localhost to host.docker.internal for Docker container access
+        // IMPORTANT: Convert localhost to host.docker.internal for Docker container
+        // access
         String registryUrl = getRegistryV3ApiUrl();
         String dockerAccessibleRegistryUrl = registryUrl
                 .replace("localhost", "host.docker.internal")
@@ -937,7 +947,8 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
         log.info("Original registry URL: {}", registryUrl);
         log.info("Docker-accessible registry URL: {}", dockerAccessibleRegistryUrl);
 
-        ConnectorConfiguration config = ConnectorConfiguration.forJdbcContainer(DebeziumLocalConvertersResource.postgresContainer)
+        ConnectorConfiguration config = ConnectorConfiguration
+                .forJdbcContainer(DebeziumLocalConvertersResource.postgresContainer)
                 .with("topic.prefix", topicPrefix)
                 .with("table.include.list", tableIncludeList)
                 .with("slot.name", slotName)
@@ -953,7 +964,6 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
                 .with("value.converter.apicurio.registry.auto-register", "true")
                 .with("value.converter.apicurio.registry.find-latest", "true")
                 .with("value.converter.apicurio.registry.headers.enabled", "false");
-
 
         DebeziumLocalConvertersResource.debeziumContainer.registerConnector(connectorName, config);
         currentConnectorName = connectorName; // Track for cleanup
@@ -1142,7 +1152,8 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
     }
 
     /**
-     * Cleans up PostgreSQL replication slots and publications to ensure fresh state between tests
+     * Cleans up PostgreSQL replication slots and publications to ensure fresh state
+     * between tests
      */
     private void cleanupPostgreSQLReplicationState() throws SQLException {
         try (Statement stmt = postgresConnection.createStatement()) {
@@ -1173,7 +1184,8 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends ApicurioRegistryBas
             pubRs.close();
 
             for (String pubName : publicationsToDelete) {
-                // Skip the default Debezium connector publication (created by DebeziumLocalConvertersResource)
+                // Skip the default Debezium connector publication (created by
+                // DebeziumLocalConvertersResource)
                 if (!pubName.equals("pub_my_connector")) {
                     try {
                         stmt.execute("DROP PUBLICATION IF EXISTS " + pubName);

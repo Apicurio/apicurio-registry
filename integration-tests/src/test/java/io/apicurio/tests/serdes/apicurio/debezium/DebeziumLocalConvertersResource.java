@@ -17,8 +17,10 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * Container resource for Debezium integration tests that uses locally built Apicurio converters
- * instead of downloading them from Maven Central. This ensures tests run against the current
+ * Container resource for Debezium integration tests that uses locally built
+ * Apicurio converters
+ * instead of downloading them from Maven Central. This ensures tests run
+ * against the current
  * SNAPSHOT build of the converters library.
  */
 public class DebeziumLocalConvertersResource implements QuarkusTestResourceLifecycleManager {
@@ -43,8 +45,10 @@ public class DebeziumLocalConvertersResource implements QuarkusTestResourceLifec
     }
 
     /**
-     * Creates a Debezium container configured to use locally built Apicurio converters.
-     * The converters are expected to be unpacked by the maven-dependency-plugin into
+     * Creates a Debezium container configured to use locally built Apicurio
+     * converters.
+     * The converters are expected to be unpacked by the maven-dependency-plugin
+     * into
      * target/debezium-converters directory during the build.
      */
     private static DebeziumContainer createDebeziumContainerWithLocalConverters() {
@@ -69,20 +73,21 @@ public class DebeziumLocalConvertersResource implements QuarkusTestResourceLifec
                 // Copy the entire directory structure to the Kafka Connect plugins path
                 container.withCopyFileToContainer(
                         MountableFile.forHostPath(convertersPath),
-                        "/kafka/connect/apicurio-converter/"
-                );
+                        "/kafka/connect/apicurio-converter/");
 
                 log.info("Using local Apicurio converters from: {}", convertersPath);
                 log.info("Local converters will be mounted to /kafka/connect/apicurio-converter/ in container");
             } else {
                 String errorMsg = "Local converters directory exists but is empty: " + convertersPath;
                 log.error(errorMsg);
-                throw new IllegalStateException(errorMsg + ". Please run 'mvn clean install -DskipTests' to build the converters.");
+                throw new IllegalStateException(
+                        errorMsg + ". Please run 'mvn clean install -DskipTests' to build the converters.");
             }
         } else {
             String errorMsg = "Local converters not found at: " + convertersPath;
             log.error(errorMsg);
-            throw new IllegalStateException(errorMsg + ". Please run 'mvn clean install -DskipTests' to build the converters.");
+            throw new IllegalStateException(
+                    errorMsg + ". Please run 'mvn clean install -DskipTests' to build the converters.");
         }
 
         return container;
@@ -95,7 +100,7 @@ public class DebeziumLocalConvertersResource implements QuarkusTestResourceLifec
 
         System.setProperty("bootstrap.servers", kafkaContainer.getBootstrapServers());
 
-         return Collections.emptyMap();
+        return Collections.emptyMap();
     }
 
     @Override

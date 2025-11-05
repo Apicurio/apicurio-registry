@@ -51,8 +51,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Integration tests for Debezium PostgreSQL CDC with Apicurio Registry Avro serialization.
- * Tests schema auto-registration, evolution, PostgreSQL data types, and CDC operations.
+ * Integration tests for Debezium PostgreSQL CDC with Apicurio Registry Avro
+ * serialization.
+ * Tests schema auto-registration, evolution, PostgreSQL data types, and CDC
+ * operations.
  */
 @Tag(Constants.SERDES)
 @Tag(Constants.ACCEPTANCE)
@@ -249,7 +251,8 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends ApicurioRegistryBaseIT 
                         "price DECIMAL(10, 2)" +
                         ")");
 
-        // Set REPLICA IDENTITY FULL to capture full before/after state for UPDATE and DELETE
+        // Set REPLICA IDENTITY FULL to capture full before/after state for UPDATE and
+        // DELETE
         try (Statement stmt = postgresConnection.createStatement()) {
             stmt.execute("ALTER TABLE " + tableName + " REPLICA IDENTITY FULL");
             log.info("Set REPLICA IDENTITY FULL for table: {}", tableName);
@@ -425,7 +428,8 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends ApicurioRegistryBaseIT 
                 .replace("localhost", "host.docker.internal")
                 .replace("127.0.0.1", "host.docker.internal");
 
-        ConnectorConfiguration config = ConnectorConfiguration.forJdbcContainer(DebeziumContainerResource.postgresContainer)
+        ConnectorConfiguration config = ConnectorConfiguration
+                .forJdbcContainer(DebeziumContainerResource.postgresContainer)
                 .with("topic.prefix", topicPrefix)
                 .with("table.include.list", "public." + tableName)
                 .with("slot.name", slotName)
@@ -540,7 +544,7 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends ApicurioRegistryBaseIT 
      * Test 6: Schema Compatibility Rules
      * - Sets BACKWARD compatibility rule in Apicurio Registry
      * - Attempts incompatible schema change (not directly testable at DB level,
-     *   but we can verify the compatibility rule is enforced)
+     * but we can verify the compatibility rule is enforced)
      */
     @Test
     @Order(6)
@@ -694,7 +698,7 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends ApicurioRegistryBaseIT 
                         " (data_json, tags, user_mood, user_id, created_at) " +
                         "VALUES (?::jsonb, ?::text[], ?::mood, ?::uuid, NOW())")) {
             stmt.setString(1, "{\"key\": \"value\", \"number\": 42}");
-            stmt.setArray(2, postgresConnection.createArrayOf("text", new String[]{"tag1", "tag2", "tag3"}));
+            stmt.setArray(2, postgresConnection.createArrayOf("text", new String[] { "tag1", "tag2", "tag3" }));
             stmt.setObject(3, "happy", java.sql.Types.OTHER);
             stmt.setObject(4, UUID.randomUUID());
             stmt.executeUpdate();
@@ -810,7 +814,8 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends ApicurioRegistryBaseIT 
         for (int batch = 0; batch < totalRows / batchSize; batch++) {
             StringBuilder sql = new StringBuilder("INSERT INTO " + tableName + " (value) VALUES ");
             for (int i = 0; i < batchSize; i++) {
-                if (i > 0) sql.append(", ");
+                if (i > 0)
+                    sql.append(", ");
                 sql.append("('value-").append(batch * batchSize + i).append("')");
             }
             executeUpdate(sql.toString());
@@ -943,12 +948,13 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends ApicurioRegistryBaseIT 
      * Registers a Debezium connector with Apicurio Avro converters
      */
     private void registerDebeziumConnectorWithApicurioConverters(String connectorName,
-                                                                   String topicPrefix,
-                                                                   String tableIncludeList) {
+            String topicPrefix,
+            String tableIncludeList) {
         // Each connector needs a unique replication slot name to avoid conflicts
         String slotName = "slot_" + connectorName.replace("-", "_");
 
-        // IMPORTANT: Convert localhost to host.docker.internal for Docker container access
+        // IMPORTANT: Convert localhost to host.docker.internal for Docker container
+        // access
         String registryUrl = getRegistryV2ApiUrl();
         String dockerAccessibleRegistryUrl = registryUrl
                 .replace("localhost", "host.docker.internal")
@@ -957,7 +963,8 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends ApicurioRegistryBaseIT 
         log.info("Original registry URL: {}", registryUrl);
         log.info("Docker-accessible registry URL: {}", dockerAccessibleRegistryUrl);
 
-        ConnectorConfiguration config = ConnectorConfiguration.forJdbcContainer(DebeziumContainerResource.postgresContainer)
+        ConnectorConfiguration config = ConnectorConfiguration
+                .forJdbcContainer(DebeziumContainerResource.postgresContainer)
                 .with("topic.prefix", topicPrefix)
                 .with("table.include.list", tableIncludeList)
                 .with("slot.name", slotName)
@@ -973,7 +980,6 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends ApicurioRegistryBaseIT 
                 .with("value.converter.apicurio.registry.auto-register", "true")
                 .with("value.converter.apicurio.registry.find-latest", "true")
                 .with("value.converter.apicurio.registry.headers.enabled", "false");
-
 
         DebeziumContainerResource.debeziumContainer.registerConnector(connectorName, config);
         currentConnectorName = connectorName; // Track for cleanup
@@ -1119,7 +1125,8 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends ApicurioRegistryBaseIT 
     }
 
     /**
-     * Cleans up PostgreSQL replication slots and publications to ensure fresh state between tests
+     * Cleans up PostgreSQL replication slots and publications to ensure fresh state
+     * between tests
      */
     private void cleanupPostgreSQLReplicationState() throws SQLException {
         try (Statement stmt = postgresConnection.createStatement()) {
@@ -1150,7 +1157,8 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends ApicurioRegistryBaseIT 
             pubRs.close();
 
             for (String pubName : publicationsToDelete) {
-                // Skip the default Debezium connector publication (created by DebeziumContainerResource)
+                // Skip the default Debezium connector publication (created by
+                // DebeziumContainerResource)
                 if (!pubName.equals("pub_my_connector")) {
                     try {
                         stmt.execute("DROP PUBLICATION IF EXISTS " + pubName);

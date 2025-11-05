@@ -46,8 +46,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Abstract base class for Debezium PostgreSQL CDC integration tests with Apicurio Registry.
- * Provides common test logic for both published and locally-built converter tests.
+ * Abstract base class for Debezium PostgreSQL CDC integration tests with
+ * Apicurio Registry.
+ * Provides common test logic for both published and locally-built converter
+ * tests.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseIT {
@@ -443,10 +445,9 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         String slotName = "slot_" + connectorName.replace("-", "_");
 
         // Configure registry URL for container access
-        String rawRegistryUrl = getRegistryUrl();
-        String registryUrl = rawRegistryUrl
-                .replace("localhost", "host.testcontainers.internal")
-                .replace("127.0.0.1", "host.testcontainers.internal");
+        // The URL transformation depends on the container's network mode (host vs
+        // bridge)
+        String registryUrl = getContainerAccessibleRegistryUrl();
 
         ConnectorConfiguration config = ConnectorConfiguration
                 .forJdbcContainer(getPostgresContainer())
@@ -974,6 +975,71 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
     }
 
     /**
+     * Transforms the registry URL to be accessible from the Debezium container.
+     *
+     * This method handles different deployment scenarios:
+     *
+     * 1. Kubernetes with port-forward: Registry has a ClusterIP (e.g., 10.x.x.x) that's
+     *    port-forwarded to localhost. Containers running outside K8s cannot reach the ClusterIP,
+     *    so we convert it to localhost.
+     *
+     * 2. Network mode differences:
+     *    - Linux/CI (host network mode): Container shares host network, can access localhost directly
+     *    - macOS (bridge network mode): Container needs host.testcontainers.internal to reach host
+     *
+     * This method uses the same environment detection logic as DebeziumContainerResource
+     * to ensure URL transformation matches the container's network configuration.
+     */
+    protected String getContainerAccessibleRegistryUrl() {
+        String registryUrl = getRegistryUrl();
+        String transformedUrl = registryUrl;
+
+        // Step 1: Detect and convert Kubernetes ClusterIP to localhost
+        // Kubernetes typically uses these IP ranges for cluster IPs
+        if (registryUrl.contains("://10.") ||
+            registryUrl.contains("://172.") ||
+            registryUrl.contains("://192.168.")) {
+
+            // Extract the port from the ClusterIP URL
+            java.net.URI uri;
+            try {
+                uri = new java.net.URI(registryUrl);
+                int port = uri.getPort();
+                if (port == -1) {
+                    port = 8080; // default
+                }
+                String path = uri.getPath() != null ? uri.getPath() : "";
+                transformedUrl = "http://localhost:" + port + path;
+                log.info("Detected Kubernetes ClusterIP URL, converting to localhost (port-forward target): {} -> {}",
+                        registryUrl, transformedUrl);
+            } catch (java.net.URISyntaxException e) {
+                log.warn("Failed to parse registry URL as URI: {}", registryUrl, e);
+                // Fall through to use original URL
+            }
+        }
+
+        // Step 2: Apply network-mode-specific transformation
+        // Same logic as DebeziumContainerResource.shouldUseHostNetwork()
+        boolean isCI = System.getenv("CI") != null || System.getenv("GITHUB_ACTIONS") != null;
+        boolean isLinux = System.getProperty("os.name", "").toLowerCase().contains("linux");
+        boolean shouldUseHostNetwork = isCI || isLinux;
+
+        if (shouldUseHostNetwork) {
+            // Host network mode - container can access localhost directly
+            log.info("Using localhost for registry URL (host network mode): {}", transformedUrl);
+            return transformedUrl;
+        } else {
+            // Bridge network mode - container needs host.testcontainers.internal
+            String dockerAccessibleUrl = transformedUrl
+                    .replace("localhost", "host.testcontainers.internal")
+                    .replace("127.0.0.1", "host.testcontainers.internal");
+            log.info("Transforming registry URL from {} to {} (bridge network mode)",
+                    transformedUrl, dockerAccessibleUrl);
+            return dockerAccessibleUrl;
+        }
+    }
+
+    /**
      * Registers a Debezium connector with Apicurio Avro converters
      */
     protected void registerDebeziumConnectorWithApicurioConverters(String connectorName,
@@ -982,16 +1048,10 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         // Each connector needs a unique replication slot name to avoid conflicts
         String slotName = "slot_" + connectorName.replace("-", "_");
 
-        // Configure registry URL for container access:
-        // Containers access the host via host.testcontainers.internal
-        // (works in all environments: local dev, CI, Linux, Mac, Windows)
-        String registryUrl = getRegistryUrl();
-        String dockerAccessibleRegistryUrl = registryUrl
-                .replace("localhost", "host.testcontainers.internal")
-                .replace("127.0.0.1", "host.testcontainers.internal");
-
-        log.info("Original registry URL: {}, container-accessible URL: {}",
-                registryUrl, dockerAccessibleRegistryUrl);
+        // Configure registry URL for container access
+        // The URL transformation depends on the container's network mode (host vs
+        // bridge)
+        String dockerAccessibleRegistryUrl = getContainerAccessibleRegistryUrl();
 
         ConnectorConfiguration config = ConnectorConfiguration
                 .forJdbcContainer(getPostgresContainer())
@@ -1026,18 +1086,18 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         log.info("Waiting for connector {} to be ready...", connectorName);
 
         String connectUrl = "http://" + getDebeziumContainer().getHost() + ":" +
-                            getDebeziumContainer().getMappedPort(8083);
+                getDebeziumContainer().getMappedPort(8083);
 
         Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
             try {
                 // Query Kafka Connect REST API for connector status
                 String statusUrl = connectUrl + "/connectors/" + connectorName + "/status";
                 Response response = given()
-                    .when()
-                    .get(statusUrl)
-                    .then()
-                    .extract()
-                    .response();
+                        .when()
+                        .get(statusUrl)
+                        .then()
+                        .extract()
+                        .response();
 
                 if (response.getStatusCode() == 200) {
                     String responseBody = response.getBody().asString();
@@ -1082,7 +1142,8 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
      * before the consumer is ready to receive them.
      *
      * When running multiple tests in sequence, the consumer subscription triggers
-     * an asynchronous partition rebalance. If database operations happen immediately
+     * an asynchronous partition rebalance. If database operations happen
+     * immediately
      * after subscription, Debezium may publish CDC events before the consumer has
      * completed partition assignment, causing the consumer to miss those events.
      */
@@ -1109,7 +1170,8 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
     /**
      * Consumes Avro-encoded CDC events from Kafka topic
      */
-    protected List<GenericRecord> consumeAvroEvents(String topic, int expectedCount, Duration timeout) throws Exception {
+    protected List<GenericRecord> consumeAvroEvents(String topic, int expectedCount, Duration timeout)
+            throws Exception {
         List<GenericRecord> records = new ArrayList<>();
 
         Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {

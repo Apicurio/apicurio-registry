@@ -38,9 +38,7 @@ public class DebeziumDeploymentManager {
         // Deploy Debezium Kafka Connect (published or local converters)
         if (useLocalConverters) {
             LOGGER.info("Deploying Debezium Kafka Connect with local converters ##################################################");
-            LOGGER.warn("NOTE: Local converters in Kubernetes mode require additional setup. " +
-                       "Consider using published converters for cluster tests or Testcontainers for local development.");
-            deployResource(DEBEZIUM_CONNECT_LOCAL_RESOURCES);
+            deployDebeziumWithLocalConverters();
         } else {
             LOGGER.info("Deploying Debezium Kafka Connect with published converters ##################################################");
             deployResource(DEBEZIUM_CONNECT_RESOURCES);
@@ -126,6 +124,131 @@ public class DebeziumDeploymentManager {
 
         // Set flag indicating we're in cluster mode
         System.setProperty("debezium.cluster.mode", "true");
+    }
+
+    /**
+     * Copies local converter files to the minikube node using 'minikube cp' command.
+     * This is necessary because hostPath volumes reference paths inside the minikube VM,
+     * not on the host machine.
+     */
+    private static void copyConvertersToMinikube(String localPath, String minikubePath) {
+        LOGGER.info("Copying converters from {} to minikube:{}", localPath, minikubePath);
+
+        try {
+            // Create directory in minikube
+            ProcessBuilder mkdirProcess = new ProcessBuilder(
+                "minikube", "ssh", "--", "mkdir", "-p", minikubePath
+            );
+            mkdirProcess.inheritIO();
+            Process mkdir = mkdirProcess.start();
+            int mkdirExitCode = mkdir.waitFor();
+
+            if (mkdirExitCode != 0) {
+                throw new RuntimeException("Failed to create directory in minikube with exit code: " + mkdirExitCode);
+            }
+
+            // Copy each file to minikube
+            java.io.File localDir = new java.io.File(localPath);
+            java.io.File[] files = localDir.listFiles();
+
+            if (files != null) {
+                for (java.io.File file : files) {
+                    if (file.isFile()) {
+                        LOGGER.info("Copying {} to minikube...", file.getName());
+
+                        ProcessBuilder cpProcess = new ProcessBuilder(
+                            "minikube", "cp", file.getAbsolutePath(), minikubePath + "/" + file.getName()
+                        );
+                        cpProcess.inheritIO();
+                        Process cp = cpProcess.start();
+                        int cpExitCode = cp.waitFor();
+
+                        if (cpExitCode != 0) {
+                            throw new RuntimeException("Failed to copy file " + file.getName() + " to minikube with exit code: " + cpExitCode);
+                        }
+                    }
+                }
+            }
+
+            LOGGER.info("Successfully copied all converter files to minikube");
+
+            // Verify the files are there
+            ProcessBuilder lsProcess = new ProcessBuilder(
+                "minikube", "ssh", "--", "ls", "-lh", minikubePath
+            );
+            lsProcess.inheritIO();
+            lsProcess.start().waitFor();
+
+        } catch (Exception e) {
+            LOGGER.error("Failed to copy converters to minikube", e);
+            throw new RuntimeException("Failed to copy converters to minikube", e);
+        }
+    }
+
+    /**
+     * Deploys Debezium Connect with local converters using an InitContainer approach.
+     * The manifest uses a hostPath volume to access converters from the host filesystem,
+     * and an InitContainer copies them to an emptyDir before Kafka Connect starts.
+     *
+     * This ensures converters are available when Kafka Connect scans for plugins.
+     */
+    private static void deployDebeziumWithLocalConverters() {
+        LOGGER.info("Deploying Debezium Connect with local converters using InitContainer ##################################################");
+
+        // Determine the path to local converters
+        String projectDir = System.getProperty("user.dir");
+        String convertersPath = projectDir + "/target/debezium-converters";
+        java.io.File convertersDir = new java.io.File(convertersPath);
+
+        if (!convertersDir.exists() || !convertersDir.isDirectory()) {
+            String errorMsg = "Local converters not found at: " + convertersPath +
+                            ". Please run 'mvn clean install -DskipTests' to build the converters.";
+            LOGGER.error(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+
+        java.io.File[] files = convertersDir.listFiles();
+        if (files == null || files.length == 0) {
+            String errorMsg = "Local converters directory exists but is empty: " + convertersPath;
+            LOGGER.error(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+
+        LOGGER.info("Found {} converter files in: {}", files.length, convertersPath);
+
+        // Copy converters to minikube node since hostPath refers to paths inside minikube VM
+        String minikubeConvertersPath = "/tmp/debezium-converters";
+        copyConvertersToMinikube(convertersPath, minikubeConvertersPath);
+
+        try {
+            // Load the manifest template
+            java.io.InputStream resourceStream = DebeziumDeploymentManager.class.getResourceAsStream(DEBEZIUM_CONNECT_LOCAL_RESOURCES);
+            if (resourceStream == null) {
+                throw new IllegalStateException("Could not load resource: " + DEBEZIUM_CONNECT_LOCAL_RESOURCES);
+            }
+
+            String manifestContent = new String(resourceStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+
+            // Replace the placeholder with the minikube path
+            String modifiedManifest = manifestContent.replace("CONVERTERS_HOST_PATH_PLACEHOLDER", minikubeConvertersPath);
+
+            LOGGER.info("Deploying Debezium Connect with hostPath (inside minikube): {}", minikubeConvertersPath);
+
+            // Deploy the modified manifest
+            kubernetesClient.load(new java.io.ByteArrayInputStream(
+                modifiedManifest.getBytes(java.nio.charset.StandardCharsets.UTF_8)
+            )).serverSideApply();
+
+            // Wait for all pods to be ready (including initContainer completion)
+            LOGGER.info("Waiting for Debezium Connect pod to be ready (including initContainer)...");
+            kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, java.util.concurrent.TimeUnit.SECONDS);
+
+            LOGGER.info("Debezium Connect with local converters deployed successfully");
+
+        } catch (Exception e) {
+            LOGGER.error("Failed to deploy Debezium Connect with local converters", e);
+            throw new RuntimeException("Failed to deploy Debezium with local converters", e);
+        }
     }
 
     /**

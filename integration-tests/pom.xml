@@ -426,7 +426,7 @@
       <id>all</id>
       <properties>
         <skipTests>false</skipTests>
-        <groups>( smoke | serdes | acceptance | debezium | ui)</groups>
+        <groups>( smoke | serdes | acceptance | debezium | debezium-snapshot | ui)</groups>
       </properties>
     </profile>
 
@@ -434,7 +434,7 @@
       <id>ci</id>
       <properties>
         <skipTests>false</skipTests>
-        <groups>( smoke | serdes | acceptance | debezium )</groups>
+        <groups>( smoke | serdes | acceptance | debezium | debezium-snapshot )</groups>
       </properties>
     </profile>
 
@@ -496,6 +496,34 @@
                 <configuration>
                   <systemPropertyVariables>
                     <deployDebezium>true</deployDebezium>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>debezium-snapshot</id>
+      <properties>
+        <groups>debezium-snapshot</groups>
+        <skipTests>false</skipTests>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <deployDebezium>true</deployDebezium>
+                    <deployDebeziumLocalConverters>true</deployDebeziumLocalConverters>
                   </systemPropertyVariables>
                 </configuration>
               </execution>

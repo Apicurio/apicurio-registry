@@ -72,6 +72,11 @@ public interface Constants {
     String DEBEZIUM = "debezium";
 
     /**
+     * Tag for Debezium integration tests
+     */
+    String DEBEZIUM_SNAPSHOT = "debezium-snapshot";
+
+    /**
      * Tag for slow-running tests
      */
     String SLOW = "slow";

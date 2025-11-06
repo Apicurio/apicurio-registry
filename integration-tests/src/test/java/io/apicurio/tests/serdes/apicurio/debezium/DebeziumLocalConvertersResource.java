@@ -3,9 +3,13 @@ package io.apicurio.tests.serdes.apicurio.debezium;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.MountableFile;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Container resource for Debezium integration tests that uses locally built
@@ -17,6 +21,37 @@ import java.io.File;
 public class DebeziumLocalConvertersResource extends DebeziumContainerResource {
 
     private static final Logger log = LoggerFactory.getLogger(DebeziumLocalConvertersResource.class);
+
+    @Override
+    public Map<String, String> start() {
+        // Check if running in Kubernetes cluster mode
+        if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
+            log.info("cluster.tests=true detected for LOCAL CONVERTERS test");
+            log.info("Debezium infrastructure with local converters should already be deployed");
+
+            // Create wrappers using the LOCAL converters service
+            postgresContainer = new KubernetesPostgreSQLContainerWrapper(
+                    io.apicurio.deployment.KubernetesTestResources.POSTGRESQL_DEBEZIUM_SERVICE_EXTERNAL);
+            debeziumContainer = new KubernetesDebeziumContainerWrapper(
+                    io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_CONNECT_LOCAL_SERVICE_EXTERNAL);
+
+            log.info("Debezium service wrappers created for cluster mode using LOCAL converters");
+            return Collections.emptyMap();
+        }
+
+        // Local mode: Use Testcontainers with local converters
+        log.info("cluster.tests=false, using Testcontainers with local converters");
+
+        postgresContainer = createPostgreSQLContainer();
+        debeziumContainer = createDebeziumContainer(); // This will mount local converters
+        kafkaContainer = createKafkaContainer();
+
+        // Start the postgresql database, kafka, and debezium
+        Startables.deepStart(Stream.of(kafkaContainer, postgresContainer, debeziumContainer)).join();
+        System.setProperty("bootstrap.servers", kafkaContainer.getBootstrapServers());
+
+        return Collections.emptyMap();
+    }
 
     /**
      * Creates a Debezium container configured to use locally built Apicurio

@@ -27,13 +27,29 @@ spec:
       labels:
         app: debezium-connect-local
     spec:
-      # Note: For local converters in Kubernetes, we have two options:
-      # 1. Build a custom Docker image that includes the local converters
-      # 2. Use an init container to copy converters from a PVC or ConfigMap
-      #
-      # For now, this manifest assumes local converters are NOT used in Kubernetes mode.
-      # Tests using local converters should fall back to Testcontainers mode.
-      # This manifest is included for completeness but may need enhancement.
+      # InitContainer copies local converters from hostPath to emptyDir before main container starts
+      # This ensures converters are available when Kafka Connect scans for plugins
+      initContainers:
+        - name: copy-converters
+          image: busybox:latest
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Copying local Apicurio converters..."
+              if [ -d "/host-converters" ] && [ "$(ls -A /host-converters)" ]; then
+                cp -v /host-converters/* /converters/
+                echo "Successfully copied $(ls /converters | wc -l) files"
+                ls -lh /converters
+              else
+                echo "ERROR: No converters found in /host-converters"
+                exit 1
+              fi
+          volumeMounts:
+            - name: host-converters-source
+              mountPath: /host-converters
+              readOnly: true
+            - name: local-converters
+              mountPath: /converters
       containers:
         - name: debezium-connect-local
           image: quay.io/debezium/connect:latest
@@ -51,15 +67,18 @@ spec:
             - name: STATUS_STORAGE_TOPIC
               value: debezium_connect_statuses_local
             # NOTE: ENABLE_APICURIO_CONVERTERS is NOT set here
-            # Local converters should be mounted via volume
+            # Local converters are copied by initContainer
           volumeMounts:
             - name: local-converters
               mountPath: /kafka/connect/apicurio-converter
       volumes:
+        - name: host-converters-source
+          hostPath:
+            # This path will be replaced by DebeziumDeploymentManager
+            path: CONVERTERS_HOST_PATH_PLACEHOLDER
+            type: Directory
         - name: local-converters
           emptyDir: {}
-          # TODO: Replace with actual volume containing local converters
-          # This could be a PVC populated by the build, or a hostPath in development
 ---
 apiVersion: v1
 kind: Service

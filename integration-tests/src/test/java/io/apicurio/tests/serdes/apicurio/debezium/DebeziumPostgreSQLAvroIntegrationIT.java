@@ -25,8 +25,7 @@ import java.nio.charset.StandardCharsets;
  * Tests schema auto-registration, evolution, PostgreSQL data types, and CDC
  * operations.
  */
-@Tag(Constants.SERDES)
-@Tag(Constants.ACCEPTANCE)
+@Tag(Constants.DEBEZIUM)
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DebeziumContainerResource.class, restrictToAnnotatedClass = true)
 public class DebeziumPostgreSQLAvroIntegrationIT extends DebeziumPostgreSQLAvroBaseIT {

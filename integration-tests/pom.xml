@@ -426,7 +426,7 @@
       <id>all</id>
       <properties>
         <skipTests>false</skipTests>
-        <groups>( smoke | serdes | acceptance | ui)</groups>
+        <groups>( smoke | serdes | acceptance | debezium | ui)</groups>
       </properties>
     </profile>
 
@@ -434,7 +434,7 @@
       <id>ci</id>
       <properties>
         <skipTests>false</skipTests>
-        <groups>( smoke | serdes | acceptance )</groups>
+        <groups>( smoke | serdes | acceptance | debezium )</groups>
       </properties>
     </profile>
 
@@ -477,6 +477,34 @@
         <skipTests>false</skipTests>
       </properties>
     </profile>
+
+    <profile>
+      <id>debezium</id>
+      <properties>
+        <groups>debezium</groups>
+        <skipTests>false</skipTests>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <deployDebezium>true</deployDebezium>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <profile>
       <id>kafkasql-snapshotting</id>
       <properties>

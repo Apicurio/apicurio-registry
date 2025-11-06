@@ -31,7 +31,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
-    static KubernetesClient kubernetesClient;
+    public static KubernetesClient kubernetesClient;
 
     static List<LogWatch> logWatch;
 
@@ -124,6 +124,14 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             KafkaSqlDeploymentManager.deployKafkaApp(System.getProperty("registry-kafkasql-image"));
             testLogsIdentifier = "apicurio-registry-kafka";
         }
+
+        // Deploy Debezium infrastructure if requested (for Debezium integration tests)
+        if (Boolean.parseBoolean(System.getProperty("deployDebezium"))) {
+            LOGGER.info(
+                    "Deploying Debezium infrastructure ##################################################");
+            boolean useLocalConverters = Boolean.parseBoolean(System.getProperty("deployDebeziumLocalConverters"));
+            DebeziumDeploymentManager.deployDebeziumInfra(useLocalConverters);
+        }
     }
 
     static void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak,
@@ -163,6 +171,9 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
 
         setupTestNetworking();
+
+        // Wait for registry HTTP endpoint to be accessible via LoadBalancer
+        waitForRegistryReady();
     }
 
     private static void setupTestNetworking() {
@@ -201,6 +212,62 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         // Wait for all the external resources pods to be ready
         kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Waits for the Apicurio Registry to be ready by checking the REST API health endpoint.
+     * Uses the external LoadBalancer service to check readiness via localhost.
+     */
+    private static void waitForRegistryReady() {
+        LOGGER.info("Waiting for Apicurio Registry to be accessible via LoadBalancer ##################################################");
+
+        try {
+            // In minikube with tunnel, the service should be accessible via localhost
+            // Let's wait a bit and then try to connect
+            Thread.sleep(10000); // Give minikube tunnel time to set up the route
+
+            // Try to connect to the Registry REST API
+            String registryUrl = "http://localhost:8080/health/ready";
+            LOGGER.info("Checking Registry readiness at: {}", registryUrl);
+
+            int maxAttempts = 30;
+            int attempt = 0;
+            boolean ready = false;
+
+            while (attempt < maxAttempts && !ready) {
+                try {
+                    // Simple HTTP GET to check if service is responding
+                    java.net.URL url = new java.net.URL(registryUrl);
+                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setConnectTimeout(2000);
+                    conn.setReadTimeout(2000);
+
+                    int responseCode = conn.getResponseCode();
+                    if (responseCode == 200) {
+                        ready = true;
+                        LOGGER.info("Apicurio Registry is ready!");
+                    } else {
+                        LOGGER.debug("Registry returned status code: {}", responseCode);
+                    }
+                    conn.disconnect();
+                } catch (Exception e) {
+                    LOGGER.debug("Attempt {}/{}: Registry not ready yet: {}",
+                                attempt + 1, maxAttempts, e.getMessage());
+                    Thread.sleep(2000);
+                }
+                attempt++;
+            }
+
+            if (!ready) {
+                throw new RuntimeException("Apicurio Registry did not become ready after " + maxAttempts + " attempts. " +
+                                         "Make sure 'minikube tunnel' is running and LoadBalancer services are accessible.");
+            }
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting for Registry", e);
+        }
     }
 
     private static List<LogWatch> streamPodLogs(String container) {

@@ -320,21 +320,58 @@ public class ProtobufCompatibilityCheckerLibrary {
         // For non-qualified types, we need to resolve them to fully qualified form
         // 1. Check if it's a nested type in the current message context
         String nestedCandidate = messageContext + "." + type;
-        if (file.getFieldMap().containsKey(nestedCandidate)
-                || file.getEnumFieldMap().containsKey(nestedCandidate)) {
+        if (typeExistsInFile(file, nestedCandidate)) {
             // It's a nested message/enum in the current message
             return buildFullyQualifiedName(file, nestedCandidate);
         }
 
         // 2. Check if it's a top-level type in the same file
-        if (file.getFieldMap().containsKey(type) || file.getEnumFieldMap().containsKey(type)) {
+        if (typeExistsInFile(file, type)) {
             // It's a top-level message/enum in the same file
             return buildFullyQualifiedName(file, type);
         }
 
-        // 3. For other cases (cross-file references or unknown types), prepend package if available
-        // This handles cases where the type might be from another file/package
+        // 3. For types we can't locate in the schema, try to infer the fully qualified name
+        // This handles cross-file references. For nested types that we couldn't find,
+        // we assume they're nested within the current message context.
+        if (messageContext != null && !messageContext.isEmpty()) {
+            return buildFullyQualifiedName(file, nestedCandidate);
+        }
+
+        // Default: assume it's a top-level type
         return buildFullyQualifiedName(file, type);
+    }
+
+    /**
+     * Checks if a type (message or enum) exists in the protobuf file.
+     *
+     * @param file     the protobuf file
+     * @param typeName the type name to check (without package, e.g., "Message" or "Outer.Inner")
+     * @return true if the type exists as a message or enum
+     */
+    private boolean typeExistsInFile(ProtobufFile file, String typeName) {
+        // Check if it exists as a message (has fields)
+        if (file.getFieldMap().containsKey(typeName)) {
+            return true;
+        }
+
+        // Check if it exists as an enum
+        if (file.getEnumFieldMap().containsKey(typeName)) {
+            return true;
+        }
+
+        // Check if it exists as a message in the non-reserved fields
+        // (even if it has no fields, it might be referenced)
+        if (file.getNonReservedFields().containsKey(typeName)) {
+            return true;
+        }
+
+        // Check if it exists as an enum in the non-reserved enum fields
+        if (file.getNonReservedEnumFields().containsKey(typeName)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -386,6 +423,8 @@ public class ProtobufCompatibilityCheckerLibrary {
         Map<String, Map<Integer, String>> after = new HashMap<>(fileAfter.getFieldsById());
         after.putAll(fileAfter.getEnumFieldsById());
 
+        Map<String, Set<Object>> afterReservedFields = fileAfter.getReservedFields();
+
         for (Map.Entry<String, Map<Integer, String>> entry : before.entrySet()) {
             Map<Integer, String> afterMap = after.get(entry.getKey());
 
@@ -394,6 +433,17 @@ public class ProtobufCompatibilityCheckerLibrary {
                     String nameAfter = afterMap.get(beforeKV.getKey());
 
                     if (!beforeKV.getValue().equals(nameAfter)) {
+                        // Check if this is a properly reserved field (removed and reserved)
+                        if (nameAfter == null) {
+                            Set<Object> reserved = afterReservedFields.getOrDefault(entry.getKey(),
+                                    Collections.emptySet());
+                            // If the field ID or name is reserved, it's a valid removal, not a rename
+                            if (reserved.contains(beforeKV.getKey())
+                                    || reserved.contains(beforeKV.getValue())) {
+                                continue; // Skip - this is a properly reserved field
+                            }
+                        }
+
                         issues.add(ProtobufDifference
                                 .from(String.format("Field name changed, message %s , before: %s , after %s",
                                         entry.getKey(), beforeKV.getValue(), nameAfter)));

@@ -67,7 +67,7 @@ public class KubernetesPostgreSQLContainerWrapper extends PostgreSQLContainer<Ku
 
     @Override
     public String getJdbcUrl() {
-        return "jdbc:postgresql://" + clusterIP + ":" + port + "/" + database;
+        return "jdbc:postgresql://" + getHost() + ":" + port + "/" + database;
     }
 
     @Override
@@ -106,12 +106,15 @@ public class KubernetesPostgreSQLContainerWrapper extends PostgreSQLContainer<Ku
     public InspectContainerResponse getContainerInfo() {
         // Return a mock InspectContainerResponse for Kubernetes mode
         // This is needed by ConnectorConfiguration.forJdbcContainer()
+        // IMPORTANT: The connector runs INSIDE Kubernetes and must use ClusterIP, not localhost
         return new InspectContainerResponse() {
             @Override
             public ContainerConfig getConfig() {
                 return new ContainerConfig() {
                     @Override
                     public String getHostName() {
+                        // Connector needs ClusterIP for in-cluster communication
+                        // Tests use getJdbcUrl() which uses getHost() (localhost)
                         return clusterIP;
                     }
 

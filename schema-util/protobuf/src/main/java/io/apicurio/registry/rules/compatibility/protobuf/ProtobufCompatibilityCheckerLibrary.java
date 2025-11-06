@@ -325,24 +325,42 @@ public class ProtobufCompatibilityCheckerLibrary {
         }
 
         // For non-qualified types, we need to resolve them to fully qualified form
-        // 1. Check if it's a nested type in the current message context
-        String nestedCandidate = messageContext + "." + type;
-        if (typeExistsInFile(file, nestedCandidate)) {
-            // It's a nested message/enum in the current message
-            return buildFullyQualifiedName(file, nestedCandidate);
+        // Following Protobuf name resolution rules, search from innermost scope outward
+        // through parent scopes: https://protobuf.dev/programming-guides/proto3/#name-resolution
+        //
+        // Example: If messageContext is "ParentOne.ParentTwo" and type is "NestedType"
+        // Check in order:
+        //   1. ParentOne.ParentTwo.NestedType
+        //   2. ParentOne.NestedType
+        //   3. NestedType (top-level)
+
+        if (messageContext != null && !messageContext.isEmpty()) {
+            // Split the message context into scopes (e.g., "ParentOne.ParentTwo" -> ["ParentOne", "ParentTwo"])
+            String[] scopes = messageContext.split("\\.");
+
+            // Iterate from innermost scope outward through parent scopes
+            for (int i = scopes.length; i > 0; i--) {
+                // Build the candidate path by joining the first i scopes
+                String scopePath = String.join(".", java.util.Arrays.copyOfRange(scopes, 0, i));
+                String candidate = scopePath + "." + type;
+
+                if (typeExistsInFile(file, candidate)) {
+                    // Found the type in this scope
+                    return buildFullyQualifiedName(file, candidate);
+                }
+            }
         }
 
-        // 2. Check if it's a top-level type in the same file
+        // Check if it's a top-level type in the same file
         if (typeExistsInFile(file, type)) {
             // It's a top-level message/enum in the same file
             return buildFullyQualifiedName(file, type);
         }
 
-        // 3. For types we can't locate in the schema, try to infer the fully qualified name
-        // This handles cross-file references. For nested types that we couldn't find,
-        // we assume they're nested within the current message context.
+        // For types we can't locate in the schema, infer the fully qualified name
+        // This handles cross-file references or types that might be defined elsewhere
         if (messageContext != null && !messageContext.isEmpty()) {
-            return buildFullyQualifiedName(file, nestedCandidate);
+            return buildFullyQualifiedName(file, messageContext + "." + type);
         }
 
         // Default: assume it's a top-level type

@@ -793,6 +793,56 @@ public class ProtobufCompatibilityCheckerLibraryTest {
     // ========== Nested Type Edge Cases Tests ==========
 
     /**
+     * Tests parent scope resolution for nested types as per Protobuf scoping rules.
+     * According to Protobuf name resolution, when inside ParentTwo, a reference to
+     * NestedType should search parent scopes: ParentOne.ParentTwo.NestedType, then
+     * ParentOne.NestedType (which exists).
+     *
+     * This test is based on the scenario from issue #6835.
+     */
+    @Test
+    public void testParentScopeResolution() {
+        String schema1 = """
+            syntax = "proto3";
+            package test;
+
+            message ParentOne {
+                message NestedType {
+                    uint64 some_value = 1;
+                }
+                message ParentTwo {
+                    NestedType nested = 1;  // Should resolve to ParentOne.NestedType
+                }
+            }
+        """;
+
+        String schema2 = """
+            syntax = "proto3";
+            package test;
+
+            message ParentOne {
+                message NestedType {
+                    uint64 some_value = 1;
+                }
+                message ParentTwo {
+                    .test.ParentOne.NestedType nested = 1;  // Fully qualified
+                }
+            }
+        """;
+
+        ProtobufFile file1 = new ProtobufFile(schema1);
+        ProtobufFile file2 = new ProtobufFile(schema2);
+
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(file1,
+                file2);
+        List<ProtobufDifference> differences = checker.findDifferences();
+
+        assertTrue(differences.isEmpty(),
+                "Nested type should resolve to parent scope (ParentOne.NestedType) per Protobuf scoping rules. Found: "
+                        + differences);
+    }
+
+    /**
      * Tests deeply nested types (3+ levels) with qualified and unqualified references.
      */
     @Test

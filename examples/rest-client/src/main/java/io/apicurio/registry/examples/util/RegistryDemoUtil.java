@@ -6,7 +6,7 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.VersionContent;
-import io.apicurio.rest.client.util.IoUtil;
+import io.apicurio.registry.utils.IoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,24 +69,6 @@ public class RegistryDemoUtil {
             LOGGER.info("=====> Successfully fetched JSON Schema artifact in Service Registry: {}", metaData);
             LOGGER.info("---------------------------------------------------------");
             return metaData;
-        } catch (Exception t) {
-            throw t;
-        }
-    }
-
-    /**
-     * Delete the artifact from the registry.
-     *
-     * @param artifactId
-     */
-    public static void deleteSchema(RegistryClient service, String artifactId) {
-
-        LOGGER.info("---------------------------------------------------------");
-        LOGGER.info("=====> Deleting artifact from the registry for JSON Schema with ID: {}", artifactId);
-        try {
-            service.groups().byGroupId("default").artifacts().byArtifactId(artifactId).delete();
-            LOGGER.info("=====> Successfully deleted JSON Schema artifact in Service Registry.");
-            LOGGER.info("---------------------------------------------------------");
         } catch (Exception t) {
             throw t;
         }

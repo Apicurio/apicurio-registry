@@ -1,10 +1,10 @@
 package io.apicurio.registry.examples;
 
+import io.apicurio.registry.client.DefaultVertxInstance;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.RegistryClientOptions;
 import io.apicurio.registry.examples.util.RegistryDemoUtil;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.vertx.core.Vertx;
 
 import java.util.UUID;
 
@@ -18,12 +18,10 @@ import java.util.UUID;
 public class SimpleRegistryDemo {
 
     private static final RegistryClient client;
-    private static final Vertx vertx;
 
     static {
         // Create a Service Registry client
         String registryUrl = "http://localhost:8080/apis/registry/v3";
-        vertx = Vertx.vertx();
         client = createProperClient(registryUrl);
     }
 
@@ -31,13 +29,17 @@ public class SimpleRegistryDemo {
         // Register the JSON Schema schema in the Apicurio registry.
         final String artifactId = UUID.randomUUID().toString();
 
-        RegistryDemoUtil.createSchemaInServiceRegistry(client, artifactId, Constants.SCHEMA);
+        try {
+            RegistryDemoUtil.createSchemaInServiceRegistry(client, artifactId, Constants.SCHEMA);
+            RegistryDemoUtil.getSchemaFromRegistry(client, artifactId);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            // If we do not provide our own instance of Vertx, then we must close the
+            // default instance that will get used.
+            DefaultVertxInstance.close();
+        }
 
-        RegistryDemoUtil.getSchemaFromRegistry(client, artifactId);
-
-        RegistryDemoUtil.deleteSchema(client, artifactId);
-
-        vertx.close();
     }
 
     public static RegistryClient createProperClient(String registryUrl) {
@@ -45,10 +47,10 @@ public class SimpleRegistryDemo {
         if (tokenEndpoint != null) {
             final String authClient = System.getenv("AUTH_CLIENT_ID");
             final String authSecret = System.getenv("AUTH_CLIENT_SECRET");
-            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx)
+            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl)
                     .oauth2(tokenEndpoint, authClient, authSecret));
         } else {
-            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx));
+            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl));
         }
     }
 }

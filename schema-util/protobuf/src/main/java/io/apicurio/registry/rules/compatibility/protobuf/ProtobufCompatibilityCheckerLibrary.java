@@ -317,6 +317,13 @@ public class ProtobufCompatibilityCheckerLibrary {
             return type;
         }
 
+        // Check if this is a cross-package reference (contains dots but doesn't start with one)
+        // Examples: google.protobuf.Timestamp, other.package.Message
+        // These should just get a leading dot added, not have the local package prepended
+        if (type.contains(".")) {
+            return "." + type;
+        }
+
         // For non-qualified types, we need to resolve them to fully qualified form
         // 1. Check if it's a nested type in the current message context
         String nestedCandidate = messageContext + "." + type;

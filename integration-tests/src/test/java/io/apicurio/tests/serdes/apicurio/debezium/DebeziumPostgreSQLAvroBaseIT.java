@@ -85,9 +85,6 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
     @BeforeAll
     public void setup() throws Exception {
-        // Initialize PostgreSQL connection
-        postgresConnection = createPostgreSQLConnection();
-
         log.info("Debezium PostgreSQL Avro Integration Test setup complete");
         log.info("Registry URL (host): {}", getRegistryV3ApiUrl());
         log.info("Registry Base URL: {}", getRegistryBaseUrl());
@@ -205,6 +202,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
             throw new RuntimeException("Test cleanup failed - subsequent tests may be affected", cleanupException);
         }
     }
+    
+    private Connection getPostgreSQLConnection() throws SQLException {
+        if (null == postgresConnection) {
+            postgresConnection = createPostgreSQLConnection();
+        }
+        return postgresConnection;
+    }
 
     /**
      * Test 1: Basic CDC with Schema Auto-Registration
@@ -289,7 +293,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
 
         // Set REPLICA IDENTITY FULL to capture full before/after state for UPDATE and
         // DELETE
-        try (Statement stmt = postgresConnection.createStatement()) {
+        try (Statement stmt = getPostgreSQLConnection().createStatement()) {
             stmt.execute("ALTER TABLE " + tableName + " REPLICA IDENTITY FULL");
             log.info("Set REPLICA IDENTITY FULL for table: {}", tableName);
         }
@@ -306,7 +310,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         waitForConsumerReady(Duration.ofSeconds(5));
 
         // INSERT
-        try (PreparedStatement stmt = postgresConnection.prepareStatement(
+        try (PreparedStatement stmt = getPostgreSQLConnection().prepareStatement(
                 "INSERT INTO " + tableName + " (name, price) VALUES (?, ?) RETURNING id")) {
             stmt.setString(1, "Widget");
             stmt.setDouble(2, 19.99);
@@ -315,7 +319,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
             int productId = rs.getInt(1);
 
             // UPDATE
-            try (PreparedStatement updateStmt = postgresConnection.prepareStatement(
+            try (PreparedStatement updateStmt = getPostgreSQLConnection().prepareStatement(
                     "UPDATE " + tableName + " SET price = ? WHERE id = ?")) {
                 updateStmt.setDouble(1, 24.99);
                 updateStmt.setInt(2, productId);
@@ -323,7 +327,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
             }
 
             // DELETE
-            try (PreparedStatement deleteStmt = postgresConnection.prepareStatement(
+            try (PreparedStatement deleteStmt = getPostgreSQLConnection().prepareStatement(
                     "DELETE FROM " + tableName + " WHERE id = ?")) {
                 deleteStmt.setInt(1, productId);
                 deleteStmt.executeUpdate();
@@ -558,7 +562,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(10));
 
         // Evolve schema - add nullable column
-        try (Statement stmt = postgresConnection.createStatement()) {
+        try (Statement stmt = getPostgreSQLConnection().createStatement()) {
             stmt.execute("ALTER TABLE " + tableName + " ADD COLUMN email VARCHAR(100) DEFAULT NULL");
         }
 
@@ -712,7 +716,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         String topicName = topicPrefix + "." + "public." + tableName;
 
         // Create ENUM type first
-        try (Statement stmt = postgresConnection.createStatement()) {
+        try (Statement stmt = getPostgreSQLConnection().createStatement()) {
             stmt.execute("DROP TYPE IF EXISTS mood CASCADE");
             stmt.execute("CREATE TYPE mood AS ENUM ('happy', 'sad', 'neutral')");
         }
@@ -739,12 +743,12 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert data with special types
-        try (PreparedStatement stmt = postgresConnection.prepareStatement(
+        try (PreparedStatement stmt = getPostgreSQLConnection().prepareStatement(
                 "INSERT INTO " + tableName +
                         " (data_json, tags, user_mood, user_id, created_at) " +
                         "VALUES (?::jsonb, ?::text[], ?::mood, ?::uuid, NOW())")) {
             stmt.setString(1, "{\"key\": \"value\", \"number\": 42}");
-            stmt.setArray(2, postgresConnection.createArrayOf("text", new String[]{ "tag1", "tag2", "tag3" }));
+            stmt.setArray(2, getPostgreSQLConnection().createArrayOf("text", new String[]{ "tag1", "tag2", "tag3" }));
             stmt.setObject(3, "happy", java.sql.Types.OTHER);
             stmt.setObject(4, UUID.randomUUID());
             stmt.executeUpdate();
@@ -801,7 +805,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         waitForConsumerReady(Duration.ofSeconds(5));
 
         // Insert data
-        try (PreparedStatement stmt = postgresConnection.prepareStatement(
+        try (PreparedStatement stmt = getPostgreSQLConnection().prepareStatement(
                 "INSERT INTO " + tableName + " (price, tax_rate, weight, quantity) VALUES (?, ?, ?, ?)")) {
             stmt.setBigDecimal(1, new java.math.BigDecimal("99.99"));
             stmt.setBigDecimal(2, new java.math.BigDecimal("0.0825"));
@@ -959,7 +963,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
             String username = System.getProperty("debezium.postgres.username", "testuser");
             String password = System.getProperty("debezium.postgres.password", "testpass");
-            String postgresJdbcUrl = "jdbc:postgresql://" + "localhost" + ":5432/registry"; // For local connections from the test we must use localhost, postgresql is exposed.
+            String postgresJdbcUrl = "jdbc:postgresql://" + getPostgresContainer().getHost() + ":5432/registry";
             return DriverManager.getConnection(postgresJdbcUrl, username, password);
         }
         else {
@@ -974,7 +978,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
      * Creates a table and tracks it for cleanup
      */
     protected void createTable(String tableName, String ddl) throws SQLException {
-        try (Statement stmt = postgresConnection.createStatement()) {
+        try (Statement stmt = getPostgreSQLConnection().createStatement()) {
             stmt.execute(ddl);
             createdTables.add(tableName);
             log.info("Created table: {}", tableName);
@@ -985,7 +989,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
      * Executes an UPDATE/INSERT/DELETE statement
      */
     protected void executeUpdate(String sql) throws SQLException {
-        try (Statement stmt = postgresConnection.createStatement()) {
+        try (Statement stmt = getPostgreSQLConnection().createStatement()) {
             stmt.executeUpdate(sql);
         }
     }
@@ -994,7 +998,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
      * Inserts a customer record
      */
     protected void insertCustomer(String tableName, String name, String email) throws SQLException {
-        try (PreparedStatement stmt = postgresConnection.prepareStatement(
+        try (PreparedStatement stmt = getPostgreSQLConnection().prepareStatement(
                 "INSERT INTO " + tableName + " (name, email) VALUES (?, ?)")) {
             stmt.setString(1, name);
             stmt.setString(2, email);
@@ -1318,7 +1322,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends ApicurioRegistryBaseI
      * between tests
      */
     protected void cleanupPostgreSQLReplicationState() throws SQLException {
-        try (Statement stmt = postgresConnection.createStatement()) {
+        try (Statement stmt = getPostgreSQLConnection().createStatement()) {
             // Drop all replication slots (Debezium creates these)
             var rs = stmt.executeQuery("SELECT slot_name FROM pg_replication_slots WHERE database = 'registry'");
             List<String> slotsToDelete = new ArrayList<>();

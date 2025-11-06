@@ -135,7 +135,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     static void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak,
-            String registryImage) throws IOException {
+                                  String registryImage) throws IOException {
         if (startKeycloak) {
             LOGGER.info("Deploying Keycloak resources ##################################################");
             deployResource(KEYCLOAK_RESOURCES);
@@ -227,7 +227,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             Thread.sleep(10000); // Give minikube tunnel time to set up the route
 
             // Try to connect to the Registry REST API
-            String registryUrl = "http://localhost:8080/health/ready";
+            String registryUrl = "http://" + System.getProperty("quarkus.http.test-host") + ":8080/health/ready";
             LOGGER.info("Checking Registry readiness at: {}", registryUrl);
 
             int maxAttempts = 30;
@@ -253,7 +253,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                     conn.disconnect();
                 } catch (Exception e) {
                     LOGGER.debug("Attempt {}/{}: Registry not ready yet: {}",
-                                attempt + 1, maxAttempts, e.getMessage());
+                            attempt + 1, maxAttempts, e.getMessage());
                     Thread.sleep(2000);
                 }
                 attempt++;
@@ -261,7 +261,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
             if (!ready) {
                 throw new RuntimeException("Apicurio Registry did not become ready after " + maxAttempts + " attempts. " +
-                                         "Make sure 'minikube tunnel' is running and LoadBalancer services are accessible.");
+                        "Make sure 'minikube tunnel' is running and LoadBalancer services are accessible.");
             }
 
         } catch (InterruptedException e) {

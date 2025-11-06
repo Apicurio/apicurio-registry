@@ -54,9 +54,27 @@ public class KubernetesPostgreSQLContainerWrapper extends PostgreSQLContainer<Ku
 
     @Override
     public String getHost() {
-        // For external LoadBalancer services, return localhost (minikube tunnel exposes them there)
-        // For internal ClusterIP services, return the cluster IP
-        return isExternalService ? "localhost" : clusterIP;
+        // On Mac with minikube tunnel: external services accessible via localhost
+        // On Linux/CI: use ClusterIP even for external services (tunnel doesn't expose on localhost)
+        // Internal ClusterIP services: always use ClusterIP
+
+        if (isExternalService && isMacOS()) {
+            log.debug("Using localhost for external service on macOS (minikube tunnel)");
+            return "localhost";
+        }
+
+        log.debug("Using ClusterIP {} for PostgreSQL access", clusterIP);
+        return clusterIP;
+    }
+
+    /**
+     * Checks if running on macOS.
+     * On Mac, minikube tunnel exposes LoadBalancer services on localhost.
+     * On Linux/CI, services must be accessed via ClusterIP.
+     */
+    private boolean isMacOS() {
+        String osName = System.getProperty("os.name", "").toLowerCase();
+        return osName.contains("mac os");
     }
 
     @Override

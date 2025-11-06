@@ -426,7 +426,7 @@
       <id>all</id>
       <properties>
         <skipTests>false</skipTests>
-        <groups>( smoke | serdes | acceptance | debezium | debezium-snapshot | ui)</groups>
+        <groups>( smoke | serdes | acceptance | ui)</groups>
       </properties>
     </profile>
 
@@ -434,7 +434,7 @@
       <id>ci</id>
       <properties>
         <skipTests>false</skipTests>
-        <groups>( smoke | serdes | acceptance | debezium | debezium-snapshot )</groups>
+        <groups>( smoke | serdes | acceptance )</groups>
       </properties>
     </profile>
 

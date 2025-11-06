@@ -6,7 +6,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static io.apicurio.deployment.KubernetesTestResources.*;
+import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_CONNECT_LOCAL_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_CONNECT_LOCAL_SERVICE;
+import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_CONNECT_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_CONNECT_SERVICE;
+import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_POSTGRES_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.KAFKA_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.POSTGRESQL_DEBEZIUM_SERVICE;
+import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
 import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
 
 /**
@@ -67,9 +74,9 @@ public class DebeziumDeploymentManager {
     /**
      * Configures system properties so tests can access the deployed services.
      * Sets bootstrap.servers, postgres JDBC URL, and Debezium Connect endpoint.
-     *
+     * <p>
      * NOTE: Tests run on local machine and access services via minikube tunnel (localhost),
-     *       while Debezium Connect runs in Kubernetes and uses ClusterIP.
+     * while Debezium Connect runs in Kubernetes and uses ClusterIP.
      */
     private static void configureTestProperties(boolean useLocalConverters) {
         // Get Kafka service ClusterIP and port
@@ -78,10 +85,19 @@ public class DebeziumDeploymentManager {
                 .withName("kafka-service")
                 .get();
 
+
         if (kafkaService != null) {
-            String bootstrapServers = "localhost:29092";
-            System.setProperty("bootstrap.servers", bootstrapServers);
-            LOGGER.info("Kafka bootstrap servers: {}", bootstrapServers);
+            if (!System.getProperty("os.name").contains("Mac OS")) {
+                // Linux/CI: Use ClusterIP with Pod IP listener (port 29093)
+                String bootstrapServers = kafkaService.getSpec().getClusterIP() + ":29093";
+                System.setProperty("bootstrap.servers", bootstrapServers);
+                LOGGER.info("Kafka bootstrap servers (Linux/CI): {}", bootstrapServers);
+            } else {
+                // macOS: Use localhost with localhost listener (port 29092)
+                String bootstrapServers = "localhost:29092";
+                System.setProperty("bootstrap.servers", bootstrapServers);
+                LOGGER.info("Kafka bootstrap servers (macOS): {}", bootstrapServers);
+            }
         } else {
             LOGGER.error("Failed to get Kafka service");
         }
@@ -137,7 +153,7 @@ public class DebeziumDeploymentManager {
         try {
             // Create directory in minikube
             ProcessBuilder mkdirProcess = new ProcessBuilder(
-                "minikube", "ssh", "--", "mkdir", "-p", minikubePath
+                    "minikube", "ssh", "--", "mkdir", "-p", minikubePath
             );
             mkdirProcess.inheritIO();
             Process mkdir = mkdirProcess.start();
@@ -157,7 +173,7 @@ public class DebeziumDeploymentManager {
                         LOGGER.info("Copying {} to minikube...", file.getName());
 
                         ProcessBuilder cpProcess = new ProcessBuilder(
-                            "minikube", "cp", file.getAbsolutePath(), minikubePath + "/" + file.getName()
+                                "minikube", "cp", file.getAbsolutePath(), minikubePath + "/" + file.getName()
                         );
                         cpProcess.inheritIO();
                         Process cp = cpProcess.start();
@@ -174,7 +190,7 @@ public class DebeziumDeploymentManager {
 
             // Verify the files are there
             ProcessBuilder lsProcess = new ProcessBuilder(
-                "minikube", "ssh", "--", "ls", "-lh", minikubePath
+                    "minikube", "ssh", "--", "ls", "-lh", minikubePath
             );
             lsProcess.inheritIO();
             lsProcess.start().waitFor();
@@ -189,7 +205,7 @@ public class DebeziumDeploymentManager {
      * Deploys Debezium Connect with local converters using an InitContainer approach.
      * The manifest uses a hostPath volume to access converters from the host filesystem,
      * and an InitContainer copies them to an emptyDir before Kafka Connect starts.
-     *
+     * <p>
      * This ensures converters are available when Kafka Connect scans for plugins.
      */
     private static void deployDebeziumWithLocalConverters() {
@@ -202,7 +218,7 @@ public class DebeziumDeploymentManager {
 
         if (!convertersDir.exists() || !convertersDir.isDirectory()) {
             String errorMsg = "Local converters not found at: " + convertersPath +
-                            ". Please run 'mvn clean install -DskipTests' to build the converters.";
+                    ". Please run 'mvn clean install -DskipTests' to build the converters.";
             LOGGER.error(errorMsg);
             throw new IllegalStateException(errorMsg);
         }
@@ -236,7 +252,7 @@ public class DebeziumDeploymentManager {
 
             // Deploy the modified manifest
             kubernetesClient.load(new java.io.ByteArrayInputStream(
-                modifiedManifest.getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                    modifiedManifest.getBytes(java.nio.charset.StandardCharsets.UTF_8)
             )).serverSideApply();
 
             // Wait for all pods to be ready (including initContainer completion)
@@ -258,7 +274,7 @@ public class DebeziumDeploymentManager {
     private static void waitForDebeziumConnectReady(boolean useLocalConverters) {
         String serviceName = useLocalConverters ? DEBEZIUM_CONNECT_LOCAL_SERVICE : DEBEZIUM_CONNECT_SERVICE;
         String externalServiceName = useLocalConverters ?
-            "debezium-connect-local-service-external" : "debezium-connect-service-external";
+                "debezium-connect-local-service-external" : "debezium-connect-service-external";
 
         LOGGER.info("Waiting for Debezium Connect service {} to be ready ##################################################", serviceName);
 
@@ -307,7 +323,7 @@ public class DebeziumDeploymentManager {
                     conn.disconnect();
                 } catch (Exception e) {
                     LOGGER.debug("Attempt {}/{}: Debezium Connect not ready yet: {}",
-                                attempt + 1, maxAttempts, e.getMessage());
+                            attempt + 1, maxAttempts, e.getMessage());
                     Thread.sleep(2000);
                 }
                 attempt++;
@@ -315,7 +331,7 @@ public class DebeziumDeploymentManager {
 
             if (!ready) {
                 throw new RuntimeException("Debezium Connect did not become ready after " + maxAttempts + " attempts. " +
-                                         "Make sure 'minikube tunnel' is running and LoadBalancer services are accessible.");
+                        "Make sure 'minikube tunnel' is running and LoadBalancer services are accessible.");
             }
 
         } catch (InterruptedException e) {

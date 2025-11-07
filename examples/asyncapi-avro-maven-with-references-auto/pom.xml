@@ -41,7 +41,6 @@
                                     <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                                     <canonicalize>true</canonicalize>
                                     <autoRefs>true</autoRefs>
-                                    <analyzeDirectory>true</analyzeDirectory>
                                 </artifact>
                             </artifacts>
                             <existingReferences/>

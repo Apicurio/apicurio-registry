@@ -31,7 +31,6 @@
 
   <modules>
     <module>simple-avro</module>
-    <module>simple-avro-downstream</module>
     <module>simple-json</module>
     <module>confluent-serdes</module>
     <module>avro-bean</module>
@@ -39,7 +38,6 @@
     <module>custom-strategy</module>
     <module>simple-avro-maven</module>
     <module>rest-client</module>
-    <module>rest-client-downstream</module>
     <module>mix-avro</module>
     <module>jsonschema-validation</module>
     <module>simple-validation</module>

@@ -189,7 +189,7 @@
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.33.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.62.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.63.1</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -232,14 +232,14 @@
 
     <!-- Dependency versions -->
     <lombok.version>1.18.42</lombok.version>
-    <commons-codec.version>1.19.0</commons-codec.version>
+    <commons-codec.version>1.20.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.9.1</kafka-clients.version>
     <debezium.version>2.7.4.Final</debezium.version>
     <pulsar-clients.version>3.3.9</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
-    <quickjs4j.version>0.0.11</quickjs4j.version>
+    <quickjs4j.version>0.0.12</quickjs4j.version>
 
     <nats.version>2.23.0</nats.version>
     <snakeyaml.version>2.5</snakeyaml.version>
@@ -296,14 +296,14 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.8.10</kiota.libs.version>
-    <kiota.community.version>0.0.30</kiota.community.version>
+    <kiota.community.version>0.0.31</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout>
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>4.0.24</groovy.version>
+    <groovy.version>4.0.29</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>1.21.3</pulsar.testcontainers.version>

@@ -135,7 +135,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     static void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak,
-                                  String registryImage) throws IOException {
+            String registryImage) throws IOException {
         if (startKeycloak) {
             LOGGER.info("Deploying Keycloak resources ##################################################");
             deployResource(KEYCLOAK_RESOURCES);

@@ -147,6 +147,12 @@ jobs:
       - name: Run Integration Tests - Debezium - Snapshot Converters
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pdebezium-snapshot -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
+      - name: Run Integration Tests - Debezium
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pdebezium-mysql -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - Debezium - Snapshot Converters
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pdebezium-mysql-snapshot -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
       - name: Collect logs
         if: failure()
         run: sh ./.github/scripts/collect_logs.sh

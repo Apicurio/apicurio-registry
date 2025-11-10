@@ -10,8 +10,10 @@ import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_CONNECT_LO
 import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_CONNECT_LOCAL_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_CONNECT_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_CONNECT_SERVICE;
+import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_MYSQL_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_POSTGRES_RESOURCES;
 import static io.apicurio.deployment.KubernetesTestResources.KAFKA_RESOURCES;
+import static io.apicurio.deployment.KubernetesTestResources.MYSQL_DEBEZIUM_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.POSTGRESQL_DEBEZIUM_SERVICE;
 import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
 import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
@@ -25,14 +27,14 @@ public class DebeziumDeploymentManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(DebeziumDeploymentManager.class);
 
     /**
-     * Deploys the complete Debezium test infrastructure to Kubernetes.
+     * Deploys the complete Debezium PostgreSQL test infrastructure to Kubernetes.
      * This includes: Kafka, PostgreSQL (with Debezium support), and Debezium Kafka Connect.
      *
      * @param useLocalConverters If true, uses locally-built Apicurio converters; if false, uses published converters
      * @throws IOException if deployment fails
      */
     public static void deployDebeziumInfra(boolean useLocalConverters) throws IOException {
-        LOGGER.info("Deploying Debezium test infrastructure (useLocalConverters={}) ##################################################", useLocalConverters);
+        LOGGER.info("Deploying Debezium PostgreSQL test infrastructure (useLocalConverters={}) ##################################################", useLocalConverters);
 
         // Deploy Kafka (reuse existing Kafka resources)
         LOGGER.info("Deploying Kafka ##################################################");
@@ -52,12 +54,48 @@ public class DebeziumDeploymentManager {
         }
 
         // Configure system properties for test access
-        configureTestProperties(useLocalConverters);
+        configureTestProperties(useLocalConverters, "postgresql");
 
         // Wait for Debezium Connect to be ready
         waitForDebeziumConnectReady(useLocalConverters);
 
-        LOGGER.info("Debezium infrastructure deployment complete ##################################################");
+        LOGGER.info("Debezium PostgreSQL infrastructure deployment complete ##################################################");
+    }
+
+    /**
+     * Deploys the complete Debezium MySQL test infrastructure to Kubernetes.
+     * This includes: Kafka, MySQL (with Debezium support), and Debezium Kafka Connect.
+     *
+     * @param useLocalConverters If true, uses locally-built Apicurio converters; if false, uses published converters
+     * @throws IOException if deployment fails
+     */
+    public static void deployDebeziumMySQLInfra(boolean useLocalConverters) throws IOException {
+        LOGGER.info("Deploying Debezium MySQL test infrastructure (useLocalConverters={}) ##################################################", useLocalConverters);
+
+        // Deploy Kafka (reuse existing Kafka resources)
+        LOGGER.info("Deploying Kafka ##################################################");
+        deployResource(KAFKA_RESOURCES);
+
+        // Deploy MySQL with Debezium support
+        LOGGER.info("Deploying MySQL with Debezium support ##################################################");
+        deployResource(DEBEZIUM_MYSQL_RESOURCES);
+
+        // Deploy Debezium Kafka Connect (published or local converters)
+        if (useLocalConverters) {
+            LOGGER.info("Deploying Debezium Kafka Connect with local converters ##################################################");
+            deployDebeziumWithLocalConverters();
+        } else {
+            LOGGER.info("Deploying Debezium Kafka Connect with published converters ##################################################");
+            deployResource(DEBEZIUM_CONNECT_RESOURCES);
+        }
+
+        // Configure system properties for test access
+        configureTestProperties(useLocalConverters, "mysql");
+
+        // Wait for Debezium Connect to be ready
+        waitForDebeziumConnectReady(useLocalConverters);
+
+        LOGGER.info("Debezium MySQL infrastructure deployment complete ##################################################");
     }
 
     /**
@@ -73,12 +111,12 @@ public class DebeziumDeploymentManager {
 
     /**
      * Configures system properties so tests can access the deployed services.
-     * Sets bootstrap.servers, postgres JDBC URL, and Debezium Connect endpoint.
+     * Sets bootstrap.servers, database JDBC URL, and Debezium Connect endpoint.
      * <p>
      * NOTE: Tests run on local machine and access services via minikube tunnel (localhost),
      * while Debezium Connect runs in Kubernetes and uses ClusterIP.
      */
-    private static void configureTestProperties(boolean useLocalConverters) {
+    private static void configureTestProperties(boolean useLocalConverters, String databaseType) {
         // Get Kafka service ClusterIP and port
         Service kafkaService = kubernetesClient.services()
                 .inNamespace(TEST_NAMESPACE)
@@ -102,24 +140,47 @@ public class DebeziumDeploymentManager {
             LOGGER.error("Failed to get Kafka service");
         }
 
-        // Get PostgreSQL service ClusterIP and port
-        Service postgresService = kubernetesClient.services()
-                .inNamespace(TEST_NAMESPACE)
-                .withName(POSTGRESQL_DEBEZIUM_SERVICE)
-                .get();
+        // Configure database-specific properties
+        if ("postgresql".equals(databaseType)) {
+            // Get PostgreSQL service ClusterIP and port
+            Service postgresService = kubernetesClient.services()
+                    .inNamespace(TEST_NAMESPACE)
+                    .withName(POSTGRESQL_DEBEZIUM_SERVICE)
+                    .get();
 
-        if (postgresService != null) {
-            String postgresClusterIP = postgresService.getSpec().getClusterIP();
-            String postgresJdbcUrl = "jdbc:postgresql://" + postgresClusterIP + ":5432/registry";
-            System.setProperty("debezium.postgres.jdbc.url", postgresJdbcUrl);
-            System.setProperty("debezium.postgres.host", postgresClusterIP);
-            System.setProperty("debezium.postgres.port", "5432");
-            System.setProperty("debezium.postgres.database", "registry");
-            System.setProperty("debezium.postgres.username", "postgres");
-            System.setProperty("debezium.postgres.password", "postgres");
-            LOGGER.info("PostgreSQL JDBC URL: {}", postgresJdbcUrl);
-        } else {
-            LOGGER.error("Failed to get PostgreSQL service");
+            if (postgresService != null) {
+                String postgresClusterIP = postgresService.getSpec().getClusterIP();
+                String postgresJdbcUrl = "jdbc:postgresql://" + postgresClusterIP + ":5432/registry";
+                System.setProperty("debezium.postgres.jdbc.url", postgresJdbcUrl);
+                System.setProperty("debezium.postgres.host", postgresClusterIP);
+                System.setProperty("debezium.postgres.port", "5432");
+                System.setProperty("debezium.postgres.database", "registry");
+                System.setProperty("debezium.postgres.username", "postgres");
+                System.setProperty("debezium.postgres.password", "postgres");
+                LOGGER.info("PostgreSQL JDBC URL: {}", postgresJdbcUrl);
+            } else {
+                LOGGER.error("Failed to get PostgreSQL service");
+            }
+        } else if ("mysql".equals(databaseType)) {
+            // Get MySQL service ClusterIP and port
+            Service mysqlService = kubernetesClient.services()
+                    .inNamespace(TEST_NAMESPACE)
+                    .withName(MYSQL_DEBEZIUM_SERVICE)
+                    .get();
+
+            if (mysqlService != null) {
+                String mysqlClusterIP = mysqlService.getSpec().getClusterIP();
+                String mysqlJdbcUrl = "jdbc:mysql://" + mysqlClusterIP + ":3306/registry";
+                System.setProperty("debezium.mysql.jdbc.url", mysqlJdbcUrl);
+                System.setProperty("debezium.mysql.host", mysqlClusterIP);
+                System.setProperty("debezium.mysql.port", "3306");
+                System.setProperty("debezium.mysql.database", "registry");
+                System.setProperty("debezium.mysql.username", "mysqluser");
+                System.setProperty("debezium.mysql.password", "mysqlpw");
+                LOGGER.info("MySQL JDBC URL: {}", mysqlJdbcUrl);
+            } else {
+                LOGGER.error("Failed to get MySQL service");
+            }
         }
 
         // Get Debezium Connect service ClusterIP and port

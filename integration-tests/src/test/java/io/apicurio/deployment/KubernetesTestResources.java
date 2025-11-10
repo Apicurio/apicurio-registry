@@ -14,6 +14,7 @@ public class KubernetesTestResources {
     protected static final String DATABASE_RESOURCES = "/infra/sql/postgresql.yml";
     protected static final String KEYCLOAK_RESOURCES = "/infra/auth/keycloak.yml";
     protected static final String DEBEZIUM_POSTGRES_RESOURCES = "/infra/debezium/postgresql-debezium.yml";
+    protected static final String DEBEZIUM_MYSQL_RESOURCES = "/infra/debezium/mysql-debezium.yml";
     protected static final String DEBEZIUM_CONNECT_RESOURCES = "/infra/debezium/debezium-connect.yml";
     protected static final String DEBEZIUM_CONNECT_LOCAL_RESOURCES = "/infra/debezium/debezium-connect-local.yml";
     public static final String TEST_NAMESPACE = "apicurio-registry-e2e";
@@ -23,7 +24,9 @@ public class KubernetesTestResources {
     public static final String DEBEZIUM_CONNECT_SERVICE = "debezium-connect-service";
     public static final String DEBEZIUM_CONNECT_LOCAL_SERVICE = "debezium-connect-local-service";
     public static final String POSTGRESQL_DEBEZIUM_SERVICE = "postgresql-debezium-service";
+    public static final String MYSQL_DEBEZIUM_SERVICE = "mysql-debezium-service";
     public static final String DEBEZIUM_CONNECT_SERVICE_EXTERNAL = "debezium-connect-service-external";
     public static final String DEBEZIUM_CONNECT_LOCAL_SERVICE_EXTERNAL = "debezium-connect-local-service-external";
     public static final String POSTGRESQL_DEBEZIUM_SERVICE_EXTERNAL = "postgresql-debezium-service-external";
+    public static final String MYSQL_DEBEZIUM_SERVICE_EXTERNAL = "mysql-debezium-service-external";
 }

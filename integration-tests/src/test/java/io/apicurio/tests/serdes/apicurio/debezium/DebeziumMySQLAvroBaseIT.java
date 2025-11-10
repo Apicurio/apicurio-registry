@@ -3,6 +3,7 @@ package io.apicurio.tests.serdes.apicurio.debezium;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.debezium.testing.testcontainers.ConnectorConfiguration;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -11,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.MySQLContainer;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -21,7 +22,6 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,35 +29,35 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Abstract base class for Debezium PostgreSQL CDC integration tests with Apicurio Registry.
- * Extends the common DebeziumAvroBaseIT and adds PostgreSQL-specific functionality.
+ * Abstract base class for Debezium MySQL CDC integration tests with Apicurio Registry.
+ * Extends the common DebeziumAvroBaseIT and adds MySQL-specific functionality.
  */
-public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
+public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
-    private static final Logger log = LoggerFactory.getLogger(DebeziumPostgreSQLAvroBaseIT.class);
+    private static final Logger log = LoggerFactory.getLogger(DebeziumMySQLAvroBaseIT.class);
 
     /**
-     * Returns the PostgreSQL container to use for this test.
+     * Returns the MySQL container to use for this test.
      */
-    protected abstract PostgreSQLContainer<?> getPostgresContainer();
+    protected abstract MySQLContainer<?> getMySQLContainer();
 
     @Override
     protected String getDatabaseType() {
-        return "postgresql";
+        return "mysql";
     }
 
     @Override
     protected Connection createDatabaseConnection() throws SQLException {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            String username = System.getProperty("debezium.postgres.username", "postgres");
-            String password = System.getProperty("debezium.postgres.password", "postgres");
-            String postgresJdbcUrl = "jdbc:postgresql://" + getPostgresContainer().getHost() + ":5432/registry";
-            return DriverManager.getConnection(postgresJdbcUrl, username, password);
+            String username = System.getProperty("debezium.mysql.username", "mysqluser");
+            String password = System.getProperty("debezium.mysql.password", "mysqlpw");
+            String mysqlJdbcUrl = "jdbc:mysql://" + getMySQLContainer().getHost() + ":3306/registry";
+            return DriverManager.getConnection(mysqlJdbcUrl, username, password);
         }
         else {
-            String jdbcUrl = getPostgresContainer().getJdbcUrl();
-            String username = getPostgresContainer().getUsername();
-            String password = getPostgresContainer().getPassword();
+            String jdbcUrl = getMySQLContainer().getJdbcUrl();
+            String username = getMySQLContainer().getUsername();
+            String password = getMySQLContainer().getPassword();
             return DriverManager.getConnection(jdbcUrl, username, password);
         }
     }
@@ -65,7 +65,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Override
     protected void dropTable(String tableName) throws SQLException {
         try (Statement stmt = getDatabaseConnection().createStatement()) {
-            stmt.execute("DROP TABLE IF EXISTS " + tableName + " CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS " + tableName);
         }
     }
 
@@ -73,88 +73,38 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     protected void registerDebeziumConnectorWithApicurioConverters(String connectorName,
                                                                    String topicPrefix,
                                                                    String tableIncludeList) {
-        String slotName = "slot_" + connectorName.replace("-", "_");
+        String dockerAccessibleRegistryUrl = getContainerAccessibleRegistryUrl();
 
-        ConnectorConfiguration config = buildBaseConnectorConfiguration(topicPrefix, tableIncludeList)
-                .with("connector.class", "io.debezium.connector.postgresql.PostgresConnector")
-                .with("database.hostname", getPostgresContainer().getContainerInfo().getConfig().getHostName())
-                .with("database.port", "5432")
-                .with("database.user", getPostgresContainer().getUsername())
-                .with("database.password", getPostgresContainer().getPassword())
-                .with("database.dbname", getPostgresContainer().getDatabaseName())
-                .with("slot.name", slotName)
-                .with("publication.name", "pub_" + connectorName.replace("-", "_"))
-                .with("plugin.name", "pgoutput");
+        // MySQL requires unique server ID for each connector
+        int serverId = 10000 + connectorCounter.get();
+
+        ConnectorConfiguration config = ConnectorConfiguration
+                .forJdbcContainer(getMySQLContainer())
+                .with("topic.prefix", topicPrefix)
+                .with("table.include.list", tableIncludeList)
+                .with("database.server.id", String.valueOf(serverId))
+                .with("key.converter", "io.apicurio.registry.utils.converter.AvroConverter")
+                .with("key.converter.apicurio.registry.url", dockerAccessibleRegistryUrl)
+                .with("key.converter.apicurio.registry.auto-register", "true")
+                .with("key.converter.apicurio.registry.find-latest", "true")
+                .with("key.converter.apicurio.registry.headers.enabled", "false")
+                .with("value.converter", "io.apicurio.registry.utils.converter.AvroConverter")
+                .with("value.converter.apicurio.registry.url", dockerAccessibleRegistryUrl)
+                .with("value.converter.apicurio.registry.auto-register", "true")
+                .with("value.converter.apicurio.registry.find-latest", "true")
+                .with("value.converter.apicurio.registry.headers.enabled", "false");
 
         getDebeziumContainer().registerConnector(connectorName, config);
         currentConnectorName = connectorName;
 
-        String jdbcUrl = getPostgresContainer().getJdbcUrl();
-        log.info("Registered Debezium connector: {} with slot: {}, tables: {}, postgres: {}",
-                connectorName, slotName, tableIncludeList, jdbcUrl);
+        String jdbcUrl = getMySQLContainer().getJdbcUrl();
+        log.info("Registered Debezium connector: {} with server.id: {}, tables: {}, registry: {}, mysql: {}",
+                connectorName, serverId, tableIncludeList, dockerAccessibleRegistryUrl, jdbcUrl);
     }
 
-    // ==================== PostgreSQL-Specific Helper Methods ====================
+    // ==================== MySQL-Specific Helper Methods ====================
 
-    protected void cleanupPostgreSQLReplicationState() throws SQLException {
-        try (Statement stmt = getDatabaseConnection().createStatement()) {
-            // Drop all replication slots
-            var rs = stmt.executeQuery("SELECT slot_name FROM pg_replication_slots WHERE database = 'registry'");
-            List<String> slotsToDelete = new ArrayList<>();
-            while (rs.next()) {
-                slotsToDelete.add(rs.getString("slot_name"));
-            }
-            rs.close();
-
-            for (String slotName : slotsToDelete) {
-                try {
-                    stmt.execute("SELECT pg_drop_replication_slot('" + slotName + "')");
-                    log.info("Dropped replication slot: {}", slotName);
-                }
-                catch (SQLException e) {
-                    log.warn("Could not drop slot {} (might still be active): {}", slotName, e.getMessage());
-                }
-            }
-
-            // Drop all publications
-            var pubRs = stmt.executeQuery("SELECT pubname FROM pg_publication");
-            List<String> publicationsToDelete = new ArrayList<>();
-            while (pubRs.next()) {
-                publicationsToDelete.add(pubRs.getString("pubname"));
-            }
-            pubRs.close();
-
-            for (String pubName : publicationsToDelete) {
-                if (!pubName.equals("pub_my_connector")) {
-                    try {
-                        stmt.execute("DROP PUBLICATION IF EXISTS " + pubName);
-                        log.info("Dropped publication: {}", pubName);
-                    }
-                    catch (SQLException e) {
-                        log.warn("Could not drop publication {}: {}", pubName, e.getMessage());
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    public void cleanup() throws Exception {
-        // Clean up PostgreSQL replication state
-        if (dbConnection != null) {
-            try {
-                cleanupPostgreSQLReplicationState();
-            }
-            catch (Exception e) {
-                log.error("Failed to clean up PostgreSQL replication state: {}", e.getMessage(), e);
-            }
-        }
-
-        // Call parent cleanup
-        super.cleanup();
-    }
-
-    // ==================== PostgreSQL-Specific Tests ====================
+    // ==================== MySQL-Specific Tests ====================
 
     /**
      * Test 1: Basic CDC with Schema Auto-Registration
@@ -164,11 +114,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testBasicCDCWithSchemaAutoRegistration() throws Exception {
         String tableName = "customers";
         String topicPrefix = "test1";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = topicPrefix + "." + "registry." + tableName;
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "name VARCHAR(100) NOT NULL, " +
                         "email VARCHAR(100), " +
                         "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
@@ -178,7 +128,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         registerDebeziumConnectorWithApicurioConverters(
                 connectorName,
                 topicPrefix,
-                "public." + tableName);
+                "registry." + tableName);
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
@@ -210,25 +160,20 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testUpdateAndDeleteOperations() throws Exception {
         String tableName = "products";
         String topicPrefix = "test2";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = topicPrefix + "." + "registry." + tableName;
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "name VARCHAR(100) NOT NULL, " +
                         "price DECIMAL(10, 2)" +
                         ")");
-
-        try (Statement stmt = getDatabaseConnection().createStatement()) {
-            stmt.execute("ALTER TABLE " + tableName + " REPLICA IDENTITY FULL");
-            log.info("Set REPLICA IDENTITY FULL for table: {}", tableName);
-        }
 
         String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
                 connectorName,
                 topicPrefix,
-                "public." + tableName);
+                "registry." + tableName);
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
@@ -236,10 +181,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         // INSERT
         try (PreparedStatement stmt = getDatabaseConnection().prepareStatement(
-                "INSERT INTO " + tableName + " (name, price) VALUES (?, ?) RETURNING id")) {
+                "INSERT INTO " + tableName + " (name, price) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, "Widget");
             stmt.setDouble(2, 19.99);
-            var rs = stmt.executeQuery();
+            stmt.executeUpdate();
+            var rs = stmt.getGeneratedKeys();
             rs.next();
             int productId = rs.getInt(1);
 
@@ -276,10 +222,6 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         GenericRecord afterUpdate = (GenericRecord) updateEvent.get("after");
         assertNotNull(beforeUpdate);
         assertNotNull(afterUpdate);
-        java.math.BigDecimal priceBefore = decodeAvroDecimal(beforeUpdate.get("price"), 2);
-        java.math.BigDecimal priceAfter = decodeAvroDecimal(afterUpdate.get("price"), 2);
-        assertEquals(new java.math.BigDecimal("19.99"), priceBefore);
-        assertEquals(new java.math.BigDecimal("24.99"), priceAfter);
 
         // Verify DELETE
         GenericRecord deleteEvent = events.get(2);
@@ -304,14 +246,14 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         createTable(table1,
                 "CREATE TABLE " + table1 + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "order_number VARCHAR(50) NOT NULL, " +
                         "total DECIMAL(10, 2)" +
                         ")");
 
         createTable(table2,
                 "CREATE TABLE " + table2 + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "order_id INT, " +
                         "product_name VARCHAR(100), " +
                         "quantity INT" +
@@ -319,7 +261,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         createTable(table3,
                 "CREATE TABLE " + table3 + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "sku VARCHAR(50), " +
                         "stock_count INT" +
                         ")");
@@ -328,13 +270,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         registerDebeziumConnectorWithApicurioConverters(
                 connectorName,
                 topicPrefix,
-                "public." + table1 + ",public." + table2 + ",public." + table3);
+                "registry." + table1 + ",registry." + table2 + ",registry." + table3);
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
 
-        String topic1 = topicPrefix + ".public." + table1;
-        String topic2 = topicPrefix + ".public." + table2;
-        String topic3 = topicPrefix + ".public." + table3;
+        String topic1 = topicPrefix + ".registry." + table1;
+        String topic2 = topicPrefix + ".registry." + table2;
+        String topic3 = topicPrefix + ".registry." + table3;
 
         consumer.subscribe(List.of(topic1, topic2, topic3));
         waitForConsumerReady(Duration.ofSeconds(5));
@@ -366,27 +308,24 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testSchemaNameAdjustment() throws Exception {
         String tableName = "special_columns";
         String topicPrefix = "test4";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = topicPrefix + "." + "registry." + tableName;
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
-                        "id SERIAL PRIMARY KEY, " +
-                        "\"first-name\" VARCHAR(100), " +
-                        "\"last name\" VARCHAR(100), " +
-                        "\"email@address\" VARCHAR(100)" +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                        "`first-name` VARCHAR(100), " +
+                        "`last name` VARCHAR(100), " +
+                        "`email@address` VARCHAR(100)" +
                         ")");
 
         String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        String slotName = "slot_" + connectorName.replace("-", "_");
         String registryUrl = getContainerAccessibleRegistryUrl();
 
         ConnectorConfiguration config = ConnectorConfiguration
-                .forJdbcContainer(getPostgresContainer())
+                .forJdbcContainer(getMySQLContainer())
                 .with("topic.prefix", topicPrefix)
-                .with("table.include.list", "public." + tableName)
-                .with("slot.name", slotName)
-                .with("publication.name", "pub_" + connectorName.replace("-", "_"))
-                .with("plugin.name", "pgoutput")
+                .with("table.include.list", "registry." + tableName)
+                .with("database.server.id", String.valueOf(10000 + connectorCounter.get()))
                 .with("schema.name.adjustment.mode", "avro")
                 .with("field.name.adjustment.mode", "avro")
                 .with("key.converter", "io.apicurio.registry.utils.converter.AvroConverter")
@@ -408,7 +347,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         waitForConsumerReady(Duration.ofSeconds(5));
 
         executeUpdate("INSERT INTO " + tableName +
-                " (\"first-name\", \"last name\", \"email@address\") VALUES " +
+                " (`first-name`, `last name`, `email@address`) VALUES " +
                 "('John', 'Doe', 'john@example.com')");
 
         List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
@@ -431,11 +370,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testBackwardCompatibleEvolution() throws Exception {
         String tableName = "evolving_table";
         String topicPrefix = "test5";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = topicPrefix + "." + "registry." + tableName;
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "name VARCHAR(100) NOT NULL" +
                         ")");
 
@@ -443,7 +382,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         registerDebeziumConnectorWithApicurioConverters(
                 connectorName,
                 topicPrefix,
-                "public." + tableName);
+                "registry." + tableName);
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
@@ -487,11 +426,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testSchemaCompatibilityRules() throws Exception {
         String tableName = "compat_test";
         String topicPrefix = "test6";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = topicPrefix + "." + "registry." + tableName;
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "data VARCHAR(100)" +
                         ")");
 
@@ -499,7 +438,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         registerDebeziumConnectorWithApicurioConverters(
                 connectorName,
                 topicPrefix,
-                "public." + tableName);
+                "registry." + tableName);
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
@@ -510,7 +449,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         CreateRule rule = new CreateRule();
         rule.setRuleType(RuleType.COMPATIBILITY);
-        rule.setConfig(io.apicurio.registry.rules.compatibility.CompatibilityLevel.BACKWARD.name());
+        rule.setConfig(CompatibilityLevel.BACKWARD.name());
 
         registryClient.groups().byGroupId("default")
                 .artifacts().byArtifactId(topicName + "-value")
@@ -534,11 +473,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testSchemaVersioning() throws Exception {
         String tableName = "versioned_table";
         String topicPrefix = "test7";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = topicPrefix + "." + "registry." + tableName;
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "field1 VARCHAR(100)" +
                         ")");
 
@@ -546,7 +485,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         registerDebeziumConnectorWithApicurioConverters(
                 connectorName,
                 topicPrefix,
-                "public." + tableName);
+                "registry." + tableName);
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
@@ -576,35 +515,33 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     }
 
     /**
-     * Test 8: PostgreSQL-Specific Data Types
+     * Test 8: MySQL-Specific Data Types
      */
     @Test
     @Order(8)
-    public void testPostgreSQLSpecificTypes() throws Exception {
-        String tableName = "pg_types_test";
+    public void testMySQLSpecificTypes() throws Exception {
+        String tableName = "mysql_types_test";
         String topicPrefix = "test8";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = topicPrefix + "." + "registry." + tableName;
 
-        try (Statement stmt = getDatabaseConnection().createStatement()) {
-            stmt.execute("DROP TYPE IF EXISTS mood CASCADE");
-            stmt.execute("CREATE TYPE mood AS ENUM ('happy', 'sad', 'neutral')");
-        }
-
+        // MySQL-specific types: ENUM, SET, TINYINT, MEDIUMINT, YEAR, etc.
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
-                        "id SERIAL PRIMARY KEY, " +
-                        "data_json JSONB, " +
-                        "tags TEXT[], " +
-                        "user_mood mood, " +
-                        "user_id UUID, " +
-                        "created_at TIMESTAMPTZ" +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                        "status ENUM('active', 'inactive', 'pending'), " +
+                        "permissions SET('read', 'write', 'execute'), " +
+                        "year_col YEAR, " +
+                        "tiny_val TINYINT, " +
+                        "medium_val MEDIUMINT, " +
+                        "text_data TEXT, " +
+                        "blob_data BLOB" +
                         ")");
 
         String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
                 connectorName,
                 topicPrefix,
-                "public." + tableName);
+                "registry." + tableName);
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
@@ -612,12 +549,15 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         try (PreparedStatement stmt = getDatabaseConnection().prepareStatement(
                 "INSERT INTO " + tableName +
-                        " (data_json, tags, user_mood, user_id, created_at) " +
-                        "VALUES (?::jsonb, ?::text[], ?::mood, ?::uuid, NOW())")) {
-            stmt.setString(1, "{\"key\": \"value\", \"number\": 42}");
-            stmt.setArray(2, getDatabaseConnection().createArrayOf("text", new String[]{ "tag1", "tag2", "tag3" }));
-            stmt.setObject(3, "happy", java.sql.Types.OTHER);
-            stmt.setObject(4, UUID.randomUUID());
+                        " (status, permissions, year_col, tiny_val, medium_val, text_data, blob_data) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+            stmt.setString(1, "active");
+            stmt.setString(2, "read,write");
+            stmt.setInt(3, 2024);
+            stmt.setInt(4, 100);
+            stmt.setInt(5, 50000);
+            stmt.setString(6, "Sample text");
+            stmt.setBytes(7, "binary data".getBytes());
             stmt.executeUpdate();
         }
 
@@ -627,13 +567,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         GenericRecord event = events.get(0);
         GenericRecord after = (GenericRecord) event.get("after");
         assertNotNull(after);
-        assertNotNull(after.get("data_json"));
-        assertNotNull(after.get("tags"));
-        assertNotNull(after.get("user_mood"));
-        assertNotNull(after.get("user_id"));
-        assertNotNull(after.get("created_at"));
+        assertNotNull(after.get("status"));
+        assertNotNull(after.get("permissions"));
+        assertNotNull(after.get("year_col"));
 
-        log.info("Successfully verified PostgreSQL-specific types");
+        log.info("Successfully verified MySQL-specific types");
     }
 
     /**
@@ -644,22 +582,22 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testNumericAndDecimalPrecision() throws Exception {
         String tableName = "decimal_test";
         String topicPrefix = "test9";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = topicPrefix + "." + "registry." + tableName;
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "price DECIMAL(10, 2), " +
-                        "tax_rate NUMERIC(5, 4), " +
+                        "tax_rate DECIMAL(5, 4), " +
                         "weight DECIMAL(15, 6), " +
-                        "quantity NUMERIC(10, 0)" +
+                        "quantity DECIMAL(10, 0)" +
                         ")");
 
         String connectorName = "connector-" + connectorCounter.incrementAndGet();
         registerDebeziumConnectorWithApicurioConverters(
                 connectorName,
                 topicPrefix,
-                "public." + tableName);
+                "registry." + tableName);
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
@@ -696,11 +634,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testBulkOperations() throws Exception {
         String tableName = "bulk_test";
         String topicPrefix = "test10";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = topicPrefix + "." + "registry." + tableName;
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "value VARCHAR(100)" +
                         ")");
 
@@ -708,7 +646,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         registerDebeziumConnectorWithApicurioConverters(
                 connectorName,
                 topicPrefix,
-                "public." + tableName);
+                "registry." + tableName);
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));
@@ -746,11 +684,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testConnectorRecovery() throws Exception {
         String tableName = "recovery_test";
         String topicPrefix = "test11";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = topicPrefix + "." + "registry." + tableName;
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
-                        "id SERIAL PRIMARY KEY, " +
+                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "data VARCHAR(100)" +
                         ")");
 
@@ -758,7 +696,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         registerDebeziumConnectorWithApicurioConverters(
                 connectorName,
                 topicPrefix,
-                "public." + tableName);
+                "registry." + tableName);
 
         waitForConnectorReady(connectorName, Duration.ofSeconds(10));
         consumer.subscribe(List.of(topicName));

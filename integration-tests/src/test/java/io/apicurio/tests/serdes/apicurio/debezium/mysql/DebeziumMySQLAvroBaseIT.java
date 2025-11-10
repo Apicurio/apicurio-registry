@@ -333,6 +333,15 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
         String connectorName = "connector-" + connectorCounter.incrementAndGet();
         String registryUrl = getContainerAccessibleRegistryUrl();
 
+        // Schema history topic for tracking DDL changes
+        String schemaHistoryTopic = "schema-history-" + connectorName.replace("-", "_");
+
+        // Get the correct Kafka bootstrap servers
+        // In cluster mode: use cluster.bootstrap.servers (if set) or bootstrap.servers
+        // In local mode: use bootstrap.servers
+        String kafkaBootstrapServers = System.getProperty("cluster.bootstrap.servers",
+                System.getProperty("bootstrap.servers"));
+
         ConnectorConfiguration config = ConnectorConfiguration
                 .forJdbcContainer(getMySQLContainer())
                 .with("topic.prefix", topicPrefix)
@@ -340,6 +349,8 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
                 .with("database.server.id", String.valueOf(10000 + connectorCounter.get()))
                 .with("schema.name.adjustment.mode", "avro")
                 .with("field.name.adjustment.mode", "avro")
+                .with("schema.history.internal.kafka.bootstrap.servers", kafkaBootstrapServers)
+                .with("schema.history.internal.kafka.topic", schemaHistoryTopic)
                 .with("key.converter", "io.apicurio.registry.utils.converter.AvroConverter")
                 .with("key.converter.apicurio.registry.url", registryUrl)
                 .with("key.converter.apicurio.registry.auto-register", "true")

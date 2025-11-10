@@ -17,16 +17,12 @@ spec:
     spec:
       containers:
         - name: mysql-debezium
-          image: quay.io/debezium/example-mysql:latest
+          image: quay.io/debezium/example-mysql:2.5
           ports:
             - containerPort: 3306
           env:
             - name: MYSQL_ROOT_PASSWORD
               value: debezium
-            - name: MYSQL_USER
-              value: mysqluser
-            - name: MYSQL_PASSWORD
-              value: mysqlpw
             - name: MYSQL_DATABASE
               value: registry
           volumeMounts:

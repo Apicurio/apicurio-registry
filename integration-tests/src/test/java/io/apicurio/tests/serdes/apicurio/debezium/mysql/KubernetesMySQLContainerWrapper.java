@@ -23,8 +23,8 @@ public class KubernetesMySQLContainerWrapper extends MySQLContainer<KubernetesMy
     private final boolean isExternalService;
     private final int port = 3306;
     private final String database = "registry";
-    private final String username = "mysqluser";
-    private final String password = "mysqlpw";
+    private final String username = "root";
+    private final String password = "debezium";
 
     public KubernetesMySQLContainerWrapper(String serviceName) {
         super(DockerImageName.parse("quay.io/debezium/example-mysql")

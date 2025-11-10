@@ -50,8 +50,8 @@ public class DebeziumMySQLContainerResource extends BaseDebeziumContainerResourc
         MySQLContainer<?> container = new MySQLContainer<>(
                 DockerImageName.parse("quay.io/debezium/example-mysql:2.5").asCompatibleSubstituteFor("mysql"))
                 .withDatabaseName("registry")
-                .withUsername("mysqluser")
-                .withPassword("mysqlpw")
+                .withUsername("root")
+                .withPassword("debezium")
                 .withUrlParam("allowPublicKeyRetrieval", "true")
                 .withUrlParam("useSSL", "false")
                 .withUrlParam("connectTimeout", "10000")

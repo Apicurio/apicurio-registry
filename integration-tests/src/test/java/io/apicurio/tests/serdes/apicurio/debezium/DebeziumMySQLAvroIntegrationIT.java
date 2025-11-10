@@ -14,7 +14,7 @@ import org.testcontainers.containers.MySQLContainer;
  *
  * Tests schema auto-registration, evolution, MySQL data types, and CDC operations.
  */
-@Tag(Constants.DEBEZIUM)
+@Tag(Constants.DEBEZIUM_MYSQL)
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DebeziumMySQLContainerResource.class, restrictToAnnotatedClass = true)
 public class DebeziumMySQLAvroIntegrationIT extends DebeziumMySQLAvroBaseIT

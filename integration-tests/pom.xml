@@ -536,7 +536,7 @@
     <profile>
       <id>debezium-mysql</id>
       <properties>
-        <groups>debezium</groups>
+        <groups>debezium-mysql</groups>
         <skipTests>false</skipTests>
       </properties>
       <build>
@@ -563,7 +563,7 @@
     <profile>
       <id>debezium-mysql-snapshot</id>
       <properties>
-        <groups>debezium-snapshot</groups>
+        <groups>debezium--mysql-snapshot</groups>
         <skipTests>false</skipTests>
       </properties>
       <build>

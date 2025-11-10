@@ -74,7 +74,17 @@ public interface Constants {
     /**
      * Tag for Debezium integration tests
      */
+    String DEBEZIUM_MYSQL = "debezium-mysql";
+
+    /**
+     * Tag for Debezium integration tests
+     */
     String DEBEZIUM_SNAPSHOT = "debezium-snapshot";
+
+    /**
+     * Tag for Debezium mysql integration tests
+     */
+    String DEBEZIUM_MYSQL_SNAPSHOT = "debezium-mysql-snapshot";
 
     /**
      * Tag for slow-running tests

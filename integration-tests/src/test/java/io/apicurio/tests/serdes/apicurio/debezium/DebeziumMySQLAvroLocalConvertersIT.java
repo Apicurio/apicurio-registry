@@ -16,7 +16,7 @@ import org.testcontainers.containers.MySQLContainer;
  *
  * Tests schema auto-registration, evolution, MySQL data types, and CDC operations.
  */
-@Tag(Constants.DEBEZIUM_SNAPSHOT)
+@Tag(Constants.DEBEZIUM_MYSQL_SNAPSHOT)
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DebeziumMySQLLocalConvertersResource.class, restrictToAnnotatedClass = true)
 public class DebeziumMySQLAvroLocalConvertersIT extends DebeziumMySQLAvroBaseIT
@@ -43,7 +43,7 @@ public class DebeziumMySQLAvroLocalConvertersIT extends DebeziumMySQLAvroBaseIT
     }
 
     /**
-     * Deserializes Avro-encoded bytes to GenericRecord using V2 API format.
+     * Deserializes Avro-encoded bytes to GenericRecord using V3 API format.
      * Delegates to the mixin implementation.
      */
     @Override

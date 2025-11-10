@@ -385,7 +385,7 @@ public class DebeziumDeploymentManager {
                 } catch (Exception e) {
                     LOGGER.debug("Attempt {}/{}: Debezium Connect not ready yet: {}",
                             attempt + 1, maxAttempts, e.getMessage());
-                    Thread.sleep(2000);
+                    Thread.sleep(5000);
                 }
                 attempt++;
             }

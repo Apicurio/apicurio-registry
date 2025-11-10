@@ -51,7 +51,6 @@
     <module>simple-protobuf</module>
     <module>protobuf-find-latest</module>
     <module>protobuf-bean</module>
-    <module>debezium-openshift</module>
     <module>docker-compose</module>
     <module>openshift-template</module>
     <module>quarkus-auth</module>

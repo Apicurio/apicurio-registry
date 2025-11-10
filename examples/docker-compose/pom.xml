@@ -9,9 +9,8 @@
     <relativePath>../../distro/pom.xml</relativePath>
   </parent>
 
-  <artifactId>apicurio-registry-distro-docker-compose</artifactId>
+  <artifactId>apicurio-registry-examples-docker-compose</artifactId>
   <packaging>pom</packaging>
-  <name>apicurio-registry-distro-docker-compose</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

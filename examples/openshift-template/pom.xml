@@ -9,9 +9,8 @@
     <relativePath>../../distro/pom.xml</relativePath>
   </parent>
 
-  <artifactId>apicurio-registry-distro-openshift-template</artifactId>
+  <artifactId>apicurio-registry-examples-openshift-template</artifactId>
   <packaging>pom</packaging>
-  <name>apicurio-registry-distro-openshift-template</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

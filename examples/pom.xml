@@ -53,7 +53,6 @@
     <module>protobuf-bean</module>
     <module>docker-compose</module>
     <module>openshift-template</module>
-    <module>quarkus-auth</module>
   </modules>
 
   <scm>

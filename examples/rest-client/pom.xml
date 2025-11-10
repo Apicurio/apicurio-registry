@@ -21,11 +21,10 @@
       <artifactId>apicurio-registry-java-sdk</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-rest-client-vertx</artifactId>
-      <version>${apicurio-common-rest-client.version}</version>
+      <artifactId>apicurio-registry-common</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>

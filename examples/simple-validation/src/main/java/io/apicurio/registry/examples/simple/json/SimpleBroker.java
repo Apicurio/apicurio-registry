@@ -39,10 +39,11 @@ public class SimpleBroker {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private List<String> messages = Collections.synchronizedList(new LinkedList());
     private int getCursor = 0;
+    private HttpServer server;
 
     public void start() {
         try {
-            HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+            server = HttpServer.create(new InetSocketAddress(port), 0);
 
             server.createContext("/", httpExchange -> {
                 if (httpExchange.getRequestMethod().equalsIgnoreCase("GET")) {
@@ -105,6 +106,15 @@ public class SimpleBroker {
         OutputStream out = httpExchange.getResponseBody();
         out.write(response);
         out.close();
+    }
+
+    /**
+     * Stops the mock broker HTTP server.
+     */
+    public void stop() {
+        if (server != null) {
+            server.stop(0);
+        }
     }
 
 }

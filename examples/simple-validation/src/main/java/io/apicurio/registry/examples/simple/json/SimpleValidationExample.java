@@ -16,9 +16,19 @@
 
 package io.apicurio.registry.examples.simple.json;
 
-import io.vertx.core.Vertx;
+import io.apicurio.registry.client.DefaultVertxInstance;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import org.everit.json.schema.ValidationException;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Optional;
 
@@ -35,7 +45,6 @@ import java.util.Optional;
  * Pre-requisites:
  * <ul>
  * <li>Apicurio Registry must be running on localhost:8080</li>
- * <li>JSON schema must be registered at coordinates default/SimpleValidationExample</li>
  * </ul>
  *
  * @author eric.wittmann@gmail.com
@@ -47,9 +56,41 @@ public class SimpleValidationExample {
     private static final String ARTIFACT_ID = "MessageType";
     private static final SecureRandom rand = new SecureRandom();
 
+    /**
+     * Registers the JSON Schema in the registry if it doesn't already exist.
+     *
+     * @param registryUrl the registry URL
+     * @param group the artifact group
+     * @param artifactId the artifact ID
+     */
+    private static void registerSchema(String registryUrl, String group, String artifactId) throws Exception {
+        RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create(registryUrl));
+
+        try (InputStream schemaStream = SimpleValidationExample.class.getResourceAsStream("/schemas/message.json")) {
+            if (schemaStream == null) {
+                throw new RuntimeException("Schema file not found in classpath: /schemas/message.json");
+            }
+
+            String schemaContent = new String(schemaStream.readAllBytes(), StandardCharsets.UTF_8);
+
+            CreateArtifact createArtifact = new CreateArtifact();
+            createArtifact.setArtifactType("JSON");
+            createArtifact.setArtifactId(artifactId);
+            createArtifact.setFirstVersion(new CreateVersion());
+            createArtifact.getFirstVersion().setContent(new VersionContent());
+            createArtifact.getFirstVersion().getContent().setContent(schemaContent);
+            createArtifact.getFirstVersion().getContent().setContentType("application/json");
+
+            client.groups().byGroupId(group).artifacts().post(createArtifact, config -> {
+                config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+            });
+
+            System.out.println("Schema registered successfully at " + group + "/" + artifactId);
+        }
+    }
+
     public static final void main(String[] args) throws Exception {
         System.out.println("Starting example " + SimpleValidationExample.class.getSimpleName());
-        Vertx vertx = Vertx.vertx();
 
         // Start a mock broker
         SimpleBroker broker = new SimpleBroker();
@@ -60,32 +101,51 @@ public class SimpleValidationExample {
         String group = Optional.ofNullable(System.getenv("GROUP")).orElse(GROUP);
         String artifactId = Optional.ofNullable(System.getenv("ARTIFACT_ID")).orElse(ARTIFACT_ID);
 
+        // Register the schema in the registry
+        registerSchema(registryUrl, group, artifactId);
+
         // Create a message validator and message publisher
-        MessageValidator validator = new MessageValidator(vertx, registryUrl, group, artifactId);
+        MessageValidator validator = new MessageValidator(registryUrl, group, artifactId);
         MessagePublisher publisher = new MessagePublisher();
 
-        // Produce messages in a loop.
-        boolean done = false;
-        while (!done) {
-            // Create a message we want to produce/send
-            MessageBean message = new MessageBean();
-            message.setMessage("Hello!  A random integer is: " + rand.nextInt());
-            message.setTime(System.currentTimeMillis());
+        try {
+            // Produce 10 messages
+            for (int i = 0; i < 10; i++) {
+                // Create a message we want to produce/send
+                MessageBean message = new MessageBean();
+                message.setMessage("Hello!  A random integer is: " + rand.nextInt());
+                message.setTime(System.currentTimeMillis());
 
-            try {
-                // Validate the message before sending it
-                validator.validate(message);
+                try {
+                    // Validate the message before sending it
+                    validator.validate(message);
 
-                // Send the message
-                publisher.publishMessage(message);
-            } catch (ValidationException e) {
-                e.printStackTrace();
+                    // Send the message
+                    publisher.publishMessage(message);
+                } catch (ValidationException e) {
+                    System.err.println("Message validation failed:");
+                    System.err.println("  Message: " + e.getMessage());
+                    System.err.println("  Failed message: " + message);
+                }
+
+                Thread.sleep(1000);
             }
-
-            Thread.sleep(5000);
+        } catch (ProblemDetails pd) {
+            System.err.println("Error communicating with the registry:");
+            System.err.println("  Status: " + pd.getStatus());
+            System.err.println("  Title: " + pd.getTitle());
+            System.err.println("  Detail: " + pd.getDetail());
+            if (pd.getName() != null) {
+                System.err.println("  Name: " + pd.getName());
+            }
+            throw new RuntimeException(pd.getDetail());
+        } finally {
+            // If we do not provide our own instance of Vertx, then we must close the
+            // default instance that will get used.
+            DefaultVertxInstance.close();
+            broker.stop();
         }
 
-        vertx.close();
         System.out.println("Done (success).");
     }
 

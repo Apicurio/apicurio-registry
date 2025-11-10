@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-examples</artifactId>
-        <version>3.1.1-SNAPSHOT</version>
+        <version>3.1.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>apicurio-registry-examples-asyncapi-avro-maven-with-references-auto</artifactId>
@@ -21,7 +21,7 @@
             <plugin>
                 <groupId>io.apicurio</groupId>
                 <artifactId>apicurio-registry-maven-plugin</artifactId>
-                <version>3.1.1-SNAPSHOT</version>
+                <version>${project.version}</version>
                 <executions>
                     <execution>
                         <id>register-artifact</id>
@@ -41,7 +41,6 @@
                                     <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                                     <canonicalize>true</canonicalize>
                                     <autoRefs>true</autoRefs>
-                                    <analyzeDirectory>true</analyzeDirectory>
                                 </artifact>
                             </artifacts>
                             <existingReferences/>

@@ -1,8 +1,9 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.postgresql;
 
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.tests.serdes.apicurio.debezium.DebeziumAvroBaseIT;
 import io.debezium.testing.testcontainers.ConnectorConfiguration;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

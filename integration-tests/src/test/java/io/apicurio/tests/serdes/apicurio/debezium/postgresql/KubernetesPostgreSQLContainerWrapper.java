@@ -1,4 +1,4 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.postgresql;
 
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.model.ContainerConfig;

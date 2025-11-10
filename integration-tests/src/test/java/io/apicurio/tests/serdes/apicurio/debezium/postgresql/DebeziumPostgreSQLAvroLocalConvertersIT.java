@@ -1,5 +1,6 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.postgresql;
 
+import io.apicurio.tests.serdes.apicurio.debezium.DebeziumAvroV3DeserializerMixin;
 import io.apicurio.tests.utils.Constants;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResource;

@@ -1,5 +1,7 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.mysql;
 
+import io.apicurio.tests.serdes.apicurio.debezium.DebeziumLocalConvertersUtil;
+import io.apicurio.tests.serdes.apicurio.debezium.postgresql.KubernetesDebeziumContainerWrapper;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

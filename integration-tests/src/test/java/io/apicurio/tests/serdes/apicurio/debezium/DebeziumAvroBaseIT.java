@@ -174,8 +174,16 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
     protected abstract void dropTable(String tableName) throws SQLException;
 
     protected Connection getDatabaseConnection() throws SQLException {
-        if (null == dbConnection) {
+        if (null == dbConnection || dbConnection.isClosed() || !dbConnection.isValid(2)) {
+            if (dbConnection != null && !dbConnection.isClosed()) {
+                try {
+                    dbConnection.close();
+                } catch (SQLException e) {
+                    log.warn("Error closing stale connection: {}", e.getMessage());
+                }
+            }
             dbConnection = createDatabaseConnection();
+            log.debug("Created new database connection");
         }
         return dbConnection;
     }

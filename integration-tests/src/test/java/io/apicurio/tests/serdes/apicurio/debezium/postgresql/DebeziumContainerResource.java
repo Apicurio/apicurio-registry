@@ -1,5 +1,6 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.postgresql;
 
+import io.apicurio.tests.serdes.apicurio.debezium.BaseDebeziumContainerResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;

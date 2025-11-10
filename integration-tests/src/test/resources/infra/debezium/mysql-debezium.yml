@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: mysql-debezium
-          image: quay.io/debezium/example-mysql:2.5
+          image: quay.io/debezium/example-mysql:latest
           ports:
             - containerPort: 3306
           env:

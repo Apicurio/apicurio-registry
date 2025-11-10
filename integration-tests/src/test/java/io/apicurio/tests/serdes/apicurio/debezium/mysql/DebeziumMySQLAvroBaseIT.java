@@ -1,9 +1,10 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.mysql;
 
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.tests.serdes.apicurio.debezium.DebeziumAvroBaseIT;
 import io.debezium.testing.testcontainers.ConnectorConfiguration;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -48,17 +49,18 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
     @Override
     protected Connection createDatabaseConnection() throws SQLException {
-        if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            String username = System.getProperty("debezium.mysql.username", "mysqluser");
-            String password = System.getProperty("debezium.mysql.password", "mysqlpw");
-            String mysqlJdbcUrl = "jdbc:mysql://" + getMySQLContainer().getHost() + ":3306/registry";
-            return DriverManager.getConnection(mysqlJdbcUrl, username, password);
-        }
-        else {
-            String jdbcUrl = getMySQLContainer().getJdbcUrl();
-            String username = getMySQLContainer().getUsername();
-            String password = getMySQLContainer().getPassword();
-            return DriverManager.getConnection(jdbcUrl, username, password);
+        // Always use the container's JDBC URL which includes necessary parameters
+        String jdbcUrl = getMySQLContainer().getJdbcUrl();
+        String username = getMySQLContainer().getUsername();
+        String password = getMySQLContainer().getPassword();
+        log.info("Creating MySQL connection: url={}, user={}", jdbcUrl, username);
+        try {
+            Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
+            log.info("MySQL connection created successfully");
+            return conn;
+        } catch (SQLException e) {
+            log.error("Failed to create MySQL connection to {}: {}", jdbcUrl, e.getMessage());
+            throw e;
         }
     }
 
@@ -81,12 +83,19 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
         // Schema history topic for tracking DDL changes
         String schemaHistoryTopic = "schema-history-" + connectorName.replace("-", "_");
 
+        // Get the correct Kafka bootstrap servers
+        // In cluster mode: use cluster.bootstrap.servers (if set) or bootstrap.servers
+        // In local mode: use bootstrap.servers
+        String kafkaBootstrapServers = System.getProperty("cluster.bootstrap.servers",
+                System.getProperty("bootstrap.servers"));
+
         ConnectorConfiguration config = ConnectorConfiguration
                 .forJdbcContainer(getMySQLContainer())
                 .with("topic.prefix", topicPrefix)
                 .with("table.include.list", tableIncludeList)
                 .with("database.server.id", String.valueOf(serverId))
-                .with("schema.history.internal.kafka.bootstrap.servers", System.getProperty("cluster.bootstrap.servers"))
+                .with("snapshot.locking.mode", "none")
+                .with("schema.history.internal.kafka.bootstrap.servers", kafkaBootstrapServers)
                 .with("schema.history.internal.kafka.topic", schemaHistoryTopic)
                 .with("key.converter", "io.apicurio.registry.utils.converter.AvroConverter")
                 .with("key.converter.apicurio.registry.url", dockerAccessibleRegistryUrl)

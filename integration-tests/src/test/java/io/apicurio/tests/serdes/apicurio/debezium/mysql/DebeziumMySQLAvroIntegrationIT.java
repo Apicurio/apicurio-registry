@@ -1,24 +1,24 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.mysql;
 
+import io.apicurio.tests.serdes.apicurio.debezium.DebeziumAvroV2DeserializerMixin;
 import io.apicurio.tests.utils.Constants;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Tag;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.MySQLContainer;
 
 /**
- * Integration tests for Debezium PostgreSQL CDC with Apicurio Registry Avro
+ * Integration tests for Debezium MySQL CDC with Apicurio Registry Avro
  * serialization using PUBLISHED converters from Maven Central.
  *
- * Tests schema auto-registration, evolution, PostgreSQL data types, and CDC
- * operations.
+ * Tests schema auto-registration, evolution, MySQL data types, and CDC operations.
  */
-@Tag(Constants.DEBEZIUM)
+@Tag(Constants.DEBEZIUM_MYSQL)
 @QuarkusIntegrationTest
-@QuarkusTestResource(value = DebeziumContainerResource.class, restrictToAnnotatedClass = true)
-public class DebeziumPostgreSQLAvroIntegrationIT extends DebeziumPostgreSQLAvroBaseIT
+@QuarkusTestResource(value = DebeziumMySQLContainerResource.class, restrictToAnnotatedClass = true)
+public class DebeziumMySQLAvroIntegrationIT extends DebeziumMySQLAvroBaseIT
         implements DebeziumAvroV2DeserializerMixin {
 
     @Override
@@ -28,12 +28,12 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends DebeziumPostgreSQLAvroB
 
     @Override
     protected DebeziumContainer getDebeziumContainer() {
-        return DebeziumContainerResource.debeziumContainer;
+        return DebeziumMySQLContainerResource.debeziumContainer;
     }
 
     @Override
-    protected PostgreSQLContainer<?> getPostgresContainer() {
-        return DebeziumContainerResource.postgresContainer;
+    protected MySQLContainer<?> getMySQLContainer() {
+        return DebeziumMySQLContainerResource.mysqlContainer;
     }
 
     @Override

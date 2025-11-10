@@ -1,5 +1,7 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.postgresql;
 
+import io.apicurio.tests.serdes.apicurio.debezium.BaseDebeziumContainerResource;
+import io.apicurio.tests.serdes.apicurio.debezium.DebeziumLocalConvertersUtil;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +32,7 @@ public class DebeziumLocalConvertersResource extends DebeziumContainerResource {
             // Create wrappers using the LOCAL converters service
             postgresContainer = new KubernetesPostgreSQLContainerWrapper(
                     io.apicurio.deployment.KubernetesTestResources.POSTGRESQL_DEBEZIUM_SERVICE_EXTERNAL);
-            debeziumContainer = new KubernetesDebeziumContainerWrapper(
+            BaseDebeziumContainerResource.debeziumContainer = new KubernetesDebeziumContainerWrapper(
                     io.apicurio.deployment.KubernetesTestResources.DEBEZIUM_CONNECT_LOCAL_SERVICE_EXTERNAL);
 
             log.info("Debezium service wrappers created for cluster mode using LOCAL converters");
@@ -41,12 +43,12 @@ public class DebeziumLocalConvertersResource extends DebeziumContainerResource {
         log.info("cluster.tests=false, using Testcontainers with local converters");
 
         postgresContainer = createPostgreSQLContainer();
-        debeziumContainer = createDebeziumContainer(); // This will mount local converters
-        kafkaContainer = createKafkaContainer();
+        BaseDebeziumContainerResource.debeziumContainer = createDebeziumContainer(); // This will mount local converters
+        BaseDebeziumContainerResource.kafkaContainer = BaseDebeziumContainerResource.createKafkaContainer();
 
         // Start the postgresql database, kafka, and debezium
-        Startables.deepStart(Stream.of(kafkaContainer, postgresContainer, debeziumContainer)).join();
-        System.setProperty("bootstrap.servers", kafkaContainer.getBootstrapServers());
+        Startables.deepStart(Stream.of(BaseDebeziumContainerResource.kafkaContainer, postgresContainer, BaseDebeziumContainerResource.debeziumContainer)).join();
+        System.setProperty("bootstrap.servers", BaseDebeziumContainerResource.kafkaContainer.getBootstrapServers());
 
         return Collections.emptyMap();
     }
@@ -59,16 +61,16 @@ public class DebeziumLocalConvertersResource extends DebeziumContainerResource {
     @Override
     protected DebeziumContainer createDebeziumContainer() {
         DebeziumContainer container = new DebeziumContainer("quay.io/debezium/connect")
-                .withKafka(kafkaContainer)
-                .dependsOn(kafkaContainer);
+                .withKafka(BaseDebeziumContainerResource.kafkaContainer)
+                .dependsOn(BaseDebeziumContainerResource.kafkaContainer);
 
         // Configure network mode based on environment
-        if (shouldUseHostNetwork()) {
+        if (BaseDebeziumContainerResource.shouldUseHostNetwork()) {
             log.info("Using host network mode for Debezium container (Linux/CI environment)");
             container.withNetworkMode("host");
         } else {
             log.info("Using bridge network mode for Debezium container (Mac/Windows environment)");
-            container.withNetwork(network);
+            container.withNetwork(BaseDebeziumContainerResource.network);
         }
 
         // Mount local converters using shared utility

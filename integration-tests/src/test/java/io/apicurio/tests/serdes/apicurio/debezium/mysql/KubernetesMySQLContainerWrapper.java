@@ -1,4 +1,4 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.mysql;
 
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.model.ContainerConfig;
@@ -27,7 +27,7 @@ public class KubernetesMySQLContainerWrapper extends MySQLContainer<KubernetesMy
     private final String password = "mysqlpw";
 
     public KubernetesMySQLContainerWrapper(String serviceName) {
-        super(DockerImageName.parse("quay.io/debezium/example-mysql:2.5")
+        super(DockerImageName.parse("quay.io/debezium/example-mysql")
                 .asCompatibleSubstituteFor("mysql")); // Dummy image, won't be used
 
         this.isExternalService = serviceName.contains("-external");
@@ -85,7 +85,9 @@ public class KubernetesMySQLContainerWrapper extends MySQLContainer<KubernetesMy
 
     @Override
     public String getJdbcUrl() {
-        return "jdbc:mysql://" + getHost() + ":" + port + "/" + database;
+        return "jdbc:mysql://" + getHost() + ":" + port + "/" + database
+                + "?allowPublicKeyRetrieval=true&useSSL=false"
+                + "&connectTimeout=10000&socketTimeout=10000&autoReconnect=true";
     }
 
     @Override

@@ -1,23 +1,25 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.postgresql;
 
+import io.apicurio.tests.serdes.apicurio.debezium.DebeziumAvroV2DeserializerMixin;
 import io.apicurio.tests.utils.Constants;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Tag;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * Integration tests for Debezium MySQL CDC with Apicurio Registry Avro
+ * Integration tests for Debezium PostgreSQL CDC with Apicurio Registry Avro
  * serialization using PUBLISHED converters from Maven Central.
  *
- * Tests schema auto-registration, evolution, MySQL data types, and CDC operations.
+ * Tests schema auto-registration, evolution, PostgreSQL data types, and CDC
+ * operations.
  */
-@Tag(Constants.DEBEZIUM_MYSQL)
+@Tag(Constants.DEBEZIUM)
 @QuarkusIntegrationTest
-@QuarkusTestResource(value = DebeziumMySQLContainerResource.class, restrictToAnnotatedClass = true)
-public class DebeziumMySQLAvroIntegrationIT extends DebeziumMySQLAvroBaseIT
+@QuarkusTestResource(value = DebeziumContainerResource.class, restrictToAnnotatedClass = true)
+public class DebeziumPostgreSQLAvroIntegrationIT extends DebeziumPostgreSQLAvroBaseIT
         implements DebeziumAvroV2DeserializerMixin {
 
     @Override
@@ -27,12 +29,12 @@ public class DebeziumMySQLAvroIntegrationIT extends DebeziumMySQLAvroBaseIT
 
     @Override
     protected DebeziumContainer getDebeziumContainer() {
-        return DebeziumMySQLContainerResource.debeziumContainer;
+        return DebeziumContainerResource.debeziumContainer;
     }
 
     @Override
-    protected MySQLContainer<?> getMySQLContainer() {
-        return DebeziumMySQLContainerResource.mysqlContainer;
+    protected PostgreSQLContainer<?> getPostgresContainer() {
+        return DebeziumContainerResource.postgresContainer;
     }
 
     @Override

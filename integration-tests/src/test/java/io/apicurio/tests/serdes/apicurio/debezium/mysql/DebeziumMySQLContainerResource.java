@@ -1,5 +1,7 @@
-package io.apicurio.tests.serdes.apicurio.debezium;
+package io.apicurio.tests.serdes.apicurio.debezium.mysql;
 
+import io.apicurio.tests.serdes.apicurio.debezium.BaseDebeziumContainerResource;
+import io.apicurio.tests.serdes.apicurio.debezium.postgresql.KubernetesDebeziumContainerWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -49,7 +51,12 @@ public class DebeziumMySQLContainerResource extends BaseDebeziumContainerResourc
                 DockerImageName.parse("quay.io/debezium/example-mysql:2.5").asCompatibleSubstituteFor("mysql"))
                 .withDatabaseName("registry")
                 .withUsername("mysqluser")
-                .withPassword("mysqlpw");
+                .withPassword("mysqlpw")
+                .withUrlParam("allowPublicKeyRetrieval", "true")
+                .withUrlParam("useSSL", "false")
+                .withUrlParam("connectTimeout", "10000")
+                .withUrlParam("socketTimeout", "10000")
+                .withUrlParam("autoReconnect", "true");
 
         if (shouldUseHostNetwork()) {
             log.info("Using host network mode for MySQL container (Linux/CI environment)");

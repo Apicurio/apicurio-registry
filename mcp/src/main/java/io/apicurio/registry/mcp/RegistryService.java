@@ -35,12 +35,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.regex.Pattern;
 
 @ApplicationScoped
 public class RegistryService {
@@ -66,21 +62,7 @@ public class RegistryService {
 
     @PostConstruct
     void init() {
-        if (!Pattern.compile("^https?://.*").matcher(rawBaseUrl).matches()) {
-            rawBaseUrl = "http://" + rawBaseUrl;
-        }
-        if (!Pattern.compile(".* /apis/registry/v3/?").matcher(rawBaseUrl).matches()) {
-            rawBaseUrl += "/apis/registry/v3";
-        }
-        try {
-            var _ignored1 = new URI(rawBaseUrl);
-            var _ignored2 = _ignored1.toURL();
-        } catch (URISyntaxException | MalformedURLException ex) {
-            throw new IllegalArgumentException(ex);
-        }
-
         client = RegistryClientFactory.create(RegistryClientOptions.create(rawBaseUrl).retry());
-
         // Test the connection
         var info = client.system().info().get();
         log.info("Successfully connected to Apicurio Registry version {} at {}", info.getVersion(), rawBaseUrl);

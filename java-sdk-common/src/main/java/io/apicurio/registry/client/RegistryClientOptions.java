@@ -6,7 +6,7 @@ import io.vertx.ext.web.client.WebClient;
 /**
  * Configuration options for creating a RegistryClient. This class encapsulates all the
  * configuration parameters needed to create different types of registry clients.
- * 
+ *
  * <p>The options support the following authentication methods:</p>
  * <ul>
  *   <li>Anonymous (no authentication)</li>
@@ -17,15 +17,35 @@ import io.vertx.ext.web.client.WebClient;
  */
 public class RegistryClientOptions {
 
-    public static final RegistryClientOptions create() {
+    /**
+     * <p><strong>Warning:</strong> If you do not provide a Vertx instance,
+     * we will try to retrieve it from the current CDI context. If that fails,
+     * we will use a default instance managed by {@link DefaultVertxInstance}.
+     * <p>
+     * However, using the default Vertx instance is not recommended for
+     * production use. Applications should manage their own Vertx instance and provide it
+     * via {@link RegistryClientOptions#vertx(Vertx)} to ensure proper lifecycle management
+     * and resource cleanup.</p>
+     */
+    public static RegistryClientOptions create() {
         return new RegistryClientOptions();
     }
 
-    public static final RegistryClientOptions create(String registryUrl) {
+    /**
+     * <p><strong>Warning:</strong> If you do not provide a Vertx instance,
+     * we will try to retrieve it from the current CDI context. If that fails,
+     * we will use a default instance managed by {@link DefaultVertxInstance}.
+     * <p>
+     * However, using the default Vertx instance is not recommended for
+     * production use. Applications should manage their own Vertx instance and provide it
+     * via {@link RegistryClientOptions#vertx(Vertx)} to ensure proper lifecycle management
+     * and resource cleanup.</p>
+     */
+    public static RegistryClientOptions create(String registryUrl) {
         return new RegistryClientOptions().registryUrl(registryUrl);
     }
 
-    public static final RegistryClientOptions create(String registryUrl, Vertx vertx) {
+    public static RegistryClientOptions create(String registryUrl, Vertx vertx) {
         return new RegistryClientOptions().registryUrl(registryUrl).vertx(vertx);
     }
 
@@ -50,6 +70,7 @@ public class RegistryClientOptions {
     }
 
     private String registryUrl;
+    private boolean normalizeRegistryUrl = true;
     // Provided vertx
     private Vertx vertx;
     // Auth config
@@ -88,6 +109,10 @@ public class RegistryClientOptions {
         return registryUrl;
     }
 
+    public boolean getNormalizeRegistryUrl() {
+        return normalizeRegistryUrl;
+    }
+
     public AuthType getAuthType() {
         return authType;
     }
@@ -119,7 +144,7 @@ public class RegistryClientOptions {
     public Vertx getVertx() {
         return vertx;
     }
-    
+
     public WebClient getWebClient() {
         return webClient;
     }
@@ -190,12 +215,28 @@ public class RegistryClientOptions {
 
     /**
      * Sets the registry URL.
+     * <p>
+     * If the protocol or the API path is not provided (e.g., "localhost:8080"), it will be added.
      *
      * @param registryUrl the base URL of the registry API (e.g., "http://localhost:8080/apis/registry/v3")
      * @return this builder
      */
     public RegistryClientOptions registryUrl(String registryUrl) {
         this.registryUrl = registryUrl;
+        return this;
+    }
+
+    /**
+     * Sets the registry URL.
+     * <p>
+     * URL will not be modified, but valid URL is still required.
+     *
+     * @param registryUrl the base URL of the registry API (e.g., "http://localhost:8080/apis/registry/v3")
+     * @return this builder
+     */
+    public RegistryClientOptions rawRegistryUrl(String registryUrl) {
+        this.registryUrl = registryUrl;
+        normalizeRegistryUrl = false;
         return this;
     }
 
@@ -218,8 +259,8 @@ public class RegistryClientOptions {
      * Configures OAuth2/OIDC authentication using client credentials flow.
      *
      * @param tokenEndpoint the OAuth2 token endpoint URL
-     * @param clientId the OAuth2 client ID
-     * @param clientSecret the OAuth2 client secret
+     * @param clientId      the OAuth2 client ID
+     * @param clientSecret  the OAuth2 client secret
      * @return this builder
      */
     public RegistryClientOptions oauth2(String tokenEndpoint, String clientId, String clientSecret) {
@@ -231,9 +272,9 @@ public class RegistryClientOptions {
      * Configures OAuth2/OIDC authentication using client credentials flow with scope.
      *
      * @param tokenEndpoint the OAuth2 token endpoint URL
-     * @param clientId the OAuth2 client ID
-     * @param clientSecret the OAuth2 client secret
-     * @param scope the OAuth2 scope (optional, can be null)
+     * @param clientId      the OAuth2 client ID
+     * @param clientSecret  the OAuth2 client secret
+     * @param scope         the OAuth2 scope (optional, can be null)
      * @return this builder
      */
     public RegistryClientOptions oauth2(String tokenEndpoint, String clientId, String clientSecret, String scope) {
@@ -273,8 +314,8 @@ public class RegistryClientOptions {
     /**
      * Configures retry functionality for HTTP requests.
      *
-     * @param enabled whether retry functionality is enabled
-     * @param maxAttempts the maximum number of retry attempts (must be > 0 if enabled)
+     * @param enabled        whether retry functionality is enabled
+     * @param maxAttempts    the maximum number of retry attempts (must be > 0 if enabled)
      * @param initialDelayMs the initial delay between retry attempts in milliseconds (must be > 0 if enabled)
      * @return this builder
      */
@@ -285,11 +326,11 @@ public class RegistryClientOptions {
     /**
      * Configures retry functionality with exponential backoff for HTTP requests.
      *
-     * @param enabled whether retry functionality is enabled
-     * @param maxAttempts the maximum number of retry attempts (must be > 0 if enabled)
-     * @param initialDelayMs the initial delay between retry attempts in milliseconds (must be > 0 if enabled)
+     * @param enabled           whether retry functionality is enabled
+     * @param maxAttempts       the maximum number of retry attempts (must be > 0 if enabled)
+     * @param initialDelayMs    the initial delay between retry attempts in milliseconds (must be > 0 if enabled)
      * @param backoffMultiplier the multiplier for exponential backoff (must be > 1.0 if enabled)
-     * @param maxDelayMs the maximum delay between retries in milliseconds (must be > 0 if enabled)
+     * @param maxDelayMs        the maximum delay between retries in milliseconds (must be > 0 if enabled)
      * @return this builder
      */
     public RegistryClientOptions retry(boolean enabled, int maxAttempts, long initialDelayMs,
@@ -348,7 +389,7 @@ public class RegistryClientOptions {
      * This allows the client to trust certificates signed by custom certificate authorities
      * or self-signed certificates.
      *
-     * @param path the path to the JKS trust store file (can be a file system path or classpath resource prefixed with "classpath:")
+     * @param path     the path to the JKS trust store file (can be a file system path or classpath resource prefixed with "classpath:")
      * @param password the password for the trust store
      * @return this builder
      * @throws IllegalArgumentException if path is null or empty
@@ -369,7 +410,7 @@ public class RegistryClientOptions {
      * This allows the client to trust certificates signed by custom certificate authorities
      * or self-signed certificates.
      *
-     * @param path the path to the PKCS#12 trust store file (can be a file system path or classpath resource prefixed with "classpath:")
+     * @param path     the path to the PKCS#12 trust store file (can be a file system path or classpath resource prefixed with "classpath:")
      * @param password the password for the trust store
      * @return this builder
      * @throws IllegalArgumentException if path is null or empty

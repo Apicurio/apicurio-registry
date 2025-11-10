@@ -17,13 +17,21 @@ import java.util.logging.Logger;
 public final class DefaultVertxInstance {
 
     private static final Logger logger = Logger.getLogger(DefaultVertxInstance.class.getName());
-
-    private static Vertx VERTX;
-
-    private static boolean closed = false;
+    private static volatile boolean closed = false;
 
     private DefaultVertxInstance() {
         // Prevent instantiation
+    }
+
+    private static class Holder {
+        private static final Vertx INSTANCE;
+
+        static {
+            logger.warning("Using default shared Vertx instance. For production use, " +
+                    "it is recommended to manage your own Vertx instance and provide it " +
+                    "via RegistryClientOptions.vertx() to ensure proper lifecycle management.");
+            INSTANCE = Vertx.vertx();
+        }
     }
 
     /**
@@ -36,19 +44,11 @@ public final class DefaultVertxInstance {
      * @return the shared Vertx instance
      * @throws IllegalStateException if the instance has been closed
      */
-    public static synchronized Vertx get() {
+    public static Vertx get() {
         if (closed) {
             throw new IllegalStateException("Default Vertx instance has been closed");
         }
-        if (VERTX == null) {
-            logger.warning("""
-                    Using default shared Vertx instance. For production use, \
-                    it is recommended to manage your own Vertx instance and provide it \
-                    via RegistryClientOptions.vertx() to ensure proper lifecycle management.""");
-            VERTX = Vertx.vertx();
-            Runtime.getRuntime().addShutdownHook(new Thread(DefaultVertxInstance::close));
-        }
-        return VERTX;
+        return Holder.INSTANCE;
     }
 
     /**
@@ -60,15 +60,13 @@ public final class DefaultVertxInstance {
      * after the first call.</p>
      *
      * <p><strong>Note:</strong> After calling this method, subsequent calls to
-     * {@link #get()} will throw an {@link IllegalStateException},
-     * even if Vertx has not been previously initialized to maintain idempotency.</p>
+     * {@link #get()} will throw an {@link IllegalStateException}.</p>
      */
     public static synchronized void close() {
-        if (!closed) {
-            if (VERTX != null) {
-                VERTX.close();
-            }
-            closed = true;
+        if (closed) {
+            return;
         }
+        get().close();
+        closed = true;
     }
 }

@@ -18,7 +18,7 @@ public final class RegistryClientFactory {
      * @throws IllegalArgumentException if options are invalid
      */
     public static RegistryClient create(RegistryClientOptions options) {
-        RequestAdapter adapter = RegistryClientRequestAdapterFactory.createRequestAdapter(options);
+        RequestAdapter adapter = RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3);
         return new RegistryClient(adapter);
     }
 }

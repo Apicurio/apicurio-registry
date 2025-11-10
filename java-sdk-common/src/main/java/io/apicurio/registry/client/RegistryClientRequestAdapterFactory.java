@@ -13,10 +13,15 @@ import io.vertx.core.net.ProxyOptions;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.net.URI;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  * Factory class containing shared logic for creating Registry clients (v2 and v3).
@@ -24,6 +29,8 @@ import java.lang.reflect.Proxy;
  * and retry logic.
  */
 public class RegistryClientRequestAdapterFactory {
+
+    private static final Logger log = Logger.getLogger(RegistryClientRequestAdapterFactory.class.getName());
 
     /**
      * Creates a RequestAdapter configured with authentication, SSL/TLS, and retry settings
@@ -33,16 +40,13 @@ public class RegistryClientRequestAdapterFactory {
      * @return a fully configured RequestAdapter
      * @throws IllegalArgumentException if options are invalid
      */
-    protected static RequestAdapter createRequestAdapter(RegistryClientOptions options) {
+    static RequestAdapter createRequestAdapter(RegistryClientOptions options, Version version) {
         if (options == null) {
             throw new IllegalArgumentException("RegistryClientOptions cannot be null");
         }
-
-        validateRegistryUrl(options);
+        var registryUrl = validateAndNormalizeRegistryUrl(options, version);
         validateAuth(options);
-
-        Vertx vertxToUse = options.getVertx() != null ? options.getVertx() : DefaultVertxInstance.get();
-
+        Vertx vertxToUse = getVertx(options);
         // Build WebClientOptions with SSL configuration if needed
         WebClientOptions webClientOptions = buildWebClientOptions(options);
 
@@ -64,7 +68,7 @@ public class RegistryClientRequestAdapterFactory {
             default:
                 throw new IllegalArgumentException("Unsupported authentication type: " + options.getAuthType());
         }
-        adapter.setBaseUrl(options.getRegistryUrl());
+        adapter.setBaseUrl(registryUrl);
 
         // Wrap with retry proxy if retry is enabled
         if (options.isRetryEnabled()) {
@@ -75,6 +79,39 @@ public class RegistryClientRequestAdapterFactory {
     }
 
     // Private implementation methods
+
+    private static Vertx getVertxFromCDI(String CDIClassName, String InstanceClassName) {
+        try {
+            var CDIClass = Class.forName(CDIClassName);
+            var instanceClass = Class.forName(InstanceClassName);
+            var CDI = CDIClass.getMethod("current").invoke(null);
+            var vertxInstance = CDIClass.getMethod("select", Class.class, Annotation[].class).invoke(CDI, Vertx.class, new Annotation[]{});
+            return (Vertx) instanceClass.getMethod("get").invoke(vertxInstance);
+        } catch (Throwable t) {
+            // Log and ignore
+            log.log(Level.FINE, "Attempt to retrieve a Vertx instance from CDI failed: "
+                    + t.getClass().getCanonicalName() + ": " + t.getMessage());
+            return null;
+        }
+    }
+
+    private static Vertx getVertx(RegistryClientOptions options) {
+
+        if (options.getVertx() != null) {
+            return options.getVertx();
+        }
+
+        var vertx = getVertxFromCDI("jakarta.enterprise.inject.spi.CDI", "jakarta.enterprise.inject.Instance");
+        if (vertx == null) {
+            vertx = getVertxFromCDI("javax.enterprise.inject.spi.CDI", "javax.enterprise.inject.Instance");
+        }
+        if (vertx != null) {
+            log.log(Level.INFO, "Successfully retrieved a Vertx instance from CDI.");
+            return vertx;
+        }
+
+        return DefaultVertxInstance.get();
+    }
 
     private static RequestAdapter createAnonymous(Vertx vertx, WebClientOptions webClientOptions) {
         WebClient webClient = webClientOptions == null ? WebClient.create(vertx) : WebClient.create(vertx, webClientOptions);
@@ -104,7 +141,7 @@ public class RegistryClientRequestAdapterFactory {
      * Creates a retry-enabled proxy for the RequestAdapter.
      *
      * @param delegate the original RequestAdapter to wrap
-     * @param options the client options containing retry configuration
+     * @param options  the client options containing retry configuration
      * @return a proxy RequestAdapter with retry functionality
      */
     private static RequestAdapter createRetryProxy(RequestAdapter delegate, RegistryClientOptions options) {
@@ -133,7 +170,7 @@ public class RegistryClientRequestAdapterFactory {
         private final long maxRetryDelayMs;
 
         public RetryInvocationHandler(RequestAdapter delegate, int maxRetryAttempts, long initialRetryDelayMs,
-                                    double backoffMultiplier, long maxRetryDelayMs) {
+                                      double backoffMultiplier, long maxRetryDelayMs) {
             this.delegate = delegate;
             this.maxRetryAttempts = maxRetryAttempts;
             this.initialRetryDelayMs = initialRetryDelayMs;
@@ -284,11 +321,49 @@ public class RegistryClientRequestAdapterFactory {
 
     // Private validation methods
 
-    private static void validateRegistryUrl(RegistryClientOptions options) {
-        String registryUrl = options.getRegistryUrl();
-        if (registryUrl == null || registryUrl.trim().isEmpty()) {
-            throw new IllegalArgumentException("Registry URL cannot be null or empty");
+    private static final Pattern REGISTRY_URL_PROTOCOL_PATTERN = Pattern.compile("https?://.*");
+    private static final Pattern REGISTRY_URL_V3_PATH_PATTERN = Pattern.compile(".*/apis/registry/v3/?");
+    private static final Pattern REGISTRY_URL_V2_PATH_PATTERN = Pattern.compile(".*/apis/registry/v2/?");
+
+    private static String validateAndNormalizeRegistryUrl(RegistryClientOptions options, Version version) {
+
+        var url = options.getRegistryUrl();
+
+        if (url == null || url.isBlank()) {
+            throw new IllegalArgumentException("Registry API URL cannot be null or blank.");
         }
+
+        if (options.getNormalizeRegistryUrl() && !REGISTRY_URL_PROTOCOL_PATTERN.matcher(url).matches()) {
+            url = "http://" + url;
+        }
+
+        switch (version) {
+            case V3 -> {
+                if (options.getNormalizeRegistryUrl() && !REGISTRY_URL_V3_PATH_PATTERN.matcher(url).matches()) {
+                    if (!url.endsWith("/")) {
+                        url += "/";
+                    }
+                    url += "apis/registry/v3";
+                }
+            }
+            case V2 -> {
+                if (options.getNormalizeRegistryUrl() && !REGISTRY_URL_V2_PATH_PATTERN.matcher(url).matches()) {
+                    if (!url.endsWith("/")) {
+                        url += "/";
+                    }
+                    url += "apis/registry/v2";
+                }
+            }
+        }
+
+        try {
+            var _ignored1 = new URI(url);
+            var _ignored2 = _ignored1.toURL();
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Registry API URL '" + url + "' is not well-formed: " + ex.getMessage());
+        }
+
+        return url;
     }
 
     private static void validateAuth(RegistryClientOptions options) {

@@ -12,6 +12,7 @@ import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RuleContext;
@@ -368,7 +369,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
                 .byArtifactId(artifactId).rules().post(createRule);
 
         // Verify that incompatible change is blocked with FULL compatibility
-        Assertions.assertThrows(ProblemDetails.class, () -> {
+        Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
             createArtifactVersion(artifactId, v2Schema, ContentTypes.APPLICATION_JSON);
         });
 

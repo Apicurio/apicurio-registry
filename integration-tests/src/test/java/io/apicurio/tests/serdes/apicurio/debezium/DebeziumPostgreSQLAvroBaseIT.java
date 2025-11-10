@@ -140,6 +140,9 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
     @Override
     public void cleanup() throws Exception {
+        // Call parent cleanup first to delete the connector
+        super.cleanup();
+
         // Clean up PostgreSQL replication state
         if (dbConnection != null) {
             try {
@@ -149,9 +152,6 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                 log.error("Failed to clean up PostgreSQL replication state: {}", e.getMessage(), e);
             }
         }
-
-        // Call parent cleanup
-        super.cleanup();
     }
 
     // ==================== PostgreSQL-Specific Tests ====================

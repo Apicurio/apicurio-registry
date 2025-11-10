@@ -18,6 +18,11 @@ spec:
       containers:
         - name: postgresql-debezium
           image: quay.io/debezium/postgres:15
+          args:
+            - "-c"
+            - "max_wal_senders=20"
+            - "-c"
+            - "max_replication_slots=20"
           ports:
             - containerPort: 5432
           env:

@@ -131,9 +131,10 @@ public class DebeziumDeploymentManager {
                 System.setProperty("bootstrap.servers", bootstrapServers);
                 LOGGER.info("Kafka bootstrap servers (Linux/CI): {}", bootstrapServers);
             } else {
-                // macOS: Use localhost with localhost listener (port 29092)
+                // macOS: Use localhost with localhost listener (port 29092) and set cluster value
                 String bootstrapServers = "localhost:29092";
                 System.setProperty("bootstrap.servers", bootstrapServers);
+                System.setProperty("cluster.bootstrap.servers", kafkaService.getSpec().getClusterIP() + ":29093");
                 LOGGER.info("Kafka bootstrap servers (macOS): {}", bootstrapServers);
             }
         } else {

@@ -49,7 +49,8 @@ public class DebeziumContainerResource extends BaseDebeziumContainerResource {
                 DockerImageName.parse("quay.io/debezium/postgres:15").asCompatibleSubstituteFor("postgres"))
                 .withDatabaseName("registry")
                 .withUsername("postgres")
-                .withPassword("postgres");
+                .withPassword("postgres")
+                .withCommand("postgres", "-c", "max_wal_senders=20", "-c", "max_replication_slots=20");
 
         if (shouldUseHostNetwork()) {
             log.info("Using host network mode for PostgreSQL container (Linux/CI environment)");

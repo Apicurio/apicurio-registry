@@ -78,11 +78,16 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
         // MySQL requires unique server ID for each connector
         int serverId = 10000 + connectorCounter.get();
 
+        // Schema history topic for tracking DDL changes
+        String schemaHistoryTopic = "schema-history-" + connectorName.replace("-", "_");
+
         ConnectorConfiguration config = ConnectorConfiguration
                 .forJdbcContainer(getMySQLContainer())
                 .with("topic.prefix", topicPrefix)
                 .with("table.include.list", tableIncludeList)
                 .with("database.server.id", String.valueOf(serverId))
+                .with("schema.history.internal.kafka.bootstrap.servers", System.getProperty("cluster.bootstrap.servers"))
+                .with("schema.history.internal.kafka.topic", schemaHistoryTopic)
                 .with("key.converter", "io.apicurio.registry.utils.converter.AvroConverter")
                 .with("key.converter.apicurio.registry.url", dockerAccessibleRegistryUrl)
                 .with("key.converter.apicurio.registry.auto-register", "true")
@@ -98,11 +103,9 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
         currentConnectorName = connectorName;
 
         String jdbcUrl = getMySQLContainer().getJdbcUrl();
-        log.info("Registered Debezium connector: {} with server.id: {}, tables: {}, registry: {}, mysql: {}",
-                connectorName, serverId, tableIncludeList, dockerAccessibleRegistryUrl, jdbcUrl);
+        log.info("Registered Debezium connector: {} with server.id: {}, schema-history: {}, tables: {}, registry: {}, mysql: {}",
+                connectorName, serverId, schemaHistoryTopic, tableIncludeList, dockerAccessibleRegistryUrl, jdbcUrl);
     }
-
-    // ==================== MySQL-Specific Helper Methods ====================
 
     // ==================== MySQL-Specific Tests ====================
 

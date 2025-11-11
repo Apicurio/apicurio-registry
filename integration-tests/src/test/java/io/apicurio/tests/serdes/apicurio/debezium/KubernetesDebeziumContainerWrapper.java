@@ -78,82 +78,39 @@ public class KubernetesDebeziumContainerWrapper extends DebeziumContainer {
     @Override
     public Integer getMappedPort(int originalPort) {
         // In Kubernetes, we access via ClusterIP:port directly (no port mapping)
+        log.info("Accessing Debezium port at {}", port);
         return port;
     }
 
     @Override
+    public String getTarget() {
+        return "http://" + getHost() + ":" + getMappedPort(8083);
+    }
+
+    @Override
     public void registerConnector(String connectorName, ConnectorConfiguration configuration) {
+        // Build the connector URL explicitly for Kubernetes mode
+        // The parent class's HTTP client may not be properly initialized since we skip start()
         String connectUrl = "http://" + getHost() + ":" + getMappedPort(8083) + "/connectors";
-
-        log.info("=== Kubernetes Debezium Connector Registration ===");
-        log.info("Service name: {}", serviceName);
-        log.info("Target URL: {}", connectUrl);
-        log.info("Registering connector '{}' with configuration: {}", connectorName, configuration.asProperties());
-
+        log.info("Registering connector '{}' at {}", connectorName, connectUrl);
+        log.info("Connector configuration: {}", configuration.asProperties());
         try {
-            // Cannot use super.registerConnector() - parent's HTTP client is uninitialized since we skip start()
-            // Instead, make HTTP POST directly using OkHttp
-            okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
-                .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                .writeTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                .build();
-
-            String jsonBody = configuration.toJson();
-            okhttp3.RequestBody body = okhttp3.RequestBody.create(
-                jsonBody,
-                okhttp3.MediaType.get("application/json; charset=utf-8")
-            );
-
-            okhttp3.Request request = new okhttp3.Request.Builder()
-                .url(connectUrl)
-                .post(body)
-                .build();
-
-            try (okhttp3.Response response = client.newCall(request).execute()) {
-                if (!response.isSuccessful()) {
-                    String responseBody = response.body() != null ? response.body().string() : "";
-                    throw new RuntimeException("HTTP " + response.code() + ": " + responseBody);
-                }
-                log.info("✓ Successfully registered connector '{}' (HTTP {})", connectorName, response.code());
-            }
-        } catch (Exception e) {
-            log.error("✗ Failed to register connector '{}' at {}. Error: {}",
-                     connectorName, connectUrl, e.getMessage(), e);
+            // Use the parent class method which handles the HTTP request
+            super.registerConnector(connectorName, configuration);
+            log.info("Successfully registered connector '{}'", connectorName);
+        }
+        catch (RuntimeException e) {
+            log.error("Failed to register connector '{}' at {}: {}", connectorName, connectUrl, e.getMessage());
             log.error("Make sure Debezium Connect is running and accessible at {}", connectUrl);
             log.error("Check that minikube tunnel is running and LoadBalancer services are ready");
-            throw new RuntimeException("Connector registration failed: " + e.getMessage(), e);
+            throw e;  // Rethrow so we see the full error
         }
     }
 
     @Override
     public void deleteConnector(String connectorName) {
-        String connectUrl = "http://" + getHost() + ":" + getMappedPort(8083) + "/connectors/" + connectorName;
-
-        log.info("Deleting connector '{}' from {}", connectorName, connectUrl);
-
-        try {
-            okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
-                .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                .build();
-
-            okhttp3.Request request = new okhttp3.Request.Builder()
-                .url(connectUrl)
-                .delete()
-                .build();
-
-            try (okhttp3.Response response = client.newCall(request).execute()) {
-                if (!response.isSuccessful() && response.code() != 404) {
-                    String responseBody = response.body() != null ? response.body().string() : "";
-                    log.warn("Failed to delete connector '{}': HTTP {} - {}", connectorName, response.code(), responseBody);
-                } else {
-                    log.info("Successfully deleted connector '{}'", connectorName);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to delete connector '{}': {}", connectorName, e.getMessage());
-        }
+        // Use Debezium's HTTP client to delete connector
+        //super.deleteConnector(connectorName);
     }
 
     @Override

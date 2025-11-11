@@ -59,7 +59,7 @@ spec:
             - name: BOOTSTRAP_SERVERS
               value: kafka-service:9092
             - name: GROUP_ID
-              value: "1"
+              value: "local-converters-group"
             - name: CONFIG_STORAGE_TOPIC
               value: debezium_connect_configs_local
             - name: OFFSET_STORAGE_TOPIC

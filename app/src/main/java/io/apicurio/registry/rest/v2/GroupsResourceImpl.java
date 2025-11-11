@@ -299,8 +299,15 @@ public class GroupsResourceImpl implements GroupsResource {
     public void updateArtifactMetaData(String groupId, String artifactId, EditableMetaData data) {
         GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
                 RetrievalBehavior.ALL_STATES);
+
+        // Update the latest version's metadata
         storage.updateArtifactVersionMetaData(groupId, artifactId, latestGAV.getRawVersionId(),
                 EditableVersionMetaDataDto.builder().name(data.getName()).description(data.getDescription())
+                        .labels(V2ApiUtil.toV3Labels(data.getLabels(), data.getProperties())).build());
+
+        // Also update the artifact-level metadata (for V2 API semantics)
+        storage.updateArtifactMetaData(defaultGroupIdToNull(groupId), artifactId,
+                EditableArtifactMetaDataDto.builder().name(data.getName()).description(data.getDescription())
                         .labels(V2ApiUtil.toV3Labels(data.getLabels(), data.getProperties())).build());
     }
 
@@ -1245,6 +1252,15 @@ public class GroupsResourceImpl implements GroupsResource {
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(defaultGroupIdToNull(groupId),
                 artifactId, xRegistryVersion, artifactType, contentDto, metaData, List.of(), false, false,
                 owner);
+
+        // Update the artifact metadata to reflect the new version (for V2 API semantics)
+        EditableArtifactMetaDataDto artifactMD = EditableArtifactMetaDataDto.builder()
+                .name(artifactName)
+                .description(artifactDescription)
+                .labels(metaData != null ? metaData.getLabels() : null)
+                .build();
+        storage.updateArtifactMetaData(defaultGroupIdToNull(groupId), artifactId, artifactMD);
+
         return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType,
                 vmdDto);
     }

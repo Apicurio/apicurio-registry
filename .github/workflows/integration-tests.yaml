@@ -141,6 +141,9 @@ jobs:
       - name: Run Integration Tests - migration - H2
         run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
+      - name: Run Integration Tests - Debezium (All - Optimized)
+        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pdebezium-all -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
       - name: Collect logs
         if: failure()
         run: sh ./.github/scripts/collect_logs.sh

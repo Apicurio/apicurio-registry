@@ -291,6 +291,10 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         return getRegistryApiUrl().concat("/registry/v3");
     }
 
+    public static String getRegistryV2ApiUrl() {
+        return getRegistryApiUrl().concat("/registry/v2");
+    }
+
     public static String getRegistryBaseUrl() {
         if (REGISTRY_URL != null) {
             String baseUrl = REGISTRY_URL.toString();

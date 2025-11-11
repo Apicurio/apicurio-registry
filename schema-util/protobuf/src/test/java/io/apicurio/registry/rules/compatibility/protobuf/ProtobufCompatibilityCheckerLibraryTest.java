@@ -1049,4 +1049,55 @@ public class ProtobufCompatibilityCheckerLibraryTest {
                 "Nested enum references should be compatible regardless of qualification. Found: "
                         + differences);
     }
+
+    /**
+     * Tests grandparent scope resolution where a deeply nested message references a type
+     * defined in its parent's parent scope. This tests the Protobuf scoping rule where
+     * name resolution searches upward through parent scopes.
+     */
+    @Test
+    public void testGrandparentScopeTypeReferences() {
+        String schema1 = """
+            syntax = "proto3";
+            package test;
+
+            message GrandParent {
+                message SharedType {
+                    string value = 1;
+                }
+                message Parent {
+                    message Child {
+                        SharedType reference = 1;  // Should resolve to GrandParent.SharedType
+                    }
+                }
+            }
+        """;
+
+        String schema2 = """
+            syntax = "proto3";
+            package test;
+
+            message GrandParent {
+                message SharedType {
+                    string value = 1;
+                }
+                message Parent {
+                    message Child {
+                        .test.GrandParent.SharedType reference = 1;  // Fully qualified reference
+                    }
+                }
+            }
+        """;
+
+        ProtobufFile file1 = new ProtobufFile(schema1);
+        ProtobufFile file2 = new ProtobufFile(schema2);
+
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(file1,
+                file2);
+        List<ProtobufDifference> differences = checker.findDifferences();
+
+        assertTrue(differences.isEmpty(),
+                "Type references should resolve to grandparent scope per Protobuf scoping rules. Found: "
+                        + differences);
+    }
 }

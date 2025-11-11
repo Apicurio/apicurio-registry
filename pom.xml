@@ -219,7 +219,7 @@
 
     <!-- JSON Schema Validator -->
     <org.everit.json.schema.version>1.14.6</org.everit.json.schema.version>
-    <json-sKema.version>0.27.0</json-sKema.version>
+    <json-sKema.version>0.28.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250107</org.json.version>
     <jackson-datatype-json-org.version>2.18.2</jackson-datatype-json-org.version>
@@ -241,7 +241,7 @@
     <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
     <quickjs4j.version>0.0.12</quickjs4j.version>
 
-    <nats.version>2.23.0</nats.version>
+    <nats.version>2.24.0</nats.version>
     <snakeyaml.version>2.5</snakeyaml.version>
     <woodstox-core.version>7.1.1</woodstox-core.version>
     <jgit.version>7.4.0.202509020913-r</jgit.version>

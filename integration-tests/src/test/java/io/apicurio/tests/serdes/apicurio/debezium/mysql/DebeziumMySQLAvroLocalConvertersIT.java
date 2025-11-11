@@ -19,7 +19,7 @@ import org.testcontainers.containers.MySQLContainer;
  */
 @Tag(Constants.DEBEZIUM_MYSQL_SNAPSHOT)
 @QuarkusIntegrationTest
-@QuarkusTestResource(value = DebeziumMySQLLocalConvertersResource.class)
+@QuarkusTestResource(value = DebeziumMySQLLocalConvertersResource.class, restrictToAnnotatedClass = true)
 public class DebeziumMySQLAvroLocalConvertersIT extends DebeziumMySQLAvroBaseIT
         implements DebeziumAvroV3DeserializerMixin {
 

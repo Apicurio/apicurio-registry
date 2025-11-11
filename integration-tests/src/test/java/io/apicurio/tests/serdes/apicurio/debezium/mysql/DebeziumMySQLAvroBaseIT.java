@@ -137,7 +137,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(1)
     public void testBasicCDCWithSchemaAutoRegistration() throws Exception {
-        String tableName = "customers";
+        String tableName = getTableName("customers");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
@@ -176,7 +176,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(2)
     public void testUpdateAndDeleteOperations() throws Exception {
-        String tableName = "products";
+        String tableName = getTableName("products");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
@@ -250,9 +250,9 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(3)
     public void testMultipleTableCapture() throws Exception {
-        String table1 = "orders";
-        String table2 = "order_items";
-        String table3 = "inventory";
+        String table1 = getTableName("orders");
+        String table2 = getTableName("order_items");
+        String table3 = getTableName("inventory");
 
         createTable(table1,
                 "CREATE TABLE " + table1 + " (" +
@@ -309,7 +309,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(4)
     public void testSchemaNameAdjustment() throws Exception {
-        String tableName = "special_columns";
+        String tableName = getTableName("special_columns");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
@@ -347,7 +347,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(5)
     public void testBackwardCompatibleEvolution() throws Exception {
-        String tableName = "evolving_table";
+        String tableName = getTableName("evolving_table");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
@@ -396,7 +396,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(6)
     public void testSchemaCompatibilityRules() throws Exception {
-        String tableName = "compat_test";
+        String tableName = getTableName("compat_test");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
@@ -436,7 +436,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(7)
     public void testSchemaVersioning() throws Exception {
-        String tableName = "versioned_table";
+        String tableName = getTableName("versioned_table");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
@@ -478,7 +478,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(8)
     public void testMySQLSpecificTypes() throws Exception {
-        String tableName = "mysql_types_test";
+        String tableName = getTableName("mysql_types_test");
         String topicName = getTopicNameForTable(tableName);
 
         // MySQL-specific types: ENUM, SET, TINYINT, MEDIUMINT, YEAR, etc.
@@ -531,7 +531,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(9)
     public void testNumericAndDecimalPrecision() throws Exception {
-        String tableName = "decimal_test";
+        String tableName = getTableName("decimal_test");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
@@ -576,7 +576,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(10)
     public void testBulkOperations() throws Exception {
-        String tableName = "bulk_test";
+        String tableName = getTableName("bulk_test");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
@@ -620,7 +620,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(11)
     public void testConnectorRecovery() throws Exception {
-        String tableName = "recovery_test";
+        String tableName = getTableName("recovery_test");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,

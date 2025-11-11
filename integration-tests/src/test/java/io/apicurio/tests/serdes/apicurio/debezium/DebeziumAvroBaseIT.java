@@ -51,6 +51,7 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
     // Class-level connector that is shared across all test methods in a test class
     protected static String sharedConnectorName;
     protected static String sharedTopicPrefix;
+    protected static String tablePrefix;
     protected static final AtomicInteger connectorCounter = new AtomicInteger(0);
 
     /**
@@ -111,10 +112,13 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         }
 
         // Create a single shared connector for this test class that watches all tables
-        sharedConnectorName = "connector-" + connectorCounter.incrementAndGet();
-        sharedTopicPrefix = "test" + connectorCounter.get();
+        int classId = connectorCounter.incrementAndGet();
+        sharedConnectorName = "connector-" + classId;
+        sharedTopicPrefix = "test" + classId;
+        tablePrefix = "tbl" + classId + "_";
 
-        log.info("Creating shared connector {} for all tests in this class", sharedConnectorName);
+        log.info("Creating shared connector {} for all tests in this class (table prefix: {})",
+                sharedConnectorName, tablePrefix);
 
         // Register connector to watch all tables in the schema
         String tablePattern = getTableIncludePattern();
@@ -132,6 +136,14 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
      */
     protected String getTableIncludePattern() {
         return "public.*";
+    }
+
+    /**
+     * Returns a unique table name with prefix to avoid conflicts when sharing database containers.
+     * Each test class gets a unique prefix based on its connector counter.
+     */
+    protected String getTableName(String baseName) {
+        return tablePrefix + baseName;
     }
 
     /**

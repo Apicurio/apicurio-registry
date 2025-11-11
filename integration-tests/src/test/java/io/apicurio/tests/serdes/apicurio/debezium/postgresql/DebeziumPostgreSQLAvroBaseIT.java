@@ -171,11 +171,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(1)
     public void testBasicCDCWithSchemaAutoRegistration() throws Exception {
-        String tableName = "customers";
+        String tableName = getTableName("customers");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
-                "CREATE TABLE " + tableName + " (" +
+                "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "name VARCHAR(100) NOT NULL, " +
                         "email VARCHAR(100), " +
@@ -211,11 +211,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(2)
     public void testUpdateAndDeleteOperations() throws Exception {
-        String tableName = "products";
+        String tableName = getTableName("products");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
-                "CREATE TABLE " + tableName + " (" +
+                "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "name VARCHAR(100) NOT NULL, " +
                         "price DECIMAL(10, 2)" +
@@ -293,19 +293,19 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(3)
     public void testMultipleTableCapture() throws Exception {
-        String table1 = "orders";
-        String table2 = "order_items";
-        String table3 = "inventory";
+        String table1 = getTableName("orders");
+        String table2 = getTableName("order_items");
+        String table3 = getTableName("inventory");
 
         createTable(table1,
-                "CREATE TABLE " + table1 + " (" +
+                "CREATE TABLE IF NOT EXISTS " + table1 + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "order_number VARCHAR(50) NOT NULL, " +
                         "total DECIMAL(10, 2)" +
                         ")");
 
         createTable(table2,
-                "CREATE TABLE " + table2 + " (" +
+                "CREATE TABLE IF NOT EXISTS " + table2 + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "order_id INT, " +
                         "product_name VARCHAR(100), " +
@@ -313,7 +313,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         ")");
 
         createTable(table3,
-                "CREATE TABLE " + table3 + " (" +
+                "CREATE TABLE IF NOT EXISTS " + table3 + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "sku VARCHAR(50), " +
                         "stock_count INT" +
@@ -353,11 +353,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(4)
     public void testSchemaNameAdjustment() throws Exception {
-        String tableName = "special_columns";
+        String tableName = getTableName("special_columns");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
-                "CREATE TABLE " + tableName + " (" +
+                "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "\"first-name\" VARCHAR(100), " +
                         "\"last name\" VARCHAR(100), " +
@@ -390,11 +390,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(5)
     public void testBackwardCompatibleEvolution() throws Exception {
-        String tableName = "evolving_table";
+        String tableName = getTableName("evolving_table");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
-                "CREATE TABLE " + tableName + " (" +
+                "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "name VARCHAR(100) NOT NULL" +
                         ")");
@@ -439,11 +439,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(6)
     public void testSchemaCompatibilityRules() throws Exception {
-        String tableName = "compat_test";
+        String tableName = getTableName("compat_test");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
-                "CREATE TABLE " + tableName + " (" +
+                "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "data VARCHAR(100)" +
                         ")");
@@ -479,11 +479,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(7)
     public void testSchemaVersioning() throws Exception {
-        String tableName = "versioned_table";
+        String tableName = getTableName("versioned_table");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
-                "CREATE TABLE " + tableName + " (" +
+                "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "field1 VARCHAR(100)" +
                         ")");
@@ -521,7 +521,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(8)
     public void testPostgreSQLSpecificTypes() throws Exception {
-        String tableName = "pg_types_test";
+        String tableName = getTableName("pg_types_test");
         String topicName = getTopicNameForTable(tableName);
 
         try (Statement stmt = getDatabaseConnection().createStatement()) {
@@ -530,7 +530,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         }
 
         createTable(tableName,
-                "CREATE TABLE " + tableName + " (" +
+                "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "data_json JSONB, " +
                         "tags TEXT[], " +
@@ -575,11 +575,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(9)
     public void testNumericAndDecimalPrecision() throws Exception {
-        String tableName = "decimal_test";
+        String tableName = getTableName("decimal_test");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
-                "CREATE TABLE " + tableName + " (" +
+                "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "price DECIMAL(10, 2), " +
                         "tax_rate NUMERIC(5, 4), " +
@@ -620,11 +620,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(10)
     public void testBulkOperations() throws Exception {
-        String tableName = "bulk_test";
+        String tableName = getTableName("bulk_test");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
-                "CREATE TABLE " + tableName + " (" +
+                "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "value VARCHAR(100)" +
                         ")");
@@ -664,11 +664,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Test
     @Order(11)
     public void testConnectorRecovery() throws Exception {
-        String tableName = "recovery_test";
+        String tableName = getTableName("recovery_test");
         String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
-                "CREATE TABLE " + tableName + " (" +
+                "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                         "id SERIAL PRIMARY KEY, " +
                         "data VARCHAR(100)" +
                         ")");

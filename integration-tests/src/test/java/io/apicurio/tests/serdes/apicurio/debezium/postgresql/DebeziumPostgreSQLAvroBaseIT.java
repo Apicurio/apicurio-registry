@@ -48,6 +48,12 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     }
 
     @Override
+    protected String getTableIncludePattern() {
+        // Watch all tables in the public schema
+        return "public.*";
+    }
+
+    @Override
     protected Connection createDatabaseConnection() throws SQLException {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
             String username = System.getProperty("debezium.postgres.username", "postgres");
@@ -85,10 +91,11 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                 .with("database.dbname", getPostgresContainer().getDatabaseName())
                 .with("slot.name", slotName)
                 .with("publication.name", "pub_" + connectorName.replace("-", "_"))
-                .with("plugin.name", "pgoutput");
+                .with("plugin.name", "pgoutput")
+                .with("schema.name.adjustment.mode", "avro")
+                .with("field.name.adjustment.mode", "avro");
 
         getDebeziumContainer().registerConnector(connectorName, config);
-        currentConnectorName = connectorName;
 
         String jdbcUrl = getPostgresContainer().getJdbcUrl();
         log.info("Registered Debezium connector: {} with slot: {}, tables: {}, postgres: {}",
@@ -159,13 +166,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
     /**
      * Test 1: Basic CDC with Schema Auto-Registration
+     * Uses the shared connector that watches all tables in public schema.
      */
     @Test
     @Order(1)
     public void testBasicCDCWithSchemaAutoRegistration() throws Exception {
         String tableName = "customers";
-        String topicPrefix = "test1";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
@@ -175,13 +182,8 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
                         ")");
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        registerDebeziumConnectorWithApicurioConverters(
-                connectorName,
-                topicPrefix,
-                "public." + tableName);
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
+        // No need to create connector - using shared connector from @BeforeAll
+        // Just subscribe to the topic for this table
         consumer.subscribe(List.of(topicName));
         waitForConsumerReady(Duration.ofSeconds(5));
 
@@ -210,8 +212,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Order(2)
     public void testUpdateAndDeleteOperations() throws Exception {
         String tableName = "products";
-        String topicPrefix = "test2";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
@@ -225,13 +226,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
             log.info("Set REPLICA IDENTITY FULL for table: {}", tableName);
         }
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        registerDebeziumConnectorWithApicurioConverters(
-                connectorName,
-                topicPrefix,
-                "public." + tableName);
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
+        // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
         waitForConsumerReady(Duration.ofSeconds(5));
 
@@ -301,7 +296,6 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         String table1 = "orders";
         String table2 = "order_items";
         String table3 = "inventory";
-        String topicPrefix = "test3";
 
         createTable(table1,
                 "CREATE TABLE " + table1 + " (" +
@@ -325,17 +319,10 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "stock_count INT" +
                         ")");
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        registerDebeziumConnectorWithApicurioConverters(
-                connectorName,
-                topicPrefix,
-                "public." + table1 + ",public." + table2 + ",public." + table3);
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
-
-        String topic1 = topicPrefix + ".public." + table1;
-        String topic2 = topicPrefix + ".public." + table2;
-        String topic3 = topicPrefix + ".public." + table3;
+        // Using shared connector that watches all tables
+        String topic1 = getTopicNameForTable(table1);
+        String topic2 = getTopicNameForTable(table2);
+        String topic3 = getTopicNameForTable(table3);
 
         consumer.subscribe(List.of(topic1, topic2, topic3));
         waitForConsumerReady(Duration.ofSeconds(5));
@@ -361,13 +348,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
     /**
      * Test 4: Schema Name Adjustment
+     * Note: Shared connector already has schema/field name adjustment mode set to "avro"
      */
     @Test
     @Order(4)
     public void testSchemaNameAdjustment() throws Exception {
         String tableName = "special_columns";
-        String topicPrefix = "test4";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
@@ -377,34 +364,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "\"email@address\" VARCHAR(100)" +
                         ")");
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        String slotName = "slot_" + connectorName.replace("-", "_");
-        String registryUrl = getContainerAccessibleRegistryUrl();
-
-        ConnectorConfiguration config = ConnectorConfiguration
-                .forJdbcContainer(getPostgresContainer())
-                .with("topic.prefix", topicPrefix)
-                .with("table.include.list", "public." + tableName)
-                .with("slot.name", slotName)
-                .with("publication.name", "pub_" + connectorName.replace("-", "_"))
-                .with("plugin.name", "pgoutput")
-                .with("schema.name.adjustment.mode", "avro")
-                .with("field.name.adjustment.mode", "avro")
-                .with("key.converter", "io.apicurio.registry.utils.converter.AvroConverter")
-                .with("key.converter.apicurio.registry.url", registryUrl)
-                .with("key.converter.apicurio.registry.auto-register", "true")
-                .with("key.converter.apicurio.registry.find-latest", "true")
-                .with("key.converter.apicurio.registry.headers.enabled", "false")
-                .with("value.converter", "io.apicurio.registry.utils.converter.AvroConverter")
-                .with("value.converter.apicurio.registry.url", registryUrl)
-                .with("value.converter.apicurio.registry.auto-register", "true")
-                .with("value.converter.apicurio.registry.find-latest", "true")
-                .with("value.converter.apicurio.registry.headers.enabled", "false");
-
-        getDebeziumContainer().registerConnector(connectorName, config);
-        currentConnectorName = connectorName;
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
+        // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
         waitForConsumerReady(Duration.ofSeconds(5));
 
@@ -431,8 +391,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Order(5)
     public void testBackwardCompatibleEvolution() throws Exception {
         String tableName = "evolving_table";
-        String topicPrefix = "test5";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
@@ -440,13 +399,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "name VARCHAR(100) NOT NULL" +
                         ")");
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        registerDebeziumConnectorWithApicurioConverters(
-                connectorName,
-                topicPrefix,
-                "public." + tableName);
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
+        // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
         waitForConsumerReady(Duration.ofSeconds(5));
 
@@ -487,8 +440,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Order(6)
     public void testSchemaCompatibilityRules() throws Exception {
         String tableName = "compat_test";
-        String topicPrefix = "test6";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
@@ -496,13 +448,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "data VARCHAR(100)" +
                         ")");
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        registerDebeziumConnectorWithApicurioConverters(
-                connectorName,
-                topicPrefix,
-                "public." + tableName);
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
+        // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
         waitForConsumerReady(Duration.ofSeconds(5));
 
@@ -534,8 +480,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Order(7)
     public void testSchemaVersioning() throws Exception {
         String tableName = "versioned_table";
-        String topicPrefix = "test7";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
@@ -543,13 +488,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "field1 VARCHAR(100)" +
                         ")");
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        registerDebeziumConnectorWithApicurioConverters(
-                connectorName,
-                topicPrefix,
-                "public." + tableName);
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
+        // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
         waitForConsumerReady(Duration.ofSeconds(5));
 
@@ -583,8 +522,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Order(8)
     public void testPostgreSQLSpecificTypes() throws Exception {
         String tableName = "pg_types_test";
-        String topicPrefix = "test8";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = getTopicNameForTable(tableName);
 
         try (Statement stmt = getDatabaseConnection().createStatement()) {
             stmt.execute("DROP TYPE IF EXISTS mood CASCADE");
@@ -601,13 +539,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "created_at TIMESTAMPTZ" +
                         ")");
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        registerDebeziumConnectorWithApicurioConverters(
-                connectorName,
-                topicPrefix,
-                "public." + tableName);
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
+        // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
         waitForConsumerReady(Duration.ofSeconds(5));
 
@@ -644,8 +576,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Order(9)
     public void testNumericAndDecimalPrecision() throws Exception {
         String tableName = "decimal_test";
-        String topicPrefix = "test9";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
@@ -656,13 +587,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "quantity NUMERIC(10, 0)" +
                         ")");
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        registerDebeziumConnectorWithApicurioConverters(
-                connectorName,
-                topicPrefix,
-                "public." + tableName);
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
+        // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
         waitForConsumerReady(Duration.ofSeconds(5));
 
@@ -696,8 +621,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     @Order(10)
     public void testBulkOperations() throws Exception {
         String tableName = "bulk_test";
-        String topicPrefix = "test10";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
@@ -705,13 +629,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "value VARCHAR(100)" +
                         ")");
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        registerDebeziumConnectorWithApicurioConverters(
-                connectorName,
-                topicPrefix,
-                "public." + tableName);
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
+        // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
         waitForConsumerReady(Duration.ofSeconds(5));
 
@@ -741,13 +659,13 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
     /**
      * Test 11: Connector Recovery
+     * Note: With shared connector, this tests that the connector continues working after inserts
      */
     @Test
     @Order(11)
     public void testConnectorRecovery() throws Exception {
         String tableName = "recovery_test";
-        String topicPrefix = "test11";
-        String topicName = topicPrefix + "." + "public." + tableName;
+        String topicName = getTopicNameForTable(tableName);
 
         createTable(tableName,
                 "CREATE TABLE " + tableName + " (" +
@@ -755,13 +673,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "data VARCHAR(100)" +
                         ")");
 
-        String connectorName = "connector-" + connectorCounter.incrementAndGet();
-        registerDebeziumConnectorWithApicurioConverters(
-                connectorName,
-                topicPrefix,
-                "public." + tableName);
-
-        waitForConnectorReady(connectorName, Duration.ofSeconds(10));
+        // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
         waitForConsumerReady(Duration.ofSeconds(5));
 

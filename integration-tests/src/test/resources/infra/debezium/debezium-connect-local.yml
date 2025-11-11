@@ -107,8 +107,8 @@ metadata:
 spec:
   ports:
     - protocol: TCP
-      port: 8083
-      targetPort: 8083
+      port: 8084  # Different external port to avoid conflict with published converters service
+      targetPort: 8083  # Container still listens on 8083
   selector:
     app: debezium-connect-local
   type: LoadBalancer

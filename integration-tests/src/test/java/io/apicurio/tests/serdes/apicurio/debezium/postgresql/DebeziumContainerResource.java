@@ -1,20 +1,23 @@
 package io.apicurio.tests.serdes.apicurio.debezium.postgresql;
 
 import io.apicurio.tests.serdes.apicurio.debezium.BaseDebeziumContainerResource;
+import io.apicurio.tests.serdes.apicurio.debezium.KubernetesDebeziumContainerWrapper;
+import io.apicurio.tests.serdes.apicurio.debezium.SharedDebeziumInfrastructure;
+import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 
 /**
  * Container resource for Debezium PostgreSQL integration tests.
+ * In local mode, this uses SharedDebeziumInfrastructure to share containers across test classes.
  */
 public class DebeziumContainerResource extends BaseDebeziumContainerResource {
 
     private static final Logger log = LoggerFactory.getLogger(DebeziumContainerResource.class);
 
     public static PostgreSQLContainer<?> postgresContainer;
+    public static DebeziumContainer debeziumContainer;
 
     @Override
     protected String getDatabaseType() {
@@ -31,43 +34,15 @@ public class DebeziumContainerResource extends BaseDebeziumContainerResource {
     }
 
     @Override
-    protected void createLocalContainers() {
-        // Create local Testcontainers for PostgreSQL
-        postgresContainer = createPostgreSQLContainer();
-        debeziumContainer = createDebeziumContainer();
+    protected void initializeSharedInfrastructure() {
+        // Initialize PostgreSQL infrastructure via SharedDebeziumInfrastructure
+        SharedDebeziumInfrastructure.initializePostgreSQLInfrastructure();
     }
 
     @Override
-    protected GenericContainer<?> getDatabaseContainer() {
-        return postgresContainer;
-    }
-
-    /**
-     * Creates PostgreSQL container with appropriate network configuration.
-     */
-    protected static PostgreSQLContainer<?> createPostgreSQLContainer() {
-        PostgreSQLContainer<?> container = new PostgreSQLContainer<>(
-                DockerImageName.parse("quay.io/debezium/postgres:15").asCompatibleSubstituteFor("postgres"))
-                .withDatabaseName("registry")
-                .withUsername("postgres")
-                .withPassword("postgres")
-                .withCommand("postgres", "-c", "max_wal_senders=20", "-c", "max_replication_slots=20");
-
-        if (shouldUseHostNetwork()) {
-            log.info("Using host network mode for PostgreSQL container (Linux/CI environment)");
-            container.withNetworkMode("host");
-            // In host network mode, PostgreSQL binds directly to localhost:5432
-            // Override the wait strategy to use log-based detection instead of port mapping
-            container.withStartupTimeout(java.time.Duration.ofSeconds(60))
-                    .waitingFor(new org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy()
-                            .withRegEx(".*database system is ready to accept connections.*")
-                            .withTimes(2)
-                            .withStartupTimeout(java.time.Duration.ofSeconds(60)));
-        } else {
-            log.info("Using bridge network mode for PostgreSQL container (Mac/Windows environment)");
-            container.withNetwork(network).withNetworkAliases("postgres");
-        }
-
-        return container;
+    protected void setContainerReferences() {
+        // Set references from SharedDebeziumInfrastructure
+        postgresContainer = SharedDebeziumInfrastructure.postgresContainer;
+        debeziumContainer = SharedDebeziumInfrastructure.debeziumContainerPostgres;
     }
 }

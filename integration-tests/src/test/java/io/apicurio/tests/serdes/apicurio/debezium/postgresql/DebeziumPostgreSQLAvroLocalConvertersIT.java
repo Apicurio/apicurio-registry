@@ -24,7 +24,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
  */
 @Tag(Constants.DEBEZIUM_SNAPSHOT)
 @QuarkusIntegrationTest
-@QuarkusTestResource(value = DebeziumLocalConvertersResource.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = DebeziumLocalConvertersResource.class)
 public class DebeziumPostgreSQLAvroLocalConvertersIT extends DebeziumPostgreSQLAvroBaseIT
         implements DebeziumAvroV3DeserializerMixin {
 

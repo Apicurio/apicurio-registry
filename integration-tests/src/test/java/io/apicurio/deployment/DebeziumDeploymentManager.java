@@ -20,40 +20,72 @@ import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
 
 /**
  * Deployment manager for Debezium integration tests in Kubernetes.
- * Deploys Kafka, PostgreSQL, and Debezium Kafka Connect to the test namespace.
+ * Deploys Kafka, PostgreSQL, MySQL, and Debezium Kafka Connect to the test namespace.
+ *
+ * Supports idempotent deployment - infrastructure components are only deployed once
+ * and reused across multiple test executions for improved CI performance.
  */
 public class DebeziumDeploymentManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DebeziumDeploymentManager.class);
 
+    // Flags to track what infrastructure has been deployed (for idempotency)
+    private static volatile boolean kafkaDeployed = false;
+    private static volatile boolean postgresqlDeployed = false;
+    private static volatile boolean mysqlDeployed = false;
+    private static volatile boolean debeziumPublishedDeployed = false;
+    private static volatile boolean debeziumLocalDeployed = false;
+
     /**
      * Deploys the complete Debezium PostgreSQL test infrastructure to Kubernetes.
      * This includes: Kafka, PostgreSQL (with Debezium support), and Debezium Kafka Connect.
      *
+     * This method is idempotent - it will skip deployment of components that are already deployed.
+     *
      * @param useLocalConverters If true, uses locally-built Apicurio converters; if false, uses published converters
      * @throws IOException if deployment fails
      */
-    public static void deployDebeziumInfra(boolean useLocalConverters) throws IOException {
+    public static synchronized void deployDebeziumInfra(boolean useLocalConverters) throws IOException {
         LOGGER.info("Deploying Debezium PostgreSQL test infrastructure (useLocalConverters={}) ##################################################", useLocalConverters);
 
-        // Deploy Kafka (reuse existing Kafka resources)
-        LOGGER.info("Deploying Kafka ##################################################");
-        deployResource(KAFKA_RESOURCES);
-
-        // Deploy PostgreSQL with Debezium support
-        LOGGER.info("Deploying PostgreSQL with Debezium support ##################################################");
-        deployResource(DEBEZIUM_POSTGRES_RESOURCES);
-
-        // Deploy Debezium Kafka Connect (published or local converters)
-        if (useLocalConverters) {
-            LOGGER.info("Deploying Debezium Kafka Connect with local converters ##################################################");
-            deployDebeziumWithLocalConverters();
+        // Deploy Kafka (idempotent - only deploy if not already deployed)
+        if (!kafkaDeployed) {
+            LOGGER.info("Deploying Kafka ##################################################");
+            deployResource(KAFKA_RESOURCES);
+            kafkaDeployed = true;
         } else {
-            LOGGER.info("Deploying Debezium Kafka Connect with published converters ##################################################");
-            deployResource(DEBEZIUM_CONNECT_RESOURCES);
+            LOGGER.info("Kafka already deployed, skipping ##################################################");
         }
 
-        // Configure system properties for test access
+        // Deploy PostgreSQL with Debezium support (idempotent)
+        if (!postgresqlDeployed) {
+            LOGGER.info("Deploying PostgreSQL with Debezium support ##################################################");
+            deployResource(DEBEZIUM_POSTGRES_RESOURCES);
+            postgresqlDeployed = true;
+        } else {
+            LOGGER.info("PostgreSQL already deployed, skipping ##################################################");
+        }
+
+        // Deploy Debezium Kafka Connect (published or local converters) - idempotent
+        if (useLocalConverters) {
+            if (!debeziumLocalDeployed) {
+                LOGGER.info("Deploying Debezium Kafka Connect with local converters ##################################################");
+                deployDebeziumWithLocalConverters();
+                debeziumLocalDeployed = true;
+            } else {
+                LOGGER.info("Debezium with local converters already deployed, skipping ##################################################");
+            }
+        } else {
+            if (!debeziumPublishedDeployed) {
+                LOGGER.info("Deploying Debezium Kafka Connect with published converters ##################################################");
+                deployResource(DEBEZIUM_CONNECT_RESOURCES);
+                debeziumPublishedDeployed = true;
+            } else {
+                LOGGER.info("Debezium with published converters already deployed, skipping ##################################################");
+            }
+        }
+
+        // Configure system properties for test access (always run to ensure properties are set)
         configureTestProperties(useLocalConverters, "postgresql");
 
         // Wait for Debezium Connect to be ready
@@ -66,36 +98,117 @@ public class DebeziumDeploymentManager {
      * Deploys the complete Debezium MySQL test infrastructure to Kubernetes.
      * This includes: Kafka, MySQL (with Debezium support), and Debezium Kafka Connect.
      *
+     * This method is idempotent - it will skip deployment of components that are already deployed.
+     *
      * @param useLocalConverters If true, uses locally-built Apicurio converters; if false, uses published converters
      * @throws IOException if deployment fails
      */
-    public static void deployDebeziumMySQLInfra(boolean useLocalConverters) throws IOException {
+    public static synchronized void deployDebeziumMySQLInfra(boolean useLocalConverters) throws IOException {
         LOGGER.info("Deploying Debezium MySQL test infrastructure (useLocalConverters={}) ##################################################", useLocalConverters);
 
-        // Deploy Kafka (reuse existing Kafka resources)
-        LOGGER.info("Deploying Kafka ##################################################");
-        deployResource(KAFKA_RESOURCES);
-
-        // Deploy MySQL with Debezium support
-        LOGGER.info("Deploying MySQL with Debezium support ##################################################");
-        deployResource(DEBEZIUM_MYSQL_RESOURCES);
-
-        // Deploy Debezium Kafka Connect (published or local converters)
-        if (useLocalConverters) {
-            LOGGER.info("Deploying Debezium Kafka Connect with local converters ##################################################");
-            deployDebeziumWithLocalConverters();
+        // Deploy Kafka (idempotent - only deploy if not already deployed)
+        if (!kafkaDeployed) {
+            LOGGER.info("Deploying Kafka ##################################################");
+            deployResource(KAFKA_RESOURCES);
+            kafkaDeployed = true;
         } else {
-            LOGGER.info("Deploying Debezium Kafka Connect with published converters ##################################################");
-            deployResource(DEBEZIUM_CONNECT_RESOURCES);
+            LOGGER.info("Kafka already deployed, skipping ##################################################");
         }
 
-        // Configure system properties for test access
+        // Deploy MySQL with Debezium support (idempotent)
+        if (!mysqlDeployed) {
+            LOGGER.info("Deploying MySQL with Debezium support ##################################################");
+            deployResource(DEBEZIUM_MYSQL_RESOURCES);
+            mysqlDeployed = true;
+        } else {
+            LOGGER.info("MySQL already deployed, skipping ##################################################");
+        }
+
+        // Deploy Debezium Kafka Connect (published or local converters) - idempotent
+        if (useLocalConverters) {
+            if (!debeziumLocalDeployed) {
+                LOGGER.info("Deploying Debezium Kafka Connect with local converters ##################################################");
+                deployDebeziumWithLocalConverters();
+                debeziumLocalDeployed = true;
+            } else {
+                LOGGER.info("Debezium with local converters already deployed, skipping ##################################################");
+            }
+        } else {
+            if (!debeziumPublishedDeployed) {
+                LOGGER.info("Deploying Debezium Kafka Connect with published converters ##################################################");
+                deployResource(DEBEZIUM_CONNECT_RESOURCES);
+                debeziumPublishedDeployed = true;
+            } else {
+                LOGGER.info("Debezium with published converters already deployed, skipping ##################################################");
+            }
+        }
+
+        // Configure system properties for test access (always run to ensure properties are set)
         configureTestProperties(useLocalConverters, "mysql");
 
         // Wait for Debezium Connect to be ready
         waitForDebeziumConnectReady(useLocalConverters);
 
         LOGGER.info("Debezium MySQL infrastructure deployment complete ##################################################");
+    }
+
+    /**
+     * Deploys ALL Debezium test infrastructure to Kubernetes in one go.
+     * This includes: Kafka, PostgreSQL, MySQL, and both published and local Debezium Connect instances.
+     *
+     * This method is designed for CI environments to deploy everything once and run all test suites
+     * in a single Maven execution, significantly improving performance.
+     *
+     * @throws IOException if deployment fails
+     */
+    public static synchronized void deployAllDebeziumInfra() throws IOException {
+        LOGGER.info("Deploying ALL Debezium test infrastructure (PostgreSQL + MySQL + both converter types) ##################################################");
+
+        // Deploy shared Kafka infrastructure
+        if (!kafkaDeployed) {
+            LOGGER.info("Deploying Kafka ##################################################");
+            deployResource(KAFKA_RESOURCES);
+            kafkaDeployed = true;
+        }
+
+        // Deploy PostgreSQL
+        if (!postgresqlDeployed) {
+            LOGGER.info("Deploying PostgreSQL with Debezium support ##################################################");
+            deployResource(DEBEZIUM_POSTGRES_RESOURCES);
+            postgresqlDeployed = true;
+        }
+
+        // Deploy MySQL
+        if (!mysqlDeployed) {
+            LOGGER.info("Deploying MySQL with Debezium support ##################################################");
+            deployResource(DEBEZIUM_MYSQL_RESOURCES);
+            mysqlDeployed = true;
+        }
+
+        // Deploy Debezium Connect with published converters
+        if (!debeziumPublishedDeployed) {
+            LOGGER.info("Deploying Debezium Kafka Connect with published converters ##################################################");
+            deployResource(DEBEZIUM_CONNECT_RESOURCES);
+            debeziumPublishedDeployed = true;
+        }
+
+        // Deploy Debezium Connect with local converters
+        if (!debeziumLocalDeployed) {
+            LOGGER.info("Deploying Debezium Kafka Connect with local converters ##################################################");
+            deployDebeziumWithLocalConverters();
+            debeziumLocalDeployed = true;
+        }
+
+        // Configure system properties for both databases
+        configureTestProperties(false, "postgresql");
+        configureTestProperties(false, "mysql");
+        configureTestProperties(true, "postgresql");  // Also configure for local converters
+
+        // Wait for both Debezium Connect instances to be ready
+        waitForDebeziumConnectReady(false);  // Published converters
+        waitForDebeziumConnectReady(true);   // Local converters
+
+        LOGGER.info("ALL Debezium infrastructure deployment complete ##################################################");
     }
 
     /**
@@ -358,8 +471,9 @@ public class DebeziumDeploymentManager {
             // Let's wait a bit and then try to connect
             Thread.sleep(10000); // Give minikube tunnel time to set up the route
 
+            String port = useLocalConverters ? "8084" : "8083";
             // Try to connect to the Debezium Connect REST API
-            String connectUrl = "http://localhost:8083";
+            String connectUrl = "http://localhost:" + port;
             LOGGER.info("Checking Debezium Connect readiness at: {}", connectUrl);
 
             int maxAttempts = 30;

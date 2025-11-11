@@ -593,6 +593,36 @@
       </build>
     </profile>
 
+    <!-- Combined profile for running ALL Debezium tests in one Maven execution (CI optimization) -->
+    <profile>
+      <id>debezium-all</id>
+      <properties>
+        <!-- Run all Debezium test groups in a single execution -->
+        <groups>debezium,debezium-snapshot,debezium-mysql,debezium-mysql-snapshot</groups>
+        <skipTests>false</skipTests>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <!-- Deploy all Debezium infrastructure at once -->
+                    <deployAllDebezium>true</deployAllDebezium>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <profile>
       <id>kafkasql-snapshotting</id>
       <properties>

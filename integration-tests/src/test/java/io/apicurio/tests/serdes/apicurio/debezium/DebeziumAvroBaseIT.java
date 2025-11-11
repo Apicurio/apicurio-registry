@@ -9,6 +9,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +47,10 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
     protected KafkaConsumer<byte[], byte[]> consumer;
     protected Connection dbConnection;
     protected List<String> createdTables = new ArrayList<>();
-    protected String currentConnectorName;
+
+    // Class-level connector that is shared across all test methods in a test class
+    protected static String sharedConnectorName;
+    protected static String sharedTopicPrefix;
     protected static final AtomicInteger connectorCounter = new AtomicInteger(0);
 
     /**
@@ -82,7 +86,7 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
 
     @BeforeAll
     public void setup() throws Exception {
-        log.info("Debezium {} Avro Integration Test setup complete", getDatabaseType().toUpperCase());
+        log.info("Debezium {} Avro Integration Test setup starting", getDatabaseType().toUpperCase());
         log.info("Registry URL (host): {}", getRegistryV3ApiUrl());
         log.info("Registry Base URL: {}", getRegistryBaseUrl());
         log.info("Kafka Bootstrap Servers: {}", System.getProperty("bootstrap.servers"));
@@ -105,12 +109,56 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
             log.error(errorMsg, e);
             throw new RuntimeException(errorMsg, e);
         }
+
+        // Create a single shared connector for this test class that watches all tables
+        sharedConnectorName = "connector-" + connectorCounter.incrementAndGet();
+        sharedTopicPrefix = "test" + connectorCounter.get();
+
+        log.info("Creating shared connector {} for all tests in this class", sharedConnectorName);
+
+        // Register connector to watch all tables in the schema
+        String tablePattern = getTableIncludePattern();
+        registerDebeziumConnectorWithApicurioConverters(sharedConnectorName, sharedTopicPrefix, tablePattern);
+
+        // Wait for connector to be ready with a longer timeout for initial startup
+        waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(30));
+
+        log.info("Shared connector {} is ready and watching pattern: {}", sharedConnectorName, tablePattern);
+    }
+
+    /**
+     * Returns the table include pattern for watching all tables.
+     * Database-specific implementations can override this.
+     */
+    protected String getTableIncludePattern() {
+        return "public.*";
+    }
+
+    /**
+     * Returns the Kafka topic name for a given table name using the shared topic prefix.
+     * Database-specific implementations can override this for custom topic naming.
+     */
+    protected String getTopicNameForTable(String tableName) {
+        return sharedTopicPrefix + ".public." + tableName;
+    }
+
+    @AfterAll
+    public void teardown() throws Exception {
+        if (sharedConnectorName != null) {
+            try {
+                log.info("Deleting shared connector: {}", sharedConnectorName);
+                getDebeziumContainer().deleteConnector(sharedConnectorName);
+                log.info("Successfully deleted shared connector: {}", sharedConnectorName);
+            }
+            catch (Exception e) {
+                log.error("Failed to delete shared connector {}: {}", sharedConnectorName, e.getMessage(), e);
+            }
+        }
     }
 
     @BeforeEach
     public void beforeEachTest() throws InterruptedException {
-        currentConnectorName = null;
-
+        // Close and recreate consumer for test isolation
         if (consumer != null) {
             try {
                 consumer.close();
@@ -127,18 +175,7 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
     public void cleanup() throws Exception {
         Exception cleanupException = null;
 
-        if (currentConnectorName != null) {
-            try {
-                log.info("Deleting Debezium connector: {}", currentConnectorName);
-                getDebeziumContainer().deleteConnector(currentConnectorName);
-                Thread.sleep(5000);
-                log.info("Successfully deleted connector: {}", currentConnectorName);
-            }
-            catch (Exception e) {
-                log.error("Failed to delete connector {}: {}", currentConnectorName, e.getMessage(), e);
-                cleanupException = e;
-            }
-        }
+        // No longer delete connector after each test - it's shared across all tests in the class
 
         if (consumer != null) {
             try {
@@ -244,13 +281,11 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         });
     }
 
-    // ==================== Common Connector Management Methods ====================
-
     protected void waitForConnectorReady(String connectorName, Duration timeout) throws Exception {
-        log.info("Waiting for connector {} to be ready...", connectorName);
-
         String connectUrl = "http://" + getDebeziumContainer().getHost() + ":" +
                 getDebeziumContainer().getMappedPort(8083);
+
+        log.info("Waiting for connector {} to be ready at {}...", connectorName, connectUrl);
 
         Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
             try {
@@ -279,6 +314,10 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
                         log.info("Connector {} is RUNNING", connectorName);
                     }
                     return isRunning;
+                }
+                else {
+                    log.warn("Failed to get connector status: HTTP {} - {}",
+                            response.getStatusCode(), response.getBody().asString());
                 }
                 return false;
             }

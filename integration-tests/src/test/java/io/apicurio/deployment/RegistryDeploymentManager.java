@@ -125,16 +125,24 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             testLogsIdentifier = "apicurio-registry-kafka";
         }
 
+        // Deploy ALL Debezium infrastructure if requested (optimized for CI)
+        // This deploys everything once: Kafka + PostgreSQL + MySQL + both Debezium Connect variants
+        if (Boolean.parseBoolean(System.getProperty("deployAllDebezium"))) {
+            LOGGER.info(
+                    "Deploying ALL Debezium infrastructure (PostgreSQL + MySQL + both converter types) ##################################################");
+            DebeziumDeploymentManager.deployAllDebeziumInfra();
+        }
         // Deploy Debezium infrastructure if requested (for Debezium integration tests)
-        if (Boolean.parseBoolean(System.getProperty("deployDebezium"))) {
+        // Note: With idempotent deployment, multiple calls will reuse already-deployed infrastructure
+        else if (Boolean.parseBoolean(System.getProperty("deployDebezium"))) {
             LOGGER.info(
                     "Deploying Debezium PostgreSQL infrastructure ##################################################");
             boolean useLocalConverters = Boolean.parseBoolean(System.getProperty("deployDebeziumLocalConverters"));
             DebeziumDeploymentManager.deployDebeziumInfra(useLocalConverters);
         }
-
         // Deploy Debezium MySQL infrastructure if requested (for MySQL Debezium integration tests)
-        if (Boolean.parseBoolean(System.getProperty("deployDebeziumMySQL"))) {
+        // Note: With idempotent deployment, multiple calls will reuse already-deployed infrastructure
+        else if (Boolean.parseBoolean(System.getProperty("deployDebeziumMySQL"))) {
             LOGGER.info(
                     "Deploying Debezium MySQL infrastructure ##################################################");
             boolean useLocalConverters = Boolean.parseBoolean(System.getProperty("deployDebeziumLocalConverters"));

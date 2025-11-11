@@ -1,15 +1,15 @@
 package io.apicurio.tests.serdes.apicurio.debezium.mysql;
 
 import io.apicurio.tests.serdes.apicurio.debezium.DebeziumLocalConvertersUtil;
-import io.apicurio.tests.serdes.apicurio.debezium.postgresql.KubernetesDebeziumContainerWrapper;
+import io.apicurio.tests.serdes.apicurio.debezium.SharedDebeziumInfrastructure;
+import io.apicurio.tests.serdes.apicurio.debezium.KubernetesDebeziumContainerWrapper;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.lifecycle.Startables;
+import org.testcontainers.containers.MySQLContainer;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.stream.Stream;
 
 /**
  * Container resource for Debezium MySQL integration tests that uses locally built
@@ -18,6 +18,10 @@ import java.util.stream.Stream;
 public class DebeziumMySQLLocalConvertersResource extends DebeziumMySQLContainerResource {
 
     private static final Logger log = LoggerFactory.getLogger(DebeziumMySQLLocalConvertersResource.class);
+
+    // Shadow parent's static fields to avoid pollution between regular and local-converter tests
+    public static MySQLContainer<?> mysqlContainer;
+    public static DebeziumContainer debeziumContainer;
 
     @Override
     public Map<String, String> start() {
@@ -34,27 +38,21 @@ public class DebeziumMySQLLocalConvertersResource extends DebeziumMySQLContainer
             return Collections.emptyMap();
         }
 
-        log.info("cluster.tests=false, using Testcontainers with local converters for MySQL");
+        log.info("cluster.tests=false, using SharedDebeziumInfrastructure with local converters for MySQL");
 
-        mysqlContainer = createMySQLContainer();
-        debeziumContainer = createDebeziumContainerWithLocalConverters();
-        kafkaContainer = createKafkaContainer();
+        // Initialize shared infrastructure
+        SharedDebeziumInfrastructure.initializeMySQLInfrastructure();
 
-        Startables.deepStart(Stream.of(kafkaContainer, mysqlContainer, debeziumContainer)).join();
-        System.setProperty("bootstrap.servers", kafkaContainer.getBootstrapServers());
+        // Get references from shared infrastructure
+        mysqlContainer = SharedDebeziumInfrastructure.mysqlContainer;
+        debeziumContainer = SharedDebeziumInfrastructure.debeziumContainerMysql;
+
+        // Mount local converters on the shared Debezium container
+        // This should only be done once when the container is first created
+        DebeziumLocalConvertersUtil.mountLocalConverters(debeziumContainer);
+
+        log.info("Debezium MySQL infrastructure ready with local converters (using shared containers)");
 
         return Collections.emptyMap();
-    }
-
-    /**
-     * Creates a Debezium container configured to use locally built Apicurio converters.
-     */
-    protected DebeziumContainer createDebeziumContainerWithLocalConverters() {
-        DebeziumContainer container = createDebeziumContainer();
-
-        // Mount local converters using shared utility
-        DebeziumLocalConvertersUtil.mountLocalConverters(container);
-
-        return container;
     }
 }

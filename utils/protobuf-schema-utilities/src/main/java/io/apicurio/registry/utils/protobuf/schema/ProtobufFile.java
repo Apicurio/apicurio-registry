@@ -4,6 +4,8 @@ import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.Range;
 import com.google.common.io.Files;
+import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.squareup.wire.Syntax;
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.EnumConstantElement;
@@ -21,11 +23,7 @@ import com.squareup.wire.schema.internal.parser.TypeElement;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Indexed representation of the data resulting from parsing a single .proto protobuf schema file, used mainly
@@ -72,8 +70,20 @@ public class ProtobufFile {
     }
 
     public static ProtoFileElement toProtoFileElement(String data) {
-        ProtoParser parser = new ProtoParser(Location.get(""), data.toCharArray());
-        return parser.readProtoFile();
+        try {
+            ProtoParser parser = new ProtoParser(Location.get(""), data.toCharArray());
+            return parser.readProtoFile();
+        } catch (Exception e) {
+            // Exctracted from AbstractResource.java, lines 138-149.
+            byte[] decodedBytes = Base64.getDecoder().decode(data);
+            DescriptorProtos.FileDescriptorProto descriptorProto = null;
+            try {
+                descriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
+            } catch (InvalidProtocolBufferException ex) {
+                throw new RuntimeException(ex);
+            }
+            return FileDescriptorUtils.fileDescriptorToProtoFile(descriptorProto);
+        }
     }
 
     public String getPackageName() {

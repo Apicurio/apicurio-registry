@@ -297,6 +297,133 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     }
 
     /**
+     * Test for PR #6833: Protobuf compatibility with base64-encoded schemas.
+     * This validates that compatibility checking works when stored Protobuf schemas
+     * are in base64-encoded FileDescriptorProto format.
+     */
+    @Test
+    public void testProtobufBackwardCompatibility() throws Exception {
+        String artifactId = generateArtifactId();
+
+        // Initial Protobuf schema
+        String personV1 = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 2;
+              string email = 3;
+            }
+            """;
+
+        // Compatible evolution - adds optional field
+        String personV2 = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 2;
+              string email = 3;
+              string phone = 4;
+            }
+            """;
+
+        // Incompatible evolution - changes field type
+        String personV3 = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              string age = 2;
+              string email = 3;
+            }
+            """;
+
+        // Create artifact with initial schema
+        createArtifact(artifactId, ArtifactType.PROTOBUF, personV1, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Enable backward compatibility rule
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(rule);
+
+        // Compatible update should succeed
+        // This internally tests that the stored schema (v1) is properly deserialized from base64
+        createArtifactVersion(artifactId, personV2, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Incompatible update should fail
+        Assertions.assertThrows(Exception.class, () -> {
+            createArtifactVersion(artifactId, personV3, ContentTypes.APPLICATION_PROTOBUF);
+        });
+    }
+
+    /**
+     * Test for PR #6833: Protobuf backward transitive compatibility.
+     * Validates base64 deserialization works across multiple stored schema versions.
+     */
+    @Test
+    public void testProtobufBackwardTransitiveCompatibility() throws Exception {
+        String artifactId = generateArtifactId();
+
+        String employeeV1 = """
+            syntax = "proto3";
+            package test.employee;
+
+            message Employee {
+              string id = 1;
+              string name = 2;
+            }
+            """;
+
+        String employeeV2 = """
+            syntax = "proto3";
+            package test.employee;
+
+            message Employee {
+              string id = 1;
+              string name = 2;
+              string email = 3;
+            }
+            """;
+
+        String employeeV3Incompatible = """
+            syntax = "proto3";
+            package test.employee;
+
+            message Employee {
+              int32 id = 1;
+              string name = 2;
+            }
+            """;
+
+        // Create initial version
+        createArtifact(artifactId, ArtifactType.PROTOBUF, employeeV1, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Add second version
+        createArtifactVersion(artifactId, employeeV2, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Enable backward transitive compatibility
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD_TRANSITIVE");
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(rule);
+
+        // Compatible with all previous versions should succeed
+        createArtifactVersion(artifactId, employeeV2, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Incompatible with v1 should fail
+        Assertions.assertThrows(Exception.class, () -> {
+            createArtifactVersion(artifactId, employeeV3Incompatible, ContentTypes.APPLICATION_PROTOBUF);
+        });
+    }
+
+    /**
      * Test that when compatibility rule is set to NONE, incompatible changes are allowed.
      * This test verifies the fix for issue #6839.
      */

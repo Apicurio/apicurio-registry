@@ -53,6 +53,7 @@
     <module>protobuf-bean</module>
     <module>docker-compose</module>
     <module>openshift-template</module>
+    <module>mtls-minikube/client</module>
   </modules>
 
   <scm>

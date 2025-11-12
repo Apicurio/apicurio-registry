@@ -7,6 +7,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClosedException;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PemTrustOptions;
 import io.vertx.core.net.PfxOptions;
 import io.vertx.core.net.ProxyOptions;
@@ -238,6 +239,7 @@ public class RegistryClientRequestAdapterFactory {
     private static WebClientOptions buildWebClientOptions(RegistryClientOptions options) {
         // Check if any SSL/TLS configuration is present
         boolean hasSslConfig = options.getTrustStoreType() != RegistryClientOptions.TrustStoreType.NONE
+                || options.getKeyStoreType() != RegistryClientOptions.KeyStoreType.NONE
                 || options.isTrustAll()
                 || !options.isVerifyHost();
 
@@ -296,6 +298,43 @@ public class RegistryClientRequestAdapterFactory {
                 break;
             case NONE:
                 // No custom trust store configured
+                break;
+        }
+
+        // Configure key store (client certificate) based on type
+        switch (options.getKeyStoreType()) {
+            case JKS:
+                JksOptions jksKeyStoreOptions = new JksOptions()
+                        .setPath(options.getKeyStorePath())
+                        .setPassword(options.getKeyStorePassword());
+                webClientOptions.setKeyCertOptions(jksKeyStoreOptions);
+                break;
+            case PKCS12:
+                PfxOptions pfxKeyStoreOptions = new PfxOptions()
+                        .setPath(options.getKeyStorePath())
+                        .setPassword(options.getKeyStorePassword());
+                webClientOptions.setKeyCertOptions(pfxKeyStoreOptions);
+                break;
+            case PEM:
+                PemKeyCertOptions pemKeyCertOptions = new PemKeyCertOptions();
+
+                // Check if we have PEM content (as strings) or PEM file paths
+                if (options.getPemClientCertContent() != null && options.getPemClientKeyContent() != null) {
+                    // PEM content provided as strings - add as values
+                    Buffer certBuffer = Buffer.buffer(options.getPemClientCertContent());
+                    Buffer keyBuffer = Buffer.buffer(options.getPemClientKeyContent());
+                    pemKeyCertOptions.addCertValue(certBuffer);
+                    pemKeyCertOptions.addKeyValue(keyBuffer);
+                } else if (options.getPemClientCertPath() != null && options.getPemClientKeyPath() != null) {
+                    // PEM file paths provided - add as paths
+                    pemKeyCertOptions.addCertPath(options.getPemClientCertPath());
+                    pemKeyCertOptions.addKeyPath(options.getPemClientKeyPath());
+                }
+
+                webClientOptions.setKeyCertOptions(pemKeyCertOptions);
+                break;
+            case NONE:
+                // No client certificate configured
                 break;
         }
 

@@ -44,12 +44,50 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import java.util.Base64;
+
 import static com.google.common.truth.extensions.proto.ProtoTruth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FileDescriptorUtilsTest {
+
+    // Test schema for base64 encoding tests (PR #6833)
+    private static final String SIMPLE_PROTO_SCHEMA = """
+            syntax = "proto3";
+            package test.example;
+
+            message Person {
+              string name = 1;
+              int32 age = 2;
+              string email = 3;
+            }
+            """;
+
+    private static final String COMPLEX_PROTO_SCHEMA = """
+            syntax = "proto3";
+            package test.complex;
+
+            enum Status {
+              UNKNOWN = 0;
+              ACTIVE = 1;
+              INACTIVE = 2;
+            }
+
+            message Address {
+              string street = 1;
+              string city = 2;
+              int32 zip = 3;
+            }
+
+            message User {
+              string id = 1;
+              string name = 2;
+              Status status = 3;
+              Address address = 4;
+            }
+            """;
 
     private static Stream<Arguments> testProtoFileProvider() {
         return Stream.of(TestOrderingSyntax2.getDescriptor(),
@@ -257,5 +295,117 @@ public class FileDescriptorUtilsTest {
         // contain
         // the json_name field as long as it is specifies (no matter it is default or non default)
         // assertThat(expectedFileDescriptorProto).ignoringRepeatedFieldOrder().isEqualTo(fileDescriptorProto);
+    }
+
+    /**
+     * Test for PR #6833: ProtobufFile should parse both text and base64-encoded schemas.
+     * This tests that ProtobufFile.toProtoFileElement() can handle text-based protobuf schemas.
+     */
+    @Test
+    public void testProtobufFileParseTextSchema() {
+        ProtobufFile protobufFile = new ProtobufFile(SIMPLE_PROTO_SCHEMA);
+
+        assertNotNull(protobufFile);
+        assertEquals("test.example", protobufFile.getPackageName());
+
+        // Verify that fields are correctly indexed
+        var fieldMap = protobufFile.getFieldMap();
+        assertTrue(fieldMap.containsKey("Person"));
+
+        var personFields = fieldMap.get("Person");
+        assertTrue(personFields.containsKey("name"));
+        assertTrue(personFields.containsKey("age"));
+        assertTrue(personFields.containsKey("email"));
+    }
+
+    /**
+     * Test for PR #6833: ProtobufFile should parse base64-encoded FileDescriptorProto.
+     * This validates the fix where compatibility checking failed because stored schemas
+     * (in base64 format) couldn't be parsed.
+     */
+    @Test
+    public void testProtobufFileParseBase64EncodedSchema() throws Exception {
+        // Create a FileDescriptorProto from text and encode to base64
+        DescriptorProtos.FileDescriptorProto fileDescriptorProto = FileDescriptorUtils
+                .protoFileToFileDescriptor(SIMPLE_PROTO_SCHEMA, "test.proto", Optional.of("test.example"))
+                .toProto();
+
+        byte[] protoBytes = fileDescriptorProto.toByteArray();
+        String base64EncodedSchema = Base64.getEncoder().encodeToString(protoBytes);
+
+        // ProtobufFile should be able to parse the base64-encoded schema
+        ProtobufFile protobufFile = new ProtobufFile(base64EncodedSchema);
+
+        assertNotNull(protobufFile);
+        assertEquals("test.example", protobufFile.getPackageName());
+
+        var fieldMap = protobufFile.getFieldMap();
+        assertTrue(fieldMap.containsKey("Person"));
+
+        var personFields = fieldMap.get("Person");
+        assertTrue(personFields.containsKey("name"));
+        assertTrue(personFields.containsKey("age"));
+        assertTrue(personFields.containsKey("email"));
+    }
+
+    /**
+     * Test for PR #6833: Verify that text and base64 parsing produce equivalent results.
+     */
+    @Test
+    public void testProtobufFileTextAndBase64Equivalence() throws Exception {
+        // Parse from text
+        ProtobufFile textProtobufFile = new ProtobufFile(COMPLEX_PROTO_SCHEMA);
+
+        // Create base64 version and parse
+        DescriptorProtos.FileDescriptorProto fileDescriptorProto = FileDescriptorUtils
+                .protoFileToFileDescriptor(COMPLEX_PROTO_SCHEMA, "complex.proto", Optional.of("test.complex"))
+                .toProto();
+
+        String base64EncodedSchema = Base64.getEncoder().encodeToString(fileDescriptorProto.toByteArray());
+        ProtobufFile base64ProtobufFile = new ProtobufFile(base64EncodedSchema);
+
+        // Both should produce the same package name
+        assertEquals(textProtobufFile.getPackageName(), base64ProtobufFile.getPackageName());
+
+        // Both should have the same message types
+        assertEquals(textProtobufFile.getFieldMap().keySet(), base64ProtobufFile.getFieldMap().keySet());
+
+        // Both should have the same enum types
+        assertEquals(textProtobufFile.getEnumFieldMap().keySet(), base64ProtobufFile.getEnumFieldMap().keySet());
+
+        // Verify User message fields match
+        var textUserFields = textProtobufFile.getFieldMap().get("User");
+        var base64UserFields = base64ProtobufFile.getFieldMap().get("User");
+        assertEquals(textUserFields.keySet(), base64UserFields.keySet());
+    }
+
+    /**
+     * Test for PR #6833: Static method should handle both text and base64.
+     */
+    @Test
+    public void testToProtoFileElementWithBase64() throws Exception {
+        DescriptorProtos.FileDescriptorProto fileDescriptorProto = FileDescriptorUtils
+                .protoFileToFileDescriptor(SIMPLE_PROTO_SCHEMA, "test.proto", Optional.of("test.example"))
+                .toProto();
+
+        String base64EncodedSchema = Base64.getEncoder().encodeToString(fileDescriptorProto.toByteArray());
+
+        ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(base64EncodedSchema);
+
+        assertNotNull(protoFileElement);
+        assertEquals("test.example", protoFileElement.getPackageName());
+        assertEquals(1, protoFileElement.getTypes().size());
+    }
+
+    /**
+     * Test for PR #6833: Invalid base64 that's not valid protobuf should throw exception.
+     */
+    @Test
+    public void testInvalidBase64ThrowsException() {
+        String invalidBase64 = Base64.getEncoder().encodeToString("not a valid protobuf".getBytes());
+
+        Assertions.assertThrows(RuntimeException.class, () -> {
+            new ProtobufFile(invalidBase64);
+        });
     }
 }

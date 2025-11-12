@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: "apicurio-registry-e2e"
+  name: debezium-local-converters
+data:
+  # This ConfigMap should be populated with local converter JARs
+  # In CI, the build process should create this ConfigMap with the converter files
+  # For now, this is a placeholder - the actual implementation will copy files
+  # from the maven build output (target/debezium-converters/)
+  placeholder: "Local converters will be mounted here"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: debezium-connect-local
+  name: debezium-connect-local
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: debezium-connect-local
+  template:
+    metadata:
+      labels:
+        app: debezium-connect-local
+    spec:
+      # InitContainer copies local converters from hostPath to emptyDir before main container starts
+      # This ensures converters are available when Kafka Connect scans for plugins
+      initContainers:
+        - name: copy-converters
+          image: busybox:latest
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Copying local Apicurio converters..."
+              if [ -d "/host-converters" ] && [ "$(ls -A /host-converters)" ]; then
+                cp -v /host-converters/* /converters/
+                echo "Successfully copied $(ls /converters | wc -l) files"
+                ls -lh /converters
+              else
+                echo "ERROR: No converters found in /host-converters"
+                exit 1
+              fi
+          volumeMounts:
+            - name: host-converters-source
+              mountPath: /host-converters
+              readOnly: true
+            - name: local-converters
+              mountPath: /converters
+      containers:
+        - name: debezium-connect-local
+          image: quay.io/debezium/connect:latest
+          ports:
+            - containerPort: 8083
+          env:
+            - name: BOOTSTRAP_SERVERS
+              value: kafka-service:9092
+            - name: GROUP_ID
+              value: "local-converters-group"
+            - name: CONFIG_STORAGE_TOPIC
+              value: debezium_connect_configs_local
+            - name: OFFSET_STORAGE_TOPIC
+              value: debezium_connect_offsets_local
+            - name: STATUS_STORAGE_TOPIC
+              value: debezium_connect_statuses_local
+            # NOTE: ENABLE_APICURIO_CONVERTERS is NOT set here
+            # Local converters are copied by initContainer
+          volumeMounts:
+            - name: local-converters
+              mountPath: /kafka/connect/apicurio-converter
+      volumes:
+        - name: host-converters-source
+          hostPath:
+            # This path will be replaced by DebeziumDeploymentManager
+            path: CONVERTERS_HOST_PATH_PLACEHOLDER
+            type: Directory
+        - name: local-converters
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: debezium-connect-local
+  name: debezium-connect-local-service
+spec:
+  ports:
+    - name: http
+      port: 8083
+      protocol: TCP
+      targetPort: 8083
+  selector:
+    app: debezium-connect-local
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: debezium-connect-local
+  name: debezium-connect-local-service-external
+spec:
+  ports:
+    - protocol: TCP
+      port: 8084  # Different external port to avoid conflict with published converters service
+      targetPort: 8083  # Container still listens on 8083
+  selector:
+    app: debezium-connect-local
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

@@ -185,12 +185,14 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         // No need to create connector - using shared connector from @BeforeAll
         // Just subscribe to the topic for this table
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        // Longer wait for first test to ensure consumer is fully ready
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         insertCustomer(tableName, "Alice Smith", "alice@example.com");
         insertCustomer(tableName, "Bob Jones", "bob@example.com");
 
-        List<GenericRecord> events = consumeAvroEvents(topicName, 2, Duration.ofSeconds(10));
+        // Longer timeout for first table - Debezium needs time to detect new table and start capturing
+        List<GenericRecord> events = consumeAvroEvents(topicName, 2, Duration.ofSeconds(20));
         assertEquals(2, events.size(), "Expected 2 CDC events");
 
         GenericRecord firstEvent = events.get(0);
@@ -372,7 +374,8 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                 " (\"first-name\", \"last name\", \"email@address\") VALUES " +
                 "('John', 'Doe', 'john@example.com')");
 
-        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        // Increased timeout for table detection in CI environments
+        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events.size());
 
         GenericRecord event = events.get(0);
@@ -405,7 +408,8 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         executeUpdate("INSERT INTO " + tableName + " (name) VALUES ('Original')");
 
-        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        // Increased timeout for table detection in CI environments
+        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events1.size());
 
         waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(10));
@@ -416,7 +420,8 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         executeUpdate("INSERT INTO " + tableName + " (name, email) VALUES ('New Record', 'test@example.com')");
 
-        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        // Increased timeout for schema evolution detection
+        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events2.size());
 
         GenericRecord newEvent = events2.get(0);
@@ -493,16 +498,19 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         waitForConsumerReady(Duration.ofSeconds(5));
 
         executeUpdate("INSERT INTO " + tableName + " (field1) VALUES ('v1')");
-        consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        // Increased timeout for table detection in CI environments
+        consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(10));
 
         executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN field2 VARCHAR(100)");
         executeUpdate("INSERT INTO " + tableName + " (field1, field2) VALUES ('v2', 'data2')");
-        consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        // Increased timeout for schema evolution detection
+        consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
 
         executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN field3 INT");
         executeUpdate("INSERT INTO " + tableName + " (field1, field2, field3) VALUES ('v3', 'data3', 123)");
-        consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        // Increased timeout for schema evolution detection
+        consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
 
         var versions = registryClient.groups().byGroupId("default")
                 .artifacts().byArtifactId(topicName + "-value")
@@ -554,7 +562,8 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
             stmt.executeUpdate();
         }
 
-        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        // Increased timeout for table detection in CI environments
+        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events.size());
 
         GenericRecord event = events.get(0);
@@ -600,7 +609,8 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
             stmt.executeUpdate();
         }
 
-        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        // Increased timeout for table detection in CI environments
+        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events.size());
 
         GenericRecord event = events.get(0);
@@ -678,11 +688,12 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         waitForConsumerReady(Duration.ofSeconds(5));
 
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('before')");
-        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        // Increased timeout for table detection in CI environments
+        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events1.size());
 
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('after')");
-        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events2.size());
 
         GenericRecord afterEvent = events2.get(0);

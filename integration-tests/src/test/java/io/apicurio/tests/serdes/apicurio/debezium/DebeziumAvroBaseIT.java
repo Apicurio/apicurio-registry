@@ -249,6 +249,15 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         return new KafkaConsumer<>(props, new ByteArrayDeserializer(), new ByteArrayDeserializer());
     }
 
+    /**
+     * Consumes Avro events from a topic with retry logic.
+     *
+     * IMPORTANT: Timeout considerations for CI/CD environments:
+     * - When a new table is created, Debezium needs time to detect it and start capturing changes
+     * - This detection delay can be 5-10 seconds in CI environments (slower, resource-constrained)
+     * - Recommended timeouts: 15-20 seconds for first insert after table creation, 10-15 seconds otherwise
+     * - Schema evolution (ALTER TABLE) may also require additional time for Debezium to process
+     */
     protected List<GenericRecord> consumeAvroEvents(String topic, int expectedCount, Duration timeout)
             throws Exception {
         List<GenericRecord> records = new ArrayList<>();

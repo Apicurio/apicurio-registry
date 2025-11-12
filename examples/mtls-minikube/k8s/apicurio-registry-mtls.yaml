@@ -1,0 +1,45 @@
+# ApicurioRegistry3 Custom Resource with mTLS configuration
+# This example configures the registry to require client certificates (mutual TLS)
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: apicurio-registry-mtls
+  namespace: apicurio-mtls
+spec:
+  app:
+    env:
+      # Enable mTLS - require client certificates
+      - name: QUARKUS_HTTP_SSL_CLIENT_AUTH
+        value: "required"
+      # Server keystore configuration
+      - name: QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_FILE
+        value: "/deployments/certs/server-keystore.p12"
+      - name: QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: registry-mtls-certs
+            key: keystore-password
+      # Server truststore configuration (for validating client certificates)
+      - name: QUARKUS_HTTP_SSL_CERTIFICATE_TRUST_STORE_FILE
+        value: "/deployments/certs/server-truststore.p12"
+      - name: QUARKUS_HTTP_SSL_CERTIFICATE_TRUST_STORE_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: registry-mtls-certs
+            key: truststore-password
+      # Force HTTPS only
+      - name: QUARKUS_HTTP_INSECURE_REQUESTS
+        value: "disabled"
+    # Configure pod to mount certificate secrets
+    podTemplateSpec:
+      spec:
+        containers:
+          - name: app
+            volumeMounts:
+              - name: certs
+                mountPath: /deployments/certs
+                readOnly: true
+        volumes:
+          - name: certs
+            secret:
+              secretName: registry-mtls-certs

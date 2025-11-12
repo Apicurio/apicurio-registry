@@ -1,0 +1,20 @@
+# Generated certificates and keys
+certs/*.jks
+certs/*.p12
+certs/*.pem
+certs/*.crt
+certs/*.key
+certs/*.csr
+certs/*.srl
+certs/*.cnf
+
+# Maven build artifacts
+client/target/
+client/.classpath
+client/.project
+client/.settings/
+
+# IDE files
+.idea/
+*.iml
+.vscode/

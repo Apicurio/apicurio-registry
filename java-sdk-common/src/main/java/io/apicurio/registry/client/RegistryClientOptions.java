@@ -69,6 +69,16 @@ public class RegistryClientOptions {
         NONE     // No custom trust store configured
     }
 
+    /**
+     * Key store type enumeration for client certificate (mTLS) configuration.
+     */
+    public enum KeyStoreType {
+        JKS,     // Java KeyStore format
+        PKCS12,  // PKCS#12 format
+        PEM,     // PEM certificate and key file
+        NONE     // No client certificate configured
+    }
+
     private String registryUrl;
     private boolean normalizeRegistryUrl = true;
     // Provided vertx
@@ -96,6 +106,14 @@ public class RegistryClientOptions {
     private String pemCertContent; // PEM certificate content as string (alternative to file paths)
     private boolean trustAll = false;
     private boolean verifyHost = true;
+    // Client certificate (mTLS) config
+    private KeyStoreType keyStoreType = KeyStoreType.NONE;
+    private String keyStorePath;
+    private String keyStorePassword;
+    private String pemClientCertPath; // PEM certificate file
+    private String pemClientKeyPath;  // PEM private key file
+    private String pemClientCertContent; // PEM certificate content as string
+    private String pemClientKeyContent;  // PEM private key content as string
     // Proxy config
     private String proxyHost;
     private int proxyPort = -1;
@@ -211,6 +229,34 @@ public class RegistryClientOptions {
 
     public String getProxyPassword() {
         return proxyPassword;
+    }
+
+    public KeyStoreType getKeyStoreType() {
+        return keyStoreType;
+    }
+
+    public String getKeyStorePath() {
+        return keyStorePath;
+    }
+
+    public String getKeyStorePassword() {
+        return keyStorePassword;
+    }
+
+    public String getPemClientCertPath() {
+        return pemClientCertPath;
+    }
+
+    public String getPemClientKeyPath() {
+        return pemClientKeyPath;
+    }
+
+    public String getPemClientCertContent() {
+        return pemClientCertContent;
+    }
+
+    public String getPemClientKeyContent() {
+        return pemClientKeyContent;
     }
 
     /**
@@ -529,6 +575,143 @@ public class RegistryClientOptions {
         this.pemCertPaths = null;
         this.pemCertContent = null;
         this.trustAll = false;
+        return this;
+    }
+
+    /**
+     * Configures mutual TLS (mTLS) with a JKS (Java KeyStore) key store containing the client certificate.
+     * This enables client authentication where the server verifies the client's identity using the
+     * provided certificate.
+     *
+     * <p>The key store should contain the client's private key and certificate chain.</p>
+     *
+     * @param path     the path to the JKS key store file (can be a file system path or classpath resource prefixed with "classpath:")
+     * @param password the password for the key store
+     * @return this builder
+     * @throws IllegalArgumentException if path is null or empty
+     */
+    public RegistryClientOptions keystoreJks(String path, String password) {
+        if (path == null || path.trim().isEmpty()) {
+            throw new IllegalArgumentException("Key store path cannot be null or empty");
+        }
+        clearKeyStore();
+        this.keyStoreType = KeyStoreType.JKS;
+        this.keyStorePath = path;
+        this.keyStorePassword = password;
+        return this;
+    }
+
+    /**
+     * Configures mutual TLS (mTLS) with a PKCS#12 key store containing the client certificate.
+     * This enables client authentication where the server verifies the client's identity using the
+     * provided certificate.
+     *
+     * <p>The key store should contain the client's private key and certificate chain.</p>
+     *
+     * @param path     the path to the PKCS#12 key store file (can be a file system path or classpath resource prefixed with "classpath:")
+     * @param password the password for the key store
+     * @return this builder
+     * @throws IllegalArgumentException if path is null or empty
+     */
+    public RegistryClientOptions keystorePkcs12(String path, String password) {
+        if (path == null || path.trim().isEmpty()) {
+            throw new IllegalArgumentException("Key store path cannot be null or empty");
+        }
+        clearKeyStore();
+        this.keyStoreType = KeyStoreType.PKCS12;
+        this.keyStorePath = path;
+        this.keyStorePassword = password;
+        return this;
+    }
+
+    /**
+     * Configures mutual TLS (mTLS) with PEM-formatted client certificate and private key files.
+     * This enables client authentication where the server verifies the client's identity using the
+     * provided certificate.
+     *
+     * <p>The certificate file should contain the client certificate (and optionally the certificate chain).
+     * The key file should contain the unencrypted private key in PEM format.</p>
+     *
+     * @param certPath the path to the PEM certificate file (can be a file system path or classpath resource prefixed with "classpath:")
+     * @param keyPath  the path to the PEM private key file (can be a file system path or classpath resource prefixed with "classpath:")
+     * @return this builder
+     * @throws IllegalArgumentException if certPath or keyPath is null or empty
+     */
+    public RegistryClientOptions keystorePem(String certPath, String keyPath) {
+        if (certPath == null || certPath.trim().isEmpty()) {
+            throw new IllegalArgumentException("Certificate path cannot be null or empty");
+        }
+        if (keyPath == null || keyPath.trim().isEmpty()) {
+            throw new IllegalArgumentException("Private key path cannot be null or empty");
+        }
+        clearKeyStore();
+        this.keyStoreType = KeyStoreType.PEM;
+        this.pemClientCertPath = certPath;
+        this.pemClientKeyPath = keyPath;
+        return this;
+    }
+
+    /**
+     * Configures mutual TLS (mTLS) with PEM-formatted client certificate and private key as strings.
+     * This enables client authentication where the server verifies the client's identity using the
+     * provided certificate. This method is useful in containerized or cloud environments where
+     * certificates are provided via environment variables or configuration systems.
+     *
+     * <p>The certificate content should be in standard PEM format with BEGIN/END markers.
+     * The private key should be unencrypted and in PEM format.</p>
+     *
+     * <p>Example certificate format:</p>
+     * <pre>
+     * -----BEGIN CERTIFICATE-----
+     * MIIDXTCCAkWgAwIBAgIJAKJ0...
+     * -----END CERTIFICATE-----
+     * </pre>
+     *
+     * <p>Example private key format:</p>
+     * <pre>
+     * -----BEGIN PRIVATE KEY-----
+     * MIIEvQIBADANBgkqhkiG9w0B...
+     * -----END PRIVATE KEY-----
+     * </pre>
+     *
+     * @param certContent the PEM certificate content as a string
+     * @param keyContent  the PEM private key content as a string
+     * @return this builder
+     * @throws IllegalArgumentException if certContent or keyContent is null or empty, or doesn't contain valid PEM markers
+     */
+    public RegistryClientOptions keystorePemContent(String certContent, String keyContent) {
+        if (certContent == null || certContent.trim().isEmpty()) {
+            throw new IllegalArgumentException("Certificate content cannot be null or empty");
+        }
+        if (keyContent == null || keyContent.trim().isEmpty()) {
+            throw new IllegalArgumentException("Private key content cannot be null or empty");
+        }
+        if (!certContent.contains("-----BEGIN CERTIFICATE-----")) {
+            throw new IllegalArgumentException("Certificate content must contain BEGIN CERTIFICATE marker");
+        }
+        if (!keyContent.contains("-----BEGIN") || !keyContent.contains("PRIVATE KEY")) {
+            throw new IllegalArgumentException("Private key content must contain BEGIN PRIVATE KEY marker");
+        }
+        clearKeyStore();
+        this.keyStoreType = KeyStoreType.PEM;
+        this.pemClientCertContent = certContent;
+        this.pemClientKeyContent = keyContent;
+        return this;
+    }
+
+    /**
+     * Clears any configured client certificate (key store) settings.
+     *
+     * @return this builder
+     */
+    public RegistryClientOptions clearKeyStore() {
+        this.keyStoreType = KeyStoreType.NONE;
+        this.keyStorePath = null;
+        this.keyStorePassword = null;
+        this.pemClientCertPath = null;
+        this.pemClientKeyPath = null;
+        this.pemClientCertContent = null;
+        this.pemClientKeyContent = null;
         return this;
     }
 

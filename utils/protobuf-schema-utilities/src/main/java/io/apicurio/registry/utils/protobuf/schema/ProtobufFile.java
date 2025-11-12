@@ -255,9 +255,8 @@ public class ProtobufFile {
             }
         }
 
-        if (!fieldTypeMap.isEmpty()) {
-            fieldMap.put(scope + messageElement.getName(), fieldTypeMap);
-        }
+        // Always add to fieldMap, even if empty, so that empty messages can be found during type resolution
+        fieldMap.put(scope + messageElement.getName(), fieldTypeMap);
         if (!mapMap.isEmpty()) {
             this.mapMap.put(scope + messageElement.getName(), mapMap);
         }
@@ -278,15 +277,14 @@ public class ProtobufFile {
             }
         }
 
-        if (!fieldKeySet.isEmpty()) {
-            nonReservedFields.put(scope + messageElement.getName(), fieldKeySet);
-        }
+        // Always add to nonReservedFields, even if empty, for type existence checking
+        nonReservedFields.put(scope + messageElement.getName(), fieldKeySet);
 
         for (TypeElement typeElement : messageElement.getNestedTypes()) {
             if (typeElement instanceof MessageElement) {
-                processMessageElement(messageElement.getName() + ".", (MessageElement) typeElement);
+                processMessageElement(scope + messageElement.getName() + ".", (MessageElement) typeElement);
             } else if (typeElement instanceof EnumElement) {
-                processEnumElement(messageElement.getName() + ".", (EnumElement) typeElement);
+                processEnumElement(scope + messageElement.getName() + ".", (EnumElement) typeElement);
             }
         }
     }

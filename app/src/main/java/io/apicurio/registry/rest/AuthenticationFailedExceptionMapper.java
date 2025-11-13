@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.rest.v3.beans.ProblemDetails;
 import io.quarkus.security.UnauthorizedException;
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
@@ -18,6 +19,8 @@ public class AuthenticationFailedExceptionMapper implements ExceptionMapper<Unau
     @Override
     public Response toResponse(UnauthorizedException exception) {
         Response errorHttpResponse = exceptionMapperService.toResponse(exception);
-        return Response.status(401).entity(errorHttpResponse).build();
+        ProblemDetails problemDetails = (ProblemDetails) errorHttpResponse.getEntity();
+        problemDetails.setStatus(401);
+        return Response.status(401).entity(problemDetails).type(errorHttpResponse.getMediaType()).build();
     }
 }

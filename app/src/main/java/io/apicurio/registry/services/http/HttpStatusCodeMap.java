@@ -59,6 +59,7 @@ import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
 
 @Singleton
@@ -105,6 +106,8 @@ public class HttpStatusCodeMap {
         // latter for authx only.
         map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(NotFoundException.class, HTTP_NOT_FOUND);
+        map.put(io.quarkus.security.UnauthorizedException.class, HTTP_UNAUTHORIZED);
+        map.put(io.quarkus.security.ForbiddenException.class, HTTP_FORBIDDEN);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(ReadOnlyStorageException.class, HTTP_CONFLICT);
         map.put(ReferenceExistsException.class, HTTP_UNPROCESSABLE_ENTITY);

@@ -940,7 +940,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long start = System.currentTimeMillis();
 
-        Set<SearchFilter> filters = Collections.singleton(SearchFilter.ofName("testSearchArtifacts"));
+        Set<SearchFilter> filters = Collections.singleton(SearchFilter.ofName("testSearchArtifacts*"));
         ArtifactSearchResultsDto results = storage().searchArtifacts(filters, OrderBy.name,
                 OrderDirection.asc, 0, 10);
         Assertions.assertNotNull(results);

@@ -223,4 +223,103 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
     }
+
+    /**
+     * Tests that artifact name search supports exact matching and wildcard patterns.
+     * This test verifies the fix for issue #6298 where substring matching was incorrectly
+     * performed for all name searches. Now:
+     * - "name" performs exact match
+     * - "name*" matches names starting with "name"
+     * - "*name" matches names ending with "name"
+     * - "*name*" matches names containing "name"
+     */
+    @Test
+    void testArtifactNameSearchWildcards() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create test artifacts with various names
+        createArtifact(groupId, "artifact-1", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+                (createArtifact) -> {
+                    createArtifact.setName("name");
+                });
+        createArtifact(groupId, "artifact-2", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+                (createArtifact) -> {
+                    createArtifact.setName("name-test");
+                });
+        createArtifact(groupId, "artifact-3", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+                (createArtifact) -> {
+                    createArtifact.setName("test-name");
+                });
+        createArtifact(groupId, "artifact-4", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+                (createArtifact) -> {
+                    createArtifact.setName("some-name-here");
+                });
+        createArtifact(groupId, "artifact-5", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+                (createArtifact) -> {
+                    createArtifact.setName("other");
+                });
+
+        // Test 1: Exact match - should only return artifact with name exactly "name"
+        ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "name";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount(), "Exact match for 'name' should return 1 result");
+        Assertions.assertEquals("name", results.getArtifacts().get(0).getName());
+
+        // Test 2: End wildcard - should return artifacts starting with "name"
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "name*";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(2, results.getCount(),
+                "Wildcard 'name*' should return 2 results (name, name-test)");
+
+        // Test 3: Start wildcard - should return artifacts ending with "name"
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "*name";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(2, results.getCount(),
+                "Wildcard '*name' should return 2 results (name, test-name)");
+
+        // Test 4: Both wildcards - should return all artifacts containing "name"
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "*name*";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(4, results.getCount(),
+                "Wildcard '*name*' should return 4 results (name, name-test, test-name, some-name-here)");
+
+        // Test 5: Exact match with no results
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "nonexistent";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(0, results.getCount(),
+                "Exact match for 'nonexistent' should return 0 results");
+
+        // Test 6: Wildcard with specific prefix
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "test*";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount(),
+                "Wildcard 'test*' should return 1 result (test-name)");
+
+        // Test 7: Wildcard with specific suffix
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "*test";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount(),
+                "Wildcard '*test' should return 1 result (name-test)");
+    }
 }

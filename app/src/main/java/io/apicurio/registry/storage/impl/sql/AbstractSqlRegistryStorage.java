@@ -1005,14 +1005,58 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case name:
-                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
-                        where.append("a.name " + op + " ? OR a.artifactId " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
+                        String nameValue = filter.getStringValue();
+                        boolean startsWithWildcard = nameValue.startsWith("*");
+                        boolean endsWithWildcard = nameValue.endsWith("*");
+
+                        // Remove wildcards from the value
+                        String searchValue = nameValue;
+                        if (startsWithWildcard) {
+                            searchValue = searchValue.substring(1);
+                        }
+                        if (endsWithWildcard) {
+                            searchValue = searchValue.substring(0, searchValue.length() - 1);
+                        }
+
+                        // Determine operator based on wildcards
+                        if (startsWithWildcard || endsWithWildcard) {
+                            op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                            where.append("a.name " + op + " ? OR a.artifactId " + op + " ?");
+
+                            // Add wildcards to SQL pattern based on user input
+                            String finalSearchValue = searchValue;
+                            binders.add((query, idx) -> {
+                                String pattern = finalSearchValue;
+                                if (startsWithWildcard) {
+                                    pattern = "%" + pattern;
+                                }
+                                if (endsWithWildcard) {
+                                    pattern = pattern + "%";
+                                }
+                                query.bind(idx, pattern);
+                            });
+                            binders.add((query, idx) -> {
+                                String pattern = finalSearchValue;
+                                if (startsWithWildcard) {
+                                    pattern = "%" + pattern;
+                                }
+                                if (endsWithWildcard) {
+                                    pattern = pattern + "%";
+                                }
+                                query.bind(idx, pattern);
+                            });
+                        } else {
+                            // Exact match - no wildcards
+                            op = filter.isNot() ? "!=" : "=";
+                            where.append("(a.name " + op + " ? OR a.artifactId " + op + " ?)");
+                            String finalSearchValue = searchValue;
+                            binders.add((query, idx) -> {
+                                query.bind(idx, finalSearchValue);
+                            });
+                            binders.add((query, idx) -> {
+                                query.bind(idx, finalSearchValue);
+                            });
+                        }
                         break;
                     case groupId:
                         op = filter.isNot() ? "!=" : "=";

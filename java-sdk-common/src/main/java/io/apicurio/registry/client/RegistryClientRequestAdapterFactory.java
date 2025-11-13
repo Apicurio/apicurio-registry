@@ -107,7 +107,7 @@ public class RegistryClientRequestAdapterFactory {
             vertx = getVertxFromCDI("javax.enterprise.inject.spi.CDI", "javax.enterprise.inject.Instance");
         }
         if (vertx != null) {
-            log.log(Level.INFO, "Successfully retrieved a Vertx instance from CDI.");
+            log.log(Level.FINE, "Successfully retrieved a Vertx instance from CDI.");
             return vertx;
         }
 

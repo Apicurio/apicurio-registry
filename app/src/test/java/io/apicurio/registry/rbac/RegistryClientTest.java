@@ -608,7 +608,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         // Execution
         ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.name = root;
+            config.queryParameters.name = root + "*";
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.orderby = ArtifactSortBy.Name;
@@ -636,7 +636,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // Execution
         // Check the search results still include the DISABLED artifacts
         results = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.name = root;
+            config.queryParameters.name = root + "*";
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.orderby = ArtifactSortBy.Name;
@@ -810,7 +810,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             ArtifactSearchResults ascResults = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.name = "Testorder";
+                config.queryParameters.name = "*Testorder*";
                 config.queryParameters.groupId = groupId;
                 config.queryParameters.orderby = ArtifactSortBy.Name;
                 config.queryParameters.order = SortOrder.Asc;
@@ -828,7 +828,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             ArtifactSearchResults descResults = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.name = "Testorder";
+                config.queryParameters.name = "*Testorder*";
                 config.queryParameters.groupId = groupId;
                 config.queryParameters.orderby = ArtifactSortBy.Name;
                 config.queryParameters.order = SortOrder.Desc;

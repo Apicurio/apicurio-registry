@@ -84,6 +84,7 @@ CREATE TABLE group_labels (
     labelKey   VARCHAR(256) NOT NULL,
     labelValue VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
+ALTER TABLE group_labels ADD PRIMARY KEY (groupId, labelKey);
 ALTER TABLE group_labels ADD CONSTRAINT FK_glabels_1 FOREIGN KEY (groupId) REFERENCES `groups` (groupId) ON DELETE CASCADE;
 CREATE INDEX IDX_glabels_1 ON group_labels (labelKey);
 CREATE INDEX IDX_glabels_2 ON group_labels (labelValue);
@@ -121,6 +122,7 @@ CREATE TABLE artifact_labels (
     labelKey   VARCHAR(256) NOT NULL,
     labelValue VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
+ALTER TABLE artifact_labels ADD PRIMARY KEY (groupId, artifactId, labelKey);
 ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts (groupId, artifactId) ON DELETE CASCADE;
 CREATE INDEX IDX_alabels_1 ON artifact_labels (labelKey);
 CREATE INDEX IDX_alabels_2 ON artifact_labels (labelValue);
@@ -167,6 +169,7 @@ CREATE TABLE version_labels (
     labelKey   VARCHAR(256) NOT NULL,
     labelValue VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
+ALTER TABLE version_labels ADD PRIMARY KEY (globalId, labelKey);
 ALTER TABLE version_labels ADD CONSTRAINT FK_vlabels_1 FOREIGN KEY (globalId) REFERENCES versions (globalId) ON DELETE CASCADE;
 CREATE INDEX IDX_vlabels_1 ON version_labels (labelKey);
 CREATE INDEX IDX_vlabels_2 ON version_labels (labelValue);

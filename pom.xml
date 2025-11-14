@@ -187,7 +187,7 @@
     <okio.version>3.16.2</okio.version>
     <kotlin-stdlib.version>2.2.21</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
-    <protobuf.version>4.33.0</protobuf.version>
+    <protobuf.version>4.33.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.63.1</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>

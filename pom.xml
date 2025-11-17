@@ -184,7 +184,7 @@
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio.version>3.16.2</okio.version>
+    <okio.version>3.16.3</okio.version>
     <kotlin-stdlib.version>2.2.21</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.33.1</protobuf.version>
@@ -257,7 +257,7 @@
 
     <!-- Scala -->
     <version.scala-maven.plugin>4.9.6</version.scala-maven.plugin>
-    <scala.version>2.13.17</scala.version>
+    <scala.version>2.13.18</scala.version>
 
     <!-- Plugin Versions -->
     <version.build.helper.maven.plugin>3.6.1</version.build.helper.maven.plugin>
@@ -308,7 +308,7 @@
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>1.21.3</pulsar.testcontainers.version>
     <keycloak.testcontainers.version>3.9.0</keycloak.testcontainers.version>
-    <embedded-postgres.version>2.1.1</embedded-postgres.version>
+    <embedded-postgres.version>2.2.0</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock-jre8.version>3.0.1</wiremock-jre8.version>
     <strimzi-test-container.version>0.113.0</strimzi-test-container.version>

@@ -401,16 +401,26 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
      * Test case for GitHub issue #6697: Protobuf schema validation fails when reserved fields are present.
      *
      * This test reproduces the scenario where:
-     * 1. A Protobuf schema contains reserved fields
+     * 1. A Protobuf schema contains reserved fields (field #2, fields 5-9, and "old_field_name")
      * 2. The schema is registered in the registry (with reserved fields intact)
      * 3. A compiled Java class is used for serialization (reserved fields stripped by protoc)
      * 4. Validation is enabled on the serializer
      *
-     * Without the fix, this would fail with:
-     * "The data to send is not compatible with the schema. [ProtobufDifference(message=X reserved fields were removed, message Person)]"
+     * The protobuf compiler strips reserved field information from generated Java classes because
+     * reserved fields are only needed at compile-time validation, not at runtime.
      *
-     * With the fix (passing false to findDifferences), the serializer skips the reserved fields check
-     * since compiled protobuf classes never contain reserved field information.
+     * Without the fix, this would fail with TWO different errors:
+     * 1. "X reserved fields were removed, message Person" (from checkNoRemovingReservedFields)
+     * 2. "X fields removed without reservation, message Person" (from checkNoRemovingFieldsWithoutReserve)
+     *
+     * The fix passes false to findDifferences(), which skips BOTH reserved field checks since
+     * compiled protobuf classes never contain reserved field information. Both checks need to be
+     * skipped because:
+     * - checkNoRemovingReservedFields() expects reserved declarations to remain
+     * - checkNoRemovingFieldsWithoutReserve() expects removed fields to be marked as reserved in the "after" schema
+     *
+     * Neither can work when comparing a registry schema (has reserved info) against a compiled
+     * class (no reserved info).
      */
     @ParameterizedTest(name = "testProtobufWithReservedFields [{0}]")
     @MethodSource("isolatedClientFacadeProvider")
@@ -462,9 +472,9 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
                     .build();
 
             // This should succeed with the fix (serializer passes false to findDifferences)
-            // Without the fix, this would throw:
-            // IllegalStateException: The data to send is not compatible with the schema.
-            // [ProtobufDifference(message=X reserved fields were removed, message Person)]
+            // Without the fix, this would throw IllegalStateException with one or both of:
+            // - "X reserved fields were removed, message Person" (from checkNoRemovingReservedFields)
+            // - "X fields removed without reservation, message Person" (from checkNoRemovingFieldsWithoutReserve)
             byte[] bytes = serializer.serialize(topic, person);
 
             // Verify deserialization works

@@ -246,6 +246,7 @@
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
     <quickjs4j.version>0.0.13</quickjs4j.version>
+    <quarkus-grpc-zero.version>0.0.4</quarkus-grpc-zero.version>
 
     <nats.version>2.25.1</nats.version>
     <snakeyaml.version>2.5</snakeyaml.version>
@@ -793,6 +794,11 @@
         <artifactId>quarkus-quickjs4j</artifactId>
         <version>${quarkus-quickjs4j.version}</version>
       </dependency>
+      <dependency>
+      <groupId>io.quarkiverse.grpc.zero</groupId>
+      <artifactId>quarkus-grpc-zero</artifactId>
+      <version>${quarkus-grpc-zero.version}</version>
+    </dependency>
       <dependency>
         <groupId>io.roastedroot</groupId>
         <artifactId>quickjs4j</artifactId>

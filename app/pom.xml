@@ -125,13 +125,24 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-resteasy-client</artifactId>
     </dependency>
+    <!-- Quarkus gRPC with gRPC Zero for pure JVM protobuf compilation -->
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-resteasy-client-jackson</artifactId>
+      <artifactId>quarkus-grpc</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>io.quarkus</groupId>
+          <artifactId>quarkus-grpc-codegen</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkiverse.grpc.zero</groupId>
+      <artifactId>quarkus-grpc-zero</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-logging-json</artifactId>
+      <artifactId>quarkus-resteasy-client-jackson</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -483,6 +494,8 @@
         <executions>
           <execution>
             <goals>
+              <goal>generate-code</goal>
+              <goal>generate-code-tests</goal>
               <goal>build</goal>
             </goals>
           </execution>
@@ -719,25 +732,8 @@
         </executions>
       </plugin>
 
-      <plugin>
-        <groupId>org.xolstice.maven.plugins</groupId>
-        <artifactId>protobuf-maven-plugin</artifactId>
-        <extensions>true</extensions>
-        <executions>
-          <execution>
-            <id>gencode</id>
-            <goals>
-              <goal>compile</goal>
-              <goal>test-compile</goal>
-            </goals>
-            <phase>generate-sources</phase>
-            <configuration>
-              <protoSourceRoot>./src/test/resources/schema</protoSourceRoot>
-              <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+      <!-- protobuf-maven-plugin replaced by Quarkus gRPC Zero for pure JVM compilation -->
+      <!-- Proto files will be compiled from src/main/proto and src/test/proto automatically -->
       <plugin>
         <groupId>org.apache.avro</groupId>
         <artifactId>avro-maven-plugin</artifactId>

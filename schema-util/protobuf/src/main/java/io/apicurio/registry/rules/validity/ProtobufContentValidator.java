@@ -31,15 +31,42 @@ public class ProtobufContentValidator implements ContentValidator {
     }
 
     /**
+     * Validates a Protobuf schema for syntax and/or semantic correctness.
+     *
+     * Validation levels:
+     * - SYNTAX_ONLY: Validates only that the content can be parsed as a Protobuf schema.
+     *   Uses Wire library parser to check basic syntax.
+     * - FULL: Validates both syntax and semantic correctness using Google Protobuf library.
+     *   This catches semantic errors including:
+     *   - Duplicate field tag numbers
+     *   - Negative or zero field tag numbers
+     *   - Invalid field types
+     *   - Invalid option values
+     *   - Other semantic violations
+     *
      * @see io.apicurio.registry.rules.validity.ContentValidator#validate(ValidityLevel, TypedContent, Map)
      */
     @Override
     public void validate(ValidityLevel level, TypedContent content,
                          Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
-        if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
+        if (level == ValidityLevel.SYNTAX_ONLY) {
+            // For SYNTAX_ONLY, just parse with Wire library to verify basic syntax
+            try {
+                ProtobufFile.toProtoFileElement(content.getContent().content());
+            } catch (Exception e) {
+                throw new RuleViolationException("Syntax violation for Protobuf artifact.", RuleType.VALIDITY,
+                        level.name(), e);
+            }
+        } else if (level == ValidityLevel.FULL) {
+            // For FULL validation, build FileDescriptor to perform comprehensive semantic validation
             try {
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
-                    ProtobufFile.toProtoFileElement(content.getContent().content());
+                    // Parse the schema to ProtoFileElement using Wire library
+                    ProtoFileElement protoFileElement = ProtobufFile.toProtoFileElement(content.getContent().content());
+
+                    // Build FileDescriptor using Google Protobuf library for comprehensive semantic validation
+                    // This will catch duplicate tags, negative tags, invalid types, invalid options, etc.
+                    getFileDescriptorFromElement(protoFileElement);
                 }
                 else {
 
@@ -59,11 +86,12 @@ public class ProtobufContentValidator implements ContentValidator {
                     FileDescriptorUtils.ProtobufSchemaContent mainFile = FileDescriptorUtils.ProtobufSchemaContent.of(firstMessage.getName(),
                             content.getContent().content());
 
+                    // This performs comprehensive validation via FileDescriptor.buildFrom()
                     FileDescriptorUtils.parseProtoFileWithDependencies(mainFile, dependencies, requiredDeps, true, true);
                 }
             }
             catch (Exception e) {
-                throw new RuleViolationException("Syntax violation for Protobuf artifact.", RuleType.VALIDITY,
+                throw new RuleViolationException("Syntax or semantic violation for Protobuf artifact.", RuleType.VALIDITY,
                         level.name(), e);
             }
         }

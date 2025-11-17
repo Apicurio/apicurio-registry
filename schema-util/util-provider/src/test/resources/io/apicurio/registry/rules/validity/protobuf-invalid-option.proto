@@ -1,0 +1,10 @@
+syntax = "proto3";
+package schema;
+
+// The 'java_package' option must be a string, not a number
+option java_package = 123;
+
+message TestSchema {
+    string field1 = 1;
+    string field2 = 2;
+}

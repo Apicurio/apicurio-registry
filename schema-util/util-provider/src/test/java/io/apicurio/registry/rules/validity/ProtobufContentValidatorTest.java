@@ -80,4 +80,80 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         });
     }
 
+    /**
+     * Test that schemas with duplicate field tag numbers are accepted with SYNTAX_ONLY
+     * but rejected with FULL validation.
+     * Case 1 from GitHub issue #6209.
+     */
+    @Test
+    public void testProtobufWithDuplicateTagNumbers() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("protobuf-duplicate-tags.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+
+        // SYNTAX_ONLY should pass (Wire parser doesn't catch duplicate tags)
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+
+        // FULL validation should fail (Google Protobuf catches duplicate tags)
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+    }
+
+    /**
+     * Test that schemas with negative field tag numbers are accepted with SYNTAX_ONLY
+     * but rejected with FULL validation.
+     * Case 2 from GitHub issue #6209.
+     */
+    @Test
+    public void testProtobufWithNegativeTagNumber() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("protobuf-negative-tag.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+
+        // SYNTAX_ONLY should pass (Wire parser doesn't catch negative tags)
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+
+        // FULL validation should fail (Google Protobuf catches negative tags)
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+    }
+
+    /**
+     * Test that schemas with invalid field types are accepted with SYNTAX_ONLY
+     * but rejected with FULL validation.
+     * Case 3 from GitHub issue #6209.
+     */
+    @Test
+    public void testProtobufWithInvalidType() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("protobuf-invalid-type.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+
+        // SYNTAX_ONLY should pass (Wire parser doesn't catch undefined types at parse time)
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+
+        // FULL validation should fail (Google Protobuf catches undefined types)
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+    }
+
+    /**
+     * Test that schemas with invalid option values are accepted with SYNTAX_ONLY
+     * but rejected with FULL validation.
+     * Case 4 from GitHub issue #6209.
+     */
+    @Test
+    public void testProtobufWithInvalidOptionValue() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("protobuf-invalid-option.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+
+        // SYNTAX_ONLY should pass (Wire parser doesn't validate option types)
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+
+        // FULL validation should fail (Google Protobuf catches invalid option types)
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+    }
+
 }

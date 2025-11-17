@@ -174,12 +174,18 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
      * Automatically create the Kafka topics.
      */
     private void autoCreateTopics() {
+        Map<String, String> topicProperties = new HashMap<>();
+
+        // Set default retention policy for journal topic to ensure messages are never deleted
+        topicProperties.putIfAbsent("retention.ms", "-1");
+        topicProperties.putIfAbsent("cleanup.policy", "delete");
+
+        configuration.topicProperties()
+                .forEach((key, value) -> topicProperties.put(key.toString(), value.toString()));
+
         Set<String> topicNames = Set.of(configuration.topic(), configuration.snapshotsTopic(),
                 configuration.eventsTopic());
 
-        Map<String, String> topicProperties = new HashMap<>();
-        configuration.topicProperties()
-                .forEach((key, value) -> topicProperties.put(key.toString(), value.toString()));
         Properties adminProperties = configuration.adminProperties();
         adminProperties.putIfAbsent(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG,
                 configuration.bootstrapServers());

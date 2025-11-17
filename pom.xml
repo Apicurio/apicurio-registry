@@ -295,7 +295,7 @@
     <flink.version>1.20.3</flink.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.8.10</kiota.libs.version>
+    <kiota.libs.version>1.8.11</kiota.libs.version>
     <kiota.community.version>0.0.31</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>

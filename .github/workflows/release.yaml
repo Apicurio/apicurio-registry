@@ -70,9 +70,6 @@ jobs:
       - name: Set up json CLI
         run: npm install -g json
 
-      - name: Set up Gren
-        run: npm install -g github-release-notes
-
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
         env:
@@ -171,11 +168,6 @@ jobs:
           files: |
             registry/distro/docker/target/docker/app-files/apicurio-registry-app-${{ github.event.inputs.release-version }}-all.*
 
-      - name: Generate Release Notes
-        run: |
-          cd registry
-          gren release --token=${{ secrets.GITHUB_TOKEN }} --override
-
       - name: Update Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |
           cd registry
@@ -226,9 +218,3 @@ jobs:
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
           curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
-
-      - name: Setup tmate session on failure
-        if: failure()
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true

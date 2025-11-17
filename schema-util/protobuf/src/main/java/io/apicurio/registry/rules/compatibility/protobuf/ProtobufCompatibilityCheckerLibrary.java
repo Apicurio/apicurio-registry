@@ -52,17 +52,20 @@ public class ProtobufCompatibilityCheckerLibrary {
 
     /**
      * Find differences between two protobuf schemas.
-     * @param includeNoUsingReservedFieldsCheck whether to check for removed reserved fields.
-     *        Set to false e.g. when comparing registry schemas against compiled protobuf classes,
+     * @param includeReservedFieldsChecks whether to check for reserved field violations.
+     *        Set to false when comparing registry schemas against compiled protobuf classes,
      *        since the protobuf compiler strips reserved field information from generated code.
+     *        When false, skips both checkNoRemovingReservedFields() and
+     *        checkNoRemovingFieldsWithoutReserve() since both require reserved field information
+     *        to be present in the "after" schema.
      */
-    public List<ProtobufDifference> findDifferences(boolean includeNoUsingReservedFieldsCheck) {
+    public List<ProtobufDifference> findDifferences(boolean includeReservedFieldsChecks) {
         List<ProtobufDifference> totalIssues = new ArrayList<>();
         totalIssues.addAll(checkNoUsingReservedFields());
-        if (includeNoUsingReservedFieldsCheck) {
+        if (includeReservedFieldsChecks) {
             totalIssues.addAll(checkNoRemovingReservedFields());
+            totalIssues.addAll(checkNoRemovingFieldsWithoutReserve());
         }
-        totalIssues.addAll(checkNoRemovingFieldsWithoutReserve());
         totalIssues.addAll(checkNoChangingFieldIDs());
         totalIssues.addAll(checkNoChangingFieldTypes());
         totalIssues.addAll(checkNoChangingFieldNames());

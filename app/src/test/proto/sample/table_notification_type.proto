@@ -1,0 +1,14 @@
+syntax = "proto3";
+package sample;
+option java_package = "io.api.sample";
+option java_multiple_files = true;
+
+enum TableNotificationType {
+
+	TABLE_NOTIFICATION_TYPE_UNKNOWN = 0;
+
+	NEW = 1;
+
+	CLOSE = 2;
+
+}

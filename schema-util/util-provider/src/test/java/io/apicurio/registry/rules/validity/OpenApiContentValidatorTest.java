@@ -54,6 +54,18 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         });
     }
 
+    /**
+     * Test for issue #6864 - OpenAPI 3.1 with endpoint security fails to validate.
+     * This test validates an OpenAPI 3.1 document with security requirements on endpoints.
+     * Before the fix in apicurio-data-models, this would throw a ClassCastException.
+     */
+    @Test
+    public void testValidateOpenApi31WithSecurityRequirements() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("openapi-3.1-security-requirements.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
     @Test
     public void testValidateRefs() throws Exception {
         TypedContent content = resourceToTypedContentHandle("openapi-valid-with-refs.json");

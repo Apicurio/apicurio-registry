@@ -184,7 +184,7 @@
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio.version>3.16.3</okio.version>
+    <okio.version>3.16.4</okio.version>
     <kotlin-stdlib.version>2.2.21</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.33.1</protobuf.version>

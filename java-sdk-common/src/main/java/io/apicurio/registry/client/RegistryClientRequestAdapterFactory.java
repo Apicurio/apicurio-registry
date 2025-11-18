@@ -203,6 +203,11 @@ public class RegistryClientRequestAdapterFactory {
                             throw new RuntimeException("Retry interrupted", interruptedException);
                         }
                     } else {
+                        // Log when max retries exceeded
+                        if (isRetryable(cause) && attempt >= maxRetryAttempts) {
+                            log.log(Level.WARNING, "Maximum retry attempts ({0}) exceeded for {1}: {2}",
+                                    new Object[]{maxRetryAttempts, cause.getClass().getName(), cause.getMessage()});
+                        }
                         // Re-throw the original cause
                         throw originalCause;
                     }

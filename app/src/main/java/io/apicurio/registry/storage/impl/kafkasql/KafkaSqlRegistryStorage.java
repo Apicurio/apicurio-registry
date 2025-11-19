@@ -178,6 +178,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
         // Set default retention policy for journal topic to ensure messages are never deleted
         topicProperties.putIfAbsent("retention.ms", "-1");
+        topicProperties.putIfAbsent("retention.bytes", "-1");
         topicProperties.putIfAbsent("cleanup.policy", "delete");
 
         configuration.topicProperties()

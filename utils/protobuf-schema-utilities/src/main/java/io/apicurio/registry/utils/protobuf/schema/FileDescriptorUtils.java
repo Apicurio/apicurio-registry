@@ -1,9 +1,5 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
-// TODO: Re-enable when proto compilation is set up
-// import additionalTypes.Decimals;
-// import metadata.ProtobufSchemaMetadata;
-
 import com.google.protobuf.*;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;

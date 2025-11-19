@@ -131,7 +131,12 @@ public class ReferenceIndex {
     }
 
     private void indexProto(Path path, ContentHandle content) {
-        ProtobufFile.toProtoFileElement(content.content());
+        // Validate that the content is a valid protobuf schema
+        try {
+            new ProtobufFile(content.content());
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid protobuf schema: " + path, e);
+        }
 
         IndexedResource resource = new IndexedResource(path, ArtifactType.PROTOBUF, null, content);
         this.index.add(resource);

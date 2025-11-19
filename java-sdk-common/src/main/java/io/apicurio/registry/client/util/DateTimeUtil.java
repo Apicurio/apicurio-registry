@@ -5,6 +5,10 @@ import com.microsoft.kiota.serialization.ParseNode;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Optional;
+
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigProvider;
 
 /**
  * Utility class for parsing date-time values from Kiota ParseNode with support for legacy date formats.
@@ -25,7 +29,7 @@ import java.time.format.DateTimeParseException;
  */
 public class DateTimeUtil {
 
-    private static final String DEFAULT_LEGACY_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    static final String DEFAULT_LEGACY_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
     private static final String PROPERTY_NAME = "apicurio.apis.date-format";
     private static final String ENV_VAR_NAME = "APICURIO_APIS_DATE_FORMAT";
 
@@ -42,6 +46,20 @@ public class DateTimeUtil {
      * @return DateTimeFormatter configured with the legacy date format
      */
     private static DateTimeFormatter createLegacyFormatter() {
+        try {
+            Config config = ConfigProvider.getConfig();
+            Optional<DateTimeFormatter> formatter = config
+                    .getOptionalValue(PROPERTY_NAME, String.class)
+                    .map(DateTimeFormatter::ofPattern);
+
+            if (formatter.isPresent()) {
+                return formatter.get();
+            }
+        } catch (LinkageError | IllegalStateException e) {
+            // MicroProfile Config API or implementation is not available,
+            // ignore and continue.
+        }
+
         // Check system property first (highest priority)
         String format = System.getProperty(PROPERTY_NAME);
 

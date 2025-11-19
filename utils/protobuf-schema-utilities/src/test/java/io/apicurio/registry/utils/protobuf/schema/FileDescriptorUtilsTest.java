@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Assertions;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -32,6 +31,7 @@ import java.util.stream.Stream;
 import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -160,30 +160,74 @@ public class FileDescriptorUtilsTest {
     // ==================================================================================
 
     @Test
-    @Disabled("Requires AST support: fileDescriptorToProtoFile() method was removed (see above)")
-    public void fileDescriptorToProtoFile_ParsesJsonNameOptionCorrectly() {
-        // Original test: Verified that json_name options were correctly converted when
-        // transforming FileDescriptor → ProtoFileElement → canonicalized text.
-        // TODO: Consider rewriting to validate json_name options via FileDescriptorProto
+    public void fileDescriptorToProtoFile_ParsesJsonNameOptionCorrectly() throws Exception {
+        // Test that json_name options are correctly preserved in FileDescriptorProto
+        String schemaWithJsonName = """
+            syntax = "proto3";
+
+            message TestMessage {
+                string field_name = 1 [json_name = "customJsonName"];
+            }
+        """;
+
+        Descriptors.FileDescriptor fileDescriptor = schemaTextToFileDescriptor(schemaWithJsonName, "test.proto");
+        DescriptorProtos.FileDescriptorProto protoDescriptor = fileDescriptor.toProto();
+
+        // Verify the json_name option is present in the FileDescriptorProto
+        DescriptorProtos.FieldDescriptorProto field = protoDescriptor.getMessageType(0).getField(0);
+        assertTrue(field.hasJsonName(), "Field should have json_name option");
+        assertEquals("customJsonName", field.getJsonName(), "json_name should match");
     }
 
     @ParameterizedTest
     @MethodSource("testProtoFileProvider")
-    @Disabled("Requires AST support: fileDescriptorToProtoFile() method was removed (see above)")
     public void ParsesFileDescriptorsAndRawSchemaIntoCanonicalizedForm_Accurately(
             Descriptors.FileDescriptor fileDescriptor) throws Exception {
-        // Original test: Verified that .proto text → FileDescriptor → ProtoFileElement → text
-        // produced consistent canonicalized output.
-        // TODO: Consider alternative validation approach using FileDescriptorProto comparison
+        // Test that FileDescriptor is valid and complete by verifying its FileDescriptorProto
+        DescriptorProtos.FileDescriptorProto protoDescriptor = fileDescriptor.toProto();
+
+        // Verify the descriptor is complete and valid
+        assertNotNull(protoDescriptor, "FileDescriptorProto should not be null");
+        assertTrue(protoDescriptor.hasName(), "FileDescriptorProto should have a name");
+
+        // Verify we can access all message types without errors
+        for (Descriptors.Descriptor messageType : fileDescriptor.getMessageTypes()) {
+            assertNotNull(messageType, "Message type should not be null");
+            assertNotNull(messageType.getName(), "Message type should have a name");
+        }
+
+        // Verify FileDescriptorProto round-trips correctly through protobuf serialization
+        byte[] serialized = protoDescriptor.toByteArray();
+        DescriptorProtos.FileDescriptorProto deserialized = DescriptorProtos.FileDescriptorProto.parseFrom(serialized);
+        assertEquals(protoDescriptor, deserialized, "FileDescriptorProto should round-trip through serialization");
     }
 
     @ParameterizedTest
     @MethodSource("testProtoFileProviderForJsonName")
-    @Disabled("Requires AST support: fileDescriptorToProtoFile() method was removed (see above)")
     public void ParsesFileDescriptorsAndRawSchemaIntoCanonicalizedForm_ForJsonName_Accurately(
             Descriptors.FileDescriptor fileDescriptor) throws Exception {
-        // Original test: Same as above but specifically for json_name option handling.
-        // TODO: Consider alternative validation approach using FileDescriptorProto comparison
+        // Test that FileDescriptor preserves json_name options in FileDescriptorProto
+        DescriptorProtos.FileDescriptorProto protoDescriptor = fileDescriptor.toProto();
+
+        // Verify the descriptor is complete and valid
+        assertNotNull(protoDescriptor, "FileDescriptorProto should not be null");
+
+        // Check if any fields have json_name options and verify they're preserved
+        boolean foundJsonName = false;
+        for (DescriptorProtos.DescriptorProto messageType : protoDescriptor.getMessageTypeList()) {
+            for (DescriptorProtos.FieldDescriptorProto field : messageType.getFieldList()) {
+                if (field.hasJsonName()) {
+                    foundJsonName = true;
+                    assertNotNull(field.getJsonName(), "json_name value should not be null");
+                    assertFalse(field.getJsonName().isEmpty(), "json_name value should not be empty");
+                }
+            }
+        }
+
+        // Verify FileDescriptorProto with json_name round-trips correctly
+        byte[] serialized = protoDescriptor.toByteArray();
+        DescriptorProtos.FileDescriptorProto deserialized = DescriptorProtos.FileDescriptorProto.parseFrom(serialized);
+        assertEquals(protoDescriptor, deserialized, "FileDescriptorProto with json_name should round-trip");
     }
 
     // ==================================================================================

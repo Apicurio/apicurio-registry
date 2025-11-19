@@ -120,18 +120,18 @@ public class ProtobufSchemaUtils {
     }
 
     /**
-     * Convert FileDescriptor to protobuf text format.
+     * Convert FileDescriptor to .proto text format.
      *
      * This replaces: ProtoFileElement.toSchema()
      *
-     * Note: This uses FileDescriptorProto.toString() which produces protobuf text format
-     * (not as pretty as .proto source, but semantically equivalent and parseable).
+     * Generates .proto source text from a FileDescriptor by reconstructing the syntax.
+     * This is a simplified implementation that covers common use cases.
      *
      * @param descriptor The FileDescriptor to convert
-     * @return Text representation of the schema
+     * @return .proto text representation
      */
     public static String toProtoText(FileDescriptor descriptor) {
-        return descriptor.toProto().toString();
+        return FileDescriptorToProtoConverter.convert(descriptor);
     }
 
     /**

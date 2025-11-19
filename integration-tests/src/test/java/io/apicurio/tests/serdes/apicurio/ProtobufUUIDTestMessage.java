@@ -2,9 +2,8 @@ package io.apicurio.tests.serdes.apicurio;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 import io.apicurio.tests.common.serdes.proto.TestCmmn;
 
 import java.io.InputStream;
@@ -29,17 +28,22 @@ public class ProtobufUUIDTestMessage {
         return message.getLsb() == 321L && message.getMsb() > 0;
     }
 
-    public ProtoFileElement generateSchema() {
-        return FileDescriptorUtils.fileDescriptorToProtoFile(
-                TestCmmn.UUID.newBuilder().build().getDescriptorForType().getFile().toProto());
+    public String generateSchema() {
+        try {
+            Descriptors.FileDescriptor fileDescriptor = TestCmmn.UUID.newBuilder().build()
+                    .getDescriptorForType().getFile();
+            return ProtobufSchemaUtils.toProtoText(fileDescriptor);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate schema", e);
+        }
     }
 
     public InputStream generateSchemaStream() {
-        return IoUtil.toStream(generateSchema().toSchema());
+        return IoUtil.toStream(generateSchema());
     }
 
     public byte[] generateSchemaBytes() {
-        return IoUtil.toBytes(generateSchema().toSchema());
+        return IoUtil.toBytes(generateSchema());
     }
 
     public String generateSchemaString() {

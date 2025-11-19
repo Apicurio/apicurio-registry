@@ -1,0 +1,8 @@
+syntax = "proto3";
+package test.example;
+
+message Person {
+  string name = 1;
+  int32 age = 2;
+  string email = 3;
+}

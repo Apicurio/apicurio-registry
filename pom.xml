@@ -185,6 +185,7 @@
     <!-- Schema types -->
     <avro.version>1.12.1</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
+    <protobuf4j.version>999-SNAPSHOT</protobuf4j.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.16.4</okio.version>
@@ -615,6 +616,11 @@
         <groupId>com.networknt</groupId>
         <artifactId>json-schema-validator</artifactId>
         <version>${json-schema-validator.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.roastedroot</groupId>
+        <artifactId>protobuf4j</artifactId>
+        <version>${protobuf4j.version}</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.wire</groupId>

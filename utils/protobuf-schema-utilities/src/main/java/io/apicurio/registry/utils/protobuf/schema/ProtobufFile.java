@@ -1,318 +1,269 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
-import com.google.common.collect.ContiguousSet;
-import com.google.common.collect.DiscreteDomain;
-import com.google.common.collect.Range;
-import com.google.common.io.Files;
 import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.squareup.wire.Syntax;
-import com.squareup.wire.schema.Location;
-import com.squareup.wire.schema.internal.parser.EnumConstantElement;
-import com.squareup.wire.schema.internal.parser.EnumElement;
-import com.squareup.wire.schema.internal.parser.FieldElement;
-import com.squareup.wire.schema.internal.parser.MessageElement;
-import com.squareup.wire.schema.internal.parser.OneOfElement;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
-import com.squareup.wire.schema.internal.parser.ProtoParser;
-import com.squareup.wire.schema.internal.parser.ReservedElement;
-import com.squareup.wire.schema.internal.parser.RpcElement;
-import com.squareup.wire.schema.internal.parser.ServiceElement;
-import com.squareup.wire.schema.internal.parser.TypeElement;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 
 /**
- * Indexed representation of the data resulting from parsing a single .proto protobuf schema file, used mainly
- * for schema validation.
+ * Indexed representation of a parsed .proto protobuf schema file, used mainly for schema validation.
+ *
+ * NOTE: This class has been refactored to use FileDescriptor instead of wire-schema's ProtoFileElement.
+ * Indexes are now built from FileDescriptorProto (Google protobuf API).
  *
  * @see <a href="https://github.com/nilslice/protolock">Protolock</a>
- * @see ProtobufCompatibilityChecker
  */
 public class ProtobufFile {
 
-    private final ProtoFileElement element;
+    private final Descriptors.FileDescriptor fileDescriptor;
+    private final DescriptorProtos.FileDescriptorProto fileDescriptorProto;
 
     private final Map<String, Set<Object>> reservedFields = new HashMap<>();
-
-    private final Map<String, Map<String, FieldElement>> fieldMap = new HashMap<>();
-    private final Map<String, Map<String, EnumConstantElement>> enumFieldMap = new HashMap<>();
-
-    private final Map<String, Map<String, FieldElement>> mapMap = new HashMap<>();
-
+    private final Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> fieldMap = new HashMap<>();
+    private final Map<String, Map<String, DescriptorProtos.EnumValueDescriptorProto>> enumFieldMap = new HashMap<>();
+    private final Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> mapMap = new HashMap<>();
     private final Map<String, Set<Object>> nonReservedFields = new HashMap<>();
     private final Map<String, Set<Object>> nonReservedEnumFields = new HashMap<>();
-
     private final Map<String, Map<Integer, String>> fieldsById = new HashMap<>();
     private final Map<String, Map<Integer, String>> enumFieldsById = new HashMap<>();
-
     private final Map<String, Set<String>> serviceRPCnames = new HashMap<>();
     private final Map<String, Map<String, String>> serviceRPCSignatures = new HashMap<>();
 
-    public ProtobufFile(String data) {
-        element = toProtoFileElement(data);
+    /**
+     * Create ProtobufFile from a .proto schema string.
+     */
+    public ProtobufFile(String data) throws IOException {
+        this.fileDescriptor = parseProtoString(data);
+        this.fileDescriptorProto = fileDescriptor.toProto();
         buildIndexes();
     }
 
+    /**
+     * Create ProtobufFile from a .proto file.
+     */
     public ProtobufFile(File file) throws IOException {
-        // Location location = Location.get(file.getAbsolutePath());
-        List<String> data = Files.readLines(file, StandardCharsets.UTF_8);
-        element = toProtoFileElement(String.join("\n", data));
+        String data = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+        this.fileDescriptor = parseProtoString(data);
+        this.fileDescriptorProto = fileDescriptor.toProto();
         buildIndexes();
     }
 
-    public ProtobufFile(ProtoFileElement element) {
-        this.element = element;
+    /**
+     * Create ProtobufFile from a FileDescriptor.
+     */
+    public ProtobufFile(Descriptors.FileDescriptor fileDescriptor) {
+        this.fileDescriptor = fileDescriptor;
+        this.fileDescriptorProto = fileDescriptor.toProto();
         buildIndexes();
     }
 
-    public static ProtoFileElement toProtoFileElement(String data) {
+    /**
+     * Create ProtobufFile from a FileDescriptorProto.
+     */
+    public ProtobufFile(DescriptorProtos.FileDescriptorProto fileDescriptorProto) throws Descriptors.DescriptorValidationException {
+        this.fileDescriptorProto = fileDescriptorProto;
+        this.fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileDescriptorProto);
+        buildIndexes();
+    }
+
+    /**
+     * Parse a .proto string to FileDescriptor.
+     * Supports both text format and binary FileDescriptorProto format.
+     */
+    private static Descriptors.FileDescriptor parseProtoString(String data) throws IOException {
+        IOException lastException = null;
+
+        // Try to parse as textual .proto file using protobuf4j
         try {
-            ProtoParser parser = new ProtoParser(Location.get(""), data.toCharArray());
-            return parser.readProtoFile();
+            return FileDescriptorUtils.protoFileToFileDescriptor(data, "default.proto", Optional.empty());
         } catch (Exception e) {
-            // Exctracted from AbstractResource.java, lines 138-149.
+            lastException = new IOException("Failed to parse protobuf text", e);
+            // Continue to try base64 decoding
+        }
+
+        // Try to parse as binary FileDescriptorProto (base64 encoded)
+        try {
             byte[] decodedBytes = Base64.getDecoder().decode(data);
-            DescriptorProtos.FileDescriptorProto descriptorProto = null;
-            try {
-                descriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
-            } catch (InvalidProtocolBufferException ex) {
-                throw new RuntimeException(ex);
+            DescriptorProtos.FileDescriptorProto descriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
+            return FileDescriptorUtils.protoFileToFileDescriptor(descriptorProto);
+        } catch (IllegalArgumentException e) {
+            // Not base64 encoded, throw the original parsing error
+            if (lastException != null) {
+                throw lastException;
             }
-            return FileDescriptorUtils.fileDescriptorToProtoFile(descriptorProto);
+            throw new IOException("Failed to parse protobuf schema - not valid proto text or base64", e);
+        } catch (InvalidProtocolBufferException | Descriptors.DescriptorValidationException e) {
+            throw new IOException("Failed to parse protobuf descriptor", e);
         }
     }
 
     public String getPackageName() {
-        return element.getPackageName();
+        return fileDescriptorProto.getPackage();
     }
 
-    /*
-     * message name -> Set { Integer/tag || String/name }
-     */
     public Map<String, Set<Object>> getReservedFields() {
         return reservedFields;
     }
 
-    /*
-     * message name -> Map { field name -> FieldElement }
-     */
-    public Map<String, Map<String, FieldElement>> getFieldMap() {
+    public Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> getFieldMap() {
         return fieldMap;
     }
 
-    /*
-     * enum name -> Map { String/name -> EnumConstantElement }
-     */
-    public Map<String, Map<String, EnumConstantElement>> getEnumFieldMap() {
+    public Map<String, Map<String, DescriptorProtos.EnumValueDescriptorProto>> getEnumFieldMap() {
         return enumFieldMap;
     }
 
-    /*
-     * message name -> Map { field name -> FieldElement }
-     */
-    public Map<String, Map<String, FieldElement>> getMapMap() {
+    public Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> getMapMap() {
         return mapMap;
     }
 
-    /*
-     * message name -> Set { Integer/tag || String/name }
-     */
     public Map<String, Set<Object>> getNonReservedFields() {
         return nonReservedFields;
     }
 
-    /*
-     * enum name -> Set { Integer/tag || String/name }
-     */
     public Map<String, Set<Object>> getNonReservedEnumFields() {
         return nonReservedEnumFields;
     }
 
-    /*
-     * message name -> Map { field id -> field name }
-     */
     public Map<String, Map<Integer, String>> getFieldsById() {
         return fieldsById;
     }
 
-    /*
-     * enum name -> Map { field id -> field name }
-     */
     public Map<String, Map<Integer, String>> getEnumFieldsById() {
         return enumFieldsById;
     }
 
-    /*
-     * service name -> Set { rpc name }
-     */
     public Map<String, Set<String>> getServiceRPCnames() {
         return serviceRPCnames;
     }
 
-    /*
-     * service name -> Map { rpc name -> method signature }
-     */
     public Map<String, Map<String, String>> getServiceRPCSignatures() {
         return serviceRPCSignatures;
     }
 
-    public Syntax getSyntax() {
-        Syntax syntax = element.getSyntax();
-        return syntax != null ? syntax : Syntax.PROTO_2 /* default syntax */;
+    public String getSyntax() {
+        String syntax = fileDescriptorProto.getSyntax();
+        return (syntax == null || syntax.isEmpty()) ? "proto2" : syntax;
     }
 
-    /**
-     * Resolves the map type for a given entry type in Protobuf.
-     *
-     * @param entryType The entry type to resolve.
-     * @return The corresponding map type, or null if not a map entry.
-     */
     public String getMapType(String entryType) {
-        // Check if the entry type corresponds to a map entry
         if (entryType != null && entryType.endsWith("Entry")) {
-            // Extract the base type by removing the "Entry" suffix
-            return "map<string, string>"; // Adjust logic if needed for dynamic key/value types
+            return "map<string, string>";
         }
         return null;
     }
 
     private void buildIndexes() {
-
-        for (TypeElement typeElement : element.getTypes()) {
-            if (typeElement instanceof MessageElement) {
-
-                MessageElement messageElement = (MessageElement) typeElement;
-                processMessageElement("", messageElement);
-
-            } else if (typeElement instanceof EnumElement) {
-
-                EnumElement enumElement = (EnumElement) typeElement;
-                processEnumElement("", enumElement);
-
-            } else {
-                throw new RuntimeException();
-            }
+        for (DescriptorProtos.DescriptorProto messageType : fileDescriptorProto.getMessageTypeList()) {
+            processMessageDescriptor("", messageType);
         }
 
-        for (ServiceElement serviceElement : element.getServices()) {
+        for (DescriptorProtos.EnumDescriptorProto enumType : fileDescriptorProto.getEnumTypeList()) {
+            processEnumDescriptor("", enumType);
+        }
+
+        for (DescriptorProtos.ServiceDescriptorProto serviceProto : fileDescriptorProto.getServiceList()) {
             Set<String> rpcNames = new HashSet<>();
             Map<String, String> rpcSignatures = new HashMap<>();
-            for (RpcElement rpcElement : serviceElement.getRpcs()) {
-                rpcNames.add(rpcElement.getName());
 
-                String signature = rpcElement.getRequestType() + ":" + rpcElement.getRequestStreaming() + "->"
-                        + rpcElement.getResponseType() + ":" + rpcElement.getResponseStreaming();
-                rpcSignatures.put(rpcElement.getName(), signature);
+            for (DescriptorProtos.MethodDescriptorProto method : serviceProto.getMethodList()) {
+                rpcNames.add(method.getName());
+
+                String signature = method.getInputType() + ":" + method.getClientStreaming() + "->"
+                        + method.getOutputType() + ":" + method.getServerStreaming();
+                rpcSignatures.put(method.getName(), signature);
             }
+
             if (!rpcNames.isEmpty()) {
-                serviceRPCnames.put(serviceElement.getName(), rpcNames);
-                serviceRPCSignatures.put(serviceElement.getName(), rpcSignatures);
+                serviceRPCnames.put(serviceProto.getName(), rpcNames);
+                serviceRPCSignatures.put(serviceProto.getName(), rpcSignatures);
             }
-
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private void processMessageElement(String scope, MessageElement messageElement) {
+    private void processMessageDescriptor(String scope, DescriptorProtos.DescriptorProto messageDescriptor) {
+        String fullName = scope + messageDescriptor.getName();
 
-        // reservedFields
+        // Process reserved fields
         Set<Object> reservedFieldSet = new HashSet<>();
-        for (ReservedElement reservedElement : messageElement.getReserveds()) {
-            for (Object value : reservedElement.getValues()) {
-                if (value instanceof Range) {
-                    reservedFieldSet.addAll(ContiguousSet.create((Range) value, DiscreteDomain.integers()));
-                } else {
-                    reservedFieldSet.add(value);
-                }
+        for (DescriptorProtos.DescriptorProto.ReservedRange range : messageDescriptor.getReservedRangeList()) {
+            for (int i = range.getStart(); i < range.getEnd(); i++) {
+                reservedFieldSet.add(i);
             }
+        }
+        for (String reservedName : messageDescriptor.getReservedNameList()) {
+            reservedFieldSet.add(reservedName);
         }
         if (!reservedFieldSet.isEmpty()) {
-            reservedFields.put(scope + messageElement.getName(), reservedFieldSet);
+            reservedFields.put(fullName, reservedFieldSet);
         }
 
-        // fieldMap, mapMap, FieldsIDName
-        Map<String, FieldElement> fieldTypeMap = new HashMap<>();
-        Map<String, FieldElement> mapMap = new HashMap<>();
+        // Process fields
+        Map<String, DescriptorProtos.FieldDescriptorProto> fieldTypeMap = new HashMap<>();
+        Map<String, DescriptorProtos.FieldDescriptorProto> mapTypeMap = new HashMap<>();
         Map<Integer, String> idsToNames = new HashMap<>();
-        for (FieldElement fieldElement : messageElement.getFields()) {
-            fieldTypeMap.put(fieldElement.getName(), fieldElement);
-            if (fieldElement.getType().startsWith("map<")) {
-                mapMap.put(fieldElement.getName(), fieldElement);
-            }
-            idsToNames.put(fieldElement.getTag(), fieldElement.getName());
-        }
-        for (OneOfElement oneOfElement : messageElement.getOneOfs()) {
-            for (FieldElement fieldElement : oneOfElement.getFields()) {
-                fieldTypeMap.put(fieldElement.getName(), fieldElement);
-                if (fieldElement.getType().startsWith("map<")) {
-                    mapMap.put(fieldElement.getName(), fieldElement);
-                }
-                idsToNames.put(fieldElement.getTag(), fieldElement.getName());
+        Set<Object> fieldKeySet = new HashSet<>();
+
+        for (DescriptorProtos.FieldDescriptorProto field : messageDescriptor.getFieldList()) {
+            fieldTypeMap.put(field.getName(), field);
+            idsToNames.put(field.getNumber(), field.getName());
+            fieldKeySet.add(field.getNumber());
+            fieldKeySet.add(field.getName());
+
+            // Check if this is a map field
+            if (field.hasTypeName() && field.getTypeName().endsWith("Entry") &&
+                field.getLabel() == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED) {
+                mapTypeMap.put(field.getName(), field);
             }
         }
 
-        // Always add to fieldMap, even if empty, so that empty messages can be found during type resolution
-        fieldMap.put(scope + messageElement.getName(), fieldTypeMap);
-        if (!mapMap.isEmpty()) {
-            this.mapMap.put(scope + messageElement.getName(), mapMap);
+        fieldMap.put(fullName, fieldTypeMap);
+        if (!mapTypeMap.isEmpty()) {
+            mapMap.put(fullName, mapTypeMap);
         }
         if (!idsToNames.isEmpty()) {
-            fieldsById.put(scope + messageElement.getName(), idsToNames);
+            fieldsById.put(fullName, idsToNames);
+        }
+        nonReservedFields.put(fullName, fieldKeySet);
+
+        // Process nested types
+        for (DescriptorProtos.DescriptorProto nestedType : messageDescriptor.getNestedTypeList()) {
+            processMessageDescriptor(fullName + ".", nestedType);
         }
 
-        // nonReservedFields
-        Set<Object> fieldKeySet = new HashSet<>();
-        for (FieldElement fieldElement : messageElement.getFields()) {
-            fieldKeySet.add(fieldElement.getTag());
-            fieldKeySet.add(fieldElement.getName());
-        }
-        for (OneOfElement oneOfElement : messageElement.getOneOfs()) {
-            for (FieldElement fieldElement : oneOfElement.getFields()) {
-                fieldKeySet.add(fieldElement.getTag());
-                fieldKeySet.add(fieldElement.getName());
-            }
-        }
-
-        // Always add to nonReservedFields, even if empty, for type existence checking
-        nonReservedFields.put(scope + messageElement.getName(), fieldKeySet);
-
-        for (TypeElement typeElement : messageElement.getNestedTypes()) {
-            if (typeElement instanceof MessageElement) {
-                processMessageElement(scope + messageElement.getName() + ".", (MessageElement) typeElement);
-            } else if (typeElement instanceof EnumElement) {
-                processEnumElement(scope + messageElement.getName() + ".", (EnumElement) typeElement);
-            }
+        // Process nested enums
+        for (DescriptorProtos.EnumDescriptorProto nestedEnum : messageDescriptor.getEnumTypeList()) {
+            processEnumDescriptor(fullName + ".", nestedEnum);
         }
     }
 
-    private void processEnumElement(String scope, EnumElement enumElement) {
+    private void processEnumDescriptor(String scope, DescriptorProtos.EnumDescriptorProto enumDescriptor) {
+        String fullName = scope + enumDescriptor.getName();
 
-        // TODO reservedEnumFields - wire doesn't preserve these
-        // https://github.com/square/wire/issues/797 RFE: capture EnumElement reserved info
-
-        // enumFieldMap, enumFieldsIDName, nonReservedEnumFields
-        Map<String, EnumConstantElement> map = new HashMap<>();
+        Map<String, DescriptorProtos.EnumValueDescriptorProto> enumMap = new HashMap<>();
         Map<Integer, String> idsToNames = new HashMap<>();
         Set<Object> fieldKeySet = new HashSet<>();
-        for (EnumConstantElement enumConstantElement : enumElement.getConstants()) {
-            map.put(enumConstantElement.getName(), enumConstantElement);
-            idsToNames.put(enumConstantElement.getTag(), enumConstantElement.getName());
 
-            fieldKeySet.add(enumConstantElement.getTag());
-            fieldKeySet.add(enumConstantElement.getName());
+        for (DescriptorProtos.EnumValueDescriptorProto enumValue : enumDescriptor.getValueList()) {
+            enumMap.put(enumValue.getName(), enumValue);
+            idsToNames.put(enumValue.getNumber(), enumValue.getName());
+            fieldKeySet.add(enumValue.getNumber());
+            fieldKeySet.add(enumValue.getName());
         }
-        if (!map.isEmpty()) {
-            enumFieldMap.put(scope + enumElement.getName(), map);
+
+        if (!enumMap.isEmpty()) {
+            enumFieldMap.put(fullName, enumMap);
         }
         if (!idsToNames.isEmpty()) {
-            enumFieldsById.put(scope + enumElement.getName(), idsToNames);
+            enumFieldsById.put(fullName, idsToNames);
         }
         if (!fieldKeySet.isEmpty()) {
-            nonReservedEnumFields.put(scope + enumElement.getName(), fieldKeySet);
+            nonReservedEnumFields.put(fullName, fieldKeySet);
         }
     }
 }

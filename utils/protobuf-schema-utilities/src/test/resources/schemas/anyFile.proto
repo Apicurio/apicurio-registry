@@ -1,0 +1,8 @@
+syntax = "proto2";
+import "google/protobuf/timestamp.proto";
+
+message Bar {
+  optional google.protobuf.Timestamp c = 4;
+  required int32 a = 1;
+  optional string b = 2;
+}

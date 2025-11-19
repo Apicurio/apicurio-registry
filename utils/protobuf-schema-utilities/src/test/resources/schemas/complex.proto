@@ -1,0 +1,21 @@
+syntax = "proto3";
+package test.complex;
+
+enum Status {
+  UNKNOWN = 0;
+  ACTIVE = 1;
+  INACTIVE = 2;
+}
+
+message Address {
+  string street = 1;
+  string city = 2;
+  int32 zip = 3;
+}
+
+message User {
+  string id = 1;
+  string name = 2;
+  Status status = 3;
+  Address address = 4;
+}

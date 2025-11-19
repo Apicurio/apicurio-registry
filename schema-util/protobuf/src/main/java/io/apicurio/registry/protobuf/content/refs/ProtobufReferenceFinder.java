@@ -1,15 +1,15 @@
 package io.apicurio.registry.protobuf.content.refs;
 
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import com.google.protobuf.Descriptors;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -26,14 +26,16 @@ public class ProtobufReferenceFinder implements ReferenceFinder {
     @Override
     public Set<ExternalReference> findExternalReferences(TypedContent content) {
         try {
-            ProtoFileElement protoFileElement = ProtobufFile
-                    .toProtoFileElement(content.getContent().content());
-            Set<String> allImports = new HashSet<>();
-            allImports.addAll(protoFileElement.getImports());
-            allImports.addAll(protoFileElement.getPublicImports());
-            return allImports.stream()
+            // Use protobuf4j to compile and get all dependencies
+            Descriptors.FileDescriptor fileDescriptor = ProtobufSchemaUtils.parseAndCompile(
+                    "schema.proto", content.getContent().content(), Map.of());
+
+            // Get all imports from the FileDescriptor, excluding well-known types
+            return fileDescriptor.getDependencies().stream()
+                    .map(Descriptors.FileDescriptor::getName)
                     .filter(imprt -> !imprt.startsWith("google/protobuf/"))
-                    .map(imprt -> new ExternalReference(imprt)).collect(Collectors.toSet());
+                    .map(ExternalReference::new)
+                    .collect(Collectors.toSet());
         } catch (Exception e) {
             log.error("Error finding external references in a Protobuf file.", e);
             return Collections.emptySet();

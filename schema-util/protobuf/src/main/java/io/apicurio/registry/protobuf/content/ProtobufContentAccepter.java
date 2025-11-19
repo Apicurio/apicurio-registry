@@ -18,14 +18,17 @@ public class ProtobufContentAccepter implements ContentAccepter {
             if (contentType != null && !contentType.toLowerCase().contains("proto")) {
                 return false;
             }
-            ProtobufFile.toProtoFileElement(content.getContent().content());
+            // Try to parse as proto text - this will validate it's a valid proto file
+            new ProtobufFile(content.getContent().content());
             return true;
         } catch (Exception e) {
             try {
-                // Attempt to parse binary FileDescriptorProto
+                // Attempt to parse binary FileDescriptorProto and validate it
                 byte[] bytes = Base64.getDecoder().decode(content.getContent().content());
-                FileDescriptorUtils
-                        .fileDescriptorToProtoFile(DescriptorProtos.FileDescriptorProto.parseFrom(bytes));
+                DescriptorProtos.FileDescriptorProto fileDescriptorProto =
+                    DescriptorProtos.FileDescriptorProto.parseFrom(bytes);
+                // Try to build FileDescriptor to validate it's correct
+                FileDescriptorUtils.protoFileToFileDescriptor(fileDescriptorProto);
                 return true;
             } catch (Exception pe) {
                 // Doesn't seem to be protobuf

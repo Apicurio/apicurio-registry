@@ -1,6 +1,7 @@
 package io.apicurio.registry.mcp;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.ClassIntrospector;
@@ -16,6 +17,10 @@ public class ObjectMapperCustomizerImpl implements ObjectMapperCustomizer {
         mapper.registerModule(new JavaTimeModule());
 
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        // Fix for MCP SDK Zod validation: Don't serialize null fields (especially _meta)
+        // The MCP TypeScript SDK expects _meta to be either omitted or an object, never null
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
         mapper.setMixInResolver(new ClassIntrospector.MixInResolver() {
             @Override

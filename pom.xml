@@ -182,6 +182,7 @@
     <!-- Schema types -->
     <avro.version>1.12.1</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
+    <protobuf4j.version>999-SNAPSHOT</protobuf4j.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.16.4</okio.version>
@@ -240,6 +241,7 @@
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
     <quickjs4j.version>0.0.12</quickjs4j.version>
+    <quarkus-grpc-zero.version>0.0.4</quarkus-grpc-zero.version>
 
     <nats.version>2.24.0</nats.version>
     <snakeyaml.version>2.5</snakeyaml.version>
@@ -617,6 +619,11 @@
         <version>${json-schema-validator.version}</version>
       </dependency>
       <dependency>
+        <groupId>io.roastedroot</groupId>
+        <artifactId>protobuf4j</artifactId>
+        <version>${protobuf4j.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.squareup.wire</groupId>
         <artifactId>wire-schema</artifactId>
         <version>${wire-schema.version}</version>
@@ -765,6 +772,11 @@
         <artifactId>quarkus-quickjs4j</artifactId>
         <version>${quarkus-quickjs4j.version}</version>
       </dependency>
+      <dependency>
+      <groupId>io.quarkiverse.grpc.zero</groupId>
+      <artifactId>quarkus-grpc-zero</artifactId>
+      <version>${quarkus-grpc-zero.version}</version>
+    </dependency>
       <dependency>
         <groupId>io.roastedroot</groupId>
         <artifactId>quickjs4j</artifactId>

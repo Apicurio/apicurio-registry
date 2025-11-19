@@ -3,7 +3,8 @@ package io.apicurio.registry.utils.protobuf.schema;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.DescriptorProtos.DescriptorProto;
 import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
-import metadata.ProtobufSchemaMetadata;
+// TODO: Re-enable when proto compilation is set up
+// import metadata.ProtobufSchemaMetadata;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -120,16 +121,19 @@ public class ProtobufMessage {
             fieldBuilder.mergeOptions(optionsBuilder.build());
         }
 
+        // TODO: Re-enable when proto compilation is set up
         if (metadataKey != null) {
-            DescriptorProtos.FieldOptions.Builder optionsBuilder = DescriptorProtos.FieldOptions.newBuilder();
-            optionsBuilder.setExtension(ProtobufSchemaMetadata.metadataKey, metadataKey);
-            fieldBuilder.mergeOptions(optionsBuilder.build());
+            // DescriptorProtos.FieldOptions.Builder optionsBuilder = DescriptorProtos.FieldOptions.newBuilder();
+            // optionsBuilder.setExtension(ProtobufSchemaMetadata.metadataKey, metadataKey);
+            // fieldBuilder.mergeOptions(optionsBuilder.build());
+            throw new UnsupportedOperationException("Custom metadata not yet supported - requires proto compilation setup");
         }
 
         if (metadataValue != null) {
-            DescriptorProtos.FieldOptions.Builder optionsBuilder = DescriptorProtos.FieldOptions.newBuilder();
-            optionsBuilder.setExtension(ProtobufSchemaMetadata.metadataValue, metadataValue);
-            fieldBuilder.mergeOptions(optionsBuilder.build());
+            // DescriptorProtos.FieldOptions.Builder optionsBuilder = DescriptorProtos.FieldOptions.newBuilder();
+            // optionsBuilder.setExtension(ProtobufSchemaMetadata.metadataValue, metadataValue);
+            // fieldBuilder.mergeOptions(optionsBuilder.build());
+            throw new UnsupportedOperationException("Custom metadata not yet supported - requires proto compilation setup");
         }
 
         if (jsType != null) {

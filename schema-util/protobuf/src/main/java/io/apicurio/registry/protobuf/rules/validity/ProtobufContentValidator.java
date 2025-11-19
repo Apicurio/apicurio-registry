@@ -1,8 +1,6 @@
 package io.apicurio.registry.protobuf.rules.validity;
 
 import com.google.protobuf.Descriptors;
-import com.squareup.wire.schema.internal.parser.MessageElement;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -11,11 +9,9 @@ import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,27 +37,17 @@ public class ProtobufContentValidator implements ContentValidator {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
-                    ProtobufFile.toProtoFileElement(content.getContent().content());
+                    // Simple validation - just try to parse the proto file
+                    new ProtobufFile(content.getContent().content());
                 }
                 else {
-
-                    final Map<String, String> requiredDeps = resolvedReferences.entrySet().stream().collect(
+                    // Validation with dependencies - use protobuf4j to compile
+                    final Map<String, String> dependencies = resolvedReferences.entrySet().stream().collect(
                             Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getContent().content()));
 
-                    final ProtoFileElement protoFileElement = ProtobufFile
-                            .toProtoFileElement(content.getContent().content());
-
-                    final Set<FileDescriptorUtils.ProtobufSchemaContent> dependencies = resolvedReferences.entrySet()
-                            .stream()
-                            .map(e -> FileDescriptorUtils.ProtobufSchemaContent.of(e.getKey(), e.getValue().getContent().content()))
-                            .collect(Collectors.toSet());
-
-                    MessageElement firstMessage = FileDescriptorUtils.firstMessage(protoFileElement);
-
-                    FileDescriptorUtils.ProtobufSchemaContent mainFile = FileDescriptorUtils.ProtobufSchemaContent.of(firstMessage.getName(),
-                            content.getContent().content());
-
-                    FileDescriptorUtils.parseProtoFileWithDependencies(mainFile, dependencies, requiredDeps, true, true);
+                    // Use protobuf4j to parse and compile - this validates syntax
+                    ProtobufSchemaUtils.parseAndCompile("schema.proto",
+                            content.getContent().content(), dependencies);
                 }
             }
             catch (Exception e) {
@@ -81,14 +67,18 @@ public class ProtobufContentValidator implements ContentValidator {
             Set<String> mappedRefs = references.stream().map(ref -> ref.getName())
                     .collect(Collectors.toSet());
 
-            ProtoFileElement protoFileElement = ProtobufFile
-                    .toProtoFileElement(content.getContent().content());
-            Set<String> allImports = new HashSet<>();
-            allImports.addAll(protoFileElement.getImports());
-            allImports.addAll(protoFileElement.getPublicImports());
+            // Compile the proto to get FileDescriptor, then get dependencies from it
+            Descriptors.FileDescriptor fileDescriptor = ProtobufSchemaUtils.parseAndCompile(
+                    "schema.proto", content.getContent().content(), Map.of());
+
+            // Get all imports from FileDescriptor
+            Set<String> allImports = fileDescriptor.getDependencies().stream()
+                    .map(Descriptors.FileDescriptor::getName)
+                    .collect(Collectors.toSet());
 
             Set<RuleViolation> violations = allImports.stream()
-                    .filter(_import -> !mappedRefs.contains(_import)).map(missingRef -> new RuleViolation("Unmapped reference detected.", missingRef))
+                    .filter(_import -> !mappedRefs.contains(_import))
+                    .map(missingRef -> new RuleViolation("Unmapped reference detected.", missingRef))
                     .collect(Collectors.toSet());
             if (!violations.isEmpty()) {
                 throw new RuleViolationException("Unmapped reference(s) detected.", RuleType.INTEGRITY,
@@ -101,11 +91,5 @@ public class ProtobufContentValidator implements ContentValidator {
         catch (Exception e) {
             // Do nothing - we don't care if it can't validate. Another rule will handle that.
         }
-    }
-
-    private ProtobufSchema getFileDescriptorFromElement(ProtoFileElement fileElem)
-            throws Descriptors.DescriptorValidationException {
-        Descriptors.FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
-        return new ProtobufSchema(fileDescriptor, fileElem);
     }
 }

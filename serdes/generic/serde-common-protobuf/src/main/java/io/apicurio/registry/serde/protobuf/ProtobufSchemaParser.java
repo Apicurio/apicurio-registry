@@ -15,7 +15,6 @@ import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,23 +43,19 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
 
             // Build dependencies map from resolved references
             Map<String, String> dependencies = new HashMap<>();
-            resolvedReferences.forEach((key, value) -> {
-                // Get the proto text from the resolved schema
-                String depContent = value.getParsedSchema().toProtoText();
-                dependencies.put(key, depContent);
-                if (value.hasReferences()) {
-                    addReferencesToDependencies(value.getSchemaReferences(), dependencies);
-                }
-            });
+            if (!resolvedReferences.isEmpty()) {
+                addReferencesToDependencies(new ArrayList<>(resolvedReferences.values()), dependencies);
+            }
 
             // Use protobuf4j to parse and compile the schema
             FileDescriptor fileDescriptor = ProtobufSchemaUtils.parseAndCompile(
                 "schema.proto", schemaContent, dependencies);
 
-            return new ProtobufSchema(fileDescriptor);
+            // Preserve original .proto text for toProtoText()
+            return new ProtobufSchema(fileDescriptor, schemaContent);
 
-        } catch (IOException | IllegalStateException e) {
-            // If we get here the server likely returned the full descriptor (binary format), try to parse it.
+        } catch (Exception e) {
+            // If parsing as .proto text fails, try parsing as binary FileDescriptorProto
             return parseDescriptor(rawSchema);
         }
     }
@@ -71,6 +66,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             DescriptorProtos.FileDescriptorProto fileDescriptorProto = DescriptorProtos.FileDescriptorProto
                     .parseFrom(rawSchema);
             FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileDescriptorProto);
+            // When parsing from binary, we don't have the original .proto text
             return new ProtobufSchema(fileDescriptor);
         } catch (InvalidProtocolBufferException | DescriptorValidationException e) {
             throw new RuntimeException(e);

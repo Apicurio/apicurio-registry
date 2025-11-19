@@ -186,12 +186,8 @@
     <avro.version>1.12.1</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <protobuf4j.version>999-SNAPSHOT</protobuf4j.version>
-    <wire-schema.version>5.3.3</wire-schema.version>
-    <okhttp.version>4.12.0</okhttp.version>
-    <okio.version>3.16.4</okio.version>
-    <kotlin-stdlib.version>2.3.0</kotlin-stdlib.version>
-    <icu4j.version>76.1</icu4j.version>
-    <protobuf.version>4.33.4</protobuf.version>
+    <chicory.version>1.6.0</chicory.version>
+    <protobuf.version>4.33.2</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.64.1</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -623,44 +619,19 @@
         <version>${protobuf4j.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.squareup.wire</groupId>
-        <artifactId>wire-schema</artifactId>
-        <version>${wire-schema.version}</version>
+        <groupId>com.dylibso.chicory</groupId>
+        <artifactId>runtime</artifactId>
+        <version>${chicory.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.squareup.wire</groupId>
-        <artifactId>wire-schema-jvm</artifactId>
-        <version>${wire-schema.version}</version>
+        <groupId>com.dylibso.chicory</groupId>
+        <artifactId>wasm</artifactId>
+        <version>${chicory.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.ibm.icu</groupId>
-        <artifactId>icu4j</artifactId>
-        <version>${icu4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okio</groupId>
-        <artifactId>okio</artifactId>
-        <version>${okio.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okio</groupId>
-        <artifactId>okio-jvm</artifactId>
-        <version>${okio.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okio</groupId>
-        <artifactId>okhttp</artifactId>
-        <version>${okhttp.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okio</groupId>
-        <artifactId>okio-fakefilesystem</artifactId>
-        <version>${okio.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-stdlib</artifactId>
-        <version>${kotlin-stdlib.version}</version>
+        <groupId>com.dylibso.chicory</groupId>
+        <artifactId>wasi</artifactId>
+        <version>${chicory.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>

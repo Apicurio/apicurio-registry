@@ -111,9 +111,9 @@ public class ProtobufSchemaLoader {
         // protobuf4j uses WASM which requires a virtual filesystem mapped via WASI
         FileSystem fs = ZeroFs.newFileSystem(
                 Configuration.unix().toBuilder().setAttributeViews("unix").build());
-        Path workDir = fs.getPath(".");
 
-        try {
+        try (FileSystem ignored = fs) {
+            Path workDir = fs.getPath(".");
             // Step 1: Write well-known protos to work directory
             writeWellKnownProtos(workDir);
 
@@ -176,18 +176,14 @@ public class ProtobufSchemaLoader {
             }
 
             return new ProtobufSchemaLoaderContext(mainDescriptor);
-        } catch (RuntimeException e) {
+        }
+        catch (RuntimeException e) {
             // Wrap protobuf4j RuntimeExceptions (compilation errors) in IOException
             // so they can be properly handled upstream
             throw new IOException("Failed to compile protobuf schema: " + fileName, e);
-        } finally {
-            // Close the virtual filesystem
-            try {
-                fs.close();
-            } catch (IOException e) {
-                // Ignore close errors
-            }
         }
+        // Close the virtual filesystem
+        // Ignore close errors
     }
 
     protected static class ProtobufSchemaLoaderContext {

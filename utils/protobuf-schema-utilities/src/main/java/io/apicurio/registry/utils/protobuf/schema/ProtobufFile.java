@@ -106,6 +106,10 @@ public class ProtobufFile {
         return fileDescriptorProto.getPackage();
     }
 
+    public Descriptors.FileDescriptor getFileDescriptor() {
+        return fileDescriptor;
+    }
+
     public Map<String, Set<Object>> getReservedFields() {
         return reservedFields;
     }

@@ -19,10 +19,18 @@ public class ProtobufSchema {
 
     private final FileDescriptor fileDescriptor;
     private ProtobufFile protobufFile;
+    private String originalProtoText; // Store original .proto text for toProtoText()
 
     public ProtobufSchema(FileDescriptor fileDescriptor) {
         Objects.requireNonNull(fileDescriptor);
         this.fileDescriptor = fileDescriptor;
+        this.originalProtoText = null; // Will be generated on-demand if needed
+    }
+
+    public ProtobufSchema(FileDescriptor fileDescriptor, String originalProtoText) {
+        Objects.requireNonNull(fileDescriptor);
+        this.fileDescriptor = fileDescriptor;
+        this.originalProtoText = originalProtoText;
     }
 
     /**
@@ -99,11 +107,15 @@ public class ProtobufSchema {
      * Convert this schema to protobuf text format.
      * Replaces: getProtoFileElement().toSchema()
      *
-     * Note: Uses FileDescriptorProto.toString() which produces protobuf text format.
+     * Returns the original .proto text if available, otherwise generates it from FileDescriptor.
      *
-     * @return Text representation of the schema
+     * @return Text representation of the schema in .proto format
      */
     public String toProtoText() {
+        if (originalProtoText != null) {
+            return originalProtoText;
+        }
+        // Generate .proto text from FileDescriptor
         return ProtobufSchemaUtils.toProtoText(fileDescriptor);
     }
 

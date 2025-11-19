@@ -3,7 +3,6 @@ package io.apicurio.registry.rules.compatibility;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
@@ -24,10 +23,19 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
             return CompatibilityExecutionResult.compatible();
         }
 
-        ProtobufFile fileBefore = new ProtobufFile(
-                existingArtifacts.get(existingArtifacts.size() - 1).getContent().content());
-        ProtobufFile fileAfter = new ProtobufFile(proposedArtifact.getContent().content());
+        try {
+            ProtobufFile fileBefore = new ProtobufFile(
+                    existingArtifacts.get(existingArtifacts.size() - 1).getContent().content());
+            ProtobufFile fileAfter = new ProtobufFile(proposedArtifact.getContent().content());
 
+            return performCompatibilityCheck(compatibilityLevel, existingArtifacts, fileBefore, fileAfter);
+        } catch (Exception e) {
+            return CompatibilityExecutionResult.incompatible("Error parsing protobuf schema: " + e.getMessage());
+        }
+    }
+
+    private CompatibilityExecutionResult performCompatibilityCheck(CompatibilityLevel compatibilityLevel,
+            List<TypedContent> existingArtifacts, ProtobufFile fileBefore, ProtobufFile fileAfter) {
         switch (compatibilityLevel) {
             case BACKWARD: {
                 return testBackward(fileBefore, fileAfter);
@@ -52,12 +60,17 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         }
     }
 
-    @NotNull
+
     private CompatibilityExecutionResult testFullTransitive(List<TypedContent> existingSchemas,
             ProtobufFile fileAfter) {
         ProtobufFile fileBefore;
         for (TypedContent existing : existingSchemas) {
-            fileBefore = new ProtobufFile(existing.getContent().content());
+            try {
+                fileBefore = new ProtobufFile(existing.getContent().content());
+            } catch (Exception e) {
+                return CompatibilityExecutionResult
+                        .incompatible("Error parsing protobuf schema: " + e.getMessage());
+            }
             if (!testFull(fileBefore, fileAfter).isCompatible()) {
                 return CompatibilityExecutionResult
                         .incompatible("The new version of the protobuf artifact is not fully compatible.");
@@ -66,7 +79,7 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         return CompatibilityExecutionResult.compatible();
     }
 
-    @NotNull
+    
     private CompatibilityExecutionResult testFull(ProtobufFile fileBefore, ProtobufFile fileAfter) {
         ProtobufCompatibilityCheckerLibrary backwardChecker = new ProtobufCompatibilityCheckerLibrary(
                 fileBefore, fileAfter);
@@ -80,12 +93,17 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         }
     }
 
-    @NotNull
+
     private CompatibilityExecutionResult testForwardTransitive(List<TypedContent> existingSchemas,
             ProtobufFile fileAfter) {
         ProtobufFile fileBefore;
         for (TypedContent existing : existingSchemas) {
-            fileBefore = new ProtobufFile(existing.getContent().content());
+            try {
+                fileBefore = new ProtobufFile(existing.getContent().content());
+            } catch (Exception e) {
+                return CompatibilityExecutionResult
+                        .incompatible("Error parsing protobuf schema: " + e.getMessage());
+            }
             ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileAfter,
                     fileBefore);
             if (!checker.validate()) {
@@ -96,7 +114,7 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         return CompatibilityExecutionResult.compatible();
     }
 
-    @NotNull
+    
     private CompatibilityExecutionResult testForward(ProtobufFile fileBefore, ProtobufFile fileAfter) {
         ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileAfter,
                 fileBefore);
@@ -108,12 +126,17 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         }
     }
 
-    @NotNull
+
     private CompatibilityExecutionResult testBackwardTransitive(List<TypedContent> existingSchemas,
             ProtobufFile fileAfter) {
         ProtobufFile fileBefore;
         for (TypedContent existing : existingSchemas) {
-            fileBefore = new ProtobufFile(existing.getContent().content());
+            try {
+                fileBefore = new ProtobufFile(existing.getContent().content());
+            } catch (Exception e) {
+                return CompatibilityExecutionResult
+                        .incompatible("Error parsing protobuf schema: " + e.getMessage());
+            }
             ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
                     fileAfter);
             if (!checker.validate()) {
@@ -124,7 +147,7 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         return CompatibilityExecutionResult.compatible();
     }
 
-    @NotNull
+    
     private CompatibilityExecutionResult testBackward(ProtobufFile fileBefore, ProtobufFile fileAfter) {
         ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
                 fileAfter);

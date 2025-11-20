@@ -2,11 +2,15 @@ import axios, { AxiosRequestConfig } from "axios";
 import { ContentTypes } from "@models/ContentTypes.ts";
 import { AuthService } from "@apicurio/common-ui-components";
 import { Buffer } from "buffer";
-import { AuthenticationProvider, Headers, RequestInformation } from "@microsoft/kiota-abstractions";
+import { AuthenticationProvider, Headers, RequestInformation, type RequestOption } from "@microsoft/kiota-abstractions";
 import { ConfigService } from "@services/useConfigService";
 import { RegistryClientFactory } from "@sdk/lib/sdk";
 import { ApicurioRegistryClient } from "@sdk/lib/generated-client/apicurioRegistryClient.ts";
 import { Labels } from "@sdk/lib/generated-client/models";
+import type { Middleware } from "@microsoft/kiota-http-fetchlibrary";
+
+const AUTH_HEADER_KEY = "Authorization";
+const BEARER_TOKEN_KEY = "Bearer";
 
 export const labelsToAny = (labels: Labels | undefined | null): any => {
     const rval: any = {
@@ -26,7 +30,6 @@ export const labelsToAny = (labels: Labels | undefined | null): any => {
 export class TokenAuthenticationProvider implements AuthenticationProvider {
     private readonly key: string;
     private readonly accessTokenProvider: () => Promise<string>;
-    private static readonly authorizationHeaderKey = "Authorization";
     public constructor(key: string, accessTokenProvider: () => Promise<string>) {
         this.key = key;
         this.accessTokenProvider = accessTokenProvider;
@@ -36,16 +39,16 @@ export class TokenAuthenticationProvider implements AuthenticationProvider {
         if (!request) {
             throw new Error("request info cannot be null");
         }
-        if (additionalAuthenticationContext?.claims && request.headers.has(TokenAuthenticationProvider.authorizationHeaderKey)) {
-            request.headers.delete(TokenAuthenticationProvider.authorizationHeaderKey);
+        if (additionalAuthenticationContext?.claims && request.headers.has(AUTH_HEADER_KEY)) {
+            request.headers.delete(AUTH_HEADER_KEY);
         }
-        if (!request.headers || !request.headers.has(TokenAuthenticationProvider.authorizationHeaderKey)) {
+        if (!request.headers || !request.headers.has(AUTH_HEADER_KEY)) {
             const token = await this.accessTokenProvider();
             if (!request.headers) {
                 request.headers = new Headers();
             }
             if (token) {
-                request.headers.add(TokenAuthenticationProvider.authorizationHeaderKey, `${this.key} ${token}`);
+                request.headers.add(AUTH_HEADER_KEY, `${this.key} ${token}`);
             }
         }
     };
@@ -53,7 +56,7 @@ export class TokenAuthenticationProvider implements AuthenticationProvider {
 
 export function createAuthProvider(auth: AuthService): AuthenticationProvider | undefined {
     if (auth.isOidcAuthEnabled()) {
-        return new TokenAuthenticationProvider("Bearer", () => auth.getToken().then(v => v!));
+        return new TokenAuthenticationProvider(BEARER_TOKEN_KEY, () => auth.getToken().then(v => v!));
     } else if (auth.isBasicAuthEnabled()) {
         const creds = auth.getUsernameAndPassword();
         const base64Credentials = Buffer.from(`${creds?.username}:${creds?.password}`, "ascii").toString("base64");
@@ -62,9 +65,89 @@ export function createAuthProvider(auth: AuthService): AuthenticationProvider | 
     return undefined;
 }
 
+class RefreshOn401Handler implements Middleware {
+    /** Shared promise to deduplicate token refresh calls across concurrent 401 responses */
+    private static refreshTokensPromise: Promise<void> | null = null;
+
+    public next: Middleware | undefined;
+
+    private readonly auth: AuthService;
+
+    constructor(auth: AuthService) {
+        this.auth = auth;
+    }
+
+    public async execute(
+        url: string,
+        requestInit: RequestInit,
+        requestOptions?: Record<string, RequestOption>
+    ): Promise<Response> {
+        if (!this.next) {
+            throw new Error("RefreshOn401Handler.next is not set");
+        }
+
+        const response = await this.next.execute(url, requestInit, requestOptions);
+
+        // If the response is not 401, just return it
+        if (response.status !== 401) {
+            return response;
+        }
+
+        try {
+            // Refresh tokens via the OIDC provider (using a shared promise to deduplicate calls)
+            await this.refreshTokens();
+        } catch (e) {
+            console.error("[RefreshOn401Handler] Token refresh failed", e);
+            // Refresh failed - return the original 401 response
+            return response;
+        }
+
+        // Retrieve a fresh access token
+        const token = await this.auth.getToken();
+        if (!token) {
+            console.error("[RefreshOn401Handler] No token after refresh");
+            return response;
+        }
+
+        // Update Authorization header with the new token
+        const headers = new globalThis.Headers(requestInit.headers);
+        headers.set(AUTH_HEADER_KEY, `${BEARER_TOKEN_KEY} ${token}`);
+
+        console.debug("[RefreshOn401Handler] Retrying request after refresh");
+
+        // Retry request with the new token
+        return await this.next.execute(url, { ...requestInit, headers }, requestOptions);
+    }
+
+    /**
+     * Refreshes authentication tokens using the shared promise to avoid
+     * triggering multiple parallel refresh calls
+     */
+    private refreshTokens(): Promise<void> {
+        if (!RefreshOn401Handler.refreshTokensPromise) {
+            RefreshOn401Handler.refreshTokensPromise = (async () => {
+                try {
+                    await this.auth.refresh();
+                } finally {
+                    // Always reset the shared promise so that future 401s
+                    // can trigger another refresh attempt if needed
+                    RefreshOn401Handler.refreshTokensPromise = null;
+                }
+            })();
+        }
+
+        return RefreshOn401Handler.refreshTokensPromise;
+    }
+}
+
 function createRegistryClient(config: ConfigService, auth: AuthService): ApicurioRegistryClient {
     const authProvider = createAuthProvider(auth);
-    return RegistryClientFactory.createRegistryClient(config.artifactsUrl(), authProvider);
+    const middlewares = [];
+    if (auth.isOidcAuthEnabled()) {
+        middlewares.push(new RefreshOn401Handler(auth));
+    }
+
+    return RegistryClientFactory.createRegistryClient(config.artifactsUrl(), authProvider, middlewares);
 }
 
 let client: ApicurioRegistryClient;
@@ -162,7 +245,7 @@ export function createEndpoint(baseHref: string, path: string, params?: any, que
 export function createHeaders(token: string | undefined): any {
     if (token) {
         return {
-            "Authorization": `Bearer ${token}`
+            [AUTH_HEADER_KEY]: `${BEARER_TOKEN_KEY} ${token}`
         };
     } else {
         return {};

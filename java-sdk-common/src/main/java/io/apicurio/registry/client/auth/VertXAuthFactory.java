@@ -31,7 +31,10 @@ public class VertXAuthFactory {
 
     public static WebClient buildOIDCWebClient(Vertx vertx, WebClientOptions options, String tokenUrl,
             String clientId, String clientSecret, String scope) {
-        WebClient webClient = options != null ? WebClient.create(vertx, options) : WebClient.create(vertx);
+        if (options == null) {
+            options = new WebClientOptions();
+        }
+        WebClient webClient = WebClient.create(vertx, options);
 
         OAuth2Auth oAuth2Options = OAuth2Auth.create(vertx, new OAuth2Options()
                 .setFlow(OAuth2FlowType.CLIENT)

@@ -28,7 +28,7 @@ public final class RegistryV3KafkaSQLInfra extends AbstractRegistryInfra {
     }
 
     public boolean start(String bootstrapServers) {
-        return startRegistryContainer(bootstrapServers, Map.of());
+        return start(bootstrapServers, Map.of());
     }
 
     public boolean start(String bootstrapServers, Map<String, String> env) {

@@ -31,10 +31,17 @@ public class VertXAuthFactory {
 
     public static WebClient buildOIDCWebClient(Vertx vertx, WebClientOptions options, String tokenUrl,
             String clientId, String clientSecret, String scope) {
-        WebClient webClient = options != null ? WebClient.create(vertx, options) : WebClient.create(vertx);
+        if (options == null) {
+            options = new WebClientOptions();
+        }
+        WebClient webClient = WebClient.create(vertx, options);
 
-        OAuth2Auth oAuth2Options = OAuth2Auth.create(vertx, new OAuth2Options().setFlow(OAuth2FlowType.CLIENT)
-                .setClientId(clientId).setClientSecret(clientSecret).setTokenPath(tokenUrl));
+        OAuth2Auth oAuth2Options = OAuth2Auth.create(vertx, new OAuth2Options()
+                .setFlow(OAuth2FlowType.CLIENT)
+                .setHttpClientOptions(options)
+                .setClientId(clientId)
+                .setClientSecret(clientSecret)
+                .setTokenPath(tokenUrl));
 
         Oauth2Credentials oauth2Credentials = new Oauth2Credentials();
         if (scope != null) {

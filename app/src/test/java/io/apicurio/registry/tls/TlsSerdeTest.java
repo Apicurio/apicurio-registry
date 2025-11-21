@@ -89,6 +89,7 @@ public class TlsSerdeTest extends AbstractResourceTestBase {
             // Common SerDe configuration
             Map<String, Object> commonConfig = new HashMap<>();
             commonConfig.put(SerdeConfig.REGISTRY_URL, registryV3ApiUrl);
+
             // TLS configuration with JKS trust store
             commonConfig.put(SchemaResolverConfig.TLS_TRUSTSTORE_LOCATION, truststoreUrl.getPath());
             commonConfig.put(SchemaResolverConfig.TLS_TRUSTSTORE_PASSWORD, "registrytest");

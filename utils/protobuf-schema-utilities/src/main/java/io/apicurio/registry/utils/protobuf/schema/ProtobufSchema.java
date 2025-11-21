@@ -118,21 +118,4 @@ public class ProtobufSchema {
         // Generate .proto text from FileDescriptor
         return ProtobufSchemaUtils.toProtoText(fileDescriptor);
     }
-
-    // ==================================================================================
-    // REMOVED METHOD: getProtoFileElement()
-    // ==================================================================================
-    // The getProtoFileElement() method has been removed because it returned wire-schema's
-    // ProtoFileElement type. To restore this functionality, protobuf4j needs to expose AST.
-    //
-    // Downstream modules that depend on this method:
-    // - serdes: ProtobufSchemaParser
-    // - schema-util/protobuf: various validators and canonicalizers
-    //
-    // Migration options:
-    // 1. Add AST support to protobuf4j and expose ProtoFileElement-like API
-    // 2. Refactor downstream code to work directly with FileDescriptor
-    // 3. Use FileDescriptor.toProto() to get FileDescriptorProto and work with that
-    // ==================================================================================
-
 }

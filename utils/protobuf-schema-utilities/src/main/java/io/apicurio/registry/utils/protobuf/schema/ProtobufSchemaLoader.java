@@ -152,8 +152,37 @@ public class ProtobufSchemaLoader {
             // Step 5: Use protobuf4j to compile the proto files and build FileDescriptors
             // The new buildFileDescriptors() method handles both compilation and dependency resolution
             // Note: buildFileDescriptors expects file paths relative to workDir, not absolute paths
-            // We need to pass ALL files (main + dependencies) for compilation
+            // We need to pass ALL files (main + dependencies + well-known types) for compilation
             List<String> protoFiles = new ArrayList<>();
+
+            // Collect all dependency paths to avoid duplicates
+            Set<String> depPaths = new HashSet<>();
+            for (ProtoContent proto : allDependencies) {
+                depPaths.add(proto.getExpectedImportPath());
+            }
+
+            // Add all well-known proto files (Google Protobuf, Google API, metadata, decimal)
+            // Only add them if they're not already provided as explicit dependencies
+            for (String proto : GOOGLE_WELLKNOWN_PROTOS) {
+                String path = GOOGLE_WELLKNOWN_PATH + proto;
+                if (!depPaths.contains(path)) {
+                    protoFiles.add(path);
+                }
+            }
+            for (String proto : GOOGLE_API_PROTOS) {
+                String path = GOOGLE_API_PATH + proto;
+                if (!depPaths.contains(path)) {
+                    protoFiles.add(path);
+                }
+            }
+            String metadataPath = METADATA_PATH + METADATA_PROTO;
+            if (!depPaths.contains(metadataPath)) {
+                protoFiles.add(metadataPath);
+            }
+            String decimalPath = DECIMAL_PATH + DECIMAL_PROTO;
+            if (!depPaths.contains(decimalPath)) {
+                protoFiles.add(decimalPath);
+            }
 
             // Add all dependencies (using their package-based paths)
             for (ProtoContent proto : allDependencies) {

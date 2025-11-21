@@ -249,6 +249,44 @@ jobs:
           name: tests-logs-kafkasql
           path: artifacts
 
+  extra-tests:
+    name: Extra Tests
+    runs-on: ubuntu-22.04
+    needs: prepare-integration-tests
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: apicurio-registry-${{ github.sha }}.tar
+          image-file: /tmp/apicurio-registry-${{ github.sha }}.tar
+          image-name: apicurio/apicurio-registry
+          tag: ${{ github.sha }}
+
+      - name: Run Extra Tests
+        run: |
+          ./mvnw verify --no-transfer-progress -pl utils/extra-tests -am -DskipUTs -Pextra-tests -Dregistry3-image=apicurio/apicurio-registry:${{ github.sha }} -Dmaven.javadoc.skip=true
+
+      - name: Collect logs
+        if: failure()
+        run: sh ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4.0.0
+        with:
+          name: tests-logs-kafkasql
+          path: artifacts
+
   integration-tests-ui:
     name: Integration Tests UI
     runs-on: ubuntu-22.04

@@ -95,6 +95,7 @@
     <module>serdes/pulsar/avro-serde</module>
     <module>utils/converter</module>
     <module>utils/exportConfluent</module>
+    <module>utils/extra-tests</module>
     <module>utils/flink</module>
     <module>utils/importexport</module>
     <module>utils/kafka</module>
@@ -248,6 +249,7 @@
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.6</assertj.core.version>
     <semver4j.version>5.8.0</semver4j.version>
+    <slf4j.version>2.0.17</slf4j.version>
 
     <!-- Kafka Connect -->
     <connect.version>3.9.1</connect.version>
@@ -780,11 +782,20 @@
         <artifactId>quickjs4j-processor</artifactId>
         <version>${quickjs4j.version}</version>
       </dependency>
-
       <dependency>
         <groupId>com.fasterxml.woodstox</groupId>
         <artifactId>woodstox-core</artifactId>
         <version>${woodstox-core.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-jdk14</artifactId>
+        <version>${slf4j.version}</version>
       </dependency>
 
       <!-- Tests -->

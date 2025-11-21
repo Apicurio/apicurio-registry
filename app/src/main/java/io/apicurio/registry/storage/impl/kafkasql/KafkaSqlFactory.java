@@ -1,386 +1,99 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
-import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlKeyDeserializer;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlKeySerializer;
-import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlPartitioner;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlValueDeserializer;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlValueSerializer;
-import io.apicurio.registry.utils.RegistryProperties;
-import io.apicurio.registry.utils.kafka.AsyncProducer;
-import io.apicurio.registry.utils.kafka.ProducerActions;
+import io.apicurio.registry.storage.impl.util.AsyncProducer;
+import io.apicurio.registry.storage.impl.util.ProducerActions;
+import io.apicurio.registry.types.LazyResource;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.SaslConfigs;
-import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.serialization.BytesDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.apache.kafka.common.utils.Bytes;
 
-import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.function.Supplier;
 
-import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
+import static io.apicurio.registry.utils.CollectionsUtil.toProperties;
 
 @ApplicationScoped
 public class KafkaSqlFactory {
 
     @Inject
-    @ConfigProperty(name = "apicurio.kafkasql.bootstrap.servers")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage bootstrap servers")
-    String bootstrapServers;
+    KafkaSqlConfiguration config;
 
-    @Inject
-    @ConfigProperty(name = "apicurio.kafkasql.topic", defaultValue = "kafkasql-journal")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage topic name")
-    String topic;
-
-    @Inject
-    @ConfigProperty(name = "apicurio.kafkasql.snapshots.topic", defaultValue = "kafkasql-snapshots")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage topic name", registryAvailableSince = "3.0.0")
-    String snapshotsTopic;
-
-    @Inject
-    @ConfigProperty(name = "apicurio.kafkasql.snapshot.every.seconds", defaultValue = "86400s")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql journal topic snapshot every", registryAvailableSince = "3.0.0")
-    String snapshotEvery;
-
-    @Inject
-    @ConfigProperty(name = "apicurio.storage.snapshot.location", defaultValue = "./")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql snapshots store location", registryAvailableSince = "3.0.0")
-    String snapshotStoreLocation;
-
-    @Inject
-    @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage event topic", registryAvailableSince = "3.0.1")
-    String eventsTopic;
-
-    @Inject
-    @RegistryProperties(value = "apicurio.kafkasql.topic")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage topic properties")
-    Properties topicProperties;
-
-    @Inject
-    @ConfigProperty(name = "apicurio.kafkasql.topic.auto-create", defaultValue = "true")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage topic auto create")
-    Boolean topicAutoCreate;
-
-    @Inject
-    @ConfigProperty(name = "apicurio.kafkasql.consumer.poll.timeout", defaultValue = "5000")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage consumer poll timeout")
-    Integer pollTimeout;
-
-    @Inject
-    @ConfigProperty(name = "apicurio.kafkasql.coordinator.response-timeout", defaultValue = "30000")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage coordinator response timeout")
-    Integer responseTimeout;
-
-    @Inject
-    @RegistryProperties(value = { "apicurio.kafka.common", "apicurio.kafkasql.producer" }, empties = {
-            "ssl.endpoint.identification.algorithm=" })
-    Properties producerProperties;
-
-    @Inject
-    @RegistryProperties(value = { "apicurio.kafka.common", "apicurio.kafkasql.consumer" }, empties = {
-            "ssl.endpoint.identification.algorithm=" })
-    Properties consumerProperties;
-
-    @ConfigProperty(name = "apicurio.kafkasql.consumer.group-prefix", defaultValue = "apicurio-")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage prefix for consumer group name")
-    String groupPrefix;
-
-    @Inject
-    @RegistryProperties(value = { "apicurio.kafka.common", "apicurio.kafkasql.admin" }, empties = {
-            "ssl.endpoint.identification.algorithm=" })
-    Properties adminProperties;
-
-    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl enabled")
-    boolean saslEnabled;
-
-    @ConfigProperty(name = "apicurio.kafkasql.security.protocol", defaultValue = "")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage security protocol")
-    Optional<String> protocol;
-
-    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.mechanism", defaultValue = "")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl mechanism")
-    String saslMechanism;
-
-    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.client-id", defaultValue = "")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl client identifier")
-    String clientId;
-
-    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.client-secret", defaultValue = "")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl client secret")
-    String clientSecret;
-
-    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.token.endpoint", defaultValue = "")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl token endpoint")
-    String tokenEndpoint;
-
-    @ConfigProperty(name = "apicurio.kafkasql.security.sasl.login.callback.handler.class", defaultValue = "")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage sasl login callback handler")
-    String loginCallbackHandler;
-
-    @ConfigProperty(name = "apicurio.kafkasql.security.ssl.truststore.location")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl truststore location")
-    Optional<String> trustStoreLocation;
-
-    @ConfigProperty(name = "apicurio.kafkasql.security.ssl.truststore.type")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl truststore type")
-    Optional<String> trustStoreType;
-
-    @ConfigProperty(name = "apicurio.kafkasql.ssl.truststore.password")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl truststore password")
-    Optional<String> trustStorePassword;
-
-    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.location")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore location")
-    Optional<String> keyStoreLocation;
-
-    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.type")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore type")
-    Optional<String> keyStoreType;
-
-    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.password")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore password")
-    Optional<String> keyStorePassword;
-
-    @ConfigProperty(name = "apicurio.kafkasql.ssl.key.password")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl key password")
-    Optional<String> keyPassword;
-
-    @ApplicationScoped
     @Produces
-    public KafkaSqlConfiguration createConfiguration() {
-
-        return new KafkaSqlConfiguration() {
-            @Override
-            public String bootstrapServers() {
-                return bootstrapServers;
-            }
-
-            @Override
-            public String topic() {
-                return topic;
-            }
-
-            @Override
-            public String snapshotsTopic() {
-                return snapshotsTopic;
-            }
-
-            @Override
-            public String eventsTopic() {
-                return eventsTopic;
-            }
-
-            @Override
-            public String snapshotEvery() {
-                return snapshotEvery;
-            }
-
-            @Override
-            public String snapshotLocation() {
-                return snapshotStoreLocation;
-            }
-
-            @Override
-            public Properties topicProperties() {
-                return topicProperties;
-            }
-
-            @Override
-            public boolean isTopicAutoCreate() {
-                return topicAutoCreate;
-            }
-
-            @Override
-            public Integer pollTimeout() {
-                return pollTimeout;
-            }
-
-            @Override
-            public Integer responseTimeout() {
-                return responseTimeout;
-            }
-
-            @Override
-            public Properties producerProperties() {
-                return producerProperties;
-            }
-
-            @Override
-            public Properties consumerProperties() {
-                return consumerProperties;
-            }
-
-            @Override
-            public Properties adminProperties() {
-                tryToConfigureSecurity(adminProperties);
-                return adminProperties;
-            }
-        };
-    }
-
-    /**
-     * Creates the Kafka journal producer.
-     */
     @ApplicationScoped
-    @Produces
     @Named("KafkaSqlJournalProducer")
     public ProducerActions<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaJournalProducer() {
-        Properties props = (Properties) producerProperties.clone();
-
-        // Configure kafka settings
-        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + UUID.randomUUID().toString());
-        props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
-        props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 10);
-        props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class);
-
-        tryToConfigureSecurity(props);
-
-        // Create the Kafka producer
-        KafkaSqlKeySerializer keySerializer = new KafkaSqlKeySerializer();
-        KafkaSqlValueSerializer valueSerializer = new KafkaSqlValueSerializer();
-        return new AsyncProducer<>(props, keySerializer, valueSerializer);
+        return new AsyncProducer<>(toProperties(config.getProducerProperties()), new KafkaSqlKeySerializer(), new KafkaSqlValueSerializer());
     }
 
-    /**
-     * Creates the Kafka journal consumer.
-     */
-    @ApplicationScoped
     @Produces
+    @ApplicationScoped
     @Named("KafkaSqlJournalConsumer")
     public KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> createKafkaJournalConsumer() {
-        Properties props = (Properties) consumerProperties.clone();
-
-        String consumerGroupId = groupPrefix + UUID.randomUUID().toString();
-
-        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
-        props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-        props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
-        props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        tryToConfigureSecurity(props);
-
-        // Create the Kafka Consumer
-        KafkaSqlKeyDeserializer keyDeserializer = new KafkaSqlKeyDeserializer();
-        KafkaSqlValueDeserializer valueDeserializer = new KafkaSqlValueDeserializer();
-        return new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
+        return new KafkaConsumer<>(toProperties(config.getConsumerProperties()), new KafkaSqlKeyDeserializer(), new KafkaSqlValueDeserializer());
     }
 
-    /**
-     * Creates the Kafka data producer.
-     */
-    @ApplicationScoped
     @Produces
+    @ApplicationScoped
+    public KafkaSqlVerificationJournalConsumer createVerificationKafkaJournalConsumer() {
+        return new KafkaSqlVerificationJournalConsumer(() -> new KafkaConsumer<>(toProperties(config.getConsumerProperties()), new BytesDeserializer(), new BytesDeserializer()));
+    }
+
+    public static final class KafkaSqlVerificationJournalConsumer extends LazyResource<KafkaConsumer<Bytes, Bytes>> {
+
+        public KafkaSqlVerificationJournalConsumer(Supplier<KafkaConsumer<Bytes, Bytes>> create) {
+            super(create, null);
+        }
+    }
+
+    @Produces
+    @ApplicationScoped
     @Named("KafkaSqlSnapshotsProducer")
     public ProducerActions<String, String> createKafkaSnapshotsProducer() {
-        Properties props = (Properties) producerProperties.clone();
-
-        // Configure kafka settings
-        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + UUID.randomUUID().toString());
-        props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
-        props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 10);
-        props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class);
-
-        tryToConfigureSecurity(props);
-
-        // Create the Kafka producer
-        StringSerializer keySerializer = new StringSerializer();
-        StringSerializer valueSerializer = new StringSerializer();
-
-        // Create the Kafka Consumer
-        return new AsyncProducer<>(props, keySerializer, valueSerializer);
+        return new AsyncProducer<>(toProperties(config.getProducerProperties()), new StringSerializer(), new StringSerializer());
     }
 
-    /**
-     * Creates the Kafka journal consumer.
-     */
-    @ApplicationScoped
     @Produces
+    @ApplicationScoped
     @Named("KafkaSqlSnapshotsConsumer")
     public KafkaConsumer<String, String> createKafkaSnapshotsConsumer() {
-        Properties props = (Properties) consumerProperties.clone();
-
-        String consumerGroupId = groupPrefix + UUID.randomUUID().toString();
-
-        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
-        props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-        props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
-        props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        tryToConfigureSecurity(props);
-
-        StringDeserializer keySerializer = new StringDeserializer();
-        StringDeserializer valueSerializer = new StringDeserializer();
-
-        // Create the Kafka Consumer
-        return new KafkaConsumer<>(props, keySerializer, valueSerializer);
+        return new KafkaConsumer<>(toProperties(config.getConsumerProperties()), new StringDeserializer(), new StringDeserializer());
     }
 
-    /**
-     * Creates the Kafka data producer.
-     */
-    @ApplicationScoped
     @Produces
+    @ApplicationScoped
     @Named("KafkaSqlEventsProducer")
     public ProducerActions<String, String> createKafkaSqlEventsProducer() {
-        Properties props = (Properties) producerProperties.clone();
-
-        // Configure kafka settings
-        props.putIfAbsent(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.putIfAbsent(ProducerConfig.CLIENT_ID_CONFIG, "Producer-" + UUID.randomUUID().toString());
-        props.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
-        props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 10);
-        props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class);
-
-        tryToConfigureSecurity(props);
-
-        StringSerializer keySerializer = new StringSerializer();
-        StringSerializer valueSerializer = new StringSerializer();
-
-        // Create the Kafka producer
-        return new AsyncProducer<>(props, keySerializer, valueSerializer);
+        return new AsyncProducer<>(toProperties(config.getProducerProperties()), new StringSerializer(), new StringSerializer());
     }
 
-    private void tryToConfigureSecurity(Properties props) {
-        protocol.ifPresent(s -> props.putIfAbsent("security.protocol", s));
 
-        // Try to configure sasl for authentication
-        if (saslEnabled) {
-            props.putIfAbsent(SaslConfigs.SASL_JAAS_CONFIG,
-                    String.format(
-                            "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required "
-                                    + "  oauth.client.id=\"%s\" " + "  oauth.client.secret=\"%s\" "
-                                    + "  oauth.token.endpoint.uri=\"%s\" ;",
-                            clientId, clientSecret, tokenEndpoint));
-            props.putIfAbsent(SaslConfigs.SASL_MECHANISM, saslMechanism);
-            props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, loginCallbackHandler);
+    public static final class KafkaSqlJournalConsumer extends LazyResource<Admin> {
+
+        public KafkaSqlJournalConsumer(Supplier<Admin> create) {
+            super(create, null);
         }
-        // Try to configure the trustStore, if specified
-        if (trustStoreLocation.isPresent() && trustStorePassword.isPresent() && trustStoreType.isPresent()) {
-            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, trustStoreType.get());
-            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStoreLocation.get());
-            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword.get());
-        }
-        // Finally, try to configure the keystore, if specified
-        if (keyStoreLocation.isPresent() && keyStorePassword.isPresent() && keyStoreType.isPresent()) {
-            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, keyStoreType.get());
-            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStoreLocation.get());
-            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword.get());
-            keyPassword.ifPresent(s -> props.putIfAbsent(SslConfigs.SSL_KEY_PASSWORD_CONFIG, s));
+    }
+
+    @Produces
+    @ApplicationScoped
+    public KafkaAdminClient createKafkaAdminClient() {
+        return new KafkaAdminClient(() -> Admin.create(toProperties(config.getAdminProperties())));
+    }
+
+    public static final class KafkaAdminClient extends LazyResource<Admin> {
+
+        public KafkaAdminClient(Supplier<Admin> create) {
+            super(create, null);
         }
     }
 }

@@ -736,6 +736,11 @@ The following {registry} configuration options are available for each component 
 |`registry-events`
 |
 |Storage event topic
+|`apicurio.events.kafka.topic.*`
+|`map<string, string>`
+|
+|`3.1.3`
+|Kafka sql events topic properties. There is an optional Registry-specific configuration property: 'replication.factor'. IMPORTANT: As a temporary compatibility measure, configuration properties for this topic are also inherited from 'apicurio.kafkasql.topic' unless explicitly overridden by this property. This will be removed in a next minor version.
 |`apicurio.kafkasql.bootstrap.servers`
 |`string`
 |
@@ -750,12 +755,12 @@ The following {registry} configuration options are available for each component 
 |`integer`
 |`5000`
 |
-|Kafka sql storage consumer poll timeout
+|Kafka sql storage consumer poll timeout in milliseconds
 |`apicurio.kafkasql.coordinator.response-timeout`
 |`integer`
 |`30000`
 |
-|Kafka sql storage coordinator response timeout
+|Kafka sql storage coordinator response timeout in milliseconds
 |`apicurio.kafkasql.security.protocol`
 |`optional<string>`
 |
@@ -810,7 +815,12 @@ The following {registry} configuration options are available for each component 
 |`string`
 |`kafkasql-snapshots`
 |`3.0.0`
-|Kafka sql storage topic name
+|Kafka sql snapshots topic name
+|`apicurio.kafkasql.snapshots.topic.*`
+|`map<string, string>`
+|
+|`3.1.3`
+|Kafka sql snapshots topic properties. There are two optional Registry-specific configuration properties: 'partitions' and 'replication.factor'. IMPORTANT: As a temporary compatibility measure, configuration properties for this topic are also inherited from 'apicurio.kafkasql.topic' unless explicitly overridden by this property. This will be removed in a next minor version.
 |`apicurio.kafkasql.ssl.key.password`
 |`optional<string>`
 |
@@ -841,6 +851,16 @@ The following {registry} configuration options are available for each component 
 |`kafkasql-journal`
 |
 |Kafka sql storage topic name
+|`apicurio.kafkasql.topic-configuration-verification-override-enabled`
+|`boolean`
+|`false`
+|`3.1.3`
+|When using KafkaSQL storage, Apicurio Registry verifies that the topic configuration will not cause accidental data loss or corruption. Setting this property to true will partially disable this verification for *all* Apicurio Registry topics. Specifically, 'retention.ms=-1' is not enforced to support automatic cleanup when Apicurio Registry snapshotting feature is used. In this case, snapshots have to be made more frequently than messages are deleted. IMPORTANT: We might change which topics and which verification checks are affected by his configuration property in the future.
+|`apicurio.kafkasql.topic.*`
+|`map<string, string>`
+|
+|
+|Kafka sql storage topic properties. There are two optional Registry-specific configuration properties: 'partitions' and 'replication.factor'.
 |`apicurio.kafkasql.topic.auto-create`
 |`boolean`
 |`true`

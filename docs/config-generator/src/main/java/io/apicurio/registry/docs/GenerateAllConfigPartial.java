@@ -269,7 +269,7 @@ public class GenerateAllConfigPartial {
                             .orElse(""));
 
             // Get the property prefixes from @RegistryProperties annotation
-            var values = annotation.value("value").asStringArray();
+            var values = annotation.value("prefixes").asStringArray();
 
             for (String prefix : values) {
                 prefix = prefix.replace("app.authn.", "apicurio.auth.");

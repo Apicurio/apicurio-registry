@@ -76,7 +76,7 @@ public class KafkaSqlConfiguration {
     String topic;
 
     @Inject
-    @RegistryProperties(value = "apicurio.kafkasql.topic")
+    @RegistryProperties(prefixes = "apicurio.kafkasql.topic", excluded = {"auto-create", "configuration-verification-override-enabled"})
     @Info(category = CATEGORY_STORAGE, description = """
             Kafka sql storage topic properties. \
             There are two optional Registry-specific configuration properties: 'partitions' and 'replication.factor'.""")
@@ -105,7 +105,7 @@ public class KafkaSqlConfiguration {
     String snapshotsTopic;
 
     @Inject
-    @RegistryProperties(value = "apicurio.kafkasql.snapshots.topic")
+    @RegistryProperties(prefixes = "apicurio.kafkasql.snapshots.topic")
     @Info(category = CATEGORY_STORAGE, description = """
             Kafka sql snapshots topic properties. \
             There are two optional Registry-specific configuration properties: 'partitions' and 'replication.factor'. \
@@ -148,7 +148,7 @@ public class KafkaSqlConfiguration {
     String eventsTopic;
 
     @Inject
-    @RegistryProperties(value = "apicurio.events.kafka.topic")
+    @RegistryProperties(prefixes = "apicurio.events.kafka.topic")
     @Info(category = CATEGORY_STORAGE, description = """
             Kafka sql events topic properties. \
             There is an optional Registry-specific configuration property: 'replication.factor'. \
@@ -189,7 +189,7 @@ public class KafkaSqlConfiguration {
     String groupPrefix;
 
     @Inject
-    @RegistryProperties(value = {"apicurio.kafka.common", "apicurio.kafkasql.consumer"}, empties = {"ssl.endpoint.identification.algorithm="})
+    @RegistryProperties(prefixes = {"apicurio.kafka.common", "apicurio.kafkasql.consumer"}, defaults = {"ssl.endpoint.identification.algorithm="})
     Properties consumerProperties;
 
     public Map<String, String> getConsumerProperties() {
@@ -213,7 +213,7 @@ public class KafkaSqlConfiguration {
     // === Producer configurations ===
 
     @Inject
-    @RegistryProperties(value = {"apicurio.kafka.common", "apicurio.kafkasql.producer"}, empties = {"ssl.endpoint.identification.algorithm="})
+    @RegistryProperties(prefixes = {"apicurio.kafka.common", "apicurio.kafkasql.producer"}, defaults = {"ssl.endpoint.identification.algorithm="})
     Properties producerProperties;
 
     public Map<String, String> getProducerProperties() {
@@ -236,7 +236,7 @@ public class KafkaSqlConfiguration {
     // === Admin client configurations ===
 
     @Inject
-    @RegistryProperties(value = {"apicurio.kafka.common", "apicurio.kafkasql.admin"}, empties = {"ssl.endpoint.identification.algorithm="})
+    @RegistryProperties(prefixes = {"apicurio.kafka.common", "apicurio.kafkasql.admin"}, defaults = {"ssl.endpoint.identification.algorithm="})
     Properties adminProperties;
 
     public Map<String, String> getAdminProperties() {

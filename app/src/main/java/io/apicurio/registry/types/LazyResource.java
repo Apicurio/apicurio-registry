@@ -12,7 +12,7 @@ import java.util.function.Supplier;
  * <p>
  * Represents a resource that can be repeatedly created and then closed as needed to save resources.
  * <p>
- * Can be created ether by using the constructor,
+ * Can be created either by using the constructor,
  * or by overriding the {@link #create()} or optionally the {@link #closeInternal(T)} methods.
  */
 public abstract class LazyResource<T> {

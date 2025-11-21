@@ -56,7 +56,7 @@ public class KafkaSqlConfiguration {
             Setting this property to true will partially disable this verification for *all* Apicurio Registry topics. \
             Specifically, 'retention.ms=-1' is not enforced to support automatic cleanup when Apicurio Registry snapshotting feature is used. \
             In this case, snapshots have to be made more frequently than messages are deleted. \
-            IMPORTANT: We might change which topics and which verification checks are affected by his configuration property in the future.""", registryAvailableSince = "3.1.3")
+            IMPORTANT: We might change which topics and which verification checks are affected by this configuration property in the future.""", registryAvailableSince = "3.1.3")
     @Getter
     boolean topicConfigurationVerificationOverrideEnabled;
 

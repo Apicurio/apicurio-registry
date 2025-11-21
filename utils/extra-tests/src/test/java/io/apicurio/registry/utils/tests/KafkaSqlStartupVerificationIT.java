@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.Set;
 
+import static io.apicurio.registry.utils.ConcurrentUtil.blockOn;
+import static io.apicurio.registry.utils.kafka.KafkaUtil.toJavaFuture;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class KafkaSqlStartupVerificationIT {
@@ -149,7 +151,7 @@ public class KafkaSqlStartupVerificationIT {
     void afterEach() {
         registry3.stop();
         registry2.stop();
-        kafka.getAdminClient().deleteTopics(Set.of("kafkasql-journal", "kafkasql-snapshots", "registry-events"));
+        blockOn(toJavaFuture(kafka.getAdminClient().deleteTopics(Set.of("kafkasql-journal", "kafkasql-snapshots", "registry-events")).all()));
     }
 
     @AfterAll

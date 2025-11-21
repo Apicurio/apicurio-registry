@@ -9,13 +9,11 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
+import static io.apicurio.registry.utils.RandomUtil.RANDOM;
 import static org.junit.Assert.assertEquals;
 
 public class ConfluentTestUtils {
-
-    private static final Random random = new Random();
 
     /**
      * Helper method which checks the number of versions registered under the given subject.
@@ -56,7 +54,7 @@ public class ConfluentTestUtils {
 
         for (int i = 0; i < num; i++) {
             String schemaString = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
-                    + "[{\"type\":\"string\",\"name\":" + "\"f" + random.nextInt(Integer.MAX_VALUE) + "\"}]}";
+                    + "[{\"type\":\"string\",\"name\":" + "\"f" + RANDOM.nextInt(Integer.MAX_VALUE) + "\"}]}";
             avroStrings.add(new AvroSchema(ContentHandle.create(schemaString).content()).canonicalString());
         }
         return avroStrings;
@@ -75,6 +73,6 @@ public class ConfluentTestUtils {
 
     public static String getBadSchema() {
         return "{\"type\":\"bad-record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
-                + "[{\"type\":\"string\",\"name\":" + "\"f" + random.nextInt(Integer.MAX_VALUE) + "\"}]}";
+                + "[{\"type\":\"string\",\"name\":" + "\"f" + RANDOM.nextInt(Integer.MAX_VALUE) + "\"}]}";
     }
 }

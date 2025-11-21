@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.registry.logging.Logged;
-import io.apicurio.registry.utils.kafka.ProducerActions;
+import io.apicurio.registry.storage.impl.util.ProducerActions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.event.Shutdown;
@@ -18,6 +18,10 @@ import java.util.concurrent.CompletableFuture;
 @ApplicationScoped
 @Logged
 public class KafkaSqlSubmitter {
+
+    public static final String REQUEST_ID_HEADER = "req";
+    public static final String MESSAGE_TYPE_HEADER = "mt";
+    public static final String BOOTSTRAP_MESSAGE_TYPE = "Bootstrap";
 
     @Inject
     KafkaSqlConfiguration configuration;
@@ -46,19 +50,19 @@ public class KafkaSqlSubmitter {
      * @param key
      * @param value
      */
-    public CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value) {
+    private CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value) {
         UUID requestId = coordinator.createUUID();
-        RecordHeader requestIdHeader = new RecordHeader("req",
+        RecordHeader requestIdHeader = new RecordHeader(REQUEST_ID_HEADER,
                 requestId.toString().getBytes(StandardCharsets.UTF_8));
-        RecordHeader messageTypeHeader = new RecordHeader("mt",
+        RecordHeader messageTypeHeader = new RecordHeader(MESSAGE_TYPE_HEADER,
                 key.getMessageType().getBytes(StandardCharsets.UTF_8));
         ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = new ProducerRecord<>(
-                configuration.topic(), 0, key, value, List.of(requestIdHeader, messageTypeHeader));
+                configuration.getTopic(), null, key, value, List.of(requestIdHeader, messageTypeHeader));
         return producer.apply(record).thenApply(rm -> requestId);
     }
 
     public void submitBootstrap(String bootstrapId) {
-        KafkaSqlMessageKey key = KafkaSqlMessageKey.builder().messageType("Bootstrap").uuid(bootstrapId)
+        KafkaSqlMessageKey key = KafkaSqlMessageKey.builder().messageType(BOOTSTRAP_MESSAGE_TYPE).uuid(bootstrapId)
                 .build();
         send(key, null);
     }

@@ -69,7 +69,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.BOOTSTRAP_MESSAGE_TYPE;
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
@@ -147,16 +146,17 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     public void initialize() {
         log.info("Using Kafka-SQL artifactStore.");
 
-        // First, if needed create the Kafka topics.
+        // First, if needed, create the Kafka topics.
         if (configuration.getTopicAutoCreate()) {
-            autoCreateTopics();
+            // This is sequential instead of concurrent, but I think for 3 topics it's worth the simplicity.
+            kafkaAdmin.createTopicIfDoesNotExist(configuration.getTopic(), configuration.getTopicProperties());
+            kafkaAdmin.createTopicIfDoesNotExist(configuration.getSnapshotsTopic(), configuration.getSnapshotTopicProperties());
+            kafkaAdmin.createTopicIfDoesNotExist(configuration.getEventsTopic(), configuration.getEventsTopicProperties());
         }
 
-        List.of(
-                configuration.getTopic(),
-                configuration.getSnapshotsTopic(),
-                configuration.getEventsTopic()
-        ).forEach(t -> kafkaAdmin.verifyTopicConfiguration(t));
+        kafkaAdmin.verifyTopicConfiguration(configuration.getTopic());
+        kafkaAdmin.verifyTopicConfiguration(configuration.getSnapshotsTopic());
+        kafkaAdmin.verifyTopicConfiguration(configuration.getEventsTopic());
         adminClient.close();
         kafkaAdmin.verifyJournalTopicContents();
 
@@ -189,36 +189,6 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         stopped = true;
         journalConsumer.close();
         snapshotsConsumer.close();
-    }
-
-    /**
-     * Automatically create the Kafka topics.
-     */
-    private void autoCreateTopics() {
-        // This is sequential instead of concurrent, but I think for 3 topics it's worth the simplicity.
-        List.of(
-                Pair.of(configuration.getTopic(), configuration.getTopicProperties()),
-                Pair.of(configuration.getSnapshotsTopic(), configuration.getSnapshotTopicProperties()),
-                Pair.of(configuration.getEventsTopic(), configuration.getEventsTopicProperties())
-        ).forEach(pair -> {
-            var showConfig = true;
-            try {
-                if (blockOnResult(kafkaAdmin.createTopicIfDoesNotExistAsync(pair.getLeft(), pair.getRight()))) {
-                    log.info("Topic '{}' created.", pair.getLeft());
-                } else {
-                    log.info("Topic '{}' already exists.", pair.getLeft());
-                    showConfig = false;
-                }
-            } catch (Exception ex) {
-                log.error("Could not create topic '" + pair.getLeft() + "'.", ex);
-                throw ex;
-            } finally {
-                if (showConfig) {
-                    log.debug("When created, topic '{}' should have the following configuration properties:\n{}", pair.getLeft(),
-                            pair.getRight().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("\n")));
-                }
-            }
-        });
     }
 
     /**
@@ -421,7 +391,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         String content = versionContent != null ? versionContent.getContent().content() : null;
         String contentType = versionContent != null ? versionContent.getContentType() : null;
         List<ArtifactReferenceDto> references = versionContent != null ? versionContent.getReferences()
-            : null;
+                : null;
         var message = new CreateArtifact11Message(groupId, artifactId, artifactType, artifactMetaData,
                 version, contentType, content, references, versionMetaData, versionBranches, versionIsDraft,
                 dryRun, owner);
@@ -556,14 +526,14 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
         switch (rule) {
             case VALIDITY ->
-                outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId, artifactId, rule,
-                        RuleConfigurationDto.builder().configuration(ValidityLevel.NONE.name()).build())));
+                    outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId, artifactId, rule,
+                            RuleConfigurationDto.builder().configuration(ValidityLevel.NONE.name()).build())));
             case COMPATIBILITY -> outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId,
                     artifactId, rule,
                     RuleConfigurationDto.builder().configuration(CompatibilityLevel.NONE.name()).build())));
             case INTEGRITY ->
-                outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId, artifactId, rule,
-                        RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
+                    outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId, artifactId, rule,
+                            RuleConfigurationDto.builder().configuration(IntegrityLevel.NONE.name()).build())));
         }
     }
 

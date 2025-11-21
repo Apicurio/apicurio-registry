@@ -235,6 +235,64 @@ public class GenerateAllConfigPartial {
             }
         }
 
+        // Process @RegistryProperties annotations to generate wildcard property entries
+        DotName registryProperties = DotName.createSimple("io.apicurio.registry.utils.RegistryProperties");
+        List<AnnotationInstance> registryPropertiesAnnotations = index.getAnnotations(registryProperties);
+
+        for (AnnotationInstance annotation : registryPropertiesAnnotations) {
+            if (annotation.target().kind() != org.jboss.jandex.AnnotationTarget.Kind.FIELD) {
+                continue;
+            }
+
+            // Extract @Info annotation for metadata
+            var info = annotation
+                    .target()
+                    .asField()
+                    .annotations()
+                    .stream()
+                    .filter(a -> a.name().toString().equals("io.apicurio.common.apps.config.Info"))
+                    .findFirst();
+
+            if (!info.isPresent()) {
+                // Skip fields without @Info annotation
+                continue;
+            }
+
+            var variant = (String) info.get().value("category").value();
+            var category = ConfigPropertyCategory.valueOf(variant).getRawValue();
+            var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
+
+            var availableSince = Optional.ofNullable(info.get().value("registryAvailableSince"))
+                    .map(v -> v.value().toString())
+                    .orElse(Optional.ofNullable(info.get().value("availableSince"))
+                            .map(v -> v.value().toString())
+                            .orElse(""));
+
+            // Get the property prefixes from @RegistryProperties annotation
+            var values = annotation.value("value").asStringArray();
+
+            for (String prefix : values) {
+                prefix = prefix.replace("app.authn.", "apicurio.auth.");
+                var wildcardPropertyName = prefix + ".*";
+
+                if (allConfiguration.containsKey(wildcardPropertyName)) {
+                    continue;
+                }
+                if (skipProperties.contains(wildcardPropertyName)) {
+                    continue;
+                }
+
+                allConfiguration.put(wildcardPropertyName, new Option(
+                        wildcardPropertyName,
+                        category,
+                        description,
+                        "map<string, string>",
+                        "",
+                        availableSince
+                ));
+            }
+        }
+
         return allConfiguration;
     }
 

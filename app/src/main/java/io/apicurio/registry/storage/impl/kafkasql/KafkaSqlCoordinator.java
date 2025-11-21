@@ -44,7 +44,7 @@ public class KafkaSqlCoordinator {
      */
     public Object waitForResponse(UUID uuid) {
         try {
-            latches.get(uuid).await(configuration.responseTimeout(), TimeUnit.MILLISECONDS);
+            latches.get(uuid).await(configuration.getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
 
             Object rval = returnValues.remove(uuid);
             if (rval == NULL) {
